@@ -98,15 +98,6 @@ export function meterSeries(detail) {
   return data.every((v) => v == null) ? null : data
 }
 
-/** Último valor no nulo de una serie (la potencia "de ahora"). */
-export function latest(series) {
-  if (!series) return null
-  for (let i = series.length - 1; i >= 0; i--) {
-    if (series[i] != null) return series[i]
-  }
-  return null
-}
-
 // ── El número de cada panel: ENERGÍA acumulada del día, en kWh ────────────
 //
 // No es la potencia instantánea, a propósito: es lo que alguien quiere saber
@@ -202,12 +193,10 @@ export function haceCuanto(hhmm) {
   return `hace ${Math.floor(min / 60)} h`
 }
 
-/** kW → "1.2 MW" / "312.0 kW" / "—". */
-export function fmtKw(kw) {
-  if (kw == null) return '—'
-  if (kw >= 1000) return (kw / 1000).toFixed(1) + ' MW'
-  return kw.toFixed(1) + ' kW'
-}
+// No hay `latest()` ni `fmtKw()` a proposito: los dos existian para mostrar la
+// POTENCIA instantanea, y las dos vistas pasaron a mostrar el acumulado del dia
+// (2026-09-07). Si alguna vez se quiere volver a mostrar la potencia --p.ej. al
+// lado del acumulado en el movil-- vuelven juntas, no una sola.
 
 /** kWh → "5.995 kWh" / "—", con separador de miles en es-CO. */
 export function fmtKwh(kwh) {

@@ -284,11 +284,11 @@ import {
   acumuladoInversores,
   acumuladoMedidor,
   fmtKwh,
-  gaiaTime,
   haceCuanto,
   hastaInversores,
   hastaMedidor,
-  mapMinutes,
+  inverterSeries,
+  meterSeries,
 } from '~/features/solar/serieSolar'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
@@ -440,15 +440,13 @@ const crosshairPlugin = {
 }
 
 // ── Datos de gráficas ─────────────────────────────────────────────────────
+// La SERIE la arma serieSolar (igual que la grafica del movil); aca solo va la
+// configuracion de Chart.js, que si es propia del escritorio. Antes esta funcion
+// repetia el bucketeo literalmente -- el mismo copiar-pegar que hizo divergir
+// las dos vistas dos veces esta semana.
 function getInversorData(id) {
-  const curve = detailMap[id]?.power_curve ?? []
-  if (!curve.length) return { labels: [], datasets: [] }
-  const data = mapMinutes(
-    curve,
-    pt => { const t = pt.time || ''; return t.includes(' ') ? t.split(' ')[1] : t },
-    pt => pt.kw != null ? +pt.kw : null,
-  )
-  if (data.every(v => v == null)) return { labels: [], datasets: [] }
+  const data = inverterSeries(detailMap[id])
+  if (!data) return { labels: [], datasets: [] }
   return {
     labels: TIME_LABELS,
     datasets: [{ label: 'Inversores (kW)', data, borderColor: '#915BD8',
@@ -473,15 +471,14 @@ function medidorPanel(id) {
   const d = detailMap[id]
   const m = d?.medidor
   if (!m) return null
-  const filas = (m.curva ?? []).filter(r => r.kw != null)
-  const data = filas.length ? mapMinutes(filas, r => gaiaTime(r.time), r => +r.kw) : []
+  const data = meterSeries(d)
   return {
     // 'P'/'R' solo si hay dos medidores; con uno solo la etiqueta sobra.
     tipo: d.medidor_respaldo ? (m.node_id === d.medidor_principal?.node_id ? 'P' : 'R') : null,
     energiaKwh: acumuladoMedidor(d),
     energiaHasta: hastaMedidor(d),
     // Sin relleno: si la telemetria de potencia se cayo, el hueco se ve.
-    chart: data.some(v => v != null)
+    chart: data
       ? { labels: TIME_LABELS, datasets: [{ label: 'Medidores (kW)', data, borderColor: '#D4A017',
           backgroundColor: 'rgba(212,160,23,0.15)', fill: true, tension: 0.35,
           pointRadius: 0, borderWidth: 2, spanGaps: true }] }
@@ -578,11 +575,6 @@ async function loadDetail(id) {
   } catch { detailMap[id] = {} }
 }
 
-function fmtKw(kw) {
-  if (kw == null) return '—'
-  if (kw >= 1000) return (kw / 1000).toFixed(1) + ' MW'
-  return kw.toFixed(1) + ' kW'
-}
 
 
 onMounted(() => {
