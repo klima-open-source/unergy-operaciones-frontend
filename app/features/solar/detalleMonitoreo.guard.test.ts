@@ -8,7 +8,7 @@
  * `medidor` ya resuelto. Tres consumidores siguieron leyendo los campos
  * viejos, y los tres quedaron rotos en producción sin que nada fallara:
  *
- *   · solarSeries.js        -> la gráfica de medidores de la app móvil, vacía
+ *   · serieSolar.js         -> la gráfica de medidores de la app móvil, vacía
  *   · FasorialButton.vue    -> el diagrama fasorial, sin datos
  *   · SolarLiveView.vue     -> este se corrigió a tiempo, los otros dos no
  *
@@ -56,7 +56,7 @@ const CAMPOS_DEL_DETALLE = new Set([
 
 /** Archivos que consumen el detalle, con el nombre que le dan a la variable. */
 const CONSUMIDORES: { archivo: string; variables: string[] }[] = [
-  { archivo: 'app/features/mobile/components/solarSeries.js', variables: ['detail'] },
+  { archivo: 'app/features/solar/serieSolar.js', variables: ['detail'] },
   {
     archivo: 'app/features/solar/components/SolarLiveView.vue',
     variables: ['detailMap\\[id\\]', 'detailMap\\[proy\\.proyecto_id\\]'],

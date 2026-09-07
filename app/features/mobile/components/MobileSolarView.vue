@@ -62,14 +62,22 @@
               <span class="ms-now-dot" style="background:var(--color-unergy-purple)" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Inversores</span>
-                <span class="ms-now-val">{{ fmtKw(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
+                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
+                <span v-if="nowMap[p.proyecto_id]?.invHasta" class="ms-now-hasta">
+                  hasta {{ nowMap[p.proyecto_id].invHasta }}<template
+                    v-if="haceCuanto(nowMap[p.proyecto_id].invHasta)"> · {{ haceCuanto(nowMap[p.proyecto_id].invHasta) }}</template>
+                </span>
               </div>
             </div>
             <div class="ms-now-chip">
               <span class="ms-now-dot" style="background:#14B8A6" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Medidor</span>
-                <span class="ms-now-val">{{ fmtKw(nowMap[p.proyecto_id]?.med ?? null) }}</span>
+                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span>
+                <span v-if="nowMap[p.proyecto_id]?.medHasta" class="ms-now-hasta">
+                  hasta {{ nowMap[p.proyecto_id].medHasta }}<template
+                    v-if="haceCuanto(nowMap[p.proyecto_id].medHasta)"> · {{ haceCuanto(nowMap[p.proyecto_id].medHasta) }}</template>
+                </span>
               </div>
             </div>
           </div>
@@ -158,7 +166,14 @@ import { NotificacionesService } from '~/features/notificaciones/services/notifi
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
 import { usePwa } from '~/features/mobile/components/usePwa'
-import { inverterSeries, meterSeries, latest, fmtKw } from '~/features/mobile/components/solarSeries'
+import {
+  acumuladoInversores,
+  acumuladoMedidor,
+  fmtKwh,
+  haceCuanto,
+  hastaInversores,
+  hastaMedidor,
+} from '~/features/solar/serieSolar'
 import ProjectLiveChart from '~/features/mobile/components/components/ProjectLiveChart.vue'
 import ReconnectSheet from '~/features/mobile/components/components/ReconnectSheet.vue'
 import ReconnectorPanel from '~/features/mobile/components/components/ReconnectorPanel.vue'
@@ -331,7 +346,12 @@ async function loadDetail(id, force = false) {
   try {
     const res = await generacionSolarService.obtenerDetalle(id)
     detailMap[id] = res
-    nowMap[id] = { inv: latest(inverterSeries(res)), med: latest(meterSeries(res)) }
+    // El MISMO numero que el escritorio: energia acumulada del dia en kWh, no
+    // la potencia instantanea. Ver el docstring de ~/features/solar/serieSolar.
+    nowMap[id] = {
+      inv: acumuladoInversores(res), invHasta: hastaInversores(res),
+      med: acumuladoMedidor(res), medHasta: hastaMedidor(res),
+    }
     lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
   } catch { if (!detailMap[id]) detailMap[id] = {} } finally {
     loadingDetail.value = Math.max(0, loadingDetail.value - 1)
@@ -501,6 +521,7 @@ onUnmounted(() => {
 .ms-now-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .ms-now-text { display: flex; flex-direction: column; min-width: 0; }
 .ms-now-label { font-size: clamp(9.5px, 2.6vw, 10.5px); color: #787774; font-weight: 500; }
+.ms-now-hasta { font-size: clamp(8.5px, 2.3vw, 9.5px); color: #9b89b5; font-weight: 400; line-height: 1.2; white-space: nowrap; }
 .ms-now-val { font-size: clamp(13px, 3.8vw, 16px); font-weight: 700; color: var(--color-unergy-deep); line-height: 1.15; letter-spacing: -0.2px; white-space: nowrap; }
 
 .ms-chart {

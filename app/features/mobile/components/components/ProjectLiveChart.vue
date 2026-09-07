@@ -15,7 +15,7 @@ import {
   PointElement, LineElement, Title, Legend, Filler,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-import { TIME_LABELS, inverterSeries, meterSeries } from '~/features/mobile/components/solarSeries'
+import { TIME_LABELS, inverterSeries, meterSeries } from '~/features/solar/serieSolar'
 import { ChartLineIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Legend, Filler)

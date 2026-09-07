@@ -148,15 +148,13 @@
                      grande, con hasta que hora cubre. Son horas sumadas, no una
                      lectura del ultimo instante. -->
                 <div class="sl-ahora">
-                  <span :class="['sl-ahora-kw', { 'sl-ahora-sin': getInversorAcum(proy.proyecto_id) === null }]">
-                    {{ getInversorAcum(proy.proyecto_id) !== null
-                        ? getInversorAcum(proy.proyecto_id).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh'
-                        : '—' }}
+                  <span :class="['sl-ahora-kw', { 'sl-ahora-sin': acumuladoInversores(detailMap[proy.proyecto_id]) === null }]">
+                    {{ fmtKwh(acumuladoInversores(detailMap[proy.proyecto_id])) }}
                   </span>
-                  <span v-if="detailMap[proy.proyecto_id]?.generation_today_hasta" class="sl-ahora-t">
-                    hasta {{ detailMap[proy.proyecto_id].generation_today_hasta }}
-                    <template v-if="haceCuanto(detailMap[proy.proyecto_id].generation_today_hasta)">
-                      · {{ haceCuanto(detailMap[proy.proyecto_id].generation_today_hasta) }}
+                  <span v-if="hastaInversores(detailMap[proy.proyecto_id])" class="sl-ahora-t">
+                    hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
+                    <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
+                      · {{ haceCuanto(hastaInversores(detailMap[proy.proyecto_id])) }}
                     </template>
                   </span>
                 </div>
@@ -182,7 +180,7 @@
                        la potencia instantanea. Sale del contador, con su hora. -->
                   <div class="sl-ahora">
                     <span :class="['sl-ahora-kw', { 'sl-ahora-sin': panelesMedidor[proy.proyecto_id].energiaKwh === null }]">
-                      {{ panelesMedidor[proy.proyecto_id].energiaKwh !== null ? panelesMedidor[proy.proyecto_id].energiaKwh.toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh' : '—' }}
+                      {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
                     </span>
                     <span v-if="panelesMedidor[proy.proyecto_id].energiaHasta" class="sl-ahora-t">
                       hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
@@ -278,6 +276,20 @@ import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
 import AutoComplete from 'primevue/autocomplete'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+// Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
+// aparte porque las dos ya se separaron dos veces leyendo el mismo endpoint --
+// ver el docstring del modulo.
+import {
+  TIME_LABELS,
+  acumuladoInversores,
+  acumuladoMedidor,
+  fmtKwh,
+  gaiaTime,
+  haceCuanto,
+  hastaInversores,
+  hastaMedidor,
+  mapMinutes,
+} from '~/features/solar/serieSolar'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
 
@@ -427,55 +439,6 @@ const crosshairPlugin = {
   },
 }
 
-// ── Labels cada 5 min (00:00–23:55) ──────────────────────────────────────
-const TIME_LABELS = Array.from({ length: 288 }, (_, i) => {
-  const h = Math.floor(i * 5 / 60)
-  const m = (i * 5) % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-})
-
-// Cuanto hace que se tomo un dato de HOY, a partir de su "HH:MM". Se muestra
-// SIEMPRE al lado de la hora: obliga a nadie a restar mentalmente, y es la
-// unica senal de que una fuente dejo de reportar. Caso real del 2026-09-05:
-// 18 de 47 medidores se congelaron a las 07:00 (un corte del lado de Quoia) y
-// la tarjeta solo decia "hasta 06:15" -- correcto, pero habia que darse cuenta.
-function haceCuanto(hhmm) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || '')
-  if (!m) return ''
-  const ahora = new Date()
-  const dato = new Date(ahora)
-  dato.setHours(+m[1], +m[2], 0, 0)
-  const min = Math.floor((ahora - dato) / 60000)
-  if (min < 0) return ''            // reloj adelantado: mejor no decir nada
-  if (min < 60) return `hace ${min} min`
-  return `hace ${Math.floor(min / 60)} h`
-}
-
-function gaiaTime(t) {
-  if (!t) return ''
-  const idx = t.indexOf('T')
-  return idx >= 0 ? t.slice(idx + 1, idx + 6) : t.slice(0, 5)
-}
-
-function mapMinutes(points, getTime, getKw) {
-  const buckets = {}
-  for (const pt of points) {
-    const raw = getTime(pt)
-    if (!raw) continue
-    const m = raw.match(/(\d{1,2}):(\d{2})/)
-    if (!m) continue
-    const slot = parseInt(m[1], 10) * 12 + Math.floor(parseInt(m[2], 10) / 5)
-    if (!buckets[slot]) buckets[slot] = []
-    const v = getKw(pt)
-    if (v != null) buckets[slot].push(v)
-  }
-  return TIME_LABELS.map((_, i) => {
-    const arr = buckets[i]
-    if (!arr?.length) return null
-    return +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(3)
-  })
-}
-
 // ── Datos de gráficas ─────────────────────────────────────────────────────
 function getInversorData(id) {
   const curve = detailMap[id]?.power_curve ?? []
@@ -494,31 +457,6 @@ function getInversorData(id) {
   }
 }
 
-
-// ── Acumulados ────────────────────────────────────────────────────────────
-// Fecha de hoy en hora Colombia (UTC-5) para coincidir con el backend
-const _todayStr = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
-
-function getInversorAcum(id) {
-  // Fuente primaria: total de hoy calculado por Solenium (endpoint /generation/,
-  // más preciso que integrar nosotros la curva de potencia por trapecios).
-  const genHoy = detailMap[id]?.generation_today_kwh
-  if (genHoy != null && genHoy > 0) return genHoy
-  // Fallback 1: generación real del día ya cerrado (histórico de 30 días)
-  const gen30 = detailMap[id]?.generation_30d ?? []
-  const hoy = gen30.find(d => d.date === _todayStr)
-  if (hoy?.kwh > 0) return hoy.kwh
-  // Fallback 2: integración trapezoidal de la curva de potencia
-  const curve = detailMap[id]?.power_curve ?? []
-  if (curve.length < 2) return null
-  let kwh = 0
-  for (let i = 1; i < curve.length; i++) {
-    const dtH = _timeDiffH(curve[i - 1].time, curve[i].time)
-    const avgKw = ((+(curve[i - 1].kw || 0)) + (+(curve[i].kw || 0))) / 2
-    kwh += avgKw * dtH
-  }
-  return kwh > 0 ? kwh : null
-}
 
 // ── Selección del mejor snapshot de medidor ───────────────────────────────
 // Todo lo que el panel de Medidores necesita, en un solo lugar. El backend ya
@@ -540,10 +478,8 @@ function medidorPanel(id) {
   return {
     // 'P'/'R' solo si hay dos medidores; con uno solo la etiqueta sobra.
     tipo: d.medidor_respaldo ? (m.node_id === d.medidor_principal?.node_id ? 'P' : 'R') : null,
-    energiaKwh: m.energia_kwh > 0 ? m.energia_kwh : null,
-    // El contador va en intervalos mas largos que la potencia: el acumulado
-    // puede ir hasta media hora por detras del numero de ahora.
-    energiaHasta: gaiaTime(m.energia_hasta ?? '') || null,
+    energiaKwh: acumuladoMedidor(d),
+    energiaHasta: hastaMedidor(d),
     // Sin relleno: si la telemetria de potencia se cayo, el hueco se ve.
     chart: data.some(v => v != null)
       ? { labels: TIME_LABELS, datasets: [{ label: 'Medidores (kW)', data, borderColor: '#D4A017',
@@ -558,21 +494,9 @@ function medidorPanel(id) {
 // Potencia de AHORA y su frescura: los dos ya llegaban en la respuesta y la
 // vista los descartaba, en una pestana cuyo proposito es el tiempo real.
 
-function _timeDiffH(t1, t2) {
-  if (!t1 || !t2) return 0
-  try {
-    const toMins = t => {
-      const s = t.replace('T', ' ').split(' ').pop()
-      const [h, m] = s.split(':').map(Number)
-      return h * 60 + (m || 0)
-    }
-    return Math.abs(toMins(t2) - toMins(t1)) / 60
-  } catch { return 0 }
-}
-
 // ── % diferencia ─────────────────────────────────────────────────────────
 function getDiffPct(id) {
-  const inv = getInversorAcum(id)
+  const inv = acumuladoInversores(detailMap[id])
   const med = medidorPanel(id)?.energiaKwh ?? null
   if (inv == null || med == null || med === 0) return null
   return +((inv - med) / med * 100).toFixed(1)
