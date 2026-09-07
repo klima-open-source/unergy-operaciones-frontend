@@ -1245,26 +1245,6 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
       '</div>'
   }
 
-  // Mantenimientos
-  const mantArr = fmoData?.mantenimientos || []
-  let mantHtml = ''
-  if (mantArr.length) {
-    mantHtml = '<table class="fmo-mant-table"><thead><tr>' +
-      '<th style="width:95px">FECHA</th><th style="width:110px">TIPO</th><th>DESCRIPCIÓN</th><th style="width:100px">ESTADO</th></tr></thead><tbody>'
-    mantArr.forEach(m => {
-      const stCol = m.estado === 'Ejecutado' ? '#2D8A4E' : m.estado === 'Pospuesto' ? '#CC0000' : '#B8860B'
-      mantHtml += '<tr>' +
-        `<td style="font-size:10px;color:#6B35C0;font-weight:700">${esc(m.fecha || '—')}</td>` +
-        `<td>${esc(m.tipo || '—')}</td>` +
-        `<td>${esc(m.descripcion || '—')}</td>` +
-        `<td style="color:${stCol};font-weight:700;text-align:center">${esc(m.estado || '—')}</td></tr>`
-    })
-    mantHtml += '</tbody></table>'
-  } else {
-    mantHtml = '<div style="font-size:11px;color:#A89EC0;padding:12px;background:#F9F7FD;border-radius:8px;text-align:center">' +
-      'Sin registros de mantenimiento en el período.</div>'
-  }
-
   // SLA table
   let slaHtml = '<table class="fmo-mant-table"><thead><tr>' +
     '<th style="width:90px">FECHA</th><th>DESCRIPCIÓN</th><th style="width:90px">GRAVEDAD</th><th style="width:70px">DÍAS ABIERTA</th><th style="width:80px">SLA</th>' +
@@ -1297,8 +1277,7 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     (pct !== null ? `, ${pct >= 0 ? 'superando en +' : 'por debajo en '}${Math.abs(pct).toFixed(1)}% el umbral P90` : '') +
     `. La disponibilidad operativa calculada fue de ${dispStr}` +
     (cumpleDisp ? ` cumpliendo con el umbral contractual del ${DISP_GAR}%.` : ` por debajo del umbral garantizado del ${DISP_GAR}%, lo que genera la aplicación de multa según la Sección XIII.04 del contrato.`) +
-    (mf.length ? ` Se registraron ${mf.length} evento(s) operativo(s).` : ' Sin eventos operativos en el período.') +
-    (mantArr.length ? ` Se ejecutaron ${mantArr.length} actividad(es) de mantenimiento.` : '')
+    (mf.length ? ` Se registraron ${mf.length} evento(s) operativo(s).` : ' Sin eventos operativos en el período.')
 
   const resp = 'Operaciones Unergy'
   const contratista = contrato?.contratista || 'Unergy S.A.S.'
@@ -1376,9 +1355,18 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     '<div class="rpt-section"><div class="fmo-section-title">▌ 4. EVENTOS OPERATIVOS Y TIEMPOS DE RESPUESTA — Anexo 4</div>' +
     slaHtml +
     '</div>' +
-    // S5
+    // S5 -- se escribe a mano, igual que la 6 (garantias). La tabla
+    // `mantenimientos` se elimino del backend el 2026-09-07: tenia 0 filas y
+    // NINGUNA forma de crear un registro --ni endpoint, ni pantalla--, asi que
+    // esta seccion imprimia "Sin registros" para siempre y nadie podia
+    // cambiarlo. Provisional: lo que falta es la entidad `equipo` de la que
+    // deberia colgar el mantenimiento; hasta entonces, al menos el Anexo 3 se
+    // puede llenar antes de imprimir.
     '<div class="rpt-section"><div class="fmo-section-title">▌ 5. PLAN DE MANTENIMIENTO EJECUTADO — Anexo 3</div>' +
-    mantHtml + '</div>' +
+    '<div class="rpt-obs-title">MANTENIMIENTOS EJECUTADOS EN EL PERÍODO <span class="rpt-edit-hint">✏️ clic para editar</span></div>' +
+    '<div contenteditable="true" data-obs="4" class="rpt-obs-editable" style="min-height:60px;outline:none;border:1px solid #EDE8F5;border-radius:8px;padding:12px 14px;background:#F7F4FD;font-size:12px;color:#3D2D5C;line-height:1.8">' +
+    'Sin mantenimientos ejecutados en el período. Edita aquí antes de imprimir si aplica.' +
+    '</div></div>' +
     // S6
     '<div class="rpt-section"><div class="fmo-section-title">▌ 6. ESTADO DE GARANTÍAS DE EQUIPOS</div>' +
     '<div class="rpt-obs-title">GARANTÍAS EN TRÁMITE / ESTADO ACTUAL <span class="rpt-edit-hint">✏️ clic para editar</span></div>' +
