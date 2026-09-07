@@ -50,6 +50,11 @@
                 class="w-48" placeholder="Todos" showClear />
       </div>
       <div>
+        <label class="field-label">Portafolio</label>
+        <Select v-model="filters.portafolio_id" :options="portafolios" optionLabel="nombre" optionValue="id"
+                filter class="w-48" placeholder="Todos" showClear />
+      </div>
+      <div>
         <label class="field-label">PPA</label>
         <MultiSelect v-model="filters.ppa" :options="ppaOptions" optionLabel="label" optionValue="value"
                      filter display="chip" class="w-64" placeholder="Todos"
@@ -431,12 +436,14 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import ProyectoForm from './ProyectoForm.vue'
 import { formatearNombreProyecto } from './proyectosUi'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { CheckIcon, ChevronDownIcon, EyeIcon, FileSpreadsheetIcon, LoaderCircleIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const proyectosService = new ProyectosService()
+const portafoliosService = new PortafoliosService()
 
 const router = useRouter()
 const route  = useRoute()
@@ -583,6 +590,7 @@ function avatarStackWidth(n) {
 
 // ── Estado ─────────────────────────────────────────────────────────────────────
 const allItems    = ref([])
+const portafolios = ref([])
 const loading     = ref(false)
 const dialogVisible = ref(false)
 const deleteVisible = ref(false)
@@ -603,13 +611,14 @@ const openSections = ref(new Set())    // reactive Set via full replacement
 // reales en la misma lista de opciones.
 const PPA_SIN = -1
 
-// Los filtros se sincronizan con la URL (?q=&estado=&tipo_proyecto=&departamento=&ppa=)
+// Los filtros se sincronizan con la URL (?q=&estado=&tipo_proyecto=&portafolio_id=&departamento=&ppa=)
 // para que se sostengan al volver con el boton "atras" o al refrescar --
 // antes vivian solo en memoria local y se perdian en cada montaje del componente.
 const filters = reactive({
   q: route.query.q || '',
   estado: route.query.estado || null,
   tipo_proyecto: route.query.tipo_proyecto || null,
+  portafolio_id: route.query.portafolio_id ? Number(route.query.portafolio_id) : null,
   departamento: route.query.departamento || null,
   ppa: parsePpaQuery(route.query.ppa),
 })
@@ -628,10 +637,20 @@ watch(filters, (f) => {
   if (f.q) query.q = f.q
   if (f.estado) query.estado = f.estado
   if (f.tipo_proyecto) query.tipo_proyecto = f.tipo_proyecto
+  if (f.portafolio_id) query.portafolio_id = f.portafolio_id
   if (f.departamento) query.departamento = f.departamento
   if (f.ppa?.length) query.ppa = f.ppa.join(',')
   router.replace({ query })
 })
+
+// Estado/Tipo/Portafolio/PPA ahora se filtran en el backend (antes se traian
+// TODOS los proyectos -- hasta 500 -- y se filtraban en el cliente, así que un
+// total mayor a 500 truncaba en silencio cualquier filtro). q y Departamento
+// siguen siendo client-side: el backend no tiene esas columnas como filtro.
+watch(
+  () => [filters.estado, filters.tipo_proyecto, filters.portafolio_id, filters.ppa.join(',')],
+  () => { load() },
+)
 
 // Departamentos presentes en los proyectos cargados, para el filtro (orden alfabético)
 const departamentoOptions = computed(() => {
@@ -690,6 +709,7 @@ const filteredItems = computed(() => {
   }
   if (filters.estado)        list = list.filter(p => p.estado === filters.estado)
   if (filters.tipo_proyecto) list = list.filter(p => p.tipo_proyecto === filters.tipo_proyecto)
+  if (filters.portafolio_id) list = list.filter(p => p.portafolio_id === filters.portafolio_id)
   if (filters.departamento)  list = list.filter(p => p.departamento === filters.departamento)
   if (filters.ppa?.length) {
     const sel = new Set(filters.ppa)
@@ -725,10 +745,39 @@ function toggleSection(tipo) {
 }
 
 // ── Carga de datos ─────────────────────────────────────────────────────────────
+async function loadPortafolios() {
+  const data = await portafoliosService.listar()
+  portafolios.value = data.portafolios ?? []
+}
+
+// Estado/Tipo/Portafolio/PPA se mandan al backend (ProyectosService.listarPaginado);
+// pagina en loop (en vez de un solo page=1&size=500) para no truncar en
+// silencio cuando el total supera 500 -- el bug que tenía la version anterior,
+// que nunca mandaba filtros al backend. q y Departamento siguen client-side.
 async function load() {
   loading.value = true
   try {
-    allItems.value = await proyectosService.listar({ page: 1, size: 500 })
+    const ppaIds = filters.ppa.filter(v => v !== PPA_SIN)
+    const sinPpa = filters.ppa.includes(PPA_SIN)
+
+    const items = []
+    let page = 1
+    for (;;) {
+      const data = await proyectosService.listarPaginado({
+        page,
+        size: 500,
+        estado: filters.estado || undefined,
+        tipo_proyecto: filters.tipo_proyecto || undefined,
+        portafolio_id: filters.portafolio_id || undefined,
+        ppaIds,
+        sinPpa,
+      })
+      items.push(...(data.items ?? []))
+      if (!data.items?.length) break
+      if (data.total != null && items.length >= data.total) break
+      page++
+    }
+    allItems.value = items
     // Abrir la primera sección automáticamente en la carga inicial
     if (openSections.value.size === 0) {
       const first = sectionList.value[0]?.tipo
@@ -741,6 +790,7 @@ async function load() {
 
 onMounted(() => {
   load()
+  loadPortafolios()
   loadPendientes()
 })
 

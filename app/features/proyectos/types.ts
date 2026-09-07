@@ -91,6 +91,7 @@ export interface ProyectoConDetalle extends Proyecto {
   inversionistas: InversionistaProyecto[]
   info_tecnica?: ProyectoInfoTecnica
   ppa_contratos?: ContratoPpaResumenProyecto[]
+  portafolio_id?: number | null
   fecha_inicio_comercializacion?: string | null
   fecha_entrada_operacion?: string | null
   fecha_fin_representacion?: string | null

@@ -58,11 +58,42 @@ export class ProyectosService extends BaseService {
     return comoLista(data)
   }
 
-  /** Igual que `listar`, pero sin desenvolver `Paginado`: para avisar cuando la página no trae todo. */
-  listarPaginado({ page = 1, size = 500 }: { page?: number; size?: number } = {}): Promise<
-    Paginado<ProyectoConDetalle>
-  > {
-    return this.get<Paginado<ProyectoConDetalle>>(RUTAS.proyectos, { query: { page, size } })
+  /**
+   * Igual que `listar`, pero sin desenvolver `Paginado` (para avisar cuando la
+   * página no trae todo) y con los filtros de la vista de lista: estado, tipo,
+   * portafolio y PPA (por contrato especifico, `ppaIds`, o `sinPpa` para "sin
+   * ningún contrato" — se combinan con OR, igual que en GET /proyectos).
+   *
+   * El querystring se arma a mano (no con la opción `query` de `BaseService`)
+   * porque `ppa_id` viaja repetido (`ppa_id=12&ppa_id=45`, lo que espera
+   * FastAPI para `list[int]`) y no hay forma de confirmar cómo serializa
+   * `air` un array dentro de `query` sin poder instalar el paquete en este
+   * entorno — ver nota en ProyectosListView.vue::load().
+   */
+  listarPaginado({
+    page = 1,
+    size = 500,
+    estado,
+    tipo_proyecto,
+    portafolio_id,
+    ppaIds = [],
+    sinPpa = false,
+  }: {
+    page?: number
+    size?: number
+    estado?: string
+    tipo_proyecto?: string
+    portafolio_id?: number
+    ppaIds?: number[]
+    sinPpa?: boolean
+  } = {}): Promise<Paginado<ProyectoConDetalle>> {
+    const params = new URLSearchParams({ page: String(page), size: String(size) })
+    if (estado) params.set('estado', estado)
+    if (tipo_proyecto) params.set('tipo_proyecto', tipo_proyecto)
+    if (portafolio_id) params.set('portafolio_id', String(portafolio_id))
+    for (const id of ppaIds) params.append('ppa_id', String(id))
+    if (sinPpa) params.set('sin_ppa', 'true')
+    return this.get<Paginado<ProyectoConDetalle>>(`${RUTAS.proyectos}?${params}`)
   }
 
   obtener(id: Proyecto['id']): Promise<ProyectoConDetalle> {
