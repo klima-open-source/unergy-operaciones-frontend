@@ -22,7 +22,10 @@
         <h1 class="sl-title">Generación Solar</h1>
         <p class="sl-subtitle">
           Potencia en tiempo real por proyecto
-          <span v-if="lastUpdated" class="sl-ts">· {{ lastUpdated }}</span>
+          <!-- Es la hora en que se PREGUNTO, no la del dato. Decirlo evita que
+               se lea como frescura: media flota puede estar horas atrasada y
+               este numero seguiria diciendo la hora actual. -->
+          <span v-if="lastUpdated" class="sl-ts">· consultado {{ lastUpdated }}</span>
         </p>
       </div>
       <div class="sl-header-right">
@@ -140,8 +143,19 @@
                     <span class="sl-dot" style="background:var(--color-unergy-purple)" />
                     Inversores
                   </div>
-                  <span v-if="getInversorAcum(proy.proyecto_id) !== null" class="sl-acum inv">
-                    {{ getInversorAcum(proy.proyecto_id).toFixed(1) }} kWh
+                </div>
+                <!-- Mismo tratamiento que Medidores: el acumulado del dia en
+                     grande, con hasta que hora cubre. Son horas sumadas, no una
+                     lectura del ultimo instante. -->
+                <div class="sl-ahora">
+                  <span :class="['sl-ahora-kw', { 'sl-ahora-sin': acumuladoInversores(detailMap[proy.proyecto_id]) === null }]">
+                    {{ fmtKwh(acumuladoInversores(detailMap[proy.proyecto_id])) }}
+                  </span>
+                  <span v-if="hastaInversores(detailMap[proy.proyecto_id])" class="sl-ahora-t">
+                    hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
+                    <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
+                      · {{ haceCuanto(hastaInversores(detailMap[proy.proyecto_id])) }}
+                    </template>
                   </span>
                 </div>
                 <div v-if="getInversorData(proy.proyecto_id).labels.length" class="sl-chart-wrap">
@@ -151,25 +165,37 @@
                 <div v-else class="sl-no-data">Sin datos</div>
               </div>
 
-              <!-- Medidores (mejor nodo: principal o respaldo) -->
+              <!-- Medidores -- el backend ya eligio cual mostrar -->
               <div class="sl-chart-card">
-                <div class="sl-chart-header">
-                  <div class="sl-chart-title">
-                    <span class="sl-dot" style="background:#D4A017" />
-                    Medidores
-                    <span v-if="getBestMedidorTipo(proy.proyecto_id)" class="sl-med-tipo">
-                      {{ getBestMedidorTipo(proy.proyecto_id) }}
+                <template v-if="panelesMedidor[proy.proyecto_id]">
+                  <div class="sl-chart-header">
+                    <div class="sl-chart-title">
+                      <span class="sl-dot" style="background:#D4A017" />
+                      Medidores
+                      <span v-if="panelesMedidor[proy.proyecto_id].tipo" class="sl-med-tipo">{{ panelesMedidor[proy.proyecto_id].tipo }}</span>
+                    </div>
+                  </div>
+                  <!-- El numero grande es la generacion del dia: es lo que alguien
+                       quiere saber de un vistazo, y no se cae a cero de noche como
+                       la potencia instantanea. Sale del contador, con su hora. -->
+                  <div class="sl-ahora">
+                    <span :class="['sl-ahora-kw', { 'sl-ahora-sin': panelesMedidor[proy.proyecto_id].energiaKwh === null }]">
+                      {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
+                    </span>
+                    <span v-if="panelesMedidor[proy.proyecto_id].energiaHasta" class="sl-ahora-t">
+                      hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
+                      <template v-if="haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta)">
+                        · {{ haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta) }}
+                      </template>
                     </span>
                   </div>
-                  <span v-if="getMedidorAcum(proy.proyecto_id) !== null" class="sl-acum med">
-                    {{ getMedidorAcum(proy.proyecto_id).toFixed(1) }} kWh
-                  </span>
-                </div>
-                <div v-if="getMedidorData(proy.proyecto_id).labels.length" class="sl-chart-wrap">
-                  <Line :data="getMedidorData(proy.proyecto_id)" :options="chartOptionsMed(proy.proyecto_id)"
-                    :plugins="[crosshairPlugin]" :key="'med-' + proy.proyecto_id" />
-                </div>
-                <div v-else class="sl-no-data">Sin datos</div>
+                  <div v-if="panelesMedidor[proy.proyecto_id].chart" class="sl-chart-wrap">
+                    <Line :data="panelesMedidor[proy.proyecto_id].chart" :options="chartOptionsMed(proy.proyecto_id)"
+                      :plugins="[crosshairPlugin]" :key="'med-' + proy.proyecto_id" />
+                  </div>
+                  <div v-else class="sl-no-data">Sin datos</div>
+                </template>
+                <div v-else class="sl-no-data">Sin medidor</div>
               </div>
 
             </div>
@@ -249,8 +275,26 @@ import {
 import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
 import AutoComplete from 'primevue/autocomplete'
-import api from '~/core/client'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+// Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
+// aparte porque las dos ya se separaron dos veces leyendo el mismo endpoint --
+// ver el docstring del modulo.
+import {
+  TIME_LABELS,
+  acumuladoInversores,
+  acumuladoMedidor,
+  fmtKwh,
+  haceCuanto,
+  hastaInversores,
+  hastaMedidor,
+  inverterSeries,
+  meterSeries,
+} from '~/features/solar/serieSolar'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
+
+const generacionSolarService = new GeneracionSolarService()
+const proyectosService = new ProyectosService()
 import { ChartLineIcon, ChevronDownIcon, ClockIcon, LoaderCircleIcon, MenuIcon, RefreshCwIcon, SearchIcon, SunIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
@@ -317,12 +361,12 @@ function getGenHoy(id) {
 
 async function cargarGenHoy() {
   try {
-    const [resHoy, resProy] = await Promise.all([
-      api.get('/generacion-solar/generacion-hoy'),
-      api.get('/proyectos', { params: { size: 500 } }),
+    const [filasHoy, proyectos] = await Promise.all([
+      generacionSolarService.obtenerGeneracionHoy(),
+      proyectosService.listar({ size: 500 }),
     ])
-    p90List.value = resProy.data.items ?? []
-    for (const row of resHoy.data.proyectos ?? []) {
+    p90List.value = proyectos
+    for (const row of filasHoy) {
       genHoyMap[row.proyecto_id] = { kwh_real: row.kwh_real, fuente: row.fuente }
     }
   } catch { /* silencioso */ }
@@ -395,48 +439,14 @@ const crosshairPlugin = {
   },
 }
 
-// ── Labels cada 5 min (00:00–23:55) ──────────────────────────────────────
-const TIME_LABELS = Array.from({ length: 288 }, (_, i) => {
-  const h = Math.floor(i * 5 / 60)
-  const m = (i * 5) % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-})
-
-function gaiaTime(t) {
-  if (!t) return ''
-  const idx = t.indexOf('T')
-  return idx >= 0 ? t.slice(idx + 1, idx + 6) : t.slice(0, 5)
-}
-
-function mapMinutes(points, getTime, getKw) {
-  const buckets = {}
-  for (const pt of points) {
-    const raw = getTime(pt)
-    if (!raw) continue
-    const m = raw.match(/(\d{1,2}):(\d{2})/)
-    if (!m) continue
-    const slot = parseInt(m[1], 10) * 12 + Math.floor(parseInt(m[2], 10) / 5)
-    if (!buckets[slot]) buckets[slot] = []
-    const v = getKw(pt)
-    if (v != null) buckets[slot].push(v)
-  }
-  return TIME_LABELS.map((_, i) => {
-    const arr = buckets[i]
-    if (!arr?.length) return null
-    return +(arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(3)
-  })
-}
-
 // ── Datos de gráficas ─────────────────────────────────────────────────────
+// La SERIE la arma serieSolar (igual que la grafica del movil); aca solo va la
+// configuracion de Chart.js, que si es propia del escritorio. Antes esta funcion
+// repetia el bucketeo literalmente -- el mismo copiar-pegar que hizo divergir
+// las dos vistas dos veces esta semana.
 function getInversorData(id) {
-  const curve = detailMap[id]?.power_curve ?? []
-  if (!curve.length) return { labels: [], datasets: [] }
-  const data = mapMinutes(
-    curve,
-    pt => { const t = pt.time || ''; return t.includes(' ') ? t.split(' ')[1] : t },
-    pt => pt.kw != null ? +pt.kw : null,
-  )
-  if (data.every(v => v == null)) return { labels: [], datasets: [] }
+  const data = inverterSeries(detailMap[id])
+  if (!data) return { labels: [], datasets: [] }
   return {
     labels: TIME_LABELS,
     datasets: [{ label: 'Inversores (kW)', data, borderColor: '#915BD8',
@@ -445,86 +455,46 @@ function getInversorData(id) {
   }
 }
 
-function getMedidorData(id) {
-  const snap = _bestMedidorSnap(id).snap
-  const rows = (snap?.time_series?.power ?? []).filter(r => r.kw != null)
-  if (!rows.length) return { labels: [], datasets: [] }
-  const data = mapMinutes(rows, r => gaiaTime(r.time), r => +Math.abs(r.kw))
-  if (data.every(v => v == null)) return { labels: [], datasets: [] }
-  return {
-    labels: TIME_LABELS,
-    datasets: [{ label: 'Medidores (kW)', data, borderColor: '#D4A017',
-      backgroundColor: 'rgba(212,160,23,0.15)', fill: true, tension: 0.35,
-      pointRadius: 0, borderWidth: 2, spanGaps: true }],
-  }
-}
-
-// ── Acumulados ────────────────────────────────────────────────────────────
-// Fecha de hoy en hora Colombia (UTC-5) para coincidir con el backend
-const _todayStr = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
-
-function getInversorAcum(id) {
-  // Fuente primaria: total de hoy calculado por Solenium (endpoint /generation/,
-  // más preciso que integrar nosotros la curva de potencia por trapecios).
-  const genHoy = detailMap[id]?.generation_today_kwh
-  if (genHoy != null && genHoy > 0) return genHoy
-  // Fallback 1: generación real del día ya cerrado (histórico de 30 días)
-  const gen30 = detailMap[id]?.generation_30d ?? []
-  const hoy = gen30.find(d => d.date === _todayStr)
-  if (hoy?.kwh > 0) return hoy.kwh
-  // Fallback 2: integración trapezoidal de la curva de potencia
-  const curve = detailMap[id]?.power_curve ?? []
-  if (curve.length < 2) return null
-  let kwh = 0
-  for (let i = 1; i < curve.length; i++) {
-    const dtH = _timeDiffH(curve[i - 1].time, curve[i].time)
-    const avgKw = ((+(curve[i - 1].kw || 0)) + (+(curve[i].kw || 0))) / 2
-    kwh += avgKw * dtH
-  }
-  return kwh > 0 ? kwh : null
-}
 
 // ── Selección del mejor snapshot de medidor ───────────────────────────────
-function _bestMedidorSnap(id) {
+// Todo lo que el panel de Medidores necesita, en un solo lugar. El backend ya
+// entrega el medidor elegido y resuelto en `medidor` (potencia de ahora,
+// energia del dia, curva sin rellenar y frescura), asi que aca no se decide
+// nada: se formatea. Antes esto eran seis funciones sueltas y una septima que
+// re-elegia el medidor con un criterio duplicado del backend (2026-09-03).
+// Se calcula una vez por proyecto y no en cada interpolacion del template.
+const panelesMedidor = computed(() => Object.fromEntries(
+  (proyectos.value ?? []).map(p => [p.proyecto_id, medidorPanel(p.proyecto_id)]),
+))
+
+function medidorPanel(id) {
   const d = detailMap[id]
-  if (!d) return { snap: null, tipo: null }
-  const sp = d.gaia_snapshot_principal
-  const sr = d.gaia_snapshot_respaldo
-  const ep = sp?.eae_wh ?? 0
-  const er = sr?.eae_wh ?? 0
-  if (!sp && !sr) return { snap: null, tipo: null }
-  if (!sp) return { snap: sr, tipo: 'R' }
-  if (!sr) return { snap: sp, tipo: 'P' }
-  return ep >= er ? { snap: sp, tipo: 'P' } : { snap: sr, tipo: 'R' }
+  const m = d?.medidor
+  if (!m) return null
+  const data = meterSeries(d)
+  return {
+    // 'P'/'R' solo si hay dos medidores; con uno solo la etiqueta sobra.
+    tipo: d.medidor_respaldo ? (m.node_id === d.medidor_principal?.node_id ? 'P' : 'R') : null,
+    energiaKwh: acumuladoMedidor(d),
+    energiaHasta: hastaMedidor(d),
+    // Sin relleno: si la telemetria de potencia se cayo, el hueco se ve.
+    chart: data
+      ? { labels: TIME_LABELS, datasets: [{ label: 'Medidores (kW)', data, borderColor: '#D4A017',
+          backgroundColor: 'rgba(212,160,23,0.15)', fill: true, tension: 0.35,
+          pointRadius: 0, borderWidth: 2, spanGaps: true }] }
+      : null,
+  }
 }
 
-function getBestMedidorTipo(id) {
-  const d = detailMap[id]
-  if (!d?.gaia_snapshot_respaldo) return null   // solo hay uno, no hace falta etiqueta
-  return _bestMedidorSnap(id).tipo
-}
 
-function getMedidorAcum(id) {
-  const eae = _bestMedidorSnap(id).snap?.eae_wh
-  return (eae != null && eae > 0) ? eae : null
-}
 
-function _timeDiffH(t1, t2) {
-  if (!t1 || !t2) return 0
-  try {
-    const toMins = t => {
-      const s = t.replace('T', ' ').split(' ').pop()
-      const [h, m] = s.split(':').map(Number)
-      return h * 60 + (m || 0)
-    }
-    return Math.abs(toMins(t2) - toMins(t1)) / 60
-  } catch { return 0 }
-}
+// Potencia de AHORA y su frescura: los dos ya llegaban en la respuesta y la
+// vista los descartaba, en una pestana cuyo proposito es el tiempo real.
 
 // ── % diferencia ─────────────────────────────────────────────────────────
 function getDiffPct(id) {
-  const inv = getInversorAcum(id)
-  const med = getMedidorAcum(id)
+  const inv = acumuladoInversores(detailMap[id])
+  const med = medidorPanel(id)?.energiaKwh ?? null
   if (inv == null || med == null || med === 0) return null
   return +((inv - med) / med * 100).toFixed(1)
 }
@@ -561,7 +531,7 @@ function makeOptions(color, maxY) {
 // vista en vez de quedar escondida por el autoescalado independiente.
 function getChartMax(id) {
   const invValores = getInversorData(id).datasets?.[0]?.data ?? []
-  const medValores = getMedidorData(id).datasets?.[0]?.data ?? []
+  const medValores = medidorPanel(id)?.chart?.datasets?.[0]?.data ?? []
   const valores = [...invValores, ...medValores].filter(v => v != null)
   if (!valores.length) return undefined
   const max = Math.max(...valores)
@@ -577,33 +547,34 @@ function chartOptionsMed(id) { return makeOptions('#D4A017', getChartMax(id)) }
 async function cargar() {
   loading.value = true
   try {
-    const res = await api.get('/generacion-solar/monitoring')
-    proyectos.value = applyOrder(res.data.projects ?? [])
+    const res = await generacionSolarService.obtenerMonitoreo()
+    proyectos.value = applyOrder(res.projects ?? [])
     lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+
+    // El boton sigue en "cargando" hasta que terminen tambien gen-hoy y los
+    // detalles. Antes `loading` se apagaba apenas respondia /monitoring, que
+    // solo trae la lista y el estado: las tarjetas -- que son lo que de verdad
+    // cambia en pantalla -- seguian llegando de a 10 despues, asi que el boton
+    // decia "listo" varios segundos antes de que los numeros se movieran.
+    const ids = proyectos.value.map(p => p.proyecto_id)
+    const BATCH = 10
+    const detalles = (async () => {
+      for (let i = 0; i < ids.length; i += BATCH) {
+        await Promise.all(ids.slice(i, i + BATCH).map(id => loadDetail(id)))
+      }
+    })()
+    await Promise.all([cargarGenHoy(), detalles])
   } catch { /* silencioso */ } finally {
     loading.value = false
-  }
-  // Cargar gen-hoy y detalles en paralelo
-  cargarGenHoy()
-  const ids = proyectos.value.map(p => p.proyecto_id)
-  const BATCH = 10
-  for (let i = 0; i < ids.length; i += BATCH) {
-    await Promise.all(ids.slice(i, i + BATCH).map(id => loadDetail(id)))
   }
 }
 
 async function loadDetail(id) {
   try {
-    const res = await api.get(`/generacion-solar/monitoring/${id}`)
-    detailMap[id] = res.data
+    detailMap[id] = await generacionSolarService.obtenerDetalle(id)
   } catch { detailMap[id] = {} }
 }
 
-function fmtKw(kw) {
-  if (kw == null) return '—'
-  if (kw >= 1000) return (kw / 1000).toFixed(1) + ' MW'
-  return kw.toFixed(1) + ' kW'
-}
 
 
 onMounted(() => {
@@ -724,6 +695,13 @@ onUnmounted(() => {
 
 .sl-project-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--color-unergy-deep); }
 .sl-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Potencia instantanea del medidor */
+.sl-ahora { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.sl-ahora-kw { font-size: 22px; font-weight: 700; color: #2c2340; font-variant-numeric: tabular-nums; }
+.sl-ahora-sin { color: #9b89b5; }
+.sl-ahora-t { font-size: 10px; color: #9b89b5; }
+.sl-acum-hasta { font-weight: 400; opacity: 0.75; }
 .sl-power-badge { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--color-unergy-purple); background: rgba(145,91,216,0.12); padding: 2px 10px; border-radius: 999px; }
 
 /* ── Loading detalle ── */

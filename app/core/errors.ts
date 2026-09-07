@@ -7,7 +7,7 @@
  * useful in a log — the failed request, the backend payload, the original
  * stack — hangs off `context` and `cause`, never off the message.
  */
-import { FetchError } from 'ofetch'
+import { isAirError, type AirError } from '@korastd/air'
 
 /** Extend as your API grows. Every code needs a default message below. */
 export type ErrorCode =
@@ -70,18 +70,18 @@ export class AppError extends Error {
 /** Converts anything thrown into an `AppError`. The only entry point. */
 export function normalizeError(err: unknown): AppError {
   if (err instanceof AppError) return err
-  if (err instanceof FetchError) return fromFetchError(err)
+  if (isAirError(err)) return fromAirError(err)
   if (isStatusError(err)) return fromStatusError(err)
   if (err instanceof Error) return new AppError('UNKNOWN', err.message, { cause: err })
   return new AppError('UNKNOWN', String(err))
 }
 
-// ─── ofetch → AppError ───────────────────────────────────────────────────────
-// ofetch throws `FetchError` for network failures and non-2xx responses alike.
+// ─── air → AppError ──────────────────────────────────────────────────────────
+// `air` throws `AirError` for network failures and non-2xx responses alike.
 
-function fromFetchError(err: FetchError): AppError {
+function fromAirError(err: AirError): AppError {
   const body = readErrorBody(err.data)
-  const httpStatus = err.response?.status ?? 0
+  const httpStatus = err.status ?? 0
 
   // The body's own status wins: a backend may answer 400 for a conflict.
   const code = (body.status && codeFromStatus(body.status)) || codeFromHttpStatus(httpStatus)
@@ -89,8 +89,8 @@ function fromFetchError(err: FetchError): AppError {
   return new AppError(code, body.message, {
     cause: err,
     context: {
-      method: (err.options?.method ?? 'GET').toUpperCase(),
-      url: requestUrl(err),
+      method: err.request.method.toUpperCase(),
+      url: err.request.url,
       httpStatus,
       status: body.status,
       payload: body.payload,
@@ -112,14 +112,6 @@ function fromStatusError(err: Error & { statusCode: number; statusMessage?: stri
   return new AppError(codeFromHttpStatus(err.statusCode), err.statusMessage || err.message, {
     cause: err,
   })
-}
-
-function requestUrl(err: FetchError): string {
-  const request: unknown = err.request
-  if (typeof request === 'string') return request
-  if (request instanceof URL) return request.href
-  if (request instanceof Request) return request.url
-  return ''
 }
 
 /**
@@ -169,7 +161,7 @@ function codeFromStatus(status: string): ErrorCode | undefined {
   return STATUS_ALIASES[status]
 }
 
-/** Fallback when the body carries no status we recognize. Also used to translate axios errors, which ofetch never throws. */
+/** Fallback when the body carries no status we recognize. Also used to translate h3 `statusCode` errors from the server. */
 export function codeFromHttpStatus(status: number): ErrorCode {
   switch (status) {
     case 0:

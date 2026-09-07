@@ -57,8 +57,10 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import api from '~/core/client'
+import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
 import { CircleStopIcon, LoaderCircleIcon, PowerIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
+
+const reconectadoresService = new ReconectadoresService()
 
 const props = defineProps({
   open:       { type: Boolean, default: false },
@@ -104,7 +106,7 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    await api.post(`/reconectadores/${props.proyectoId}/comando`, {
+    await reconectadoresService.enviarComando(props.proyectoId, {
       username:         username.value,
       password:         password.value,
       accion:           accion.value,
@@ -114,7 +116,7 @@ async function submit() {
     emit('done', { active: accion.value === 'ON' })
     emit('close')
   } catch (err) {
-    error.value = err.response?.data?.detail || err.message || 'Error desconocido'
+    error.value = err.data?.detail || err.message || 'Error desconocido'
   } finally {
     loading.value = false
   }

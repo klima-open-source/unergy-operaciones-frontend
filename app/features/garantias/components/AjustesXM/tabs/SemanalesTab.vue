@@ -171,6 +171,7 @@ import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import { toast } from 'vue-sonner'
+import { logger } from '~/core/logger'
 import DropZone from '../DropZone.vue'
 import HojaMadreView from '../HojaMadreView.vue'
 import FacturasDescuento from '../FacturasDescuento.vue'
@@ -404,8 +405,8 @@ async function guardarRegistro() {
     if (p?.pb != null) store.setPbAnterior(p.pb)
     toast.success('Guardado en historial', { description: `Reporte del ${fecha}`, duration: 3000 })
   } catch (e) {
-    const detalle = e?.response?.data?.detail || e?.message || 'Error desconocido'
-    console.error('[garantias] error al guardar registro:', e?.response?.data || e)
+    const detalle = e?.data?.detail || e?.message || 'Error desconocido'
+    logger.error('garantias', e)
     toast.error('No se pudo guardar', { description: String(detalle), duration: 6000 })
   } finally {
     guardando.value = false

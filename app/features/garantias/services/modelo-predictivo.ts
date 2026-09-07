@@ -7,7 +7,7 @@ import type {
   ParametrosPlanModeloPredictivo,
   PlanModeloPredictivo,
 } from '~/features/garantias/types'
-import { LegacyBaseService } from '~/core/legacy-service'
+import { BaseService } from '~/core/service'
 
 const BASE = '/garantias/modelo'
 
@@ -16,9 +16,11 @@ const RUTAS = {
   detalle: (id: string) => `${BASE}/detalle/${encodeURIComponent(id)}`,
 } as const
 
-export class ModeloPredictivoService extends LegacyBaseService {
+export class ModeloPredictivoService extends BaseService {
   getPlan(parametros: ParametrosPlanModeloPredictivo): Promise<PlanModeloPredictivo> {
-    return this.get<PlanModeloPredictivo>(RUTAS.plan, { params: parametros })
+    // Objeto fresco, no el valor tipado tal cual: una `interface` no tiene firma de
+    // índice y `Query` (de `air`) la exige — ver la nota del propio README de `air`.
+    return this.get<PlanModeloPredictivo>(RUTAS.plan, { query: { ...parametros } })
   }
 
   getDetalle(id: string): Promise<DetalleVencimiento> {

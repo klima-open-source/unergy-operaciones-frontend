@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { AjustesGarantiaService } from '~/features/garantias/services/ajustes'
 
 function toFrontend(r) {
   return {
@@ -59,18 +60,17 @@ const loading = ref(false)
 const errorMsg = ref('')
 
 export function useGarantiasHistorial() {
+  const ajustesService = new AjustesGarantiaService()
 
   async function cargar() {
     loading.value = true
     errorMsg.value = ''
-    console.log('[hist] cargar: GET /garantias-ajustes …')
     try {
-      const { data } = await api.get('/garantias-ajustes')
+      const data = await ajustesService.listar()
       historial.value = Array.isArray(data) ? data.map(toFrontend) : []
-      console.log('[hist] cargar: OK, registros =', historial.value.length)
     } catch (e) {
-      console.error('[hist] cargar: ERROR', e?.response?.status, e?.response?.data || e?.message || e)
-      errorMsg.value = e?.response?.data?.detail || e?.message || 'No se pudo cargar el historial'
+      logger.error('garantias', e)
+      errorMsg.value = e?.data?.detail || e?.message || 'No se pudo cargar el historial'
       historial.value = []
     } finally {
       loading.value = false
@@ -78,18 +78,18 @@ export function useGarantiasHistorial() {
   }
 
   async function guardar(registro) {
-    const { data } = await api.post('/garantias-ajustes', toBackend(registro))
+    const data = await ajustesService.crear(toBackend(registro))
     historial.value.unshift(toFrontend(data))
   }
 
   async function actualizar(id, campos) {
-    const { data } = await api.patch(`/garantias-ajustes/${id}`, toBackend(campos))
+    const data = await ajustesService.actualizar(id, toBackend(campos))
     const idx = historial.value.findIndex(r => r.id === id)
     if (idx !== -1) historial.value[idx] = toFrontend(data)
   }
 
   async function eliminar(id) {
-    await api.delete(`/garantias-ajustes/${id}`)
+    await ajustesService.eliminar(id)
     historial.value = historial.value.filter(r => r.id !== id)
   }
 

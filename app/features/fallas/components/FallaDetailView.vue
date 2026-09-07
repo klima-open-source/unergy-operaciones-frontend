@@ -27,7 +27,7 @@
         </Button>
         <div>
           <div class="flex items-center gap-2 mb-1.5">
-            <GBadge :color="falla.estado?.color_hex || '#915BD8'">{{ falla.estado?.etiqueta || '—' }}</GBadge>
+            <GBadge :color="colorEstado(falla.estado?.codigo)">{{ falla.estado?.etiqueta || '—' }}</GBadge>
             <GBadge :color="prioSeverity(falla.prioridad?.codigo)">{{ falla.prioridad?.etiqueta || '—' }}</GBadge>
             <GBadge v-if="categoria.etiqueta"
               :color="categoria.color || '#915BD8'">{{ categoria.etiqueta }}</GBadge>
@@ -145,7 +145,6 @@
             <InfoField label="Proyecto" :value="falla.proyecto?.nombre_comercial" highlight />
             <InfoField label="Equipo / evento" :value="titulo" />
             <InfoField label="Registrado por" :value="falla.registrado_por?.nombre" />
-            <InfoField label="Asignado a" :value="falla.asignado_a?.nombre || 'Sin asignar'" />
             <InfoField label="Fecha ocurrencia" :value="fmtDatetime(falla.fecha_ocurrencia)" />
             <InfoField label="Fecha identificación" :value="fmtFechaConHora(falla.fecha_identificacion, falla.hora_identificacion)" />
             <div v-if="falla.fecha_resolucion">
@@ -167,10 +166,10 @@
             <h3 class="font-semibold text-sm text-gray-700">SLA</h3>
             <GBadge :color="slaSeverity" class="ml-auto">{{ slaTexto }}</GBadge>
           </div>
-          <div v-if="falla.sla_limite_horas">
+          <div>
             <div class="flex items-center gap-3 text-xs mb-2">
               <span class="text-gray-500">Límite</span>
-              <span class="font-semibold text-gray-800">{{ falla.sla_limite_horas }}h</span>
+              <span class="font-semibold text-gray-800">{{ falla.sla_limite_horas_efectivo }}h</span>
               <span class="text-gray-500 ml-auto">Transcurrido</span>
               <span class="font-semibold" :style="{ color: slaColor }">{{ horasTranscurridas }}h</span>
             </div>
@@ -178,7 +177,6 @@
               <div class="h-full rounded-full transition-all" :style="slaFillStyle" />
             </div>
           </div>
-          <p v-else class="text-xs text-gray-400">Sin límite SLA configurado</p>
         </div>
 
         <!-- Análisis -->
@@ -278,7 +276,7 @@
                 <p v-if="seg.nota" class="text-sm text-gray-700 whitespace-pre-line">{{ seg.nota }}</p>
                 <div v-if="seg.estado_nuevo" class="mt-1.5 flex items-center gap-1 text-xs">
                   <ArrowRightIcon class="text-[10px] text-gray-400 size-[1em]" />
-                  <GBadge :color="seg.estado_nuevo?.color_hex || '#915BD8'" class="text-[10px]">{{ seg.estado_nuevo?.etiqueta || '' }}</GBadge>
+                  <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)" class="text-[10px]">{{ seg.estado_nuevo?.etiqueta || '' }}</GBadge>
                 </div>
               </div>
             </div>
@@ -319,13 +317,8 @@
                 optionValue="id" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Asignado a</label>
-              <Select v-model="quickEdit.asignado_a_id" :options="usuarios" optionLabel="nombre"
-                optionValue="id" placeholder="Sin asignar" showClear class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
               <label class="field-label">Energía perdida (kWh)</label>
-              <InputNumber v-model="quickEdit.energia_perdida_kwh" :minFractionDigits="0" :maxFractionDigits="2"
+              <InputNumber v-model="quickEdit.kwh_perdidos_estimado" :minFractionDigits="0" :maxFractionDigits="2"
                 :min="0" locale="en-US" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
@@ -354,9 +347,9 @@
               <span class="text-gray-500">Código</span>
               <code class="font-mono text-gray-700">{{ falla.codigo_interno }}</code>
             </div>
-            <div v-if="falla.energia_perdida_kwh != null" class="flex items-center justify-between">
+            <div v-if="falla.kwh_perdidos_estimado != null" class="flex items-center justify-between">
               <span class="text-gray-500">Energía perdida</span>
-              <span class="font-semibold text-red-600">{{ falla.energia_perdida_kwh.toLocaleString('es-CO') }} kWh</span>
+              <span class="font-semibold text-red-600">{{ falla.kwh_perdidos_estimado.toLocaleString('es-CO') }} kWh</span>
             </div>
             <div v-if="falla.sla_cumplido != null" class="flex items-center justify-between">
               <span class="text-gray-500">SLA</span>
@@ -383,7 +376,10 @@ import InputNumber from 'primevue/inputnumber'
 import ProgressSpinner from 'primevue/progressspinner'
 import FallaForm from './FallaForm.vue'
 import { tituloFalla, categoriaFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
-import api from '~/core/client'
+import { colorEstado } from '~/features/fallas/utils/colores'
+import { FallasService } from '~/features/fallas/services/fallas'
+
+const fallasService = new FallasService()
 
 const route = useRoute()
 const router = useRouter()
@@ -399,14 +395,12 @@ const savingQuick = ref(false)
 const uploadingFoto = ref(false)
 
 const catalogos = ref({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
-const usuarios = ref([])
 
 const nuevaNota = reactive({ nota: '', estado_id: '' })
 const quickEdit = reactive({
   estado_id: null,
   prioridad_id: null,
-  asignado_a_id: '',
-  energia_perdida_kwh: null,
+  kwh_perdidos_estimado: null,
   causa_raiz: '',
 })
 
@@ -417,9 +411,10 @@ const titulo = computed(() => tituloFalla(falla.value))
 const categoria = computed(() => categoriaFalla(falla.value))
 const clasif = computed(() => clasificacionDetalle(falla.value))
 
-const sortedSeguimientos = computed(() =>
-  [...(falla.value?.seguimientos ?? [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-)
+// El backend ya los manda del mas reciente al mas viejo (`FallaSeguimiento.Meta
+// .ordering`, 2026-09-07). Antes se ordenaba aca y el movil no lo hacia, asi que
+// la misma falla mostraba su cronologia desordenada en el telefono.
+const sortedSeguimientos = computed(() => falla.value?.seguimientos ?? [])
 
 // El backend puede devolver `fotos_lista` como list[str] (URLs, legado) o como
 // list[obj] {url, nombre, ...} (formato actual). Normalizamos SIEMPRE a string:
@@ -449,7 +444,7 @@ const horasTranscurridas = computed(() => {
 })
 
 const slaPct = computed(() => {
-  const h = falla.value?.sla_limite_horas
+  const h = falla.value?.sla_limite_horas_efectivo
   if (!h) return null
   return Math.min(Math.round((horasTranscurridas.value / h) * 100), 110)
 })
@@ -488,7 +483,10 @@ const slaFillStyle = computed(() => {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 function prioSeverity(codigo) {
-  return { critica: 'destructive', alta: 'warning', media: 'information', baja: 'default' }[codigo] || 'default'
+  // Códigos reales del catálogo (fallas_cat_prioridades): critica/grave/media/leve
+  // -- "alta"/"baja" nunca calzaban con nada real, "grave" y "leve" caían siempre
+  // al 'default' (bug encontrado al consolidar los colores de fallas, 2026-09-02).
+  return { critica: 'destructive', grave: 'warning', media: 'information', leve: 'default' }[codigo] || 'default'
 }
 function fmtDate(d) {
   if (!d) return '—'
@@ -557,15 +555,14 @@ function thumbUrl(url) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get(`/fallas/${route.params.id}`)
+    const data = await fallasService.obtener(route.params.id)
     falla.value = data
     quickEdit.estado_id = data.estado?.id ?? null
     quickEdit.prioridad_id = data.prioridad?.id ?? null
-    quickEdit.asignado_a_id = data.asignado_a?.id ?? ''
-    quickEdit.energia_perdida_kwh = data.energia_perdida_kwh ?? null
+    quickEdit.kwh_perdidos_estimado = data.kwh_perdidos_estimado ?? null
     quickEdit.causa_raiz = data.causa_raiz ?? ''
   } catch (err) {
-    if (err?.response?.status === 404) notFound.value = true
+    if (err?.status === 404) notFound.value = true
   } finally {
     loading.value = false
   }
@@ -573,27 +570,19 @@ async function load() {
 
 async function loadCatalogos() {
   try {
-    const { data } = await api.get('/fallas/catalogos')
-    catalogos.value = data
+    catalogos.value = await fallasService.obtenerCatalogos()
   } catch { /* no crítico */ }
-}
-
-async function loadUsuarios() {
-  try {
-    const { data } = await api.get('/usuarios', { params: { size: 200 } })
-    usuarios.value = data.items ?? []
-  } catch { /* /usuarios puede no existir */ }
 }
 
 // ── Acciones ────────────────────────────────────────────────────────────
 async function onUpdate(payload) {
   try {
-    await api.patch(`/fallas/${falla.value.id}`, payload)
+    await fallasService.actualizar(falla.value.id, payload)
     toast.success('Falla actualizada', { duration: 3000 })
     editMode.value = false
     await load()
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al actualizar'
+    const msg = err?.data?.detail ?? 'Error al actualizar'
     toast.error('Error', { description: msg, duration: 4000 })
   }
 }
@@ -604,14 +593,13 @@ async function saveQuickEdit() {
     const payload = {}
     if (quickEdit.estado_id) payload.estado_id = quickEdit.estado_id
     if (quickEdit.prioridad_id) payload.prioridad_id = quickEdit.prioridad_id
-    if (quickEdit.asignado_a_id) payload.asignado_a_id = quickEdit.asignado_a_id
     if (quickEdit.causa_raiz?.trim()) payload.causa_raiz = quickEdit.causa_raiz.trim()
-    if (quickEdit.energia_perdida_kwh != null) payload.energia_perdida_kwh = quickEdit.energia_perdida_kwh
-    await api.patch(`/fallas/${falla.value.id}`, payload)
+    if (quickEdit.kwh_perdidos_estimado != null) payload.kwh_perdidos_estimado = quickEdit.kwh_perdidos_estimado
+    await fallasService.actualizar(falla.value.id, payload)
     toast.success('Cambios guardados', { duration: 2500 })
     await load()
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al guardar'
+    const msg = err?.data?.detail ?? 'Error al guardar'
     toast.error('Error', { description: msg, duration: 4000 })
   } finally {
     savingQuick.value = false
@@ -625,13 +613,13 @@ async function addSeguimiento() {
     const payload = {}
     if (nuevaNota.nota.trim()) payload.nota = nuevaNota.nota.trim()
     if (nuevaNota.estado_id) payload.estado_nuevo_id = nuevaNota.estado_id
-    await api.post(`/fallas/${falla.value.id}/seguimientos`, payload)
+    await fallasService.crearSeguimiento(falla.value.id, payload)
     nuevaNota.nota = ''
     nuevaNota.estado_id = ''
     toast.success('Seguimiento agregado', { duration: 2500 })
     await load()
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al agregar'
+    const msg = err?.data?.detail ?? 'Error al agregar'
     toast.error('Error', { description: msg, duration: 4000 })
   } finally {
     addingSeg.value = false
@@ -645,15 +633,11 @@ async function uploadFotos(event) {
   let okCount = 0
   try {
     for (const file of files) {
-      const form = new FormData()
-      // El backend espera el campo `archivo` (no `file`).
-      form.append('archivo', file)
       try {
-        await api.post(`/fallas/${falla.value.id}/attachments`, form,
-          { headers: { 'Content-Type': 'multipart/form-data' } })
+        await fallasService.subirAdjunto(falla.value.id, file)
         okCount++
       } catch (err) {
-        const msg = err?.response?.data?.detail ?? `No se pudo subir ${file.name}`
+        const msg = err?.data?.detail ?? `No se pudo subir ${file.name}`
         toast.warning('Archivo rechazado', { description: msg, duration: 4000 })
       }
     }
@@ -678,11 +662,11 @@ function deleteFoto(url) {
       try {
         // No hay endpoint DELETE en backend. Actualizamos fotos_urls vía PATCH excluyendo la URL.
         const nuevaLista = adjuntos.value.filter(u => u !== url)
-        await api.patch(`/fallas/${falla.value.id}`, { fotos_urls: nuevaLista })
+        await fallasService.actualizar(falla.value.id, { fotos_urls: nuevaLista })
         await load()
         toast.success('Adjunto eliminado', { duration: 2500 })
       } catch (err) {
-        const msg = err?.response?.data?.detail ?? 'No se pudo eliminar'
+        const msg = err?.data?.detail ?? 'No se pudo eliminar'
         toast.error('Error', { description: msg, duration: 3000 })
       }
     },
@@ -698,7 +682,7 @@ function confirmDelete() {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/fallas/${falla.value.id}`)
+        await fallasService.eliminar(falla.value.id)
         toast.success('Falla eliminada', { duration: 3000 })
         router.back()
       } catch {
@@ -710,7 +694,6 @@ function confirmDelete() {
 
 onMounted(() => {
   loadCatalogos()
-  loadUsuarios()
   load()
 })
 </script>

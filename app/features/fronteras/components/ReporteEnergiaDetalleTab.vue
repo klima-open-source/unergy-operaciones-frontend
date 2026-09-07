@@ -71,7 +71,7 @@
         <dt style="color: #9b89b5;">Energía Total</dt><dd class="font-mono">{{ fmtKwh(detalle.energia_final_kwh) }}</dd>
         <template v-if="detalle.tipo === 'generacion'">
           <dt style="color: #9b89b5;">Factor de pérdida (FP)</dt>
-          <dd class="font-mono">{{ detalle.fp != null ? detalle.fp.toFixed(4) : '—' }}</dd>
+          <dd class="font-mono">{{ fpUsadoHoy && detalle.fp != null ? detalle.fp.toFixed(4) : '—' }}</dd>
         </template>
         <template v-if="(detalle.horas_rellenadas_medidor_cruzado || []).length">
           <dt style="color: #9b89b5;">Rellenado (Medidor cruzado)</dt>
@@ -115,11 +115,11 @@
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <code class="text-xs font-mono" style="color: #9b89b5;">{{ f.codigo_interno }}</code>
-              <span class="text-xs font-semibold px-1.5 py-0.5 rounded" :style="estadoPillStyleFalla(f.estado?.color_hex)">
+              <span class="text-xs font-semibold px-1.5 py-0.5 rounded" :style="estadoPillStyleFalla(f.estado?.codigo)">
                 {{ f.estado?.etiqueta }}
               </span>
             </div>
-            <p class="text-sm truncate" style="color: var(--color-unergy-deep);">{{ f.tipo?.etiqueta || f.tipo_libre || f.descripcion }}</p>
+            <p class="text-sm truncate" style="color: var(--color-unergy-deep);">{{ f.tipo?.etiqueta || f.descripcion }}</p>
           </div>
           <span v-if="f.dias_abierta != null" class="text-xs font-mono flex-none" style="color: #9b89b5;">
             {{ f.dias_abierta }}d
@@ -158,11 +158,13 @@
            style="background: rgba(37,124,214,0.08); border: 1px solid #257CD6;">
         <span class="flex-none rounded-full w-[18px] h-[18px] flex items-center justify-center text-[11px] font-bold text-white"
               style="background: #257CD6; margin-top: 1px;">i</span>
-        <p class="text-xs" style="color: #1B5DA3; line-height: 1.5;">
+        <p class="text-xs flex-1" style="color: #1B5DA3; line-height: 1.5;">
           {{ aviso.etiqueta }} muestra un valor distinto en Quoia
           (<strong style="color: var(--color-unergy-deep);">{{ fmtKwh(aviso.actual) }}</strong> ahora
           vs. <strong style="color: var(--color-unergy-deep);">{{ fmtKwh(aviso.clasificacion) }}</strong> al momento de clasificar).
         </p>
+        <Button v-if="aviso.tipo === 'respaldo'" label="Usar" size="small" text
+                :loading="usandoRespaldoEnVivo" @click="usarRespaldoEnVivo" class="flex-none" />
       </div>
       <div class="space-y-0">
         <div v-for="f in fuentes" :key="f.clave"
@@ -179,6 +181,10 @@
           <span v-if="f.usado" class="text-[10px] font-bold text-white rounded-full px-2 py-0.5 flex-none" style="background: var(--color-unergy-purple);">USADO</span>
         </div>
       </div>
+      <p v-if="medianaHistorica" class="text-[11px] mt-3" style="color: #9b89b5;">
+        <strong>Mediana histórica:</strong> {{ fmtKwh(medianaHistorica.mediana) }}
+        <span v-if="medianaHistorica.dias">({{ medianaHistorica.dias }} días)</span>
+      </p>
       <p v-if="detalle.recuperacion_datos" class="text-[11px] mt-3" style="color: #9b89b5;">
         <strong>Última recuperación de medidores:</strong> {{ detalle.recuperacion_datos }}
       </p>
@@ -189,7 +195,7 @@
       <p class="text-xs font-semibold uppercase mb-3" style="color: #6b5a8a;">Corrección manual (kWh)</p>
       <div class="flex flex-wrap gap-4">
         <table class="tabla-horas">
-          <thead><tr><th>Hora</th><th>kWh</th></tr></thead>
+          <thead><tr><th>Hora</th><th>Principal</th><th>Respaldo ({{ etiquetaOrigenRespaldo }})</th></tr></thead>
           <tbody>
             <tr v-for="h in 12" :key="h - 1" :class="esHoraRellenada(h - 1) ? 'fila-rellenada' : ''">
               <td>{{ h - 1 }}h</td>
@@ -198,11 +204,18 @@
                            class="w-full text-xs text-right celda-input"
                            @paste="onPasteHora($event, h - 1)" />
               </td>
+              <td>
+                <InputText v-model="curvaRespaldoEditable[h - 1]" inputmode="decimal"
+                           :placeholder="respaldoPlaceholder(h - 1)"
+                           class="w-full text-xs text-right celda-input"
+                           :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                           @paste="onPasteHoraRespaldo($event, h - 1)" />
+              </td>
             </tr>
           </tbody>
         </table>
         <table class="tabla-horas">
-          <thead><tr><th>Hora</th><th>kWh</th></tr></thead>
+          <thead><tr><th>Hora</th><th>Principal</th><th>Respaldo ({{ etiquetaOrigenRespaldo }})</th></tr></thead>
           <tbody>
             <tr v-for="h in 12" :key="h + 11" :class="esHoraRellenada(h + 11) ? 'fila-rellenada' : ''">
               <td>{{ h + 11 }}h</td>
@@ -210,6 +223,13 @@
                 <InputText v-model="curvaEditable[h + 11]" inputmode="decimal"
                            class="w-full text-xs text-right celda-input"
                            @paste="onPasteHora($event, h + 11)" />
+              </td>
+              <td>
+                <InputText v-model="curvaRespaldoEditable[h + 11]" inputmode="decimal"
+                           :placeholder="respaldoPlaceholder(h + 11)"
+                           class="w-full text-xs text-right celda-input"
+                           :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                           @paste="onPasteHoraRespaldo($event, h + 11)" />
               </td>
             </tr>
           </tbody>
@@ -350,7 +370,9 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Calendar from 'primevue/calendar'
@@ -364,9 +386,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['actualizado'])
 
+const reporteEnergiaService = new ReporteEnergiaService()
+const fallasService = new FallasService()
 const loading = ref(true)
 const detalle = ref(null)
 const curvaEditable = ref(Array(24).fill(null))
+const curvaRespaldoEditable = ref(Array(24).fill(null))
 const guardando = ref(false)
 const rellenando = ref(false)
 const deshaciendoRelleno = ref(false)
@@ -400,8 +425,7 @@ const editandoExclusionGuardando = ref(false)
 
 async function cargarExclusiones() {
   try {
-    const { data } = await api.get(`/reporte-energia/fronteras/${props.fronteraId}/exclusiones`)
-    exclusiones.value = data
+    exclusiones.value = await reporteEnergiaService.listarExclusiones(props.fronteraId)
   } catch (e) {
     exclusiones.value = []
   }
@@ -417,7 +441,7 @@ const exclusionActiva = computed(() => {
 async function crearExclusionActual() {
   creandoExclusion.value = true
   try {
-    await api.post(`/reporte-energia/fronteras/${props.fronteraId}/exclusiones`, {
+    await reporteEnergiaService.crearExclusion(props.fronteraId, {
       frontera_id: props.fronteraId,
       motivo: nuevaExclusionMotivo.value.trim(),
       fecha_inicio: props.fecha,
@@ -438,7 +462,7 @@ async function resolverExclusionActual() {
   if (!exclusionActiva.value) return
   resolviendoExclusion.value = true
   try {
-    await api.post(`/reporte-energia/exclusiones/${exclusionActiva.value.id}/resolver`)
+    await reporteEnergiaService.resolverExclusion(exclusionActiva.value.id)
     toast.success('Exclusión resuelta', { duration: 2500 })
     await cargarExclusiones()
   } catch (e) {
@@ -461,7 +485,7 @@ async function guardarEdicionExclusion() {
   if (!exclusionActiva.value) return
   editandoExclusionGuardando.value = true
   try {
-    await api.patch(`/reporte-energia/exclusiones/${exclusionActiva.value.id}`, {
+    await reporteEnergiaService.actualizarExclusion(exclusionActiva.value.id, {
       motivo: nuevaExclusionMotivo.value.trim(),
       fecha_fin_estimada: nuevaExclusionFechaFin.value ? nuevaExclusionFechaFin.value.toISOString().slice(0, 10) : null,
     })
@@ -484,9 +508,10 @@ function fmtFechaHora(iso) {
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get(`/reporte-energia/fronteras/${props.fronteraId}`, { params: { fecha: props.fecha } })
+    const data = await reporteEnergiaService.obtenerDetalle(props.fronteraId, props.fecha)
     detalle.value = data
     curvaEditable.value = [...(data.curva_final || Array(24).fill(null))]
+    curvaRespaldoEditable.value = Array(24).fill(null)
     fuenteManualElegida.value = null
     cargarFallasActivas(data.proyecto_id)
   } catch (e) {
@@ -539,25 +564,21 @@ async function cargarFallasActivas(proyectoId) {
     // activa_en_fecha (no solo_activas): esta vista es el detalle de UN día
     // ya clasificado -- debe mostrar las fallas que estaban abiertas en ese
     // momento, no las que están abiertas hoy consultando en vivo.
-    const { data } = await api.get('/fallas', { params: { proyecto_id: proyectoId, activa_en_fecha: props.fecha, size: 10 } })
+    const data = await fallasService.listar({ proyecto_id: proyectoId, activa_en_fecha: props.fecha, size: 10 })
     fallasActivas.value = colapsarDuplicadas(data.items || [])
   } catch (e) {
     fallasActivas.value = []
   }
 }
-const PRIO_COLORS_FALLA = { critica: '#dc2626', alta: '#ea580c', media: '#d97706', baja: '#6b7280' }
-function prioColorFalla(codigo) { return PRIO_COLORS_FALLA[codigo] || '#9ca3af' }
-function estadoPillStyleFalla(hex) {
-  const c = hex || '#915BD8'
+function prioColorFalla(codigo) { return colorPrioridad(codigo, '#9ca3af') }
+function estadoPillStyleFalla(codigo) {
+  const c = colorEstado(codigo)
   return { background: c + '1a', color: c, border: `1px solid ${c}40` }
 }
 async function cargarCurvaTipicaPreview() {
   curvaTipicaPreview.value = null
   try {
-    const { data } = await api.get(`/reporte-energia/fronteras/${props.fronteraId}/curva-tipica`, {
-      params: { fecha: props.fecha },
-    })
-    curvaTipicaPreview.value = data
+    curvaTipicaPreview.value = await reporteEnergiaService.obtenerCurvaTipica(props.fronteraId, props.fecha)
   } catch (e) {
     curvaTipicaPreview.value = null
   }
@@ -576,9 +597,7 @@ async function onArchivoExcelTercerosSeleccionado(event) {
   if (!file) return
   subiendoExcelTerceros.value = true
   try {
-    const fd = new FormData()
-    fd.append('archivo', file)
-    const { data } = await api.post(`/reporte-energia/fronteras/${props.fronteraId}/cargar-excel-terceros`, fd)
+    const data = await reporteEnergiaService.cargarExcelTerceros(props.fronteraId, file)
     toast.success('Excel cargado', {
       description: `Se cargaron ${data.fechas_cargadas.length} día(s): ${data.fechas_cargadas.join(', ')}`,
       duration: 4000,
@@ -587,7 +606,7 @@ async function onArchivoExcelTercerosSeleccionado(event) {
     emit('actualizado')
   } catch (e) {
     toast.error('Error', {
-      description: e?.response?.data?.detail || 'No se pudo cargar el Excel.',
+      description: e?.data?.detail || 'No se pudo cargar el Excel.',
       duration: 5000,
     })
   } finally {
@@ -601,15 +620,13 @@ async function onArchivoExcelTercerosSeleccionado(event) {
 async function eliminarExcelTerceros() {
   eliminandoExcelTerceros.value = true
   try {
-    await api.delete(`/reporte-energia/fronteras/${props.fronteraId}/cargar-excel-terceros`, {
-      params: { fecha: props.fecha },
-    })
+    await reporteEnergiaService.eliminarExcelTerceros(props.fronteraId, props.fecha)
     toast.success('Carga eliminada', { duration: 2500 })
     await cargar()
     emit('actualizado')
   } catch (e) {
     toast.error('Error', {
-      description: e?.response?.data?.detail || 'No se pudo eliminar la carga.',
+      description: e?.data?.detail || 'No se pudo eliminar la carga.',
       duration: 5000,
     })
   } finally {
@@ -633,6 +650,49 @@ function onPasteHora(event, indiceInicio) {
 
 function limpiarCurva() {
   curvaEditable.value = Array(24).fill(null)
+  curvaRespaldoEditable.value = Array(24).fill(null)
+}
+
+// Pegado tipo Excel para la columna Respaldo (mismo comportamiento que
+// onPasteHora para Principal).
+function onPasteHoraRespaldo(event, indiceInicio) {
+  const texto = event.clipboardData?.getData('text') || ''
+  const valores = texto.split(/[\n\t,]+/).map(s => s.trim()).filter(Boolean).map(Number).filter(n => !isNaN(n))
+  if (valores.length <= 1) return
+  event.preventDefault()
+  valores.forEach((v, i) => {
+    const idx = indiceInicio + i
+    if (idx < 24) curvaRespaldoEditable.value[idx] = v
+  })
+}
+
+// Placeholder de la columna Respaldo: la celda queda VACÍA a propósito
+// (vacío = "no la toqué, calcúlala sola", ver guardarCurva) -- sin esto no
+// había forma de ver en la tabla lo que ya se está reportando, solo en el
+// gráfico. Solo dos opciones en el encabezado -- "Medidor" agrupa
+// cualquier dato real (terceros, el medidor de respaldo detectado solo, o
+// confirmado a mano). "Estimado ±1%" es la única otra opción.
+const etiquetaOrigenRespaldo = computed(() => {
+  const origen = detalle.value?.respaldo_reportado_origen
+  if (origen === 'terceros' || origen === 'medidor' || origen === 'manual') return 'Medidor'
+  if (origen === 'estimado') return 'Estimado ±1%'
+  return 'sin calcular aún'
+})
+
+// Estimado (o sin calcular) es un número provisional, inventado por la
+// fórmula -- tiene sentido que se vea como placeholder tenue. Los otros
+// tres orígenes son dato real y definitivo que YA se está reportando --
+// mostrarlo desvanecido como si fuera una sugerencia sería engañoso.
+const respaldoEsDatoReal = computed(() => {
+  const origen = detalle.value?.respaldo_reportado_origen
+  return origen === 'terceros' || origen === 'medidor' || origen === 'manual'
+})
+
+function respaldoPlaceholder(h) {
+  const v = detalle.value?.curva_respaldo_reportada?.[h]
+  return v === null || v === undefined
+    ? ''
+    : Number(v).toLocaleString('es-CO', { maximumFractionDigits: 2 })
 }
 
 function esHoraRellenada(h) {
@@ -666,6 +726,12 @@ const hayCambiosSinGuardar = computed(() => {
     if (aVacio !== bVacio) return true
     if (!aVacio && Number(a).toFixed(2) !== Number(b).toFixed(2)) return true
   }
+  // Respaldo vacío por completo = no lo tocaron -- no cuenta como cambio
+  // sin guardar (comparar contra curva_respaldo_reportada sería engañoso
+  // igual, porque el estimado ±1% cambia solo de recalcularse).
+  if (curvaRespaldoEditable.value.some((v) => v !== null && v !== undefined && v !== '')) {
+    return true
+  }
   return false
 })
 
@@ -682,17 +748,15 @@ const hayHuecosSinRellenar = computed(() => {
 async function rellenarHorario() {
   rellenando.value = true
   try {
-    const { data } = await api.post(
-      `/reporte-energia/fronteras/${props.fronteraId}/rellenar-horario`, null,
-      { params: { fecha: props.fecha } },
-    )
+    const data = await reporteEnergiaService.rellenarHorario(props.fronteraId, props.fecha)
     detalle.value = data
     curvaEditable.value = [...(data.curva_final || Array(24).fill(null))]
+    curvaRespaldoEditable.value = Array(24).fill(null)
     toast.success('Horas rellenadas', { duration: 2500 })
     emit('actualizado')
   } catch (e) {
     toast.error('No se pudo rellenar', {
-      description: e?.response?.data?.detail || 'Ninguna fuente tenía dato para las horas faltantes.',
+      description: e?.data?.detail || 'Ninguna fuente tenía dato para las horas faltantes.',
       duration: 4000,
     })
   } finally {
@@ -703,17 +767,15 @@ async function rellenarHorario() {
 async function deshacerRelleno() {
   deshaciendoRelleno.value = true
   try {
-    const { data } = await api.post(
-      `/reporte-energia/fronteras/${props.fronteraId}/deshacer-relleno`, null,
-      { params: { fecha: props.fecha } },
-    )
+    const data = await reporteEnergiaService.deshacerRelleno(props.fronteraId, props.fecha)
     detalle.value = data
     curvaEditable.value = [...(data.curva_final || Array(24).fill(null))]
+    curvaRespaldoEditable.value = Array(24).fill(null)
     toast.success('Relleno deshecho', { duration: 2500 })
     emit('actualizado')
   } catch (e) {
     toast.error('No se pudo deshacer', {
-      description: e?.response?.data?.detail || 'No se pudo deshacer el relleno.',
+      description: e?.data?.detail || 'No se pudo deshacer el relleno.',
       duration: 4000,
     })
   } finally {
@@ -731,10 +793,7 @@ async function recuperarMedidor() {
   recuperandoMedidor.value = true
   toast.info('Recuperando medidor', { description: 'Puede tardar hasta 90 segundos...', duration: 4000 })
   try {
-    const { data } = await api.post(
-      `/reporte-energia/fronteras/${props.fronteraId}/recuperar-medidor`, null,
-      { params: { fecha: props.fecha }, timeout: 120000 },
-    )
+    const data = await reporteEnergiaService.recuperarMedidor(props.fronteraId, props.fecha)
     detalle.value = data
     toast.success('Recuperación completada', {
       description: data.recuperacion_datos || 'Sin medidores para recuperar.',
@@ -742,11 +801,34 @@ async function recuperarMedidor() {
     })
   } catch (e) {
     toast.error('No se pudo recuperar', {
-      description: e?.response?.data?.detail || 'Falló la recuperación del medidor.',
+      description: e?.data?.detail || 'Falló la recuperación del medidor.',
       duration: 4000,
     })
   } finally {
     recuperandoMedidor.value = false
+  }
+}
+
+// Botón "Usar" del banner de respaldo -- acción liviana (sin la
+// interrogación activa de 90s de "Recuperar medidor", sin tocar
+// Principal) para cuando el valor en vivo ya está disponible pasivamente
+// en el propio banner. Adopta el snapshot SOLO si pasa la tolerancia de
+// coherencia -- si no, el backend lo deja igual y el aviso sigue apareciendo.
+const usandoRespaldoEnVivo = ref(false)
+async function usarRespaldoEnVivo() {
+  usandoRespaldoEnVivo.value = true
+  try {
+    const data = await reporteEnergiaService.revisarRespaldo(props.fronteraId, props.fecha)
+    detalle.value = data
+    if (data.respaldo_reportado_origen === 'medidor') {
+      toast.success('Respaldo actualizado', { description: 'Se adoptó el valor real del medidor.', duration: 4000 })
+    } else {
+      toast.warning('Sigue en estimado', { description: 'El valor en vivo no quedó dentro de la tolerancia -- no se adoptó.', duration: 5000 })
+    }
+  } catch (e) {
+    toast.error('No se pudo revisar', { description: e?.data?.detail || 'Falló la revisión del respaldo.', duration: 4000 })
+  } finally {
+    usandoRespaldoEnVivo.value = false
   }
 }
 
@@ -769,6 +851,15 @@ const esCasoConfiado = computed(() => {
 // para 'Detalle de las fuentes' (medidor principal/respaldo/Solenium + fp),
 // no piden nada nuevo al backend. 'Curva típica' es la excepción: ya vivía
 // como su propio endpoint/botón, así que solo se reusa aquí.
+//
+// 'Inversores × FP' depende de 'd.fp' -- desde 2026-09-02 el backend lo
+// calcula y persiste SIEMPRE (ver orquestador._upsert_generacion), no solo
+// cuando el Caso ganador lo usó, así que esta opción se habilita solo con
+// que 'd.curva_solenium' tenga dato real, sin importar el Caso (antes
+// quedaba deshabilitada con Solenium completo si el Caso no necesitaba FP,
+// ver GD Garza / Chiriguaná Norte 1). Que 'd.fp' tenga valor no dice si
+// influyó en el número reportado hoy -- eso es 'fpUsadoHoy', usado solo
+// para el resumen de arriba, no para esta lista.
 const opcionesReportarCon = computed(() => {
   const d = detalle.value
   if (!d) return []
@@ -809,6 +900,16 @@ const opcionesReportarCon = computed(() => {
 function elegirFuenteReportar(op) {
   mostrarMenuReportar.value = false
   curvaEditable.value = [...op.curva]
+  // Respaldo siempre queda vacío acá, sin importar la opción elegida -- NO
+  // se precarga con curva_medidor_respaldo aunque se elija 'Medidor
+  // principal', porque eso mandaría el dato del medidor de respaldo como
+  // confirmación manual SIN el chequeo de coherencia (1.5 kWh vs el nuevo
+  // Principal) que sí aplica actualizar_respaldo_final() en el backend al
+  // guardar -- adoptar 'Medidor principal' no implica que el de respaldo
+  // sea confiable ese día (bug real 2026-08-25: se estaba precargando a
+  // ciegas). Dejarlo vacío deja que el backend decida solo con el mismo
+  // criterio de siempre.
+  curvaRespaldoEditable.value = Array(24).fill(null)
   fuenteManualElegida.value = op.key === 'tipica' ? 'historico' : op.key
   toast.info(`${op.nombre} aplicado`, {
     description: `${fmtKwh(op.valor)} -- revisa y guarda si está bien.`,
@@ -816,24 +917,34 @@ function elegirFuenteReportar(op) {
   })
 }
 
+// Las celdas son InputText (texto libre, no InputNumber) para que el cursor
+// no salte al editar un dígito del medio -- así que acá pueden llegar
+// strings ("45.6"), vacías (""), o numeros ya normales (paste, carga
+// inicial). Se normaliza a float | null justo antes de enviar.
+function _normalizarCurva(valores) {
+  return valores.map(v => {
+    if (v === null || v === undefined || v === '') return null
+    const n = Number(v)
+    return Number.isNaN(n) ? null : n
+  })
+}
+
 async function guardarCurva() {
   guardando.value = true
   try {
-    // Las celdas son InputText (texto libre, no InputNumber) para que el
-    // cursor no salte al editar un dígito del medio -- así que acá pueden
-    // llegar strings ("45.6"), vacías (""), o numeros ya normales (paste,
-    // carga inicial). Se normaliza a float | null justo antes de enviar.
-    const curvaNormalizada = curvaEditable.value.map(v => {
-      if (v === null || v === undefined || v === '') return null
-      const n = Number(v)
-      return Number.isNaN(n) ? null : n
-    })
-    const { data } = await api.patch(
-      `/reporte-energia/fronteras/${props.fronteraId}`,
-      { curva_final: curvaNormalizada, fuente: fuenteManualElegida.value },
-      { params: { fecha: props.fecha } },
-    )
+    const payload = {
+      curva_final: _normalizarCurva(curvaEditable.value),
+      fuente: fuenteManualElegida.value,
+    }
+    // Columna de Respaldo vacía por completo = no la tocaron -> no se manda
+    // (el backend la recalcula sola). Al menos un valor = confirmación
+    // manual, se manda tal cual (incluidas las horas que sí quedaron vacías).
+    if (curvaRespaldoEditable.value.some((v) => v !== null && v !== undefined && v !== '')) {
+      payload.curva_respaldo_final = _normalizarCurva(curvaRespaldoEditable.value)
+    }
+    const data = await reporteEnergiaService.guardarCurva(props.fronteraId, props.fecha, payload)
     detalle.value = data
+    curvaRespaldoEditable.value = Array(24).fill(null)
     toast.success('Corrección guardada', { duration: 2500 })
     emit('actualizado')
   } catch (e) {
@@ -846,9 +957,7 @@ async function guardarCurva() {
 async function validar() {
   validando.value = true
   try {
-    await api.post(`/reporte-energia/fronteras/${props.fronteraId}/validar`, null, {
-      params: { fecha: props.fecha },
-    })
+    await reporteEnergiaService.validar(props.fronteraId, props.fecha)
     detalle.value.revisar_manualmente = false
     toast.success('Validado', { duration: 2000 })
     emit('actualizado')
@@ -952,7 +1061,7 @@ function casoInfoMedidorConsumo(d) {
 function casoInfo5(d) {
   if (d.medidor_usado === 'cgm') {
     if (d.nota_solenium) {
-      return { nombre: 'Sin inversores registrados', descripcion: 'El reporte CGM fue válido; el proyecto no tiene inversores registrados en Solenium' }
+      return { nombre: 'Sin inversores registrados', descripcion: 'El reporte CGM fue válido; el proyecto no tiene inversores registrados en SolarView' }
     }
     // Solenium incompleto no significa "no se pudo usar" -- si SÍ se
     // comparó contra las horas que reportó (error_final_pct presente), la
@@ -982,8 +1091,22 @@ function casoInfo5(d) {
     }
     return { nombre: 'Medidor sin CGM ni inversores', descripcion: 'CGM no reportó nada ese día y no hay inversores con qué comparar; se usa el medidor directo' }
   }
-  return { nombre: 'Sin inversores registrados', descripcion: 'Hay medidor con dato, pero el proyecto no tiene inversores en Solenium contra qué validarlo' }
+  return { nombre: 'Sin inversores registrados', descripcion: 'Hay medidor con dato, pero el proyecto no tiene inversores en SolarView contra qué validarlo' }
 }
+// 'fp' ahora se calcula y persiste SIEMPRE en el backend (no solo cuando el
+// Caso ganador lo usó para 'energia_final_kwh'), para que 'Reportar con
+// otra fuente' pueda ofrecer "Inversores × FP" sin importar el Caso del día
+// (ver opcionesReportarCon abajo). Que 'fp' tenga valor ya NO implica que
+// influyó en el número reportado hoy -- este computed es la señal de eso:
+// 'medidor_usado' === 'inversores' cubre Caso 3 y los fallbacks de
+// inversores×FP (Caso 5 con Solenium parcial); 'horas_rellenadas_solenium'
+// cubre el relleno horario parcial, que puede usar FP para algunas horas
+// sin que 'medidor_usado' del día cambie (2026-09-02).
+const fpUsadoHoy = computed(() => {
+  const d = detalle.value
+  if (!d) return false
+  return d.medidor_usado === 'inversores' || (d.horas_rellenadas_solenium || []).length > 0
+})
 const casoInfo = computed(() => {
   const d = detalle.value
   if (!d) return { nombre: '', descripcion: '' }
@@ -1030,15 +1153,28 @@ const medidorGraficadoLabel = computed(() => {
   return 'Medidor'
 })
 
+// Mediana histórica de la frontera, con los días que la sostienen -- es el
+// criterio contra el que el clasificador compara el día para decidir la marca
+// de revisión en Consumo, así que tenerlo acá evita abrir "Curva Típica" solo
+// para leerlo de paso (2026-09-02). Se muestra el número y nada más: el
+// desvío del día contra él se calcula solo mirando los dos valores, y el
+// panel ya trae el total del día al lado (decisión de Sara, 2026-09-03).
+const medianaHistorica = computed(() => {
+  const d = detalle.value
+  const mediana = d?.mediana_historica_kwh
+  if (!d || mediana == null || mediana <= 0) return null
+  return { mediana, dias: d.dias_historial ?? null }
+})
+
 const avisosMedidor = computed(() => {
   const d = detalle.value
   if (!d) return []
   const avisos = []
   if (d.principal_actualizado_en_quoia) {
-    avisos.push({ etiqueta: 'Medidor principal', actual: d.principal_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_principal) })
+    avisos.push({ tipo: 'principal', etiqueta: 'Medidor principal', actual: d.principal_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_principal) })
   }
   if (d.respaldo_actualizado_en_quoia) {
-    avisos.push({ etiqueta: 'Medidor respaldo', actual: d.respaldo_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_respaldo) })
+    avisos.push({ tipo: 'respaldo', etiqueta: 'Medidor respaldo', actual: d.respaldo_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_respaldo) })
   }
   return avisos
 })
@@ -1271,5 +1407,14 @@ function fmtKwh(v) {
 :deep(.celda-input:focus) {
   outline: 2px solid var(--color-unergy-purple);
   outline-offset: -2px;
+}
+/* Respaldo con dato real (Medidor) -- el placeholder se ve como texto
+   normal, no como la pista tenue de siempre, porque no es una sugerencia:
+   es el valor real que ya se está reportando (ver respaldoEsDatoReal). El
+   caso 'Estimado ±1%' se queda con el gris tenue por defecto del navegador,
+   ahí sí es un número provisional. */
+:deep(.celda-respaldo-real::placeholder) {
+  color: #2c2039;
+  opacity: 1;
 }
 </style>

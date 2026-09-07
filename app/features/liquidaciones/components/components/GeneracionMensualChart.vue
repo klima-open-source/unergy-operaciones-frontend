@@ -30,11 +30,11 @@
       <div class="grid grid-cols-3 gap-2">
         <div class="rounded-lg px-2 py-1.5 text-center" style="background:#F4F1FA">
           <p class="text-[10px] uppercase tracking-wide font-semibold" style="color:var(--color-unergy-purple-dark)">Representación ($/kWh)</p>
-          <p class="text-sm font-bold tabular-nums" style="color:var(--color-unergy-deep)">{{ fmtTarifa(tarifas.representacion) }}</p>
+          <p class="text-sm font-bold tabular-nums" style="color:var(--color-unergy-deep)">{{ fmtCOP(tarifas.representacion) }}</p>
         </div>
         <div class="rounded-lg px-2 py-1.5 text-center" style="background:#F4F1FA">
           <p class="text-[10px] uppercase tracking-wide font-semibold" style="color:var(--color-unergy-purple-dark)">CGM ($/kWh)</p>
-          <p class="text-sm font-bold tabular-nums" style="color:var(--color-unergy-deep)">{{ fmtTarifa(tarifas.cgm) }}</p>
+          <p class="text-sm font-bold tabular-nums" style="color:var(--color-unergy-deep)">{{ fmtCOP(tarifas.cgm) }}</p>
         </div>
         <div class="rounded-lg px-2 py-1.5 text-center" style="background:#F4F1FA">
           <p class="text-[10px] uppercase tracking-wide font-semibold" style="color:var(--color-unergy-purple-dark)">Administración (%)</p>
@@ -52,8 +52,9 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
 } from 'chart.js'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
-import { formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { fmtCOP, formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
 import { ChartColumnIcon, SunIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
@@ -63,6 +64,9 @@ const props = defineProps({
   proyectoNombre: { type: String, default: '' },
   periodo: { type: String, required: true },   // YYYY-MM-01
 })
+
+const monitoreoLegacyService = new MonitoreoLegacyService()
+const contratosServicioService = new ContratosServicioService()
 
 const loading = ref(false)
 const dias = ref([])
@@ -77,11 +81,6 @@ function fmtKwh(v) {
   return `${v.toFixed(0)} kWh`
 }
 
-const _cop2 = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-function fmtTarifa(v) {
-  if (v == null) return '—'
-  return _cop2.format(v)
-}
 // Administración se cobra como % (no $/kWh). Acepta fracción (0.02) o número (2).
 function fmtAdminPct(v) {
   if (v == null) return '—'
@@ -121,7 +120,7 @@ function ultimoDiaMes(periodo) {
 
 // ── Generación (API de monitoreo en vivo) ─────────────────────────────────────
 async function resolverSub() {
-  const { data } = await api.get('/monitoreo/_legacy', { params: { action: 'getProjects' } })
+  const data = await monitoreoLegacyService.obtenerProyectos()
   const projects = data?.projects ?? []
   const pid = props.proyectoId != null ? String(props.proyectoId) : null
   const nombre = norm(props.proyectoNombre)
@@ -139,9 +138,7 @@ async function cargarGeneracion() {
   try {
     const sub = await resolverSub()
     if (!sub) { mensaje.value = 'Este proyecto no tiene monitoreo en la API de Unergy.'; return }
-    const { data } = await api.get('/monitoreo/_legacy', {
-      params: { action: 'getGeneration', sub_project: sub, date_from: props.periodo, date_to: ultimoDiaMes(props.periodo) },
-    })
+    const data = await monitoreoLegacyService.obtenerGeneracion({ sub_project: sub, date_from: props.periodo, date_to: ultimoDiaMes(props.periodo) })
     if (data && data.ok === false) { mensaje.value = data.error || 'La API de Unergy no devolvió datos.'; return }
     const porDia = new Map()
     for (const it of (Array.isArray(data?.data) ? data.data : [])) {
@@ -150,7 +147,7 @@ async function cargarGeneracion() {
     }
     dias.value = [...porDia.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, kwh]) => ({ date, kwh }))
   } catch (e) {
-    mensaje.value = e?.response?.data?.detail || 'No se pudo consultar la generación.'
+    mensaje.value = e?.data?.detail || 'No se pudo consultar la generación.'
   } finally {
     loading.value = false
   }
@@ -174,7 +171,7 @@ async function cargarTarifas() {
   tarifas.representacion = null; tarifas.cgm = null; tarifas.admin = null
   if (!props.proyectoId) return
   try {
-    const { data } = await api.get('/contratos-servicio', { params: { proyecto_id: props.proyectoId } })
+    const data = await contratosServicioService.listar({ proyecto_id: props.proyectoId })
     const contratos = Array.isArray(data) ? data : []
     const anio = Number(props.periodo.split('-')[0])
     for (const c of contratos) {

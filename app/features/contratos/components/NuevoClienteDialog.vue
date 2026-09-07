@@ -28,7 +28,7 @@
         <div class="space-y-3">
           <div class="flex flex-col gap-1">
             <label class="field-label">RUT</label>
-            <InputText v-model="form.rut_url" class="w-full" placeholder="https://drive.google.com/…" />
+            <InputText v-model="rut_url" class="w-full" placeholder="https://drive.google.com/…" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="field-label">Cámara de comercio</label>
@@ -57,8 +57,10 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
-import api from '~/core/client'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import { CheckIcon } from '@lucide/vue'
+
+const clientesService = new ClientesService()
 
 defineProps({ visible: Boolean })
 const emit = defineEmits(['update:visible', 'creado'])
@@ -72,8 +74,8 @@ const form = reactive({
   razon_social_nombre: '',
   nit_cedula: '',
   tipo_persona: null,
-  rut_url: '',
 })
+const rut_url = ref('')
 
 async function guardar() {
   errores.nombre = form.razon_social_nombre.trim() ? null : 'Campo obligatorio'
@@ -82,31 +84,35 @@ async function guardar() {
 
   guardando.value = true
   try {
-    const { data: cliente } = await api.post('/clientes', {
+    const cliente = await clientesService.crear({
       razon_social_nombre: form.razon_social_nombre.trim(),
       nit_cedula: form.nit_cedula.trim(),
       tipo_persona: form.tipo_persona,
-      rut_url: form.rut_url.trim() || null,
     })
 
     const docs = [
+      { tipo: 'rut', url: rut_url.value.trim(), nombre: 'RUT' },
       { tipo: 'camara_comercio', url: cc_url.value.trim(), nombre: 'Cámara de comercio' },
       { tipo: 'certificado_bancario', url: cert_url.value.trim(), nombre: 'Certificación bancaria' },
     ].filter(d => d.url)
 
     for (const d of docs) {
-      await api.post(`/clientes/${cliente.id}/documentos`, {
+      await clientesService.crearDocumento(cliente.id, {
         tipo: d.tipo,
         nombre: d.nombre,
-        archivo_url: d.url,
+        numero: null,
+        fecha: null,
         estado: 'aceptado',
+        archivo_url: d.url,
+        archivo_nombre: null,
+        notas: null,
       })
     }
 
     emit('creado', cliente)
     emit('update:visible', false)
   } catch (e) {
-    errores.nombre = e.response?.data?.detail || e.message
+    errores.nombre = e.data?.detail || e.message
   } finally {
     guardando.value = false
   }

@@ -87,10 +87,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import { BookIcon, BriefcaseIcon, CalculatorIcon, CheckIcon, MailIcon, PhoneIcon, PlusIcon, SendIcon, SettingsIcon, Trash2Icon, XIcon, ZapIcon } from '@lucide/vue'
 
 const props = defineProps({ clienteId: { type: [Number, String], required: true } })
+const clientesService = new ClientesService()
 const contactos = ref([])
 const nuevoTipo = ref(null)
 const nuevo = ref(null)
@@ -119,14 +120,13 @@ function emailValido(email) {
 
 async function cargar() {
   if (!props.clienteId) return
-  const { data } = await api.get(`/clientes/${props.clienteId}/contactos`)
-  contactos.value = data
+  contactos.value = await clientesService.listarContactos(props.clienteId)
 }
 
 async function crearContacto() {
   if (!nuevo.value || !emailValido(nuevo.value.email) || !nuevoTipo.value) return
   try {
-    const { data } = await api.post(`/clientes/${props.clienteId}/contactos`, {
+    const data = await clientesService.crearContacto(props.clienteId, {
       tipo: nuevoTipo.value,
       email: nuevo.value.email.trim().toLowerCase(),
       nombre: nuevo.value.nombre?.trim() || null,
@@ -137,7 +137,7 @@ async function crearContacto() {
     nuevo.value = null
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo agregar el contacto',
+      description: e.data?.detail || 'No se pudo agregar el contacto',
       duration: 4000,
     })
   }
@@ -146,14 +146,14 @@ async function crearContacto() {
 async function guardarContacto(contacto) {
   if (!emailValido(contacto.email)) return
   try {
-    await api.patch(`/clientes/${props.clienteId}/contactos/${contacto.id}`, {
+    await clientesService.actualizarContacto(props.clienteId, contacto.id, {
       email: contacto.email.trim().toLowerCase(),
       nombre: contacto.nombre?.trim() || null,
       telefono: contacto.telefono?.trim() || null,
     })
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo guardar el contacto',
+      description: e.data?.detail || 'No se pudo guardar el contacto',
       duration: 4000,
     })
     cargar()
@@ -162,7 +162,7 @@ async function guardarContacto(contacto) {
 
 async function eliminarContacto(contacto) {
   try {
-    await api.delete(`/clientes/${props.clienteId}/contactos/${contacto.id}`)
+    await clientesService.eliminarContacto(props.clienteId, contacto.id)
     contactos.value = contactos.value.filter(c => c.id !== contacto.id)
   } catch (e) {
     toast.error('Error', { description: 'No se pudo eliminar el contacto', duration: 4000 })
@@ -172,10 +172,10 @@ async function eliminarContacto(contacto) {
 async function enviarPrueba(email) {
   if (!emailValido(email)) return
   try {
-    await api.post(`/clientes/${props.clienteId}/test-correo`, { email })
+    await clientesService.enviarCorreoPrueba(props.clienteId, email)
     toast.success('Correo de prueba enviado', { description: `✓ Enviado a ${email}`, duration: 4000 })
   } catch (e) {
-    toast.error('Error al enviar', { description: e.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('Error al enviar', { description: e.data?.detail || e.message, duration: 5000 })
   }
 }
 

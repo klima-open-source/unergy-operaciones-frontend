@@ -189,6 +189,7 @@ import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, MAX_FACTURAS_POR_LOTE, MAX_MB_POR_FACTURA } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
+import { formatCOP as fmtCOP } from '~/utils/currency'
 import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
@@ -266,7 +267,7 @@ async function cargar() {
     facturas.value = data.results || []
     readiness.value = data.readiness || readinessVacia()
   } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudieron cargar las facturas de XM.'
+    error.value = e.data?.detail || 'No se pudieron cargar las facturas de XM.'
     facturas.value = []
     readiness.value = readinessVacia()
   } finally {
@@ -350,7 +351,7 @@ async function subir() {
     await cargar()
   } catch (e) {
     toast.error('No se pudieron cargar', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 8000,
     })
   } finally {
@@ -365,11 +366,6 @@ function fmtTamano(bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function fmtCOP(v) {
-  if (v === null || v === undefined) return '—'
-  return v.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 }
 
 function fmtFecha(v) {

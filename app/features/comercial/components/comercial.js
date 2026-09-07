@@ -44,10 +44,7 @@ export const COLUMNAS = [
 ]
 
 // ── Tipos de oferta (TipoOfertaComercialEnum) ────────────────────────────────
-// Estos son los valores REALES que acepta el backend. El dropdown viejo de
-// "Tipo de servicio" de la oportunidad usaba estas mismas etiquetas contra el
-// enum `tipo_servicio_oportunidad_enum` (representacion | comunidad_energetica),
-// que es otro: por eso guardar tiraba 422.
+// Estos son los valores REALES que acepta el backend.
 export const TIPOS_OFERTA = [
   { value: 'servicios_operacionales', label: 'Servicios operacionales', segmento: 'REP' },
   { value: 'compra_energia', label: 'Compra de energía', segmento: 'COM' },

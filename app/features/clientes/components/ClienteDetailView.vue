@@ -96,78 +96,57 @@
             </div>
           </div>
 
-          <!-- Servicios registrados manualmente -->
-          <div class="flex items-center justify-between">
-            <p class="text-sm" style="color: #6b5a8a;">Servicios registrados manualmente.</p>
-            <button @click="abrirDialogoServicio"
-              class="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-1.5"
-              style="background: var(--color-unergy-purple);">
-              <PlusIcon class="text-xs size-[1em]" /> Agregar servicio
-            </button>
-          </div>
-
-          <div v-if="cliente.servicios.length === 0" class="text-center py-10 text-sm" style="color: #9b89b5;">
-            Ningún servicio registrado aún.
-          </div>
-
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div v-for="s in cliente.servicios" :key="s.id"
-              class="rounded-xl p-4 space-y-2"
-              style="border: 1.5px solid #e8e0f0;">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                    :style="{ background: servicioColor(s.tipo) }">
-                    {{ s.tipo[0].toUpperCase() }}
-                  </div>
-                  <div>
-                    <p class="text-sm font-semibold capitalize" style="color: var(--color-unergy-deep);">{{ servicioLabel(s.tipo) }}</p>
-                    <p v-if="s.fecha_inicio" class="text-xs" style="color: #9b89b5;">
-                      Desde {{ formatDate(s.fecha_inicio) }}
-                    </p>
-                  </div>
+          <!-- Excepciones de tasa por servicio -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wide" style="color: #9b89b5;">
+                Excepciones de tasa por servicio
+              </h3>
+              <button @click="abrirDialogoTasa(null)"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex items-center gap-1"
+                style="background: var(--color-unergy-purple);">
+                <PlusIcon class="text-xs size-[1em]" /> Agregar excepción
+              </button>
+            </div>
+            <p class="text-xs mb-3" style="color: #9b89b5;">
+              Sobrescribe el IVA/retención/ReteIVA/ReteICA general del cliente solo para un servicio
+              (y opcionalmente un proyecto) puntual. Un % vacío hereda la tasa general del cliente.
+            </p>
+            <div v-if="loadingTasas" class="flex justify-center py-4">
+              <LoaderCircleIcon class="text-xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
+            </div>
+            <div v-else-if="tasasServicio.length === 0"
+              class="text-sm text-center py-4 rounded-xl" style="color:#bba8d4; border: 1.5px dashed #e8e0f0;">
+              Sin excepciones — este cliente usa sus tasas generales para todos los servicios.
+            </div>
+            <div v-else class="space-y-2">
+              <div v-for="t in tasasServicio" :key="t.id"
+                class="flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-3"
+                style="border: 1.5px solid #e8e0f0;">
+                <div>
+                  <p class="text-sm font-semibold" style="color: var(--color-unergy-deep);">
+                    {{ t.servicio }}
+                    <span class="text-xs font-normal" style="color:#9b89b5;"> · {{ nombreProyectoTasa(t.proyecto_id) }}</span>
+                  </p>
+                  <p class="text-xs" style="color: #6b5a8a;">
+                    <span v-if="t.iva_pct != null">IVA {{ t.iva_pct }}% · </span>
+                    <span v-if="t.retencion_pct != null">Retención {{ t.retencion_pct }}% · </span>
+                    <span v-if="t.reteiva_pct != null">ReteIVA {{ t.reteiva_pct }}% · </span>
+                    <span v-if="t.reteica_pct != null">ReteICA {{ t.reteica_pct }}%</span>
+                  </p>
                 </div>
-                <button @click="confirmarEliminarServicio(s)" class="text-red-400 hover:text-red-600 transition-colors">
-                  <Trash2Icon class="text-sm size-[1em]" />
-                </button>
-              </div>
-
-              <!-- Documentos vinculados al servicio -->
-              <div class="pt-1 space-y-1">
-                <template v-for="tipo in ['oferta', 'contrato']" :key="tipo">
-                  <div class="flex items-center justify-between rounded-lg px-3 py-1.5"
-                    style="background: #f8f5fd;">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-semibold px-1.5 py-0.5 rounded-full"
-                        :style="tipo === 'oferta' ? 'background:#f0ebfd;color:var(--color-unergy-purple)' : 'background:#e8f5e9;color:#2e7d32'">
-                        {{ tipo === 'oferta' ? 'Oferta' : 'Contrato' }}
-                      </span>
-                      <span v-if="docDeServicio(s.id, tipo)" class="text-xs truncate max-w-32" style="color:var(--color-unergy-deep);">
-                        {{ docDeServicio(s.id, tipo).archivo_nombre || docDeServicio(s.id, tipo).nombre }}
-                      </span>
-                      <span v-else class="text-xs italic" style="color:#bba8d4;">Sin archivo</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <a v-if="docDeServicio(s.id, tipo)?.archivo_url"
-                        :href="docDeServicio(s.id, tipo).archivo_url" target="_blank"
-                        class="text-xs hover:underline flex items-center gap-0.5" style="color: var(--color-unergy-purple);">
-                        <ExternalLinkIcon class="text-xs size-[1em]" />
-                      </a>
-                      <button v-if="docDeServicio(s.id, tipo)"
-                        @click="abrirDialogoDocumento(docDeServicio(s.id, tipo))"
-                        class="text-xs hover:text-purple-700" style="color:#6b5a8a;">
-                        <PencilIcon class="size-[1em]" />
-                      </button>
-                      <button v-else @click="abrirDialogoDocumento(null, tipo, s.id)"
-                        class="text-xs font-medium" style="color:var(--color-unergy-purple);">
-                        + Subir
-                      </button>
-                    </div>
-                  </div>
-                </template>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button @click="abrirDialogoTasa(t)" style="color: #6b5a8a;" class="hover:text-purple-700">
+                    <PencilIcon class="text-sm size-[1em]" />
+                  </button>
+                  <button @click="eliminarTasa(t)" class="text-red-400 hover:text-red-600">
+                    <Trash2Icon class="text-sm size-[1em]" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- ── Tab: Documentos ── -->
@@ -366,48 +345,6 @@
     <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
   </div>
 
-  <!-- ── Dialog: Agregar servicio ── -->
-  <Dialog v-model:visible="dialogServicio" modal header="Agregar servicio" class="w-full max-w-sm">
-    <div class="space-y-4 pt-2">
-      <div>
-        <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">
-          Tipo de servicio *
-        </label>
-        <Select v-model="nuevoServicio.tipo" :options="serviciosDisponibles"
-          optionLabel="label" optionValue="value" class="w-full" placeholder="Seleccionar" />
-      </div>
-      <div>
-        <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">
-          Fecha de inicio
-        </label>
-        <DatePicker v-model="nuevoServicio.fecha_inicio" class="w-full" dateFormat="dd/mm/yy" showButtonBar />
-      </div>
-      <div>
-        <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">Notas</label>
-        <Textarea v-model="nuevoServicio.notas" class="w-full" rows="2" />
-      </div>
-    </div>
-    <template #footer>
-      <Button label="Cancelar" severity="secondary" @click="dialogServicio = false" />
-      <Button label="Confirmar y agregar" :disabled="!nuevoServicio.tipo" @click="confirmarServicio"
-        style="background: var(--color-unergy-purple); border-color: var(--color-unergy-purple);" />
-    </template>
-  </Dialog>
-
-  <!-- ── Dialog: Confirmar agregar servicio ── -->
-  <Dialog v-model:visible="dialogConfirmServicio" modal header="¿Está seguro?" class="w-full max-w-sm">
-    <div class="py-2 text-sm" style="color: var(--color-unergy-deep);">
-      ¿Confirma agregar el servicio
-      <strong>{{ servicioLabel(nuevoServicio.tipo) }}</strong>
-      al cliente <strong>{{ formatearNombre(cliente?.razon_social_nombre) }}</strong>?
-    </div>
-    <template #footer>
-      <Button label="Cancelar" severity="secondary" @click="dialogConfirmServicio = false" />
-      <Button label="Sí, agregar" @click="guardarServicio"
-        style="background: var(--color-unergy-purple); border-color: var(--color-unergy-purple);" />
-    </template>
-  </Dialog>
-
   <!-- ── Dialog: Documento ── -->
   <Dialog v-model:visible="dialogDocumento" modal
     :header="editandoDocumento?.id ? 'Editar documento' : 'Nuevo documento'"
@@ -422,14 +359,6 @@
             class="w-full" placeholder="Seleccionar tipo" @change="onTipoChange" />
         </div>
 
-        <!-- Servicio (solo para oferta/contrato) -->
-        <div v-if="formDoc.tipo === 'oferta' || formDoc.tipo === 'contrato'" class="col-span-2">
-          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">
-            Servicio relacionado
-          </label>
-          <Select v-model="formDoc.servicio_id" :options="opcionesServicio" optionLabel="label" optionValue="value"
-            class="w-full" placeholder="Seleccionar servicio (opcional)" showClear />
-        </div>
 
         <!-- Nombre -->
         <div class="col-span-2">
@@ -499,6 +428,47 @@
         style="background: var(--color-unergy-purple); border-color: var(--color-unergy-purple);" />
     </template>
   </Dialog>
+
+  <!-- ── Dialog: Excepción de tasa por servicio ── -->
+  <Dialog v-model:visible="dialogTasa" modal
+    :header="editandoTasa?.id ? 'Editar excepción de tasa' : 'Nueva excepción de tasa'"
+    class="w-full max-w-lg">
+    <div class="space-y-4 pt-2">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">Servicio *</label>
+          <Select v-model="formTasa.servicio" :options="SERVICIOS_TASA" class="w-full" placeholder="Seleccionar" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">Proyecto</label>
+          <Select v-model="formTasa.proyecto_id" :options="clienteProyectos" optionLabel="nombre_comercial" optionValue="id"
+            class="w-full" placeholder="Todos los proyectos" showClear />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">IVA %</label>
+          <InputNumber v-model="formTasa.iva_pct" suffix="%" :minFractionDigits="0" :maxFractionDigits="2" class="w-full" placeholder="Hereda del cliente" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">Retención %</label>
+          <InputNumber v-model="formTasa.retencion_pct" suffix="%" :minFractionDigits="0" :maxFractionDigits="2" class="w-full" placeholder="Hereda del cliente" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">ReteIVA %</label>
+          <InputNumber v-model="formTasa.reteiva_pct" suffix="%" :minFractionDigits="0" :maxFractionDigits="2" class="w-full" placeholder="Hereda del cliente" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style="color: var(--color-unergy-deep);">ReteICA %</label>
+          <InputNumber v-model="formTasa.reteica_pct" suffix="%" :minFractionDigits="0" :maxFractionDigits="2" class="w-full" placeholder="Hereda del cliente" />
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <Button label="Cancelar" severity="secondary" @click="dialogTasa = false" />
+      <Button label="Guardar" :disabled="!formTasa.servicio || guardando"
+        :loading="guardando" @click="guardarTasa"
+        style="background: var(--color-unergy-purple); border-color: var(--color-unergy-purple);" />
+    </template>
+  </Dialog>
 </template>
 
 <script setup>
@@ -511,7 +481,8 @@ import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import DatePicker from 'primevue/datepicker'
-import api from '~/core/client'
+import InputNumber from 'primevue/inputnumber'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import ClienteForm from './ClienteForm.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 import ClienteResumen from './ClienteResumen.vue'
@@ -519,6 +490,8 @@ import ContactosPanel from '~/components/blocks/ContactosPanel.vue'
 import { formatearNombre } from '~/utils/nombreFormato'
 import { SEMAFORO, servicioLabel as servicioAplicaLabel } from './clientesUi'
 import { BriefcaseIcon, ChevronRightIcon, ExternalLinkIcon, FilePenIcon, FolderIcon, GlobeIcon, LayoutGridIcon, LoaderCircleIcon, MailIcon, PencilIcon, PlusIcon, Trash2Icon, UploadIcon, UserIcon, ZapIcon } from '@lucide/vue'
+
+const clientesService = new ClientesService()
 
 const route = useRoute()
 const router = useRouter()
@@ -548,12 +521,8 @@ const loadingRelated = ref(false)
 const serviciosContratos = ref([])
 const loadingServiciosContratos = ref(false)
 
-const SERVICIOS = [
-  { value: 'operacion',      label: 'Operación & Mantenimiento' },
-  { value: 'representacion', label: 'Representación en mercado' },
-  { value: 'cgm',            label: 'CGM' },
-  { value: 'promotor',       label: 'Promotor' },
-]
+const tasasServicio = ref([])
+const loadingTasas = ref(false)
 
 const TIPOS_DOC = [
   { value: 'rut',                label: 'RUT' },
@@ -582,69 +551,9 @@ const docsIdentificacion = computed(() =>
 
 const docsComerciales = computed(() =>
   (cliente.value?.documentos_comerciales || [])
-    .filter(d => TIPOS_COMERCIAL.includes(d.tipo) && !d.servicio_id)
+    .filter(d => TIPOS_COMERCIAL.includes(d.tipo))
     .sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'oferta' ? -1 : 1))
 )
-
-const opcionesServicio = computed(() =>
-  (cliente.value?.servicios || []).map(s => ({
-    label: servicioLabel(s.tipo),
-    value: s.id,
-  }))
-)
-
-function docDeServicio(servicioId, tipo) {
-  return (cliente.value?.documentos_comerciales || []).find(
-    d => d.servicio_id === servicioId && d.tipo === tipo
-  )
-}
-
-// ── Servicios ──────────────────────────────────────────────────────────────────
-
-const dialogServicio = ref(false)
-const dialogConfirmServicio = ref(false)
-const nuevoServicio = reactive({ tipo: '', fecha_inicio: null, notas: '' })
-
-const serviciosDisponibles = computed(() => {
-  const existentes = (cliente.value?.servicios || []).map(s => s.tipo)
-  return SERVICIOS.filter(s => !existentes.includes(s.value))
-})
-
-function abrirDialogoServicio() {
-  nuevoServicio.tipo = ''
-  nuevoServicio.fecha_inicio = null
-  nuevoServicio.notas = ''
-  dialogServicio.value = true
-}
-
-function confirmarServicio() {
-  dialogServicio.value = false
-  dialogConfirmServicio.value = true
-}
-
-async function guardarServicio() {
-  try {
-    await api.post(`/clientes/${route.params.id}/servicios`, {
-      tipo: nuevoServicio.tipo,
-      fecha_inicio: nuevoServicio.fecha_inicio
-        ? nuevoServicio.fecha_inicio.toISOString().split('T')[0]
-        : null,
-      notas: nuevoServicio.notas || null,
-    })
-    dialogConfirmServicio.value = false
-    toast.success('Servicio agregado', { duration: 3000 })
-    await cargar()
-  } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail, duration: 4000 })
-  }
-}
-
-async function confirmarEliminarServicio(s) {
-  if (!confirm(`¿Eliminar el servicio "${servicioLabel(s.tipo)}"?`)) return
-  await api.delete(`/clientes/${route.params.id}/servicios/${s.id}`)
-  toast.success('Servicio eliminado', { duration: 3000 })
-  await cargar()
-}
 
 // ── Documentos ────────────────────────────────────────────────────────────────
 
@@ -653,10 +562,10 @@ const editandoDocumento = ref(null)
 const formDoc = reactive({
   tipo: '', nombre: '', numero: '', fecha: null,
   estado: 'borrador', archivo_url: '', archivo_nombre: '',
-  servicio_id: null, notas: '',
+  notas: '',
 })
 
-function abrirDialogoDocumento(doc, tipoPreset = null, servicioPreset = null) {
+function abrirDialogoDocumento(doc, tipoPreset = null) {
   editandoDocumento.value = doc
   archivoSeleccionado.value = null
   if (doc) {
@@ -672,7 +581,7 @@ function abrirDialogoDocumento(doc, tipoPreset = null, servicioPreset = null) {
       nombre: tipoPreset ? nombreSugerido(tipoPreset) : '',
       numero: '', fecha: null, estado: 'borrador',
       archivo_url: '', archivo_nombre: '',
-      servicio_id: servicioPreset || null, notas: '',
+      notas: '',
     })
   }
   dialogDocumento.value = true
@@ -714,33 +623,28 @@ async function guardarDocumento() {
       estado: formDoc.estado,
       archivo_url: archivoSeleccionado.value ? null : (formDoc.archivo_url || null),
       archivo_nombre: formDoc.archivo_nombre || null,
-      servicio_id: formDoc.servicio_id || null,
       notas: formDoc.notas || null,
     }
 
     let docId
     if (editandoDocumento.value?.id) {
-      await api.patch(`/clientes/${route.params.id}/documentos/${editandoDocumento.value.id}`, payload)
+      await clientesService.actualizarDocumento(route.params.id, editandoDocumento.value.id, payload)
       docId = editandoDocumento.value.id
     } else {
-      const { data } = await api.post(`/clientes/${route.params.id}/documentos`, payload)
-      docId = data.id
+      const documento = await clientesService.crearDocumento(route.params.id, payload)
+      docId = documento.id
     }
 
     // Upload archivo si se seleccionó uno
     if (archivoSeleccionado.value) {
-      const fd = new FormData()
-      fd.append('archivo', archivoSeleccionado.value)
-      await api.post(`/clientes/${route.params.id}/documentos/${docId}/archivo`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      await clientesService.subirArchivoDocumento(route.params.id, docId, archivoSeleccionado.value)
     }
 
     dialogDocumento.value = false
     toast.success('Documento guardado', { duration: 3000 })
     await cargar()
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail, duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -748,7 +652,7 @@ async function guardarDocumento() {
 
 async function eliminarDocumento(doc) {
   if (!confirm(`¿Eliminar "${doc.archivo_nombre || doc.nombre}"?`)) return
-  await api.delete(`/clientes/${route.params.id}/documentos/${doc.id}`)
+  await clientesService.eliminarDocumento(route.params.id, doc.id)
   toast.success('Eliminado', { duration: 3000 })
   await cargar()
 }
@@ -756,7 +660,7 @@ async function eliminarDocumento(doc) {
 // ── Info ──────────────────────────────────────────────────────────────────────
 
 async function saveInfo(payload) {
-  await api.patch(`/clientes/${route.params.id}`, payload)
+  await clientesService.actualizar(route.params.id, payload)
   toast.success('Información actualizada', { duration: 3000 })
   await cargar()
 }
@@ -764,11 +668,11 @@ async function saveInfo(payload) {
 async function doDelete() {
   deleting.value = true
   try {
-    await api.delete(`/clientes/${route.params.id}`)
+    await clientesService.eliminar(route.params.id)
     toast.success('Cliente eliminado', { duration: 3000 })
     router.push('/clientes')
   } catch (e) {
-    const detail = e.response?.data?.detail || 'Error al eliminar'
+    const detail = e.data?.detail || 'Error al eliminar'
     toast.error('No se pudo eliminar', { description: detail, duration: 5000 })
   } finally {
     deleting.value = false
@@ -776,15 +680,6 @@ async function doDelete() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function servicioLabel(tipo) {
-  return SERVICIOS.find(s => s.value === tipo)?.label || tipo
-}
-
-function servicioColor(tipo) {
-  const colors = { operacion: '#915BD8', representacion: '#2C2039', cgm: '#336791', promotor: '#E67E22' }
-  return colors[tipo] || '#9b89b5'
-}
 
 function tipoLabel(tipo) {
   return TIPOS_DOC.find(t => t.value === tipo)?.label || tipo
@@ -811,8 +706,7 @@ function formatDate(d) {
 }
 
 async function cargar() {
-  const { data } = await api.get(`/clientes/${route.params.id}`)
-  cliente.value = data
+  cliente.value = await clientesService.obtener(route.params.id)
 }
 
 // Fix 2026-08-19: cada llamada tenia su propio .catch(() => ({data: []})),
@@ -823,18 +717,15 @@ async function loadRelatedData(tab) {
   loadingRelated.value = true
   try {
     if (tab === 'proyectos' && clienteProyectos.value.length === 0) {
-      const { data } = await api.get(`/clientes/${route.params.id}/proyectos`)
-      clienteProyectos.value = Array.isArray(data) ? data : (data.items ?? [])
+      clienteProyectos.value = await clientesService.listarProyectos(route.params.id)
     } else if (tab === 'fronteras' && clienteFronteras.value.length === 0) {
-      const { data } = await api.get(`/clientes/${route.params.id}/fronteras`)
-      clienteFronteras.value = Array.isArray(data) ? data : (data.items ?? [])
+      clienteFronteras.value = await clientesService.listarFronteras(route.params.id)
     } else if (tab === 'ppa' && clientePPA.value.length === 0) {
-      const { data } = await api.get(`/clientes/${route.params.id}/contratos-ppa`)
-      clientePPA.value = Array.isArray(data) ? data : (data.items ?? [])
+      clientePPA.value = await clientesService.listarContratosPpa(route.params.id)
     }
   } catch (e) {
     toast.error('No se pudo cargar', {
-      description: e.response?.data?.detail || 'Intenta de nuevo en un momento',
+      description: e.data?.detail || 'Intenta de nuevo en un momento',
       duration: 4000,
     })
   } finally {
@@ -851,8 +742,7 @@ watch(activeTab, (tab) => {
 async function loadServiciosContratos() {
   loadingServiciosContratos.value = true
   try {
-    const { data } = await api.get(`/clientes/${route.params.id}/servicios-contratos`)
-    serviciosContratos.value = Array.isArray(data) ? data : []
+    serviciosContratos.value = await clientesService.listarServiciosContratos(route.params.id)
   } catch {
     serviciosContratos.value = []
   } finally {
@@ -860,8 +750,85 @@ async function loadServiciosContratos() {
   }
 }
 
+// ── Tasas de servicio (excepciones de IVA/retencion/ReteIVA/ReteICA) ──────────
+// Sobrescriben las tasas generales del cliente SOLO para un servicio puntual
+// (y opcionalmente un proyecto puntual). Ver app/utils/impuestos_factura.py
+// (tasas_efectivas) en el backend -- esto es lo que aplica el Panel Contable
+// y las Liquidaciones.
+const SERVICIOS_TASA = ['Representación', 'CGM', 'Administración']
+
+async function loadTasasServicio() {
+  loadingTasas.value = true
+  try {
+    tasasServicio.value = await clientesService.listarTasasServicio(route.params.id)
+  } catch {
+    tasasServicio.value = []
+  } finally {
+    loadingTasas.value = false
+  }
+}
+
+const dialogTasa = ref(false)
+const editandoTasa = ref(null)
+const formTasa = reactive({
+  servicio: '', proyecto_id: null,
+  iva_pct: null, retencion_pct: null, reteiva_pct: null, reteica_pct: null,
+})
+
+async function abrirDialogoTasa(tasa) {
+  editandoTasa.value = tasa
+  if (tasa) {
+    Object.assign(formTasa, {
+      servicio: tasa.servicio, proyecto_id: tasa.proyecto_id ?? null,
+      iva_pct: tasa.iva_pct ?? null, retencion_pct: tasa.retencion_pct ?? null,
+      reteiva_pct: tasa.reteiva_pct ?? null, reteica_pct: tasa.reteica_pct ?? null,
+    })
+  } else {
+    Object.assign(formTasa, {
+      servicio: '', proyecto_id: null,
+      iva_pct: null, retencion_pct: null, reteiva_pct: null, reteica_pct: null,
+    })
+  }
+  if (clienteProyectos.value.length === 0) await loadRelatedData('proyectos')
+  dialogTasa.value = true
+}
+
+async function guardarTasa() {
+  guardando.value = true
+  try {
+    await clientesService.guardarTasaServicio(route.params.id, {
+      servicio: formTasa.servicio,
+      proyecto_id: formTasa.proyecto_id || null,
+      iva_pct: formTasa.iva_pct ?? null,
+      retencion_pct: formTasa.retencion_pct ?? null,
+      reteiva_pct: formTasa.reteiva_pct ?? null,
+      reteica_pct: formTasa.reteica_pct ?? null,
+    })
+    dialogTasa.value = false
+    toast.success('Tasa de servicio guardada', { duration: 3000 })
+    await loadTasasServicio()
+  } catch (e) {
+    toast.error('Error', { description: e.data?.detail, duration: 4000 })
+  } finally {
+    guardando.value = false
+  }
+}
+
+async function eliminarTasa(tasa) {
+  if (!confirm(`¿Eliminar la excepción de "${tasa.servicio}"${tasa.proyecto_id ? '' : ' (todos los proyectos)'}?`)) return
+  await clientesService.eliminarTasaServicio(route.params.id, tasa.id)
+  toast.success('Eliminada', { duration: 3000 })
+  await loadTasasServicio()
+}
+
+function nombreProyectoTasa(proyectoId) {
+  if (!proyectoId) return 'Todos los proyectos'
+  return clienteProyectos.value.find(p => p.id === proyectoId)?.nombre_comercial || `Proyecto #${proyectoId}`
+}
+
 onMounted(() => {
   cargar()
   loadServiciosContratos()
+  loadTasasServicio()
 })
 </script>

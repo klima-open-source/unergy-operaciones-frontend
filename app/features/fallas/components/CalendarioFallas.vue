@@ -13,8 +13,6 @@
       <div class="cal-filtros">
         <Select v-model="filtroProyecto" :options="proyectos" optionLabel="nombre_comercial"
           optionValue="id" placeholder="Proyecto" showClear filter class="cal-select" size="small" />
-        <Select v-model="filtroAsignado" :options="usuarios" optionLabel="nombre"
-          optionValue="id" placeholder="Responsable" showClear class="cal-select" size="small" />
         <Select v-model="filtroEstado" :options="estados" optionLabel="etiqueta"
           optionValue="codigo" placeholder="Estado" showClear class="cal-select" size="small" />
         <button v-if="hayFiltros" class="cal-clear-btn" @click="limpiarFiltros">
@@ -140,10 +138,6 @@
                   {{ detalle.prioridad?.etiqueta }}
                 </span>
               </div>
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><UserIcon class="size-[1em]" /> Responsable</span>
-                <span class="cal-detail-val">{{ detalle.asignado_a?.nombre ?? '—' }}</span>
-              </div>
               <div class="cal-detail-item cal-detail-item--full">
                 <span class="cal-detail-lbl"><AlignLeftIcon class="size-[1em]" /> Descripción</span>
                 <p class="cal-detail-desc">{{ detalle.descripcion }}</p>
@@ -156,13 +150,13 @@
                 <span class="cal-detail-lbl"><SquareCheckIcon class="size-[1em]" /> Acciones correctivas</span>
                 <p class="cal-detail-desc">{{ detalle.acciones_correctivas }}</p>
               </div>
-              <div v-if="detalle.asignado_a" class="cal-detail-item">
+              <div class="cal-detail-item">
                 <span class="cal-detail-lbl"><CalendarClockIcon class="size-[1em]" /> Identificado</span>
                 <span class="cal-detail-val">{{ detalle.fecha_identificacion }}</span>
               </div>
-              <div v-if="detalle.sla_limite_horas" class="cal-detail-item">
+              <div class="cal-detail-item">
                 <span class="cal-detail-lbl"><ClockIcon class="size-[1em]" /> SLA</span>
-                <span class="cal-detail-val">{{ detalle.sla_limite_horas }}h ({{ detalle.sla_limite_dias }}d)</span>
+                <span class="cal-detail-val">{{ detalle.sla_limite_horas_efectivo }}h ({{ detalle.sla_limite_dias }}d)</span>
               </div>
             </div>
           </div>
@@ -210,8 +204,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import Select from 'primevue/select'
-import api from '~/core/client'
-import { AlignLeftIcon, ArrowRightIcon, CalendarClockIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, ClockIcon, FlagIcon, LoaderCircleIcon, PencilIcon, SearchIcon, SquareCheckIcon, UserIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { AlignLeftIcon, ArrowRightIcon, CalendarClockIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, ClockIcon, FlagIcon, LoaderCircleIcon, PencilIcon, SearchIcon, SquareCheckIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -224,7 +222,6 @@ const emit = defineEmits(['editar', 'ver-falla'])
 const loading    = ref(false)
 const fallas     = ref([])
 const proyectos  = ref([])
-const usuarios   = ref([])
 const estados    = ref([])
 const detalle    = ref(null)
 const diaModal   = ref(null)
@@ -233,7 +230,6 @@ const hoy = new Date()
 const mesActual  = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
 
 const filtroProyecto = ref(null)
-const filtroAsignado = ref(null)
 const filtroEstado   = ref(null)
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -274,13 +270,12 @@ const mesLabel = computed(() => {
 })
 
 const hayFiltros = computed(() =>
-  filtroProyecto.value || filtroAsignado.value || filtroEstado.value
+  filtroProyecto.value || filtroEstado.value
 )
 
 const eventosFiltrados = computed(() => {
   let list = fallas.value
   if (filtroProyecto.value) list = list.filter(f => f.proyecto_id === filtroProyecto.value)
-  if (filtroAsignado.value) list = list.filter(f => f.asignado_a_id === filtroAsignado.value)
   if (filtroEstado.value)   list = list.filter(f => f.estado?.codigo === filtroEstado.value)
   return list
 })
@@ -335,7 +330,7 @@ const celdas = computed(() => {
 function mesAnterior()  { const m = mesActual.value; mesActual.value = new Date(m.getFullYear(), m.getMonth() - 1, 1) }
 function mesSiguiente() { const m = mesActual.value; mesActual.value = new Date(m.getFullYear(), m.getMonth() + 1, 1) }
 function irAHoy()       { mesActual.value = new Date(hoy.getFullYear(), hoy.getMonth(), 1) }
-function limpiarFiltros() { filtroProyecto.value = null; filtroAsignado.value = null; filtroEstado.value = null }
+function limpiarFiltros() { filtroProyecto.value = null; filtroEstado.value = null }
 
 // ── Acciones ──────────────────────────────────────────────────────────────────
 function abrirDetalle(falla) { detalle.value = falla }
@@ -347,21 +342,15 @@ function emitEditar(falla)   { emit('editar', falla);    detalle.value = null }
 async function cargar() {
   loading.value = true
   try {
-    const [resFallas, resProy, resCatalogos] = await Promise.all([
+    const [resFallas, listaProyectos, catalogos] = await Promise.all([
       // Traer TODAS las fallas con fecha_programada (programadas + ejecutadas = historial completo)
-      api.get('/fallas', { params: { size: 5000, con_fecha_programada: true } }),
-      api.get('/proyectos', { params: { size: 500 } }),
-      api.get('/fallas/catalogos'),
+      fallasService.listar({ size: 5000, con_fecha_programada: true }),
+      proyectosService.listar({ size: 500 }),
+      fallasService.obtenerCatalogos(),
     ])
-    fallas.value    = resFallas.data.items ?? []
-    proyectos.value = resProy.data.items ?? []
-    estados.value   = resCatalogos.data.estados ?? []
-
-    const mapa = {}
-    for (const f of fallas.value) {
-      if (f.asignado_a) mapa[f.asignado_a.id] = f.asignado_a
-    }
-    usuarios.value = Object.values(mapa)
+    fallas.value    = resFallas.items ?? []
+    proyectos.value = listaProyectos
+    estados.value   = catalogos.estados ?? []
   } finally {
     loading.value = false
   }

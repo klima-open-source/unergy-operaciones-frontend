@@ -8,21 +8,28 @@
 import type {
   AccionCiclo,
   Catalogos,
+  ConfigLiquidacionProyecto,
   DiagnosticoProyecto,
   FiltrosConsumo,
   FiltrosDespachos,
   OpcionesEsperaTarea,
+  PayloadConfigLiquidacionProyecto,
+  PayloadSubproyectoQuoia,
   PeriodoCiclo,
+  ProyectoLiquidacionApi,
   RespuestaConsumo,
   RespuestaCostos,
   RespuestaDespachos,
   RespuestaFacturasXm,
   RespuestaSubidaFacturas,
   ResultadoTarea,
+  SubproyectoQuoia,
   TareaEstado,
+  TotalesAcPower,
   VersionCiclo,
 } from '~/features/liquidaciones/types'
-import { LegacyBaseService } from '~/core/legacy-service'
+import type { QueryValue } from '@korastd/air'
+import { BaseService } from '~/core/service'
 import {
   EstadoTarea,
   TareaFallida,
@@ -45,6 +52,10 @@ const RUTAS = {
   cicloIpp: `${BASE}/ciclo/ipp`,
   ipp: `${BASE}/ipp`,
   cicloDiagnostico: `${BASE}/ciclo/diagnostico`,
+  proyectos: `${BASE}/proyectos`,
+  proyecto: (id: number) => `${BASE}/proyectos/${id}`,
+  subproyecto: (topic: string) => `${BASE}/subproyectos/${encodeURIComponent(topic)}`,
+  acPower: `${BASE}/ac-power`,
 } as const
 
 const ESPERA_POR_DEFECTO = {
@@ -54,7 +65,46 @@ const ESPERA_POR_DEFECTO = {
 
 const dormir = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms))
 
-export class LiquidacionesApiService extends LegacyBaseService {
+export class LiquidacionesApiService extends BaseService {
+  // ── Proyectos ────────────────────────────────────────────────────────────────
+
+  /** El listado plano de proyectos de esta API, identificados por `nombre_topico`. */
+  listarProyectos(): Promise<ProyectoLiquidacionApi[]> {
+    return this.get<ProyectoLiquidacionApi[]>(RUTAS.proyectos)
+  }
+
+  /** Totales de potencia AC y tópicos que no cruzaron con un proyecto propio. */
+  obtenerAcPower(): Promise<TotalesAcPower> {
+    return this.get<TotalesAcPower>(RUTAS.acPower)
+  }
+
+  /**
+   * Los códigos SIC de un proyecto se guardan acá, no en la base propia — es la
+   * única config del proyecto que vive en esta API.
+   */
+  obtenerConfigProyecto(id: number): Promise<ConfigLiquidacionProyecto> {
+    return this.get<ConfigLiquidacionProyecto>(RUTAS.proyecto(id))
+  }
+
+  actualizarConfigProyecto(
+    id: number,
+    payload: PayloadConfigLiquidacionProyecto,
+  ): Promise<unknown> {
+    return this.patch<unknown>(RUTAS.proyecto(id), payload)
+  }
+
+  /**
+   * Escribe los ids de Quoia de un subproyecto. Es un PATCH parcial de
+   * verdad: lo que no se envía no se toca, y enviar `null` **borra** el id
+   * (ver PayloadSubproyectoQuoia) — nunca mandes un campo "por si acaso".
+   */
+  actualizarSubproyecto(
+    topic: string,
+    payload: PayloadSubproyectoQuoia,
+  ): Promise<SubproyectoQuoia> {
+    return this.patch<SubproyectoQuoia>(RUTAS.subproyecto(topic), payload)
+  }
+
   // ── Tareas asíncronas ──────────────────────────────────────────────────────
 
   /**
@@ -100,8 +150,8 @@ export class LiquidacionesApiService extends LegacyBaseService {
   // ── Facturas de XM ─────────────────────────────────────────────────────────
 
   /** Facturas de XM del período, con su bloque de alistamiento. */
-  listarFacturasXm(filtros: Record<string, unknown> = {}): Promise<RespuestaFacturasXm> {
-    return this.get<RespuestaFacturasXm>(RUTAS.facturasXm, { params: filtros })
+  listarFacturasXm(filtros: Record<string, QueryValue> = {}): Promise<RespuestaFacturasXm> {
+    return this.get<RespuestaFacturasXm>(RUTAS.facturasXm, { query: filtros })
   }
 
   /** Sube un lote de facturas en PDF. El mes y el año los extrae la IA del PDF. */
@@ -131,7 +181,7 @@ export class LiquidacionesApiService extends LegacyBaseService {
     year,
     version = VERSION_INICIAL,
   }: FiltrosDespachos): Promise<RespuestaDespachos> {
-    return this.get<RespuestaDespachos>(RUTAS.despachos, { params: { month, year, version } })
+    return this.get<RespuestaDespachos>(RUTAS.despachos, { query: { month, year, version } })
   }
 
   // ── Consumo ─────────────────────────────────────────────────────────────────
@@ -144,14 +194,14 @@ export class LiquidacionesApiService extends LegacyBaseService {
     fecha,
   }: FiltrosConsumo): Promise<RespuestaConsumo> {
     return this.get<RespuestaConsumo>(RUTAS.consumo, {
-      params: { month, year, version, project, fecha },
+      query: { month, year, version, project, fecha },
     })
   }
 
   // ── Costos e ingresos fijos ────────────────────────────────────────────────
 
-  listarCostos(filtros: Record<string, unknown> = {}): Promise<RespuestaCostos> {
-    return this.get<RespuestaCostos>(RUTAS.costos, { params: filtros })
+  listarCostos(filtros: Record<string, QueryValue> = {}): Promise<RespuestaCostos> {
+    return this.get<RespuestaCostos>(RUTAS.costos, { query: filtros })
   }
 
   /** Carga masiva de costos e ingresos fijos desde un Excel. Un archivo por llamada. */
@@ -187,7 +237,7 @@ export class LiquidacionesApiService extends LegacyBaseService {
    * marcada con `vigente` es la que manda.
    */
   listarIpp({ year, month }: { year?: number; month?: number } = {}): Promise<unknown[]> {
-    return this.get<unknown[]>(RUTAS.ipp, { params: { year, month } })
+    return this.get<unknown[]>(RUTAS.ipp, { query: { year, month } })
   }
 
   /** Lanza una acción asíncrona del ciclo y espera a que termine. */

@@ -69,10 +69,12 @@ import {
   PointElement, LineElement, Legend, Tooltip,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-import api from '~/core/client'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { CalendarIcon, ChartLineIcon, ChevronLeftIcon, ClockIcon, EyeIcon, EyeOffIcon, LoaderCircleIcon, RefreshCwIcon, TriangleAlertIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Legend, Tooltip)
+
+const generacionSolarService = new GeneracionSolarService()
 
 // Misma paleta que la "Comparativa de inversores" del escritorio.
 const PALETA = [
@@ -197,7 +199,7 @@ async function cargar(forzar = false) {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get(`/generacion-solar/monitoring/${props.proyectoId}/inverters-power`)
+    const data = await generacionSolarService.obtenerPotenciaInversores(props.proyectoId)
     crudos.value = data.inverters ?? []
     granularidad.value = data.granularidad || ''
     fecha.value = data.date_from === data.date_to
@@ -208,9 +210,9 @@ async function cargar(forzar = false) {
   } catch (e) {
     crudos.value = []
     // 422 = el proyecto no está en Solenium; el resto es fallo de red o del servidor.
-    error.value = e.response?.status === 422
+    error.value = e.status === 422
       ? 'Este proyecto no tiene ID de Solenium configurado.'
-      : (e.response?.data?.detail || 'No se pudieron cargar los inversores.')
+      : (e.data?.detail || 'No se pudieron cargar los inversores.')
   } finally {
     loading.value = false
   }

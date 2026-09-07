@@ -249,7 +249,6 @@ import Dialog from 'primevue/dialog'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
 import { TIPOS_CONTRATO, TIPOS_TARIFA } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 
@@ -367,7 +366,7 @@ async function cargar() {
   try {
     contratos.value = await liquidacionesApi.listarContratosEnergia()
   } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudieron cargar los contratos de energía.'
+    error.value = e.data?.detail || 'No se pudieron cargar los contratos de energía.'
     contratos.value = []
   } finally {
     loading.value = false
@@ -393,7 +392,7 @@ async function cargarCatalogos() {
     empresasOptions.value = []
     preciosOptions.value = []
     toast.warning('Catálogos no disponibles', {
-      description: e.response?.data?.detail
+      description: e.data?.detail
         || 'No se pudieron cargar comercializadores ni precios de energía.',
       duration: 5000,
     })
@@ -403,7 +402,7 @@ async function cargarCatalogos() {
 // La API externa identifica los proyectos por su tópico, no por nuestro id.
 async function cargarProyectos() {
   try {
-    const { data } = await api.get('/liquidaciones-api/proyectos')
+    const data = await liquidacionesApi.listarProyectos()
     const conTopico = (data || []).filter(p => p.nombre_topico)
     nombrePorTopico.value = Object.fromEntries(
       conTopico.map(p => [p.nombre_topico, formatearNombreProyecto(p.nombre_comercial)]),
@@ -539,7 +538,7 @@ async function guardar() {
     formVisible.value = false
     await cargar()
   } catch (e) {
-    toast.error('No se pudo crear', { description: e.response?.data?.detail || e.message, duration: 10000 })
+    toast.error('No se pudo crear', { description: e.data?.detail || e.message, duration: 10000 })
   } finally {
     guardando.value = false
   }

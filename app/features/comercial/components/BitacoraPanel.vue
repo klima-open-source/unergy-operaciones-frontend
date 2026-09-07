@@ -77,7 +77,7 @@ import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ComercialService } from '~/features/comercial/services/comercial'
 import { TIPOS_GESTION, labelGestion, labelEtapa } from './comercial.js'
 import { ArrowRightIcon, SendIcon } from '@lucide/vue'
 
@@ -89,6 +89,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['registrada'])
 
+const comercialService = new ComercialService()
 const nueva = reactive({ tipo: null, descripcion: '', oferta_id: null })
 const guardando = ref(false)
 
@@ -112,7 +113,7 @@ function fmtFechaHora(v) {
 async function registrar() {
   guardando.value = true
   try {
-    await api.post(`/comercial/oportunidades/${props.oportunidadId}/gestiones`, {
+    await comercialService.registrarGestion(props.oportunidadId, {
       tipo: nueva.tipo,
       descripcion: nueva.descripcion,
       oferta_id: nueva.oferta_id,
@@ -122,7 +123,7 @@ async function registrar() {
     nueva.oferta_id = null
     emit('registrada')
   } catch (err) {
-    toast.error('No se pudo registrar', { description: err.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('No se pudo registrar', { description: err.data?.detail ?? '', duration: 5000 })
   } finally {
     guardando.value = false
   }

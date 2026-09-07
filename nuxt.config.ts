@@ -154,6 +154,51 @@ export default defineNuxtConfig({
     },
   },
 
+  /**
+   * El documento HTML. En el legacy esto era `index.html`, que Vite servía tal
+   * cual; Nuxt no usa ese archivo — construye el `<head>` desde aquí y desde el
+   * `useHead` de `app.vue`. Al migrar, el `index.html` quedó atrás y con él todo
+   * el contrato PWA de la app móvil (`/m/*`), que era lo único que ese archivo
+   * aportaba.
+   *
+   * Va aquí y no en un `useHead` porque con `ssr: false` el `useHead` de un
+   * componente solo corre después de cargar el bundle, y estas etiquetas tienen
+   * que estar en el HTML que llega:
+   *
+   *  - `manifest` — iOS lo lee en el momento de "Añadir a pantalla de inicio",
+   *    no después. Sin él no hay app instalable, solo un marcador.
+   *  - `viewport-fit=cover` — gobierna el primer pintado. Sin él
+   *    `env(safe-area-inset-*)` vale 0, y la app móvil lo usa en cada cabecera
+   *    y en la barra inferior: se meten debajo del notch y del indicador.
+   *  - los `apple-*` — deciden si el icono guardado abre en modo standalone o
+   *    en una pestaña de Safari con toda la barra de navegación.
+   *
+   * Son globales, igual que en el legacy, y eso está bien: el manifiesto
+   * declara `scope: "/m/"`, así que solo las rutas de la app móvil son
+   * instalables y en el resto de la plataforma el enlace no hace nada.
+   */
+  app: {
+    head: {
+      htmlAttrs: { lang: 'es' },
+      viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        // El icono que iOS pone en la pantalla de inicio. Sin esto guarda una
+        // captura de la página.
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
+      meta: [
+        { name: 'theme-color', content: '#915BD8' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        // Sigue siendo el que lee iOS; `mobile-web-app-capable` es el estándar
+        // que atiende Chrome. Los dos, como en el legacy.
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'Unergy Solar' },
+      ],
+    },
+  },
+
   shadcn: {
     prefix: '',
     componentDir: '@/components/ui',

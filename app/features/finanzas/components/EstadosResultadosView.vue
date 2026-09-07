@@ -211,12 +211,13 @@ import Select from 'primevue/select'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { EstadosResultadosService } from '~/features/finanzas/services/estados-resultados'
 import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { ChartLineIcon, CheckIcon, CircleXIcon, DownloadIcon, ExternalLinkIcon, FileIcon, FileSpreadsheetIcon, FolderOpenIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
+const estadosResultadosService = new EstadosResultadosService()
 
 
 const TIPOS = [
@@ -300,7 +301,7 @@ async function cargar(refrescar = false) {
   try {
     const params = { ...filtrosServidor(), refrescar }
     if (periodoSel.value === TODOS) params.limite = LIMITE_TODOS
-    const { data } = await api.get('/estados-resultados/archivos', { params })
+    const data = await estadosResultadosService.listarArchivos(params)
     archivos.value = data.archivos || []
     periodos.value = data.periodos || []
     versiones.value = data.versiones || []
@@ -313,7 +314,7 @@ async function cargar(refrescar = false) {
     }
   } catch (e) {
     archivos.value = []
-    error.value = e.response?.data?.detail || 'No se pudo leer la carpeta de Drive'
+    error.value = e.data?.detail || 'No se pudo leer la carpeta de Drive'
   } finally {
     loading.value = false
     cargandoPeriodos.value = false
@@ -342,9 +343,8 @@ function guardarBlob(blob, nombre) {
 async function descargarUno(archivo) {
   descargando.value = archivo.id
   try {
-    const resp = await api.get(`/estados-resultados/archivos/${archivo.id}/descargar`,
-      { responseType: 'blob' })
-    guardarBlob(resp.data, archivo.nombre)
+    const blob = await estadosResultadosService.descargarArchivo(archivo.id)
+    guardarBlob(blob, archivo.nombre)
   } catch {
     toast.error('Error', { description: 'No se pudo descargar el archivo', duration: 4000 })
   } finally {
@@ -355,18 +355,13 @@ async function descargarUno(archivo) {
 async function descargarZip() {
   descargandoZip.value = true
   try {
-    const resp = await api.get('/estados-resultados/archivos-zip',
-      { params: filtrosServidor(), responseType: 'blob' })
+    const blob = await estadosResultadosService.descargarZip(filtrosServidor())
     const partes = [tipo.value === 'cruce_facturas' ? 'cruce_facturas' : 'estados_resultados']
     if (periodoSel.value !== TODOS) partes.push(periodoSel.value)
     if (versionSel.value !== TODOS) partes.push(versionSel.value)
-    guardarBlob(resp.data, `${partes.join('_')}.zip`)
+    guardarBlob(blob, `${partes.join('_')}.zip`)
   } catch (e) {
-    // El detalle viene como blob por responseType; hay que leerlo para mostrarlo
-    // (si no, el tope de 600 archivos se vería como un error genérico).
-    let detalle = 'No se pudo generar el ZIP'
-    try { detalle = JSON.parse(await e.response.data.text()).detail || detalle } catch { /* noop */ }
-    toast.warning('ZIP no generado', { description: detalle, duration: 6000 })
+    toast.warning('ZIP no generado', { description: e.data?.detail || 'No se pudo generar el ZIP', duration: 6000 })
   } finally {
     descargandoZip.value = false
   }
@@ -405,7 +400,7 @@ async function generarArchivo({ accion, periodo, titulo, enCurso, progreso, cerr
     cerrar()
     await cargar(true)
   } catch (e) {
-    toast.error(`${titulo} falló`, { description: e.response?.data?.detail || e.message, duration: 10000 })
+    toast.error(`${titulo} falló`, { description: e.data?.detail || e.message, duration: 10000 })
   } finally {
     enCurso.value = false
     progreso.value = ''

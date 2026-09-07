@@ -65,7 +65,7 @@ import LiquidacionesListView from './LiquidacionesListView.vue'
 import LiquidacionesPorInversionistaView from './LiquidacionesPorInversionistaView.vue'
 import DiferenciaPanel from './panels/DiferenciaPanel.vue'
 import FacturacionPanel from './panels/FacturacionPanel.vue'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
 import { formatPeriodo, mesActualISO } from '~/features/liquidaciones/utils/liquidaciones'
 import { ChartColumnIcon, ChevronLeftIcon, ChevronRightIcon, DollarSignIcon, FileSpreadsheetIcon, FolderIcon, LoaderCircleIcon, MoveHorizontalIcon, UsersIcon, ZapIcon } from '@lucide/vue'
 
@@ -80,6 +80,7 @@ const VALID = TABS.map(t => t.key)
 
 const route = useRoute()
 const router = useRouter()
+const liquidacionesService = new LiquidacionesService()
 
 function tabInicial() {
   if (VALID.includes(route.query.tab)) return route.query.tab
@@ -129,7 +130,7 @@ async function exportarExcel() {
   exportando.value = true
   try {
     const per = periodo.value.slice(0, 7)
-    const { data } = await api.get('/liquidaciones/resumen-panel', { params: { periodo: per, tipo: tipo.value } })
+    const data = await liquidacionesService.obtenerResumenPanel({ periodo: per, tipo: tipo.value })
     const proyectos = data.proyectos || []
     if (!proyectos.length) { toast.warning('Sin datos', { description: 'No hay paneles en el período', duration: 3000 }); return }
     const XLSX = await import('xlsx-js-style')

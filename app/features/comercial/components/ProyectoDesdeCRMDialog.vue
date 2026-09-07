@@ -47,7 +47,8 @@ import { ref, computed, watch } from 'vue'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ComercialService } from '~/features/comercial/services/comercial'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import ProyectoForm from '~/features/proyectos/components/ProyectoForm.vue'
 
 const props = defineProps({
@@ -59,6 +60,8 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'creado'])
 
 const confirm = useConfirm()
+const comercialService = new ComercialService()
+const proyectosService = new ProyectosService()
 
 const guardando = ref(false)
 const error = ref('')
@@ -85,14 +88,13 @@ async function crear(payload, infoTecnica, forzar = false) {
   guardando.value = true
   error.value = ''
   try {
-    const params = { ...(forzar ? { forzar: true } : {}) }
-    if (props.oferta?.id) params.oferta_id = props.oferta.id
-    const { data } = await api.post(
-      `/comercial/oportunidades/${props.oportunidadId}/proyectos`, payload, { params })
+    const filtros = { ...(forzar ? { forzar: true } : {}) }
+    if (props.oferta?.id) filtros.oferta_id = props.oferta.id
+    const data = await comercialService.crearProyectoDesdeCRM(props.oportunidadId, payload, filtros)
 
     if (infoTecnica && Object.keys(infoTecnica).length) {
       try {
-        await api.put(`/proyectos/${data.id}/info-tecnica`, infoTecnica)
+        await proyectosService.guardarInfoTecnica(data.id, infoTecnica)
       } catch {
         toast.warning('La planta se creó, pero la ficha técnica no', {
           description: 'Completá potencia AC y paneles desde el proyecto.',
@@ -108,8 +110,8 @@ async function crear(payload, infoTecnica, forzar = false) {
     emit('creado', data)
     emit('update:visible', false)
   } catch (err) {
-    const det = err.response?.data?.detail
-    if (err.response?.status === 409 && det?.codigo === 'posible_duplicado') {
+    const det = err.data?.detail
+    if (err.status === 409 && det?.codigo === 'posible_duplicado') {
       confirm({
         title: 'Posible duplicado',
         description: `${det.mensaje}. ¿Crear de todos modos?`,

@@ -1,5 +1,5 @@
 import { ref, reactive, computed } from 'vue'
-import api from '~/core/client'
+import { ComercialService } from '~/features/comercial/services/comercial'
 import {
   filtrar, ordenar, agruparPorColumna, kpis, TIPOS_ENERGIA,
 } from './comercial.js'
@@ -14,6 +14,7 @@ import {
  * backend, y ese objeto es el mismo que ve el drawer.
  */
 export function useOfertas() {
+  const comercialService = new ComercialService()
   const ofertas = ref([])
   const cargando = ref(false)
   const errorCarga = ref('')
@@ -63,7 +64,7 @@ export function useOfertas() {
   }
 
   function mensaje(err, porDefecto) {
-    const det = err?.response?.data?.detail
+    const det = err?.data?.detail
     if (typeof det === 'string') return det
     if (Array.isArray(det)) return det.map((e) => e.msg).filter(Boolean).join('; ') || porDefecto
     if (det && typeof det === 'object') return det.mensaje ?? det.msg ?? porDefecto
@@ -77,9 +78,9 @@ export function useOfertas() {
     cargando.value = true
     errorCarga.value = ''
     try {
-      const [{ data: ofs }, { data: cfg }] = await Promise.all([
-        api.get('/comercial/ofertas'),
-        api.get('/comercial/config'),
+      const [ofs, cfg] = await Promise.all([
+        comercialService.listarOfertas(),
+        comercialService.obtenerConfig(),
       ])
       ofertas.value = ofs
       alertaDias.value = cfg.alerta_dias
@@ -111,7 +112,7 @@ export function useOfertas() {
     const i = indice(oferta.id)
     if (i >= 0) ofertas.value[i] = { ...ofertas.value[i], estado } // optimista
     try {
-      const { data } = await api.post(`/comercial/ofertas/${oferta.id}/estado`, { estado })
+      const data = await comercialService.cambiarEstadoOferta(oferta.id, estado)
       fusionar(oferta.id, data)
       return { ok: true }
     } catch (err) {
@@ -122,7 +123,7 @@ export function useOfertas() {
 
   async function guardarOferta(ofertaId, cambios) {
     try {
-      const { data } = await api.patch(`/comercial/ofertas/${ofertaId}`, cambios)
+      const data = await comercialService.actualizarOferta(ofertaId, cambios)
       return { ok: true, oferta: fusionar(ofertaId, data) }
     } catch (err) {
       return { ok: false, error: mensaje(err, 'No se pudo guardar') }
@@ -131,7 +132,7 @@ export function useOfertas() {
 
   async function registrarSeguimiento(ofertaId) {
     try {
-      const { data } = await api.post(`/comercial/ofertas/${ofertaId}/seguimiento`)
+      const data = await comercialService.registrarSeguimientoOferta(ofertaId)
       return { ok: true, oferta: fusionar(ofertaId, data) }
     } catch (err) {
       return { ok: false, error: mensaje(err, 'No se pudo registrar el seguimiento') }
@@ -144,9 +145,7 @@ export function useOfertas() {
    */
   async function registrarGestion(oportunidadId, { tipo, descripcion, ofertaId = null }) {
     try {
-      await api.post(`/comercial/oportunidades/${oportunidadId}/gestiones`, {
-        tipo, descripcion, oferta_id: ofertaId,
-      })
+      await comercialService.registrarGestion(oportunidadId, { tipo, descripcion, oferta_id: ofertaId })
       return { ok: true }
     } catch (err) {
       return { ok: false, error: mensaje(err, 'No se pudo registrar la gestión') }
@@ -155,7 +154,7 @@ export function useOfertas() {
 
   async function eliminarOferta(ofertaId) {
     try {
-      await api.delete(`/comercial/ofertas/${ofertaId}`)
+      await comercialService.eliminarOferta(ofertaId)
       const i = indice(ofertaId)
       if (i >= 0) ofertas.value.splice(i, 1)
       return { ok: true }
@@ -166,7 +165,7 @@ export function useOfertas() {
 
   async function firmar(ofertaId, payload) {
     try {
-      const { data } = await api.post(`/comercial/ofertas/${ofertaId}/firmar`, payload)
+      const data = await comercialService.firmarOferta(ofertaId, payload)
       fusionar(ofertaId, data.oferta)
       return { ok: true, ...data }
     } catch (err) {
@@ -177,7 +176,7 @@ export function useOfertas() {
   /** Registro completo (cliente + oportunidad + ofertas) en una transacción. */
   async function registrar(payload) {
     try {
-      const { data } = await api.post('/comercial/registrar', payload)
+      const data = await comercialService.registrar(payload)
       return { ok: true, oportunidad: data }
     } catch (err) {
       return {
@@ -185,7 +184,7 @@ export function useOfertas() {
         error: mensaje(err, 'No se pudo registrar'),
         // El 409 de cliente duplicado trae el candidato: la UI ofrece usarlo en
         // vez de dejar al comercial trabado con un error rojo.
-        duplicado: err?.response?.status === 409 ? err.response.data?.detail : null,
+        duplicado: err?.status === 409 ? err.data?.detail : null,
       }
     }
   }

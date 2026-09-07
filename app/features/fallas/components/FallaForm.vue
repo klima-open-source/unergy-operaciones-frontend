@@ -142,12 +142,7 @@
             optionLabel="etiqueta" optionValue="id"
             optionGroupLabel="categoria" optionGroupChildren="items"
             placeholder="Seleccionar tipo" filter filterPlaceholder="Buscar tipo..."
-            showClear class="w-full" :class="{ 'p-invalid': errors.tipo_id }"
-            @clear="form.tipo_libre = ''" />
-          <div v-if="!form.tipo_id" class="mt-1">
-            <InputText v-model="form.tipo_libre" placeholder="O escribe el tipo aquí si no está en la lista..."
-              class="w-full" style="font-size:12px" />
-          </div>
+            showClear class="w-full" :class="{ 'p-invalid': errors.tipo_id }" />
           <small v-if="errors.tipo_id" class="ff-error">{{ errors.tipo_id }}</small>
         </div>
 
@@ -167,6 +162,26 @@
             placeholder="Seleccionar estado" class="w-full"
             :class="{ 'p-invalid': errors.estado_id }" />
           <small v-if="errors.estado_id" class="ff-error">{{ errors.estado_id }}</small>
+        </div>
+
+        <!-- Límite SLA personalizado — solo al editar, caso puntual que se sale del default de su prioridad -->
+        <div v-if="initial" class="ff-field ff-span2">
+          <div class="ff-sla-override-row">
+            <label class="ff-label" style="margin:0">Límite SLA personalizado <span class="ff-hint">(horas)</span></label>
+            <span v-if="!form.sla_limite_horas" class="ff-sla-override-ref">
+              Por defecto para esta prioridad: <strong>{{ initial?.sla_limite_horas_efectivo }}h</strong>
+            </span>
+          </div>
+          <div class="ff-sla-override-input">
+            <InputNumber v-model="form.sla_limite_horas" placeholder="Sin personalizar" :min="1" :max="999" class="flex-1" />
+            <button v-if="form.sla_limite_horas" type="button" class="ff-sla-override-clear"
+              title="Quitar personalización" @click="form.sla_limite_horas = null">
+              <XIcon class="size-[1em]" />
+            </button>
+          </div>
+          <span class="ff-hint ff-sla-override-hint">
+            Opcional. Dejalo vacío para usar el límite automático de la prioridad — solo llenalo si este caso puntual necesita más o menos tiempo.
+          </span>
         </div>
 
         <div class="ff-field">
@@ -218,17 +233,6 @@
           <small v-if="errors.descripcion" class="ff-error">{{ errors.descripcion }}</small>
         </div>
 
-        <div class="ff-field ff-span2">
-          <label class="ff-label">
-            Equipo afectado
-            <span class="ff-hint">(inversor, string, medidor, transformador…)</span>
-          </label>
-          <InputText v-model="form.equipo_afectado"
-            placeholder="Ej: Inversor 3, String 7, Medidor principal"
-            class="w-full" />
-        </div>
-
-
       </div>
     </div>
 
@@ -275,7 +279,8 @@
 
         <div class="ff-field">
           <label class="ff-label">Tipo de solución</label>
-          <Select v-model="form.tipo_solucion" :options="TIPOS_SOLUCION"
+          <Select v-model="form.resolucion_id" :options="catalogos.resoluciones"
+            optionLabel="etiqueta" optionValue="id"
             placeholder="Seleccionar tipo" showClear class="w-full" />
         </div>
 
@@ -365,23 +370,12 @@ import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { getEstructuraFallas } from '~/features/fallas/utils/fallasEstructuraCache'
 import { AlignLeftIcon, BellIcon, CalendarIcon, CheckIcon, CircleCheckIcon, ClockIcon, FileIcon, FileSpreadsheetIcon, FileTextIcon, FileTypeIcon, ImageIcon, InfoIcon, MessageSquareIcon, PaperclipIcon, PlusIcon, SearchIcon, SendIcon, SettingsIcon, TagIcon, Trash2Icon, UploadIcon, XIcon } from '@lucide/vue'
 import { iconoCategoriaFalla } from '~/features/fallas/utils/fallaTitulo'
 
-const TIPOS_SOLUCION = [
-  'Reemplazo de componente',
-  'Reparación mecánica',
-  'Reparación eléctrica',
-  'Actualización de firmware',
-  'Limpieza y mantenimiento',
-  'Reconexión / rearme',
-  'Configuración / calibración',
-  'Gestión con OR / proveedor',
-  'Solución remota',
-  'Otro',
-]
+const proyectosService = new ProyectosService()
 
 const props = defineProps({
   initial:            { type: Object, default: null },
@@ -432,7 +426,6 @@ const form = ref({
   proyecto_id:          props.initial?.proyecto?.id ?? props.initial?.proyecto_id ?? null,
   proyecto_ids:         [...(props.prefillProyectoIds ?? [])],  // pre-seleccionados al crear
   tipo_id:              props.initial?.tipo?.id ?? null,
-  tipo_libre:           props.initial?.tipo_libre ?? '',
   estado_id:            props.initial?.estado?.id ?? null,
   prioridad_id:         props.initial?.prioridad?.id ?? null,
   descripcion:          props.initial?.descripcion ?? '',
@@ -442,12 +435,10 @@ const form = ref({
                           : new Date(),
   fecha_ocurrencia:     props.initial?.fecha_ocurrencia ? new Date(props.initial.fecha_ocurrencia) : null,
   fecha_resolucion:     props.initial?.fecha_resolucion ? new Date(props.initial.fecha_resolucion) : null,
-  tipo_solucion:        props.initial?.tipo_solucion ?? null,
+  resolucion_id:        props.initial?.resolucion?.id ?? null,
   sla_limite_horas:     props.initial?.sla_limite_horas ?? null,
   causa_raiz:           props.initial?.causa_raiz ?? '',
   acciones_correctivas: props.initial?.acciones_correctivas ?? '',
-  equipo_afectado:      props.initial?.equipo_afectado ?? '',
-  energia_perdida_kwh:  props.initial?.energia_perdida_kwh ?? null,
   nota_inicial:         '',
   fecha_programada:     props.initial?.fecha_programada ? new Date(props.initial.fecha_programada) : null,
   notificacion:         false,   // siempre OFF por defecto — el usuario lo activa explícitamente
@@ -555,11 +546,11 @@ async function cargarInversores(pid) {
   if (!pid) { inversoresProyecto.value = []; return }
   cargandoInv.value = true
   try {
-    const { data } = await api.get(`/proyectos/${pid}/inversores`)
+    const data = await proyectosService.listarInversores(pid)
     inversoresProyecto.value = (data ?? []).map(i => ({ ...i, _label: _label(i) }))
     // potencia AC nominal del proyecto (para feedback de la regla de suma)
     try {
-      const { data: p } = await api.get(`/proyectos/${pid}`)
+      const p = await proyectosService.obtener(pid)
       potenciaAc.value = p?.info_tecnica?.potencia_ac_kw != null ? Number(p.info_tecnica.potencia_ac_kw) : null
     } catch { potenciaAc.value = null }
   } catch { inversoresProyecto.value = [] }
@@ -569,11 +560,11 @@ async function cargarInversores(pid) {
 async function guardarInv(inv) {
   invError.value = ''
   try {
-    const { data } = await api.patch(`/proyectos/${proyectoUnicoId.value}/inversores/${inv.id}`,
+    const data = await proyectosService.actualizarInversor(proyectoUnicoId.value, inv.id,
       { nombre: inv.nombre, potencia_nominal_kw: inv.potencia_nominal_kw })
     Object.assign(inv, data, { _label: _label(data) })
   } catch (e) {
-    invError.value = e.response?.data?.detail || 'No se pudo guardar el inversor'
+    invError.value = e.data?.detail || 'No se pudo guardar el inversor'
     await cargarInversores(proyectoUnicoId.value)
   }
 }
@@ -581,7 +572,7 @@ async function agregarInv() {
   invError.value = ''
   if (!nuevoInv.value.nombre && nuevoInv.value.potencia_nominal_kw == null) return
   try {
-    await api.post(`/proyectos/${proyectoUnicoId.value}/inversores`, {
+    await proyectosService.crearInversor(proyectoUnicoId.value, {
       nombre: nuevoInv.value.nombre || null,
       potencia_nominal_kw: nuevoInv.value.potencia_nominal_kw,
       orden: inversoresProyecto.value.length,
@@ -589,17 +580,17 @@ async function agregarInv() {
     nuevoInv.value = { nombre: '', potencia_nominal_kw: null }
     await cargarInversores(proyectoUnicoId.value)
   } catch (e) {
-    invError.value = e.response?.data?.detail || 'No se pudo agregar el inversor'
+    invError.value = e.data?.detail || 'No se pudo agregar el inversor'
   }
 }
 async function eliminarInv(inv) {
   invError.value = ''
   try {
-    await api.delete(`/proyectos/${proyectoUnicoId.value}/inversores/${inv.id}`)
+    await proyectosService.eliminarInversor(proyectoUnicoId.value, inv.id)
     cls.value.inversores_ids = cls.value.inversores_ids.filter(id => id !== inv.id)
     await cargarInversores(proyectoUnicoId.value)
   } catch (e) {
-    invError.value = e.response?.data?.detail || 'No se pudo eliminar el inversor'
+    invError.value = e.data?.detail || 'No se pudo eliminar el inversor'
   }
 }
 // Config típica de minigranja (Baraya/San Pedro son excepciones → se ajustan a mano)
@@ -614,9 +605,9 @@ async function prefillMinigranja() {
   invError.value = ''
   for (let i = 0; i < tipica.length; i++) {
     try {
-      await api.post(`/proyectos/${proyectoUnicoId.value}/inversores`, { ...tipica[i], orden: i })
+      await proyectosService.crearInversor(proyectoUnicoId.value, { ...tipica[i], orden: i })
     } catch (e) {
-      invError.value = e.response?.data?.detail || 'No se pudieron crear todos los inversores'
+      invError.value = e.data?.detail || 'No se pudieron crear todos los inversores'
       break
     }
   }
@@ -649,7 +640,7 @@ function validate() {
       if (!cls.value.subtipo) e.subtipo = 'Requerido'
       if (opcionActual.value?.requiere_detalle && !cls.value.detalle?.trim()) e.detalle = 'Requerido'
     }
-  } else if (!form.value.tipo_id && !form.value.tipo_libre?.trim()) {
+  } else if (!form.value.tipo_id) {
     e.tipo_id = 'Requerido'
   }
   if (!form.value.estado_id)            e.estado_id = 'Requerido'
@@ -740,17 +731,16 @@ async function submit() {
     }
     // La hora se deriva del mismo campo combinado de identificación.
     base.hora_identificacion = formatHora(form.value.fecha_identificacion)
-    if (form.value.tipo_libre?.trim())             base.tipo_libre           = form.value.tipo_libre.trim()
-    if (form.value.sla_limite_horas)              base.sla_limite_horas     = form.value.sla_limite_horas
+    // Al editar se manda explícito (incluso null, para poder quitar una personalización
+    // ya guardada) -- al crear el campo ni se muestra, así que no hay nada que mandar.
+    if (props.initial) base.sla_limite_horas = form.value.sla_limite_horas || null
     if (form.value.fecha_ocurrencia)              base.fecha_ocurrencia     = form.value.fecha_ocurrencia.toISOString()
     // La fecha de solución solo aplica cuando el estado es final (cerrada).
     if (esEstadoFinal.value && form.value.fecha_resolucion)
       base.fecha_resolucion = form.value.fecha_resolucion instanceof Date ? form.value.fecha_resolucion.toISOString() : form.value.fecha_resolucion
-    if (esEstadoFinal.value && form.value.tipo_solucion)  base.tipo_solucion        = form.value.tipo_solucion
+    if (esEstadoFinal.value && form.value.resolucion_id)  base.resolucion_id        = form.value.resolucion_id
     if (form.value.causa_raiz?.trim())            base.causa_raiz           = form.value.causa_raiz.trim()
     if (form.value.acciones_correctivas?.trim())  base.acciones_correctivas = form.value.acciones_correctivas.trim()
-    if (form.value.equipo_afectado?.trim())       base.equipo_afectado      = form.value.equipo_afectado.trim()
-    if (form.value.energia_perdida_kwh != null)   base.energia_perdida_kwh  = form.value.energia_perdida_kwh
     if (form.value.nota_inicial?.trim())          base.nota_inicial         = form.value.nota_inicial.trim()
     if (form.value.fecha_programada)             base.fecha_programada     = formatDate(form.value.fecha_programada)
     base.notificacion = !!form.value.notificacion
@@ -802,8 +792,7 @@ onMounted(async () => {
   // solo se pide aparte si no llegaron (uso del form fuera de esa vista).
   if (!proyectos.value.length) {
     try {
-      const { data } = await api.get('/proyectos', { params: { size: 500 } })
-      proyectos.value = data.items ?? []
+      proyectos.value = await proyectosService.listar({ size: 500 })
     } catch { /* no crítico */ }
   }
   estructura.value = await getEstructuraFallas()
@@ -930,6 +919,23 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 10px 12px;
 }
+
+/* ── Límite SLA personalizado ── */
+.ff-sla-override-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.ff-sla-override-row .ff-label { font-size: 11.5px; font-weight: 600; }
+.ff-sla-override-ref { font-size: 12.5px; color: #9b89b5; }
+.ff-sla-override-ref strong { color: #4a3b6b; font-weight: 700; }
+.ff-sla-override-input { display: flex; align-items: center; gap: 6px; }
+.ff-sla-override-clear {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: none;
+  background: #f1eef7; color: #6b5a8a; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ff-sla-override-clear:hover { background: #e5e0ef; }
+.ff-sla-override-hint { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; }
 
 /* ── Dropzone ── */
 .ff-dropzone {

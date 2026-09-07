@@ -132,7 +132,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
 import NetoMensualBar from './components/NetoMensualBar.vue'
 import { fmtCompact, formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
 import { ArrowUpRightIcon, ChartColumnIcon, ChevronDownIcon, ChevronRightIcon, EyeIcon, MinusIcon, SearchIcon, WalletIcon, ZapIcon } from '@lucide/vue'
@@ -144,6 +144,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const liquidacionesService = new LiquidacionesService()
 
 const periodoYYYYMM = computed(() => (props.periodo || '').slice(0, 7))
 const ventana = computed(() => {
@@ -266,8 +267,8 @@ async function load() {
   if (!periodoYYYYMM.value) return
   loading.value = true
   try {
-    const { data } = await api.get('/liquidaciones/resumen-panel-rango', {
-      params: { periodo_desde: ventana.value.desde, periodo_hasta: ventana.value.hasta, tipo: props.tipo },
+    const data = await liquidacionesService.obtenerResumenPanelRango({
+      periodo_desde: ventana.value.desde, periodo_hasta: ventana.value.hasta, tipo: props.tipo,
     })
     periodosData.value = data.periodos || []
   } catch {

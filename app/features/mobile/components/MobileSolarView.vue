@@ -62,14 +62,22 @@
               <span class="ms-now-dot" style="background:var(--color-unergy-purple)" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Inversores</span>
-                <span class="ms-now-val">{{ fmtKw(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
+                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
+                <span v-if="nowMap[p.proyecto_id]?.invHasta" class="ms-now-hasta">
+                  hasta {{ nowMap[p.proyecto_id].invHasta }}<template
+                    v-if="haceCuanto(nowMap[p.proyecto_id].invHasta)"> · {{ haceCuanto(nowMap[p.proyecto_id].invHasta) }}</template>
+                </span>
               </div>
             </div>
             <div class="ms-now-chip">
               <span class="ms-now-dot" style="background:#14B8A6" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Medidor</span>
-                <span class="ms-now-val">{{ fmtKw(nowMap[p.proyecto_id]?.med ?? null) }}</span>
+                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span>
+                <span v-if="nowMap[p.proyecto_id]?.medHasta" class="ms-now-hasta">
+                  hasta {{ nowMap[p.proyecto_id].medHasta }}<template
+                    v-if="haceCuanto(nowMap[p.proyecto_id].medHasta)"> · {{ haceCuanto(nowMap[p.proyecto_id].medHasta) }}</template>
+                </span>
               </div>
             </div>
           </div>
@@ -90,9 +98,9 @@
           <div v-if="(fallasMap[p.proyecto_id] || []).length" class="ms-fallas">
             <button v-for="f in (fallasMap[p.proyecto_id] || []).slice(0, 2)" :key="f.id"
               class="ms-falla" @click="openFalla(f)">
-              <span class="ms-falla-stripe" :style="{ background: f.prioridad?.color_hex || '#9ca3af' }" />
-              <span class="ms-falla-estado" :style="{ background: (f.estado?.color_hex || 'var(--color-unergy-purple)') + '22', color: f.estado?.color_hex || 'var(--color-unergy-purple)' }">{{ f.estado?.etiqueta }}</span>
-              <span class="ms-falla-tipo">{{ f.tipo?.etiqueta || f.tipo_libre || 'Falla' }}</span>
+              <span class="ms-falla-stripe" :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }" />
+              <span class="ms-falla-estado" :style="{ background: colorEstado(f.estado?.codigo) + '22', color: colorEstado(f.estado?.codigo) }">{{ f.estado?.etiqueta }}</span>
+              <span class="ms-falla-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</span>
               <ChevronRightIcon class="ms-falla-arrow size-[1em]" />
             </button>
             <span v-if="(fallasMap[p.proyecto_id] || []).length > 2" class="ms-falla-more">
@@ -144,7 +152,7 @@
 
     <FallaCreateSheet :open="createOpen" :catalogos="catalogos" :proyectos="proyectosFalla"
       :prefill-proyecto-id="createProyectoId" @close="createOpen = false" @created="onFallaCreated" />
-    <FallaDetailSheet :open="fallaDetailOpen" :falla="fallaDetail" :catalogos="catalogos" :usuarios="usuarios"
+    <FallaDetailSheet :open="fallaDetailOpen" :falla="fallaDetail" :catalogos="catalogos"
       @close="fallaDetailOpen = false" @updated="onFallaUpdated" />
   </div>
 </template>
@@ -152,9 +160,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
 import { usePwa } from '~/features/mobile/components/usePwa'
-import { inverterSeries, meterSeries, latest, fmtKw } from '~/features/mobile/components/solarSeries'
+import {
+  acumuladoInversores,
+  acumuladoMedidor,
+  fmtKwh,
+  haceCuanto,
+  hastaInversores,
+  hastaMedidor,
+} from '~/features/solar/serieSolar'
 import ProjectLiveChart from '~/features/mobile/components/components/ProjectLiveChart.vue'
 import ReconnectSheet from '~/features/mobile/components/components/ReconnectSheet.vue'
 import ReconnectorPanel from '~/features/mobile/components/components/ReconnectorPanel.vue'
@@ -169,6 +188,10 @@ import { toast } from 'vue-sonner'
 const router = useRouter()
 const { user, signOut } = useAuth()
 const { register } = usePwa()
+const fallasService = new FallasService()
+const notificacionesService = new NotificacionesService()
+const generacionSolarService = new GeneracionSolarService()
+const reconectadoresService = new ReconectadoresService()
 
 const STATUS_COLORS = {
   online: '#16a34a', degradado: '#d97706', caido: '#dc2626',
@@ -197,7 +220,6 @@ let refreshTimer    = null
 
 // ── Fallas (falla activa por proyecto + reportar) ────────────────────────────
 const catalogos       = reactive({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
-const usuarios        = ref([])
 const fallasMap       = reactive({})   // proyecto_id → [fallas activas]
 const createOpen      = ref(false)
 const createProyectoId = ref(null)
@@ -209,12 +231,8 @@ const proyectosFalla = computed(() =>
 
 async function cargarCatalogos() {
   try {
-    const [cat, usr] = await Promise.all([
-      api.get('/fallas/catalogos'),
-      api.get('/usuarios', { params: { size: 200 } }).catch(() => ({ data: { items: [] } })),
-    ])
-    Object.assign(catalogos, cat.data)
-    usuarios.value = usr.data.items ?? []
+    const cat = await fallasService.obtenerCatalogos()
+    Object.assign(catalogos, cat)
   } catch { /* no crítico — la generación funciona igual */ }
 }
 
@@ -222,7 +240,7 @@ async function loadFallas(proyectoId, force = false) {
   if (!proyectoId) return
   if (fallasMap[proyectoId] && !force) return
   try {
-    const { data } = await api.get('/fallas', { params: { proyecto_id: proyectoId, size: 100 } })
+    const data = await fallasService.listar({ proyecto_id: proyectoId, size: 100 })
     fallasMap[proyectoId] = (data.items ?? []).filter((f) => !f.estado?.es_estado_final)
   } catch { if (!fallasMap[proyectoId]) fallasMap[proyectoId] = [] }
 }
@@ -240,8 +258,7 @@ function onFallaUpdated(f) { if (f?.proyecto_id) loadFallas(f.proyecto_id, true)
 
 async function fetchUnread() {
   try {
-    const { data } = await api.get('/notificaciones/count')
-    unreadCount.value = data.no_leidas ?? data.count ?? data.unread ?? 0
+    unreadCount.value = await notificacionesService.contarNoLeidas()
   } catch { /* silencioso */ }
 }
 
@@ -304,8 +321,8 @@ function onTouchEnd() {
 async function cargarLista() {
   loadingList.value = true
   try {
-    const res = await api.get('/generacion-solar/monitoring')
-    proyectos.value = res.data.projects ?? []
+    const res = await generacionSolarService.obtenerMonitoreo()
+    proyectos.value = res.projects ?? []
     if (idx.value >= proyectos.value.length) idx.value = 0
   } catch { /* el estado vacío lo maneja */ } finally {
     loadingList.value = false
@@ -317,7 +334,7 @@ async function cargarLista() {
 
 async function cargarEstados() {
   try {
-    const { data } = await api.get('/reconectadores/estados')
+    const data = await reconectadoresService.obtenerEstados()
     for (const r of data) rcnMap[r.proyecto_id] = r
   } catch { /* silencioso */ }
 }
@@ -327,9 +344,14 @@ async function loadDetail(id, force = false) {
   if (detailMap[id] && !force) return
   loadingDetail.value++
   try {
-    const res = await api.get(`/generacion-solar/monitoring/${id}`)
-    detailMap[id] = res.data
-    nowMap[id] = { inv: latest(inverterSeries(res.data)), med: latest(meterSeries(res.data)) }
+    const res = await generacionSolarService.obtenerDetalle(id)
+    detailMap[id] = res
+    // El MISMO numero que el escritorio: energia acumulada del dia en kWh, no
+    // la potencia instantanea. Ver el docstring de ~/features/solar/serieSolar.
+    nowMap[id] = {
+      inv: acumuladoInversores(res), invHasta: hastaInversores(res),
+      med: acumuladoMedidor(res), medHasta: hastaMedidor(res),
+    }
     lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
   } catch { if (!detailMap[id]) detailMap[id] = {} } finally {
     loadingDetail.value = Math.max(0, loadingDetail.value - 1)
@@ -499,6 +521,7 @@ onUnmounted(() => {
 .ms-now-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .ms-now-text { display: flex; flex-direction: column; min-width: 0; }
 .ms-now-label { font-size: clamp(9.5px, 2.6vw, 10.5px); color: #787774; font-weight: 500; }
+.ms-now-hasta { font-size: clamp(8.5px, 2.3vw, 9.5px); color: #9b89b5; font-weight: 400; line-height: 1.2; white-space: nowrap; }
 .ms-now-val { font-size: clamp(13px, 3.8vw, 16px); font-weight: 700; color: var(--color-unergy-deep); line-height: 1.15; letter-spacing: -0.2px; white-space: nowrap; }
 
 .ms-chart {

@@ -156,8 +156,10 @@ import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'
-import api from '~/core/client'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import divipola from '~/data/colombia-divipola.json'
+
+const operadoresRedService = new OperadoresRedService()
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -222,8 +224,7 @@ const operadoresRedOptions = computed(() =>
 )
 onMounted(async () => {
   try {
-    const { data } = await api.get('/operadores-red')
-    operadoresRed.value = Array.isArray(data) ? data : (data.items ?? [])
+    operadoresRed.value = await operadoresRedService.listar()
   } catch { /* graceful degrade -- el select queda vacío */ }
 })
 

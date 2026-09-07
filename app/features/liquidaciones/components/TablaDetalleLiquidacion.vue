@@ -30,7 +30,7 @@
           <td class="px-3 py-1.5"><span :class="colorDoc(fila.doc)">{{ fila.doc }}</span></td>
           <td class="px-3 py-1.5">{{ fila.concepto }}</td>
           <td class="px-3 py-1.5 text-right font-mono" :class="fila.negativo ? 'text-red-600 bg-red-50' : ''">
-            {{ fmt(fila.valor) }}
+            {{ fmtCOP(fila.valor) }}
           </td>
           <td class="px-3 py-1.5">
             <a v-if="fila.url" :href="fila.url" target="_blank"
@@ -60,7 +60,7 @@
           <td class="px-3 py-1.5"><span :class="colorDoc(fila.doc)">{{ fila.doc }}</span></td>
           <td class="px-3 py-1.5">{{ fila.concepto }}</td>
           <td class="px-3 py-1.5 text-right font-mono" :class="fila.negativo ? 'text-red-600 bg-red-50' : ''">
-            {{ fmt(fila.valor) }}
+            {{ fmtCOP(fila.valor) }}
           </td>
           <td class="px-3 py-1.5">
             <a v-if="fila.url" :href="fila.url" target="_blank"
@@ -78,6 +78,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { fmtCOP } from '~/features/liquidaciones/utils/liquidaciones'
 import { FileTextIcon } from '@lucide/vue'
 
 const props = defineProps({
@@ -271,11 +272,6 @@ const inversionistas = computed(() => {
     ],
   }]
 })
-
-function fmt(v) {
-  if (v == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2 }).format(v)
-}
 
 function pct(v) {
   if (v == null) return '—'

@@ -100,7 +100,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { ReporteCgmService } from '~/features/operadores-red/services/reporte-cgm'
 import { formatearNombre } from '~/utils/nombreFormato'
 import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.vue'
 import { ChevronDownIcon, LoaderCircleIcon, MailIcon, RefreshCwIcon, SendIcon } from '@lucide/vue'
@@ -111,6 +112,7 @@ function fechaStr(d) {
 }
 const ayerStr = fechaStr(new Date(Date.now() - 86400000))
 
+const reporteCgmService = new ReporteCgmService()
 const fronteras = ref([])
 const loading = ref(true)
 const enviando = ref(false)
@@ -232,10 +234,9 @@ function labelProyectos(row) {
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await api.get('/fronteras', { params: { limit: 500 } })
-    fronteras.value = data
+    fronteras.value = await reporteCgmService.listarFronteras()
   } catch (e) {
-    console.error('Error loading fronteras:', e)
+    logger.error('mobile', e)
   } finally {
     loading.value = false
   }
@@ -247,7 +248,7 @@ async function enviarSeleccionados() {
 
   enviando.value = true
   try {
-    const { data } = await api.post('/reporte-cgm/enviar', {
+    const data = await reporteCgmService.enviar({
       fecha_inicio: fechaDesdeStr.value,
       fecha_fin: fechaHastaStr.value || fechaDesdeStr.value,
       destinatarios: filas.map(r => {
@@ -271,7 +272,7 @@ async function enviarSeleccionados() {
       toast.success(resumen, { duration: 6000 })
     }
   } catch (e) {
-    toast.error('Error al enviar', { description: e.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('Error al enviar', { description: e.data?.detail || e.message, duration: 5000 })
   } finally {
     enviando.value = false
   }

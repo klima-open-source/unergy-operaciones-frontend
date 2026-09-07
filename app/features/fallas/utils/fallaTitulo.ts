@@ -1,5 +1,6 @@
 import type { Component } from 'vue'
 import { CircleQuestionMarkIcon, GaugeIcon, ServerIcon, TagIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { COLOR_CATEGORIA } from '~/features/fallas/utils/colores'
 // Título y categoría de una falla, derivados de la CLASIFICACIÓN ESTRUCTURADA
 // reportada (equipo / evento / detalle del elemento), con respaldo al tipo legacy
 // para fallas viejas sin clasificación. Evita que el tipo_id legacy muestre títulos
@@ -37,14 +38,6 @@ export interface Falla {
   tipo_libre?: string | null
   descripcion?: string | null
   pendiente_reclasificar?: boolean
-}
-
-const COLOR_CAT: Record<string, string> = {
-  red: '#F59E0B',
-  frontera: '#0EA5E9',
-  inversores: '#915BD8',
-  generando_sin_datos: '#64748B',
-  eventos_adversos: '#EF4444',
 }
 
 // Ícono por sistema (coincide con ESTRUCTURA_FALLAS del backend).
@@ -99,7 +92,7 @@ export function categoriaFalla(f: Falla | null | undefined): { etiqueta: string;
   if (c && typeof c === 'object' && c.categoria) {
     return {
       etiqueta: c.categoria_etiqueta || c.categoria,
-      color: COLOR_CAT[c.categoria] || f?.tipo?.categoria?.color_hex || '#915BD8',
+      color: COLOR_CATEGORIA[c.categoria] || f?.tipo?.categoria?.color_hex || '#915BD8',
     }
   }
   return {
@@ -159,7 +152,7 @@ export function clasificacionDetalle(f: Falla | null | undefined): Clasificacion
   return {
     categoria: cat,
     categoriaEtiqueta: c.categoria_etiqueta || cat,
-    categoriaColor: COLOR_CAT[cat] || f?.tipo?.categoria?.color_hex || '#915BD8',
+    categoriaColor: COLOR_CATEGORIA[cat] || f?.tipo?.categoria?.color_hex || '#915BD8',
     icono: iconoCategoriaFalla(cat),
     subtitulo: c.subtipo_etiqueta || '',
     detalle: c.detalle || null,

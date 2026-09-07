@@ -141,7 +141,7 @@ async function cargar() {
     })
   } catch (e) {
     toast.error('No se pudo calcular la proyección', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 6000,
     })
   } finally {
@@ -155,7 +155,7 @@ async function cargarHistorial() {
     historial.value = r.snapshots || []
   } catch (e) {
     toast.error('No se pudo cargar el histórico', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   }
@@ -170,7 +170,7 @@ async function guardarPagado(v) {
     v.saldo = (v.pagado || 0) - (v.garantia_total || 0)
   } catch (e) {
     toast.error('No se pudo guardar el pagado', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   } finally {
@@ -189,7 +189,7 @@ async function guardar() {
     await cargarHistorial()
   } catch (e) {
     toast.error('No se pudo guardar el snapshot', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 6000,
     })
   } finally {

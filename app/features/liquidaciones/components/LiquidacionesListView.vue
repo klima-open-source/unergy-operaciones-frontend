@@ -143,7 +143,8 @@ import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { proyectoActivoEnMes } from '~/utils/proyectoActivo'
 import { fmtCompact, formatPeriodo, estadoFlujoPanel } from '~/features/liquidaciones/utils/liquidaciones'
 import { EyeIcon, PlusIcon, SearchIcon } from '@lucide/vue'
@@ -156,6 +157,8 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+const liquidacionesService = new LiquidacionesService()
+const proyectosService = new ProyectosService()
 
 // Filtro por tipo de proyecto vía query ?tipo= (minigranja | autoconsumo | null)
 const tipoFilter = computed(() => {
@@ -193,8 +196,8 @@ async function load() {
   if (!periodoYYYYMM.value) return
   loading.value = true
   try {
-    const { data } = await api.get('/liquidaciones/resumen-panel', {
-      params: { periodo: periodoYYYYMM.value, tipo: props.tipo },
+    const data = await liquidacionesService.obtenerResumenPanel({
+      periodo: periodoYYYYMM.value, tipo: props.tipo,
     })
     proyectos.value = data.proyectos || []
   } catch {
@@ -229,8 +232,7 @@ function toISOMonth(d) {
 
 async function loadProyectosOpciones() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    proyectosOpciones.value = data.items || []
+    proyectosOpciones.value = await proyectosService.listar({ size: 500 })
   } catch {
     proyectosOpciones.value = []
   }
@@ -240,7 +242,7 @@ async function crearLiquidacion() {
   if (!nueva.value.proyecto_id || !nueva.value.periodo) return
   creando.value = true
   try {
-    const { data } = await api.post('/liquidaciones', {
+    const data = await liquidacionesService.crear({
       proyecto_id: nueva.value.proyecto_id,
       periodo: toISOMonth(nueva.value.periodo),
       tipo_venta: nueva.value.tipo_venta,
@@ -260,7 +262,7 @@ async function crearDesdeProyecto(row) {
   if (!props.periodo) return
   creandoDesde.value = row.proyecto_id
   try {
-    const { data } = await api.post('/liquidaciones', {
+    const data = await liquidacionesService.crear({
       proyecto_id: row.proyecto_id,
       periodo: props.periodo,
       tipo_venta: 'bolsa',
@@ -268,7 +270,7 @@ async function crearDesdeProyecto(row) {
     router.push(`/liquidaciones/${data.id}`)
   } catch (e) {
     // 409 = ya existe: recargar para traer el liquidacion_id y navegar
-    const existente = e?.response?.status === 409
+    const existente = e?.status === 409
     if (existente) toast.info('Ya existe', { description: 'Recargando…', duration: 2500 })
     else toast.error('Error', { description: 'No se pudo crear el detalle', duration: 2500 })
     if (existente) await load()

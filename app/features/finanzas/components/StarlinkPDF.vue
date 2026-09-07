@@ -276,9 +276,13 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { StarlinkService } from '~/features/finanzas/services/starlink'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, LinkIcon, LoaderCircleIcon, SearchIcon, TriangleAlertIcon, UploadIcon, WifiIcon } from '@lucide/vue'
 
+
+const starlinkService = new StarlinkService()
+const proyectosService = new ProyectosService()
 
 // ── Períodos guardados ────────────────────────────────────────────────────────
 const periodos       = ref([])   // ['2026-05', '2026-04', ...] — desc
@@ -342,7 +346,7 @@ function irSiguiente() { if (periodoIndex.value < periodos.value.length - 1) per
 
 async function cargarPeriodos() {
   try {
-    const { data } = await api.get('/starlink/periodos')
+    const data = await starlinkService.listarPeriodos()
     periodos.value  = data   // ya viene ordenado desc
     periodoIndex.value = 0
   } catch { periodos.value = [] }
@@ -352,7 +356,7 @@ async function cargarFactura(periodo) {
   if (!periodo) { facturaActual.value = null; lineas.value = []; return }
   cargandoFactura.value = true
   try {
-    const { data } = await api.get(`/starlink/factura/${periodo}`)
+    const data = await starlinkService.obtenerFactura(periodo)
     facturaActual.value = data
     const agrupadoPorDesc = {}
     ;(data?.agrupado ?? []).forEach(it => { agrupadoPorDesc[it.descripcion] = it })
@@ -387,18 +391,14 @@ async function onFileSelected(e) {
   e.target.value = ''
   procesando.value = true
   try {
-    const form = new FormData()
-    form.append('file', file)
-    const { data } = await api.post('/starlink/procesar-pdf', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const data = await starlinkService.procesarPdf(file)
     resultadoPendiente.value = data
     // Preseleccionar el período detectado
     periodoParaGuardar.value = data.periodo || ''
     showGuardarDialog.value  = true
   } catch (err) {
     toast.error('Error al procesar PDF', {
-      description: err.response?.data?.detail ?? err.message,
+      description: err.data?.detail ?? err.message,
       duration: 6000,
     })
   } finally {
@@ -410,7 +410,7 @@ async function guardarFactura() {
   if (!periodoParaGuardar.value || !resultadoPendiente.value) return
   guardando.value = true
   try {
-    await api.put(`/starlink/factura/${periodoParaGuardar.value}`, {
+    await starlinkService.guardarFactura(periodoParaGuardar.value, {
       items:          resultadoPendiente.value.items,
       agrupado:       resultadoPendiente.value.agrupado,
       cargos_totales: resultadoPendiente.value.cargos_totales,
@@ -427,7 +427,7 @@ async function guardarFactura() {
     await cargarFactura(periodoParaGuardar.value)
   } catch (err) {
     toast.error('Error al guardar', {
-      description: err.response?.data?.detail ?? err.message,
+      description: err.data?.detail ?? err.message,
       duration: 4000,
     })
   } finally {
@@ -442,11 +442,11 @@ async function descargarExcel() {
   if (!facturaActual.value) return
   descargando.value = true
   try {
-    const response = await api.post('/starlink/excel', {
+    const blob = await starlinkService.descargarExcel({
       items:    facturaActual.value.items,
       agrupado: facturaActual.value.agrupado,
-    }, { responseType: 'blob' })
-    const url  = URL.createObjectURL(new Blob([response.data]))
+    })
+    const url  = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href     = url
     link.download = `starlink_${periodoActual.value}.xlsx`
@@ -479,8 +479,7 @@ function _normSitio(s) {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    const lista = Array.isArray(data) ? data : (data.items ?? [])
+    const lista = await proyectosService.listar({ size: 500 })
     proyectos.value = [...lista].sort((a, b) => a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch {
     proyectos.value = []
@@ -499,7 +498,7 @@ async function confirmarAsignarMinigranja() {
   if (!proyectoParaAsignar.value || !descripcionParaAsignar.value) return
   asignando.value = true
   try {
-    await api.put('/starlink/mapeo', {
+    await starlinkService.actualizarMapeo({
       patron:      _normSitio(descripcionParaAsignar.value),
       proyecto_id: proyectoParaAsignar.value,
       activo:      true,
@@ -509,7 +508,7 @@ async function confirmarAsignarMinigranja() {
     await cargarFactura(periodoActual.value)
   } catch (err) {
     toast.error('Error al asignar minigranja', {
-      description: err.response?.data?.detail ?? err.message,
+      description: err.data?.detail ?? err.message,
       duration: 4000,
     })
   } finally {
@@ -521,7 +520,7 @@ async function confirmarExcluirSitio() {
   if (!descripcionParaAsignar.value) return
   excluyendo.value = true
   try {
-    await api.put('/starlink/mapeo', {
+    await starlinkService.actualizarMapeo({
       patron:      _normSitio(descripcionParaAsignar.value),
       proyecto_id: null,
       excluido:    true,
@@ -532,7 +531,7 @@ async function confirmarExcluirSitio() {
     await cargarFactura(periodoActual.value)
   } catch (err) {
     toast.error('Error al excluir el sitio', {
-      description: err.response?.data?.detail ?? err.message,
+      description: err.data?.detail ?? err.message,
       duration: 4000,
     })
   } finally {

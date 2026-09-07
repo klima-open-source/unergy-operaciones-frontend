@@ -95,11 +95,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { EvoService } from '~/features/mem/services/evo'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Dropdown from 'primevue/dropdown'
 import { CloudDownloadIcon, LoaderCircleIcon } from '@lucide/vue'
+
+const evoService = new EvoService()
 
 const days = ref(30)
 const dayOptions = [
@@ -136,13 +139,13 @@ async function fetchData() {
   loading.value = true
   try {
     const [h, c] = await Promise.all([
-      api.get(`/evo/dailyspot/history?days=${days.value}`).catch(() => null),
-      api.get('/evo/clima/history?limit=5').catch(() => null),
+      evoService.obtenerHistoricoSpot(days.value).catch(() => null),
+      evoService.obtenerHistoricoClima(5).catch(() => null),
     ])
-    if (h?.data) history.value = h.data
-    if (c?.data) climaHistory.value = c.data
+    if (h) history.value = h
+    if (c) climaHistory.value = c
   } catch (e) {
-    console.error('Error loading balance data:', e)
+    logger.error('mem', e)
   } finally {
     loading.value = false
   }

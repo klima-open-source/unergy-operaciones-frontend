@@ -153,3 +153,30 @@ export interface ParametrosPlanModeloPredictivo {
   cuantil?: number
   horizonte?: number
 }
+
+// ── `/garantias-ajustes` — histórico de ajustes semanales (AjustesXM) ──────────
+
+export interface AjusteGarantia {
+  id: number
+  tipo: string
+  fecha: string
+  pb?: number | null
+  restricciones?: number | null
+  stn?: number | null
+  trm?: number | null
+  ptb?: number | null
+  total_ungc?: number | null
+  total_ungg?: number | null
+  total_consignar?: number | null
+  disponible_custodia?: number | null
+  congelado?: number | null
+  saldo?: number | null
+  total_ajuste_txr?: number | null
+  snapshot?: unknown
+  created_at?: string
+  updated_at?: string
+}
+
+export type PayloadAjusteGarantia = Partial<
+  Omit<AjusteGarantia, 'id' | 'created_at' | 'updated_at'>
+>

@@ -98,9 +98,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import api from '~/core/client'
+import { RecuperacionPasswordService } from '~/features/auth/services/recuperacion'
 import { CheckIcon, LoaderCircleIcon } from '@lucide/vue'
 
+const recuperacionService = new RecuperacionPasswordService()
 const route = useRoute()
 const password = ref('')
 const confirm = ref('')
@@ -121,13 +122,10 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    await api.post('/auth/reset-password', {
-      token: route.params.token,
-      password: password.value,
-    })
+    await recuperacionService.restablecer(route.params.token, password.value)
     success.value = true
   } catch (e) {
-    error.value = e.response?.data?.detail || 'El enlace ha expirado o es invalido. Solicita uno nuevo.'
+    error.value = e.data?.detail || 'El enlace ha expirado o es invalido. Solicita uno nuevo.'
   } finally {
     loading.value = false
   }

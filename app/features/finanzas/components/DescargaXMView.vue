@@ -230,7 +230,7 @@ function mensajeError(e, generico) {
   if (XmAgenteLocalService.noDisponible(e)) {
     return 'No se pudo conectar con el agente local. Abre "iniciar_descarga_xm.bat" en tu computador y déjalo abierto, luego intenta de nuevo.'
   }
-  return e.response?.data?.detail || generico
+  return e.data?.detail || generico
 }
 
 const MAX_FALLOS_CONSECUTIVOS = 5 // ~10s de sondeos fallidos seguidos antes de darla por perdida

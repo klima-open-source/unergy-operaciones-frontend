@@ -183,7 +183,7 @@ src/assets/main.css      -- Tailwind directives + base styles
 - Base URL: `/api/v1` (proxied by Vite in dev, nginx in prod)
 - Auth: Bearer token from `localStorage.token`
 - 401 handling: auto-clear token + redirect to `/login`
-- Backend: `https://backend-production-63d8.up.railway.app` (Railway)
+- Backend: `https://operaciones.uner.gy` (Railway)
 
 ### Secondary API
 

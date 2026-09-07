@@ -61,7 +61,7 @@
               <div class="fd-chips">
                 <button v-for="e in catalogos.estados" :key="e.id" type="button"
                   :class="['fd-chip', fa.estado?.id === e.id && 'fd-chip--on']"
-                  :style="fa.estado?.id === e.id ? chipOn(e.color_hex) : {}"
+                  :style="fa.estado?.id === e.id ? chipOn(colorEstado(e.codigo)) : {}"
                   @click="cambiar({ estado_id: e.id })">{{ e.etiqueta }}</button>
               </div>
             </div>
@@ -72,19 +72,9 @@
               <div class="fd-chips">
                 <button v-for="p in catalogos.prioridades" :key="p.id" type="button"
                   :class="['fd-chip', fa.prioridad?.id === p.id && 'fd-chip--on']"
-                  :style="fa.prioridad?.id === p.id ? chipOn(p.color_hex) : {}"
+                  :style="fa.prioridad?.id === p.id ? chipOn(colorPrioridad(p.codigo)) : {}"
                   @click="cambiar({ prioridad_id: p.id })">{{ p.etiqueta }}</button>
               </div>
-            </div>
-
-            <!-- Asignado -->
-            <div class="fd-field">
-              <span class="fd-label">Asignado a</span>
-              <select class="fd-select" :value="fa.asignado_a?.id ?? ''"
-                @change="cambiar({ asignado_a_id: $event.target.value ? Number($event.target.value) : null })">
-                <option value="">Sin asignar</option>
-                <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nombre }}</option>
-              </select>
             </div>
 
             <!-- Datos -->
@@ -93,7 +83,7 @@
               <div class="fd-fact"><span>Identificada</span><b>{{ fmtFecha(fa.fecha_identificacion) }}</b></div>
               <div class="fd-fact"><span>Registró</span><b>{{ fa.registrado_por?.nombre || '—' }}</b></div>
               <div v-if="fa.fecha_resolucion" class="fd-fact"><span>Resuelta</span><b class="fd-ok">{{ fmtFecha(fa.fecha_resolucion?.slice?.(0,10) || fa.fecha_resolucion) }}</b></div>
-              <div v-if="fa.energia_perdida_kwh != null" class="fd-fact"><span>Energía perdida</span><b class="fd-bad">{{ Number(fa.energia_perdida_kwh).toLocaleString('es-CO') }} kWh</b></div>
+              <div v-if="fa.kwh_perdidos_estimado != null" class="fd-fact"><span>Energía perdida</span><b class="fd-bad">{{ Number(fa.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</b></div>
             </div>
 
             <!-- Causa raíz / acciones -->
@@ -121,7 +111,7 @@
                   <span class="fd-seg-time">{{ relativeTime(s.created_at) }}</span>
                 </div>
                 <p v-if="s.nota" class="fd-seg-nota">{{ s.nota }}</p>
-                <span v-if="s.estado_nuevo" class="fd-seg-estado" :style="chipOn(s.estado_nuevo.color_hex)">{{ s.estado_nuevo.etiqueta }}</span>
+                <span v-if="s.estado_nuevo" class="fd-seg-estado" :style="chipOn(colorEstado(s.estado_nuevo.codigo))">{{ s.estado_nuevo.etiqueta }}</span>
               </div>
             </div>
           </div>
@@ -142,7 +132,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { tituloFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
-import api from '~/core/client'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { FallasService } from '~/features/fallas/services/fallas'
 import { CircleCheckIcon, LoaderCircleIcon, RotateCcwIcon, SendIcon, ServerIcon, XIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 
@@ -150,10 +141,10 @@ const props = defineProps({
   open:      { type: Boolean, default: false },
   falla:     { type: Object, default: null },
   catalogos: { type: Object, default: () => ({ estados: [], prioridades: [] }) },
-  usuarios:  { type: Array, default: () => [] },
 })
 const emit = defineEmits(['close', 'updated'])
 
+const fallasService = new FallasService()
 const fa = ref(null)
 const saving = ref(false)
 const addingSeg = ref(false)
@@ -198,8 +189,7 @@ function close() { emit('close') }
 async function refrescar() {
   if (!fa.value) return
   try {
-    const { data } = await api.get(`/fallas/${fa.value.id}`)
-    fa.value = data
+    fa.value = await fallasService.obtener(fa.value.id)
   } catch { /* mantiene la copia del listado */ }
 }
 
@@ -207,11 +197,11 @@ async function cambiar(payload) {
   if (!fa.value) return
   saving.value = true
   try {
-    const { data } = await api.patch(`/fallas/${fa.value.id}`, payload)
+    const data = await fallasService.actualizar(fa.value.id, payload)
     fa.value = data
     emit('updated', data)
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('No se pudo guardar', { description: e.data?.detail, duration: 3000 })
   } finally {
     saving.value = false
   }
@@ -224,14 +214,14 @@ async function agregarSeg() {
     const payload = {}
     if (nota.value.trim()) payload.nota = nota.value.trim()
     if (notaEstadoId.value) payload.estado_nuevo_id = notaEstadoId.value
-    await api.post(`/fallas/${fa.value.id}/seguimientos`, payload)
+    await fallasService.crearSeguimiento(fa.value.id, payload)
     nota.value = ''
     notaEstadoId.value = null
     await refrescar()
     emit('updated', fa.value)
     toast.success('Seguimiento agregado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: e.data?.detail, duration: 3000 })
   } finally {
     addingSeg.value = false
   }

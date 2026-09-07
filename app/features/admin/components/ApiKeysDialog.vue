@@ -106,8 +106,10 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Divider from 'primevue/divider'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ApiKeysService } from '~/features/admin/services/api-keys'
 import { CircleCheckIcon, CopyIcon, KeyIcon, PauseIcon, PlayIcon, ShieldIcon, Trash2Icon } from '@lucide/vue'
+
+const apiKeysService = new ApiKeysService()
 
 const props = defineProps({ usuario: Object })
 const visible = defineModel('visible', { type: Boolean })
@@ -134,8 +136,7 @@ watch(visible, async (v) => {
 async function loadKeys() {
   loadingKeys.value = true
   try {
-    const { data } = await api.get(`/api-keys/user/${props.usuario.id}`)
-    keys.value = data
+    keys.value = await apiKeysService.listarPorUsuario(props.usuario.id)
   } catch {
     keys.value = []
   } finally {
@@ -146,16 +147,13 @@ async function loadKeys() {
 async function createKey() {
   creating.value = true
   try {
-    const { data } = await api.post('/api-keys', {
-      usuario_id: props.usuario.id,
-      nombre: newKeyName.value.trim(),
-    })
-    newKey.value = data.api_key
+    const { api_key: key } = await apiKeysService.crear(props.usuario.id, newKeyName.value.trim())
+    newKey.value = key
     newKeyName.value = ''
     toast.success('API Key creada', { duration: 3000 })
     await loadKeys()
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'Error al crear', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'Error al crear', duration: 4000 })
   } finally {
     creating.value = false
   }
@@ -163,9 +161,9 @@ async function createKey() {
 
 async function toggleKey(k) {
   try {
-    const { data } = await api.patch(`/api-keys/${k.id}/toggle`)
-    k.activo = data.activo
-    toast.info(data.activo ? 'Key activada' : 'Key desactivada', { duration: 2000 })
+    const actualizada = await apiKeysService.alternarActiva(k.id)
+    k.activo = actualizada.activo
+    toast.info(actualizada.activo ? 'Key activada' : 'Key desactivada', { duration: 2000 })
   } catch {
     toast.error('Error al cambiar estado', { duration: 3000 })
   }
@@ -179,7 +177,7 @@ function confirmDelete(k) {
 async function doDelete() {
   deleting.value = true
   try {
-    await api.delete(`/api-keys/${deletingKey.value.id}`)
+    await apiKeysService.eliminar(deletingKey.value.id)
     deleteConfirmVisible.value = false
     toast.success('Key eliminada', { duration: 3000 })
     await loadKeys()

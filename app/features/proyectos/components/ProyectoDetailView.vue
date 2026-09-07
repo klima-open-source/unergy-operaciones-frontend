@@ -672,7 +672,7 @@
         <ContratoServicioWizard
           v-if="showContratoWizard"
           :visible="showContratoWizard"
-          :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'operacion'"
+          :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'rec'"
           :proyecto-id-default="Number(route.params.id)"
           @cerrar="showContratoWizard = false"
           @creado="onContratoServicioCreado"
@@ -747,24 +747,56 @@
 
       <!-- ══ ID QUOIA ══ -->
       <div v-if="tab === 'id-quoia'">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 text-sm">
-          <template v-if="!isEditMode">
-            <InfoField label="ID Reporte Generación Quoia" :value="proyecto.quoia_reporte_generacion_id" />
-            <InfoField label="ID Reporte Consumo Quoia" :value="proyecto.quoia_reporte_consumo_id" />
-            <InfoField label="ID de Nodo Quoia" :value="proyecto.quoia_nodo_id" />
+        <div class="p-4 space-y-4 text-sm">
+          <p class="text-[11px] text-gray-400">
+            <InfoIcon class="mr-1 size-[1em]" />
+            Estos ids viven en la API de Liquidaciones de Unergy, uno por subproyecto -- no en esta base.
+          </p>
+
+          <div v-if="!proyecto.sub_project && !proyecto.topico_liquidaciones" class="rounded-lg px-3 py-2 text-xs"
+               style="background:#FEF3C7; color:#92400E">
+            El proyecto no tiene <b>API ID Unergy</b> (código base), así que no se puede
+            identificar en la API de Liquidaciones. Complétalo en la pestaña General.
+          </div>
+          <div v-else-if="!isEditMode && !(liqConfig?.subproyectos?.length)" class="text-xs text-gray-400">
+            Sin subproyectos registrados en la API de Liquidaciones.
+          </div>
+
+          <template v-else-if="!isEditMode">
+            <div v-for="sub in liqConfig?.subproyectos ?? []" :key="sub.topic" class="space-y-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {{ sub.name || sub.topic }}
+              </div>
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <InfoField label="ID Reporte Generación Quoia" :value="sub.quoia_report_gen_id" />
+                <InfoField label="ID Reporte Consumo Quoia" :value="sub.quoia_report_con_id" />
+                <InfoField label="ID de Nodo Quoia" :value="sub.quoia_node_id" />
+              </div>
+            </div>
           </template>
+
           <template v-else>
-            <div class="flex flex-col gap-1">
-              <label class="field-label">ID Reporte Generación Quoia</label>
-              <InputNumber v-model="editForm.quoia_reporte_generacion_id" :useGrouping="false" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="field-label">ID Reporte Consumo Quoia</label>
-              <InputNumber v-model="editForm.quoia_reporte_consumo_id" :useGrouping="false" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="field-label">ID de Nodo Quoia</label>
-              <InputNumber v-model="editForm.quoia_nodo_id" :useGrouping="false" class="w-full" />
+            <p v-if="!editSubproyectos.length" class="text-xs text-gray-400">
+              Sin subproyectos registrados en la API de Liquidaciones -- no hay dónde guardar estos ids.
+            </p>
+            <div v-for="sub in editSubproyectos" :key="sub.topic" class="space-y-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {{ sub.name || sub.topic }}
+              </div>
+              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div class="flex flex-col gap-1">
+                  <label class="field-label">ID Reporte Generación Quoia</label>
+                  <InputText v-model="sub.quoia_report_gen_id" maxlength="4" class="w-full" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="field-label">ID Reporte Consumo Quoia</label>
+                  <InputText v-model="sub.quoia_report_con_id" maxlength="4" class="w-full" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="field-label">ID de Nodo Quoia</label>
+                  <InputText v-model="sub.quoia_node_id" maxlength="50" class="w-full" />
+                </div>
+              </div>
             </div>
           </template>
         </div>
@@ -805,12 +837,19 @@ import DatePicker from 'primevue/datepicker'
 import Checkbox from 'primevue/checkbox'
 import Divider from 'primevue/divider'
 import { toast } from 'vue-sonner'
-import * as XLSX from 'xlsx'
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { ClientesService } from '~/features/clientes/services/clientes'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
+
+const proyectosService = new ProyectosService()
+const clientesService = new ClientesService()
+const operadoresRedService = new OperadoresRedService()
+const liquidacionesApiService = new LiquidacionesApiService()
 
 const route = useRoute()
 const router = useRouter()
@@ -828,7 +867,7 @@ const CLASIFICACIONES = ['AGP', 'AGPE', 'AGGE', 'GD', 'DER', 'otra']
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const SERVICIOS_CARDS = [
   { key: 'srv_ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7', tipo: null },
-  { key: 'srv_operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: 'operacion' },
+  { key: 'srv_operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: null },
   { key: 'srv_representacion',label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff', tipo: 'representacion' },
   { key: 'srv_rec',           label: 'REC',           icon: BadgeCheckIcon,   color: '#14b8a6', bg: '#f0fdfa', tipo: 'rec' },
 ]
@@ -846,6 +885,11 @@ const proyecto = ref(null)
 // Configuración de liquidaciones: vive en la API de Unergy, no en esta base.
 const liqConfig = ref(null)
 const editLiq = reactive({ sic_gen: '', sic_con: '' })
+// IDs de Quoia: viven en la API de Liquidaciones, uno por subproyecto (no en
+// esta base -- ver auditoría 2026-08-31: la pestaña "ID Quoia" editaba antes
+// proyectos.quoia_* acá, una copia muerta que la vista de lista de IDs ni
+// siquiera mostraba, porque esa vista ya prioriza el dato real de la API).
+const editSubproyectos = ref([])
 const fronteras = ref([])
 const clientes = ref([])
 const loading = ref(true)
@@ -901,10 +945,6 @@ const editForm = reactive({
   sub_project: null,
   codigo_tsf: null,
   topico_liquidaciones: null,
-  // IDs de Quoia: viven en esta base (no en la API de Liquidaciones).
-  quoia_reporte_generacion_id: null,
-  quoia_reporte_consumo_id: null,
-  quoia_nodo_id: null,
   produccion_especifica_kwh_kwp: null,
   es_comunidad_energetica: false,
   nombre_comunidad: '',
@@ -991,9 +1031,10 @@ function sanitizeFilename(name) {
   return String(name || 'proyecto').replace(/[\\/:*?"<>|]+/g, '_').trim() || 'proyecto'
 }
 
-function descargarSimulacionExcel() {
+async function descargarSimulacionExcel() {
   try {
     if (!proyecto.value) return
+    const XLSX = await import('xlsx')
     const header = ['Escenario', ...MESES, 'Total anual (kWh)']
     const rows = SIMULACIONES.map(sim => {
       const vals = sim.displayArray.value.map(v => (v == null ? null : Number(v)))
@@ -1055,6 +1096,13 @@ function populateEditForm() {
   editFechaFinRep.value = toDate(p.fecha_fin_representacion)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
+  editSubproyectos.value = (liqConfig.value?.subproyectos ?? []).map(s => ({
+    topic: s.topic,
+    name: s.name,
+    quoia_report_gen_id: s.quoia_report_gen_id ?? '',
+    quoia_report_con_id: s.quoia_report_con_id ?? '',
+    quoia_node_id: s.quoia_node_id ?? '',
+  }))
 }
 
 watch(isEditMode, (entering) => {
@@ -1124,18 +1172,34 @@ async function saveEdit() {
     payload.es_comunidad_energetica = !!editForm.es_comunidad_energetica
     payload.nombre_comunidad = editForm.es_comunidad_energetica ? (editForm.nombre_comunidad || null) : null
 
-    await api.patch(`/proyectos/${route.params.id}`, payload)
+    await proyectosService.actualizar(route.params.id, payload)
     // Los códigos SIC se guardan en la API de Liquidaciones, no en esta base.
     if (proyecto.value?.sub_project) {
       const sicCambio =
         (editLiq.sic_gen || null) !== (liqConfig.value?.sic_gen || null) ||
         (editLiq.sic_con || null) !== (liqConfig.value?.sic_con || null)
       if (sicCambio) {
-        await api.patch(`/liquidaciones-api/proyectos/${route.params.id}`, {
+        await liquidacionesApiService.actualizarConfigProyecto(route.params.id, {
           sic_gen: editLiq.sic_gen || null,
           sic_con: editLiq.sic_con || null,
         })
       }
+    }
+    // IDs de Quoia: uno por subproyecto, viven en la API de Liquidaciones.
+    // Se compara contra el original para no golpear la API de subproyectos
+    // que no se tocaron.
+    for (const sub of editSubproyectos.value) {
+      const original = (liqConfig.value?.subproyectos ?? []).find(s => s.topic === sub.topic)
+      const cambio =
+        (sub.quoia_report_gen_id || null) !== (original?.quoia_report_gen_id || null) ||
+        (sub.quoia_report_con_id || null) !== (original?.quoia_report_con_id || null) ||
+        (sub.quoia_node_id || null) !== (original?.quoia_node_id || null)
+      if (!cambio) continue
+      await liquidacionesApiService.actualizarSubproyecto(sub.topic, {
+        quoia_report_gen_id: sub.quoia_report_gen_id || null,
+        quoia_report_con_id: sub.quoia_report_con_id || null,
+        quoia_node_id: sub.quoia_node_id || null,
+      })
     }
     // Mismo criterio que arriba -- sin filtrar, para poder limpiar un campo
     // (ver comentario en el payload de editForm).
@@ -1143,24 +1207,20 @@ async function saveEdit() {
     for (const [k, v] of Object.entries(editInfoTecnica)) {
       itPayload[k] = v === '' ? null : v
     }
-    await api.put(`/proyectos/${route.params.id}/info-tecnica`, itPayload)
-    const [proyRes, invRes] = await Promise.all([
-      api.get(`/proyectos/${route.params.id}`),
-      api.get(`/proyectos/${route.params.id}/inversionistas`),
+    await proyectosService.guardarInfoTecnica(route.params.id, itPayload)
+    const [proy, inversionistas] = await Promise.all([
+      proyectosService.obtener(route.params.id),
+      proyectosService.listarInversionistas(route.params.id),
     ])
-    proyecto.value = {
-      ...proyRes.data,
-      inversionistas: Array.isArray(invRes.data) ? invRes.data : (invRes.data.items ?? []),
-    }
+    proyecto.value = { ...proy, inversionistas }
     try {
-      const { data } = await api.get(`/liquidaciones-api/proyectos/${route.params.id}`)
-      liqConfig.value = data
+      liqConfig.value = await liquidacionesApiService.obtenerConfigProyecto(route.params.id)
     } catch { /* la API externa puede no responder; no bloquea el guardado */ }
     router.replace({ query: {} })
     toast.success('Proyecto actualizado', { duration: 3000 })
   } catch (e) {
     toast.error('Error al guardar', {
-      description: e.response?.data?.detail || e.message || 'No se pudo actualizar el proyecto.',
+      description: e.data?.detail || e.message || 'No se pudo actualizar el proyecto.',
       duration: 5000,
     })
   } finally {
@@ -1222,15 +1282,14 @@ async function agregarInversionista() {
   }
   guardando.value = true
   try {
-    await api.post(`/proyectos/${route.params.id}/inversionistas`, {
+    await proyectosService.agregarInversionista(route.params.id, {
       cliente_id: nuevoInv.cliente_id,
       porcentaje_participacion: nuevoInv.porcentaje_pct != null ? nuevoInv.porcentaje_pct / 100 : null,
       es_patrimonio_autonomo: nuevoInv.es_patrimonio_autonomo,
       fecha_inicio: formatFecha(nuevoInv.fecha_inicio),
       fecha_fin: formatFecha(nuevoInv.fecha_fin),
     })
-    const { data } = await api.get(`/proyectos/${route.params.id}/inversionistas`)
-    proyecto.value.inversionistas = Array.isArray(data) ? data : (data.items ?? [])
+    proyecto.value.inversionistas = await proyectosService.listarInversionistas(route.params.id)
     nuevoInv.cliente_id = null
     nuevoInv.porcentaje_pct = null
     nuevoInv.es_patrimonio_autonomo = false
@@ -1238,7 +1297,7 @@ async function agregarInversionista() {
     nuevoInv.fecha_fin = null
     toast.success('Inversionista agregado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error al agregar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error al agregar', { description: e.data?.detail, duration: 3000 })
   } finally {
     guardando.value = false
   }
@@ -1247,11 +1306,11 @@ async function agregarInversionista() {
 async function eliminarInversionista(invId) {
   if (!confirm('¿Estás seguro de que deseas eliminar este inversionista?')) return
   try {
-    await api.delete(`/proyectos/${route.params.id}/inversionistas/${invId}`)
+    await proyectosService.eliminarInversionista(route.params.id, invId)
     proyecto.value.inversionistas = proyecto.value.inversionistas.filter(i => i.id !== invId)
     toast.success('Inversionista eliminado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error al eliminar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error al eliminar', { description: e.data?.detail, duration: 3000 })
   }
 }
 
@@ -1265,7 +1324,7 @@ function iniciarEdicionInversionista(inv) {
 async function guardarEdicionInversionista(invId) {
   guardando.value = true
   try {
-    await api.patch(`/proyectos/${route.params.id}/inversionistas/${invId}`, {
+    await proyectosService.actualizarInversionista(route.params.id, invId, {
       porcentaje_participacion: editPct.value != null ? editPct.value / 100 : null,
       fecha_inicio: formatFecha(editFechaInicio.value),
       fecha_fin: formatFecha(editFechaFin.value),
@@ -1274,11 +1333,10 @@ async function guardarEdicionInversionista(invId) {
     editPct.value = null
     editFechaInicio.value = null
     editFechaFin.value = null
-    const { data } = await api.get(`/proyectos/${route.params.id}/inversionistas`)
-    proyecto.value.inversionistas = Array.isArray(data) ? data : (data.items ?? [])
+    proyecto.value.inversionistas = await proyectosService.listarInversionistas(route.params.id)
     toast.success('Porcentaje actualizado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error al actualizar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error al actualizar', { description: e.data?.detail, duration: 3000 })
   } finally {
     guardando.value = false
   }
@@ -1287,15 +1345,12 @@ async function guardarEdicionInversionista(invId) {
 // ── Servicios ─────────────────────────────────────────────────────────────────
 async function toggleServicio(key, value) {
   try {
-    await api.patch(`/proyectos/${route.params.id}/servicios`, { [key]: value })
-    const [proyRes, invRes] = await Promise.all([
-      api.get(`/proyectos/${route.params.id}`),
-      api.get(`/proyectos/${route.params.id}/inversionistas`),
+    await proyectosService.alternarServicio(route.params.id, { [key]: value })
+    const [proy, inversionistas] = await Promise.all([
+      proyectosService.obtener(route.params.id),
+      proyectosService.listarInversionistas(route.params.id),
     ])
-    proyecto.value = {
-      ...proyRes.data,
-      inversionistas: Array.isArray(invRes.data) ? invRes.data : (invRes.data.items ?? []),
-    }
+    proyecto.value = { ...proy, inversionistas }
     toast.success('Servicio actualizado', { duration: 2000 })
   } catch {
     srvFlags[key] = !value
@@ -1329,8 +1384,7 @@ async function cargarContratosInline(tipo) {
   contratosInline.value = []
   loadingInline.value = true
   try {
-    const { data } = await api.get('/contratos-servicio', { params: { tipo, proyecto_id: route.params.id } })
-    contratosInline.value = data
+    contratosInline.value = await proyectosService.listarContratosServicioInline(tipo, route.params.id)
   } catch {
     toast.error('Error al cargar contratos', { duration: 3000 })
   } finally {
@@ -1373,27 +1427,24 @@ const operadoresRedOptions = computed(() =>
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const [proyRes, clientesRes, invRes, operadoresRes, fronterasRes] = await Promise.all([
-      api.get(`/proyectos/${route.params.id}`),
-      api.get('/clientes', { params: { size: 200 } }),
-      api.get(`/proyectos/${route.params.id}/inversionistas`),
-      api.get('/operadores-red').catch(() => ({ data: [] })),
-      api.get('/fronteras', { params: { proyecto_id: route.params.id } }).catch(() => ({ data: [] })),
+    const [proy, clientesList, inversionistas, operadoresRes, fronterasRes] = await Promise.all([
+      proyectosService.obtener(route.params.id),
+      clientesService.listar({ size: 200 }),
+      proyectosService.listarInversionistas(route.params.id),
+      operadoresRedService.listar().catch(() => []),
+      proyectosService.listarFronterasDelProyecto(route.params.id).catch(() => []),
     ])
-    api.get(`/liquidaciones-api/proyectos/${route.params.id}`)
-      .then(r => { liqConfig.value = r.data; if (isEditMode.value) populateEditForm() })
+    liquidacionesApiService.obtenerConfigProyecto(route.params.id)
+      .then(config => { liqConfig.value = config; if (isEditMode.value) populateEditForm() })
       .catch(() => { liqConfig.value = null })
-    proyecto.value = {
-      ...proyRes.data,
-      inversionistas: Array.isArray(invRes.data) ? invRes.data : (invRes.data.items ?? []),
-    }
-    clientes.value = clientesRes.data.items
-    fronteras.value = Array.isArray(fronterasRes.data) ? fronterasRes.data : (fronterasRes.data.items ?? [])
-    operadoresRed.value = Array.isArray(operadoresRes.data) ? operadoresRes.data : (operadoresRes.data.items ?? [])
-    for (const s of SERVICIOS_FLAGS) srvFlags[s.key] = proyRes.data[s.key]
+    proyecto.value = { ...proy, inversionistas }
+    clientes.value = clientesList
+    fronteras.value = fronterasRes
+    operadoresRed.value = operadoresRes
+    for (const s of SERVICIOS_FLAGS) srvFlags[s.key] = proy[s.key]
     if (isEditMode.value) populateEditForm()
   } catch (e) {
-    errorMsg.value = e.response?.data?.detail || e.message || 'Error de conexión con el servidor'
+    errorMsg.value = e.data?.detail || e.message || 'Error de conexión con el servidor'
   } finally {
     loading.value = false
   }

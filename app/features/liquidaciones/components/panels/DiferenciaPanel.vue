@@ -72,11 +72,13 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, h } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { PanelContableService } from '~/features/panel-contable/services/panel-contable'
 import { fmtCOP, fmtCompact, formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
 import { ChevronDownIcon, ChevronRightIcon, ClockIcon } from '@lucide/vue'
 
 const props = defineProps({ periodo: { type: String, required: true } })
+
+const panelContableService = new PanelContableService()
 
 const loading = ref(false)
 const diff = ref({ proyectos: [], resumen: {}, tiene_oficial: false })
@@ -129,7 +131,7 @@ async function load () {
   if (!per) return
   loading.value = true
   try {
-    const { data } = await api.get('/panel-contable/diferencia', { params: { periodo: per } })
+    const data = await panelContableService.obtenerDiferencia(per)
     diff.value = data || { proyectos: [], resumen: {}, tiene_oficial: false }
     // Abrir el primero por comodidad.
     abiertos.clear()

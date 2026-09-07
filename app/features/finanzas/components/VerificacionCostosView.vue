@@ -209,8 +209,10 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
+
+const liquidacionesApi = new LiquidacionesApiService()
 import { BriefcaseIcon, CheckIcon, LoaderCircleIcon, PencilIcon, RefreshCwIcon, SearchIcon, SquareCheckIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 
@@ -285,7 +287,7 @@ function abrirEditar(row) {
 async function guardar() {
   guardando.value = true
   try {
-    await api.patch(`/liquidaciones-api/proyectos/${f.proyecto_id}`, {
+    await liquidacionesApi.actualizarConfigProyecto(f.proyecto_id, {
       from_generator: f.from_generator,
       from_commercializer: f.from_commercializer,
       ac_power: f.ac_power,
@@ -294,7 +296,7 @@ async function guardar() {
     await cargar()
     toast.success('Guardado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'No se pudo guardar', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'No se pudo guardar', duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -305,9 +307,9 @@ async function cargar() {
   loading.value = true
   error.value = null
   try {
-    const [{ data }, totales] = await Promise.all([
-      api.get('/liquidaciones-api/proyectos'),
-      api.get('/liquidaciones-api/ac-power').then(r => r.data).catch(() => null),
+    const [data, totales] = await Promise.all([
+      liquidacionesApi.listarProyectos(),
+      liquidacionesApi.obtenerAcPower().catch(() => null),
     ])
     totalesApi.value = totales
     topicosSinCruce.value = totales?.topicos_sin_cruce || []
@@ -316,7 +318,7 @@ async function cargar() {
       .map(r => ({ ...r, nombre_comercial: formatearNombreProyecto(r.nombre_comercial) }))
       .sort((a, b) => a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudo cargar la configuración de liquidaciones.'
+    error.value = e.data?.detail || 'No se pudo cargar la configuración de liquidaciones.'
     filas.value = []
   } finally {
     loading.value = false

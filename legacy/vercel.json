@@ -2,19 +2,19 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://backend-production-63d8.up.railway.app/api/$1"
+      "destination": "https://operaciones.uner.gy/api/$1"
     },
     {
       "source": "/monitoreo/(.*)",
-      "destination": "https://backend-production-63d8.up.railway.app/monitoreo/$1"
+      "destination": "https://operaciones.uner.gy/monitoreo/$1"
     },
     {
       "source": "/monitoreo",
-      "destination": "https://backend-production-63d8.up.railway.app/monitoreo"
+      "destination": "https://operaciones.uner.gy/monitoreo"
     },
     {
       "source": "/static/(.*)",
-      "destination": "https://backend-production-63d8.up.railway.app/static/$1"
+      "destination": "https://operaciones.uner.gy/static/$1"
     },
     {
       "source": "/((?!api/|monitoreo|static/).*)",

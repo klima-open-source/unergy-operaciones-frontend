@@ -7,7 +7,7 @@
  * puede pedir una resincronización — no hay edición manual de estos campos.
  */
 import type { RespuestaProximosEnergizar } from '~/features/proyectos/types'
-import { LegacyBaseService } from '~/core/legacy-service'
+import { BaseService } from '~/core/service'
 
 const RUTAS = {
   proximosEnergizar: '/proximos-energizar',
@@ -15,7 +15,7 @@ const RUTAS = {
   proyecto: (id: number) => `/proyectos/${id}`,
 } as const
 
-export class ProximosEnergizarService extends LegacyBaseService {
+export class ProximosEnergizarService extends BaseService {
   listar(): Promise<RespuestaProximosEnergizar> {
     return this.get<RespuestaProximosEnergizar>(RUTAS.proximosEnergizar)
   }

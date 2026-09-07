@@ -332,7 +332,7 @@ async function cargar() {
     const data = await liquidacionesApi.listarDespachos(filtros)
     despachos.value = data.results || []
   } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudieron cargar los despachos liquidados.'
+    error.value = e.data?.detail || 'No se pudieron cargar los despachos liquidados.'
     despachos.value = []
   } finally {
     loading.value = false
@@ -389,7 +389,7 @@ async function ejecutar() {
     dialogVisible.value = false
   } catch (e) {
     toast.error(`${cfg.value.header} falló`, {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 10000,
     })
   } finally {
@@ -414,7 +414,7 @@ async function diagnosticar(project) {
   } catch (e) {
     diagVisible.value = false
     toast.error('No se pudo diagnosticar', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 6000,
     })
   } finally {

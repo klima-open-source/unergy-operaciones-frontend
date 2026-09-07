@@ -291,8 +291,11 @@ import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { EvoService } from '~/features/mem/services/evo'
 import { ArrowDownIcon, ArrowLeftIcon, ArrowUpIcon, ChartLineIcon, CloudDownloadIcon, CloudIcon, DatabaseIcon } from '@lucide/vue'
+
+const evoService = new EvoService()
 
 const TABS = ['Precios de Bolsa', 'Clima / Pronóstico', 'Histórico']
 const activeTab = ref(0)
@@ -315,17 +318,17 @@ const padB = 20
 onMounted(async () => {
   try {
     const [spotRes, climaRes, pricesRes, oniRes] = await Promise.all([
-      api.get('/evo/dailyspot/latest').catch(() => null),
-      api.get('/evo/clima/forecast').catch(() => null),
-      api.get('/evo/clima/prices?years=26').catch(() => null),
-      api.get('/evo/clima/oni?years=26').catch(() => null),
+      evoService.obtenerSpotVigente().catch(() => null),
+      evoService.obtenerPronosticoClima().catch(() => null),
+      evoService.obtenerPreciosHistoricos(26).catch(() => null),
+      evoService.obtenerOni(26).catch(() => null),
     ])
-    if (spotRes?.data) spot.value = spotRes.data
-    if (climaRes?.data) clima.value = climaRes.data
-    if (pricesRes?.data) histPrices.value = pricesRes.data.reverse()
-    if (oniRes?.data) histOni.value = oniRes.data.reverse()
+    if (spotRes) spot.value = spotRes
+    if (climaRes) clima.value = climaRes
+    if (pricesRes) histPrices.value = pricesRes.reverse()
+    if (oniRes) histOni.value = oniRes.reverse()
   } catch (e) {
-    console.error('Error cargando datos MEM:', e)
+    logger.error('mem', e)
   } finally {
     loading.value = false
   }

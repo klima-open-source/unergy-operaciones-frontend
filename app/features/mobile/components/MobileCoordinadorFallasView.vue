@@ -23,24 +23,17 @@
         <XIcon class="cf-clear size-[1em]" v-if="search" @click="search = ''" />
       </div>
       <div class="cf-chips">
-        <button :class="['cf-fchip', filtro === 'sin_asignar' && 'cf-fchip--on cf-fchip--warn']" @click="filtro = 'sin_asignar'">
-          <UserPlusIcon class="size-[1em]" /> Sin asignar
-        </button>
         <button :class="['cf-fchip', filtro === 'activas' && 'cf-fchip--on']" @click="filtro = 'activas'">Activas</button>
         <button :class="['cf-fchip', filtro === null && 'cf-fchip--on']" @click="filtro = null">Todas</button>
         <button v-for="e in catalogos.estados" :key="e.id"
           :class="['cf-fchip', filtro === e.id && 'cf-fchip--on']"
-          :style="filtro === e.id ? chipStyle(e.color_hex) : {}"
+          :style="filtro === e.id ? chipStyle(colorEstado(e.codigo)) : {}"
           @click="filtro = e.id">{{ e.etiqueta }}</button>
       </div>
     </div>
 
     <!-- CONTADORES -->
     <div class="cf-stats">
-      <div class="cf-stat">
-        <span class="cf-stat-n">{{ sinAsignar }}</span>
-        <span class="cf-stat-l">Sin asignar</span>
-      </div>
       <div class="cf-stat">
         <span class="cf-stat-n">{{ activas }}</span>
         <span class="cf-stat-l">Activas</span>
@@ -61,24 +54,17 @@
       </div>
       <template v-else>
         <button v-for="f in filtradas" :key="f.id" class="cf-card" @click="openDetail(f)">
-          <span class="cf-stripe" :style="{ background: f.prioridad?.color_hex || '#9ca3af' }" />
+          <span class="cf-stripe" :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }" />
           <div class="cf-card-main">
             <div class="cf-card-top">
               <code class="cf-card-code">{{ f.codigo_interno }}</code>
               <span class="cf-card-estado" :style="estadoStyle(f.estado)">{{ f.estado?.etiqueta }}</span>
             </div>
-            <div class="cf-card-tipo">{{ f.tipo?.etiqueta || f.tipo_libre || 'Falla' }}</div>
+            <div class="cf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
             <div class="cf-card-proj"><ZapIcon class="size-[1em]" /> {{ f.proyecto?.nombre_comercial || '—' }}</div>
             <div class="cf-card-foot">
-              <span class="cf-prio" :style="{ color: f.prioridad?.color_hex || '#6b5a8a' }">{{ f.prioridad?.etiqueta }}</span>
+              <span class="cf-prio" :style="{ color: colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }">{{ f.prioridad?.etiqueta }}</span>
               <span class="cf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
-              <!-- Asignado / sin asignar -->
-              <span v-if="f.asignado_a" class="cf-assignee cf-assignee--set" :title="f.asignado_a.nombre">
-                {{ initials(f.asignado_a.nombre) }}
-              </span>
-              <span v-else class="cf-assignee cf-assignee--empty" title="Sin asignar">
-                <UserPlusIcon class="size-[1em]" />
-              </span>
             </div>
           </div>
         </button>
@@ -91,7 +77,6 @@
       :open="detailOpen"
       :falla="detailFalla"
       :catalogos="catalogos"
-      :usuarios="tecnicos"
       @close="detailOpen = false"
       @updated="onUpdated"
     />
@@ -108,18 +93,23 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
 import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.vue'
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 import FallaCreateSheet from '~/features/mobile/components/components/FallaCreateSheet.vue'
 import NotificationsSheet from '~/features/mobile/components/components/NotificationsSheet.vue'
-import { BellIcon, CircleCheckIcon, LoaderCircleIcon, PlusIcon, SearchIcon, UserPlusIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { BellIcon, CircleCheckIcon, LoaderCircleIcon, PlusIcon, SearchIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
+const notificacionesService = new NotificacionesService()
 const fallas = ref([])
 const catalogos = reactive({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 const proyectos = ref([])
-const tecnicos = ref([])   // solo usuarios con rol tecnico
 const loading = ref(false)
 
 const search = ref('')
@@ -131,16 +121,13 @@ const createOpen = ref(false)
 const notifOpen = ref(false)
 const unreadCount = ref(0)
 
-const sinAsignar = computed(() => fallas.value.filter((f) => !f.asignado_a && !f.estado?.es_estado_final).length)
 const activas    = computed(() => fallas.value.filter((f) => !f.estado?.es_estado_final).length)
 const resueltas  = computed(() => fallas.value.filter((f) =>  f.estado?.es_estado_final).length)
 
 const filtradas = computed(() => {
   const q = search.value.trim().toLowerCase()
   let list = fallas.value
-  if (filtro.value === 'sin_asignar') {
-    list = list.filter((f) => !f.asignado_a && !f.estado?.es_estado_final)
-  } else if (filtro.value === 'activas') {
+  if (filtro.value === 'activas') {
     list = list.filter((f) => !f.estado?.es_estado_final)
   } else if (typeof filtro.value === 'number') {
     list = list.filter((f) => f.estado?.id === filtro.value)
@@ -155,9 +142,6 @@ const filtradas = computed(() => {
     const af = a.estado?.es_estado_final ? 1 : 0
     const bf = b.estado?.es_estado_final ? 1 : 0
     if (af !== bf) return af - bf
-    const aa = a.asignado_a ? 1 : 0
-    const ba = b.asignado_a ? 1 : 0
-    if (aa !== ba) return aa - ba
     return (b.fecha_identificacion || '').localeCompare(a.fecha_identificacion || '')
   })
 })
@@ -167,12 +151,8 @@ function chipStyle(color) {
   return { background: c, borderColor: c, color: '#fff' }
 }
 function estadoStyle(estado) {
-  const c = estado?.color_hex || '#915BD8'
+  const c = colorEstado(estado?.codigo)
   return { background: c + '22', color: c }
-}
-function initials(nombre) {
-  if (!nombre) return '?'
-  return nombre.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
 }
 function relativeTime(s) {
   if (!s) return ''
@@ -186,19 +166,16 @@ function relativeTime(s) {
 async function cargar() {
   loading.value = true
   try {
-    const [cat, proy, usr] = await Promise.all([
-      api.get('/fallas/catalogos').catch(() => ({ data: { estados: [], prioridades: [], tipos: [], resoluciones: [] } })),
-      api.get('/proyectos', { params: { size: 500 } }).catch(() => ({ data: { items: [] } })),
-      api.get('/usuarios', { params: { size: 200 } }).catch(() => ({ data: { items: [] } })),
+    const [cat, proy] = await Promise.all([
+      fallasService.obtenerCatalogos().catch(() => ({ estados: [], prioridades: [], tipos: [], resoluciones: [] })),
+      proyectosService.listar({ size: 500 }).catch(() => []),
     ])
-    Object.assign(catalogos, cat.data)
-    proyectos.value = proy.data.items ?? []
-    const todos = usr.data.items ?? []
-    tecnicos.value = todos.filter((u) => u.rol === 'tecnico')
+    Object.assign(catalogos, cat)
+    proyectos.value = proy ?? []
     await cargarFallas()
   } catch (e) {
     toast.error('Error al cargar fallas', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 4000,
     })
   } finally {
@@ -207,14 +184,14 @@ async function cargar() {
 }
 
 async function cargarFallas() {
-  const primera = await api.get('/fallas', { params: { page: 1, size: 500 } })
-  let items = primera.data.items ?? []
-  const total = primera.data.total ?? items.length
+  const primera = await fallasService.listar({ page: 1, size: 500 })
+  let items = primera.items ?? []
+  const total = primera.total ?? items.length
   const pages = Math.ceil(total / 500)
   if (pages > 1) {
     const rest = await Promise.all(
-      Array.from({ length: pages - 1 }, (_, i) => api.get('/fallas', { params: { page: i + 2, size: 500 } })))
-    for (const r of rest) items = items.concat(r.data.items ?? [])
+      Array.from({ length: pages - 1 }, (_, i) => fallasService.listar({ page: i + 2, size: 500 })))
+    for (const r of rest) items = items.concat(r.items ?? [])
   }
   fallas.value = items
 }
@@ -227,7 +204,7 @@ function onUpdated(falla) {
 function onCreated() { cargarFallas() }
 
 async function fetchUnread() {
-  try { const { data } = await api.get('/notificaciones/count'); unreadCount.value = data.no_leidas ?? data.count ?? data.unread ?? 0 }
+  try { unreadCount.value = await notificacionesService.contarNoLeidas() }
   catch { /* silencioso */ }
 }
 
@@ -278,8 +255,6 @@ onMounted(() => { cargar(); fetchUnread() })
   display: flex; align-items: center; gap: 5px;
 }
 .cf-fchip--on { background: #1e3a5f; border-color: #1e3a5f; color: #fff; }
-.cf-fchip--warn { border-color: #f59e0b; color: #92400e; }
-.cf-fchip--on.cf-fchip--warn { background: #f59e0b; border-color: #f59e0b; color: #fff; }
 
 /* Stats */
 .cf-stats {
@@ -316,10 +291,4 @@ onMounted(() => { cargar(); fetchUnread() })
 .cf-card-foot { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
 .cf-prio { font-size: 12.5px; font-weight: 700; }
 .cf-time { font-size: 12px; color: #9ca3af; }
-.cf-assignee {
-  margin-left: auto; width: 28px; height: 28px; border-radius: 50%;
-  font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
-}
-.cf-assignee--set { background: #1e3a5f; color: #fff; }
-.cf-assignee--empty { background: #fef3c7; color: #92400e; border: 1.5px dashed #f59e0b; font-size: 13px; }
 </style>

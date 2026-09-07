@@ -109,7 +109,9 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import api from '~/core/client'
+import { InformesService } from '~/features/operaciones/services/informes'
+
+const informesService = new InformesService()
 
 const route = useRoute()
 
@@ -204,11 +206,11 @@ async function cargar() {
   loading.value = true
   error.value   = null
   try {
-    const { data } = await api.get(`/informes/${route.params.id}`)
+    const data = await informesService.obtener(route.params.id)
     informe.value   = data
     htmlContent.value = data.html_content || ''
   } catch (e) {
-    error.value = e.response?.data?.detail || e.message
+    error.value = e.data?.detail || e.message
   } finally {
     loading.value = false
   }
@@ -236,7 +238,7 @@ async function saveEdit() {
   saving.value = true
   try {
     const newHtml = contentRef.value.innerHTML
-    const { data } = await api.post('/informes/', {
+    const data = await informesService.guardar({
       tipo: informe.value.tipo,
       sub_project: informe.value.sub_project,
       periodo_desde: informe.value.periodo_desde,
@@ -250,7 +252,7 @@ async function saveEdit() {
     editMode.value  = false
     toast('💾 Informe guardado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     saving.value = false
   }
@@ -260,24 +262,21 @@ async function saveEdit() {
 async function changeEstado(nuevoEstado) {
   changingEstado.value = true
   try {
-    const { data } = await api.patch(
-      `/informes/${informe.value.id}/estado`,
-      { estado: nuevoEstado }
-    )
+    const data = await informesService.cambiarEstado(informe.value.id, nuevoEstado)
     informe.value = { ...informe.value, ...data }
     if (nuevoEstado === 'aprobado') {
       try {
-        const { data: envData } = await api.post(`/informes/${informe.value.id}/enviar`, {})
+        const envData = await informesService.enviar(informe.value.id)
         toast(`✅ Aprobado y enviado a ${envData.enviado_a}`)
       } catch (err) {
-        const msg = err.response?.data?.detail || ''
+        const msg = err.data?.detail || ''
         toast('✅ Aprobado' + (msg ? ' — ' + msg : ' (correo no enviado)'))
       }
     } else {
       toast(`👁 Estado: ${nuevoEstado}`)
     }
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     changingEstado.value = false
   }

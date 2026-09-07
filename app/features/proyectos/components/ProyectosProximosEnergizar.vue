@@ -243,10 +243,12 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { useEnergizationProjects } from '~/composables/useEnergizationProjects'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { CircleCheckIcon, CircleXIcon, DatabaseIcon, FileIcon, FileSpreadsheetIcon, FilterIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
+
+const proyectosService = new ProyectosService()
 
 const {
   projects, loading, warning, syncing, lastSync,
@@ -345,14 +347,14 @@ async function vincular(sug) {
   }
   vinculandoId.value = sug.candidato_id
   try {
-    await api.post(`/proyectos/${sug.candidato_id}/vincular-sunfactory/${sug.sunfactory_project_id}`)
+    await proyectosService.vincularSunFactory(sug.candidato_id, sug.sunfactory_project_id)
     sugerencias.value = sugerencias.value.filter(s => s !== sug)
     toast.success('Vinculado', {
       description: `${sug.candidato_nombre} vinculado a Sun Factory`,
       duration: 3000,
     })
   } catch (e) {
-    toast.error('No se pudo vincular', { description: e.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('No se pudo vincular', { description: e.data?.detail || e.message, duration: 5000 })
   } finally {
     vinculandoId.value = null
   }

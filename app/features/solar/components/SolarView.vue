@@ -534,8 +534,12 @@ import Button     from 'primevue/button'
 import DataTable  from 'primevue/datatable'
 import Column     from 'primevue/column'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { SolarService } from '~/features/solar/services/solar'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ChartColumnIcon, ChartLineIcon, DatabaseIcon, DownloadIcon, GlobeIcon, LayoutGridIcon, ListIcon, MapIcon, MapPinIcon, RefreshCwIcon, SearchIcon, SlidersHorizontalIcon, SunIcon, TrophyIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const solarService = new SolarService()
+const proyectosService = new ProyectosService()
 
 // ─── Constantes de diseño ────────────────────────────────────────────────────
 
@@ -634,7 +638,7 @@ onMounted(async () => {
 
 async function loadFiltros() {
   try {
-    const { data } = await api.get('/solar/filtros')
+    const data = await solarService.obtenerFiltros()
     filtros.value = data
     // Seleccionar todos los estados por defecto -- salvo que ya vinieran
     // restaurados desde la URL (?estado=...), para no pisar ese filtro.
@@ -646,15 +650,13 @@ async function loadFiltros() {
 
 async function loadProyectos() {
   try {
-    const { data } = await api.get('/solar/proyectos')
-    proyectos.value = data
+    proyectos.value = await solarService.listarProyectos()
   } catch { /* silencioso */ }
 }
 
 async function loadInternos() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500, page: 1 } })
-    const items = data.items ?? data
+    const items = await proyectosService.listar({ size: 500, page: 1 })
     internosOpts.value = items.map(p => ({ label: p.nombre_comercial, value: p.id }))
   } catch { /* silencioso */ }
 }
@@ -662,9 +664,7 @@ async function loadInternos() {
 async function loadGeneracion() {
   loading.value = true
   try {
-    const params = buildParams()
-    const { data } = await api.get('/solar/generacion', { params })
-    genData.value = data
+    genData.value = await solarService.obtenerGeneracion(buildParams())
   } catch (e) {
     toast.error('Error', { description: 'No se pudo cargar la generación solar', duration: 4000 })
   } finally {
@@ -674,9 +674,7 @@ async function loadGeneracion() {
 
 async function loadRanking() {
   try {
-    const params = { ...buildParams(), top: 20 }
-    const { data } = await api.get('/solar/ranking', { params })
-    rankingData.value = data
+    rankingData.value = await solarService.obtenerRanking({ ...buildParams(), top: 20 })
   } catch { /* silencioso */ }
 }
 
@@ -684,13 +682,11 @@ async function loadComparacion() {
   if (!cmp.nacionales.length && !cmp.internos.length) return
   cmp.loading = true
   try {
-    const params = {
+    cmp.raw = await solarService.obtenerComparacion({
       ...buildParams(),
       sicNacionales: cmp.nacionales.join(',') || undefined,
       idsInternos:   cmp.internos.join(',') || undefined,
-    }
-    const { data } = await api.get('/solar/comparacion', { params })
-    cmp.raw = data
+    })
   } catch {
     toast.error('Error', { description: 'No se pudo generar la comparación', duration: 4000 })
   } finally {
@@ -701,7 +697,7 @@ async function loadComparacion() {
 async function reloadCache() {
   reloading.value = true
   try {
-    const { data } = await api.post('/solar/reload-cache')
+    const data = await solarService.recargarCache()
     toast.success('Caché recargado', {
       description: `${data.proyectos} proyectos · ${data.registros_generacion} registros`,
       duration: 4000,

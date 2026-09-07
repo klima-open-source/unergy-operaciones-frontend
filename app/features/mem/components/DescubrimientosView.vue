@@ -305,8 +305,10 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
-import client from '~/core/client'
+import { CumplimientoService } from '~/features/mem/services/cumplimiento'
 import { ChevronDownIcon, ChevronRightIcon, CircleCheckIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const cumplimientoService = new CumplimientoService()
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -428,12 +430,11 @@ async function loadData() {
   data.value = null
   expandedMonth.value = null
   try {
-    const resp = await client.get('/cumplimiento/descubrimientos', {
-      params: { year: selectedYear.value, month_from: monthFrom.value, month_to: monthTo.value },
+    data.value = await cumplimientoService.obtenerDescubrimientos({
+      year: selectedYear.value, month_from: monthFrom.value, month_to: monthTo.value,
     })
-    data.value = resp.data
   } catch (e) {
-    error.value = e.response?.data?.detail || 'Error al cargar descubrimientos'
+    error.value = e.data?.detail || 'Error al cargar descubrimientos'
   } finally {
     loading.value = false
   }

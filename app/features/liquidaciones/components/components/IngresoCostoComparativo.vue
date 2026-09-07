@@ -39,7 +39,8 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { fmtCompact, fmtCOP } from '~/features/liquidaciones/utils/liquidaciones'
 import { ChartColumnIcon } from '@lucide/vue'
 
@@ -51,6 +52,9 @@ const props = defineProps({
   periodo: { type: String, required: true },   // YYYY-MM-01
   showChart: { type: Boolean, default: true },  // false → solo KPIs (indicador vs promedio)
 })
+
+const liquidacionesService = new LiquidacionesService()
+const monitoreoLegacyService = new MonitoreoLegacyService()
 
 const loading = ref(false)
 const mensual = ref([])   // [{periodo:'YYYY-MM-01', ingresos, costosOp, facturas, neto}] del Panel
@@ -135,8 +139,8 @@ async function load() {
     const [y, m] = per.split('-').map(Number)
     const d0 = new Date(y, m - 1 - 4, 1)
     const desde = `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}`
-    const { data } = await api.get('/liquidaciones/resumen-panel-rango', {
-      params: { periodo_desde: desde, periodo_hasta: per, tipo: 'preliquidacion' },
+    const data = await liquidacionesService.obtenerResumenPanelRango({
+      periodo_desde: desde, periodo_hasta: per, tipo: 'preliquidacion',
     })
     const out = []
     for (const entry of (data.periodos || [])) {
@@ -179,7 +183,7 @@ function mesPrevio(periodo, k) {
 }
 
 async function resolverSub() {
-  const { data } = await api.get('/monitoreo/_legacy', { params: { action: 'getProjects' } })
+  const data = await monitoreoLegacyService.obtenerProyectos()
   const projects = data?.projects ?? []
   const pid = props.proyectoId != null ? String(props.proyectoId) : null
   const nombre = norm(props.proyectoNombre)
@@ -190,9 +194,7 @@ async function resolverSub() {
 }
 
 async function totalGen(sub, periodo) {
-  const { data } = await api.get('/monitoreo/_legacy', {
-    params: { action: 'getGeneration', sub_project: sub, date_from: periodo, date_to: ultimoDiaMes(periodo) },
-  })
+  const data = await monitoreoLegacyService.obtenerGeneracion({ sub_project: sub, date_from: periodo, date_to: ultimoDiaMes(periodo) })
   if (data && data.ok === false) return null
   let total = 0, has = false
   for (const it of (Array.isArray(data?.data) ? data.data : [])) {

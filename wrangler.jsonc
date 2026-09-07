@@ -43,7 +43,7 @@
     "NUXT_AUTH_COOKIE_SAMESITE": "lax",
     "NUXT_AUTH_COOKIE_MAX_AGE": "604800",
 
-    "NUXT_API_PROXY_TARGET": "https://backend-production-63d8.up.railway.app",
+    "NUXT_API_PROXY_TARGET": "https://operaciones.uner.gy",
     "NUXT_EVO_API_URL": "",
   },
 

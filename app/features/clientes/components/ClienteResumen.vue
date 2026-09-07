@@ -166,10 +166,12 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import api from '~/core/client'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import ParticipacionSparkline from './ParticipacionSparkline.vue'
 import { SEMAFORO, servicioLabel, fmt, fmtFecha } from './clientesUi'
 import { DollarSignIcon, ExternalLinkIcon, FileIcon, LoaderCircleIcon, SunIcon } from '@lucide/vue'
+
+const clientesService = new ClientesService()
 
 const props = defineProps({ clienteId: { type: [Number, String], required: true } })
 const panel = ref(null)
@@ -202,8 +204,7 @@ async function cargar() {
   if (!props.clienteId) return
   loading.value = true
   try {
-    const { data } = await api.get(`/clientes/${props.clienteId}/panel`)
-    panel.value = data
+    panel.value = await clientesService.obtenerPanel(props.clienteId)
   } finally {
     loading.value = false
   }

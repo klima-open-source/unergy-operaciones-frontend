@@ -468,10 +468,12 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { FacturacionService } from '~/features/liquidaciones/services/facturacion'
 import { fmtCOP, formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { ArrowRightIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, CircleCheckIcon, CopyIcon, DatabaseIcon, DollarSignIcon, FileIcon, FileSpreadsheetIcon, HashIcon, ImageIcon, InfoIcon, LoaderCircleIcon, MenuIcon, NetworkIcon, PercentIcon, SaveIcon, SearchIcon, TriangleAlertIcon, UploadIcon } from '@lucide/vue'
+
+const facturacionService = new FacturacionService()
 
 const props = defineProps({ periodo: { type: String, required: true } })
 
@@ -601,11 +603,11 @@ async function load () {
   loading.value = true
   try {
     const [fac, desp, ipp, blz, cmp] = await Promise.all([
-      api.get('/facturacion', { params: { periodo: per.value } }).then(r => r.data).catch(() => ({})),
-      api.get('/facturacion/despacho', { params: { periodo: per.value } }).then(r => r.data).catch(() => ({ contratos: [] })),
-      api.get('/ppa/ipp/mensual').then(r => r.data).catch(() => []),
-      api.get('/facturacion/bolsa', { params: { periodo: per.value } }).then(r => r.data).catch(() => ({})),
-      api.get('/facturacion/cumplimiento', { params: { periodo: per.value } }).then(r => r.data).catch(() => ({ resumen: {}, filas: [] })),
+      facturacionService.obtener(per.value).catch(() => ({})),
+      facturacionService.obtenerDespacho(per.value).catch(() => ({ contratos: [] })),
+      facturacionService.listarIppMensual().catch(() => []),
+      facturacionService.obtenerBolsa(per.value).catch(() => ({})),
+      facturacionService.obtenerCumplimiento(per.value).catch(() => ({ resumen: {}, filas: [] })),
     ])
     res.value = fac.resumen || {}
     lineas.value = fac.lineas || []
@@ -633,17 +635,14 @@ function pickDespacho () {
 async function subirDespacho (file) {
   subiendo.value = true
   try {
-    const fd = new FormData()
-    fd.append('archivo', file)
-    const { data } = await api.post(`/facturacion/despacho?periodo=${per.value}`, fd,
-      { headers: { 'Content-Type': 'multipart/form-data' } })
+    const data = await facturacionService.subirDespacho(per.value, file)
     toast.success('Despacho cargado', {
       description: `${data.contratos} contratos · ${(data.kwh_total / 1000).toFixed(0)} MWh`,
       duration: 4000,
     })
     await load()
   } catch (e) {
-    toast.error('No se pudo cargar', { description: e?.response?.data?.detail || e.message, duration: 6000 })
+    toast.error('No se pudo cargar', { description: e?.data?.detail || e.message, duration: 6000 })
   } finally { subiendo.value = false }
 }
 
@@ -671,7 +670,7 @@ async function moverSeleccionados (k) {
   guardandoDiv.value = true
   try {
     const rows = [...s].filter(Boolean).map(c => ({ codigo_sic_contrato: c, nombre, porcentaje: pct }))
-    await api.put('/facturacion/agrupaciones', rows)
+    await facturacionService.guardarAgrupaciones(rows)
     const comoPct = pct != null ? ` (${fmtPct(pct)})` : ''
     toast.success('Factura dividida', {
       description: `${rows.length} contratos → "${nombre}"${comoPct}`,
@@ -680,7 +679,7 @@ async function moverSeleccionados (k) {
     s.clear(); nuevoNombre[k] = ''; nuevoPct[k] = ''
     await load()
   } catch (e) {
-    toast.error('No se pudo dividir', { description: e?.response?.data?.detail || e.message, duration: 6000 })
+    toast.error('No se pudo dividir', { description: e?.data?.detail || e.message, duration: 6000 })
   } finally { guardandoDiv.value = false }
 }
 
@@ -724,7 +723,7 @@ function moverFactura (i, dir) {
 async function guardarOrden () {
   guardandoOrden.value = true
   try {
-    await api.put('/facturacion/orden', { nombres: porFactura.value.map(f => f.factura) })
+    await facturacionService.guardarOrden(porFactura.value.map(f => f.factura))
     ordenTocado.value = false
     toast.success('Orden guardado', {
       description: 'Se aplica también a los próximos meses.',
@@ -732,7 +731,7 @@ async function guardarOrden () {
     })
   } catch (e) {
     toast.error('No se pudo guardar el orden', {
-      description: e?.response?.data?.detail || e.message,
+      description: e?.data?.detail || e.message,
       duration: 5000,
     })
   } finally { guardandoOrden.value = false }
@@ -740,13 +739,13 @@ async function guardarOrden () {
 
 async function restablecerOrden () {
   try {
-    await api.delete('/facturacion/orden')
+    await facturacionService.restablecerOrden()
     ordenTocado.value = false
     await load()
     toast.success('Orden restablecido', { description: 'Vuelve a ordenarse por valor.', duration: 3000 })
   } catch (e) {
     toast.error('No se pudo restablecer', {
-      description: e?.response?.data?.detail || e.message,
+      description: e?.data?.detail || e.message,
       duration: 5000,
     })
   }
@@ -782,7 +781,7 @@ async function confirmarNumero () {
   const yaEmitida = f.emitida
   numModal.saving = true
   try {
-    await api.put('/facturacion/emitida', { nombre: f.factura, periodo: per.value, emitida: true, numero_factura: num })
+    await facturacionService.marcarEmitida({ nombre: f.factura, periodo: per.value, emitida: true, numero_factura: num })
     f.emitida = true
     f.numero_factura = num
     if (!yaEmitida) res.value = { ...res.value, emitidas: (res.value.emitidas || 0) + 1 }
@@ -792,7 +791,7 @@ async function confirmarNumero () {
       duration: 2500,
     })
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e?.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('No se pudo guardar', { description: e?.data?.detail || e.message, duration: 5000 })
   } finally { numModal.saving = false }
 }
 
@@ -800,12 +799,12 @@ async function desmarcarEmitida (f) {
   f.emitida = false
   const num = f.numero_factura; f.numero_factura = null
   try {
-    await api.put('/facturacion/emitida', { nombre: f.factura, periodo: per.value, emitida: false })
+    await facturacionService.marcarEmitida({ nombre: f.factura, periodo: per.value, emitida: false })
     res.value = { ...res.value, emitidas: Math.max(0, (res.value.emitidas || 0) - 1) }
   } catch (e) {
     f.emitida = true; f.numero_factura = num                 // revertir si el backend falló
     toast.error('No se pudo desmarcar', {
-      description: e?.response?.data?.detail || e.message,
+      description: e?.data?.detail || e.message,
       duration: 5000,
     })
   }
@@ -818,7 +817,7 @@ async function toggleDias (contrato) {
   if (dias[contrato] && dias[contrato] !== 'loading') return   // ya cargado
   dias[contrato] = 'loading'
   try {
-    const { data } = await api.get('/facturacion/despacho/dias', { params: { periodo: per.value, contrato } })
+    const data = await facturacionService.obtenerDespachoDias({ periodo: per.value, contrato })
     dias[contrato] = data.dias || []
   } catch {
     dias[contrato] = []
@@ -960,35 +959,35 @@ async function copiarImagen (f) {
 
 async function quitarAsignacion (contrato) {
   try {
-    await api.put('/facturacion/agrupaciones', [{ codigo_sic_contrato: contrato, nombre: '' }])
+    await facturacionService.guardarAgrupaciones([{ codigo_sic_contrato: contrato, nombre: '' }])
     await load()
   } catch (e) {
-    toast.error('No se pudo quitar', { description: e?.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('No se pudo quitar', { description: e?.data?.detail || e.message, duration: 5000 })
   }
 }
 
 async function guardarIpp () {
   guardandoIpp.value = true
   try {
-    await api.put('/ppa/ipp/mensual', [{ año: añoMes.value.a, mes: añoMes.value.m, valor: Number(ippInput.value) }])
+    await facturacionService.guardarIppMensual([{ año: añoMes.value.a, mes: añoMes.value.m, valor: Number(ippInput.value) }])
     toast.success('IPP guardado', {
       description: `${formatPeriodo(props.periodo)} = ${ippInput.value}`,
       duration: 3500,
     })
     await load()
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e?.response?.data?.detail || e.message, duration: 6000 })
+    toast.error('No se pudo guardar', { description: e?.data?.detail || e.message, duration: 6000 })
   } finally { guardandoIpp.value = false }
 }
 
 async function guardarBolsa () {
   guardandoBolsa.value = true
   try {
-    await api.put('/facturacion/bolsa', { periodo: per.value, valor: bolsaInput.value ? Number(bolsaInput.value) : null })
+    await facturacionService.guardarBolsa(per.value, bolsaInput.value ? Number(bolsaInput.value) : null)
     toast.success('Precio de bolsa guardado', { duration: 3000 })
     await load()
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e?.response?.data?.detail || e.message, duration: 6000 })
+    toast.error('No se pudo guardar', { description: e?.data?.detail || e.message, duration: 6000 })
   } finally { guardandoBolsa.value = false }
 }
 

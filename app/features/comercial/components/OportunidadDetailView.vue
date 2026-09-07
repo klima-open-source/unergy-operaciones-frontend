@@ -210,7 +210,9 @@ import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ComercialService } from '~/features/comercial/services/comercial'
+import { ClientesService } from '~/features/clientes/services/clientes'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import ClienteForm from '~/features/clientes/components/ClienteForm.vue'
 import ContactosPanel from '~/components/blocks/ContactosPanel.vue'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
@@ -221,6 +223,9 @@ import { ETAPAS, severidadEtapa, aFecha, aFechaStr } from './comercial.js'
 import { ArrowLeftIcon, PlusIcon } from '@lucide/vue'
 
 const route = useRoute()
+const comercialService = new ComercialService()
+const clientesService = new ClientesService()
+const contratosServicioService = new ContratosServicioService()
 
 const TIPOS_DOC = [
   { label: 'Oferta', value: 'oferta' },
@@ -251,7 +256,7 @@ const etapasPresentes = computed(() => ETAPAS
 function docPorTipo(tipo) { return (op.value?.documentos ?? []).find((d) => d.tipo === tipo) }
 
 async function recargar() {
-  const { data } = await api.get(`/comercial/oportunidades/${route.params.id}`)
+  const data = await comercialService.obtenerOportunidad(route.params.id)
   op.value = data
   seg.value = {
     nombre: data.nombre === data.cliente_razon_social ? '' : data.nombre,
@@ -264,20 +269,18 @@ async function recargar() {
 }
 
 async function cargarCliente() {
-  const { data } = await api.get(`/clientes/${op.value.cliente_id}`)
-  clienteFull.value = data
+  clienteFull.value = await clientesService.obtener(op.value.cliente_id)
 }
 
 async function recargarContratos() {
   showRepWizard.value = false
   const cid = op.value.cliente_id
-  const [{ data: ppa }, { data: rep }] = await Promise.all([
-    api.get(`/clientes/${cid}/contratos-ppa`),
-    api.get('/contratos-servicio', { params: { tipo: 'representacion' } }),
+  const [ppa, rep] = await Promise.all([
+    clientesService.listarContratosPpa(cid),
+    contratosServicioService.listar({ tipo: 'representacion' }),
   ])
-  contratosPpaFilas.value = ppa.items ?? ppa
-  const repArr = rep.items ?? rep
-  contratosRepFilas.value = repArr.filter((c) => c.contratante_id === cid || c.prestador_id === cid)
+  contratosPpaFilas.value = ppa
+  contratosRepFilas.value = rep.filter((c) => c.contratante_id === cid || c.prestador_id === cid)
 }
 
 function autosave() {
@@ -285,9 +288,7 @@ function autosave() {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(async () => {
     try {
-      // `tipo_servicio` NO se envía: era el campo que respondía 422 y quedó
-      // vestigial cuando la etapa se mudó a la oferta.
-      await api.patch(`/comercial/oportunidades/${op.value.id}`, {
+      await comercialService.actualizarOportunidad(op.value.id, {
         nombre: seg.value.nombre || null,
         numero_oferta: seg.value.numero_oferta || null,
         fecha_estimada_firma: aFechaStr(seg.value.fecha_estimada_firma),
@@ -297,33 +298,38 @@ function autosave() {
       })
       estadoGuardado.value = 'Guardado ✓'
     } catch (err) {
-      estadoGuardado.value = `No se guardó: ${err.response?.data?.detail ?? 'error'}`
+      estadoGuardado.value = `No se guardó: ${err.data?.detail ?? 'error'}`
     }
   }, 800)
 }
 
 async function patchCliente(payload) {
   try {
-    await api.patch(`/clientes/${op.value.cliente_id}`, payload)
+    await clientesService.actualizar(op.value.cliente_id, payload)
     toast.success('Cliente actualizado', { duration: 2500 })
     await cargarCliente()
   } catch (err) {
-    toast.error('Error al guardar cliente', { description: err.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('Error al guardar cliente', { description: err.data?.detail ?? '', duration: 5000 })
   }
 }
 
 async function crearDoc(tipo, label) {
   try {
-    await api.post(`/clientes/${op.value.cliente_id}/documentos`, {
+    await clientesService.crearDocumento(op.value.cliente_id, {
       tipo,
       nombre: label,
       numero: tipo === 'oferta' ? (seg.value.numero_oferta || op.value.numero_oferta || null) : null,
+      fecha: null,
+      estado: 'aceptado',
+      archivo_url: null,
+      archivo_nombre: null,
+      notas: null,
       oportunidad_id: op.value.id,
     })
     await recargar()
   } catch (err) {
     toast.error('No se pudo registrar el documento', {
-      description: err.response?.data?.detail ?? '',
+      description: err.data?.detail ?? '',
       duration: 5000,
     })
   }

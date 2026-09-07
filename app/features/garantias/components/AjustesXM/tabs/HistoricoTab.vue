@@ -136,6 +136,7 @@ import {
   CategoryScale, LinearScale, PointElement,
   LineElement, Title, Tooltip, Legend, Filler,
 } from 'chart.js'
+import { logger } from '~/core/logger'
 import { useGarantiasHistorial } from '../composables/useGarantiasHistorial.js'
 import { fmtCOP } from '../utils/formatters.js'
 import { exportHistorialExcel } from '../utils/excelExport.js'
@@ -165,7 +166,7 @@ function abrirEditar(ajuste) {
 /* ------------------ Helpers ------------------ */
 // Envuelve cálculos de render para que un dato inesperado nunca cuelgue la vista.
 function safe(fn, fallback) {
-  try { return fn() } catch (e) { console.error('[historico] error de render:', e); return fallback }
+  try { return fn() } catch (e) { logger.error('garantias', e); return fallback }
 }
 
 function tipoBadge(tipo) {

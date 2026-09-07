@@ -173,8 +173,11 @@ import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Divider from 'primevue/divider'
-import api from '~/core/client'
+import { AlertasService } from '~/features/alertas/services/alertas'
+import { logger } from '~/core/logger'
 import { ArrowLeftIcon, CircleCheckIcon, CopyIcon, ExternalLinkIcon, UserMinusIcon, ZapIcon } from '@lucide/vue'
+
+const alertasService = new AlertasService()
 
 const loading = ref(true)
 const fechaConsulta = ref('')
@@ -194,13 +197,13 @@ function tipoSev(t) {
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/alertas/contratos-ppa')
+    const data = await alertasService.obtenerContratosPpa()
     fechaConsulta.value = data.fecha_consulta
     huerfanos.value = data.huerfanos
     duplicados.value = data.duplicados
     huerfanosTabla.value = data.huerfanos
   } catch (e) {
-    console.error('Error cargando alertas:', e)
+    logger.error('alertas', e)
   } finally {
     loading.value = false
   }

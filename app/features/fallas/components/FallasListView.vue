@@ -105,15 +105,6 @@
           </template>
         </Column>
 
-        <Column header="Asignado a" style="min-width: 120px;">
-          <template #body="{ data }">
-            <span v-if="data.asignado_a" class="text-[11px]" style="color: #6b5a8a;">
-              {{ data.asignado_a.nombre }}
-            </span>
-            <span v-else class="text-[11px] italic" style="color: #c5b9db;">Sin asignar</span>
-          </template>
-        </Column>
-
         <Column style="width: 60px;">
           <template #body="{ data }">
             <Button text rounded severity="secondary" size="small" @click.stop="goToDetail({ data })">
@@ -145,8 +136,12 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Select from 'primevue/select'
 import FallaForm from './FallaForm.vue'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ChevronRightIcon, PlusIcon, SearchIcon, XIcon } from '@lucide/vue'
+
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
 
 const route = useRoute()
 const router = useRouter()
@@ -181,13 +176,13 @@ watch(filters, (f) => {
 }, { deep: true })
 
 function slaAtRisk(data) {
-  if (!data.sla_limite_horas || data.sla_cumplido !== null) return false
+  if (!data.sla_limite_horas_efectivo || data.sla_cumplido !== null) return false
   if (!data.fecha_identificacion) return false
   const created = new Date(data.fecha_identificacion + 'T00:00:00')
-  const deadline = new Date(created.getTime() + data.sla_limite_horas * 3600000)
+  const deadline = new Date(created.getTime() + data.sla_limite_horas_efectivo * 3600000)
   const now = new Date()
   const remaining = (deadline - now) / 3600000
-  return remaining > 0 && remaining < data.sla_limite_horas * 0.25
+  return remaining > 0 && remaining < data.sla_limite_horas_efectivo * 0.25
 }
 
 let debounceTimer = null
@@ -211,8 +206,7 @@ function formatDate(d) {
 
 async function loadCatalogos() {
   try {
-    const { data } = await api.get('/fallas/catalogos')
-    catalogos.value = data
+    catalogos.value = await fallasService.obtenerCatalogos()
   } catch {
     // Keep empty defaults
   }
@@ -226,7 +220,7 @@ async function load() {
     if (filters.value.estado_id) params.estado_id = filters.value.estado_id
     if (filters.value.prioridad_id) params.prioridad_id = filters.value.prioridad_id
     if (filters.value.proyecto_id) params.proyecto_id = filters.value.proyecto_id
-    const { data } = await api.get('/fallas', { params })
+    const data = await fallasService.listar(params)
     items.value = data.items
     total.value = data.total
   } catch {
@@ -260,16 +254,16 @@ async function onCreate(payload) {
   try {
     const notaInicial = payload.nota_inicial
     delete payload.nota_inicial
-    const { data: nueva } = await api.post('/fallas', payload)
+    const nueva = await fallasService.crear(payload)
     if (notaInicial) {
-      await api.post(`/fallas/${nueva.id}/seguimientos`, { nota: notaInicial })
+      await fallasService.crearSeguimiento(nueva.id, { nota: notaInicial })
     }
     dialogVisible.value = false
     toast.success('Falla registrada', { duration: 3000 })
     page.value = 1
     load()
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al registrar la falla'
+    const msg = err?.data?.detail ?? 'Error al registrar la falla'
     toast.error('Error', { description: msg, duration: 4000 })
   } finally {
     saving.value = false
@@ -278,8 +272,7 @@ async function onCreate(payload) {
 
 async function loadProyectos() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    proyectos.value = data.items ?? []
+    proyectos.value = await proyectosService.listar({ size: 500 })
   } catch {
     // non-critical
   }

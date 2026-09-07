@@ -13,7 +13,7 @@
  * de la app (`access.ts`, `auth.global.ts`, `~/config/permissions`) ya trabaja
  * sobre `User`/`Permission` y no se entera.
  */
-import type { RespuestaToken } from '~/features/auth/services/legacy-auth'
+import type { RespuestaToken } from '~/features/auth/services/operaciones-auth'
 import type { Permission } from '~/config/permissions'
 import type { User } from '~/types/user'
 import { ROLE_PERMISSIONS } from '~/config/permissions'
@@ -28,7 +28,7 @@ import {
   setStoredUser,
 } from '~/core/security'
 import { hasPermission } from '~/core/permissions'
-import { LegacyAuthService } from '~/features/auth/services/legacy-auth'
+import { OperacionesAuthService } from '~/features/auth/services/operaciones-auth'
 
 export interface AuthState {
   user: User | null
@@ -108,13 +108,16 @@ export function useAuth() {
   }
 
   async function signIn(credentials: { email: string; password: string }): Promise<void> {
-    const token = await new LegacyAuthService().login(credentials.email, credentials.password)
+    const token = await new OperacionesAuthService().login(credentials.email, credentials.password)
     aplicarToken(token)
   }
 
   /** Login de la app móvil: mismo usuario, token de larga duración (30 días). */
   async function signInMobile(credentials: { email: string; password: string }): Promise<void> {
-    const token = await new LegacyAuthService().loginMovil(credentials.email, credentials.password)
+    const token = await new OperacionesAuthService().loginMovil(
+      credentials.email,
+      credentials.password,
+    )
     aplicarToken(token)
   }
 

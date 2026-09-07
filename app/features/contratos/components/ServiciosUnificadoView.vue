@@ -617,12 +617,20 @@ import Select from 'primevue/select'
 import Menu from 'primevue/menu'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
-import api from '~/core/client'
+import { ClientesService } from '~/features/clientes/services/clientes'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
 import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+
+const clientesService = new ClientesService()
+const proyectosService = new ProyectosService()
+const ppaService = new PpaService()
+const contratosServicioService = new ContratosServicioService()
 
 // Los formularios y wizards pesan; sólo se descargan cuando alguien crea algo.
 const ClienteForm = defineAsyncComponent(() => import('~/features/clientes/components/ClienteForm.vue'))
@@ -847,8 +855,11 @@ const DERIVADOS = {
         'fecha_fin_efectiva', 'comprador', 'vendedor'],
   // `proyecto` es el objeto que el backend arma a partir de proyecto_id: el
   // campo por llenar es el id, y contarlos los dos inflaría el pendiente.
-  contrato: ['contratante', 'prestador', 'proyecto', 'facturas_solenium',
-             'facturas_inversionistas', 'indexacion_anual', 'indexacion_mensual',
+  // facturas_solenium/facturas_inversionistas salieron de la lista: el backend
+  // dejo de exponerlas cuando esos JSONB se reemplazaron por la tabla
+  // contrato_factura (2026-08-30), asi que ya no hay nada que excluir.
+  contrato: ['contratante', 'prestador', 'proyecto',
+             'indexacion_anual', 'indexacion_mensual',
              'nombre_proyecto_ref'],
 }
 
@@ -916,9 +927,18 @@ function totalCampos(fila) {
   return camposDe(fila).length
 }
 
+// `rut_url` era la columna vieja (eliminada, migracion 122): el RUT ahora
+// vive como un documento tipo='rut' dentro de documentos_comerciales.
+function valorDoc(fila, clave) {
+  if (clave === 'rut_url') {
+    return (fila?.documentos_comerciales || []).filter(d => d.tipo === 'rut')
+  }
+  return fila?.[clave]
+}
+
 function faltanDocs(fila) {
   const lista = DOCS[claveRequeridos.value] || []
-  return lista.filter(([k]) => estaVacio(fila?.[k])).map(([, et]) => et)
+  return lista.filter(([k]) => estaVacio(valorDoc(fila, k))).map(([, et]) => et)
 }
 
 function tipFalta(fila, tipo) {
@@ -965,17 +985,17 @@ async function cargarClientes() {
     // Dos fuentes, fusionadas por id:
     //  - /clientes/vista-comercial trae lo derivado (num_plantas, servicios,
     //    contacto comercial, alerta de contrato) pero NO las columnas crudas.
-    //  - /clientes trae la ficha (direccion, ciudad, banco, rut_url...), que es
+    //  - /clientes trae la ficha (direccion, ciudad, iva_pct...), que es
     //    lo que necesita el contador de campos faltantes.
     // Sin la segunda, el indicador solo podria mirar 8 campos y mentiria.
     const [vista, ficha] = await Promise.all([
-      api.get('/clientes/vista-comercial'),
+      clientesService.listarVistaComercial(),
       // size tope 500 en el backend: pedir mas devuelve 422, no una lista corta.
-      api.get('/clientes', { params: { page: 1, size: TOPE_PAGINA } }),
+      clientesService.listarPaginado({ page: 1, size: TOPE_PAGINA }),
     ])
-    const porId = new Map((ficha.data.items ?? ficha.data ?? []).map(c => [c.id, c]))
-    clientes.value = vista.data.map(c => ({ ...(porId.get(c.id) || {}), ...c }))
-    avisarSiTrunca(ficha.data.total, porId.size, 'clientes')
+    const porId = new Map((ficha.items ?? []).map(c => [c.id, c]))
+    clientes.value = vista.map(c => ({ ...(porId.get(c.id) || {}), ...c }))
+    avisarSiTrunca(ficha.total, porId.size, 'clientes')
     clientesCargados.value = true
   } catch (e) {
     toast.error('Error al cargar clientes', { description: e.message, duration: 4000 })
@@ -1023,8 +1043,8 @@ const proyectosFiltrados = computed(() => {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const { data } = await api.get('/proyectos', { params: { page: 1, size: TOPE_PAGINA } })
-    proyectos.value = data.items ?? data
+    const data = await proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA })
+    proyectos.value = data.items ?? []
     avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
     proyectosCargados.value = true
   } catch (e) {
@@ -1055,8 +1075,7 @@ const ppaFiltrados = computed(() => {
 async function cargarPpa() {
   loadingPpa.value = true
   try {
-    const { data } = await api.get('/ppa')
-    ppa.value = data
+    ppa.value = await ppaService.listar()
     ppaCargados.value = true
   } catch (e) {
     toast.error('Error al cargar contratos PPA', { description: e.message, duration: 4000 })
@@ -1099,8 +1118,7 @@ const idsDuplicados = computed(() => new Set([
 async function cargarDuplicados() {
   if (!esRepresentacion.value) return
   try {
-    const { data } = await api.get('/contratos-servicio/duplicados-representacion')
-    duplicados.value = data
+    duplicados.value = await contratosServicioService.buscarDuplicadosRepresentacion()
   } catch { /* el aviso es un extra: la tabla funciona sin él */ }
 }
 
@@ -1121,8 +1139,7 @@ function confirmarFusion() {
 async function fusionarDuplicados() {
   fusionando.value = true
   try {
-    // Sin `ids`: fusiona todos los grupos limpios de una vez.
-    const { data } = await api.post('/contratos-servicio/fusionar-representacion', {})
+    const data = await contratosServicioService.fusionarRepresentacion()
     toast.success('Duplicados fusionados', {
       description: `${data.grupos_fusionados} contrato(s) consolidado(s), `
                       + `${data.contratos_eliminados} registro(s) eliminado(s)`,
@@ -1132,7 +1149,7 @@ async function fusionarDuplicados() {
     await cargarContratosServicio(servicio.value)
     await cargarDuplicados()
   } catch (e) {
-    toast.error('No se pudo fusionar', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('No se pudo fusionar', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     fusionando.value = false
   }
@@ -1166,8 +1183,8 @@ async function cargarContratosServicio(servicioKey) {
   loadingServicio.value = true
   try {
     const respuestas = await Promise.all(tipos.map(
-      t => api.get('/contratos-servicio', { params: { tipo: t, limit: 500 } })))
-    contratosServicio.value = respuestas.flatMap(r => r.data)
+      t => contratosServicioService.listar({ tipo: t, limit: 500 })))
+    contratosServicio.value = respuestas.flat()
     servicioCargado.value = servicioKey
     soloHuerfanos.value = false
     soloDuplicados.value = false
@@ -1225,7 +1242,7 @@ function sugerirProyecto(contrato) {
 async function guardarProyectoContrato() {
   guardandoProyecto.value = true
   try {
-    const { data } = await api.patch(`/contratos-servicio/${contratoAAsociar.value.id}`,
+    const data = await contratosServicioService.actualizar(contratoAAsociar.value.id,
                                      { proyecto_id: proyectoElegido.value })
     // Se reemplaza la fila con lo que devolvió el backend (trae ya el objeto
     // `proyecto` anidado) en vez de recargar los 112 contratos.
@@ -1381,12 +1398,12 @@ const dialogCliente = ref(false)
 
 async function crearCliente(payload) {
   try {
-    const { data } = await api.post('/clientes', payload)
+    const cliente = await clientesService.crear(payload)
     toast.success('Cliente creado', { duration: 3000 })
     dialogCliente.value = false
-    router.push(`/clientes/${data.id}`)
+    router.push(`/clientes/${cliente.id}`)
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail, duration: 4000 })
   }
 }
 
@@ -1399,12 +1416,12 @@ function confirmarBorrarCliente(row) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/clientes/${row.id}`)
+        await clientesService.eliminar(row.id)
         clientes.value = clientes.value.filter(c => c.id !== row.id)
         toast.success('Cliente eliminado', { duration: 2500 })
       } catch (e) {
         toast.error('No se pudo eliminar', {
-          description: e.response?.data?.detail || 'Error al eliminar',
+          description: e.data?.detail || 'Error al eliminar',
           duration: 5000,
         })
       }
@@ -1435,12 +1452,12 @@ function confirmarBorrarContratoServicio(row) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/contratos-servicio/${row.id}`)
+        await contratosServicioService.eliminar(row.id)
         contratosServicio.value = contratosServicio.value.filter(c => c.id !== row.id)
         toast.success('Contrato eliminado', { duration: 2500 })
       } catch (e) {
         toast.error('No se pudo eliminar', {
-          description: e.response?.data?.detail || 'Error al eliminar',
+          description: e.data?.detail || 'Error al eliminar',
           duration: 5000,
         })
       }
@@ -1463,10 +1480,10 @@ async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
     && infoTecnica.cantidad_total_paneles == null
   if (vacia) return
   try {
-    await api.put(`/proyectos/${proyectoId}/info-tecnica`, infoTecnica)
+    await proyectosService.guardarInfoTecnica(proyectoId, infoTecnica)
   } catch (e) {
     toast.warning('Proyecto creado, pero la ficha técnica no se pudo guardar', {
-      description: e.response?.data?.detail,
+      description: e.data?.detail,
       duration: 5000,
     })
   }
@@ -1474,16 +1491,16 @@ async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
 
 async function crearProyecto(payload, infoTecnica) {
   try {
-    const { data } = await api.post('/proyectos', payload)
-    await guardarInfoTecnicaSiAplica(data.id, infoTecnica)
+    const proyecto = await proyectosService.crear(payload)
+    await guardarInfoTecnicaSiAplica(proyecto.id, infoTecnica)
     toast.success('Proyecto creado', { duration: 3000 })
     dialogProyecto.value = false
     cargarProyectos()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     // 409 estructurado = "hay un nombre parecido"; se puede confirmar y crear
     // igual. Distinto de un choque real de columna única (detail es string).
-    if (e.response?.status === 409 && detail?.duplicado_nombre) {
+    if (e.status === 409 && detail?.duplicado_nombre) {
       duplicadoInfo.value = detail
       pendingPayload.value = payload
       pendingInfoTecnica.value = infoTecnica
@@ -1500,14 +1517,14 @@ async function crearProyecto(payload, infoTecnica) {
 async function crearProyectoForzado() {
   forzando.value = true
   try {
-    const { data } = await api.post('/proyectos', pendingPayload.value, { params: { forzar: true } })
-    await guardarInfoTecnicaSiAplica(data.id, pendingInfoTecnica.value)
+    const proyecto = await proyectosService.crear(pendingPayload.value, true)
+    await guardarInfoTecnicaSiAplica(proyecto.id, pendingInfoTecnica.value)
     toast.success('Proyecto creado', { duration: 3000 })
     duplicadoVisible.value = false
     dialogProyecto.value = false
     cargarProyectos()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     toast.error('Error', {
       description: typeof detail === 'string' ? detail : 'Error al guardar',
       duration: 4000,
@@ -1526,12 +1543,12 @@ function confirmarBorrarProyecto(row) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/proyectos/${row.id}`)
+        await proyectosService.eliminar(row.id)
         proyectos.value = proyectos.value.filter(p => p.id !== row.id)
         toast.success('Proyecto eliminado', { duration: 2500 })
       } catch (e) {
         toast.error('No se pudo eliminar', {
-          description: e.response?.data?.detail || 'Error al eliminar',
+          description: e.data?.detail || 'Error al eliminar',
           duration: 5000,
         })
       }
@@ -1582,12 +1599,12 @@ function confirmarBorrarPpa(contrato) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/ppa/${contrato.id}`)
+        await ppaService.eliminar(contrato.id)
         ppa.value = ppa.value.filter(c => c.id !== contrato.id)
         toast.success('Contrato eliminado', { duration: 2500 })
       } catch (e) {
         toast.error('No se puede eliminar', {
-          description: e.response?.data?.detail || 'Error al eliminar el contrato.',
+          description: e.data?.detail || 'Error al eliminar el contrato.',
           duration: 6000,
         })
       }

@@ -256,14 +256,10 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="max-w-xs">
             <div class="flex flex-col gap-1">
               <label class="field-label">Índice de indexación</label>
               <InputText v-model="form.indice_indexacion" placeholder="Ej: IPC, IPP" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Cánones / otros (COP)</label>
-              <InputNumber v-model="form.canones_otros" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
             </div>
           </div>
 
@@ -401,9 +397,9 @@
         </Dialog>
       </template>
 
-      <!-- PASO 3: CGM y Promotor (solo REPRESENTACIÓN) -->
+      <!-- PASO 3: CGM (solo REPRESENTACIÓN) -->
       <template v-if="step === 3 && tipo === 'representacion'">
-        <p class="step-title">CGM y Promotor <span class="normal-case font-normal text-gray-400">(opcional)</span></p>
+        <p class="step-title">CGM <span class="normal-case font-normal text-gray-400">(opcional)</span></p>
         <div class="space-y-4">
           <!-- CGM -->
           <div class="rounded-lg border border-gray-200 p-4 space-y-3">
@@ -413,39 +409,10 @@
               <span class="text-xs text-gray-400">(Comercializador Generador Minorista)</span>
             </div>
             <template v-if="form.tiene_cgm">
-              <div class="grid grid-cols-3 gap-4 pt-1">
+              <div class="pt-1 max-w-xs">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Código SIC</label>
                   <InputText v-model="form.cgm_codigo_sic" placeholder="Ej: CGM-001" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">% FNCER</label>
-                  <InputNumber v-model="form.cgm_porcentaje_fncer" suffix="%" :minFractionDigits="1" :maxFractionDigits="2" locale="en-US" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Tipo de asignación</label>
-                  <InputText v-model="form.cgm_tipo_asignacion" placeholder="Ej: Proporcional" class="w-full" />
-                </div>
-              </div>
-            </template>
-          </div>
-
-          <!-- Promotor -->
-          <div class="rounded-lg border border-gray-200 p-4 space-y-3">
-            <div class="flex items-center gap-3">
-              <ToggleSwitch v-model="form.tiene_promotor" />
-              <span class="text-sm font-semibold text-gray-700">Incluye Promotor</span>
-            </div>
-            <template v-if="form.tiene_promotor">
-              <div class="grid grid-cols-2 gap-4 pt-1">
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Tarifa promotor (COP/kWh)</label>
-                  <InputNumber v-model="form.promotor_tarifa" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Condiciones</label>
-                  <Textarea v-model="form.promotor_condiciones" rows="3" autoResize class="w-full"
-                    placeholder="Describe las condiciones del promotor…" />
                 </div>
               </div>
             </template>
@@ -499,12 +466,19 @@ import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
 import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
-import api from '~/core/client'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { ClientesService } from '~/features/clientes/services/clientes'
+import { formatCOP } from '~/utils/currency'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, LinkIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
+
+const contratosServicioService = new ContratosServicioService()
+const proyectosService = new ProyectosService()
+const clientesService = new ClientesService()
 
 const props = defineProps({
   visible: Boolean,
-  tipo: { type: String, required: true }, // representacion | operacion | rec
+  tipo: { type: String, required: true }, // representacion | mantenimiento | arriendo | internet | rec
   proyectoIdDefault: { type: Number, default: null },
 })
 const emit = defineEmits(['update:visible', 'cerrar', 'creado'])
@@ -520,7 +494,6 @@ const nuevoClienteRol = ref('contratante')
 
 const TIPO_CONFIG = {
   representacion: { label: 'Representación', color: '#3b82f6' },
-  operacion:      { label: 'Operación',       color: '#10b981' },
   rec:            { label: 'REC',             color: '#14b8a6' },
   mantenimiento:  { label: 'Mantenimiento',   color: '#f59e0b' },
   arriendo:       { label: 'Arriendo',        color: '#8b5cf6' },
@@ -537,7 +510,7 @@ const STEPS = computed(() => {
     { label: 'Partes' },
     { label: 'Términos' },
   ]
-  if (props.tipo === 'representacion') return [...base, { label: 'CGM y Promotor' }]
+  if (props.tipo === 'representacion') return [...base, { label: 'CGM' }]
   if (props.tipo === 'arriendo') return [...base, { label: 'Arrendadores' }]
   return base
 })
@@ -571,17 +544,11 @@ const form = reactive({
   tarifa_base: null,
   periodicidad_pago: null,
   indice_indexacion: '',
-  canones_otros: null,
   fecha_firma_contrato: null,
   enlace_drive: '',
   estado_pago: null,
   tiene_cgm: false,
   cgm_codigo_sic: '',
-  cgm_porcentaje_fncer: null,
-  cgm_tipo_asignacion: '',
-  tiene_promotor: false,
-  promotor_tarifa: null,
-  promotor_condiciones: '',
   rec_cantidad: null,
   rec_precio_unitario: null,
   rec_vintage: '',
@@ -746,16 +713,10 @@ const arrendadorDialog = reactive({
   },
 })
 
-function formatCOP(v) {
-  if (v == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-
 async function cargarArrendadoresWizard() {
   if (!contratoIdCreado.value) { arrendadores.value = []; return }
   try {
-    const { data } = await api.get(`/arriendos/contratos/${contratoIdCreado.value}/arrendadores`)
-    arrendadores.value = data || []
+    arrendadores.value = await contratosServicioService.listarArrendadores(contratoIdCreado.value)
   } catch {
     arrendadores.value = []
   }
@@ -793,15 +754,15 @@ async function guardarArrendadorWizard() {
       observaciones: arrendadorDialog.form.observaciones?.trim() || null,
     }
     if (arrendadorDialog.modo === 'editar' && arrendadorDialog.editId) {
-      await api.put(`/arriendos/arrendadores/${arrendadorDialog.editId}`, payload)
+      await contratosServicioService.actualizarArrendador(arrendadorDialog.editId, payload)
     } else {
-      await api.post(`/arriendos/contratos/${contratoIdCreado.value}/arrendadores`, payload)
+      await contratosServicioService.crearArrendador(contratoIdCreado.value, payload)
     }
     arrendadorDialog.visible = false
     await cargarArrendadoresWizard()
     toast.success('Arrendador guardado', { duration: 2500 })
   } catch (e) {
-    toast.error('Error al guardar arrendador', { description: e.response?.data?.detail, duration: 3500 })
+    toast.error('Error al guardar arrendador', { description: e.data?.detail, duration: 3500 })
   } finally {
     arrendadorDialog.guardando = false
   }
@@ -810,10 +771,10 @@ async function guardarArrendadorWizard() {
 async function eliminarArrendadorWizard(arrendador) {
   if (!confirm(`¿Eliminar al arrendador "${arrendador.nombre}"?`)) return
   try {
-    await api.delete(`/arriendos/arrendadores/${arrendador.id}`)
+    await contratosServicioService.eliminarArrendador(arrendador.id)
     await cargarArrendadoresWizard()
   } catch (e) {
-    toast.error('Error al eliminar', { description: e.response?.data?.detail, duration: 3500 })
+    toast.error('Error al eliminar', { description: e.data?.detail, duration: 3500 })
   }
 }
 
@@ -837,14 +798,8 @@ async function crearContrato() {
       tarifa_base: form.tarifa_base ?? null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
-      canones_otros: form.canones_otros ?? null,
       tiene_cgm: form.tiene_cgm,
       cgm_codigo_sic: form.tiene_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
-      cgm_porcentaje_fncer: form.tiene_cgm ? (form.cgm_porcentaje_fncer ?? null) : null,
-      cgm_tipo_asignacion: form.tiene_cgm ? (form.cgm_tipo_asignacion?.trim() || null) : null,
-      tiene_promotor: form.tiene_promotor,
-      promotor_tarifa: form.tiene_promotor ? (form.promotor_tarifa ?? null) : null,
-      promotor_condiciones: form.tiene_promotor ? (form.promotor_condiciones?.trim() || null) : null,
       rec_cantidad: form.rec_cantidad ?? null,
       rec_precio_unitario: form.rec_precio_unitario ?? null,
       rec_vintage: form.rec_vintage?.trim() || null,
@@ -864,19 +819,18 @@ async function crearContrato() {
       ubicacion_lat: props.tipo === 'internet' ? (form.ubicacion_lat ?? null) : null,
       ubicacion_lng: props.tipo === 'internet' ? (form.ubicacion_lng ?? null) : null,
     }
-  const { data } = await api.post('/contratos-servicio', payload)
-  return data
+  return contratosServicioService.crear(payload)
 }
 
 async function guardar() {
   guardando.value = true
   try {
-    await crearContrato()
+    const data = await crearContrato()
     toast.success('Contrato creado', { duration: 2500 })
-    emit('creado')
+    emit('creado', data)
     emit('cerrar')
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail ?? e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail ?? e.message, duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -890,21 +844,21 @@ async function crearYContinuarArriendo() {
     toast.success('Contrato creado — agrega los arrendadores', { duration: 3000 })
     step.value++
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail ?? e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail ?? e.message, duration: 4000 })
   } finally {
     guardando.value = false
   }
 }
 
 function finalizarArriendo() {
-  emit('creado')
+  emit('creado', { id: contratoIdCreado.value })
   emit('cerrar')
 }
 
 onMounted(async () => {
-  const [{ data: proyectos }, { data: clientes }] = await Promise.all([
-    api.get('/proyectos', { params: { size: 500 } }),
-    api.get('/clientes', { params: { size: 500 } }),
+  const [proyectos, clientes] = await Promise.all([
+    proyectosService.listar({ size: 500 }),
+    clientesService.listar({ size: 500 }),
   ])
   todosProyectos.value = proyectos
   todosClientes.value = clientes

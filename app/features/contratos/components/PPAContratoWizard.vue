@@ -410,8 +410,13 @@ import AutoComplete from 'primevue/autocomplete'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
-import api from '~/core/client'
-import * as XLSX from 'xlsx'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { ClientesService } from '~/features/clientes/services/clientes'
+
+const ppaService = new PpaService()
+const proyectosService = new ProyectosService()
+const clientesService = new ClientesService()
 
 const props = defineProps({
   visible: Boolean,
@@ -639,7 +644,8 @@ function parseEnergia() {
 
 // Descarga la plantilla Excel (Año · Mes · Mín · Máx · Plantas contrato) precargada con los
 // compromisos actuales para editarla y volver a pegarla en el cuadro de texto.
-function descargarPlantillaEnergia() {
+async function descargarPlantillaEnergia() {
+  const XLSX = await import('xlsx')
   const header = ['Año', 'Mes', 'Mín (MWh)', 'Máx (MWh)', 'Plantas contrato']
   const filas = energiaRows.value.length
     ? energiaRows.value.map(r => [r.año, r.mes, r.energia_minima, r.energia_maxima, r.cantidad_proyectos])
@@ -686,21 +692,16 @@ async function guardar() {
     }
     payload.proyecto_ids = proyectosSeleccionados.value.map(p => p.id)
 
-    let contrato
-    if (props.editandoId) {
-      const { data } = await api.patch(`/ppa/${props.editandoId}`, payload)
-      contrato = data
-    } else {
-      const { data } = await api.post('/ppa', payload)
-      contrato = data
-    }
+    const contrato = props.editandoId
+      ? await ppaService.actualizar(props.editandoId, payload)
+      : await ppaService.crear(payload)
 
     const contratoId = contrato?.id ?? props.editandoId
     if (tarifasRows.value.length) {
-      await api.put(`/ppa/${contratoId}/tarifas`, tarifasRows.value)
+      await ppaService.guardarTarifas(contratoId, tarifasRows.value)
     }
     if (energiaRows.value.length) {
-      await api.put(`/ppa/${contratoId}/compromisos`, energiaRows.value)
+      await ppaService.guardarCompromisos(contratoId, energiaRows.value)
     }
 
     if (props.editandoId) {
@@ -717,7 +718,7 @@ async function guardar() {
     }
     emit('cerrar')
   } catch (e) {
-    toast.error('Error al guardar', { description: e.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('Error al guardar', { description: e.data?.detail || e.message, duration: 5000 })
   } finally {
     guardando.value = false
   }
@@ -725,18 +726,17 @@ async function guardar() {
 
 onMounted(async () => {
   try {
-    const [{ data: proy }, { data: clientes }] = await Promise.all([
-      api.get('/proyectos', { params: { size: 500 } }),
-      api.get('/clientes', { params: { size: 500 } }),
+    const [proyectos, clientes] = await Promise.all([
+      proyectosService.listar({ size: 500 }),
+      clientesService.listar({ size: 500 }),
     ])
-    todosProyectos.value = proy.items
-    todosClientes.value = clientes.items
+    todosProyectos.value = proyectos
+    todosClientes.value = clientes
   } catch { /* silencioso */ }
   // Aparte: el catálogo de responsables es opcional; si falla, el Select queda
   // vacío pero el wizard sigue sirviendo (no debe tumbar proyectos/clientes).
   try {
-    const { data } = await api.get('/ppa/responsables')
-    responsables.value = data
+    responsables.value = await ppaService.listarResponsables()
   } catch { /* silencioso */ }
 })
 </script>

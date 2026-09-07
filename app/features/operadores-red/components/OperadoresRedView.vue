@@ -107,8 +107,10 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
-import api from '~/core/client'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { EyeIcon, LoaderCircleIcon, PencilIcon, PlusIcon } from '@lucide/vue'
+
+const operadoresRedService = new OperadoresRedService()
 
 const operadores = ref([])
 const loading = ref(true)
@@ -116,8 +118,7 @@ const loading = ref(true)
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await api.get('/operadores-red')
-    operadores.value = data
+    operadores.value = await operadoresRedService.listar()
   } finally {
     loading.value = false
   }
@@ -156,12 +157,12 @@ async function _crearContactoSiAplica(operadorId) {
   const email = form.value.contacto_email?.trim()
   if (!email) return
   try {
-    await api.post(`/operadores-red/${operadorId}/contactos`, {
+    await operadoresRedService.crearContacto(operadorId, {
       email,
       nombre: form.value.contacto_nombre?.trim() || null,
     })
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     toast.warning('Operador creado, pero el contacto no se pudo agregar', {
       description: typeof detail === 'string' ? detail : 'Revísalo desde el detalle del operador',
       duration: 5000,
@@ -177,20 +178,20 @@ async function guardar() {
   }
   try {
     if (editingId.value) {
-      await api.patch(`/operadores-red/${editingId.value}`, body)
+      await operadoresRedService.actualizar(editingId.value, body)
       toast.success('Operador actualizado', { duration: 2000 })
     } else {
-      const { data } = await api.post('/operadores-red', body)
-      await _crearContactoSiAplica(data.id)
+      const nuevo = await operadoresRedService.crear(body)
+      await _crearContactoSiAplica(nuevo.id)
       toast.success('Operador creado', { duration: 2000 })
     }
     showForm.value = false
     await loadData()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
     // igual. Distinto de un choque real de nombre_legal exacto (detail es un string).
-    if (e.response?.status === 409 && detail?.duplicado_nombre) {
+    if (e.status === 409 && detail?.duplicado_nombre) {
       duplicadoInfo.value = detail
       pendingBody.value = body
       duplicadoVisible.value = true
@@ -208,14 +209,14 @@ async function guardar() {
 async function guardarForzado() {
   forzando.value = true
   try {
-    const { data } = await api.post('/operadores-red', pendingBody.value, { params: { forzar: true } })
-    await _crearContactoSiAplica(data.id)
+    const nuevo = await operadoresRedService.crear(pendingBody.value, true)
+    await _crearContactoSiAplica(nuevo.id)
     toast.success('Operador creado', { duration: 2000 })
     duplicadoVisible.value = false
     showForm.value = false
     await loadData()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     toast.error('Error', {
       description: typeof detail === 'string' ? detail : 'No se pudo crear',
       duration: 4000,

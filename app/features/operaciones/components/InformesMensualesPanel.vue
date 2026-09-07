@@ -187,12 +187,18 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { InformesService } from '~/features/operaciones/services/informes'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
+import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
 import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const router = useRouter()
+const informesService = new InformesService()
+const monitoreoLegacyService = new MonitoreoLegacyService()
+const fallasService = new FallasService()
 
 // ── Constantes ─────────────────────────────────────────────────────────
 const TIPOS = [
@@ -367,23 +373,23 @@ async function cargarCatalogos() {
   loadingCatalogos.value = true
   try {
     const [projRes, portRes, contRes, falRes] = await Promise.allSettled([
-      api.get('/monitoreo/_legacy', { params: { action: 'getProjects' } }),
-      api.get('/monitoreo/_legacy', { params: { action: 'getPortfolios' } }),
-      api.get('/monitoreo/_legacy', { params: { action: 'getAllContratos' } }),
+      monitoreoLegacyService.obtenerProyectos(),
+      monitoreoLegacyService.obtenerPortafolios(),
+      monitoreoLegacyService.obtenerTodosLosContratos(),
       cargarFallas(),
     ])
-    if (projRes.status === 'fulfilled' && projRes.value.data?.ok) {
-      proyectos.value = (projRes.value.data.projects || []).filter(p => p.sub_project)
+    if (projRes.status === 'fulfilled' && projRes.value?.projects) {
+      proyectos.value = (projRes.value.projects || []).filter(p => p.sub_project)
     }
-    if (portRes.status === 'fulfilled' && portRes.value.data?.ok) {
-      portafolios.value = portRes.value.data.portfolios || {}
+    if (portRes.status === 'fulfilled' && portRes.value?.portfolios) {
+      portafolios.value = portRes.value.portfolios || {}
     }
-    if (contRes.status === 'fulfilled' && contRes.value.data?.ok) {
-      contratosFmo.value = (contRes.value.data.contratos || []).filter(c => c.sub_project)
+    if (contRes.status === 'fulfilled' && contRes.value?.contratos) {
+      contratosFmo.value = (contRes.value.contratos || []).filter(c => c.sub_project)
     }
     catalogosListos.value = true
   } catch (e) {
-    error.value = { title: 'Error al cargar catálogos', detail: e.response?.data?.detail || e.message }
+    error.value = { title: 'Error al cargar catálogos', detail: e.data?.detail || e.message }
   } finally {
     loadingCatalogos.value = false
   }
@@ -391,18 +397,18 @@ async function cargarCatalogos() {
 
 async function cargarFallas() {
   try {
-    const { data: primera } = await api.get('/fallas', { params: { page: 1, size: 200 } })
+    const primera = await fallasService.listar({ page: 1, size: 200 })
     const total = primera.total ?? 0
     const items = [...(primera.items ?? [])]
     if (total > 200) {
       const totalPages = Math.ceil(total / 200)
       const restResults = await Promise.allSettled(
         Array.from({ length: totalPages - 1 }, (_, i) =>
-          api.get('/fallas', { params: { page: i + 2, size: 200 } })
+          fallasService.listar({ page: i + 2, size: 200 })
         )
       )
       for (const r of restResults) {
-        if (r.status === 'fulfilled') items.push(...(r.value.data.items ?? []))
+        if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
       }
     }
     fallas.value = items
@@ -1432,9 +1438,7 @@ async function generar() {
       const cfg = proyectos.value.find(p => p.sub_project === sp)
       if (!cfg) throw new Error('Proyecto no encontrado')
       ultimoSubProject.value = sp
-      const { data: r } = await api.get('/monitoreo/_legacy', {
-        params: { action: 'getGeneration', sub_project: sp, date_from: range.from, date_to: range.to },
-      })
+      const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: sp, date_from: range.from, date_to: range.to })
       const mf = getFaultsForRange(cfg, range)
       htmlContent.value = buildProjectPage(cfg, r || {}, mf, range, 1, 1)
       resultTitle.value = cfg.nombre_display || cfg.nombre_clientes || cfg.nombre_comercial || sp
@@ -1445,11 +1449,11 @@ async function generar() {
       ultimoSubProject.value = sp
       loadingMsg.value = 'Consultando generación e inversores…'
       const [genRes, fmoRes] = await Promise.allSettled([
-        api.get('/monitoreo/_legacy', { params: { action: 'getGeneration', sub_project: sp, date_from: range.from, date_to: range.to } }),
-        api.get('/monitoreo/_legacy', { params: { action: 'getFMOData', sub_project: sp, date_from: range.from, date_to: range.to } }),
+        monitoreoLegacyService.obtenerGeneracion({ sub_project: sp, date_from: range.from, date_to: range.to }),
+        monitoreoLegacyService.obtenerDatosFmo({ sub_project: sp, date_from: range.from, date_to: range.to }),
       ])
-      const r = genRes.status === 'fulfilled' ? genRes.value.data : { ok: true, data: [] }
-      const fmoData = fmoRes.status === 'fulfilled' ? fmoRes.value.data : {}
+      const r = genRes.status === 'fulfilled' ? genRes.value : { ok: true, data: [] }
+      const fmoData = fmoRes.status === 'fulfilled' ? fmoRes.value : {}
       const mf = getFaultsForRange(cfg, range)
       htmlContent.value = buildFMOPage(cfg, r || {}, mf, range, fmoData || {})
       resultTitle.value = cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial || sp
@@ -1478,9 +1482,7 @@ async function generar() {
         const c = cfgs[i]
         loadingSub.value = `(${i + 1}/${cfgs.length}) ${c.nombre_clientes || c.nombre_display || c.nombre_comercial}`
         try {
-          const { data: r } = await api.get('/monitoreo/_legacy', {
-            params: { action: 'getGeneration', sub_project: c.sub_project, date_from: range.from, date_to: range.to },
-          })
+          const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: c.sub_project, date_from: range.from, date_to: range.to })
           results.push({ cfg: c, genRes: r && r.ok ? r : { ok: true, data: [] }, mf: getFaultsForRange(c, range) })
         } catch {
           results.push({ cfg: c, genRes: { ok: true, data: [] }, mf: [] })
@@ -1548,9 +1550,7 @@ async function generar() {
           loadingSub.value = `(${done}/${totalReq}) ${mes.label} — ${cn}`
           let tot = 0, p90 = null
           try {
-            const { data: r } = await api.get('/monitoreo/_legacy', {
-              params: { action: 'getGeneration', sub_project: c.sub_project, date_from: mes.from, date_to: mes.to },
-            })
+            const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: c.sub_project, date_from: mes.from, date_to: mes.to })
             const arr = (r && r.data) || []
             tot = arr.reduce((s, d) => s + d.kwh, 0)
             p90 = r?.simulation?.p90_monthly ?? null
@@ -1567,8 +1567,8 @@ async function generar() {
     }
     ultimoTipo.value = tipo.value === 'portafolio' ? 'port' : tipo.value === 'fmo' ? 'fmo' : tipo.value === 'ranking' ? 'ranking' : 'op'
   } catch (e) {
-    console.error('[InformesMensuales] generar error', e)
-    error.value = { title: 'Error al generar el informe', detail: e.response?.data?.detail || e.message }
+    logger.error('operaciones', e)
+    error.value = { title: 'Error al generar el informe', detail: e.data?.detail || e.message }
   } finally {
     generando.value = false
     loadingSub.value = ''
@@ -1591,8 +1591,8 @@ async function buildMiembrosPayload() {
     const sectionHtml = el ? el.outerHTML : m.html
     let existeIndiv = false
     try {
-      const { data } = await api.get('/informes/', {
-        params: { tipo: 'op', sub_project: m.sub_project, periodo_desde_gte: from, periodo_desde_lte: from, limit: 1 },
+      const data = await informesService.listar({
+        tipo: 'op', sub_project: m.sub_project, periodo_desde_gte: from, periodo_desde_lte: from, limit: 1,
       })
       existeIndiv = Array.isArray(data) && data.length > 0
     } catch { /* si falla la consulta, embebemos por seguridad */ }
@@ -1627,11 +1627,11 @@ async function guardar() {
       payload.html_content = pages.length ? pages[0].outerHTML : ultimaConsolidada.value
       payload.miembros = await buildMiembrosPayload()
     }
-    const { data } = await api.post('/informes/', payload)
+    const data = await informesService.guardar(payload)
     informeIdGuardado.value = data.id
     toast('💾 Informe guardado como borrador')
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     const msg = Array.isArray(detail) ? detail.map(d => `${d.loc?.slice(-1)[0] ?? ''}: ${d.msg}`).join(' | ') : (detail ?? e.message)
     toast(`⚠️ ${msg}`, true)
   } finally {

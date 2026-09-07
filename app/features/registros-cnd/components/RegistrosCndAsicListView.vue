@@ -79,8 +79,10 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
-import api from '~/core/client'
+import { RegistrosCndService } from '~/features/registros-cnd/services/registros-cnd'
 import { EyeIcon, SearchIcon } from '@lucide/vue'
+
+const registrosCndService = new RegistrosCndService()
 
 const router = useRouter()
 
@@ -101,10 +103,9 @@ watch([rows, filtroTexto], filtrar)
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/registros-cnd')
-    rows.value = data
+    rows.value = await registrosCndService.listar()
   } catch (e) {
-    toast.error('Error al cargar', { description: e.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('Error al cargar', { description: e.data?.detail ?? '', duration: 5000 })
   } finally {
     loading.value = false
   }

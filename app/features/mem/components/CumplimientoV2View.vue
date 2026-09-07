@@ -2428,7 +2428,15 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
-import client from '~/core/client'
+import { isAirError } from '@korastd/air'
+import { logger } from '~/core/logger'
+import { CumplimientoService } from '~/features/mem/services/cumplimiento'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+
+const cumplimientoService = new CumplimientoService()
+const ppaService = new PpaService()
+const proyectosService = new ProyectosService()
 import { ArrowDownWideNarrowIcon, ArrowUpNarrowWideIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleCheckIcon, CircleMinusIcon, CompassIcon, DownloadIcon, EyeIcon, EyeOffIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, FolderOpenIcon, HistoryIcon, ImageIcon, InfoIcon, LoaderCircleIcon, LogOutIcon, MaximizeIcon, PlusIcon, RefreshCwIcon, ShieldIcon, ShoppingCartIcon, Trash2Icon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 // ── LocalStorage cache ───────────────────────────────────────────────────────
@@ -2491,12 +2499,12 @@ const verOcultos = ref(false)
 // entre en la llave de caché: la vista filtrada y la completa no deben pisarse.
 const incluirTodos = () => verOcultos.value
 
-async function cachedGet(endpoint, params = {}) {
-  const cached = cacheGet(endpoint, params)
+async function cachedGet(cacheEndpointKey, params, loader) {
+  const cached = cacheGet(cacheEndpointKey, params)
   if (cached) return cached
-  const res = await client.get(endpoint, { params, timeout: 120000 })
-  cacheSet(endpoint, params, res.data)
-  return res.data
+  const data = await loader()
+  cacheSet(cacheEndpointKey, params, data)
+  return data
 }
 
 const cacheSize = ref(cacheGetSize())
@@ -2601,8 +2609,7 @@ const backendProyectos = ref([])
 
 async function loadBackendProyectos() {
   try {
-    const res = await client.get('/proyectos', { params: { size: 500 } })
-    backendProyectos.value = res.data.items || []
+    backendProyectos.value = await proyectosService.listar({ size: 500 })
   } catch { /* degradar silenciosamente */ }
 }
 
@@ -2866,22 +2873,22 @@ async function abrirDetalleContrato(c, modo) {
     const ppaId = c.contrato_ppa_id || (typeof c.id === 'number' ? c.id : null)
     let ppa = null
     if (ppaId) {
-      try { ppa = (await client.get(`/ppa/${ppaId}`)).data } catch { ppa = null }
+      try { ppa = await ppaService.obtener(ppaId) } catch { ppa = null }
     }
     // 2) Registros GESCON del contrato (por contrato_interno; fallback por SIC;
     //    último fallback: historial GESCON de la planta, para capas sin contrato)
     let gescon = []
     const ci = c.numero_codigo_contrato || c.contrato_interno || ppa?.numero_codigo_contrato
     if (ci) {
-      try { gescon = (await client.get('/asic', { params: { contrato_interno: ci } })).data } catch { gescon = [] }
+      try { gescon = await ppaService.listarAsic({ contrato_interno: ci }) } catch { gescon = [] }
     }
     if (!gescon.length && c._proyecto_id) {
-      try { gescon = (await client.get('/asic', { params: { proyecto_id: c._proyecto_id } })).data } catch { /* sin fallback */ }
+      try { gescon = await ppaService.listarAsic({ proyecto_id: c._proyecto_id }) } catch { /* sin fallback */ }
     }
     if (!gescon.length && modo !== 'ppa_compra_externa') {
       const sic = (c.plantas || []).find(p => p.codigo_sic)?.codigo_sic
       if (sic) {
-        try { gescon = (await client.get('/asic', { params: { codigo_sic_contrato: sic } })).data } catch { /* sin fallback */ }
+        try { gescon = await ppaService.listarAsic({ codigo_sic_contrato: sic }) } catch { /* sin fallback */ }
       }
     }
     // Vigentes primero, luego por fecha de inicio descendente
@@ -2892,7 +2899,7 @@ async function abrirDetalleContrato(c, modo) {
     if (!ppa) {
       const vig = gescon.find(r => r.es_version_vigente && r.contrato_ppa_id)
       if (vig) {
-        try { ppa = (await client.get(`/ppa/${vig.contrato_ppa_id}`)).data } catch { ppa = null }
+        try { ppa = await ppaService.obtener(vig.contrato_ppa_id) } catch { ppa = null }
       }
     }
     dcPpa.value = ppa
@@ -3073,10 +3080,11 @@ function etCacheSet(y, m, data) {
 }
 
 async function etFetch(y, m) {
-  const res = await client.get('/cumplimiento/energia-transada',
-    { params: { year: y, month: m, incluir_todos: incluirTodos() }, timeout: 180000 })
-  etCacheSet(y, m, res.data)
-  return res.data
+  const data = await cumplimientoService.obtenerEnergiaTransada({
+    year: y, month: m, incluir_todos: incluirTodos(),
+  })
+  etCacheSet(y, m, data)
+  return data
 }
 
 async function loadEnergiaTransada() {
@@ -3101,10 +3109,10 @@ async function loadEnergiaTransada() {
     updateCacheSize()
     prefetchEtHistory()
   } catch (e) {
-    const status = e.response?.status
-    etError.value = e.response?.data?.detail
+    const status = isAirError(e) ? e.status : undefined
+    etError.value = (isAirError(e) ? e.data?.detail : undefined)
       || (status === 401 ? 'Sesión expirada — inicia sesión de nuevo.'
-         : e.code === 'ECONNABORTED' ? 'Tiempo de espera agotado — el servidor tardó demasiado.'
+         : e.name === 'TimeoutError' ? 'Tiempo de espera agotado — el servidor tardó demasiado.'
          : 'Error al consultar la energía transada.')
   } finally {
     etLoading.value = false
@@ -3161,8 +3169,7 @@ async function loadAnualMatriz() {
   // sin cambiarlo), y sin esto los workers de la carga anterior siguen pidiendo.
   const loadId = ++matrizLoadId
   try {
-    const { data } = await client.get('/cumplimiento/anual-matriz/contratos',
-      { params: { year, incluir_todos: incluirTodos() } })
+    const data = await cumplimientoService.obtenerAnualMatrizContratos({ year, incluir_todos: incluirTodos() })
     const contratos = (data.contratos || []).map(c => ({
       ...c,
       meses: [], proyectos: [],
@@ -3173,7 +3180,7 @@ async function loadAnualMatriz() {
     anualMatrizData.value = { year, contratos }
     anualMatrizLoading.value = false
   } catch (e) {
-    anualMatrizError.value = e.response?.data?.detail || e.message
+    anualMatrizError.value = e.data?.detail || e.message
     anualMatrizLoading.value = false
     return
   }
@@ -3188,8 +3195,7 @@ async function loadAnualMatriz() {
       const idx = queue.shift()
       const row = rows[idx]
       try {
-        const { data: det } = await client.get(`/cumplimiento/anual-matriz/contrato/${row.id}`,
-          { params: { year }, timeout: 90000 })
+        const det = await cumplimientoService.obtenerAnualMatrizContrato(row.id, { year })
         if (matrizLoadId !== loadId) return
         Object.assign(row, det, { _loading: false, _error: false })
       } catch (e) {
@@ -3365,8 +3371,7 @@ const respContratosFiltrados = computed(() => {
 })
 
 async function cargarResponsables() {
-  const { data } = await client.get('/ppa/responsables')
-  responsables.value = data
+  responsables.value = await ppaService.listarResponsables()
 }
 
 async function abrirResponsables() {
@@ -3381,12 +3386,11 @@ async function abrirResponsables() {
     // incluir_todos: para reclasificar hay que ver también los que están ocultos.
     const [, contratos] = await Promise.all([
       cargarResponsables(),
-      client.get('/cumplimiento/anual-matriz/contratos',
-        { params: { year: anualMatrizYear.value, incluir_todos: true } }),
+      cumplimientoService.obtenerAnualMatrizContratos({ year: anualMatrizYear.value, incluir_todos: true }),
     ])
-    respContratos.value = contratos.data.contratos || []
+    respContratos.value = contratos.contratos || []
   } catch (e) {
-    respError.value = e.response?.data?.detail || e.message
+    respError.value = e.data?.detail || e.message
   } finally {
     respCargando.value = false
   }
@@ -3397,24 +3401,24 @@ async function crearResponsable() {
   if (!nombre) return
   respError.value = ''
   try {
-    await client.post('/ppa/responsables', { nombre, incluir_en_cumplimiento: true })
+    await ppaService.crearResponsable({ nombre, incluir_en_cumplimiento: true })
     respNuevo.value = ''
     await cargarResponsables()
   } catch (e) {
-    respError.value = e.response?.data?.detail || e.message
+    respError.value = e.data?.detail || e.message
   }
 }
 
 async function guardarResponsable(r) {
   respError.value = ''
   try {
-    await client.patch(`/ppa/responsables/${r.id}`, {
+    await ppaService.actualizarResponsable(r.id, {
       nombre: r.nombre,
       incluir_en_cumplimiento: r.incluir_en_cumplimiento,
     })
     await refrescarTrasCambio()
   } catch (e) {
-    respError.value = e.response?.data?.detail || e.message
+    respError.value = e.data?.detail || e.message
     await cargarResponsables()   // revierte el input al valor real
   }
 }
@@ -3422,10 +3426,10 @@ async function guardarResponsable(r) {
 async function borrarResponsable(r) {
   respError.value = ''
   try {
-    await client.delete(`/ppa/responsables/${r.id}`)
+    await ppaService.eliminarResponsable(r.id)
     await cargarResponsables()
   } catch (e) {
-    respError.value = e.response?.data?.detail || e.message
+    respError.value = e.data?.detail || e.message
   }
 }
 
@@ -3434,14 +3438,14 @@ async function asignarSeleccionados() {
   respGuardando.value = true
   respError.value = ''
   try {
-    await client.post('/ppa/responsables/asignar', {
+    await ppaService.asignarResponsables({
       contrato_ids: respSel.value,
       responsable_id: respAsignarA.value === SIN_RESPONSABLE ? null : respAsignarA.value,
     })
     respSel.value = []
     await refrescarTrasCambio()
   } catch (e) {
-    respError.value = e.response?.data?.detail || e.message
+    respError.value = e.data?.detail || e.message
   } finally {
     respGuardando.value = false
   }
@@ -3453,8 +3457,7 @@ async function asignarSeleccionados() {
 async function refrescarTrasCambio() {
   respDirty.value = true
   await cargarResponsables()
-  const { data } = await client.get('/cumplimiento/anual-matriz/contratos',
-    { params: { year: anualMatrizYear.value, incluir_todos: true } })
+  const data = await cumplimientoService.obtenerAnualMatrizContratos({ year: anualMatrizYear.value, incluir_todos: true })
   respContratos.value = data.contratos || []
 }
 
@@ -4205,7 +4208,7 @@ async function copiarImagenCapa(c) {
   try {
     canvas = _renderCapaCanvas(c)
   } catch (e) {
-    console.error('No se pudo renderizar la imagen de la capa', e)
+    logger.error('mem', e)
     return
   }
   canvas.toBlob(async (blob) => {
@@ -4355,7 +4358,7 @@ async function copiarImagenVenta(c) {
   try {
     canvas = _renderVentaCanvas(c)
   } catch (e) {
-    console.error('No se pudo renderizar la imagen del contrato', e)
+    logger.error('mem', e)
     return
   }
   canvas.toBlob(async (blob) => {
@@ -4383,8 +4386,8 @@ const CONSOLIDADO_ID = '__consolidado__'
 
 async function loadContratos() {
   try {
-    const res = await client.get('/cumplimiento/ppa', { params: { incluir_todos: incluirTodos() } })
-    const mapped = res.data.map(c => ({
+    const res = await cumplimientoService.listarPpa({ incluir_todos: incluirTodos() })
+    const mapped = res.map(c => ({
       ...c,
       label: c.nombre_interno || c.numero_codigo_contrato || `Contrato ${c.id}`,
     }))
@@ -4396,7 +4399,7 @@ async function loadContratos() {
       selectedContratoId.value = CONSOLIDADO_ID
     }
   } catch (e) {
-    console.error('Error loading contratos', e)
+    logger.error('mem', e)
   }
 }
 
@@ -4414,11 +4417,12 @@ async function loadAnnualData() {
       anualData.value = await cachedGet(
         `/cumplimiento/ppa/${selectedContratoId.value}/anual`,
         { year: selectedYear.value },
+        () => cumplimientoService.obtenerAnualPorContrato(selectedContratoId.value, { year: selectedYear.value }),
       )
     }
     updateCacheSize()
   } catch (e) {
-    chartError.value = e.response?.data?.detail || 'Error al cargar los datos anuales.'
+    chartError.value = e.data?.detail || 'Error al cargar los datos anuales.'
   } finally {
     chartLoading.value = false
   }
@@ -4430,7 +4434,11 @@ async function loadConsolidado() {
 
   const results = await Promise.allSettled(
     realContratos.map(c =>
-      cachedGet(`/cumplimiento/ppa/${c.id}/anual`, { year: selectedYear.value })
+      cachedGet(
+        `/cumplimiento/ppa/${c.id}/anual`,
+        { year: selectedYear.value },
+        () => cumplimientoService.obtenerAnualPorContrato(c.id, { year: selectedYear.value }),
+      )
     )
   )
   updateCacheSize()
@@ -4522,11 +4530,14 @@ async function loadConsolidado() {
 async function loadTableData() {
   tableLoading.value = true
   try {
-    tableData.value = await cachedGet('/cumplimiento/ppa/resumen-anual',
-      { year: selectedYear.value, incluir_todos: incluirTodos() })
+    tableData.value = await cachedGet(
+      '/cumplimiento/ppa/resumen-anual',
+      { year: selectedYear.value, incluir_todos: incluirTodos() },
+      () => cumplimientoService.obtenerResumenAnual({ year: selectedYear.value, incluir_todos: incluirTodos() }),
+    )
     updateCacheSize()
   } catch (e) {
-    console.error('Error loading table data', e)
+    logger.error('mem', e)
   } finally {
     tableLoading.value = false
   }
@@ -4546,7 +4557,11 @@ const exportingExcel = ref(false)
 const exportingPdf   = ref(false)
 
 async function fetchContratoAnualCached(id, year) {
-  return cachedGet(`/cumplimiento/ppa/${id}/anual`, { year })
+  return cachedGet(
+    `/cumplimiento/ppa/${id}/anual`,
+    { year },
+    () => cumplimientoService.obtenerAnualPorContrato(id, { year }),
+  )
 }
 
 function styleAnualSheet(XLSX, ws, built) {
@@ -4626,7 +4641,7 @@ async function exportarAnualExcel() {
     const slug = consolidado ? 'consolidado' : slugify(anualData.value.contrato.nombre_interno || anualData.value.contrato.numero_codigo_contrato || 'contrato')
     XLSX.writeFile(wb, `matriz_anual_cumplimiento_${year}_${slug}.xlsx`)
   } catch (e) {
-    console.error('Error exportando matriz anual a Excel', e)
+    logger.error('mem', e)
     chartError.value = 'No se pudo generar el Excel de la matriz anual.'
   } finally {
     exportingExcel.value = false
@@ -4768,7 +4783,7 @@ async function exportarAnualPdf() {
     const slug = consolidado ? 'consolidado' : slugify(contrato.nombre_interno || contrato.numero_codigo_contrato || 'contrato')
     doc.save(`matriz_anual_cumplimiento_${year}_${slug}.pdf`)
   } catch (e) {
-    console.error('Error exportando matriz anual a PDF', e)
+    logger.error('mem', e)
     chartError.value = 'No se pudo generar el PDF de la matriz anual.'
   } finally {
     exportingPdf.value = false
@@ -4779,22 +4794,26 @@ async function loadSimulator(retry = true) {
   simLoading.value = true
   simError.value   = null
   try {
-    const data = await cachedGet('/cumplimiento/simulador',
-      { year: simYear.value, month: simMonth.value, incluir_todos: incluirTodos() })
+    const filtros = { year: simYear.value, month: simMonth.value, incluir_todos: incluirTodos() }
+    const data = await cachedGet(
+      '/cumplimiento/simulador',
+      filtros,
+      () => cumplimientoService.obtenerSimulador(filtros),
+    )
     simData.value = data
     initAssignments(data)
     updateCacheSize()
   } catch (e) {
-    if (retry && (!e.response || e.code === 'ECONNABORTED' || e.response?.status >= 500)) {
-      console.warn('Simulador: reintentando tras error', e.message)
+    if (retry && (!isAirError(e) || e.status >= 500)) {
+      logger.error('mem', e)
       return loadSimulator(false)
     }
-    const detail = e.response?.data?.detail
-    const status = e.response?.status
+    const detail = isAirError(e) ? e.data?.detail : undefined
+    const status = isAirError(e) ? e.status : undefined
     simError.value = detail
       || (status === 401 ? 'Sesión expirada — inicia sesión de nuevo.'
          : status === 503 ? 'API de generación no disponible temporalmente. Intenta en unos minutos.'
-         : e.code === 'ECONNABORTED' ? 'Tiempo de espera agotado — el servidor tardó demasiado.'
+         : e.name === 'TimeoutError' ? 'Tiempo de espera agotado — el servidor tardó demasiado.'
          : 'Error al cargar el simulador.')
   } finally {
     simLoading.value = false
@@ -4805,11 +4824,15 @@ async function loadPlantasContratos() {
   pcLoading.value = true
   pcError.value   = null
   try {
-    pcData.value = await cachedGet('/cumplimiento/plantas-contratos',
-      { year: pcYear.value, month: pcMonth.value, incluir_todos: incluirTodos() })
+    const filtros = { year: pcYear.value, month: pcMonth.value, incluir_todos: incluirTodos() }
+    pcData.value = await cachedGet(
+      '/cumplimiento/plantas-contratos',
+      filtros,
+      () => cumplimientoService.obtenerPlantasContratos(filtros),
+    )
     updateCacheSize()
   } catch (e) {
-    pcError.value = e.response?.data?.detail || 'Error al cargar plantas y contratos.'
+    pcError.value = e.data?.detail || 'Error al cargar plantas y contratos.'
   } finally {
     pcLoading.value = false
   }
@@ -4836,10 +4859,14 @@ async function loadRevision() {
   revLoading.value = true
   revError.value   = null
   try {
-    revData.value = await cachedGet('/cumplimiento/plantas-contratos',
-      { year: revYear.value, month: revMonth.value, incluir_todos: incluirTodos() })
+    const filtros = { year: revYear.value, month: revMonth.value, incluir_todos: incluirTodos() }
+    revData.value = await cachedGet(
+      '/cumplimiento/plantas-contratos',
+      filtros,
+      () => cumplimientoService.obtenerPlantasContratos(filtros),
+    )
     try {
-      revAsic.value = await cachedGet('/asic', {})
+      revAsic.value = await cachedGet('/asic', {}, () => ppaService.listarAsic())
       revAsicError.value = false
     } catch {
       revAsic.value = null
@@ -4847,7 +4874,7 @@ async function loadRevision() {
     }
     updateCacheSize()
   } catch (e) {
-    revError.value = e.response?.data?.detail || 'Error al cargar la revisión del mes.'
+    revError.value = e.data?.detail || 'Error al cargar la revisión del mes.'
   } finally {
     revLoading.value = false
   }
@@ -5198,11 +5225,15 @@ async function loadBalance() {
   const esMesActual = beYear.value === now.getFullYear() && beMonth.value === now.getMonth() + 1
   try {
     beData.value = esMesActual
-      ? (await client.get('/cumplimiento/balance-energia', { params, timeout: 120000 })).data
-      : await cachedGet('/cumplimiento/balance-energia', params)
+      ? await cumplimientoService.obtenerBalanceEnergia(params, 120_000)
+      : await cachedGet(
+          '/cumplimiento/balance-energia',
+          params,
+          () => cumplimientoService.obtenerBalanceEnergia(params),
+        )
     updateCacheSize()
   } catch (e) {
-    beError.value = e.response?.data?.detail || 'Error al calcular el balance de energía.'
+    beError.value = e.data?.detail || 'Error al calcular el balance de energía.'
   } finally {
     beLoading.value = false
   }

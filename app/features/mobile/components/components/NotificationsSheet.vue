@@ -36,7 +36,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import api from '~/core/client'
+import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
 import { BellIcon, CircleCheckIcon, InfoIcon, LoaderCircleIcon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const props = defineProps({ open: { type: Boolean, default: false } })
@@ -44,14 +44,14 @@ const emit = defineEmits(['close', 'changed'])
 
 const items = ref([])
 const loading = ref(false)
+const notificacionesService = new NotificacionesService()
 
 watch(() => props.open, (isOpen) => { if (isOpen) cargar() })
 
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/notificaciones', { params: { limit: 40 } })
-    items.value = Array.isArray(data) ? data : (data.items ?? [])
+    items.value = await notificacionesService.listar(40)
   } catch { items.value = [] } finally {
     loading.value = false
   }
@@ -60,7 +60,7 @@ async function cargar() {
 async function leer(n) {
   if (n.leida) return
   try {
-    await api.patch(`/notificaciones/${n.id}/leer`)
+    await notificacionesService.marcarLeida(n.id)
     n.leida = true
     emit('changed')
   } catch { /* ignore */ }
@@ -68,7 +68,7 @@ async function leer(n) {
 
 async function marcarTodas() {
   try {
-    await api.patch('/notificaciones/leer-todas')
+    await notificacionesService.marcarTodasLeidas()
     items.value.forEach((n) => { n.leida = true })
     emit('changed')
   } catch { /* ignore */ }

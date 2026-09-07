@@ -87,8 +87,10 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
 import { DownloadIcon, FileIcon, FileSpreadsheetIcon, FileTextIcon, FileTypeIcon, InfoIcon, PaperclipIcon, Trash2Icon, UploadIcon } from '@lucide/vue'
+
+const fallasService = new FallasService()
 
 // ── Props ────────────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -138,10 +140,9 @@ async function cargarArchivos() {
   if (!props.fallaId) return
   noDisponible.value = false
   try {
-    const { data } = await api.get(`/fallas/${props.fallaId}/archivos`)
-    archivos.value = data
+    archivos.value = await fallasService.listarArchivos(props.fallaId)
   } catch (err) {
-    const status = err.response?.status
+    const status = err.status
     if (!status || status === 404 || status === 0) {
       noDisponible.value = true
     } else {
@@ -151,22 +152,10 @@ async function cargarArchivos() {
   }
 }
 
-async function subirArchivo(file) {
-  const form = new FormData()
-  form.append('archivo', file)
-  const { data } = await api.post(
-    `/fallas/${props.fallaId}/archivos`,
-    form,
-    {
-      headers: { 'Content-Type': null },
-      onUploadProgress(event) {
-        if (event.lengthComputable) {
-          uploadProgress.value = Math.round((event.loaded / event.total) * 100)
-        }
-      },
-    }
-  )
-  return data
+function subirArchivo(file) {
+  return fallasService.subirArchivo(props.fallaId, file, (porcentaje) => {
+    uploadProgress.value = porcentaje
+  })
 }
 
 async function procesarArchivos(files) {
@@ -199,7 +188,7 @@ async function procesarArchivos(files) {
 async function eliminarArchivo(archivo) {
   if (!window.confirm(`¿Deseas eliminar "${archivo.nombre}"?`)) return
   try {
-    await api.delete(`/fallas/${props.fallaId}/archivos/${archivo.id}`)
+    await fallasService.eliminarArchivo(props.fallaId, archivo.id)
     archivos.value = archivos.value.filter((a) => a.id !== archivo.id)
     toast.success('Archivo eliminado', { duration: 2000 })
   } catch {

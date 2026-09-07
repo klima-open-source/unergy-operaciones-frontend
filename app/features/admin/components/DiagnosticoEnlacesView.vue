@@ -149,9 +149,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import api from '~/core/client'
+import { DiagnosticoEnlacesService } from '~/features/admin/services/diagnostico-enlaces'
+import { logger } from '~/core/logger'
 import Button from 'primevue/button'
 import { LinkIcon, LoaderCircleIcon, RefreshCwIcon, TriangleAlertIcon, WrenchIcon } from '@lucide/vue'
+
+const diagnosticoEnlacesService = new DiagnosticoEnlacesService()
 
 const data = ref(null)
 const loading = ref(false)
@@ -169,10 +172,9 @@ function actionSev(action) {
 async function load() {
   loading.value = true
   try {
-    const { data: d } = await api.get('/cumplimiento/diagnostico')
-    data.value = d
+    data.value = await diagnosticoEnlacesService.obtener()
   } catch (e) {
-    console.error('Failed to load diagnostic', e)
+    logger.error('admin.diagnostico-enlaces', e)
   } finally {
     loading.value = false
   }
@@ -182,12 +184,11 @@ async function fixEnlaces() {
   fixing.value = true
   fixResult.value = null
   try {
-    const { data: d } = await api.post('/cumplimiento/fix-enlaces')
-    fixResult.value = d
+    fixResult.value = await diagnosticoEnlacesService.fixEnlaces()
     await load()
   } catch (e) {
-    console.error('Fix failed', e)
-    fixResult.value = { actions: [{ action: 'error', reason: e.response?.data?.detail || e.message, contrato: '—' }] }
+    logger.error('admin.diagnostico-enlaces', e)
+    fixResult.value = { actions: [{ action: 'error', reason: e.data?.detail || e.message, contrato: '—' }] }
   } finally {
     fixing.value = false
   }

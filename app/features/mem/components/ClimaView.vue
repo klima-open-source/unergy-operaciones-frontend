@@ -211,8 +211,10 @@
 import { ref, computed, onMounted } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import api from '~/core/client'
+import { EvoService } from '~/features/mem/services/evo'
 import { InfoIcon } from '@lucide/vue'
+
+const evoService = new EvoService()
 
 const TABS = ['ENSO Timeline', 'Precio vs ENSO', 'Precipitación', 'Datos ONI']
 const REGIONS = ['Andina', 'Caribe', 'Pacifica', 'Orinoquia', 'Amazonia']
@@ -450,18 +452,18 @@ const precipStats = computed(() => {
 
 async function loadPrecip() {
   try {
-    const res = await api.get('/evo/clima/precip', { params: { region: precipRegion.value, years: 10 } })
-    if (res.data) precipData.value = res.data
+    const res = await evoService.obtenerPrecipitacion(precipRegion.value, 10)
+    if (res) precipData.value = res
   } catch { /* degrade */ }
 }
 
 onMounted(async () => {
   const [oniRes, pricesRes] = await Promise.all([
-    api.get('/evo/clima/oni', { params: { years: 10 } }).catch(() => null),
-    api.get('/evo/clima/prices', { params: { years: 26 } }).catch(() => null),
+    evoService.obtenerOni(10).catch(() => null),
+    evoService.obtenerPreciosHistoricos(26).catch(() => null),
   ])
-  if (oniRes?.data) oniData.value = oniRes.data
-  if (pricesRes?.data) priceData.value = pricesRes.data
+  if (oniRes) oniData.value = oniRes
+  if (pricesRes) priceData.value = pricesRes
   loadPrecip()
 })
 </script>

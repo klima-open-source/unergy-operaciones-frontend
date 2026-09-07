@@ -553,11 +553,14 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { InformesService } from '~/features/operaciones/services/informes'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
 
 const { user } = useAuth()
+const informesService = new InformesService()
+const monitoreoLegacyService = new MonitoreoLegacyService()
 
 const EMAIL_VERIFICADOR     = 'juan.jose@unergy.io'
 const EMAIL_VERIFICADOR_ALT = 'juanjose@unergy.io'
@@ -774,12 +777,12 @@ async function cargar() {
     const desde   = `${y}-${String(m).padStart(2,'0')}-01`
     const lastDay = new Date(y, m, 0).getDate()
     const hasta   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
-    const { data } = await api.get('/informes/', {
-      params: { periodo_desde_gte: desde, periodo_desde_lte: hasta, limit: 500 }
+    const data = await informesService.listar({
+      periodo_desde_gte: desde, periodo_desde_lte: hasta, limit: 500,
     })
     informes.value = data || []
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     loading.value = false
   }
@@ -787,7 +790,7 @@ async function cargar() {
 
 async function cargarProyectos() {
   try {
-    const { data } = await api.get('/monitoreo/_legacy', { params: { action: 'getProjects' } })
+    const data = await monitoreoLegacyService.obtenerProyectos()
     let list = Array.isArray(data) ? data : (data?.projects || [])
     todosProyectos.value = list
       .map(p => (typeof p === 'string' ? p : (p.sub_project || p.nombre_comercial || p.name || '')))
@@ -813,13 +816,13 @@ async function abrirDrawer(inf, tab = 'preview') {
   detalleHtml.value = ''
   loadingDetalle.value = true
   try {
-    const { data } = await api.get(`/informes/${inf.id}`)
+    const data = await informesService.obtener(inf.id)
     const idx = informes.value.findIndex(i => i.id === inf.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
     drawerInf.value = informes.value[idx] || data
     if (data.tipo === 'port') {
       // Portafolio: previsualizar el documento COMPUESTO (consolidada + secciones vivas)
-      const { data: comp } = await api.get(`/informes/${inf.id}/compuesto`)
+      const comp = await informesService.obtenerCompuesto(inf.id)
       detalleHtml.value = comp.html_content || ''
     } else {
       detalleHtml.value = data.html_content || ''
@@ -862,10 +865,10 @@ async function editar(inf) {
     htmlToEdit = detalleHtml.value
   } else {
     try {
-      const { data } = await api.get(`/informes/${inf.id}`)
+      const data = await informesService.obtener(inf.id)
       // Portafolio: se edita el documento COMPUESTO (consolidada + secciones vivas)
       if (data.tipo === 'port') {
-        const { data: comp } = await api.get(`/informes/${inf.id}/compuesto`)
+        const comp = await informesService.obtenerCompuesto(inf.id)
         htmlToEdit = comp.html_content || ''
       } else {
         htmlToEdit = data.html_content || ''
@@ -915,7 +918,7 @@ async function guardarEditor() {
       const pages = [...body.querySelectorAll('.rpt-page')]
       const consolidada = pages.length ? pages[0].outerHTML : newHtml
       const secciones = pages.slice(1)
-      const { data } = await api.post('/informes/', {
+      const data = await informesService.guardar({
         tipo: 'port', sub_project: inf.sub_project,
         periodo_desde: inf.periodo_desde, periodo_hasta: inf.periodo_hasta,
         periodo_display: inf.periodo_display, proyecto_nombre: inf.proyecto_nombre,
@@ -926,9 +929,9 @@ async function guardarEditor() {
         const sp = el.getAttribute('data-sub-project')
         if (!sp) continue
         try {
-          await api.patch(`/informes/${inf.id}/seccion`, { sub_project: sp, html_content: el.outerHTML })
+          await informesService.guardarSeccion(inf.id, { sub_project: sp, html_content: el.outerHTML })
         } catch (e) {
-          const d = e.response?.data?.detail
+          const d = e.data?.detail
           bloqueadas.push(typeof d === 'string' ? d : sp)
         }
       }
@@ -954,7 +957,7 @@ async function guardarEditor() {
       proyecto_nombre: inf.proyecto_nombre,
       html_content:    newHtml,
     }
-    const { data } = await api.post('/informes/', payload)
+    const data = await informesService.guardar(payload)
     // Actualizar cache local
     const idx = informes.value.findIndex(i => i.id === inf.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
@@ -967,7 +970,7 @@ async function guardarEditor() {
     toast('💾 Cambios guardados correctamente')
     cerrarEditor()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     toast('⚠️ ' + (Array.isArray(detail) ? detail[0]?.msg : (detail || e.message)), true)
   } finally {
     guardandoEditor.value = false
@@ -1000,12 +1003,12 @@ async function eliminarInforme(inf) {
     : ''
   if (!confirm(`¿Eliminar el ${esPort ? 'portafolio' : 'informe'} de "${inf.proyecto_nombre || inf.sub_project}"?${aviso}`)) return
   try {
-    await api.delete(`/informes/${inf.id}`)
+    await informesService.eliminar(inf.id)
     informes.value = informes.value.filter(i => i.id !== inf.id)
     if (drawerInf.value?.id === inf.id) cerrarDrawer()
     toast('🗑️ Informe eliminado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   }
 }
 
@@ -1014,15 +1017,14 @@ async function agregarComentario() {
   if (!nuevoComentario.value.trim() || !drawerInf.value) return
   agregandoComentario.value = true
   try {
-    const { data } = await api.post(`/informes/${drawerInf.value.id}/comentarios`,
-                                    { mensaje: nuevoComentario.value.trim() })
+    const data = await informesService.agregarComentario(drawerInf.value.id, nuevoComentario.value.trim())
     const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
     drawerInf.value = informes.value[idx]
     nuevoComentario.value = ''
     toast('💬 Comentario agregado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     agregandoComentario.value = false
   }
@@ -1032,8 +1034,7 @@ async function resolverComentario(c) {
   if (!drawerInf.value) return
   actuandoComentarioId.value = c.id
   try {
-    const { data } = await api.patch(`/informes/${drawerInf.value.id}/comentarios/${c.id}/resolver`,
-                                     { respuesta: resolviendoTexto.value || null })
+    const data = await informesService.resolverComentario(drawerInf.value.id, c.id, resolviendoTexto.value || null)
     const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
     drawerInf.value = informes.value[idx]
@@ -1041,7 +1042,7 @@ async function resolverComentario(c) {
     resolviendoTexto.value = ''
     toast('✅ Comentario subsanado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     actuandoComentarioId.value = null
   }
@@ -1050,13 +1051,13 @@ async function borrarComentario(c) {
   if (!drawerInf.value || !confirm('¿Eliminar este comentario?')) return
   actuandoComentarioId.value = c.id
   try {
-    const { data } = await api.delete(`/informes/${drawerInf.value.id}/comentarios/${c.id}`)
+    const data = await informesService.eliminarComentario(drawerInf.value.id, c.id)
     const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
     drawerInf.value = informes.value[idx]
     toast('🗑️ Comentario eliminado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     actuandoComentarioId.value = null
   }
@@ -1072,19 +1073,19 @@ async function verificarYAprobar() {
   verificando.value = true
   try {
     if (drawerInf.value.estado === 'borrador') {
-      const { data } = await api.patch(`/informes/${drawerInf.value.id}/estado`, { estado: 'revisado' })
+      const data = await informesService.cambiarEstado(drawerInf.value.id, 'revisado')
       const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
       if (idx >= 0) Object.assign(informes.value[idx], data)
       drawerInf.value = informes.value[idx]
     }
-    const { data: d2 } = await api.patch(`/informes/${drawerInf.value.id}/estado`, { estado: 'aprobado' })
+    const d2 = await informesService.cambiarEstado(drawerInf.value.id, 'aprobado')
     const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
     if (idx >= 0) Object.assign(informes.value[idx], d2)
     drawerInf.value = informes.value[idx]
     drawerTab.value = 'preview'
     toast('✅ Informe verificado y aprobado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     verificando.value = false
   }
@@ -1093,13 +1094,13 @@ async function reabrir() {
   if (!drawerInf.value) return
   if (!confirm('¿Reabrir este informe? Volverá a borrador y se podrán agregar nuevos comentarios.')) return
   try {
-    const { data } = await api.patch(`/informes/${drawerInf.value.id}/estado`, { estado: 'borrador' })
+    const data = await informesService.cambiarEstado(drawerInf.value.id, 'borrador')
     const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
     if (idx >= 0) Object.assign(informes.value[idx], data)
     drawerInf.value = informes.value[idx]
     toast('↩ Informe reabierto para corrección')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message) + ' — usa "Devolver a borrador" en el editor.', true)
+    toast('⚠️ ' + (e.data?.detail || e.message) + ' — usa "Devolver a borrador" en el editor.', true)
   }
 }
 
@@ -1108,7 +1109,7 @@ async function enviarUno(inf) {
   if (!permisoEnviar.value || enviandoIds.value.has(inf.id)) return
   const newSet = new Set(enviandoIds.value); newSet.add(inf.id); enviandoIds.value = newSet
   try {
-    const { data } = await api.post(`/informes/${inf.id}/enviar`, {})
+    const data = await informesService.enviar(inf.id)
     const idx = informes.value.findIndex(i => i.id === inf.id)
     if (idx >= 0) {
       informes.value[idx].correo_enviado    = true
@@ -1118,7 +1119,7 @@ async function enviarUno(inf) {
     if (drawerInf.value?.id === inf.id) drawerInf.value = informes.value[idx]
     toast(`✉️ Enviado a ${data.enviado_a}`)
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     const ns = new Set(enviandoIds.value); ns.delete(inf.id); enviandoIds.value = ns
   }
@@ -1150,7 +1151,7 @@ async function ejecutarEnvioBatch() {
       progBatch.value = { ...progBatch.value, actual: inf.proyecto_nombre || inf.sub_project }
       const nombre = `${inf.proyecto_nombre || inf.sub_project} · ${inf.periodo_display || inf.periodo_desde}`
       try {
-        const { data } = await api.post(`/informes/${inf.id}/enviar`, {})
+        const data = await informesService.enviar(inf.id)
         const ix = informes.value.findIndex(i => i.id === inf.id)
         if (ix >= 0) {
           informes.value[ix].correo_enviado    = true
@@ -1159,7 +1160,7 @@ async function ejecutarEnvioBatch() {
         }
         detalles.push({ id: inf.id, nombre, ok: true, msg: `Enviado a ${data.enviado_a}` })
       } catch (e) {
-        detalles.push({ id: inf.id, nombre, ok: false, msg: e.response?.data?.detail || e.message })
+        detalles.push({ id: inf.id, nombre, ok: false, msg: e.data?.detail || e.message })
       } finally {
         progBatch.value = { ...progBatch.value, hechos: progBatch.value.hechos + 1 }
       }

@@ -159,13 +159,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import Select from 'primevue/select'
-import api from '~/core/client'
+import { MandatosService } from '~/features/finanzas/services/mandatos'
 import { toast } from 'vue-sonner'
 import { CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, DownloadIcon, FileInputIcon, LoaderCircleIcon, MailIcon, PaperclipIcon, SearchIcon, SendIcon, Share2Icon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
 
 
 const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+const mandatosService = new MandatosService()
 
 // Período inicial: mayo 2025 (donde viven los datos de prueba).
 const anio = ref(2025)
@@ -202,10 +204,7 @@ async function confirmarCargaZip() {
   if (!archivoZip.value || !periodoZip.value) return
   subiendoZip.value = true
   try {
-    const fd = new FormData()
-    fd.append('periodo', periodoZip.value)
-    fd.append('file', archivoZip.value)
-    const { data } = await api.post('/mandatos/upload-zip', fd)
+    const data = await mandatosService.subirZip(periodoZip.value, archivoZip.value)
     resumenZip.value = data
     mostrarDialogoZip.value = false
     const [y, m] = periodoZip.value.split('-')
@@ -213,7 +212,7 @@ async function confirmarCargaZip() {
     await cargar()
     toast.success(`ZIP cargado: ${data.creados} creados`, { duration: 4000 })
   } catch (err) {
-    toast.error('No se pudo cargar el ZIP', { description: err.response?.data?.detail || '', duration: 4000 })
+    toast.error('No se pudo cargar el ZIP', { description: err.data?.detail || '', duration: 4000 })
   } finally {
     subiendoZip.value = false
     archivoZip.value = null
@@ -222,7 +221,7 @@ async function confirmarCargaZip() {
 
 async function asignarSugerencia(s) {
   try {
-    await api.patch(`/mandatos/${s.mandato_id}`, { inversionista_id: s.sugerido_id, estado: 'pendiente_envio' })
+    await mandatosService.asignarInversionista(s.mandato_id, { inversionista_id: s.sugerido_id, estado: 'pendiente_envio' })
     resumenZip.value.sugerencias = resumenZip.value.sugerencias.filter(x => x.mandato_id !== s.mandato_id)
     await cargar()
     toast.success(`${s.cmu} → ${s.sugerido_nombre}`, { duration: 2500 })
@@ -233,7 +232,7 @@ async function asignarSugerencia(s) {
 
 async function descargarPdf(m) {
   try {
-    const { data } = await api.get(`/mandatos/${m.id}/pdf`, { responseType: 'blob' })
+    const data = await mandatosService.descargarPdf(m.id)
     const url = URL.createObjectURL(data)
     window.open(url, '_blank')
     setTimeout(() => URL.revokeObjectURL(url), 60000)
@@ -253,10 +252,7 @@ async function onSubirFirmado(e) {
   if (!archivo) return
   subiendoPdf.value = true
   try {
-    const fd = new FormData()
-    fd.append('periodo', periodo.value)
-    fd.append('file', archivo)
-    const { data } = await api.post('/mandatos/upload-firmado', fd)
+    const data = await mandatosService.subirFirmado(periodo.value, archivo)
     if (data.asociado) {
       toast.success(`PDF asociado a ${data.mandato.cmu}`, { duration: 3000 })
     } else {
@@ -359,15 +355,15 @@ async function cargar() {
   cargando.value = true
   try {
     const [r1, r2, r3, r4] = await Promise.allSettled([
-      api.get('/mandatos', { params: { periodo: periodo.value } }),
-      api.get('/mandatos/periodos'),
-      api.get('/mandatos/resumen', { params: { periodo: periodo.value } }),
-      api.get('/mandato-inversionistas'),
+      mandatosService.listar(periodo.value),
+      mandatosService.listarPeriodos(),
+      mandatosService.obtenerResumen(periodo.value),
+      mandatosService.listarInversionistas(),
     ])
-    mandatos.value = r1.status === 'fulfilled' ? r1.value.data : []
-    periodosInfo.value = r2.status === 'fulfilled' ? r2.value.data : []
-    resumen.value = r3.status === 'fulfilled' ? r3.value.data : resumen.value
-    inversionistas.value = r4.status === 'fulfilled' ? r4.value.data : []
+    mandatos.value = r1.status === 'fulfilled' ? r1.value : []
+    periodosInfo.value = r2.status === 'fulfilled' ? r2.value : []
+    resumen.value = r3.status === 'fulfilled' ? r3.value : resumen.value
+    inversionistas.value = r4.status === 'fulfilled' ? r4.value : []
   } catch {
     mandatos.value = []
   } finally {

@@ -239,7 +239,8 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import api             from '~/core/client'
+import { OmService } from '~/features/finanzas/services/om'
+import { formatCOP } from '~/utils/currency'
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, CircleXIcon, CloudUploadIcon, DownloadIcon, ExternalLinkIcon, FileTextIcon, InboxIcon, LoaderCircleIcon, PaperclipIcon, TriangleAlertIcon } from '@lucide/vue'
 
 
@@ -279,6 +280,8 @@ const proyectosOM           = ref([])
 const asignacionSeleccionada = reactive({})   // { [sin_match_id]: contrato_id }
 const asignando              = reactive({})   // { [sin_match_id]: boolean }
 
+const omService = new OmService()
+
 const puedeSubir = computed(() => !!(archivoSeleccionado.value || linkExterno.value.startsWith('http')))
 
 function onFacturaChange(e) {
@@ -295,7 +298,7 @@ function fmtFecha(iso) {
 async function cargarFactura() {
   const periodoReq = periodoActual.value
   try {
-    const { data } = await api.get(`/om/factura/${periodoReq}`)
+    const data = await omService.obtenerFactura(periodoReq)
     if (periodoReq !== periodoActual.value) return   // respuesta obsoleta
     factura.value = data
     sinMatchPendientes.value = data.sin_match_pendientes ?? []
@@ -304,8 +307,7 @@ async function cargarFactura() {
 
 async function cargarProyectosOM() {
   try {
-    const { data } = await api.get('/om/proyectos')
-    proyectosOM.value = data
+    proyectosOM.value = await omService.listarProyectos()
   } catch { /* el selector de asignación queda vacío si falla */ }
 }
 
@@ -314,9 +316,7 @@ async function asignarSinMatch(item) {
   if (!contratoId) return
   asignando[item.id] = true
   try {
-    await api.patch(`/om/factura/${periodoActual.value}/sin-match/${item.id}/asignar`, {
-      contrato_id: contratoId,
-    })
+    await omService.asignarSinMatch(periodoActual.value, item.id, contratoId)
     sinMatchPendientes.value = sinMatchPendientes.value.filter(s => s.id !== item.id)
     delete asignacionSeleccionada[item.id]
     toast.success('Página asignada correctamente', { duration: 2500 })
@@ -328,20 +328,20 @@ async function asignarSinMatch(item) {
   }
 }
 
-// Usa el cliente axios central (inyecta el Bearer token vía interceptor) en vez de un
+// Usa OmService (inyecta el Bearer token vía el cliente air compartido) en vez de un
 // <a href> directo — VITE_API_URL no está definida en el build de producción, y aunque
 // lo estuviera, el endpoint exige Authorization: Bearer, que un <a> no puede enviar.
 async function descargarFacturaConsolidada() {
   try {
-    const resp = await api.get(`/om/factura/${periodoActual.value}/file`, { responseType: 'blob' })
-    const url = URL.createObjectURL(resp.data)
+    const blob = await omService.descargarFacturaArchivo(periodoActual.value)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = factura.value.nombre_archivo || `factura-${periodoActual.value}.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 100)
   } catch (e) {
-    if (e.response?.status === 404) {
+    if (e.status === 404) {
       toast.warning('Archivo no disponible', {
         description: 'La factura de este período ya no está en el servidor. Vuélvela a subir con "Reemplazar".',
         duration: 6000,
@@ -357,14 +357,10 @@ async function subirFactura() {
   subiendoFactura.value = true
   try {
     if (archivoSeleccionado.value) {
-      const form = new FormData()
-      form.append('file', archivoSeleccionado.value)
-      const { data } = await api.post(`/om/factura/${periodoActual.value}/upload`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const data = await omService.subirFactura(periodoActual.value, archivoSeleccionado.value)
       splitResult.value = data.splitting_result ?? null
     } else {
-      await api.put(`/om/factura/${periodoActual.value}/enlace`, {
+      await omService.guardarFacturaEnlace(periodoActual.value, {
         enlace_pdf: linkExterno.value,
         nombre_archivo: linkExterno.value,
       })
@@ -381,18 +377,13 @@ async function subirFactura() {
   }
 }
 
-function formatCOP(v) {
-  if (v == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-
 async function cargarDatos() {
   const periodoReq = periodoActual.value
   loading.value = true
   try {
-    const res = await api.get(`/om/calculo/${periodoReq}`)
+    const res = await omService.obtenerCalculo(periodoReq)
     if (periodoReq !== periodoActual.value) return   // respuesta obsoleta: ya se cambió de mes
-    filas.value = res.data.filas.filter(f => f.incluido && f.habilitado)
+    filas.value = res.filas.filter(f => f.incluido && f.habilitado)
   } catch {
     if (periodoReq !== periodoActual.value) return
     toast.error('Error al cargar', { duration: 3000 })
@@ -404,7 +395,7 @@ async function cargarDatos() {
 async function toggleFacturado(fila) {
   toggling[fila.contrato_id] = true
   try {
-    await api.patch(`/om/seleccion/${periodoActual.value}/${fila.contrato_id}/facturado`)
+    await omService.marcarFacturado(periodoActual.value, fila.contrato_id)
     fila.facturado = !fila.facturado
   } catch {
     toast.error('Error al actualizar estado', { duration: 3000 })

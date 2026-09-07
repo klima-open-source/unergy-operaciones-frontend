@@ -82,8 +82,10 @@
 
 <script setup>
 import { ref } from 'vue'
-import api from '~/core/client'
+import { RecuperacionPasswordService } from '~/features/auth/services/recuperacion'
 import { CheckIcon, LoaderCircleIcon } from '@lucide/vue'
+
+const recuperacionService = new RecuperacionPasswordService()
 
 const email = ref('')
 const loading = ref(false)
@@ -94,7 +96,7 @@ async function submit() {
   loading.value = true
   error.value = ''
   try {
-    await api.post('/auth/forgot-password', { email: email.value })
+    await recuperacionService.solicitar(email.value)
     sent.value = true
   } catch (e) {
     // Always show success to prevent email enumeration

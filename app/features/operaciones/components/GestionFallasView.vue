@@ -46,8 +46,6 @@
         optionValue="id" placeholder="Proyecto" showClear filter class="w-36" size="small" />
       <Select v-model="filtroPrioridad" :options="catalogos.prioridades"
         optionLabel="etiqueta" optionValue="codigo" placeholder="Prioridad" showClear class="w-32" size="small" />
-      <Select v-model="filtroAsignado" :options="opcionesAsignado"
-        optionLabel="label" optionValue="value" placeholder="Responsable" showClear filter class="w-36" size="small" />
       <Select v-model="filtroEstado" :options="catalogos.estados"
         optionLabel="etiqueta" optionValue="codigo" placeholder="Estado" showClear class="w-32" size="small" />
       <DatePicker v-model="filtroFechaDesde" placeholder="Desde" dateFormat="yy-mm-dd"
@@ -90,7 +88,7 @@
               <code class="gf-compact-code">{{ f.codigo_interno }}</code>
               <span v-if="f.estado?.codigo"
                 class="gf-compact-dot"
-                :style="{ background: f.estado?.color_hex || 'var(--color-unergy-purple)' }"
+                :style="{ background: colorEstado(f.estado?.codigo, 'var(--color-unergy-purple)') }"
                 v-tooltip.right="f.estado?.etiqueta" />
             </div>
             <div class="gf-compact-line2">{{ tituloFalla(f) }}</div>
@@ -162,21 +160,6 @@
           </template>
         </Column>
 
-        <Column header="Asignado" style="width:160px">
-          <template #body="{ data }">
-            <div v-if="data.asignado_a" class="flex items-center gap-2">
-              <div class="avatar-sm" :style="avatarStyle(data.asignado_a)">
-                {{ initials(data.asignado_a.nombre) }}
-              </div>
-              <span class="text-xs text-gray-700 truncate flex-1">{{ data.asignado_a.nombre }}</span>
-            </div>
-            <div v-else class="flex items-center gap-2 text-gray-400">
-              <div class="avatar-sm avatar-sm--empty"><UserIcon class="text-[10px] size-[1em]" /></div>
-              <span class="text-xs">Sin asignar</span>
-            </div>
-          </template>
-        </Column>
-
         <Column header="Prioridad" style="width:100px">
           <template #body="{ data }">
             <span class="prio-pill" :style="prioPillStyle(data.prioridad?.codigo)">
@@ -187,7 +170,7 @@
 
         <Column header="Estado" style="width:130px">
           <template #body="{ data }">
-            <GBadge :color="data.estado?.color_hex || '#915BD8'">{{ data.estado?.etiqueta || '—' }}</GBadge>
+            <GBadge :color="colorEstado(data.estado?.codigo)">{{ data.estado?.etiqueta || '—' }}</GBadge>
           </template>
         </Column>
 
@@ -264,7 +247,7 @@
 
             <!-- Badges (estado, prioridad, categoría) -->
             <div class="flex flex-wrap gap-1.5">
-              <GBadge :color="drawerFalla.estado?.color_hex || '#915BD8'">{{ drawerFalla.estado?.etiqueta }}</GBadge>
+              <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{ drawerFalla.estado?.etiqueta }}</GBadge>
               <span class="prio-pill" :style="prioPillStyle(drawerFalla.prioridad?.codigo)">
                 {{ drawerFalla.prioridad?.etiqueta }}
               </span>
@@ -277,16 +260,6 @@
               <div class="gf-fact">
                 <dt class="gf-fact-label"><BuildingIcon class="size-[1em]" /> Proyecto</dt>
                 <dd class="gf-fact-value">{{ drawerFalla.proyecto?.nombre_comercial || '—' }}</dd>
-              </div>
-              <div class="gf-fact">
-                <dt class="gf-fact-label"><UserIcon class="size-[1em]" /> Asignado</dt>
-                <dd class="gf-fact-value">
-                  <div v-if="drawerFalla.asignado_a" class="flex items-center gap-1.5">
-                    <div class="avatar-xs" :style="avatarStyle(drawerFalla.asignado_a)">{{ initials(drawerFalla.asignado_a.nombre) }}</div>
-                    <span>{{ drawerFalla.asignado_a.nombre }}</span>
-                  </div>
-                  <span v-else class="text-gray-500">Sin asignar</span>
-                </dd>
               </div>
               <div class="gf-fact">
                 <dt class="gf-fact-label"><CalendarIcon class="size-[1em]" /> Identificada</dt>
@@ -307,9 +280,9 @@
                 <dt class="gf-fact-label"><ClockIcon class="size-[1em]" /> Tiempo de afectación</dt>
                 <dd class="gf-fact-value font-semibold" style="color:#b45309">{{ fmtDuracion(drawerFalla.tiempo_afectacion_horas) }}</dd>
               </div>
-              <div v-if="drawerFalla.energia_perdida_kwh != null" class="gf-fact">
+              <div v-if="drawerFalla.kwh_perdidos_estimado != null" class="gf-fact">
                 <dt class="gf-fact-label"><ZapIcon class="size-[1em]" /> Energía perdida</dt>
-                <dd class="gf-fact-value text-red-700 font-semibold">{{ Number(drawerFalla.energia_perdida_kwh).toLocaleString('es-CO') }} kWh</dd>
+                <dd class="gf-fact-value text-red-700 font-semibold">{{ Number(drawerFalla.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</dd>
               </div>
             </dl>
           </section>
@@ -341,12 +314,6 @@
                     optionLabel="etiqueta" optionValue="id" class="flex-1"
                     @change="autosaveQuick()" />
                 </div>
-                <div class="gf-field-row">
-                  <label class="gf-field-label">Asignado</label>
-                  <Select v-model="quickEdit.asignado_a_id" :options="usuarios"
-                    optionLabel="nombre" optionValue="id" placeholder="Sin asignar" showClear filter
-                    class="flex-1" @change="autosaveQuick()" />
-                </div>
               </div>
             </section>
 
@@ -355,19 +322,15 @@
               <header class="gf-section-head">
                 <ClockIcon class="gf-section-icon size-[1em]" />
                 <h3 class="gf-section-title">SLA</h3>
-                <GBadge v-if="drawerFalla.sla_limite_horas" class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
-                <span v-else class="ml-auto text-xs text-gray-500">Sin límite</span>
+                <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
               </header>
-              <template v-if="drawerFalla.sla_limite_horas">
-                <div class="gf-sla-stat">
-                  <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
-                  <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas }}h</span>
-                </div>
-                <div class="bg-gray-200 rounded-full h-2 overflow-hidden mt-2">
-                  <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
-                </div>
-              </template>
-              <p v-else class="text-sm text-gray-600 mt-1">Esta falla no tiene SLA configurado.</p>
+              <div class="gf-sla-stat">
+                <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
+                <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas_efectivo }}h</span>
+              </div>
+              <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
+                <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
+              </div>
             </section>
           </div>
 
@@ -436,7 +399,7 @@
                   </div>
                   <p v-if="seg.nota" class="gf-body-text whitespace-pre-line">{{ seg.nota }}</p>
                   <div v-if="seg.estado_nuevo" class="mt-1.5">
-                    <GBadge :color="seg.estado_nuevo?.color_hex || '#915BD8'">{{ seg.estado_nuevo?.etiqueta }}</GBadge>
+                    <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)">{{ seg.estado_nuevo?.etiqueta }}</GBadge>
                   </div>
                 </div>
               </div>
@@ -498,7 +461,7 @@
 </template>
 
 <script setup>
-import { ArrowRightIcon, BuildingIcon, CalendarClockIcon, CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, ExternalLinkIcon, InboxIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, Trash2Icon, UserIcon, UserPenIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, BuildingIcon, CalendarClockIcon, CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, ExternalLinkIcon, InboxIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, Trash2Icon, UserPenIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -513,11 +476,15 @@ import DatePicker from 'primevue/datepicker'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import FallaForm from '~/features/fallas/components/FallaForm.vue'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { tituloFalla, categoriaFalla } from '~/features/fallas/utils/fallaTitulo'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 
 const route = useRoute()
 const router = useRouter()
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
 const confirm = useConfirm()
 
 // ── Constantes ──────────────────────────────────────────────────────────
@@ -528,42 +495,32 @@ const BUCKETS = [
   { key: 'todas',       label: 'Todas',       icon: ListIcon,          color: '#915BD8' },
 ]
 
-const PRIO_COLORS = {
-  critica: '#dc2626',
-  alta:    '#ea580c',
-  media:   '#d97706',
-  baja:    '#6b7280',
-}
-
 const AVATAR_PALETTE = ['#915BD8', '#2563eb', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#7c3aed', '#db2777']
 
 // ── Estado base ──────────────────────────────────────────────────────────
 const allFallas = ref([])
 const proyectos = ref([])
-const usuarios = ref([])
 const catalogos = ref({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 
 const loading = ref(false)
 const error = ref(null)
 
 const bucket = ref('todas')
-// Sincronizados con la URL (?q=&proyecto=&prioridad=&asignado=&estado=&desde=&hasta=)
+// Sincronizados con la URL (?q=&proyecto=&prioridad=&estado=&desde=&hasta=)
 // para que se sostengan al volver con "atras" o al refrescar.
 const search = ref(route.query.q || '')
 const filtroProyecto = ref(route.query.proyecto ? Number(route.query.proyecto) : null)
 const filtroPrioridad = ref(route.query.prioridad || null)
-const filtroAsignado = ref(route.query.asignado ? Number(route.query.asignado) : null)
 const filtroEstado = ref(route.query.estado || null)
 const filtroFechaDesde = ref(route.query.desde ? new Date(route.query.desde) : null)
 const filtroFechaHasta = ref(route.query.hasta ? new Date(route.query.hasta) : null)
 
-watch([search, filtroProyecto, filtroPrioridad, filtroAsignado, filtroEstado, filtroFechaDesde, filtroFechaHasta],
-  ([q, proyecto, prioridad, asignado, estado, desde, hasta]) => {
+watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
+  ([q, proyecto, prioridad, estado, desde, hasta]) => {
     const query = {}
     if (q) query.q = q
     if (proyecto) query.proyecto = proyecto
     if (prioridad) query.prioridad = prioridad
-    if (asignado) query.asignado = asignado
     if (estado) query.estado = estado
     if (desde) query.desde = desde.toISOString().split('T')[0]
     if (hasta) query.hasta = hasta.toISOString().split('T')[0]
@@ -582,7 +539,6 @@ const drawerFalla = ref(null)
 const quickEdit = reactive({
   estado_id: null,
   prioridad_id: null,
-  asignado_a_id: null,
 })
 const savingQuick = ref(false)
 const savedFlash = ref(false)
@@ -599,10 +555,6 @@ const editingFalla = ref(null)
 const savingForm = ref(false)
 
 // ── Computed ─────────────────────────────────────────────────────────────
-const opcionesAsignado = computed(() => [
-  { value: '__none__', label: 'Sin asignar' },
-  ...usuarios.value.map(u => ({ value: u.id, label: u.nombre })),
-])
 
 const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
 
@@ -639,8 +591,6 @@ const filtradas = computed(() => {
   if (filtroProyecto.value) arr = arr.filter(f => f.proyecto?.id === filtroProyecto.value)
   if (filtroPrioridad.value) arr = arr.filter(f => f.prioridad?.codigo === filtroPrioridad.value)
   if (filtroEstado.value) arr = arr.filter(f => f.estado?.codigo === filtroEstado.value)
-  if (filtroAsignado.value === '__none__') arr = arr.filter(f => !f.asignado_a)
-  else if (filtroAsignado.value) arr = arr.filter(f => f.asignado_a?.id === filtroAsignado.value)
   if (filtroFechaDesde.value) {
     const desde = startOfDay(filtroFechaDesde.value)
     arr = arr.filter(f => f.fecha_identificacion && new Date(f.fecha_identificacion + 'T00:00:00') >= desde)
@@ -653,7 +603,7 @@ const filtradas = computed(() => {
 })
 
 const hayFiltros = computed(() =>
-  search.value || filtroProyecto.value || filtroPrioridad.value || filtroAsignado.value ||
+  search.value || filtroProyecto.value || filtroPrioridad.value ||
   filtroEstado.value || filtroFechaDesde.value || filtroFechaHasta.value
 )
 
@@ -703,23 +653,23 @@ async function cargar() {
   loading.value = true
   error.value = null
   try {
-    const { data: primera } = await api.get('/fallas', { params: { page: 1, size: 500 } })
+    const primera = await fallasService.listar({ page: 1, size: 500 })
     const total = primera.total ?? 0
     const items = [...(primera.items ?? [])]
     if (total > 500) {
       const totalPages = Math.ceil(total / 500)
       const rest = await Promise.allSettled(
         Array.from({ length: totalPages - 1 }, (_, i) =>
-          api.get('/fallas', { params: { page: i + 2, size: 500 } })
+          fallasService.listar({ page: i + 2, size: 500 })
         )
       )
       for (const r of rest) {
-        if (r.status === 'fulfilled') items.push(...(r.value.data.items ?? []))
+        if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
       }
     }
     allFallas.value = items
   } catch (e) {
-    error.value = e.response?.data?.detail || e.message || 'Error de conexión'
+    error.value = e.data?.detail || e.message || 'Error de conexión'
   } finally {
     loading.value = false
   }
@@ -727,23 +677,14 @@ async function cargar() {
 
 async function cargarCatalogos() {
   try {
-    const { data } = await api.get('/fallas/catalogos')
-    catalogos.value = data
+    catalogos.value = await fallasService.obtenerCatalogos()
   } catch { /* no crítico */ }
 }
 
 async function cargarProyectos() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    proyectos.value = data.items ?? []
+    proyectos.value = await proyectosService.listar({ size: 500 })
   } catch { /* no crítico */ }
-}
-
-async function cargarUsuarios() {
-  try {
-    const { data } = await api.get('/usuarios', { params: { size: 200 } })
-    usuarios.value = data.items ?? []
-  } catch { /* /usuarios puede no existir */ }
 }
 
 // ── Acciones ─────────────────────────────────────────────────────────────
@@ -751,7 +692,6 @@ function limpiarFiltros() {
   search.value = ''
   filtroProyecto.value = null
   filtroPrioridad.value = null
-  filtroAsignado.value = null
   filtroEstado.value = null
   filtroFechaDesde.value = null
   filtroFechaHasta.value = null
@@ -767,14 +707,13 @@ async function abrirDrawer(falla) {
   drawerFalla.value = falla
   quickEdit.estado_id = falla.estado?.id ?? null
   quickEdit.prioridad_id = falla.prioridad?.id ?? null
-  quickEdit.asignado_a_id = falla.asignado_a?.id ?? null
   nuevaNota.nota = ''
   nuevaNota.estado_id = null
   drawerVisible.value = true
 
   cargandoSeguimientos.value = true
   try {
-    const { data } = await api.get(`/fallas/${falla.id}`)
+    const data = await fallasService.obtener(falla.id)
     if (drawerFalla.value?.id === falla.id) drawerFalla.value = data
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
@@ -807,9 +746,9 @@ async function onSaveForm(payload) {
     if (editingFalla.value) {
       // eslint-disable-next-line no-unused-vars
       const { nota_inicial: notaInicial, _archivos, ...patchPayload } = payload
-      await api.patch(`/fallas/${editingFalla.value.id}`, patchPayload)
+      await fallasService.actualizar(editingFalla.value.id, patchPayload)
       if (notaInicial) {
-        api.post(`/fallas/${editingFalla.value.id}/seguimientos`, { nota: notaInicial }).catch(() => {})
+        fallasService.crearSeguimiento(editingFalla.value.id, { nota: notaInicial }).catch(() => {})
       }
       toast.success('Falla actualizada', { duration: 2500 })
     } else {
@@ -820,11 +759,11 @@ async function onSaveForm(payload) {
       if (!ids.length) throw new Error('Selecciona al menos un proyecto')
       const created = []
       for (const pid of ids) {
-        const { data: nueva } = await api.post('/fallas', { ...basePayload, proyecto_id: pid })
+        const nueva = await fallasService.crear({ ...basePayload, proyecto_id: pid })
         created.push(nueva)
         // La nota inicial se agrega por separado — no bloquea el guardado si falla
         if (nota_inicial) {
-          api.post(`/fallas/${nueva.id}/seguimientos`, { nota: nota_inicial }).catch(() => {})
+          fallasService.crearSeguimiento(nueva.id, { nota: nota_inicial }).catch(() => {})
         }
       }
       toast.success(created.length > 1 ? `${created.length} fallas registradas` : 'Falla registrada', {
@@ -839,7 +778,7 @@ async function onSaveForm(payload) {
       if (refreshed) abrirDrawer(refreshed)
     }
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al guardar'
+    const msg = err?.data?.detail ?? 'Error al guardar'
     toast.error('Error', { description: msg, duration: 4000 })
   } finally {
     savingForm.value = false
@@ -858,25 +797,21 @@ async function guardarQuickEdit() {
   const payload = {}
   if (quickEdit.estado_id !== drawerFalla.value.estado?.id) payload.estado_id = quickEdit.estado_id
   if (quickEdit.prioridad_id !== drawerFalla.value.prioridad?.id) payload.prioridad_id = quickEdit.prioridad_id
-  if ((quickEdit.asignado_a_id ?? null) !== (drawerFalla.value.asignado_a?.id ?? null)) {
-    payload.asignado_a_id = quickEdit.asignado_a_id
-  }
   if (!Object.keys(payload).length) return
 
   savingQuick.value = true
   try {
-    const { data } = await api.patch(`/fallas/${drawerFalla.value.id}`, payload)
+    const data = await fallasService.actualizar(drawerFalla.value.id, payload)
     drawerFalla.value = data
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     savedFlash.value = true
     setTimeout(() => { savedFlash.value = false }, 1500)
   } catch (err) {
-    toast.error('No se pudo guardar', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('No se pudo guardar', { description: err?.data?.detail, duration: 3000 })
     // Revertir UI
     quickEdit.estado_id = drawerFalla.value.estado?.id ?? null
     quickEdit.prioridad_id = drawerFalla.value.prioridad?.id ?? null
-    quickEdit.asignado_a_id = drawerFalla.value.asignado_a?.id ?? null
   } finally {
     savingQuick.value = false
   }
@@ -906,7 +841,7 @@ async function confirmarResolver() {
   const falla = resolveDialog.falla
   resolvingFalla.value = true
   try {
-    const { data } = await api.patch(`/fallas/${falla.id}`, {
+    const data = await fallasService.actualizar(falla.id, {
       estado_id: resolveDialog.estadoId,
       fecha_resolucion: resolveDialog.fecha.toISOString(),
       sla_cumplido: !slaVencido(falla),
@@ -917,7 +852,7 @@ async function confirmarResolver() {
     resolveDialog.visible = false
     toast.success('Falla resuelta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   } finally {
     resolvingFalla.value = false
   }
@@ -931,7 +866,7 @@ async function reabrirFalla() {
     return
   }
   try {
-    const { data } = await api.patch(`/fallas/${drawerFalla.value.id}`, {
+    const data = await fallasService.actualizar(drawerFalla.value.id, {
       estado_id: abierta.id,
       fecha_resolucion: null,
     })
@@ -941,7 +876,7 @@ async function reabrirFalla() {
     quickEdit.estado_id = data.estado?.id ?? null
     toast.success('Falla reabierta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   }
 }
 
@@ -952,18 +887,18 @@ async function agregarSeguimiento() {
     const payload = {}
     if (nuevaNota.nota.trim()) payload.nota = nuevaNota.nota.trim()
     if (nuevaNota.estado_id) payload.estado_nuevo_id = nuevaNota.estado_id
-    await api.post(`/fallas/${drawerFalla.value.id}/seguimientos`, payload)
+    await fallasService.crearSeguimiento(drawerFalla.value.id, payload)
     nuevaNota.nota = ''
     nuevaNota.estado_id = null
     // Refrescar la falla del drawer
-    const { data } = await api.get(`/fallas/${drawerFalla.value.id}`)
+    const data = await fallasService.obtener(drawerFalla.value.id)
     drawerFalla.value = data
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     quickEdit.estado_id = data.estado?.id ?? null
     toast.success('Seguimiento agregado', { duration: 2000 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   } finally {
     addingSeg.value = false
   }
@@ -978,19 +913,19 @@ function confirmDelete(falla) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/fallas/${falla.id}`)
+        await fallasService.eliminar(falla.id)
         allFallas.value = allFallas.value.filter(f => f.id !== falla.id)
         drawerVisible.value = false
         toast.success('Falla eliminada', { duration: 2500 })
       } catch (err) {
-        toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+        toast.error('Error', { description: err?.data?.detail, duration: 3000 })
       }
     },
   })
 }
 
 // ── Helpers visuales ─────────────────────────────────────────────────────
-function prioColor(codigo) { return PRIO_COLORS[codigo] || '#9ca3af' }
+function prioColor(codigo) { return colorPrioridad(codigo, '#9ca3af') }
 function prioPillStyle(codigo) {
   const c = prioColor(codigo)
   return { background: c + '18', color: c, border: `1px solid ${c}40` }
@@ -1036,8 +971,8 @@ function horasTranscurridas(falla) {
 }
 
 function slaPct(falla) {
-  if (!falla?.sla_limite_horas) return null
-  return Math.min(Math.round((horasTranscurridas(falla) / falla.sla_limite_horas) * 100), 110)
+  if (!falla?.sla_limite_horas_efectivo) return null
+  return Math.min(Math.round((horasTranscurridas(falla) / falla.sla_limite_horas_efectivo) * 100), 110)
 }
 
 function slaVencido(falla) {
@@ -1170,7 +1105,6 @@ onMounted(() => {
   cargar()
   cargarCatalogos()
   cargarProyectos()
-  cargarUsuarios()
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
     measureHeader()
@@ -1689,7 +1623,7 @@ watch(bucket, (newBucket) => {
   margin-top: 4px;
 }
 .gf-sla-num { font-size: 28px; font-weight: 800; line-height: 1; }
-.gf-sla-of { font-size: 13px; color: #6b5a8a; font-weight: 500; }
+.gf-sla-of { font-size: 16px; color: #4a3b6b; font-weight: 600; }
 
 /* Avatar tamaños */
 .avatar-xs {

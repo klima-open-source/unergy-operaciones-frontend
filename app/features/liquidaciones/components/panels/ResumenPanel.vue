@@ -171,7 +171,7 @@ import {
   Title, Tooltip, Legend, Filler,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
 import { fmtCompact, formatPeriodo, estadoFlujoPanel, ESTADO_FLUJO } from '~/features/liquidaciones/utils/liquidaciones'
 import { ArrowDownLeftIcon, ArrowUpRightIcon, CircleCheckIcon, ClockIcon, EyeIcon, InboxIcon, PercentIcon, TriangleAlertIcon, WalletIcon } from '@lucide/vue'
 
@@ -182,6 +182,7 @@ const props = defineProps({
   tipo: { type: String, default: 'preliquidacion' },
 })
 const router = useRouter()
+const liquidacionesService = new LiquidacionesService()
 
 const loading = ref(false)
 const periodosData = ref([])   // [{periodo, resumen, proyectos}] del Panel (ventana 12m)
@@ -339,13 +340,13 @@ async function load() {
   try {
     // Rango (tendencia/tabla) + período único (para 'sin_panel' de las alertas).
     const [rango, unico] = await Promise.allSettled([
-      api.get('/liquidaciones/resumen-panel-rango', {
-        params: { periodo_desde: ventana.value.desde, periodo_hasta: ventana.value.hasta, tipo: props.tipo },
+      liquidacionesService.obtenerResumenPanelRango({
+        periodo_desde: ventana.value.desde, periodo_hasta: ventana.value.hasta, tipo: props.tipo,
       }),
-      api.get('/liquidaciones/resumen-panel', { params: { periodo: periodoYYYYMM.value, tipo: props.tipo } }),
+      liquidacionesService.obtenerResumenPanel({ periodo: periodoYYYYMM.value, tipo: props.tipo }),
     ])
-    periodosData.value = rango.status === 'fulfilled' ? (rango.value.data.periodos || []) : []
-    sinPanel.value = unico.status === 'fulfilled' ? (unico.value.data.sin_panel || []) : []
+    periodosData.value = rango.status === 'fulfilled' ? (rango.value.periodos || []) : []
+    sinPanel.value = unico.status === 'fulfilled' ? (unico.value.sin_panel || []) : []
   } catch {
     periodosData.value = []
     sinPanel.value = []

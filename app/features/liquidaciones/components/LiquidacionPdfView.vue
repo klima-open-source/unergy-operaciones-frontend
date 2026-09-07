@@ -64,7 +64,10 @@ import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowLeftIcon, FileSpreadsheetIcon, FileTextIcon, PencilIcon, RefreshCwIcon, SaveIcon, UndoIcon } from '@lucide/vue'
 import {
   fmtCOP, pct, normPct, formatPeriodo,
@@ -73,6 +76,10 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+const liquidacionesService = new LiquidacionesService()
+const monitoreoLegacyService = new MonitoreoLegacyService()
+const contratosServicioService = new ContratosServicioService()
+const proyectosService = new ProyectosService()
 
 const liq = ref(null)
 const inversionistas = ref([])
@@ -106,8 +113,6 @@ const opcionesInv = computed(() => [
 ])
 
 const fmtKwh = (v) => v == null ? '—' : (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1) + ' MWh' : Math.round(v) + ' kWh')
-const _cop2 = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const fmtTarifa = (v) => v == null ? '—' : _cop2.format(v)
 // Administración se cobra como % (no $/kWh). Acepta fracción (0.02) o número (2).
 const fmtAdminPct = (v) => v == null ? '—' : `${(Math.abs(Number(v)) < 1 ? Number(v) * 100 : Number(v)).toFixed(2)}%`
 
@@ -293,8 +298,8 @@ function generacionSectionHtml() {
   const t = tarifas.value
   const hayTar = t.representacion != null || t.cgm != null || t.admin != null
   const tarifasHtml = hayTar ? `<div class="rpt-tarifas">
-      <div class="rpt-tar"><span>Representación ($/kWh)</span><b>${fmtTarifa(t.representacion)}</b></div>
-      <div class="rpt-tar"><span>CGM ($/kWh)</span><b>${fmtTarifa(t.cgm)}</b></div>
+      <div class="rpt-tar"><span>Representación ($/kWh)</span><b>${fmtCOP(t.representacion)}</b></div>
+      <div class="rpt-tar"><span>CGM ($/kWh)</span><b>${fmtCOP(t.cgm)}</b></div>
       <div class="rpt-tar"><span>Administración (%)</span><b>${fmtAdminPct(t.admin)}</b></div>
     </div>` : ''
   return `<section class="rpt-block">
@@ -394,7 +399,7 @@ function mesPrevio(periodo, k) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 async function resolverSub() {
-  const { data } = await api.get('/monitoreo/_legacy', { params: { action: 'getProjects' } })
+  const data = await monitoreoLegacyService.obtenerProyectos()
   const projects = data?.projects ?? []
   const pid = liq.value?.proyecto_id != null ? String(liq.value.proyecto_id) : null
   const nombre = _norm(liq.value?.proyecto_nombre)
@@ -404,7 +409,7 @@ async function resolverSub() {
   return m?.sub_project ?? null
 }
 async function _genData(sub, periodo) {
-  const { data } = await api.get('/monitoreo/_legacy', { params: { action: 'getGeneration', sub_project: sub, date_from: periodo, date_to: ultimoDiaMes(periodo) } })
+  const data = await monitoreoLegacyService.obtenerGeneracion({ sub_project: sub, date_from: periodo, date_to: ultimoDiaMes(periodo) })
   if (data && data.ok === false) return null
   const map = new Map()
   for (const it of (Array.isArray(data?.data) ? data.data : [])) {
@@ -436,7 +441,7 @@ async function loadTarifas() {
   tarifas.value = { representacion: null, cgm: null, admin: null }
   if (!liq.value?.proyecto_id) return
   try {
-    const { data } = await api.get('/contratos-servicio', { params: { proyecto_id: liq.value.proyecto_id } })
+    const data = await contratosServicioService.listar({ proyecto_id: liq.value.proyecto_id })
     const contratos = Array.isArray(data) ? data : []
     const anio = Number(liq.value.periodo.split('-')[0])
     const tar = (idx, base) => {
@@ -468,8 +473,8 @@ async function loadComparativo() {
     const [y, m] = per.split('-').map(Number)
     const d0 = new Date(y, m - 1 - 3, 1)
     const desde = `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}`
-    const { data } = await api.get('/liquidaciones/resumen-panel-rango', {
-      params: { periodo_desde: desde, periodo_hasta: per, tipo: 'preliquidacion' },
+    const data = await liquidacionesService.obtenerResumenPanelRango({
+      periodo_desde: desde, periodo_hasta: per, tipo: 'preliquidacion',
     })
     const byMes = {}
     for (const entry of (data.periodos || [])) {
@@ -491,18 +496,17 @@ async function loadComparativo() {
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get(`/liquidaciones/${route.params.id}`)
+    const data = await liquidacionesService.obtener(route.params.id)
     liq.value = data
     if (data?.proyecto_id) {
       try {
-        const r = await api.get(`/proyectos/${data.proyecto_id}/inversionistas`)
-        inversionistas.value = Array.isArray(r.data) ? r.data : (r.data?.items ?? [])
+        inversionistas.value = await proyectosService.listarInversionistas(data.proyecto_id)
       } catch { inversionistas.value = [] }
       // Estado de Resultados del informe = espejo del Panel Contable del período.
       try {
         const per = (data.periodo || '').slice(0, 7)
         if (per) {
-          const { data: rp } = await api.get('/liquidaciones/resumen-panel', { params: { periodo: per, tipo: 'preliquidacion' } })
+          const rp = await liquidacionesService.obtenerResumenPanel({ periodo: per, tipo: 'preliquidacion' })
           panelER.value = (rp.proyectos || []).find(p => p.proyecto_id === data.proyecto_id) || null
         }
       } catch { panelER.value = null }
@@ -512,7 +516,7 @@ async function load() {
     // Informe guardado en BD
     let guardado = null
     try {
-      const { data: inf } = await api.get(`/liquidaciones/${route.params.id}/informe`)
+      const inf = await liquidacionesService.obtenerInforme(route.params.id)
       guardado = inf?.html_content || null
       actualizadoEn.value = inf?.actualizado_en ? new Date(inf.actualizado_en).toLocaleString('es-CO') : null
     } catch { /* sin informe previo */ }
@@ -545,13 +549,13 @@ async function guardar() {
   saving.value = true
   try {
     const newHtml = contentRef.value.innerHTML
-    const { data } = await api.put(`/liquidaciones/${route.params.id}/informe`, { html_content: newHtml })
+    const data = await liquidacionesService.guardarInforme(route.params.id, newHtml)
     htmlContent.value = newHtml
     actualizadoEn.value = data?.actualizado_en ? new Date(data.actualizado_en).toLocaleString('es-CO') : null
     editMode.value = false
     toast('💾 Informe guardado en la base de datos')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || 'No se pudo guardar'), true)
+    toast('⚠️ ' + (e.data?.detail || 'No se pudo guardar'), true)
   } finally {
     saving.value = false
   }

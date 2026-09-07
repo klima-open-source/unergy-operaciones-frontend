@@ -276,8 +276,14 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import PPAContratoWizard from './PPAContratoWizard.vue'
 import ContratoServicioWizard from './ContratoServicioWizard.vue'
-import api from '~/core/client'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowRightIcon, BadgeCheckIcon, ChartColumnIcon, CircleCheckIcon, CopyIcon, FilePenIcon, MinusIcon, PlusIcon, SearchIcon, Trash2Icon, ZapIcon } from '@lucide/vue'
+
+const ppaService = new PpaService()
+const contratosServicioService = new ContratosServicioService()
+const proyectosService = new ProyectosService()
 
 const router = useRouter()
 const confirm = useConfirm()
@@ -352,11 +358,11 @@ function confirmarEliminar(contrato) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/ppa/${contrato.id}`)
+        await ppaService.eliminar(contrato.id)
         contratos.value = contratos.value.filter(c => c.id !== contrato.id)
         toast.success('Contrato eliminado', { duration: 2000 })
       } catch (e) {
-        const detail = e.response?.data?.detail
+        const detail = e.data?.detail
         toast.error('No se puede eliminar', {
           description: detail || 'Error al eliminar el contrato.',
           duration: 6000,
@@ -472,10 +478,7 @@ function onServicioCreado() {
 async function cargar() {
   loading.value = true
   try {
-    const params = {}
-    if (filtroQ.value) params.q = filtroQ.value
-    const { data } = await api.get('/ppa', { params })
-    contratos.value = data
+    contratos.value = await ppaService.listar(filtroQ.value ? { q: filtroQ.value } : {})
   } catch (e) {
     toast.error('Error al cargar contratos', { description: e.message, duration: 3000 })
   } finally {
@@ -486,8 +489,7 @@ async function cargar() {
 async function cargarPlantasRepresentacion() {
   loadingPlantas.value = true
   try {
-    const { data } = await api.get('/proyectos', { params: { servicio: 'representacion', size: 500 } })
-    plantasRepresentacion.value = data.items
+    plantasRepresentacion.value = await proyectosService.listarConServicioRepresentacion()
   } catch (e) {
     toast.error('Error al cargar plantas', { description: e.message, duration: 3000 })
   } finally {
@@ -498,8 +500,7 @@ async function cargarPlantasRepresentacion() {
 async function cargarServicio(tipo) {
   loadingServicio.value = true
   try {
-    const { data } = await api.get('/contratos-servicio', { params: { tipo } })
-    contratosServicio.value = data
+    contratosServicio.value = await contratosServicioService.listar({ tipo })
   } catch (e) {
     toast.error('Error al cargar contratos', { description: e.message, duration: 3000 })
   } finally {

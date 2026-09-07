@@ -569,8 +569,12 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import api from '~/core/client'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { conflictosAtribucion } from '~/features/mem/utils/validacionContratos'
+
+const ppaService = new PpaService()
+const proyectosService = new ProyectosService()
 import GesconModificacionForm from './GesconModificacionForm.vue'
 import GesconTerminacionForm from './GesconTerminacionForm.vue'
 import DataTable from 'primevue/datatable'
@@ -674,8 +678,7 @@ watch([rows, filtroEstado, filtroTipo, filtroMes, filtroAnio, filtroTexto], filt
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/asic')
-    rows.value = data
+    rows.value = await ppaService.listarAsic()
   } finally {
     loading.value = false
   }
@@ -821,11 +824,11 @@ function confirmarEliminar(row) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/asic/${row.id}`)
+        await ppaService.eliminarAsic(row.id)
         rows.value = rows.value.filter(r => r.id !== row.id)
         toast.success('Registro eliminado', { duration: 2000 })
       } catch (e) {
-        const detail = e.response?.data?.detail
+        const detail = e.data?.detail
         toast.error('No se puede eliminar', {
           description: detail || 'Error al eliminar el registro GESCON.',
           duration: 6000,
@@ -839,8 +842,8 @@ function confirmarEliminar(row) {
 const proyectos = ref([])
 async function cargarProyectos() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    proyectos.value = (data.items ?? data).sort((a, b) =>
+    const data = await proyectosService.listar({ size: 500 })
+    proyectos.value = data.sort((a, b) =>
       a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch { /* silencioso */ }
 }
@@ -849,8 +852,7 @@ async function cargarProyectos() {
 const contratos = ref([])
 async function cargarContratos() {
   try {
-    const { data } = await api.get('/ppa')
-    const items = Array.isArray(data) ? data : (data.items ?? [])
+    const items = await ppaService.listar()
     contratos.value = items.map(c => ({
       ...c,
       // _label = "código — nombre" pegados, para la búsqueda y la vista cerrada del Select
@@ -1124,20 +1126,20 @@ async function guardar() {
     }
 
     if (editandoId.value) {
-      const { data } = await api.patch(`/asic/${editandoId.value}`, payload)
+      const data = await ppaService.actualizarAsic(editandoId.value, payload)
       const idx = rows.value.findIndex(r => r.id === editandoId.value)
       if (idx !== -1) rows.value.splice(idx, 1, data)
       else rows.value = [data, ...rows.value]
       rows.value = [...rows.value]
       toast.success('Actualizado', { description: 'Contrato ASIC actualizado', duration: 3000 })
     } else {
-      const { data } = await api.post('/asic', payload)
+      const data = await ppaService.crearAsic(payload)
       rows.value = [data, ...rows.value]
       toast.success('Guardado', { description: 'Contrato ASIC registrado', duration: 3000 })
     }
     dialogVisible.value = false
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'Error al guardar', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'Error al guardar', duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -1183,12 +1185,12 @@ const backfillExecuting = ref(false)
 async function previewBackfill() {
   backfillLoading.value = true
   try {
-    const { data } = await api.post('/asic/backfill-nombre-interno', null, { params: { dry_run: true } })
+    const data = await ppaService.backfillNombreInterno(true)
     backfillReport.value = data
     backfillDialog.value = true
   } catch (e) {
     toast.error('No se pudo previsualizar', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   } finally {
@@ -1199,7 +1201,7 @@ async function previewBackfill() {
 async function applyBackfill() {
   backfillExecuting.value = true
   try {
-    const { data } = await api.post('/asic/backfill-nombre-interno', null, { params: { dry_run: false } })
+    const data = await ppaService.backfillNombreInterno(false)
     toast.success('Nombres internos completados', {
       description: `${data.a_actualizar} registro(s) actualizados.`,
       duration: 4000,
@@ -1209,7 +1211,7 @@ async function applyBackfill() {
     await cargar()  // recarga la tabla ya con los nombres completos
   } catch (e) {
     toast.error('El backfill falló (se revirtió)', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 7000,
     })
   } finally {
@@ -1231,12 +1233,12 @@ const backfillTermPendiente = computed(() =>
 async function previewBackfillTerm() {
   backfillTermLoading.value = true
   try {
-    const { data } = await api.post('/asic/backfill-terminaciones', null, { params: { dry_run: true } })
+    const data = await ppaService.backfillTerminaciones(true)
     backfillTermReport.value = data
     backfillTermDialog.value = true
   } catch (e) {
     toast.error('No se pudo previsualizar', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   } finally {
@@ -1247,7 +1249,7 @@ async function previewBackfillTerm() {
 async function applyBackfillTerm() {
   backfillTermExecuting.value = true
   try {
-    const { data } = await api.post('/asic/backfill-terminaciones', null, { params: { dry_run: false } })
+    const data = await ppaService.backfillTerminaciones(false)
     toast.success('Terminaciones completadas', {
       description: `${data.a_actualizar} terminación(es) con datos completados · `
             + `${data.a_recortar || 0} registro(s) con la fecha estampada.`,
@@ -1258,7 +1260,7 @@ async function applyBackfillTerm() {
     await cargar()
   } catch (e) {
     toast.error('El backfill falló (se revirtió)', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 7000,
     })
   } finally {

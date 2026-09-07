@@ -101,10 +101,7 @@
       <div v-else-if="proyectoSeleccionado" class="space-y-4 mt-3">
 
         <!-- Facturas históricas -->
-        <FacturasMantenimiento
-          :contrato-id="contratoMantenimientoId"
-          :proyecto-nombre="proyectoNombre"
-        />
+        <FacturasMantenimiento :contrato-id="contratoMantenimientoId" />
 
         <!-- Cargar factura -->
         <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#ECE7F2">
@@ -286,7 +283,9 @@ import { ref, computed, onMounted } from 'vue'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { StarlinkService } from '~/features/finanzas/services/starlink'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { generarExcelCostos } from './costosExcelExport.js'
 import FacturasMantenimiento from '~/features/contratos/components/FacturasMantenimiento.vue'
 import OMAOperaciones       from './OMAOperaciones.vue'
@@ -297,6 +296,10 @@ import StarlinkPDF            from './StarlinkPDF.vue'
 import MandatosOperaciones    from './MandatosOperaciones.vue'
 import { BuildingIcon, CalculatorIcon, CheckIcon, ChevronDownIcon, CircleCheckIcon, CreditCardIcon, FileCheckIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon, PaperclipIcon, TableIcon, TruckIcon, UploadIcon, UsersIcon, WifiIcon, WrenchIcon, ZapIcon } from '@lucide/vue'
 
+
+const starlinkService = new StarlinkService()
+const proyectosService = new ProyectosService()
+const contratosServicioService = new ContratosServicioService()
 
 const SUBTABS_OM = [
   { label: 'Operaciones', icon: UsersIcon },
@@ -330,9 +333,9 @@ async function onExportExcel() {
   try {
     let starlinkData = null
     try {
-      starlinkData = (await api.get(`/starlink/factura/${exportPeriodo.value}`)).data
+      starlinkData = await starlinkService.obtenerFactura(exportPeriodo.value)
     } catch (err) {
-      if (err?.response?.status !== 404) throw err
+      if (err?.status !== 404) throw err
       // 404 = sin factura ese mes, estado normal — no bloquea el export
     }
     const sinAsignar = (starlinkData?.lineas ?? []).filter(l => l.proyecto_id == null && !l.excluido)
@@ -407,27 +410,15 @@ async function guardarFactura() {
   facturaOk.value = false
   try {
     const esInversionistas = facturaForm.value.tipo === 'inversionistas'
-    const campoActual      = esInversionistas ? 'facturas_inversionistas' : 'facturas_solenium'
-    const endpoint         = esInversionistas ? 'facturas-inversionistas' : 'facturas-solenium'
 
-    // Obtener lista actual de facturas del tipo seleccionado
-    const { data: contrato } = await api.get(`/contratos-servicio/${contratoMantenimientoId.value}`)
-    const facturasActuales = Array.isArray(contrato[campoActual])
-      ? contrato[campoActual]
-      : []
-
-    const nueva = {
-      id:             String(Date.now()),
+    await contratosServicioService.crearFactura(contratoMantenimientoId.value, {
+      tipo:           esInversionistas ? 'inversionista' : 'solenium',
       fecha:          facturaForm.value.periodo,
+      inversionista:  null,
       numero_factura: facturaForm.value.numero || null,
       monto:          facturaForm.value.monto  || null,
       enlace_soporte: facturaForm.value.enlace || null,
-    }
-
-    await api.patch(
-      `/contratos-servicio/${contratoMantenimientoId.value}/${endpoint}`,
-      [...facturasActuales, nueva],
-    )
+    })
 
     facturaOk.value = true
     // Resetear formulario (conservar tipo seleccionado)
@@ -453,11 +444,11 @@ onMounted(async () => {
   loadingProyectos.value = true
   try {
     const [r1, r2] = await Promise.allSettled([
-      api.get('/proyectos', { params: { size: 500 } }),
-      api.get('/proyectos', { params: { size: 500, tipo_proyecto: 'minigranja' } }),
+      proyectosService.listar({ size: 500 }),
+      proyectosService.listar({ size: 500, tipo_proyecto: 'minigranja' }),
     ])
-    const lista1 = r1.status === 'fulfilled' ? (Array.isArray(r1.value.data) ? r1.value.data : (r1.value.data.items ?? [])) : []
-    const lista2 = r2.status === 'fulfilled' ? (Array.isArray(r2.value.data) ? r2.value.data : (r2.value.data.items ?? [])) : []
+    const lista1 = r1.status === 'fulfilled' ? r1.value : []
+    const lista2 = r2.status === 'fulfilled' ? r2.value : []
     const ids = new Set()
     const todos = [...lista1, ...lista2].filter(p => {
       if (ids.has(p.id)) return false
@@ -484,8 +475,8 @@ async function onProyectoChange() {
 
   loadingContrato.value = true
   try {
-    const { data } = await api.get('/contratos-servicio', {
-      params: { tipo: 'mantenimiento', proyecto_id: proyectoSeleccionado.value },
+    const data = await contratosServicioService.listar({
+      tipo: 'mantenimiento', proyecto_id: proyectoSeleccionado.value,
     })
     contratoMantenimientoId.value = data.length ? data[0].id : null
   } catch {

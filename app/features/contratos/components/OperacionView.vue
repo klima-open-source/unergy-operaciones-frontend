@@ -666,191 +666,17 @@
             </Dialog>
           </template>
           <template v-else>
-            <!-- Datos estáticos desde JSON si existen -->
-            <template v-if="buscarArriendoEstatico(proyectoNombre)">
-              <div class="rounded-xl border bg-white p-5" style="border-color:#8b5cf640">
-                <!-- Header -->
-                <div class="flex items-start justify-between mb-4 gap-3">
-                  <div class="flex items-center gap-2.5 flex-wrap">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#f5f3ff">
-                      <HouseIcon class="text-sm size-[1em]" style="color:#8b5cf6" />
-                    </div>
-                    <div>
-                      <p class="text-xs text-gray-400 leading-none mb-0.5">Contrato de Arriendo</p>
-                      <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">{{ proyectoNombre }}</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                    <GBadge color="success" class="text-xs">Vigente</GBadge>
-                    <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('arriendo')">
-                      <template #icon><PencilIcon class="size-[1em]" /></template>
-                    </Button>
-                  </div>
-                </div>
-                <!-- Mini-cards -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <!-- Contratante -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <UserIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Contratante
-                    </p>
-                    <p class="text-sm font-semibold leading-snug" style="color:#1c1917">
-                      {{ buscarArriendoEstatico(proyectoNombre).contratante }}
-                    </p>
-                  </div>
-                  <!-- Prestador -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <BuildingIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Prestador
-                    </p>
-                    <p class="text-sm font-semibold leading-snug" style="color:#1c1917">
-                      {{ buscarArriendoEstatico(proyectoNombre).prestador }}
-                    </p>
-                  </div>
-                  <!-- Fecha firma -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <CalendarIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Fecha firma contrato
-                    </p>
-                    <p class="text-sm font-semibold" style="color:#1c1917">
-                      {{ buscarArriendoEstatico(proyectoNombre).fecha_firma }}
-                    </p>
-                  </div>
-                  <!-- Valor anual vigente -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <DollarSignIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Valor anual ({{ ANIO_ACTUAL }})
-                    </p>
-                    <p class="text-base font-bold" style="color:#7c3aed">
-                      {{ formatCOP(getValorVigente(buscarArriendoEstatico(proyectoNombre).indexacion_anual)?.valor ?? buscarArriendoEstatico(proyectoNombre).valor_anual) }}
-                    </p>
-                    <!-- Aviso IPC pendiente -->
-                    <p v-if="(buscarArriendoEstatico(proyectoNombre).indexacion_anual?.slice(-1)[0]?.anio ?? 0) < ANIO_ACTUAL"
-                      class="text-[10px] mt-1 font-medium" style="color:#dc2626">
-                      IPC de {{ ANIO_ACTUAL }} pendiente de actualizar
-                    </p>
-                    <button type="button"
-                      class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity"
-                      style="background:none;border:none;padding:0;cursor:pointer;color:#8b5cf6"
-                      @click="showIndexacionArriendo.anual = !showIndexacionArriendo.anual">
-                      <ChevronDownIcon class="text-xs transition-transform duration-200 size-[1em]" :style="showIndexacionArriendo.anual ? 'transform:rotate(180deg)' : ''" />
-                      {{ showIndexacionArriendo.anual ? 'Ocultar' : 'Ver indexación' }}
-                    </button>
-                  </div>
-                  <!-- Valor mensual vigente -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <CalculatorIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Valor mensual ({{ ANIO_ACTUAL }})
-                    </p>
-                    <p class="text-base font-bold" style="color:#7c3aed">
-                      {{ formatCOP(getValorVigente(buscarArriendoEstatico(proyectoNombre).indexacion_mensual)?.valor ?? buscarArriendoEstatico(proyectoNombre).valor_mensual) }}
-                    </p>
-                  </div>
-                  <!-- Contrato en Drive -->
-                  <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                    <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                      <FileTextIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Contrato en Drive
-                    </p>
-                    <a v-if="buscarArriendoEstatico(proyectoNombre).enlace"
-                       :href="buscarArriendoEstatico(proyectoNombre).enlace"
-                       target="_blank" rel="noopener"
-                       class="text-sm font-semibold flex items-center gap-1.5 hover:underline" style="color:#8b5cf6">
-                      <ExternalLinkIcon class="text-xs size-[1em]" />Ver contrato
-                    </a>
-                    <span v-else class="text-sm text-gray-400">Sin enlace</span>
-                  </div>
-                </div>
-
-                <!-- Panel indexación anual -->
-                <div :style="{ overflow: 'hidden', transition: 'max-height 0.35s ease', maxHeight: showIndexacionArriendo.anual ? '800px' : '0px' }">
-                  <div class="pt-3">
-                    <div class="rounded-xl border overflow-hidden" style="border-color:#ddd6fe">
-                      <div class="flex items-center justify-between px-4 py-2.5" style="background:#f5f3ff">
-                        <span class="text-xs font-semibold" style="color:#5b21b6">
-                          <DollarSignIcon class="text-xs mr-1.5 size-[1em]" style="color:#8b5cf6" />Indexación anual de arriendo
-                        </span>
-                        <span class="text-xs text-gray-400">Año vigente: {{ ANIO_ACTUAL }}</span>
-                      </div>
-                      <table class="w-full text-sm border-collapse">
-                        <thead>
-                          <tr class="bg-gray-50 border-b border-gray-100">
-                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Año</th>
-                            <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">IPC aplicado</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Valor anual</th>
-                            <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Estado</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-if="!buscarArriendoEstatico(proyectoNombre).indexacion_anual?.length">
-                            <td colspan="4" class="px-4 py-6 text-center text-xs text-gray-400">
-                              Sin indexación registrada
-                            </td>
-                          </tr>
-                          <tr v-for="(fila, idx) in (buscarArriendoEstatico(proyectoNombre).indexacion_anual || [])"
-                            :key="idx"
-                            class="border-b border-gray-50 transition-colors"
-                            :class="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1 ? 'bg-violet-50/40' : ''">
-                            <td class="px-4 py-2.5">
-                              <div class="flex items-center gap-1.5">
-                                <span class="font-mono font-semibold"
-                                  :style="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1 ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
-                                  {{ fila.anio }}
-                                </span>
-                                <span v-if="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1"
-                                  class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                                  style="background:#ede9fe;color:#7c3aed">actual</span>
-                                <ArrowLeftIcon class="text-xs size-[1em]" v-if="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1" style="color:#7c3aed" />
-                              </div>
-                            </td>
-                            <td class="px-4 py-2.5">
-                              <span v-if="fila.ipc_aplicado == null" class="text-gray-400 text-xs">— (base)</span>
-                              <span v-else class="font-mono tabular-nums" style="color:#374151">{{ fila.ipc_aplicado }}%</span>
-                            </td>
-                            <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                              :style="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1 ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
-                              {{ formatCOP(fila.valor) }}
-                            </td>
-                            <td class="px-4 py-2.5 text-center">
-                              <span v-if="fila.ipc_aplicado == null || fila.anio < ANIO_ACTUAL"
-                                class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                                style="background:#dcfce7;color:#166534">
-                                <CheckIcon class="text-xs size-[1em]" />Pagado
-                              </span>
-                              <span v-else-if="fila.anio === ANIO_ACTUAL && idx === buscarArriendoEstatico(proyectoNombre).indexacion_anual.length - 1"
-                                class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                                style="background:#ede9fe;color:#7c3aed">
-                                Vigente
-                              </span>
-                              <span v-else
-                                class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                                style="background:#f3f4f6;color:#9ca3af">
-                                Pendiente
-                              </span>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
+            <div class="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-10 text-center">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
+                style="background:#f5f3ff">
+                <HouseIcon class="text-xl size-[1em]" style="color:#8b5cf6" />
               </div>
-            </template>
-
-            <!-- Sin datos en JSON ni en BD -->
-            <template v-else>
-              <div class="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-10 text-center">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                  style="background:#f5f3ff">
-                  <HouseIcon class="text-xl size-[1em]" style="color:#8b5cf6" />
-                </div>
-                <p class="text-sm font-medium text-gray-600 mb-1">Sin contrato de arriendo registrado</p>
-                <p class="text-xs text-gray-400 mb-4">No se encontró contrato de arriendo para este proyecto</p>
-                <Button label="Crear contrato" size="small" style="background:#8b5cf6;border-color:#8b5cf6" @click="openWizard('arriendo')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
-                </Button>
-              </div>
-            </template>
+              <p class="text-sm font-medium text-gray-600 mb-1">Sin contrato de arriendo registrado</p>
+              <p class="text-xs text-gray-400 mb-4">No se encontró contrato de arriendo para este proyecto</p>
+              <Button label="Crear contrato" size="small" style="background:#8b5cf6;border-color:#8b5cf6" @click="openWizard('arriendo')">
+                <template #icon><PlusIcon class="size-[1em]" /></template>
+              </Button>
+            </div>
           </template>
 
           <PagosTabla
@@ -1224,7 +1050,6 @@
 import { ArrowLeftIcon, BoxIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CheckIcon, ChevronDownIcon, CirclePlusIcon, CreditCardIcon, DatabaseIcon, DollarSignIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, FileIcon, FileInputIcon, FileOutputIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, GaugeIcon, HouseIcon, LinkIcon, LockIcon, MonitorIcon, NetworkIcon, PencilIcon, PlusIcon, ShieldIcon, TableIcon, Trash2Icon, UserIcon, UsersIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import * as XLSX from 'xlsx'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
@@ -1236,32 +1061,15 @@ import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { formatCOP } from '~/utils/currency'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
-import ARRIENDOS_ESTATICOS from '~/features/contratos/data/arriendos_data.js'
 
+const contratosServicioService = new ContratosServicioService()
+const proyectosService = new ProyectosService()
 const route = useRoute()
 const router = useRouter()
-
-// ── Arriendo estático (fallback desde JSON) ───────────────────────────────────
-function buscarArriendoEstatico(nombre) {
-  if (!nombre) return null
-  const nombreLower = nombre.trim().toLowerCase()
-  // 1. Coincidencia exacta
-  const exacto = ARRIENDOS_ESTATICOS.find(r => r.proyecto.toLowerCase() === nombreLower)
-  if (exacto) return exacto
-  // 2. Por palabras clave (mismo patrón que FacturasMantenimiento)
-  const STOP = new Set(['mgs', 'de', 'la', 'el', 'los', 'las', 'del', 'solar', 'minigranja', 'y', 'con'])
-  const keywords = nombreLower.split(/\s+/).filter(w => w.length >= 3 && !STOP.has(w) && !/^\d+$/.test(w))
-  if (!keywords.length) return null
-  let mejor = null; let mejorScore = 0
-  for (const r of ARRIENDOS_ESTATICOS) {
-    const pLower = r.proyecto.toLowerCase()
-    const score = keywords.filter(kw => pLower.includes(kw)).length
-    if (score > mejorScore) { mejorScore = score; mejor = r }
-  }
-  return mejorScore > 0 ? mejor : null
-}
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const MESES_NOMBRES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -1478,17 +1286,17 @@ onMounted(async () => {
   const proyId = route.params.id
   try {
     const [proyRes, mantRes, arrRes, netRes] = await Promise.allSettled([
-      api.get(`/proyectos/${proyId}`),
-      api.get('/contratos-servicio', { params: { tipo: 'mantenimiento', proyecto_id: proyId } }),
-      api.get('/contratos-servicio', { params: { tipo: 'arriendo',      proyecto_id: proyId } }),
-      api.get('/contratos-servicio', { params: { tipo: 'internet',      proyecto_id: proyId } }),
+      proyectosService.obtener(proyId),
+      contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId }),
+      contratosServicioService.listar({ tipo: 'arriendo', proyecto_id: proyId }),
+      contratosServicioService.listar({ tipo: 'internet', proyecto_id: proyId }),
     ])
 
-    if (proyRes.status === 'fulfilled') proyectoNombre.value = proyRes.value.data.nombre_comercial
+    if (proyRes.status === 'fulfilled') proyectoNombre.value = proyRes.value.nombre_comercial
 
-    contratos.mantenimiento = mantRes.status === 'fulfilled' && mantRes.value.data.length ? mantRes.value.data[0] : null
-    contratos.arriendo      = arrRes.status  === 'fulfilled' && arrRes.value.data.length  ? arrRes.value.data[0]  : null
-    contratos.internet      = netRes.status  === 'fulfilled' && netRes.value.data.length  ? netRes.value.data[0]  : null
+    contratos.mantenimiento = mantRes.status === 'fulfilled' && mantRes.value.length ? mantRes.value[0] : null
+    contratos.arriendo      = arrRes.status  === 'fulfilled' && arrRes.value.length  ? arrRes.value[0]  : null
+    contratos.internet      = netRes.status  === 'fulfilled' && netRes.value.length  ? netRes.value[0]  : null
     await initInternetMap(contratos.internet)
 
     await cargarIndexacionOM()
@@ -1507,8 +1315,7 @@ async function loadPagos(tipo) {
   if (!contratos[tipo]) { pagos[tipo] = []; return }
   loadingPagos[tipo] = true
   try {
-    const { data } = await api.get(`/contratos-servicio/${contratos[tipo].id}/pagos`)
-    pagos[tipo] = data
+    pagos[tipo] = await contratosServicioService.listarPagos(contratos[tipo].id)
   } catch {
     pagos[tipo] = []
   } finally {
@@ -1537,7 +1344,7 @@ async function guardarPago() {
   }
   guardandoPago.value = true
   try {
-    await api.post(`/contratos-servicio/${contratos[tipo].id}/pagos`, {
+    await contratosServicioService.registrarPago(contratos[tipo].id, {
       mes:          dialogPago.form.mes,
       año:          dialogPago.form.año,
       valor_pagado: dialogPago.form.valor_pagado,
@@ -1548,7 +1355,7 @@ async function guardarPago() {
     dialogPago.visible = false
     toast.success('Pago registrado', { duration: 2500 })
   } catch (e) {
-    const msg = e.response?.data?.detail
+    const msg = e.data?.detail
     const isDup = typeof msg === 'string' && msg.includes('uq_pago_servicio')
     toast.error(isDup ? 'Ya existe un pago para ese período' : 'Error al registrar', {
       description: isDup ? undefined : String(msg ?? ''),
@@ -1563,7 +1370,7 @@ async function eliminarPago(tipo, pagoId) {
   if (!contratos[tipo]) return
   if (!confirm('¿Eliminar este pago?')) return
   try {
-    await api.delete(`/contratos-servicio/${contratos[tipo].id}/pagos/${pagoId}`)
+    await contratosServicioService.eliminarPago(contratos[tipo].id, pagoId)
     pagos[tipo] = pagos[tipo].filter(p => p.id !== pagoId)
     toast.success('Pago eliminado', { duration: 2000 })
   } catch {
@@ -1639,7 +1446,7 @@ async function saveContrato() {
       payload.ubicacion_lat = dialogEdit.form.ubicacion_lat ?? null
       payload.ubicacion_lng = dialogEdit.form.ubicacion_lng ?? null
     }
-    const { data } = await api.patch(`/contratos-servicio/${contratos[tipo].id}`, payload)
+    const data = await contratosServicioService.actualizar(contratos[tipo].id, payload)
     contratos[tipo] = { ...contratos[tipo], ...data }
     if (tipo === 'arriendo') await cargarIndexacionArriendo()
     if (tipo === 'internet') {
@@ -1650,7 +1457,7 @@ async function saveContrato() {
     dialogEdit.visible = false
     toast.success('Contrato actualizado', { duration: 2500 })
   } catch (e) {
-    toast.error('Error al guardar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error al guardar', { description: e.data?.detail, duration: 3000 })
   } finally {
     guardandoContrato.value = false
   }
@@ -1666,7 +1473,7 @@ async function onContratoCreado() {
   const tipo = wizardTipo.value
   const proyId = route.params.id
   try {
-    const { data } = await api.get('/contratos-servicio', { params: { tipo, proyecto_id: proyId } })
+    const data = await contratosServicioService.listar({ tipo, proyecto_id: proyId })
     contratos[tipo] = data.length ? data[0] : null
     if (tipo === 'arriendo') {
       await cargarArrendadores()
@@ -1740,12 +1547,12 @@ async function saveMantenimiento() {
       const proyId = route.params.id
       payload.servicio_aplica = 'mantenimiento'
       payload.proyecto_id     = Number(proyId)
-      await api.post('/contratos-servicio', payload)
-      const { data } = await api.get('/contratos-servicio', { params: { tipo: 'mantenimiento', proyecto_id: proyId } })
+      await contratosServicioService.crear(payload)
+      const data = await contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId })
       contratos.mantenimiento = data.length ? data[0] : null
       await loadPagos('mantenimiento')
     } else {
-      const { data } = await api.patch(`/contratos-servicio/${contratos.mantenimiento.id}`, payload)
+      const data = await contratosServicioService.actualizar(contratos.mantenimiento.id, payload)
       contratos.mantenimiento = { ...contratos.mantenimiento, ...data }
     }
     // Recalcular la indexación automática (cambió tarifa/fecha inicio O&M)
@@ -1755,7 +1562,7 @@ async function saveMantenimiento() {
       duration: 2500,
     })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail ?? e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail ?? e.message, duration: 4000 })
   } finally {
     guardandoMant.value = false
   }
@@ -1772,6 +1579,7 @@ async function cargarDesdeExcel(event) {
   event.target.value = ''
   try {
     const buffer = await file.arrayBuffer()
+    const XLSX   = await import('xlsx')
     const wb     = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true })
     const ws     = wb.Sheets[wb.SheetNames[0]]
     const rows   = XLSX.utils.sheet_to_json(ws, { defval: '' })
@@ -1837,7 +1645,7 @@ function getValorVigente(filas) {
 async function cargarIndexacionOM() {
   if (!contratos.mantenimiento?.id) return
   try {
-    const { data } = await api.get(`/om/indexacion/${contratos.mantenimiento.id}`)
+    const data = await contratosServicioService.obtenerIndexacionOm(contratos.mantenimiento.id)
     contratos.mantenimiento.indexacion_anual   = data.anual   || []
     contratos.mantenimiento.indexacion_mensual = data.mensual || []
   } catch {
@@ -1853,7 +1661,7 @@ async function cargarIndexacionOM() {
 async function cargarIndexacionArriendo() {
   if (!contratos.arriendo?.id) return
   try {
-    const { data } = await api.get(`/arriendos/indexacion/${contratos.arriendo.id}`)
+    const data = await contratosServicioService.obtenerIndexacionArriendo(contratos.arriendo.id)
     contratos.arriendo.indexacion_anual   = data.anual   || []
     contratos.arriendo.indexacion_mensual = data.mensual || []
   } catch {
@@ -1863,9 +1671,7 @@ async function cargarIndexacionArriendo() {
   // Indexación individual por cada arrendador (usa su propio valor_base)
   await Promise.all(arrendadores.value.map(async (a) => {
     try {
-      const { data } = await api.get(`/arriendos/indexacion/${contratos.arriendo.id}`, {
-        params: { arrendador_id: a.id },
-      })
+      const data = await contratosServicioService.obtenerIndexacionArriendo(contratos.arriendo.id, a.id)
       a.indexacion_anual   = data.anual   || []
       a.indexacion_mensual = data.mensual || []
     } catch {
@@ -1879,8 +1685,7 @@ async function cargarIndexacionArriendo() {
 async function cargarArrendadores() {
   if (!contratos.arriendo?.id) { arrendadores.value = []; return }
   try {
-    const { data } = await api.get(`/arriendos/contratos/${contratos.arriendo.id}/arrendadores`)
-    arrendadores.value = data || []
+    arrendadores.value = await contratosServicioService.listarArrendadores(contratos.arriendo.id)
   } catch {
     arrendadores.value = []
   }
@@ -1918,16 +1723,16 @@ async function guardarArrendador() {
       observaciones: arrendadorDialog.form.observaciones?.trim() || null,
     }
     if (arrendadorDialog.modo === 'editar' && arrendadorDialog.editId) {
-      await api.put(`/arriendos/arrendadores/${arrendadorDialog.editId}`, payload)
+      await contratosServicioService.actualizarArrendador(arrendadorDialog.editId, payload)
     } else {
-      await api.post(`/arriendos/contratos/${contratos.arriendo.id}/arrendadores`, payload)
+      await contratosServicioService.crearArrendador(contratos.arriendo.id, payload)
     }
     arrendadorDialog.visible = false
     await cargarArrendadores()
     await cargarIndexacionArriendo()
     toast.success('Arrendador guardado', { duration: 2500 })
   } catch (e) {
-    toast.error('Error al guardar arrendador', { description: e.response?.data?.detail, duration: 3500 })
+    toast.error('Error al guardar arrendador', { description: e.data?.detail, duration: 3500 })
   } finally {
     arrendadorDialog.guardando = false
   }
@@ -1936,24 +1741,19 @@ async function guardarArrendador() {
 async function eliminarArrendador(arrendador) {
   if (!confirm(`¿Eliminar al arrendador "${arrendador.nombre}"?`)) return
   try {
-    await api.delete(`/arriendos/arrendadores/${arrendador.id}`)
+    await contratosServicioService.eliminarArrendador(arrendador.id)
     await cargarArrendadores()
     await cargarIndexacionArriendo()
     toast.success('Arrendador eliminado', { duration: 2500 })
   } catch (e) {
     toast.error('Error al eliminar', {
-      description: e.response?.data?.detail || 'No se pudo eliminar el arrendador',
+      description: e.data?.detail || 'No se pudo eliminar el arrendador',
       duration: 3500,
     })
   }
 }
 
 // ── Helpers de formato ────────────────────────────────────────────────────────
-function formatCOP(val) {
-  if (val == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-}
-
 function formatFecha(f) {
   if (!f) return '—'
   return String(f).slice(0, 10)
@@ -1968,6 +1768,7 @@ function formatFecha(f) {
 // mano en `components: {...}` y por eso necesitan import explícito aquí.
 import { computed, ref, toRefs } from 'vue'
 import { GBadge } from '~/components/gandalf/base/badge'
+import { formatCOP } from '~/utils/currency'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -2130,11 +1931,6 @@ const PagosTabla = {
       filtros.value.año = null
       filtros.value.mes = null
     }
-    function formatCOPLocal(val) {
-      if (val == null) return '—'
-      return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-    }
-
     return {
       ...toRefs(props),
       MESES_NOMBRES_STATIC,
@@ -2145,7 +1941,7 @@ const PagosTabla = {
       pagosFiltrados,
       hayFiltros,
       limpiar,
-      formatCOPLocal,
+      formatCOP,
     }
   },
   template: `
@@ -2197,7 +1993,7 @@ const PagosTabla = {
         <Column header="Valor pagado" style="width:150px">
           <template #body="{ data }">
             <span class="font-semibold tabular-nums" style="color:#2C2039">
-              {{ formatCOPLocal(data.valor_pagado) }}
+              {{ formatCOP(data.valor_pagado) }}
             </span>
           </template>
         </Column>
@@ -2295,10 +2091,6 @@ const FacturasCobradas = {
     const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
 
     function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
-    function formatCOP(val) {
-      if (val == null) return '—'
-      return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-    }
 
     return {
       ...toRefs(props),
@@ -2394,10 +2186,6 @@ const FacturasEmitidas = {
     const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
 
     function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
-    function formatCOP(val) {
-      if (val == null) return '—'
-      return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val)
-    }
 
     return {
       ...toRefs(props),

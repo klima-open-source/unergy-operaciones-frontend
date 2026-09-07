@@ -176,8 +176,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import api from '~/core/client'
+import { DashboardService } from '~/features/dashboard/services/dashboard'
 import { BuildingIcon, ChevronRightIcon, DatabaseIcon, FilePenIcon, LoaderCircleIcon, PowerIcon, ShieldIcon, SunIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+
+const dashboardService = new DashboardService()
 
 const data = ref({})
 const cumplimiento = ref(null)
@@ -320,8 +322,8 @@ const quickLinks = [
 
 onMounted(async () => {
   try {
-    const kpiRes = await api.get('/dashboard/kpis').catch(() => null)
-    if (kpiRes?.data) data.value = kpiRes.data
+    const kpis = await dashboardService.obtenerKpis().catch(() => null)
+    if (kpis) data.value = kpis
   } catch {
     // degrade gracefully
   }
@@ -331,11 +333,10 @@ onMounted(async () => {
     cumplimientoLoading.value = true
     try {
       const now = new Date()
-      const res = await api.get('/cumplimiento/ppa/resumen', {
-        params: { year: now.getFullYear(), month: now.getMonth() + 1 },
-        timeout: 15000,
+      cumplimiento.value = await dashboardService.obtenerResumenCumplimiento({
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
       })
-      if (res?.data) cumplimiento.value = res.data
     } catch {
       // non-critical
     } finally {

@@ -1,4 +1,5 @@
 import type { SessionResponse, SignInRequest } from '~/features/auth/types'
+import air from '@korastd/air'
 import { BaseService } from '~/core/service'
 
 /**
@@ -9,22 +10,25 @@ import { BaseService } from '~/core/service'
  *
  * The server's half — the code that actually calls the auth API — is
  * `server/utils/auth-api.ts`.
+ *
+ * Bare `air` client, not the platform's shared one: `getMe()` answers 401 when
+ * there is simply no session yet, which is a normal outcome here, not a
+ * broken session the platform's interceptor should react to.
  */
 export class AuthService extends BaseService {
-  // Empty base URL: these routes are served by this app, so requests stay relative.
   constructor() {
-    super('', '')
+    super(air.create({ baseURL: '' }))
   }
 
-  login(data: SignInRequest) {
-    return this.api<SessionResponse>('/api/auth/login', { method: 'POST', body: data })
+  login(data: SignInRequest): Promise<SessionResponse> {
+    return this.post<SessionResponse>('/api/auth/login', data)
   }
 
-  logout() {
-    return this.api('/api/auth/logout', { method: 'POST' })
+  logout(): Promise<unknown> {
+    return this.post<unknown>('/api/auth/logout')
   }
 
-  getMe() {
-    return this.api<SessionResponse>('/api/auth/me')
+  getMe(): Promise<SessionResponse> {
+    return this.get<SessionResponse>('/api/auth/me')
   }
 }

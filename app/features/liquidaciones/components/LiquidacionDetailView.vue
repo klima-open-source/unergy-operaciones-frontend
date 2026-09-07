@@ -143,7 +143,9 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import Checkbox from 'primevue/checkbox'
-import api from '~/core/client'
+import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
+import { logger } from '~/core/logger'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import EstadoResultadosConsolidado from './components/EstadoResultadosConsolidado.vue'
 import GeneracionMensualChart from './components/GeneracionMensualChart.vue'
 import IngresoCostoComparativo from './components/IngresoCostoComparativo.vue'
@@ -151,6 +153,8 @@ import { ArrowLeftIcon, ChartLineIcon, CircleXIcon, FileTextIcon, UserIcon } fro
 
 const route = useRoute()
 const router = useRouter()
+const liquidacionesService = new LiquidacionesService()
+const proyectosService = new ProyectosService()
 
 // Navegación determinística hacia arriba (el padre del detalle es el listado).
 // Evita loops de history.back() cuando se entra por link directo.
@@ -217,10 +221,6 @@ const invFiltrado = computed(() =>
 
 // Inversionistas a mostrar en la capa "por inversionista": si hay filtro ?inv=,
 // solo ese; si no, todos los del proyecto.
-function fmt(v) {
-  if (v == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 2 }).format(v)
-}
 function pct(v) {
   if (v == null) return '—'
   return (v * 100).toFixed(4) + '%'
@@ -252,13 +252,13 @@ function isoDate(v) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get(`/liquidaciones/${route.params.id}`)
+    const data = await liquidacionesService.obtener(route.params.id)
     liq.value = data
     nuevoEstado.value = data.estado
   } catch (e) {
-    console.error('[LiquidacionDetail] Error:', e?.response?.status, e?.response?.data ?? e)
-    toast.error(`Error ${e?.response?.status || 'red'} — liq ${route.params.id}`, {
-      description: JSON.stringify(e?.response?.data ?? e?.message ?? 'sin detalle').slice(0, 300),
+    logger.error('liquidaciones', e)
+    toast.error(`Error ${e?.status || 'red'} — liq ${route.params.id}`, {
+      description: JSON.stringify(e?.data ?? e?.message ?? 'sin detalle').slice(0, 300),
       duration: 10000,
     })
   } finally {
@@ -267,24 +267,21 @@ async function load() {
 
   if (liq.value?.proyecto_id) {
     try {
-      const r = await api.get(`/proyectos/${liq.value.proyecto_id}/inversionistas`)
-      const raw = r.data
+      const raw = await proyectosService.listarInversionistas(liq.value.proyecto_id)
       proyectoInversionistas.value = Array.isArray(raw) ? raw : (raw.items ?? [])
     } catch (e) {
-      console.error('[LiquidacionDetail] Error cargando inversionistas:', e?.response?.status, e?.response?.data ?? e)
+      logger.error('liquidaciones', e)
     }
 
     // Estado de Resultados = espejo del Panel Contable del período (fuente única).
     try {
       const per = (liq.value.periodo || '').slice(0, 7)   // "YYYY-MM"
       if (per) {
-        const { data } = await api.get('/liquidaciones/resumen-panel', {
-          params: { periodo: per, tipo: 'preliquidacion' },
-        })
+        const data = await liquidacionesService.obtenerResumenPanel({ periodo: per, tipo: 'preliquidacion' })
         panelER.value = (data.proyectos || []).find(p => p.proyecto_id === liq.value.proyecto_id) || null
       }
     } catch (e) {
-      console.error('[LiquidacionDetail] Error cargando Panel ER:', e?.response?.status, e?.response?.data ?? e)
+      logger.error('liquidaciones', e)
       panelER.value = null
     }
   }
@@ -294,7 +291,7 @@ async function load() {
 async function guardarEstado() {
   guardando.value = true
   try {
-    await api.patch(`/liquidaciones/${route.params.id}`, { estado: nuevoEstado.value })
+    await liquidacionesService.actualizar(route.params.id, { estado: nuevoEstado.value })
     liq.value.estado = nuevoEstado.value
     dialogEstado.value = false
     toast.success('Estado actualizado', { duration: 2000 })
@@ -324,7 +321,7 @@ async function guardarResumen() {
         }
       }
     }
-    await api.patch(`/liquidaciones/${route.params.id}`, payload)
+    await liquidacionesService.actualizar(route.params.id, payload)
     // Recargar para asegurar consistencia con el servidor
     await load()
     dialogResumen.value = false

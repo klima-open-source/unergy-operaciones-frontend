@@ -54,9 +54,9 @@
               <LoaderCircleIcon v-if="exportandoPdf" class="size-[1em] animate-spin" />
               <FileTextIcon v-else class="size-[1em]" /> {{ exportandoPdf ? 'Generando…' : 'Descargar PDF' }}
             </button>
-            <button class="om-generar" :disabled="generandoInforme" @click="generarInforme" title="Generar informe editable y enviarlo a revisión">
+            <button v-if="ficha.estado === 'borrador'" class="om-generar" :disabled="generandoInforme" @click="enviarARevision" title="Marca la ficha como en revisión y la guarda">
               <LoaderCircleIcon v-if="generandoInforme" class="size-[1em] animate-spin" />
-              <FilePenIcon v-else class="size-[1em]" /> {{ generandoInforme ? 'Generando…' : 'Generar informe' }}
+              <FilePenIcon v-else class="size-[1em]" /> {{ generandoInforme ? 'Enviando…' : 'Enviar a revisión' }}
             </button>
             <button class="om-save" :disabled="guardando || !dirty" @click="guardar">
               <LoaderCircleIcon v-if="guardando" class="size-[1em] animate-spin" />
@@ -75,7 +75,7 @@
             <div class="om-fact"><span class="om-fact-label">Cliente</span><span class="om-fact-val">{{ detalle.proyecto.nombre_clientes || '—' }}</span></div>
             <div class="om-fact"><span class="om-fact-label">Ubicación</span><span class="om-fact-val">{{ ubicacion || '—' }}</span></div>
             <div class="om-fact"><span class="om-fact-label">Potencia AC instalada</span><span class="om-fact-val">{{ fmtCapacidad(detalle.proyecto.potencia_instalada_kwp) }}</span></div>
-            <div class="om-fact"><span class="om-fact-label">Puesta en marcha</span><span class="om-fact-val">{{ fmtFecha(detalle.fecha_inicio_operacion) || '—' }}</span></div>
+            <div class="om-fact"><span class="om-fact-label">Puesta en marcha</span><span class="om-fact-val">{{ fmtFecha(ficha.fecha_inicio_operacion) || '—' }}</span></div>
             <div class="om-fact">
               <span class="om-fact-label">Versión</span>
               <input v-model="ficha.version" class="om-fact-input" placeholder="01 — Inicial" @input="marcar" />
@@ -83,6 +83,14 @@
             <div class="om-fact">
               <span class="om-fact-label">Elaborado por</span>
               <input v-model="ficha.elaborado_por" class="om-fact-input" @input="marcar" />
+            </div>
+            <div class="om-fact">
+              <span class="om-fact-label">Estado</span>
+              <select v-model="ficha.estado" class="om-fact-input" @change="marcar">
+                <option value="borrador">Borrador</option>
+                <option value="en_revision">En revisión</option>
+                <option value="aprobado">Aprobado</option>
+              </select>
             </div>
           </div>
         </div>
@@ -146,12 +154,11 @@
             <InfoIcon class="om-acc-ico size-[1em]" /><span>Datos Generales</span>
           </button>
           <div v-show="abierto.generales" class="om-acc-body">
-            <div class="om-readonly-grid">
-              <div><span class="om-ro-label">Fecha de energización</span><span class="om-ro-val">{{ fmtFecha(detalle.fecha_energizacion) || '—' }}</span></div>
-              <div><span class="om-ro-label">Empresa contratista</span><span class="om-ro-val">{{ detalle.empresa_contratista || '—' }}</span></div>
-              <div><span class="om-ro-label">Cantidad de inversores</span><span class="om-ro-val">{{ detalle.inversores.length }}</span></div>
+            <div class="om-fields-grid">
+              <label class="om-field"><span>Fecha de energización</span><input type="date" v-model="ficha.fecha_energizacion" @input="marcar" /></label>
+              <label class="om-field"><span>Empresa contratista</span><input v-model="ficha.empresa_contratista" @input="marcar" /></label>
+              <div class="om-field"><span>Cantidad de inversores</span><span class="om-ro-val">{{ detalle.inversores.length }}</span></div>
             </div>
-            <span class="om-ro-hint"><FlagIcon class="size-[1em]" /> Estos datos vienen de Inicio de Operación — corrígelos allí si hace falta.</span>
 
             <div class="om-fields-grid">
               <label class="om-field"><span>Seguidores solares — marca</span><input v-model="ficha.datos_generales.seguidores_marca" @input="marcar" /></label>
@@ -173,7 +180,7 @@
             <span class="om-acc-count">{{ detalle.inversores.length }} · {{ fmtCapacidad(capacidadTotal) }}</span>
           </button>
           <div v-show="abierto.inversores" class="om-acc-body">
-            <span class="om-ro-hint"><FlagIcon class="size-[1em]" /> Datos en vivo de Solenium — revisión de strings en Inicio de Operación.</span>
+            <span class="om-ro-hint"><FlagIcon class="size-[1em]" /> Datos en vivo de Solenium.</span>
             <table class="om-table">
               <thead><tr><th>Inversor</th><th>Potencia</th><th>Estado</th></tr></thead>
               <tbody>
@@ -187,20 +194,113 @@
           </div>
         </section>
 
-        <!-- ─ Sistemas (solo lectura, Inicio de Operación) ─ -->
+        <!-- ─ Checklist de comisionamiento (editable) ─ -->
         <section class="om-acc">
           <button class="om-acc-head" @click="toggle('sistemas')">
             <ChevronDownIcon v-if="abierto.sistemas" class="size-[1em]" />
             <ChevronRightIcon v-else class="size-[1em]" />
             <MonitorIcon class="om-acc-ico size-[1em]" /><span>Estado de Sistemas</span>
+            <span class="om-acc-count">{{ detalle.kpis.checklist_aprobados }}/{{ detalle.kpis.checklist_total }} aprobados</span>
           </button>
           <div v-show="abierto.sistemas" class="om-acc-body">
-            <span class="om-ro-hint"><FlagIcon class="size-[1em]" /> Vienen de Inicio de Operación — edítalos allí si hace falta.</span>
             <div class="om-sistemas-grid">
               <div class="om-sistema-chip" :class="`om-sistema-chip--${detalle.fusion_solar_estado}`">Fusion Solar<b>{{ detalle.fusion_solar_estado === 'aprobado' ? 'Aprobado' : 'Pendiente' }}</b></div>
               <div class="om-sistema-chip" :class="`om-sistema-chip--${detalle.frontera_estado}`">Frontera<b>{{ detalle.frontera_estado === 'aprobado' ? 'Aprobado' : 'Pendiente' }}</b></div>
               <div class="om-sistema-chip" :class="`om-sistema-chip--${detalle.estacion_meteo_estado}`">Estación meteo<b>{{ detalle.estacion_meteo_estado === 'aprobado' ? 'Aprobado' : 'Pendiente' }}</b></div>
               <div class="om-sistema-chip" :class="`om-sistema-chip--${detalle.reconectador_estado}`">Reconectador<b>{{ detalle.reconectador_estado === 'aprobado' ? 'Aprobado' : 'Pendiente' }}</b></div>
+            </div>
+
+            <!-- Fusion Solar -->
+            <div class="om-checklist-cat">
+              <div class="om-checklist-cat-title">Fusion Solar</div>
+              <div class="om-fields-grid">
+                <label class="om-field"><span>Starlink</span>
+                  <select v-model="ficha.checklist_fusion_solar.starlink.estado" @change="marcar">
+                    <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                  </select>
+                </label>
+                <label class="om-field"><span>Datos coherentes</span>
+                  <select v-model="ficha.checklist_fusion_solar.datos_coherentes.estado" @change="marcar">
+                    <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                  </select>
+                </label>
+              </div>
+              <input v-if="ficha.checklist_fusion_solar.starlink.estado === 'pendiente'" class="om-fact-input" v-model="ficha.checklist_fusion_solar.starlink.nota" placeholder="¿Qué falta de Starlink?" @input="marcar" />
+              <EvidenciaUploader :proyecto-id="seleccion" base-path="informe-om" seccion="checklist-fusion-solar"
+                v-model="ficha.checklist_fusion_solar.evidencia" @update:modelValue="marcar" @error="mostrarError" />
+              <div class="om-table-wrap" v-if="ficha.checklist_fusion_solar.inversores.length">
+                <table class="om-table">
+                  <thead><tr><th>Inversor</th><th style="width:100px">Limitado</th><th>Motivo</th></tr></thead>
+                  <tbody>
+                    <tr v-for="inv in ficha.checklist_fusion_solar.inversores" :key="inv.id">
+                      <td>{{ inv.nombre }}</td>
+                      <td><input type="checkbox" v-model="inv.limitado" @change="marcar" /></td>
+                      <td><input v-if="inv.limitado" v-model="inv.motivo_limitacion" placeholder="Motivo" @input="marcar" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Frontera -->
+            <div class="om-checklist-cat">
+              <div class="om-checklist-cat-title">Frontera</div>
+              <div class="om-fields-grid">
+                <label class="om-field"><span>Medidor principal</span>
+                  <select v-model="ficha.checklist_frontera.principal.estado" @change="marcar">
+                    <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                  </select>
+                </label>
+                <label class="om-field"><span>Medidor de respaldo</span>
+                  <select v-model="ficha.checklist_frontera.respaldo.estado" @change="marcar">
+                    <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                  </select>
+                </label>
+              </div>
+              <EvidenciaUploader :proyecto-id="seleccion" base-path="informe-om" seccion="checklist-frontera-principal"
+                v-model="ficha.checklist_frontera.principal.evidencia" @update:modelValue="marcar" @error="mostrarError" />
+              <EvidenciaUploader :proyecto-id="seleccion" base-path="informe-om" seccion="checklist-frontera-respaldo"
+                v-model="ficha.checklist_frontera.respaldo.evidencia" @update:modelValue="marcar" @error="mostrarError" />
+            </div>
+
+            <!-- Estación meteorológica -->
+            <div class="om-checklist-cat">
+              <div class="om-checklist-cat-title">Estación meteorológica</div>
+              <div class="om-fields-grid">
+                <label v-for="item in meteoItems" :key="item.key" class="om-field"><span>{{ item.label }}</span>
+                  <select v-model="ficha.checklist_estacion_meteo[item.key].estado" @change="marcar">
+                    <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                  </select>
+                </label>
+              </div>
+              <EvidenciaUploader :proyecto-id="seleccion" base-path="informe-om" seccion="checklist-estacion-meteo"
+                v-model="ficha.checklist_estacion_meteo.reporta_datos.evidencia" @update:modelValue="marcar" @error="mostrarError" />
+            </div>
+
+            <!-- Reconectador -->
+            <div class="om-checklist-cat">
+              <div class="om-checklist-cat-title">Reconectador</div>
+              <label class="om-field om-field--inline"><span>¿Tiene reconectador?</span>
+                <select v-model="ficha.checklist_reconectador.tiene" @change="marcar">
+                  <option :value="null">—</option><option :value="true">Sí</option><option :value="false">No</option>
+                </select>
+              </label>
+              <template v-if="ficha.checklist_reconectador.tiene">
+                <div class="om-fields-grid">
+                  <label class="om-field"><span>En la plataforma</span>
+                    <select v-model="ficha.checklist_reconectador.en_plataforma.estado" @change="marcar">
+                      <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                    </select>
+                  </label>
+                  <label class="om-field"><span>Calidad de los datos</span>
+                    <select v-model="ficha.checklist_reconectador.calidad_datos.estado" @change="marcar">
+                      <option :value="null">—</option><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option>
+                    </select>
+                  </label>
+                </div>
+                <EvidenciaUploader :proyecto-id="seleccion" base-path="informe-om" seccion="checklist-reconectador"
+                  v-model="ficha.checklist_reconectador.evidencia" @update:modelValue="marcar" @error="mostrarError" />
+              </template>
             </div>
           </div>
         </section>
@@ -406,21 +506,38 @@
           </div>
         </section>
 
-        <!-- ─ Pendientes (solo lectura, Inicio de Operación) ─ -->
+        <!-- ─ Pendientes ─ -->
         <section class="om-acc">
           <button class="om-acc-head" @click="toggle('pendientes')">
             <ChevronDownIcon v-if="abierto.pendientes" class="size-[1em]" />
             <ChevronRightIcon v-else class="size-[1em]" />
             <ListIcon class="om-acc-ico size-[1em]" /><span>Pendientes</span>
-            <span class="om-acc-count">{{ detalle.pendientes.length }}</span>
+            <span class="om-acc-count">{{ ficha.pendientes.length }}</span>
           </button>
           <div v-show="abierto.pendientes" class="om-acc-body">
-            <span class="om-ro-hint"><FlagIcon class="size-[1em]" /> Vienen de Inicio de Operación — edítalos allí.</span>
-            <div v-if="!detalle.pendientes.length" class="om-empty-mini">Sin pendientes.</div>
-            <div v-for="(p, i) in detalle.pendientes" :key="i" class="om-pendiente-ro">
-              <b>{{ p.descripcion || '—' }}</b>
-              <span>{{ p.responsable || '—' }} · {{ p.estado || 'abierto' }}</span>
+            <div class="om-table-wrap">
+              <table class="om-table">
+                <thead><tr><th>Descripción</th><th>Responsable</th><th style="width:140px">Fecha compromiso</th><th style="width:120px">Estado</th><th style="width:36px"></th></tr></thead>
+                <tbody>
+                  <tr v-for="(p, i) in ficha.pendientes" :key="i">
+                    <td><input v-model="p.descripcion" @input="marcar" /></td>
+                    <td><input v-model="p.responsable" @input="marcar" /></td>
+                    <td><input type="date" v-model="p.fecha_compromiso" @input="marcar" /></td>
+                    <td>
+                      <select v-model="p.estado" @change="marcar">
+                        <option value="">—</option>
+                        <option value="abierto">Abierto</option>
+                        <option value="en_gestion">En gestión</option>
+                        <option value="cerrado">Cerrado</option>
+                      </select>
+                    </td>
+                    <td><button class="om-del" @click="quitarFila(ficha.pendientes, i)"><Trash2Icon class="size-[1em]" /></button></td>
+                  </tr>
+                  <tr v-if="!ficha.pendientes.length"><td colspan="5" class="om-table-empty">Sin pendientes.</td></tr>
+                </tbody>
+              </table>
             </div>
+            <button class="om-add-row" @click="agregarFila(ficha.pendientes, { descripcion: '', responsable: '', fecha_compromiso: null, clasificacion: '', estado: 'abierto', observaciones: '' })"><PlusIcon class="size-[1em]" /> Agregar pendiente</button>
           </div>
         </section>
 
@@ -519,24 +636,33 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { InformeOmService } from '~/features/operaciones/services/informe-om'
 import EvidenciaUploader from '~/features/operaciones/components/EvidenciaUploader.vue'
 import ListaEditable from '~/features/operaciones/components/ListaEditable.vue'
+
+const informeOmService = new InformeOmService()
 import { ArrowLeftIcon, BadgeCheckIcon, BellIcon, BoxIcon, ChartLineIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, EyeIcon, FileCheckIcon, FilePenIcon, FileTextIcon, FlagIcon, ImagesIcon, InboxIcon, InfoIcon, ListChecksIcon, ListIcon, LoaderCircleIcon, MapPinIcon, MonitorIcon, NetworkIcon, PaperclipIcon, PencilIcon, PlusIcon, RefreshCwIcon, SearchIcon, ThumbsUpIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-
-const router = useRouter()
 
 const proyectos = ref([])
 const loadingLista = ref(false)
 const busqueda = ref('')
 
+const meteoItems = [
+  { key: 'instalacion', label: 'Estación instalada' },
+  { key: 'en_plataforma', label: 'En la plataforma de monitoreo' },
+  { key: 'reporta_datos', label: 'Reporta datos' },
+  { key: 'poa', label: 'POA (irradiancia en plano del arreglo)' },
+  { key: 'temperatura_ambiente', label: 'Temperatura ambiente' },
+  { key: 'velocidad_viento', label: 'Velocidad del viento' },
+  { key: 'direccion_viento', label: 'Dirección del viento' },
+]
+
 const seleccion = ref(null)
 const detalle = reactive({
-  proyecto: {}, kpis: { pruebas_ejecutadas: 0, pruebas_conformes: 0, pruebas_no_conformes: 0, eventos_total: 0, eventos_cerrados: 0, eventos_en_gestion: 0, estado_global: 'operativo' },
-  inversores: [], pendientes: [], evidencia_relacionada: [],
-  fecha_energizacion: null, fecha_inicio_operacion: null, empresa_contratista: null,
+  proyecto: {}, kpis: { pruebas_ejecutadas: 0, pruebas_conformes: 0, pruebas_no_conformes: 0, eventos_total: 0, eventos_cerrados: 0, eventos_en_gestion: 0, checklist_aprobados: 0, checklist_total: 4, estado_global: 'operativo' },
+  inversores: [], evidencia_relacionada: [], frontera_live: { principal: null, respaldo: null },
   fusion_solar_estado: null, frontera_estado: null, estacion_meteo_estado: null, reconectador_estado: null,
 })
 const ficha = reactive(fichaVacia())
@@ -552,9 +678,32 @@ const abierto = reactive({
   anexos: true,
 })
 
+function itemChecklist() { return { estado: null, nota: '' } }
+function itemChecklistConEvidencia() { return { estado: null, nota: '', evidencia: [] } }
+
 function fichaVacia() {
   return {
     version: '', elaborado_por: 'Operaciones Unergy', actividad: '',
+    estado: 'borrador',
+    empresa_contratista: '', fecha_energizacion: null, fecha_inicio_operacion: null,
+    pendientes: [],
+    checklist_fusion_solar: {
+      starlink: itemChecklistConEvidencia(), datos_coherentes: itemChecklist(),
+      evidencia: [], nota: '', inversores: [],
+    },
+    checklist_frontera: {
+      principal: itemChecklistConEvidencia(), respaldo: itemChecklistConEvidencia(),
+    },
+    checklist_estacion_meteo: {
+      instalacion: itemChecklist(), en_plataforma: itemChecklist(),
+      reporta_datos: itemChecklistConEvidencia(),
+      poa: itemChecklist(), temperatura_ambiente: itemChecklist(),
+      velocidad_viento: itemChecklist(), direccion_viento: itemChecklist(),
+    },
+    checklist_reconectador: {
+      tiene: null, en_plataforma: itemChecklist(), calidad_datos: itemChecklist(),
+      evidencia: [], nota: '',
+    },
     objetivo_alcance: { objetivo: '', alcance_items: [] },
     datos_generales: { seguidores_marca: '', medida_comercial_marca: '', medida_comercial_modelo: '', plataformas_monitoreo: [], responsable_nombre: '', responsable_email: '' },
     arquitectura_comunicacion: { enlace_principal: '', enlaces_celulares: '', concentrador_datos: '', destino_datos: '', sincronizacion_horaria: '' },
@@ -575,8 +724,7 @@ const proyectosFiltrados = computed(() => {
 async function cargarLista() {
   loadingLista.value = true
   try {
-    const { data } = await api.get('/informe-om/proyectos')
-    proyectos.value = data
+    proyectos.value = await informeOmService.listarProyectos()
   } catch {
     proyectos.value = []
   } finally {
@@ -589,7 +737,7 @@ async function abrir(id) {
   loadingFicha.value = true
   dirty.value = false
   try {
-    const { data } = await api.get(`/informe-om/${id}`)
+    const data = await informeOmService.obtener(id)
     Object.assign(detalle, data)
     const base = fichaVacia()
     Object.assign(ficha, base, data.ficha, {
@@ -602,7 +750,32 @@ async function abrir(id) {
         politicas_datos: data.ficha.configuracion_monitoreo?.politicas_datos || [],
       },
       observaciones: { ...base.observaciones, ...data.ficha.observaciones },
+      checklist_fusion_solar: {
+        ...base.checklist_fusion_solar, ...data.ficha.checklist_fusion_solar,
+        starlink: { ...base.checklist_fusion_solar.starlink, ...data.ficha.checklist_fusion_solar?.starlink },
+        datos_coherentes: { ...base.checklist_fusion_solar.datos_coherentes, ...data.ficha.checklist_fusion_solar?.datos_coherentes },
+      },
+      checklist_frontera: {
+        principal: { ...base.checklist_frontera.principal, ...data.ficha.checklist_frontera?.principal },
+        respaldo: { ...base.checklist_frontera.respaldo, ...data.ficha.checklist_frontera?.respaldo },
+      },
+      checklist_estacion_meteo: { ...base.checklist_estacion_meteo, ...data.ficha.checklist_estacion_meteo },
+      checklist_reconectador: {
+        ...base.checklist_reconectador, ...data.ficha.checklist_reconectador,
+        en_plataforma: { ...base.checklist_reconectador.en_plataforma, ...data.ficha.checklist_reconectador?.en_plataforma },
+        calidad_datos: { ...base.checklist_reconectador.calidad_datos, ...data.ficha.checklist_reconectador?.calidad_datos },
+      },
     })
+    // Un inversor por cada uno de los que Solenium reporta en vivo ahora --
+    // preserva limitado/motivo_limitacion de los que ya se habían marcado,
+    // no duplica ni deja huérfanos si la flota de inversores cambió.
+    const limitadosPrevios = new Map((data.ficha.checklist_fusion_solar?.inversores || []).map((i) => [i.id, i]))
+    ficha.checklist_fusion_solar.inversores = (data.inversores || []).map((inv) => ({
+      id: inv.id,
+      nombre: inv.nombre,
+      limitado: limitadosPrevios.get(inv.id)?.limitado || false,
+      motivo_limitacion: limitadosPrevios.get(inv.id)?.motivo_limitacion || '',
+    }))
   } catch {
     toast.error('No se pudo cargar el informe', { duration: 3000 })
     seleccion.value = null
@@ -619,13 +792,13 @@ function cerrar() {
 async function guardar() {
   guardando.value = true
   try {
-    const { data } = await api.put(`/informe-om/${seleccion.value}`, ficha)
+    const data = await informeOmService.guardar(seleccion.value, ficha)
     Object.assign(detalle, data)
     dirty.value = false
     toast.success('Informe guardado', { duration: 2000 })
     cargarLista()
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.response?.data?.detail, duration: 3500 })
+    toast.error('No se pudo guardar', { description: e.data?.detail, duration: 3500 })
   } finally {
     guardando.value = false
   }
@@ -701,7 +874,7 @@ async function descargarPdf() {
     doc.text(detalle.proyecto.nombre_comercial || '', marginX, y); y += 18
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(122, 110, 138)
     doc.text([detalle.proyecto.nombre_clientes, ubicacion.value, fmtCapacidad(detalle.proyecto.potencia_instalada_kwp)].filter(Boolean).join(' · '), marginX, y); y += 14
-    doc.text(`Versión: ${ficha.version || '—'}  ·  Elaborado por: ${ficha.elaborado_por || '—'}  ·  Puesta en marcha: ${fmtFecha(detalle.fecha_inicio_operacion) || '—'}`, marginX, y); y += 22
+    doc.text(`Versión: ${ficha.version || '—'}  ·  Elaborado por: ${ficha.elaborado_por || '—'}  ·  Puesta en marcha: ${fmtFecha(ficha.fecha_inicio_operacion) || '—'}`, marginX, y); y += 22
 
     const k = detalle.kpis
     const semColor = k.estado_global === 'atencion' ? [253, 246, 178] : [220, 252, 231]
@@ -718,7 +891,7 @@ async function descargarPdf() {
     bullets(ficha.objetivo_alcance.alcance_items)
 
     sectionTitle('2. Datos Generales')
-    paragraph(`Fecha de energización: ${fmtFecha(detalle.fecha_energizacion) || '—'}   ·   Empresa contratista: ${detalle.empresa_contratista || '—'}`)
+    paragraph(`Fecha de energización: ${fmtFecha(ficha.fecha_energizacion) || '—'}   ·   Empresa contratista: ${ficha.empresa_contratista || '—'}`)
     paragraph(`Seguidores solares: ${ficha.datos_generales.seguidores_marca || '—'}   ·   Medida comercial: ${[ficha.datos_generales.medida_comercial_marca, ficha.datos_generales.medida_comercial_modelo].filter(Boolean).join(' ') || '—'}`)
     paragraph(`Plataformas de monitoreo: ${(ficha.datos_generales.plataformas_monitoreo || []).filter(Boolean).join(', ') || '—'}`)
     paragraph(`Responsable: ${ficha.datos_generales.responsable_nombre || '—'} (${ficha.datos_generales.responsable_email || '—'})`)
@@ -760,7 +933,7 @@ async function descargarPdf() {
     tabla(['Código', 'Descripción', 'Causa raíz', 'Acción correctiva', 'Estado'], ficha.eventos_operativos.map((e) => [e.codigo, e.descripcion, e.causa_raiz, e.accion_correctiva, e.estado]))
 
     sectionTitle('11. Pendientes')
-    tabla(['Descripción', 'Responsable', 'Estado'], detalle.pendientes.map((p) => [p.descripcion, p.responsable, p.estado || 'abierto']))
+    tabla(['Descripción', 'Responsable', 'Estado'], ficha.pendientes.map((p) => [p.descripcion, p.responsable, p.estado || 'abierto']))
 
     sectionTitle('12. Observaciones y Estado del Sistema')
     paragraph(ficha.observaciones.generales)
@@ -803,145 +976,25 @@ async function descargarPdf() {
     const slug = slugify(detalle.proyecto.nombre_comercial || 'informe').toLowerCase()
     doc.save(`informe_puesta_en_marcha_${slug}.pdf`)
   } catch (e) {
-    console.error('Error exportando informe a PDF', e)
+    logger.error('operaciones', e)
     toast.error('No se pudo generar el PDF', { duration: 3500 })
   } finally {
     exportandoPdf.value = false
   }
 }
 
-// ── Generar informe (documento editable, mismo flujo que Informes Mensuales) ─
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-function unergyLogoSVG() {
-  return '<svg width="38" height="31" viewBox="0 0 44 36" fill="none"><circle cx="22" cy="4" r="3" fill="white"/><path d="M8 10 L8 24 Q8 34 22 34 Q36 34 36 24 L36 10" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/></svg>'
-}
-function rmeta(lbl, val) { return `<div class="rpt-meta-item"><div class="rpt-meta-lbl">${esc(lbl)}</div><div class="rpt-meta-val">${esc(val ?? '—')}</div></div>` }
-function rkpi(ico, lbl, val, col) { return `<div class="rpt-kpi"><div class="rpt-kpi-ico">${ico}</div><div class="rpt-kpi-lbl">${esc(lbl)}</div><div class="rpt-kpi-val"${col ? ` style="color:${col}"` : ''}>${esc(val)}</div></div>` }
-function rTabla(head, rows, vacio) {
-  if (!rows.length) return `<div class="rpt-chart-empty">${esc(vacio)}</div>`
-  return '<table class="rpt-table"><thead><tr>' + head.map((h) => `<th>${esc(h)}</th>`).join('') + '</tr></thead><tbody>' +
-    rows.map((r) => '<tr>' + r.map((c) => `<td>${esc(c ?? '—')}</td>`).join('') + '</tr>').join('') + '</tbody></table>'
-}
-function rSeccion(n, titulo, contenido) {
-  return `<div class="rpt-section"><div class="rpt-section-title">▌ ${n}. ${esc(titulo)}</div>${contenido}</div>`
-}
-function rParrafo(texto) {
-  return texto ? `<p style="font-size:12px;color:#333;line-height:1.5;margin:4px 0">${esc(texto)}</p>` : ''
-}
-function rLista(items) {
-  const list = (items || []).filter(Boolean)
-  if (!list.length) return ''
-  return '<ul style="margin:4px 0;padding-left:18px;font-size:12px;color:#333;line-height:1.6">' + list.map((i) => `<li>${esc(i)}</li>`).join('') + '</ul>'
-}
-
-function construirHtmlInforme() {
-  const k = detalle.kpis
-  const estLbl = (v) => v === 'aprobado' ? 'Aprobado' : 'Pendiente'
-  const semColor = k.estado_global === 'atencion' ? '#F97316' : '#4ADE80'
-
-  let html = '<div class="rpt-page">'
-  html += '<div class="rpt-header">'
-  html += '<div style="display:flex;align-items:center;gap:13px">' + unergyLogoSVG() +
-    '<div><div style="color:#fff;font-size:14px;font-weight:800;letter-spacing:.8px">INFORME DE PUESTA EN MARCHA · UNERGY ENERGÍA DIGITAL S.A.S ESP</div>' +
-    '<div style="color:#6B5F80;font-size:10px;letter-spacing:.6px;margin-top:2px">Sistema de monitoreo y adquisición de datos</div></div></div>'
-  html += `<div class="rpt-meta-grid">${rmeta('PROYECTO', detalle.proyecto.nombre_comercial)}${rmeta('CLIENTE', detalle.proyecto.nombre_clientes)}${rmeta('UBICACIÓN', ubicacion.value)}${rmeta('POTENCIA AC INSTALADA', fmtCapacidad(detalle.proyecto.potencia_instalada_kwp))}</div>`
-  html += '</div>'
-
-  html += '<div class="rpt-kpi-row">' +
-    rkpi('✅', 'Pruebas ejecutadas', k.pruebas_ejecutadas, null) +
-    rkpi('🏆', 'Conformes', k.pruebas_conformes, '#4ADE80') +
-    rkpi('⚠️', 'No conformidades', k.pruebas_no_conformes, k.pruebas_no_conformes > 0 ? '#FF5757' : null) +
-    rkpi('⚡', 'Eventos registrados', k.eventos_total, k.eventos_total > 0 ? '#F97316' : null) +
-    '</div>'
-
-  html += `<div class="rpt-status-box" style="margin-top:10px"><div class="rpt-status-row" style="font-weight:800;color:${semColor}">${k.estado_global === 'atencion' ? '⚠️ ATENCIÓN' : '✅ OPERATIVO'} — Con seguimiento activo</div>` +
-    `<div class="rpt-status-row">Pruebas: ${k.pruebas_conformes}/${k.pruebas_ejecutadas} conformes</div>` +
-    `<div class="rpt-status-row">Eventos: ${k.eventos_total} (${k.eventos_cerrados} cerrado(s), ${k.eventos_en_gestion} en gestión)</div></div>`
-
-  html += rSeccion(1, 'Objetivo y Alcance', rParrafo(ficha.objetivo_alcance.objetivo) + rLista(ficha.objetivo_alcance.alcance_items))
-
-  html += rSeccion(2, 'Datos Generales',
-    rParrafo(`Fecha de energización: ${fmtFecha(detalle.fecha_energizacion) || '—'}   ·   Empresa contratista: ${detalle.empresa_contratista || '—'}`) +
-    rParrafo(`Seguidores solares: ${ficha.datos_generales.seguidores_marca || '—'}   ·   Medida comercial: ${[ficha.datos_generales.medida_comercial_marca, ficha.datos_generales.medida_comercial_modelo].filter(Boolean).join(' ') || '—'}`) +
-    rParrafo(`Plataformas de monitoreo: ${(ficha.datos_generales.plataformas_monitoreo || []).filter(Boolean).join(', ') || '—'}`) +
-    rParrafo(`Responsable: ${ficha.datos_generales.responsable_nombre || '—'} (${ficha.datos_generales.responsable_email || '—'})`))
-
-  html += rSeccion(3, 'Configuración de Inversores',
-    rTabla(['Inversor', 'Potencia', 'Estado'], detalle.inversores.map((i) => [i.nombre, fmtCapacidad(i.potencia_nominal_kw), i.state]), 'Sin inversores.'))
-
-  html += rSeccion(4, 'Estado de Sistemas',
-    rParrafo(`Fusion Solar: ${estLbl(detalle.fusion_solar_estado)}   ·   Frontera: ${estLbl(detalle.frontera_estado)}   ·   Estación meteo: ${estLbl(detalle.estacion_meteo_estado)}   ·   Reconectador: ${estLbl(detalle.reconectador_estado)}`))
-
-  const ac = ficha.arquitectura_comunicacion
-  html += rSeccion(5, 'Arquitectura de Comunicación',
-    rParrafo(`Enlace principal: ${ac.enlace_principal || '—'}   ·   Enlaces celulares: ${ac.enlaces_celulares || '—'}`) +
-    rParrafo(`Concentrador de datos: ${ac.concentrador_datos || '—'}   ·   Destino de los datos: ${ac.destino_datos || '—'}`) +
-    rParrafo(`Sincronización horaria: ${ac.sincronizacion_horaria || '—'}`))
-
-  html += rSeccion(6, 'Equipos Integrados',
-    rTabla(['Descripción', 'Marca', 'Cant.', 'Ubicación', 'N.º serie'], ficha.equipos.map((e) => [e.descripcion, e.marca, e.cantidad, e.ubicacion, e.numero_serie]), 'Sin equipos registrados.'))
-
-  html += rSeccion(7, 'Variables Monitoreadas',
-    rTabla(['Variable', 'Unidad', 'Fuente', 'Registro', 'Plataforma'], ficha.variables_monitoreadas.map((v) => [v.variable, v.unidad, v.fuente, v.registro, v.plataforma]), 'Sin variables registradas.'))
-
-  html += rSeccion(8, 'Configuración del Monitoreo',
-    '<div style="font-size:11px;font-weight:700;color:#555;margin:6px 0 2px">Usuarios y destinatarios de notificación</div>' +
-    rTabla(['Rol', 'Nombre', 'Canal', 'Alcance'], ficha.configuracion_monitoreo.notificaciones.map((n) => [n.rol, n.nombre, n.canal, n.alcance]), 'Sin destinatarios.') +
-    '<div style="font-size:11px;font-weight:700;color:#555;margin:10px 0 2px">Umbrales de alarma</div>' +
-    rTabla(['Evento', 'Condición', 'Notificación', 'Destinatarios'], ficha.configuracion_monitoreo.umbrales_alarma.map((u) => [u.evento, u.condicion, u.notificacion, u.destinatarios]), 'Sin umbrales.') +
-    rLista(ficha.configuracion_monitoreo.politicas_datos))
-
-  html += rSeccion(9, 'Protocolo de Pruebas y Resultados',
-    rTabla(['Código', 'Prueba', 'Criterio', 'Resultado', 'Observación'], ficha.protocolo_pruebas.map((p) => [
-      p.codigo, p.prueba, p.criterio_aceptacion,
-      p.resultado === 'conforme' ? 'Conforme' : p.resultado === 'no_conforme' ? 'No conforme' : (p.resultado || '—'),
-      p.observacion,
-    ]), 'Sin pruebas registradas.'))
-
-  html += rSeccion(10, 'Eventos Operativos y Acciones Correctivas',
-    rTabla(['Código', 'Descripción', 'Causa raíz', 'Acción correctiva', 'Estado'], ficha.eventos_operativos.map((e) => [e.codigo, e.descripcion, e.causa_raiz, e.accion_correctiva, e.estado]), 'Sin eventos operativos registrados.'))
-
-  html += rSeccion(11, 'Pendientes',
-    rTabla(['Descripción', 'Responsable', 'Estado'], detalle.pendientes.map((p) => [p.descripcion, p.responsable, p.estado || 'abierto']), 'Sin pendientes.'))
-
-  html += rSeccion(12, 'Observaciones y Estado del Sistema',
-    '<div class="rpt-obs-title">OBSERVACIONES GENERALES <span class="rpt-edit-hint">✏️ clic para editar</span></div>' +
-    `<div class="rpt-obs-text rpt-obs-editable" contenteditable="true" data-obs="generales">${esc(ficha.observaciones.generales || '')}</div>` +
-    (ficha.observaciones.factor_pendiente ? rParrafo('Factor pendiente: ' + ficha.observaciones.factor_pendiente) : ''))
-
-  html += rSeccion(13, 'Recomendaciones de Operación y Mantenimiento', rLista(ficha.recomendaciones))
-  html += rSeccion(14, 'Conclusión', rParrafo(ficha.conclusion))
-  html += rSeccion(15, 'Aceptación y Firmas',
-    rTabla(['Nombre', 'Cargo', 'Fecha'], ficha.firmas.map((f) => [f.nombre, f.cargo, fmtFecha(f.fecha)]), 'Sin firmantes.'))
-
-  html += rSeccion(16, 'Anexos — Evidencia',
-    detalle.evidencia_relacionada.length
-      ? '<ul style="margin:4px 0;padding-left:18px;font-size:12px;line-height:1.7">' +
-        detalle.evidencia_relacionada.map((ev) => `<li><b>${esc(ev.seccion)}:</b> <a href="${ev.url}" target="_blank" rel="noopener">${esc(ev.nombre)}</a></li>`).join('') +
-        '</ul>'
-      : '<div class="rpt-chart-empty">Sin evidencia subida todavía.</div>')
-
-  html += '</div>'
-  return html
-}
-
-async function generarInforme() {
+// ── Enviar a revisión ────────────────────────────────────────────────────
+// Antes esto mandaba una foto HTML congelada al sistema genérico de
+// InformeGuardado (compartido con Mensuales/Portafolio/Ranking, revisor
+// hardcodeado por email, desconectado de esta ficha) -- ahora el estado
+// vive en la propia ficha y "Descargar PDF" siempre arma el documento con
+// el contenido actual, no una foto vieja (ver plan de reestructuración,
+// 2026-08-31).
+async function enviarARevision() {
   generandoInforme.value = true
+  ficha.estado = 'en_revision'
   try {
-    const html_content = construirHtmlInforme()
-    const payload = {
-      tipo: 'pm',
-      sub_project: detalle.proyecto.sub_project || detalle.proyecto.nombre_comercial,
-      periodo_desde: '2000-01-01',
-      periodo_hasta: '2099-12-31',
-      periodo_display: 'Puesta en marcha',
-      proyecto_nombre: detalle.proyecto.nombre_comercial,
-      html_content,
-    }
-    const { data } = await api.post('/informes/', payload)
-    router.push(`/informes/${data.id}`)
-  } catch (e) {
-    toast.error('No se pudo generar el informe', { description: e.response?.data?.detail, duration: 3500 })
+    await guardar()
   } finally {
     generandoInforme.value = false
   }
@@ -1049,8 +1102,10 @@ onMounted(cargarLista)
 .om-empty-mini { padding: 10px 0; color: #9ca3af; font-size: 13px; }
 
 .om-field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: #6b5a8a; }
-.om-field input, .om-field textarea { padding: 9px 12px; border: 1.5px solid #e8e0f0; border-radius: 9px; font-size: 13.5px; color: var(--color-unergy-deep); outline: none; font-family: inherit; }
-.om-field input:focus, .om-field textarea:focus { border-color: var(--color-unergy-purple); }
+.om-field input, .om-field textarea, .om-field select { padding: 9px 12px; border: 1.5px solid #e8e0f0; border-radius: 9px; font-size: 13.5px; color: var(--color-unergy-deep); outline: none; font-family: inherit; }
+.om-field input:focus, .om-field textarea:focus, .om-field select:focus { border-color: var(--color-unergy-purple); }
+.om-field--inline { flex-direction: row; align-items: center; gap: 10px; }
+.om-field--inline select { width: auto; }
 .om-textarea-full { width: 100%; padding: 10px 12px; border: 1.5px solid #e8e0f0; border-radius: 9px; font-size: 13.5px; color: var(--color-unergy-deep); outline: none; font-family: inherit; }
 .om-fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .om-sub-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: #9b8db5; display: block; }
@@ -1066,6 +1121,9 @@ onMounted(cargarLista)
 .om-sistema-chip b { font-size: 13.5px; }
 .om-sistema-chip--aprobado b { color: #16a34a; }
 .om-sistema-chip--pendiente b { color: #d97706; }
+
+.om-checklist-cat { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #f3f0f7; border-radius: 10px; }
+.om-checklist-cat-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; color: #9b8db5; }
 
 .om-pendiente-ro { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid #f5f3f9; font-size: 13px; }
 .om-pendiente-ro:last-child { border-bottom: none; }

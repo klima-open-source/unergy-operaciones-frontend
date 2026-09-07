@@ -170,7 +170,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import api from '~/core/client'
+import { PpaService } from '~/features/contratos/services/ppa'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import InputText from 'primevue/inputtext'
@@ -184,6 +184,8 @@ import {
   opcionesSicVigentes, plantasInscritas,
   toIso, parseIso, fmtFecha as fmt, pctTexto, modalidadTexto,
 } from './gesconVigencia.js'
+
+const ppaService = new PpaService()
 
 const props = defineProps({
   rows: { type: Array, default: () => [] },
@@ -301,12 +303,12 @@ async function guardar() {
       link_archivo: linkArchivo.value || null,
       observaciones: observaciones.value || null,
     }
-    const { data } = await api.post('/asic/modificacion', payload)
+    const data = await ppaService.crearModificacionAsic(payload)
     toast.success('Modificación registrada', { description: data.resumen, duration: 6000 })
     emit('guardado', data)
   } catch (e) {
     toast.error('No se pudo registrar la modificación', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 8000,
     })
   } finally {

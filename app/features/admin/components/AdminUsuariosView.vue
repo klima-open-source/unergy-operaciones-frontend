@@ -62,10 +62,12 @@ import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { UsuariosService } from '~/features/admin/services/usuarios'
 import UsuarioForm from './UsuarioForm.vue'
 import ApiKeysDialog from './ApiKeysDialog.vue'
 import { KeyIcon, PencilIcon, PlusIcon, SearchIcon } from '@lucide/vue'
+
+const usuariosService = new UsuariosService()
 
 const items = ref([])
 const loading = ref(false)
@@ -107,8 +109,7 @@ const filtered = computed(() => {
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get('/usuarios')
-    items.value = data.items
+    items.value = await usuariosService.listar()
   } finally {
     loading.value = false
   }
@@ -142,16 +143,16 @@ function openApiKeys(row) {
 async function onSave(payload) {
   try {
     if (editingId.value) {
-      await api.patch(`/usuarios/${editingId.value}`, payload)
+      await usuariosService.actualizar(editingId.value, payload)
       toast.success('Usuario actualizado', { duration: 3000 })
     } else {
-      await api.post('/usuarios', payload)
+      await usuariosService.crear(payload)
       toast.success('Usuario creado', { duration: 3000 })
     }
     dialogVisible.value = false
     load()
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'Error al guardar', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'Error al guardar', duration: 4000 })
   }
 }
 </script>

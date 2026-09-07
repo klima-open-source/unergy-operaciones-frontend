@@ -2,9 +2,7 @@
 // detalle. Mismo semáforo en ambos niveles para no re-aprender colores.
 export const SERVICIO_LABELS = {
   representacion: 'Representación',
-  operacion: 'Operación',
   cgm: 'CGM',
-  promotor: 'Promotor',
   ppa: 'PPA',
   rec: 'REC',
   mantenimiento: 'Mantenimiento',

@@ -183,7 +183,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '~/core/client'
+import { InformesService } from '~/features/operaciones/services/informes'
+
+const informesService = new InformesService()
 
 const router = useRouter()
 
@@ -233,10 +235,9 @@ async function cargar() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.get('/informes/', { params: { limit: 200 } })
-    todosLoaded.value = data
+    todosLoaded.value = await informesService.listar({ limit: 200 })
   } catch (e) {
-    error.value = e.response?.data?.detail || e.message
+    error.value = e.data?.detail || e.message
   } finally {
     loading.value = false
   }
@@ -253,10 +254,10 @@ async function eliminarInforme(inf) {
   const periodo = inf.periodo_display || inf.periodo_desde || ''
   if (!confirm(`¿Eliminar el informe "${nombre} · ${periodo}"?\n\nEsta acción no se puede deshacer.`)) return
   try {
-    await api.delete(`/informes/${inf.id}`)
+    await informesService.eliminar(inf.id)
     todosLoaded.value = todosLoaded.value.filter(i => i.id !== inf.id)
   } catch (e) {
-    alert('⚠️ ' + (e.response?.data?.detail || e.message))
+    alert('⚠️ ' + (e.data?.detail || e.message))
   }
 }
 

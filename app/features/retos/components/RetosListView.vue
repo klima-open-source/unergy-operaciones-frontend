@@ -64,9 +64,11 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
 import Message from 'primevue/message'
-import api from '~/core/client'
+import { RetosService } from '~/features/retos/services/retos'
 import RetoQCard from './RetoQCard.vue'
 import { ArrowRightIcon, FlagIcon } from '@lucide/vue'
+
+const retosService = new RetosService()
 
 const route = useRoute()
 const router = useRouter()
@@ -106,7 +108,7 @@ async function cargar() {
   else recargando.value = true
 
   try {
-    const { data } = await api.get('/retos', { params: { anio: anio.value } })
+    const data = await retosService.listarPorAnio(anio.value)
     const lista = Array.isArray(data?.retos) ? data.retos : []
     retos.value = lista
 

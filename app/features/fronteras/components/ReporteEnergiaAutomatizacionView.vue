@@ -122,7 +122,7 @@
         </div>
         <div v-else-if="filasHistorial.length" class="workspace">
           <ReporteEnergiaLista
-            :filas="filasHistorial"
+            :filas="filasFiltradas"
             :seleccionada="seleccionHistorial?.frontera_id"
             @seleccionar="(f) => seleccionar(f, 'historial')"
           />
@@ -253,7 +253,7 @@
           <!-- Datos incompletos -->
           <div class="bg-white rounded-xl shadow-sm border p-4 mb-5" style="border-color:#e8e0f0;">
             <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">Datos incompletos de medidores e inversores</p>
-            <p class="text-xs mb-3" style="color:#9b89b5;">Solo Generación — cuántas veces cada fuente llegó incompleta en el rango.</p>
+            <p class="text-xs mb-3" style="color:#9b89b5;">Solo Generación — en cuántos de sus días llegó incompleta cada fuente.</p>
             <div class="flex items-center gap-3 flex-wrap rounded-lg px-3 py-2.5 mb-3" style="background:#faf9fc;">
               <template v-for="(c, idx) in resumenHistorico.incompletos_callouts" :key="idx">
                 <span><b class="text-base font-extrabold" style="color:var(--color-unergy-purple-dark);">{{ c.valor }}</b>
@@ -266,120 +266,45 @@
               <Column field="nombre_proyecto" header="Proyecto" sortable />
               <Column header="Medidor principal" sortable :sortField="'veces_medidor_principal_incompleto'" style="width:170px">
                 <template #body="{ data }">
-                  <span v-if="esCriticoProblema(pctDe(data.veces_medidor_principal_incompleto, data.dias_con_fila))"
-                        class="inline-flex text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
-                    {{ data.veces_medidor_principal_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_medidor_principal_incompleto, data.dias_con_fila) }}%
+                  <span v-if="celdaIncompleta(data.veces_medidor_principal_incompleto, data.dias_con_fila).destacar"
+                        class="inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
+                    <TriangleAlertIcon v-if="celdaIncompleta(data.veces_medidor_principal_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" />
+                    {{ celdaIncompleta(data.veces_medidor_principal_incompleto, data.dias_con_fila).texto }}
                   </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.veces_medidor_principal_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_medidor_principal_incompleto, data.dias_con_fila) }}%
+                  <span v-else class="inline-flex items-center gap-1 text-xs" :style="ESTILO_PLANO">
+                    <CheckIcon v-if="celdaIncompleta(data.veces_medidor_principal_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" style="color:#16a34a;" />
+                    {{ celdaIncompleta(data.veces_medidor_principal_incompleto, data.dias_con_fila).texto }}
                   </span>
                 </template>
               </Column>
               <Column header="Medidor respaldo" sortable :sortField="'veces_medidor_respaldo_incompleto'" style="width:170px">
                 <template #body="{ data }">
-                  <span v-if="esCriticoProblema(pctDe(data.veces_medidor_respaldo_incompleto, data.dias_con_fila))"
-                        class="inline-flex text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
-                    {{ data.veces_medidor_respaldo_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_medidor_respaldo_incompleto, data.dias_con_fila) }}%
+                  <span v-if="celdaIncompleta(data.veces_medidor_respaldo_incompleto, data.dias_con_fila).destacar"
+                        class="inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
+                    <TriangleAlertIcon v-if="celdaIncompleta(data.veces_medidor_respaldo_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" />
+                    {{ celdaIncompleta(data.veces_medidor_respaldo_incompleto, data.dias_con_fila).texto }}
                   </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.veces_medidor_respaldo_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_medidor_respaldo_incompleto, data.dias_con_fila) }}%
+                  <span v-else class="inline-flex items-center gap-1 text-xs" :style="ESTILO_PLANO">
+                    <CheckIcon v-if="celdaIncompleta(data.veces_medidor_respaldo_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" style="color:#16a34a;" />
+                    {{ celdaIncompleta(data.veces_medidor_respaldo_incompleto, data.dias_con_fila).texto }}
                   </span>
                 </template>
               </Column>
               <Column header="Inversores" sortable :sortField="'veces_solenium_incompleto'" style="width:170px">
                 <template #body="{ data }">
-                  <span v-if="esCriticoProblema(pctDe(data.veces_solenium_incompleto, data.dias_con_fila))"
-                        class="inline-flex text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
-                    {{ data.veces_solenium_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_solenium_incompleto, data.dias_con_fila) }}%
+                  <span v-if="celdaIncompleta(data.veces_solenium_incompleto, data.dias_con_fila).destacar"
+                        class="inline-flex items-center gap-1 text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
+                    <TriangleAlertIcon v-if="celdaIncompleta(data.veces_solenium_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" />
+                    {{ celdaIncompleta(data.veces_solenium_incompleto, data.dias_con_fila).texto }}
                   </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.veces_solenium_incompleto }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_solenium_incompleto, data.dias_con_fila) }}%
+                  <span v-else class="inline-flex items-center gap-1 text-xs" :style="ESTILO_PLANO">
+                    <CheckIcon v-if="celdaIncompleta(data.veces_solenium_incompleto, data.dias_con_fila).simbolo" class="size-[1em]" style="color:#16a34a;" />
+                    {{ celdaIncompleta(data.veces_solenium_incompleto, data.dias_con_fila).texto }}
                   </span>
                 </template>
               </Column>
             </DataTable>
             <p v-if="!resumenHistorico.incompletos.length" class="text-xs text-center py-6" style="color:#9b89b5;">Sin datos incompletos en este rango.</p>
-          </div>
-
-          <!-- Intervención manual -->
-          <div class="bg-white rounded-xl shadow-sm border p-4 mb-5" style="border-color:#e8e0f0;">
-            <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">Intervención manual recurrente</p>
-            <p class="text-xs mb-3" style="color:#9b89b5;">Fronteras que caen en "Revisar manualmente" o requieren edición manual una y otra vez.</p>
-            <div class="flex items-center gap-3 flex-wrap rounded-lg px-3 py-2.5 mb-3" style="background:#faf9fc;">
-              <template v-for="(c, idx) in resumenHistorico.intervencion_manual_callouts" :key="idx">
-                <span><b class="text-base font-extrabold" style="color:var(--color-unergy-purple-dark);">{{ c.valor }}</b>
-                  <span class="text-xs ml-1.5" style="color:#6b5a8a;">{{ c.etiqueta }}</span></span>
-                <span v-if="idx < resumenHistorico.intervencion_manual_callouts.length - 1" class="w-px h-4" style="background:#e8e0f0;" />
-              </template>
-            </div>
-            <DataTable :value="resumenHistorico.intervencion_manual" class="text-sm resumen-tabla" stripedRows rowHover
-                       paginator :rows="10" @row-click="e => irAFronteraHistorial(e.data.frontera_id)">
-              <Column field="nombre_proyecto" header="Proyecto" sortable />
-              <Column header="Tipo" field="tipo" sortable style="width:110px">
-                <template #body="{ data }">{{ data.tipo === 'generacion' ? 'Generación' : 'Consumo' }}</template>
-              </Column>
-              <Column header="Revisar manualmente" sortable :sortField="'veces_revisar_manualmente'" style="width:180px">
-                <template #body="{ data }">
-                  <span v-if="esCriticoProblema(pctDe(data.veces_revisar_manualmente, data.dias_con_fila))"
-                        class="inline-flex text-xs font-bold rounded-full px-2.5 py-1" :style="chipEstilo()">
-                    {{ data.veces_revisar_manualmente }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_revisar_manualmente, data.dias_con_fila) }}%
-                  </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.veces_revisar_manualmente }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_revisar_manualmente, data.dias_con_fila) }}%
-                  </span>
-                </template>
-              </Column>
-              <Column header="Editado manualmente" sortable :sortField="'veces_editado_manualmente'" style="width:180px">
-                <template #body="{ data }">
-                  <span class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.veces_editado_manualmente }} de {{ data.dias_con_fila }} · {{ pctDe(data.veces_editado_manualmente, data.dias_con_fila) }}%
-                  </span>
-                </template>
-              </Column>
-            </DataTable>
-            <p v-if="!resumenHistorico.intervencion_manual.length" class="text-xs text-center py-6" style="color:#9b89b5;">Sin intervención manual en este rango.</p>
-          </div>
-
-          <!-- Recuperación activa -->
-          <div class="bg-white rounded-xl shadow-sm border p-4" style="border-color:#e8e0f0;">
-            <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">Recuperación activa de medidores</p>
-            <p class="text-xs mb-3" style="color:#9b89b5;">Intentos y éxitos al forzar la lectura de un medidor — por frontera y medidor.</p>
-            <div class="flex items-center gap-3 flex-wrap rounded-lg px-3 py-2.5 mb-3" style="background:#faf9fc;">
-              <template v-for="(c, idx) in resumenHistorico.recuperacion_activa_callouts" :key="idx">
-                <span><b class="text-base font-extrabold" style="color:var(--color-unergy-purple-dark);">{{ c.valor }}</b>
-                  <span class="text-xs ml-1.5" style="color:#6b5a8a;">{{ c.etiqueta }}</span></span>
-                <span v-if="idx < resumenHistorico.recuperacion_activa_callouts.length - 1" class="w-px h-4" style="background:#e8e0f0;" />
-              </template>
-            </div>
-            <DataTable :value="resumenHistorico.recuperacion_activa" class="text-sm resumen-tabla" stripedRows rowHover
-                       paginator :rows="10" @row-click="e => irAFronteraHistorial(e.data.frontera_id)">
-              <Column field="nombre_proyecto" header="Proyecto" sortable />
-              <Column header="Éxito principal" style="width:130px">
-                <template #body="{ data }">
-                  <span v-if="!data.intentos_principal" class="text-xs" style="color:#9b89b5;">— sin intentos</span>
-                  <span v-else-if="esCriticoExito(pctDe(data.exitos_principal, data.intentos_principal))"
-                        class="text-xs font-bold" :style="{ color: GRUPO_COLOR['Sin fuente'] }">
-                    {{ data.exitos_principal }}/{{ data.intentos_principal }}
-                  </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.exitos_principal }}/{{ data.intentos_principal }}
-                  </span>
-                </template>
-              </Column>
-              <Column header="Éxito respaldo" style="width:130px">
-                <template #body="{ data }">
-                  <span v-if="!data.intentos_respaldo" class="text-xs" style="color:#9b89b5;">— sin intentos</span>
-                  <span v-else-if="esCriticoExito(pctDe(data.exitos_respaldo, data.intentos_respaldo))"
-                        class="text-xs font-bold" :style="{ color: GRUPO_COLOR['Sin fuente'] }">
-                    {{ data.exitos_respaldo }}/{{ data.intentos_respaldo }}
-                  </span>
-                  <span v-else class="text-xs" :style="ESTILO_PLANO">
-                    {{ data.exitos_respaldo }}/{{ data.intentos_respaldo }}
-                  </span>
-                </template>
-              </Column>
-            </DataTable>
-            <p v-if="!resumenHistorico.recuperacion_activa.length" class="text-xs text-center py-6" style="color:#9b89b5;">Sin intentos de recuperación en este rango.</p>
           </div>
         </template>
 
@@ -395,7 +320,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
 import TabView from 'primevue/tabview'
@@ -408,12 +333,13 @@ import {
 } from 'chart.js'
 import ReporteEnergiaLista from './ReporteEnergiaLista.vue'
 import ReporteEnergiaDetalleTab from './ReporteEnergiaDetalleTab.vue'
-import { CircleStopIcon, FileSpreadsheetIcon, LoaderCircleIcon, PlayIcon, SendIcon } from '@lucide/vue'
+import { CheckIcon, CircleStopIcon, FileSpreadsheetIcon, LoaderCircleIcon, PlayIcon, SendIcon, TriangleAlertIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 const route = useRoute()
 const router = useRouter()
+const reporteEnergiaService = new ReporteEnergiaService()
 
 // Bogotá (America/Bogota) es UTC-5 fijo, sin horario de verano -- pero
 // calcularlo restando 5h al epoch y leyendo el resultado con getters LOCALES
@@ -494,13 +420,12 @@ async function cargarResumenHistorico() {
   grupoSeleccionadoGen.value = null
   grupoSeleccionadoCon.value = null
   try {
-    const { data } = await api.get('/reporte-energia/resumen-historico', {
-      params: { desde: resumenDesdeISO.value, hasta: resumenHastaISO.value },
-    })
-    resumenHistorico.value = data
+    resumenHistorico.value = await reporteEnergiaService.obtenerResumenHistorico(
+      resumenDesdeISO.value, resumenHastaISO.value,
+    )
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo cargar el resumen histórico.',
+      description: e.data?.detail || 'No se pudo cargar el resumen histórico.',
       duration: 4000,
     })
     resumenHistorico.value = null
@@ -588,11 +513,10 @@ const chartCon = computed(() => chartDeGrupos(kpiCon.value))
 const chartOptionsGen = computed(() => chartOptionsPara('gen', kpiGen.value))
 const chartOptionsCon = computed(() => chartOptionsPara('con', kpiCon.value))
 
-// Semáforo de severidad -- para "% de días con un problema" más alto es
-// peor (incompletos, revisar manualmente, y el drill-down de fuente); para
-// "% de éxito" más alto es mejor (recuperación activa) -- por eso el
-// umbral de "crítico" (esCriticoProblema/esCriticoExito, más abajo) se
-// evalúa por separado, no invirtiendo un solo número.
+// Semáforo de severidad del drill-down por fuente: acá un % más alto es
+// PEOR, al revés que en las tarjetas KPI, por eso tiene su propia escala en
+// vez de invertir un solo número.
+// (La tabla de incompletos ya no usa porcentaje -- ver celdaIncompleta.)
 function severidadColor(pct) {
   return pct > 30 ? GRUPO_COLOR['Sin fuente'] : pct > 10 ? GRUPO_COLOR['Estimación'] : GRUPO_COLOR['Medidor']
 }
@@ -600,8 +524,40 @@ function severidadColor(pct) {
 // está bien generaba demasiado ruido visual, 30 píldoras de colores
 // compitiendo por atención en una sola tabla (pedido 2026-08-21). Lo que
 // no es crítico se muestra en texto plano gris, sin fondo.
-function esCriticoProblema(pct) { return pct > 30 }
-function esCriticoExito(pct) { return pct < 34 }
+/**
+ * Como se muestra que una fuente (medidor principal/respaldo, inversores) llego
+ * incompleta en el rango.
+ *
+ * Antes decia siempre `N de M · P%`, y el porcentaje se leia como "que TAN
+ * incompleta llego" cuando en realidad es "en que PROPORCION DE SUS DIAS llego
+ * incompleta". Un 100% podia ser una sola hora faltante cada dia.
+ *
+ * Peor: cuando la frontera tiene un solo dia con dato --el caso normal al mirar
+ * una fecha puntual, que es como se usa esta pantalla-- el porcentaje solo puede
+ * dar 0% o 100%. No aporta nada y confunde. Ahi va un simbolo y ya.
+ *
+ * Con varios dias el numero SI sirve, porque distingue "fallo un dia" de "fallo
+ * todos" -- que es lo que permite priorizar. Se muestra como fraccion y sin
+ * porcentaje: `3 de 30 dias` dice la proporcion sin poder leerse mal.
+ *
+ * `dias` es dias_con_fila de ESA frontera, no el largo del rango: una frontera
+ * con un solo dia de datos dentro de un rango de 30 tiene el mismo problema.
+ */
+function celdaIncompleta(veces, dias) {
+  const total = dias || 0
+  const incompleto = veces > 0
+  if (total <= 1) {
+    return { simbolo: true, incompleto, texto: incompleto ? 'Incompleto' : 'Completo', destacar: incompleto }
+  }
+  return {
+    simbolo: false,
+    incompleto,
+    texto: `${veces} de ${total} días`,
+    // Un tercio de los dias o mas: deja de ser un tropiezo y es un patron.
+    destacar: veces / total > 1 / 3,
+  }
+}
+
 function chipEstilo(pct) {
   const color = GRUPO_COLOR['Sin fuente']
   return { background: color + '22', color }
@@ -644,8 +600,7 @@ async function irAFronteraHistorial(frontera_id) {
 
 async function cargarResumen() {
   try {
-    const { data } = await api.get('/reporte-energia/resumen', { params: { fecha: fechaISO.value } })
-    resumen.value = data
+    resumen.value = await reporteEnergiaService.obtenerResumen(fechaISO.value)
   } catch (e) {
     resumen.value = null
   }
@@ -654,8 +609,7 @@ async function cargarResumen() {
 async function cargarLista(silent = false) {
   if (!silent) loadingLista.value = true
   try {
-    const { data } = await api.get('/reporte-energia/fronteras', { params: { fecha: fechaISO.value } })
-    filas.value = data
+    filas.value = await reporteEnergiaService.listarFronteras(fechaISO.value)
   } catch (e) {
     if (!silent) {
       toast.error('Error', { description: 'No se pudo cargar el reporte de ese día.', duration: 4000 })
@@ -669,9 +623,7 @@ async function cargarLista(silent = false) {
 async function cargarHistorial() {
   loadingHistorial.value = true
   try {
-    const f = fechaHistorialISO.value
-    const { data } = await api.get('/reporte-energia/fronteras', { params: { fecha: f } })
-    filasHistorial.value = data
+    filasHistorial.value = await reporteEnergiaService.listarFronteras(fechaHistorialISO.value)
   } catch (e) {
     filasHistorial.value = []
   } finally {
@@ -687,7 +639,7 @@ async function cargarHistorial() {
 // refrescarse (pedido 2026-08-21).
 async function cargarEstadoQuoiaActual() {
   try {
-    const { data } = await api.get('/reporte-energia/estado-quoia', { params: { fecha: fechaISO.value } })
+    const data = await reporteEnergiaService.obtenerEstadoQuoia(fechaISO.value)
     estadoQuoia.value = data.total > 0 ? data : null
     if (estadoQuoia.value && estadoQuoia.value.en_espera > 0) iniciarPollingEstadoQuoia()
   } catch {
@@ -697,10 +649,7 @@ async function cargarEstadoQuoiaActual() {
 
 async function revisarEstadoQuoia() {
   try {
-    const { data } = await api.post(
-      '/reporte-energia/estado-quoia', null,
-      { params: { fecha: fechaISO.value }, timeout: 180000 },
-    )
+    const data = await reporteEnergiaService.revisarEstadoQuoia(fechaISO.value)
     estadoQuoia.value = data
     if (data.en_espera === 0) detenerPollingEstadoQuoia()
   } catch {
@@ -758,9 +707,14 @@ function semaforo(f) {
   return 'warning'
 }
 
+// Mismo criterio que `stats`: el filtro de las tarjetas tiene que aplicar
+// sobre la lista que se está viendo, no siempre sobre 'hoy' -- si no, un
+// click en una tarjeta mientras se está en Historial no hacía nada (la
+// lista de Historial leía `filasHistorial` sin pasar por este filtro).
 const filasFiltradas = computed(() => {
-  if (!filtroSemaforo.value) return filas.value
-  return filas.value.filter(f => semaforo(f) === filtroSemaforo.value)
+  const base = activeTab.value === 1 ? filasHistorial.value : filas.value
+  if (!filtroSemaforo.value) return base
+  return base.filter(f => semaforo(f) === filtroSemaforo.value)
 })
 
 const stats = computed(() => {
@@ -811,7 +765,7 @@ watch([activeTab, seleccion, seleccionHistorial, fecha, fechaHistorial], () => {
 async function ejecutarClasificacion() {
   ejecutando.value = true
   try {
-    await api.post('/reporte-energia/ejecutar', null, { params: { fecha: fechaISO.value } })
+    await reporteEnergiaService.ejecutarClasificacion(fechaISO.value)
     toast.info('Clasificación iniciada', {
       description: 'Corre en segundo plano -- puede tardar varios minutos si hay medidores incompletos. La tabla se va a ir actualizando sola.',
       duration: 6000,
@@ -819,7 +773,7 @@ async function ejecutarClasificacion() {
     sondearResultado()
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo iniciar la clasificación.',
+      description: e.data?.detail || 'No se pudo iniciar la clasificación.',
       duration: 4000,
     })
     ejecutando.value = false
@@ -833,7 +787,7 @@ async function ejecutarClasificacion() {
 async function detenerClasificacion() {
   deteniendo.value = true
   try {
-    await api.post('/reporte-energia/ejecutar/cancelar', null, { params: { fecha: fechaISO.value } })
+    await reporteEnergiaService.cancelarClasificacion(fechaISO.value)
     toast.info('Deteniendo…', {
       description: 'Se detiene después de terminar la frontera en curso, no de inmediato.',
       duration: 5000,
@@ -885,7 +839,7 @@ function sondearResultado() {
 // logs de Railway.
 async function avisarSiHuboFallidas(fechaSondeada) {
   try {
-    const { data } = await api.get('/reporte-energia/ejecutar/estado', { params: { fecha: fechaSondeada } })
+    const data = await reporteEnergiaService.obtenerEstadoEjecucion(fechaSondeada)
     if (data.error_general) {
       toast.error('Clasificación interrumpida', { description: data.error_general, duration: 8000 })
     } else if (data.cancelado) {
@@ -909,10 +863,8 @@ async function avisarSiHuboFallidas(fechaSondeada) {
 async function generarExcel() {
   generandoExcel.value = true
   try {
-    const response = await api.get('/reporte-energia/excel', {
-      params: { fecha: fechaISO.value }, responseType: 'blob',
-    })
-    const url = URL.createObjectURL(response.data)
+    const blob = await reporteEnergiaService.descargarExcel(fechaISO.value)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `reporte-energia-${fechaISO.value}.xlsx`
@@ -928,7 +880,7 @@ async function generarExcel() {
 async function enviarReporte() {
   enviando.value = true
   try {
-    const { data } = await api.post('/reporte-energia/enviar', null, { params: { fecha: fechaISO.value }, timeout: 300000 })
+    const data = await reporteEnergiaService.enviarReporte(fechaISO.value)
     if (data.bloqueado) {
       toast.warning('Envío bloqueado', { description: data.motivo_bloqueo, duration: 5000 })
     } else if (data.fallidos.length) {
@@ -945,7 +897,7 @@ async function enviarReporte() {
     }
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo enviar el reporte.',
+      description: e.data?.detail || 'No se pudo enviar el reporte.',
       duration: 4000,
     })
   } finally {

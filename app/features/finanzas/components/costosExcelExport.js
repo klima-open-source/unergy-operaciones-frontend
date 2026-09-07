@@ -10,8 +10,9 @@
  * Cada proyecto genera SIEMPRE sus 7 filas (una por payment_type); los payment_type
  * sin registro guardado ese mes quedan en value = 0. Genera y descarga el .xlsx.
  */
-import * as XLSX from 'xlsx'
-import api from '~/core/client'
+import { OmService } from '~/features/finanzas/services/om'
+import { ArriendosCalculoService } from '~/features/finanzas/services/arriendos-calculo'
+import { StarlinkService } from '~/features/finanzas/services/starlink'
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -118,15 +119,19 @@ function starlinkPanel(desc) {
 
 // ── Generación principal ──────────────────────────────────────────────────────
 export async function generarExcelCostos(periodo) {
+  const omService = new OmService()
+  const arriendosCalculoService = new ArriendosCalculoService()
+  const starlinkService = new StarlinkService()
+
   const [yyyy, mm] = periodo.split('-').map(Number)
 
   // Mantenimiento (backend)
   let omFilas = []
-  try { omFilas = (await api.get(`/om/calculo/${periodo}`)).data.filas || [] } catch { omFilas = [] }
+  try { omFilas = (await omService.obtenerCalculo(periodo)).filas || [] } catch { omFilas = [] }
 
   // Internet (backend) — líneas ya resueltas a proyecto (proyecto_id + nombre_comercial)
   let starlinkData = { lineas: [], agrupado: [] }
-  try { starlinkData = (await api.get(`/starlink/factura/${periodo}`)).data } catch { /* sin datos */ }
+  try { starlinkData = await starlinkService.obtenerFactura(periodo) } catch { /* sin datos */ }
 
   // public_services por pk. Fuente primaria: lineas resueltas (nombre_comercial).
   // Fallback (datos aún sin backfill): agrupado + mapeo de nombre en el front.
@@ -154,7 +159,7 @@ export async function generarExcelCostos(periodo) {
 
   // Arriendos (backend)
   let arrFilas = []
-  try { arrFilas = (await api.get(`/arriendos/calculo/${periodo}`)).data.filas || [] } catch { arrFilas = [] }
+  try { arrFilas = (await arriendosCalculoService.obtenerCalculo(periodo)).filas || [] } catch { arrFilas = [] }
   const leaseByPk = {}
   arrFilas.forEach(f => {
     if (f.incluido && f.habilitado) leaseByPk[resolvePk(f.proyecto)] = f.canon_a_facturar || 0
@@ -188,6 +193,7 @@ export async function generarExcelCostos(periodo) {
   }
 
   // Hoja .xlsx plana
+  const XLSX = await import('xlsx')
   const ws = XLSX.utils.json_to_sheet(rows, {
     header: ['project_pk', 'payment_type', 'value', 'from_date', 'to_date', 'payment_frecuency'],
   })

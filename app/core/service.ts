@@ -1,37 +1,107 @@
 /**
- * BaseService — wires a service to an API client with token resolution.
+ * BaseService — la base que extiende todo service del cliente.
  *
- * Decoupled from auth: the token is supplied via the constructor. Services that
- * need auth receive it from the caller (a component reading `useAuth()`) rather
- * than reading a global store.
- *
- * Subclasses call `this.api<T>(path, { method, body, query })` directly — it is
- * an ofetch instance, so the options are ofetch's.
- *
- * `baseUrl` exists because auth and data can live on different hosts: a service
- * overrides it to target another API, and passes `''` to stay on this app's own
- * Nitro routes. Omit it to use `runtimeConfig.public.apiBaseUrl`.
- *
- * Instantiate services inside `setup()` or a composable, never at module scope:
- * the default base URL comes from `useRuntimeConfig()`, which needs the Nuxt
- * context — and a service built once per process would be shared across
- * requests, token and all.
+ * Por defecto usa la instancia compartida de la plataforma (`~/core/client.ts`),
+ * que lleva el interceptor de sesión: un 401 limpia la sesión y redirige al
+ * login, un 403 avisa con un toast. Eso es lo correcto para casi todo — la
+ * excepción es una llamada donde un 401/403 es una respuesta normal y no un
+ * síntoma de sesión rota (un intento de login: ver
+ * `OperacionesAuthService`), o un destino que no debe llevar el token de la
+ * plataforma en absoluto (el agente local de XM: ver `XmAgenteLocalService`).
+ * Para esos casos, pásale al constructor una instancia de `air` propia.
  *
  * @example
- * const auth = useAuth()
- * const reports = new ReportsService(() => auth.accessToken.value)
+ * class ProyeccionesService extends BaseService {
+ *   listar() { return this.get<Proyeccion[]>('/garantias/proyecciones') }
+ * }
  */
-import type { ApiClient } from '~/core/api'
-import { createApiClient } from '~/core/api'
+import type { AirClient, AirOptions, Fetch } from '@korastd/air'
+import { airClient } from '~/core/client'
 
 export class BaseService {
-  protected api: ApiClient
+  protected api: AirClient
 
-  constructor(token: string | (() => string | null) = '', baseUrl?: string) {
-    // Each service gets its own client so the getToken closure resolves correctly.
-    this.api = createApiClient({
-      baseUrl: baseUrl ?? useRuntimeConfig().public.apiBaseUrl,
-      getToken: () => (typeof token === 'function' ? token() : token),
-    })
+  constructor(instancia: AirClient = airClient) {
+    this.api = instancia
   }
+
+  /** Devuelve el cuerpo de la respuesta, que es lo único que quiere quien llama. */
+  protected get<T>(url: string, options?: AirOptions): Promise<T> {
+    return this.api.get<T>(url, options)
+  }
+
+  protected post<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
+    return this.api.post<T>(url, { ...options, body })
+  }
+
+  protected put<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
+    return this.api.put<T>(url, { ...options, body })
+  }
+
+  protected patch<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
+    return this.api.patch<T>(url, { ...options, body })
+  }
+
+  protected delete<T>(url: string, options?: AirOptions): Promise<T> {
+    return this.api.delete<T>(url, options)
+  }
+
+  /**
+   * Sube archivos como `multipart/form-data` informando del avance. La subida de
+   * facturas y de Excel son lo bastante lentas como para que el porcentaje no
+   * sea un adorno.
+   *
+   * `air` no ofrece progreso de subida sin transmitir el cuerpo como stream, y
+   * un `FormData` no se puede recodificar a mano sin perder el boundary del
+   * multipart que pone el navegador (ver `subidaConProgreso`). XHR sí lo expone
+   * de fábrica, así que solo cuando hay `onProgreso` se le pasa a `air` un
+   * `fetch` a medida que envuelve uno.
+   */
+  protected postFormData<T>(
+    url: string,
+    form: FormData,
+    onProgreso?: (porcentaje: number) => void,
+  ): Promise<T> {
+    if (!onProgreso) return this.post<T>(url, form)
+    return this.api.post<T>(url, { body: form, fetch: subidaConProgreso(onProgreso) })
+  }
+}
+
+function subidaConProgreso(onProgreso: (porcentaje: number) => void): Fetch {
+  return (url, init) =>
+    new Promise<Response>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open(init.method ?? 'POST', url)
+
+      new Headers(init.headers).forEach((valor, clave) => xhr.setRequestHeader(clave, valor))
+
+      xhr.upload.onprogress = (evento) => {
+        if (evento.lengthComputable) onProgreso(Math.round((evento.loaded / evento.total) * 100))
+      }
+
+      xhr.responseType = 'blob'
+      xhr.onload = () => {
+        resolve(
+          new Response(xhr.response as Blob, {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            headers: parsearCabecerasXhr(xhr.getAllResponseHeaders()),
+          }),
+        )
+      }
+      xhr.onerror = () => reject(new TypeError('La subida falló: error de red.'))
+
+      xhr.send(init.body as XMLHttpRequestBodyInit)
+    })
+}
+
+/** `XMLHttpRequest.getAllResponseHeaders()` devuelve texto crudo, `air` espera un `Headers`. */
+function parsearCabecerasXhr(crudo: string): Headers {
+  const cabeceras = new Headers()
+  for (const linea of crudo.trim().split(/\r?\n/)) {
+    const separador = linea.indexOf(':')
+    if (separador === -1) continue
+    cabeceras.append(linea.slice(0, separador).trim(), linea.slice(separador + 1).trim())
+  }
+  return cabeceras
 }

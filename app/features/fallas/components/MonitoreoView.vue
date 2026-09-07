@@ -101,7 +101,7 @@
                     <code class="gf-compact-code">{{ f.codigo_interno }}</code>
                     <span v-if="f.estado?.codigo"
                       class="gf-compact-dot"
-                      :style="{ background: f.estado?.color_hex || 'var(--color-unergy-purple)' }"
+                      :style="{ background: colorEstado(f.estado?.codigo, 'var(--color-unergy-purple)') }"
                       v-tooltip.right="f.estado?.etiqueta" />
                   </div>
                   <div class="gf-compact-line2">{{ f.tipo?.etiqueta || f.tipo_libre || f.descripcion || 'Sin descripción' }}</div>
@@ -190,7 +190,7 @@
                 <template #body="{ data }">
                   <div class="flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full shrink-0"
-                      :style="{ background: data.estado?.color_hex || '#9ca3af' }"></span>
+                      :style="{ background: colorEstado(data.estado?.codigo, '#9ca3af') }"></span>
                     <span class="text-[11px] text-gray-600">{{ data.estado?.etiqueta || '—' }}</span>
                   </div>
                 </template>
@@ -284,7 +284,7 @@
                 <div>
                   <p class="gf-hero-title">{{ tituloFalla(drawerFalla) }}</p>
                   <div class="flex flex-wrap gap-1.5 mt-2">
-                    <GBadge :color="drawerFalla.estado?.color_hex || '#915BD8'">{{ drawerFalla.estado?.etiqueta }}</GBadge>
+                    <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{ drawerFalla.estado?.etiqueta }}</GBadge>
                     <span class="prio-pill" :style="prioPillStyle(drawerFalla.prioridad?.codigo)">
                       {{ drawerFalla.prioridad?.etiqueta }}
                     </span>
@@ -421,10 +421,6 @@
                     <dt class="gf-fact-label"><UserPenIcon class="size-[1em]" /> Registrado por</dt>
                     <dd class="gf-fact-value">{{ drawerFalla.registrado_por?.nombre || '—' }}</dd>
                   </div>
-                  <div class="gf-fact">
-                    <dt class="gf-fact-label"><UserIcon class="size-[1em]" /> Asignado a</dt>
-                    <dd class="gf-fact-value">{{ drawerFalla.asignado_a?.nombre || 'Sin asignar' }}</dd>
-                  </div>
                   <div v-if="drawerFalla.resolucion" class="gf-fact">
                     <dt class="gf-fact-label"><WrenchIcon class="size-[1em]" /> Resolución</dt>
                     <dd class="gf-fact-value font-medium text-emerald-700">{{ drawerFalla.resolucion.etiqueta }}</dd>
@@ -487,20 +483,36 @@
                   <header class="gf-section-head">
                     <ClockIcon class="gf-section-icon size-[1em]" />
                     <h3 class="gf-section-title">SLA</h3>
-                    <GBadge v-if="drawerFalla.sla_limite_horas" class="ml-auto"
-                      :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
-                    <span v-else class="ml-auto text-xs text-gray-500">Sin límite</span>
+                    <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
                   </header>
-                  <template v-if="drawerFalla.sla_limite_horas">
-                    <div class="gf-sla-stat">
-                      <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
-                      <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas }}h</span>
+                  <div class="gf-sla-stat">
+                    <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
+                    <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas_efectivo }}h</span>
+                  </div>
+                  <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
+                    <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
+                  </div>
+
+                  <div class="gf-sla-override">
+                    <div class="gf-sla-override-row">
+                      <span class="gf-sla-override-label">Límite personalizado</span>
+                      <span v-if="!quickEdit.sla_limite_horas" class="gf-sla-override-ref">
+                        Por defecto: <strong>{{ drawerFalla.sla_limite_horas_efectivo }}h</strong>
+                      </span>
                     </div>
-                    <div class="bg-gray-200 rounded-full h-2 overflow-hidden mt-2">
-                      <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
+                    <div class="gf-sla-override-input">
+                      <InputNumber v-model="quickEdit.sla_limite_horas" placeholder="Sin personalizar"
+                        :min="1" :max="999" showButtons buttonLayout="horizontal" class="flex-1"
+                        @update:modelValue="autosaveQuick()" />
+                      <button v-if="quickEdit.sla_limite_horas" type="button" class="gf-sla-override-clear"
+                        title="Quitar personalización" @click="quickEdit.sla_limite_horas = null; autosaveQuick()">
+                        <XIcon class="size-[1em]" />
+                      </button>
                     </div>
-                  </template>
-                  <p v-else class="text-sm text-gray-600 mt-1">Esta falla no tiene SLA configurado.</p>
+                    <p class="gf-sla-override-hint">
+                      Opcional. Solo para casos puntuales que necesitan más o menos tiempo que el default de su prioridad.
+                    </p>
+                  </div>
                 </section>
               </div>
 
@@ -566,7 +578,7 @@
                       </div>
                       <p v-if="seg.nota" class="gf-body-text whitespace-pre-line">{{ seg.nota }}</p>
                       <div v-if="seg.estado_nuevo" class="mt-1.5">
-                        <GBadge :color="seg.estado_nuevo?.color_hex || '#915BD8'">{{ seg.estado_nuevo?.etiqueta }}</GBadge>
+                        <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)">{{ seg.estado_nuevo?.etiqueta }}</GBadge>
                       </div>
                     </div>
                   </div>
@@ -616,7 +628,8 @@
           </div>
           <div class="resolve-dialog-field">
             <label class="resolve-dialog-label">Tipo de solución</label>
-            <Select v-model="resolveTipoSolucion" :options="TIPOS_SOLUCION_RESOLVE"
+            <Select v-model="resolveResolucionId" :options="catalogos.resoluciones"
+              optionLabel="etiqueta" optionValue="id"
               placeholder="Seleccionar (opcional)" showClear class="w-full" />
           </div>
         </div>
@@ -656,6 +669,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import DatePicker from 'primevue/datepicker'
@@ -674,9 +688,17 @@ import {
   PointElement, LineElement, Title, Filler
 } from 'chart.js'
 ChartJS.register(Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Filler)
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { tituloFalla, categoriaFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
-import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, TimerIcon, Trash2Icon, UserIcon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { formatCOP as fmtCOP } from '~/utils/currency'
+import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
+const generacionSolarService = new GeneracionSolarService()
 
 const route          = useRoute()
 const router         = useRouter()
@@ -699,13 +721,6 @@ const BUCKETS = [
   { key: 'cerradas', label: 'Cerradas',   icon: CircleCheckIcon,      color: '#16a34a' },
   { key: 'todas',    label: 'Todas',      icon: ListIcon,              color: '#915BD8' },
 ]
-
-const PRIO_COLORS = {
-  critica: '#dc2626',
-  alta:    '#ea580c',
-  media:   '#d97706',
-  baja:    '#6b7280',
-}
 
 const AVATAR_PALETTE = ['#915BD8', '#2563eb', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#7c3aed', '#db2777']
 
@@ -747,27 +762,14 @@ const stickyHeaderRef = ref(null)
 // ── Drawer / detalle ──────────────────────────────────────────────────────
 const drawerVisible  = ref(false)
 const drawerFalla    = ref(null)
-const quickEdit      = reactive({ estado_id: null, prioridad_id: null })
+const quickEdit      = reactive({ estado_id: null, prioridad_id: null, sla_limite_horas: null })
 const savingQuick    = ref(false)
 const savedFlash     = ref(false)
 const resolvingFalla       = ref(false)
 const resolveDialogVisible = ref(false)
 const resolveFallaTarget   = ref(null)
 const resolveFecha         = ref(new Date())
-const resolveTipoSolucion  = ref(null)
-
-const TIPOS_SOLUCION_RESOLVE = [
-  'Reemplazo de componente',
-  'Reparación mecánica',
-  'Reparación eléctrica',
-  'Actualización de firmware',
-  'Limpieza y mantenimiento',
-  'Reconexión / rearme',
-  'Configuración / calibración',
-  'Gestión con OR / proveedor',
-  'Solución remota',
-  'Otro',
-]
+const resolveResolucionId  = ref(null)
 const addingSeg      = ref(false)
 const nuevaNota      = reactive({ nota: '', estado_id: null })
 
@@ -931,12 +933,13 @@ const sortedSeguimientos = computed(() =>
 // ── Clasificación estructurada del drawer (equipo que falló) ──────────────
 const clasifDrawer = computed(() => clasificacionDetalle(drawerFalla.value))
 
-// Origen de la falla: alarma automática de monitoreo o centinela manual.
+// Origen de la falla: solo se puede afirmar con certeza el caso automático
+// (alarma_monitoreo_id no se puede falsificar). centinela se eliminó
+// (2026-09-02) -- era texto libre sin validación, no una señal confiable.
 const origenFalla = computed(() => {
   const f = drawerFalla.value
   if (!f) return null
   if (f.alarma_monitoreo_id) return 'Alarma automática de monitoreo'
-  if (f.centinela) return f.centinela
   return null
 })
 
@@ -979,23 +982,23 @@ async function cargar() {
   loading.value = true
   error.value   = null
   try {
-    const { data: primera } = await api.get('/fallas', { params: { page: 1, size: 500 } })
+    const primera = await fallasService.listar({ page: 1, size: 500 })
     const total = primera.total ?? 0
     const items = [...(primera.items ?? [])]
     if (total > 500) {
       const totalPages = Math.ceil(total / 500)
       const rest = await Promise.allSettled(
         Array.from({ length: totalPages - 1 }, (_, i) =>
-          api.get('/fallas', { params: { page: i + 2, size: 500 } })
+          fallasService.listar({ page: i + 2, size: 500 })
         )
       )
       for (const r of rest) {
-        if (r.status === 'fulfilled') items.push(...(r.value.data.items ?? []))
+        if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
       }
     }
     allFallas.value = items
   } catch (e) {
-    error.value = e.response?.data?.detail || e.message || 'Error de conexión'
+    error.value = e.data?.detail || e.message || 'Error de conexión'
   } finally {
     loading.value = false
   }
@@ -1003,15 +1006,13 @@ async function cargar() {
 
 async function cargarCatalogos() {
   try {
-    const { data } = await api.get('/fallas/catalogos')
-    catalogos.value = data
+    catalogos.value = await fallasService.obtenerCatalogos()
   } catch { /* no crítico */ }
 }
 
 async function cargarProyectos() {
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    proyectos.value = data.items ?? []
+    proyectos.value = await proyectosService.listar({ size: 500 })
     // Cargar gráficos de generación una vez que los proyectos estén disponibles
     cargarGenHoy()
     cargarGen7()
@@ -1055,8 +1056,8 @@ async function cargarGenHoy() {
 
     // 2. Real desde Solenium — el backend empareja por project_id_solenium o por nombre
     try {
-      const { data } = await api.get('/generacion-solar/generacion-hoy')
-      for (const row of data.proyectos ?? []) {
+      const filas = await generacionSolarService.obtenerGeneracionHoy()
+      for (const row of filas) {
         if (byProyecto[row.proyecto_id] !== undefined) {
           byProyecto[row.proyecto_id].real   = Number(row.kwh_real || 0)
           byProyecto[row.proyecto_id].fuente = row.fuente || 'sin_dato'
@@ -1088,21 +1089,21 @@ async function cargarGen7() {
 
     // Fetch Unergy (histórico) y Solenium (hoy) en paralelo
     const [unergRes, solRes] = await Promise.allSettled([
-      api.get('/monitoreo/resumen-generacion', { params: { date_from: fi, date_to: ff } }),
-      api.get('/generacion-solar/generacion-hoy'),
+      fallasService.obtenerResumenGeneracion({ date_from: fi, date_to: ff }),
+      generacionSolarService.obtenerGeneracionHoyCompleta(),
     ])
 
     // Indexar real por fecha (Unergy histórico)
     const realByDate = {}
     if (unergRes.status === 'fulfilled') {
-      for (const entry of unergRes.value.data.dates ?? []) {
+      for (const entry of unergRes.value.dates ?? []) {
         realByDate[entry.fecha] = entry.kwh_real
       }
     }
 
     // Reemplazar hoy con el total de Solenium (más real-time, mismo origen que "Generación de hoy")
     if (solRes.status === 'fulfilled') {
-      const solTotal = Number(solRes.value.data.total ?? 0)
+      const solTotal = Number(solRes.value.total ?? 0)
       if (solTotal > 0) realByDate[hoyStr] = +solTotal.toFixed(1)
     }
 
@@ -1141,10 +1142,11 @@ async function cargarGenProj() {
   try {
     const fi = genProjFechaInicio.value.toISOString().split('T')[0]
     const ff = genProjFechaFin.value.toISOString().split('T')[0]
-    const { data } = await api.get(
-      `/generacion-solar/proyecto/${genProjSel.value}/historial`,
-      { params: { fecha_inicio: fi, fecha_fin: ff, granularidad: genProjGran.value } }
-    )
+    const data = await generacionSolarService.obtenerHistorialProyecto(genProjSel.value, {
+      fecha_inicio: fi,
+      fecha_fin: ff,
+      granularidad: genProjGran.value,
+    })
     genProjPuntos.value   = data.puntos ?? []
     genProjTotalKwh.value = data.total_kwh ?? 0
   } catch {
@@ -1179,6 +1181,7 @@ function abrirDrawer(falla) {
   drawerFalla.value       = falla
   quickEdit.estado_id     = falla.estado?.id ?? null
   quickEdit.prioridad_id  = falla.prioridad?.id ?? null
+  quickEdit.sla_limite_horas = falla.sla_limite_horas ?? null
   nuevaNota.nota          = ''
   nuevaNota.estado_id     = null
   drawerVisible.value     = true
@@ -1199,9 +1202,8 @@ async function _mostrarResultadoNotificacion(fallaIds) {
   // Si alguna falla, muestra advertencia pero NO bloquea el flujo.
   const resultados = await Promise.all(
     fallaIds.map(id =>
-      api.post(`/fallas/${id}/notificar`)
-        .then(r => r.data)
-        .catch(err => ({ ok: false, enviados: [], errores: [err.response?.data?.detail || err.message || 'Error desconocido'], sin_correos: false }))
+      fallasService.notificar(id)
+        .catch(err => ({ ok: false, enviados: [], errores: [err.data?.detail || err.message || 'Error desconocido'], sin_correos: false }))
     )
   )
 
@@ -1255,14 +1257,12 @@ async function onSaveForm(payload) {
       const archivosEdit = payload._archivos ?? []
       delete payload.nota_inicial
       delete payload._archivos
-      await api.patch(`/fallas/${editingFalla.value.id}`, payload)
-      if (notaInicial) await api.post(`/fallas/${editingFalla.value.id}/seguimientos`, { nota: notaInicial })
+      await fallasService.actualizar(editingFalla.value.id, payload)
+      if (notaInicial) await fallasService.crearSeguimiento(editingFalla.value.id, { nota: notaInicial })
       if (archivosEdit.length) {
-        await Promise.all(archivosEdit.map(file => {
-          const fd = new FormData()
-          fd.append('archivo', file)
-          return api.post(`/fallas/${editingFalla.value.id}/archivos`, fd)
-        }))
+        await Promise.all(archivosEdit.map(file =>
+          fallasService.subirArchivo(editingFalla.value.id, file)
+        ))
       }
       toast.success('Falla actualizada', { duration: 2500 })
 
@@ -1280,23 +1280,19 @@ async function onSaveForm(payload) {
 
       // Una falla por proyecto, en paralelo
       const nuevas = await Promise.all(
-        ids.map(pid => api.post('/fallas', { ...base, proyecto_id: pid }).then(r => r.data))
+        ids.map(pid => fallasService.crear({ ...base, proyecto_id: pid }))
       )
       // Nota inicial para cada falla creada (si la hay)
       if (nota_inicial) {
         await Promise.all(
-          nuevas.map(f => api.post(`/fallas/${f.id}/seguimientos`, { nota: nota_inicial }))
+          nuevas.map(f => fallasService.crearSeguimiento(f.id, { nota: nota_inicial }))
         )
       }
       // Subir archivos adjuntos a cada falla (si los hay)
       if (archivos.length) {
         await Promise.all(
           nuevas.flatMap(f =>
-            archivos.map(file => {
-              const fd = new FormData()
-              fd.append('archivo', file)
-              return api.post(`/fallas/${f.id}/archivos`, fd)
-            })
+            archivos.map(file => fallasService.subirArchivo(f.id, file))
           )
         )
       }
@@ -1319,7 +1315,7 @@ async function onSaveForm(payload) {
       if (refreshed) abrirDrawer(refreshed)
     }
   } catch (err) {
-    const msg = err?.response?.data?.detail ?? 'Error al guardar'
+    const msg = err?.data?.detail ?? 'Error al guardar'
     toast.error('Error', { description: msg, duration: 4000 })
   } finally {
     savingForm.value = false
@@ -1338,20 +1334,23 @@ async function guardarQuickEdit() {
   const payload = {}
   if (quickEdit.estado_id !== drawerFalla.value.estado?.id) payload.estado_id = quickEdit.estado_id
   if (quickEdit.prioridad_id !== drawerFalla.value.prioridad?.id) payload.prioridad_id = quickEdit.prioridad_id
+  if ((quickEdit.sla_limite_horas || null) !== (drawerFalla.value.sla_limite_horas || null))
+    payload.sla_limite_horas = quickEdit.sla_limite_horas || null
   if (!Object.keys(payload).length) return
 
   savingQuick.value = true
   try {
-    const { data } = await api.patch(`/fallas/${drawerFalla.value.id}`, payload)
+    const data = await fallasService.actualizar(drawerFalla.value.id, payload)
     drawerFalla.value = data
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     savedFlash.value = true
     setTimeout(() => { savedFlash.value = false }, 1500)
   } catch (err) {
-    toast.error('No se pudo guardar', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('No se pudo guardar', { description: err?.data?.detail, duration: 3000 })
     quickEdit.estado_id     = drawerFalla.value.estado?.id ?? null
     quickEdit.prioridad_id  = drawerFalla.value.prioridad?.id ?? null
+    quickEdit.sla_limite_horas = drawerFalla.value.sla_limite_horas ?? null
   } finally {
     savingQuick.value = false
   }
@@ -1365,7 +1364,7 @@ function quickResolve(falla) {
   }
   resolveFallaTarget.value  = falla
   resolveFecha.value        = new Date()
-  resolveTipoSolucion.value = null
+  resolveResolucionId.value = null
   resolveDialogVisible.value = true
 }
 
@@ -1380,8 +1379,8 @@ async function confirmarResolve() {
       fecha_resolucion: resolveFecha.value?.toISOString() ?? new Date().toISOString(),
       sla_cumplido:     !slaVencido(falla),
     }
-    if (resolveTipoSolucion.value) payload.tipo_solucion = resolveTipoSolucion.value
-    const { data } = await api.patch(`/fallas/${falla.id}`, payload)
+    if (resolveResolucionId.value) payload.resolucion_id = resolveResolucionId.value
+    const data = await fallasService.actualizar(falla.id, payload)
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     if (drawerFalla.value?.id === data.id) drawerFalla.value = data
@@ -1389,7 +1388,7 @@ async function confirmarResolve() {
     calRefreshKey.value++
     toast.success('Falla resuelta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   } finally {
     resolvingFalla.value = false
   }
@@ -1403,7 +1402,7 @@ async function reabrirFalla() {
     return
   }
   try {
-    const { data } = await api.patch(`/fallas/${drawerFalla.value.id}`, {
+    const data = await fallasService.actualizar(drawerFalla.value.id, {
       estado_id:        abierta.id,
       fecha_resolucion: null,
     })
@@ -1413,7 +1412,7 @@ async function reabrirFalla() {
     quickEdit.estado_id = data.estado?.id ?? null
     toast.success('Falla reabierta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   }
 }
 
@@ -1424,10 +1423,10 @@ async function agregarSeguimiento() {
     const payload = {}
     if (nuevaNota.nota.trim()) payload.nota = nuevaNota.nota.trim()
     if (nuevaNota.estado_id) payload.estado_nuevo_id = nuevaNota.estado_id
-    await api.post(`/fallas/${drawerFalla.value.id}/seguimientos`, payload)
+    await fallasService.crearSeguimiento(drawerFalla.value.id, payload)
     nuevaNota.nota      = ''
     nuevaNota.estado_id = null
-    const { data } = await api.get(`/fallas/${drawerFalla.value.id}`)
+    const data = await fallasService.obtener(drawerFalla.value.id)
     drawerFalla.value = data
     const idx = allFallas.value.findIndex(f => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
@@ -1435,7 +1434,7 @@ async function agregarSeguimiento() {
     if (payload.estado_nuevo_id) calRefreshKey.value++
     toast.success('Seguimiento agregado', { duration: 2000 })
   } catch (err) {
-    toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
   } finally {
     addingSeg.value = false
   }
@@ -1450,19 +1449,19 @@ function confirmDelete(falla) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/fallas/${falla.id}`)
+        await fallasService.eliminar(falla.id)
         allFallas.value     = allFallas.value.filter(f => f.id !== falla.id)
         drawerVisible.value = false
         toast.success('Falla eliminada', { duration: 2500 })
       } catch (err) {
-        toast.error('Error', { description: err?.response?.data?.detail, duration: 3000 })
+        toast.error('Error', { description: err?.data?.detail, duration: 3000 })
       }
     },
   })
 }
 
 // ── Helpers visuales ──────────────────────────────────────────────────────
-function prioColor(codigo) { return PRIO_COLORS[codigo] || '#9ca3af' }
+function prioColor(codigo) { return colorPrioridad(codigo, '#9ca3af') }
 
 function prioPillStyle(codigo) {
   const c = prioColor(codigo)
@@ -1513,8 +1512,8 @@ function horasTranscurridas(falla) {
 }
 
 function slaPct(falla) {
-  if (!falla?.sla_limite_horas) return null
-  return Math.min(Math.round((horasTranscurridas(falla) / falla.sla_limite_horas) * 100), 110)
+  if (!falla?.sla_limite_horas_efectivo) return null
+  return Math.min(Math.round((horasTranscurridas(falla) / falla.sla_limite_horas_efectivo) * 100), 110)
 }
 
 function slaVencido(falla) {
@@ -1570,10 +1569,6 @@ function fmtFechaHora(dt) {
 }
 
 // Moneda COP sin decimales.
-function fmtCOP(v) {
-  if (v == null) return '—'
-  return Number(v).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
-}
 
 // Duración legible a partir de horas (min / h / d h).
 function fmtHoras(h) {
@@ -2362,7 +2357,27 @@ watch(bucket, (newBucket) => {
   margin-top: 4px;
 }
 .gf-sla-num { font-size: 28px; font-weight: 800; line-height: 1; }
-.gf-sla-of  { font-size: 13px; color: #6b5a8a; font-weight: 500; }
+.gf-sla-of  { font-size: 16px; color: #4a3b6b; font-weight: 600; }
+
+/* ══ SLA override (límite personalizado) ════════════════════════════════ */
+.gf-sla-override {
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e5e0f0;
+}
+.gf-sla-override-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.gf-sla-override-label { font-size: 12px; font-weight: 600; color: #4a3b6b; }
+.gf-sla-override-ref { font-size: 13px; color: #9b8db5; }
+.gf-sla-override-ref strong { color: #4a3b6b; font-weight: 700; }
+.gf-sla-override-input { display: flex; align-items: center; gap: 6px; }
+.gf-sla-override-clear {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: none;
+  background: #f1eaf9; color: #6b5a8a; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.gf-sla-override-clear:hover { background: #e5d9f5; }
+.gf-sla-override-hint { font-size: 11px; color: #9b8db5; line-height: 1.5; margin: 6px 0 0; }
 
 /* ══ Avatars ═════════════════════════════════════════════════════════════ */
 .avatar-md {

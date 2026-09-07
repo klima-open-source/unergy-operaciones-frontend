@@ -62,8 +62,10 @@
 import { ref, computed, watch } from 'vue'
 import Select from 'primevue/select'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowRightLeftIcon, CheckIcon, Trash2Icon, XIcon } from '@lucide/vue'
+
+const proyectosService = new ProyectosService()
 
 const props = defineProps({
   proyectoId: { type: [Number, String], required: true },
@@ -90,26 +92,26 @@ const clienteSeleccionado = ref(null)
 
 async function cargar() {
   if (!props.proyectoId) return
-  const { data } = await api.get(`/proyectos/${props.proyectoId}/area-contactos`)
+  const data = await proyectosService.listarAreaContactos(props.proyectoId)
   overrides.value = Object.fromEntries(data.map(a => [a.tipo, a]))
 }
 
 async function guardarOverride(tipo) {
   if (!clienteSeleccionado.value) return
   try {
-    const { data } = await api.put(`/proyectos/${props.proyectoId}/area-contactos/${tipo}`, {
+    const data = await proyectosService.guardarAreaContacto(props.proyectoId, tipo, {
       cliente_id: clienteSeleccionado.value,
     })
     overrides.value = { ...overrides.value, [tipo]: data }
     editando.value = null
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'No se pudo guardar', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'No se pudo guardar', duration: 4000 })
   }
 }
 
 async function quitarOverride(tipo) {
   try {
-    await api.delete(`/proyectos/${props.proyectoId}/area-contactos/${tipo}`)
+    await proyectosService.eliminarAreaContacto(props.proyectoId, tipo)
     const rest = { ...overrides.value }
     delete rest[tipo]
     overrides.value = rest

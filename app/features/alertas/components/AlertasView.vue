@@ -46,8 +46,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import api from '~/core/client'
+import { AlertasService } from '~/features/alertas/services/alertas'
 import { CircleAlertIcon, WrenchIcon, ZapIcon } from '@lucide/vue'
+
+const alertasService = new AlertasService()
 
 const kpis = ref({})
 const ppaAlerts = ref({ huerfanos: [], duplicados: [] })
@@ -111,12 +113,12 @@ const MODULOS = computed(() => [
 
 onMounted(async () => {
   try {
-    const [kpiRes, ppaRes] = await Promise.all([
-      api.get('/dashboard/kpis').catch(() => null),
-      api.get('/alertas/contratos-ppa').catch(() => null),
+    const [kpisRes, ppaRes] = await Promise.all([
+      alertasService.obtenerKpis().catch(() => null),
+      alertasService.obtenerContratosPpa().catch(() => null),
     ])
-    if (kpiRes?.data) kpis.value = kpiRes.data
-    if (ppaRes?.data) ppaAlerts.value = ppaRes.data
+    if (kpisRes) kpis.value = kpisRes
+    if (ppaRes) ppaAlerts.value = ppaRes
   } catch {
     // degrade gracefully
   }

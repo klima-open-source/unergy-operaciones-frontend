@@ -491,9 +491,10 @@ import IconField     from 'primevue/iconfield'
 import InputIcon     from 'primevue/inputicon'
 import Popover       from 'primevue/popover'
 import { toast } from 'vue-sonner'
-import api           from '~/core/client'
+import { OmService } from '~/features/finanzas/services/om'
 import DocumentoIcon  from '~/features/finanzas/components/DocumentoIcon.vue'
 import { parseCOP }   from '~/utils/parseCOP'
+import { formatCOP } from '~/utils/currency'
 import { ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, CircleIcon, ClockIcon, DownloadIcon, ExternalLinkIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, MessageSquareIcon, SaveIcon, SearchIcon, TableIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 
 
@@ -501,6 +502,7 @@ import { ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronDownIcon, ChevronLeft
 const vFocus = { mounted: (el) => el.focus() }
 
 const router = useRouter()
+const omService = new OmService()
 
 function irADetalleProyecto(fila) {
   if (!fila.proyecto_id) return
@@ -664,11 +666,6 @@ function toggleTodosSeccion(items, checked) {
   seccionHabilitadas(items).forEach(f => { seleccion[f.contrato_id] = checked })
 }
 
-function formatCOP(v) {
-  if (v == null) return '—'
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-}
-
 // Valor a mostrar/guardar: override local dirty → valor del backend (ya resuelto)
 function valorEfectivo(fila) {
   const ov = overrides[fila.contrato_id]
@@ -725,12 +722,12 @@ async function cargarDatos() {
   loading.value = true
   try {
     const [calcRes, ipcRes] = await Promise.all([
-      api.get(`/om/calculo/${periodoReq}`),
-      api.get('/om/ipc'),
+      omService.obtenerCalculo(periodoReq),
+      omService.obtenerIpc(),
     ])
     if (periodoReq !== periodoActual.value) return   // respuesta obsoleta: ya se cambió de mes
-    filas.value    = calcRes.data.filas
-    ipcTasas.value = ipcRes.data
+    filas.value    = calcRes.filas
+    ipcTasas.value = ipcRes
 
     filas.value.forEach(f => {
       if (seleccion[f.contrato_id] === undefined) {
@@ -789,7 +786,7 @@ async function _ejecutarGuardado(motivos) {
         motivo_exclusion: motivos[f.contrato_id] || null,
       }
     })
-    await api.post(`/om/seleccion/${periodoActual.value}`, { items })
+    await omService.guardarSeleccion(periodoActual.value, items)
     Object.keys(overrides).forEach(k => delete overrides[k])
     await cargarDatos()
     toast.success('Selección guardada', { duration: 2500 })
@@ -805,14 +802,13 @@ async function guardarIPC() {
   guardandoIPC.value = true
   const filasAntes = filas.value.map(f => ({ contrato_id: f.contrato_id, nombre: f.nombre_proyecto, valor: f.valor_a_facturar }))
   try {
-    await api.put(`/om/ipc/${ipcForm.año}`, {
+    await omService.guardarIpc(ipcForm.año, {
       tasa: ipcForm.tasaPct / 100,
       confirmado: true,
       fuente: ipcForm.fuente || 'manual',
     })
     toast.success('Tasa IPC guardada', { duration: 2500 })
-    const ipcRes = await api.get('/om/ipc')
-    ipcTasas.value = ipcRes.data
+    ipcTasas.value = await omService.obtenerIpc()
     await cargarDatos()
     // Calcular cambios para notificación
     const afectados = []
@@ -848,26 +844,26 @@ function fmtFechaFactura(iso) {
 async function cargarFacturaProveedor() {
   const periodoReq = periodoActual.value
   try {
-    const { data } = await api.get(`/om/factura/${periodoReq}`)
+    const data = await omService.obtenerFactura(periodoReq)
     if (periodoReq !== periodoActual.value) return   // respuesta obsoleta
     facturaProveedor.value = data
   } catch { facturaProveedor.value = { nombre_archivo: null, enlace_pdf: null, tiene_archivo: false, subido_en: null } }
 }
 
-// Usa el cliente axios central (inyecta el Bearer token vía interceptor) en vez de un
+// Usa OmService (inyecta el Bearer token vía el cliente air compartido) en vez de un
 // <a href> directo — VITE_API_URL no está definida en el build de producción, y aunque
 // lo estuviera, el endpoint exige Authorization: Bearer, que un <a> no puede enviar.
 async function descargarFacturaProveedor() {
   try {
-    const resp = await api.get(`/om/factura/${periodoActual.value}/file`, { responseType: 'blob' })
-    const url = URL.createObjectURL(resp.data)
+    const blob = await omService.descargarFacturaArchivo(periodoActual.value)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = facturaProveedor.value.nombre_archivo || `factura-${periodoActual.value}.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 100)
   } catch (e) {
-    if (e.response?.status === 404) {
+    if (e.status === 404) {
       toast.warning('Archivo no disponible', {
         description: 'La factura de este período ya no está en el servidor. Vuelve a subirla desde la pestaña Proveedor.',
         duration: 6000,
@@ -885,7 +881,7 @@ async function toggleFacturado(fila) {
   if (!conContrato(fila)) return
   togglingFacturado[fila.contrato_id] = true
   try {
-    await api.patch(`/om/seleccion/${periodoActual.value}/${fila.contrato_id}/facturado`)
+    await omService.marcarFacturado(periodoActual.value, fila.contrato_id)
     await cargarDatos()
   } catch {
     toast.error('No se pudo cambiar el estado facturado', { duration: 3000 })
@@ -897,18 +893,15 @@ async function toggleFacturado(fila) {
 async function descargarDocumento(fila) {
   descargando[fila.contrato_id] = true
   try {
-    const resp = await api.get(
-      `/om/documento/${fila.periodo}/${fila.contrato_id}`,
-      { responseType: 'blob' }
-    )
-    const url = URL.createObjectURL(resp.data)
+    const blob = await omService.descargarDocumento(fila.periodo, fila.contrato_id)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `SOFV_${fila.nombre_proyecto}_${fila.periodo}_mantenimiento.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 100)
   } catch (e) {
-    if (e.response?.status === 404) {
+    if (e.status === 404) {
       toast.warning('Archivo no disponible', {
         description: 'El documento de este proyecto ya no está en el servidor. Vuelve a subir la factura del período desde Proveedor.',
         duration: 6000,

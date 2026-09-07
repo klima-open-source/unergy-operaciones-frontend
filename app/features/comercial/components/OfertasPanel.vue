@@ -189,7 +189,7 @@ import MultiSelect from 'primevue/multiselect'
 import InputText from 'primevue/inputtext'
 import DatePicker from 'primevue/datepicker'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ComercialService } from '~/features/comercial/services/comercial'
 import {
   ETAPAS, TIPOS_OFERTA, labelTipo, fmtFecha, alarmante, aFechaStr,
   etiquetaPrecio, placeholderPrecio, ayudaPrecio,
@@ -202,6 +202,7 @@ const props = defineProps({
   ofertas: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['changed'])
+const comercialService = new ComercialService()
 
 // Al crear solo tienen sentido las dos primeras etapas: firmar crea el contrato
 // y se hace desde el tablero, no declarando una etapa.
@@ -250,11 +251,11 @@ async function cambiarEtapa(oferta, estado) {
   if (!estado || estado === oferta.estado) return
   moviendo.value = oferta.id
   try {
-    await api.post(`/comercial/ofertas/${oferta.id}/estado`, { estado })
+    await comercialService.cambiarEstadoOferta(oferta.id, estado)
     emit('changed')
   } catch (err) {
     toast.error('No se pudo cambiar la etapa', {
-      description: err.response?.data?.detail ?? '',
+      description: err.data?.detail ?? '',
       duration: 5000,
     })
   } finally {
@@ -265,11 +266,11 @@ async function cambiarEtapa(oferta, estado) {
 async function registrarSeguimiento(oferta) {
   tocando.value = oferta.id
   try {
-    await api.post(`/comercial/ofertas/${oferta.id}/seguimiento`)
+    await comercialService.registrarSeguimientoOferta(oferta.id)
     emit('changed')
   } catch (err) {
     toast.error('No se pudo registrar el toque', {
-      description: err.response?.data?.detail ?? '',
+      description: err.data?.detail ?? '',
       duration: 5000,
     })
   } finally {
@@ -280,7 +281,7 @@ async function registrarSeguimiento(oferta) {
 async function guardar() {
   guardando.value = true
   try {
-    await api.post(`/comercial/oportunidades/${props.oportunidadId}/ofertas`, {
+    await comercialService.crearOferta(props.oportunidadId, {
       tipo: form.tipo,
       planta_nombre: form.planta_nombre || null,
       proyecto_ids: form.proyecto_ids?.length ? form.proyecto_ids : null,
@@ -296,7 +297,7 @@ async function guardar() {
     emit('changed')
   } catch (err) {
     toast.error('No se pudo guardar la oferta', {
-      description: err.response?.data?.detail ?? '',
+      description: err.data?.detail ?? '',
       duration: 5000,
     })
   } finally {

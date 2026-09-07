@@ -6,13 +6,13 @@
  * usuaria corre en su propio computador (ver
  * `unergy-operaciones-backend/local_agent/README.md`).
  *
- * De ahí que use una instancia de axios propia: sin la baseURL de la plataforma
- * y sin el interceptor de autenticación. El agente no pide token — solo acepta
- * conexiones desde localhost.
+ * De ahí que use una instancia de `air` propia: sin la baseURL de la plataforma
+ * y sin el interceptor de sesión de `~/core/client.ts`. El agente no pide
+ * token — solo acepta conexiones desde localhost.
  */
 import type { EstadoDescargaXm, TrabajoDescargaXm } from '~/features/finanzas/types'
-import axios from 'axios'
-import { LegacyBaseService } from '~/core/legacy-service'
+import air, { isAirError } from '@korastd/air'
+import { BaseService } from '~/core/service'
 
 const AGENTE_LOCAL_URL = 'http://127.0.0.1:8420'
 const TIMEOUT_MS = 10_000
@@ -22,9 +22,9 @@ const RUTAS = {
   descarga: (jobId: string) => `/descargas/${jobId}`,
 } as const
 
-export class XmAgenteLocalService extends LegacyBaseService {
+export class XmAgenteLocalService extends BaseService {
   constructor() {
-    super(axios.create({ baseURL: AGENTE_LOCAL_URL, timeout: TIMEOUT_MS }))
+    super(air.create({ baseURL: AGENTE_LOCAL_URL, signal: () => AbortSignal.timeout(TIMEOUT_MS) }))
   }
 
   iniciarDescarga(payload: Record<string, unknown>): Promise<TrabajoDescargaXm> {
@@ -41,6 +41,6 @@ export class XmAgenteLocalService extends LegacyBaseService {
    * caso que la vista tiene que explicar al usuario.
    */
   static noDisponible(error: unknown): boolean {
-    return !(axios.isAxiosError(error) && error.response)
+    return !(isAirError(error) && error.response)
   }
 }

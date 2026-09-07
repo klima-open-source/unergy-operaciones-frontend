@@ -242,10 +242,12 @@ import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
-import api from '~/core/client'
+import { PolizasService } from '~/features/operaciones/services/polizas'
 import { formatCurrency } from '~/features/operaciones/utils/financialCalculations'
 import { CheckIcon, InboxIcon, PencilIcon, RefreshCwIcon, SearchIcon, ShieldIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+
+const polizasService = new PolizasService()
 
 const TIPO_LABELS = {
   minigranja: 'Minigranja',
@@ -288,8 +290,7 @@ const expandidoId = ref(null)
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/polizas')
-    filas.value = data
+    filas.value = await polizasService.listar()
   } catch {
     toast.error('Error', { description: 'No se pudieron cargar las pólizas', duration: 4000 })
   } finally {
@@ -448,7 +449,7 @@ async function guardar() {
       ipp_base_fecha: toISODate(form.value.ipp_base_fecha),
       ipp_provisional_fecha: toISODate(form.value.ipp_provisional_fecha),
     }
-    await api.put(`/polizas/${edicion.value.proyecto_id}`, body)
+    await polizasService.guardar(edicion.value.proyecto_id, body)
     await cargar()
     cerrarEdicion()
   } catch {

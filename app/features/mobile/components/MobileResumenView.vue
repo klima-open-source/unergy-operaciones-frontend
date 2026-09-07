@@ -89,14 +89,17 @@
 
     <MobileTabBar />
 
-    <FallaDetailSheet :open="fallaDetailOpen" :falla="fallaDetail" :catalogos="catalogos" :usuarios="usuarios"
+    <FallaDetailSheet :open="fallaDetailOpen" :falla="fallaDetail" :catalogos="catalogos"
       @close="fallaDetailOpen = false" @updated="onFallaUpdated" />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, h } from 'vue'
-import api from '~/core/client'
+import { logger } from '~/core/logger'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { colorEstado } from '~/features/fallas/utils/colores'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.vue'
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 import { ArrowRightIcon, ChartColumnIcon, ChevronRightIcon, CirclePlusIcon, GaugeIcon, LoaderCircleIcon, RefreshCwIcon, WrenchIcon, ZapIcon } from '@lucide/vue'
@@ -148,6 +151,9 @@ const TopCard = {
   },
 }
 
+const fallasService = new FallasService()
+const generacionSolarService = new GeneracionSolarService()
+
 // ── Estado ───────────────────────────────────────────────────────────────────
 const gen          = reactive({ medidor: null, inversor: null, fecha: null })
 const fallas       = reactive({ creadas: [], cambios_estado: [], fecha: null })
@@ -156,7 +162,6 @@ const loadingFallas = ref(false)
 const loading      = computed(() => loadingGen.value || loadingFallas.value)
 
 const catalogos       = reactive({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
-const usuarios        = ref([])
 const fallaDetailOpen = ref(false)
 const fallaDetail     = ref(null)
 
@@ -183,7 +188,7 @@ function horaCorta(iso) {
   return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 }
 function estadoStyle(estado) {
-  const c = estado?.color_hex || '#915BD8'
+  const c = colorEstado(estado?.codigo)
   return { background: c + '22', color: c }
 }
 
@@ -191,12 +196,12 @@ function estadoStyle(estado) {
 async function cargarGen(force = false) {
   loadingGen.value = true
   try {
-    const { data } = await api.get('/generacion-solar/resumen-dia')
+    const data = await generacionSolarService.obtenerResumenDia()
     gen.medidor = data.medidor || { total: 0, top: [] }
     gen.inversor = data.inversor || { total: 0, top: [] }
     gen.fecha = data.fecha
   } catch (e) {
-    console.error('resumen-dia generación', e)
+    logger.error('mobile', e)
     if (!gen.medidor) gen.medidor = { total: 0, top: [] }
     if (!gen.inversor) gen.inversor = { total: 0, top: [] }
   } finally {
@@ -207,12 +212,12 @@ async function cargarGen(force = false) {
 async function cargarFallas() {
   loadingFallas.value = true
   try {
-    const { data } = await api.get('/fallas/actividad-hoy')
+    const data = await fallasService.obtenerActividadHoy()
     fallas.creadas = data.creadas || []
     fallas.cambios_estado = data.cambios_estado || []
     fallas.fecha = data.fecha
   } catch (e) {
-    console.error('actividad-hoy fallas', e)
+    logger.error('mobile', e)
   } finally {
     loadingFallas.value = false
   }
@@ -220,12 +225,8 @@ async function cargarFallas() {
 
 async function cargarCatalogos() {
   try {
-    const [cat, usr] = await Promise.all([
-      api.get('/fallas/catalogos'),
-      api.get('/usuarios', { params: { size: 200 } }).catch(() => ({ data: { items: [] } })),
-    ])
-    Object.assign(catalogos, cat.data)
-    usuarios.value = usr.data.items ?? []
+    const cat = await fallasService.obtenerCatalogos()
+    Object.assign(catalogos, cat)
   } catch { /* no crítico */ }
 }
 

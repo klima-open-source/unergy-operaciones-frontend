@@ -100,12 +100,14 @@ import InputIcon from 'primevue/inputicon'
 import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import ClienteForm from './ClienteForm.vue'
 import { SEMAFORO, servicioLabel, fmt } from './clientesUi'
 import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { ChevronRightIcon, FileSpreadsheetIcon, PlusIcon, SearchIcon } from '@lucide/vue'
+
+const clientesService = new ClientesService()
 
 const router = useRouter()
 const items = ref([])
@@ -157,8 +159,7 @@ function abrirCliente(event) {
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get('/clientes/vista-comercial')
-    items.value = data
+    items.value = await clientesService.listarVistaComercial()
   } finally {
     loading.value = false
   }
@@ -185,12 +186,12 @@ async function descargarExcel() {
 
 async function onSave(payload) {
   try {
-    const { data } = await api.post('/clientes', payload)
+    const cliente = await clientesService.crear(payload)
     toast.success('Cliente creado', { duration: 3000 })
     dialogVisible.value = false
-    router.push(`/clientes/${data.id}`)
+    router.push(`/clientes/${cliente.id}`)
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail, duration: 4000 })
   }
 }
 </script>

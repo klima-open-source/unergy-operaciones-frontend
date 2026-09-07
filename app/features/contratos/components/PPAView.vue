@@ -311,8 +311,12 @@ import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import api from '~/core/client'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, FilePenIcon, PencilIcon, PlusIcon, Trash2Icon, ZapIcon } from '@lucide/vue'
+
+const ppaService = new PpaService()
+const proyectosService = new ProyectosService()
 
 const route = useRoute()
 const confirm = useConfirm()
@@ -418,16 +422,16 @@ async function guardar() {
     }
 
     if (editando.value) {
-      await api.patch(`/ppa/${editando.value}`, payload)
+      await ppaService.actualizar(editando.value, payload)
       toast.success('Contrato actualizado', { duration: 3000 })
     } else {
-      await api.post('/ppa', { ...payload, proyecto_id: proyectoId })
+      await ppaService.crear({ ...payload, proyecto_id: proyectoId })
       toast.success('Contrato creado', { duration: 3000 })
     }
     showForm.value = false
     await cargarContratos()
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -442,11 +446,11 @@ function confirmarEliminar(contrato) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/ppa/${contrato.id}`)
+        await ppaService.eliminar(contrato.id)
         contratos.value = contratos.value.filter(c => c.id !== contrato.id)
         toast.success('Contrato eliminado', { duration: 2000 })
       } catch (e) {
-        const detail = e.response?.data?.detail
+        const detail = e.data?.detail
         toast.error('No se puede eliminar', {
           description: detail || 'Error al eliminar el contrato.',
           duration: 6000,
@@ -466,11 +470,11 @@ function confirmarEliminarAsic(registro) {
     variant: 'destructive',
     onConfirm: async () => {
       try {
-        await api.delete(`/asic/${registro.id}`)
+        await ppaService.eliminarAsic(registro.id)
         asicRows.value = asicRows.value.filter(r => r.id !== registro.id)
         toast.success('Registro GESCON eliminado', { duration: 2000 })
       } catch (e) {
-        const detail = e.response?.data?.detail
+        const detail = e.data?.detail
         toast.error('No se puede eliminar', {
           description: detail || 'Error al eliminar el registro GESCON.',
           duration: 6000,
@@ -481,15 +485,13 @@ function confirmarEliminarAsic(registro) {
 }
 
 async function cargarContratos() {
-  const { data } = await api.get('/ppa', { params: { proyecto_id: proyectoId } })
-  contratos.value = data
+  contratos.value = await ppaService.listar({ proyecto_id: proyectoId })
 }
 
 async function cargarAsic() {
   loadingAsic.value = true
   try {
-    const { data } = await api.get('/asic', { params: { proyecto_id: proyectoId, size: 200 } })
-    asicRows.value = Array.isArray(data) ? data : (data.items ?? [])
+    asicRows.value = await ppaService.listarAsic({ proyecto_id: proyectoId, size: 200 })
   } catch (e) {
     toast.error('Error ASIC', { description: e.message, duration: 4000 })
   } finally {
@@ -499,12 +501,12 @@ async function cargarAsic() {
 
 onMounted(async () => {
   try {
-    const [proyRes] = await Promise.all([
-      api.get(`/proyectos/${proyectoId}`),
+    const [proyecto] = await Promise.all([
+      proyectosService.obtener(proyectoId),
       cargarContratos(),
       cargarAsic(),
     ])
-    proyectoNombre.value = proyRes.data.nombre_comercial
+    proyectoNombre.value = proyecto.nombre_comercial
   } catch (e) {
     toast.error('Error al cargar', { description: e.message, duration: 4000 })
   } finally {

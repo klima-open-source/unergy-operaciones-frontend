@@ -23,7 +23,7 @@ garantías y el módulo MEM (mercado de energía mayorista).
 ## URLs
 
 - **Producción:** https://frontend-taupe-six-252g9aw47x.vercel.app
-- **API backend:** https://backend-production-63d8.up.railway.app
+- **API backend:** https://operaciones.uner.gy
 - **Dev local:** http://localhost:5173 (proxea `/api` a localhost:8000)
 
 ## Estructura de carpetas

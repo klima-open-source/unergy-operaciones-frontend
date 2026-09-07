@@ -121,8 +121,8 @@ const DETALLE_GENERICO = new Set([
  * de framework); en cualquier otro caso devuelve `fallback`.
  */
 export function mensajeError(e, fallback) {
-  const status = e?.response?.status
-  const detail = e?.response?.data?.detail
+  const status = e?.status
+  const detail = e?.data?.detail
   const detalleValido = typeof status === 'number' && status >= 400 && status < 500
     && typeof detail === 'string' && detail.trim() !== '' && !DETALLE_GENERICO.has(detail.trim())
   return detalleValido ? detail : fallback

@@ -47,7 +47,7 @@ fallas desde el celular, con su propio login, layout y navegación.
 | Entorno               | URL                                                                                    |
 | --------------------- | -------------------------------------------------------------------------------------- |
 | Producción (frontend) | `https://frontend-taupe-six-252g9aw47x.vercel.app` (Vercel, deploy en push a `master`) |
-| API backend           | `https://backend-production-63d8.up.railway.app` (Railway, FastAPI)                    |
+| API backend           | `https://operaciones.uner.gy` (Railway, FastAPI)                                       |
 | Dev local             | `http://localhost:5173`, proxy `/api` → `localhost:8000`                               |
 
 ---

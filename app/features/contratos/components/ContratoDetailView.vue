@@ -877,8 +877,12 @@ import Select from 'primevue/select'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
-import api from '~/core/client'
+import { PpaService } from '~/features/contratos/services/ppa'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowDownRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, BadgeCheckIcon, BookIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronRightIcon, CircleCheckIcon, CircleIcon, CirclePlusIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FileTextIcon, HourglassIcon, IdCardIcon, InfoIcon, LinkIcon, ListIcon, LoaderCircleIcon, MinusIcon, MoveHorizontalIcon, MoveVerticalIcon, NetworkIcon, PencilIcon, PlusIcon, RefreshCwIcon, SunIcon, TriangleAlertIcon, UploadIcon, UsersIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const ppaService = new PpaService()
+const proyectosService = new ProyectosService()
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const VISTAS = [{ label: 'Mensual', value: 'mensual' }, { label: 'Anual', value: 'anual' }]
@@ -918,7 +922,7 @@ function cancelarEdicionId() {
 async function guardarId() {
   guardandoId.value = true
   try {
-    const { data } = await api.patch(`/ppa/${contrato.value.id}`, {
+    const data = await ppaService.actualizar(contrato.value.id, {
       nombre_interno: formId.nombre_interno || null,
       numero_codigo_contrato: formId.numero_codigo_contrato || null,
     })
@@ -926,7 +930,7 @@ async function guardarId() {
     editandoId.value = false
     toast.success('Guardado', { description: 'Identificación actualizada', duration: 2500 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoId.value = false
   }
@@ -961,12 +965,12 @@ async function guardarGescon() {
       gescon_precio: formGescon.gescon_precio,
       gescon_cantidades_kwh: formGescon.gescon_cantidades_kwh,
     }
-    await api.patch(`/ppa/${contrato.value.id}`, payload)
+    await ppaService.actualizar(contrato.value.id, payload)
     Object.assign(contrato.value, payload)
     editandoGescon.value = false
     toast.success('GESCON actualizado', { duration: 2000 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoGescon.value = false
   }
@@ -992,12 +996,12 @@ function cancelarEdicionPartes() {
 async function guardarPartes() {
   guardandoPartes.value = true
   try {
-    const { data } = await api.patch(`/ppa/${contrato.value.id}`, formPartes)
+    const data = await ppaService.actualizar(contrato.value.id, formPartes)
     contrato.value = { ...contrato.value, ...data }
     editandoPartes.value = false
     toast.success('Guardado', { description: 'Partes del contrato actualizadas', duration: 3000 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoPartes.value = false
   }
@@ -1031,7 +1035,7 @@ async function guardarEnlace() {
   }
   guardandoEnlace.value = true
   try {
-    const { data } = await api.patch(`/ppa/${contrato.value.id}`, { carpeta_link: url || null })
+    const data = await ppaService.actualizar(contrato.value.id, { carpeta_link: url || null })
     contrato.value = { ...contrato.value, ...data }
     editandoEnlace.value = false
     toast.success('Guardado', {
@@ -1039,7 +1043,7 @@ async function guardarEnlace() {
       duration: 2500,
     })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoEnlace.value = false
   }
@@ -1156,13 +1160,13 @@ function onPasteEnergia() { setTimeout(parseEnergia, 50) }
 async function guardarTarifas() {
   guardandoTarifas.value = true
   try {
-    const { data } = await api.put(`/ppa/${contrato.value.id}/tarifas`, tarifasRows.value)
+    const data = await ppaService.guardarTarifas(contrato.value.id, tarifasRows.value)
     contrato.value = { ...contrato.value, tarifas: data }
     editandoTarifas.value = false
     tarifasPaste.value = ''; tarifasRows.value = []
     toast.success('Guardado', { description: `${data.length} tarifas actualizadas`, duration: 2500 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoTarifas.value = false
   }
@@ -1171,14 +1175,14 @@ async function guardarTarifas() {
 async function guardarCantidades() {
   guardandoCantidades.value = true
   try {
-    const { data } = await api.put(`/ppa/${contrato.value.id}/compromisos`, energiaRows.value)
+    const data = await ppaService.guardarCompromisos(contrato.value.id, energiaRows.value)
     contrato.value = { ...contrato.value, compromisos_energia: data }
     editandoCantidades.value = false
     energiaPaste.value = ''; energiaRows.value = []
     cargarPlantasInscritas()  // los periodos pudieron cambiar → recalcular inscritas
     toast.success('Guardado', { description: `${data.length} compromisos actualizados`, duration: 2500 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardandoCantidades.value = false
   }
@@ -1410,8 +1414,8 @@ async function abrirAsociar() {
   if (todosProyectos.value.length) return
   cargandoProyectos.value = true
   try {
-    const { data } = await api.get('/proyectos', { params: { size: 500 } })
-    todosProyectos.value = (data.items ?? data).sort((a, b) =>
+    const proyectos = await proyectosService.listar({ size: 500 })
+    todosProyectos.value = proyectos.sort((a, b) =>
       (a.nombre_comercial ?? '').localeCompare(b.nombre_comercial ?? ''))
   } catch (e) {
     toast.error('Error', { description: e.message, duration: 3000 })
@@ -1424,7 +1428,7 @@ async function asociarProyecto() {
   if (!proyectoSeleccionado.value) return
   asociando.value = true
   try {
-    await api.post(`/ppa/${contrato.value.id}/proyectos`, { proyecto_id: proyectoSeleccionado.value.id })
+    await ppaService.vincularProyecto(contrato.value.id, proyectoSeleccionado.value.id)
     contrato.value.proyectos = [...(contrato.value.proyectos ?? []), proyectoSeleccionado.value]
     showAsociar.value = false
     toast.success('Proyecto asociado', {
@@ -1432,7 +1436,7 @@ async function asociarProyecto() {
       duration: 2500,
     })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     asociando.value = false
   }
@@ -1441,9 +1445,9 @@ async function asociarProyecto() {
 async function cargarPlantasInscritas() {
   if (!contrato.value?.id) return
   try {
-    const { data } = await api.get(`/cumplimiento/ppa/${contrato.value.id}/plantas-inscritas-por-mes`)
+    const filas = await ppaService.listarPlantasInscritasPorMes(contrato.value.id)
     const map = {}
-    for (const r of data) map[`${r.año}-${r.mes}`] = r.plantas_inscritas
+    for (const r of filas) map[`${r.año}-${r.mes}`] = r.plantas_inscritas
     plantasInscritasMap.value = map
   } catch (e) {
     // No bloquea la pestaña: si falla, la columna muestra "—".
@@ -1454,7 +1458,7 @@ async function cargarPlantasInscritas() {
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get(`/ppa/${route.params.id}`)
+    const data = await ppaService.obtener(route.params.id)
     contrato.value = data
     cargarPlantasInscritas()
     Object.assign(formGescon, {
@@ -1478,11 +1482,10 @@ async function cargarAsic(c) {
   try {
     // Primero intenta por numero_codigo_contrato (un contrato PPA agrupa varios SIC)
     // y si tiene codigo_sic lo usa como filtro adicional de respaldo
-    const params = c.numero_codigo_contrato
+    const filtros = c.numero_codigo_contrato
       ? { contrato_interno: c.numero_codigo_contrato }
       : { codigo_sic_contrato: c.codigo_sic }
-    const { data } = await api.get('/asic', { params })
-    asicRows.value = data
+    asicRows.value = await ppaService.listarAsic(filtros)
   } catch (e) {
     toast.warning('ASIC', { description: 'No se pudieron cargar registros ASIC', duration: 3000 })
   } finally {

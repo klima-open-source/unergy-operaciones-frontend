@@ -166,10 +166,13 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import DatePicker from 'primevue/datepicker'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ReporteCgmService } from '~/features/operadores-red/services/reporte-cgm'
+import { logger } from '~/core/logger'
 import { formatearNombre } from '~/utils/nombreFormato'
 import HistorialEnviosCGM from './HistorialEnviosCGM.vue'
 import { ChevronDownIcon, ChevronRightIcon, LoaderCircleIcon, SearchIcon, SendIcon } from '@lucide/vue'
+
+const reporteCgmService = new ReporteCgmService()
 
 const innerTab = ref('enviar')
 const fronteras = ref([])
@@ -341,7 +344,7 @@ async function enviarSeleccionados() {
 
   enviando.value = true
   try {
-    const { data } = await api.post('/reporte-cgm/enviar', {
+    const respuesta = await reporteCgmService.enviar({
       fecha_inicio: formatFecha(fechaDesde.value),
       fecha_fin: formatFecha(fechaHasta.value || fechaDesde.value),
       destinatarios: filas.map(r => {
@@ -352,9 +355,9 @@ async function enviarSeleccionados() {
           proyectos: proyectos.size ? [...proyectos] : null,
         }
       }),
-    }, { timeout: 300000 }) // "Operaciones Unergy" (todas las fronteras) puede tardar >150s el ultimo dia del mes (se adjunta ademas el resumen mensual) -- medido en produccion 2026-08-12
-    const ok = data.resultados.filter(r => r.ok)
-    const conError = data.resultados.filter(r => !r.ok)
+    })
+    const ok = respuesta.resultados.filter(r => r.ok)
+    const conError = respuesta.resultados.filter(r => !r.ok)
     const resumen = `${ok.length} enviado${ok.length === 1 ? '' : 's'}${conError.length ? `, ${conError.length} con error` : ''}`
     if (conError.length) {
       toast.warning(resumen, {
@@ -365,7 +368,7 @@ async function enviarSeleccionados() {
       toast.success(resumen, { duration: 6000 })
     }
   } catch (e) {
-    toast.error('Error al enviar', { description: e.response?.data?.detail || e.message, duration: 5000 })
+    toast.error('Error al enviar', { description: e.data?.detail || e.message, duration: 5000 })
   } finally {
     enviando.value = false
   }
@@ -374,10 +377,9 @@ async function enviarSeleccionados() {
 async function loadData() {
   loading.value = true
   try {
-    const { data } = await api.get('/fronteras', { params: { limit: 500 } })
-    fronteras.value = data
+    fronteras.value = await reporteCgmService.listarFronteras()
   } catch (e) {
-    console.error('Error loading fronteras:', e)
+    logger.error('operadores-red.reporte-cgm', e)
   } finally {
     loading.value = false
   }

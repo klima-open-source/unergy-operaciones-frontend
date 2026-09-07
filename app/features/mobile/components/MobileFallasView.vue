@@ -23,7 +23,7 @@
         <button :class="['mf-fchip', filtro === null && 'mf-fchip--on']" @click="filtro = null">Todas</button>
         <button v-for="e in catalogos.estados" :key="e.id"
           :class="['mf-fchip', filtro === e.id && 'mf-fchip--on']"
-          :style="filtro === e.id ? { background: e.color_hex || 'var(--color-unergy-purple)', borderColor: e.color_hex || 'var(--color-unergy-purple)', color: '#fff' } : {}"
+          :style="filtro === e.id ? { background: colorEstado(e.codigo), borderColor: colorEstado(e.codigo), color: '#fff' } : {}"
           @click="filtro = e.id">{{ e.etiqueta }}</button>
       </div>
     </div>
@@ -38,18 +38,17 @@
       </div>
       <template v-else>
         <button v-for="f in filtradas" :key="f.id" class="mf-card" @click="openDetail(f)">
-          <span class="mf-stripe" :style="{ background: f.prioridad?.color_hex || '#9ca3af' }" />
+          <span class="mf-stripe" :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }" />
           <div class="mf-card-main">
             <div class="mf-card-top">
               <code class="mf-card-code">{{ f.codigo_interno }}</code>
-              <span class="mf-card-estado" :style="{ background: (f.estado?.color_hex || 'var(--color-unergy-purple)') + '22', color: f.estado?.color_hex || 'var(--color-unergy-purple)' }">{{ f.estado?.etiqueta }}</span>
+              <span class="mf-card-estado" :style="{ background: colorEstado(f.estado?.codigo) + '22', color: colorEstado(f.estado?.codigo) }">{{ f.estado?.etiqueta }}</span>
             </div>
-            <div class="mf-card-tipo">{{ f.tipo?.etiqueta || f.tipo_libre || 'Falla' }}</div>
+            <div class="mf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
             <div class="mf-card-proj"><ZapIcon class="size-[1em]" /> {{ f.proyecto?.nombre_comercial || '—' }}</div>
             <div class="mf-card-foot">
-              <span class="mf-prio" :style="{ color: f.prioridad?.color_hex || '#6b5a8a' }">{{ f.prioridad?.etiqueta }}</span>
+              <span class="mf-prio" :style="{ color: colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }">{{ f.prioridad?.etiqueta }}</span>
               <span class="mf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
-              <span v-if="f.asignado_a" class="mf-assignee" :title="f.asignado_a.nombre">{{ initials(f.asignado_a.nombre) }}</span>
             </div>
           </div>
         </button>
@@ -58,7 +57,7 @@
 
     <MobileTabBar />
 
-    <FallaDetailSheet :open="detailOpen" :falla="detailFalla" :catalogos="catalogos" :usuarios="usuarios"
+    <FallaDetailSheet :open="detailOpen" :falla="detailFalla" :catalogos="catalogos"
       @close="detailOpen = false" @updated="onUpdated" />
     <FallaCreateSheet :open="createOpen" :catalogos="catalogos" :proyectos="proyectos"
       @close="createOpen = false" @created="onCreated" />
@@ -68,7 +67,10 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import api from '~/core/client'
+import { FallasService } from '~/features/fallas/services/fallas'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
 import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.vue'
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 import FallaCreateSheet from '~/features/mobile/components/components/FallaCreateSheet.vue'
@@ -76,10 +78,12 @@ import NotificationsSheet from '~/features/mobile/components/components/Notifica
 import { BellIcon, CircleCheckIcon, LoaderCircleIcon, PlusIcon, SearchIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 
+const fallasService = new FallasService()
+const proyectosService = new ProyectosService()
+const notificacionesService = new NotificacionesService()
 const fallas = ref([])
 const catalogos = reactive({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 const proyectos = ref([])
-const usuarios = ref([])
 const loading = ref(false)
 
 const search = ref('')
@@ -122,10 +126,6 @@ const filtradas = computed(() => {
   })
 })
 
-function initials(nombre) {
-  if (!nombre) return '?'
-  return nombre.split(' ').filter(Boolean).slice(0, 2).map((s) => s[0]).join('').toUpperCase()
-}
 function relativeTime(s) {
   if (!s) return ''
   const dias = Math.floor((Date.now() - new Date(s + 'T00:00:00').getTime()) / 86400000)
@@ -138,31 +138,29 @@ function relativeTime(s) {
 async function cargar() {
   loading.value = true
   try {
-    const [cat, proy, usr] = await Promise.all([
-      api.get('/fallas/catalogos'),
-      api.get('/proyectos', { params: { size: 500 } }),
-      api.get('/usuarios', { params: { size: 200 } }).catch(() => ({ data: { items: [] } })),
+    const [cat, proy] = await Promise.all([
+      fallasService.obtenerCatalogos(),
+      proyectosService.listar({ size: 500 }),
     ])
-    Object.assign(catalogos, cat.data)
-    proyectos.value = proy.data.items ?? []
-    usuarios.value = usr.data.items ?? []
+    Object.assign(catalogos, cat)
+    proyectos.value = proy ?? []
     await cargarFallas()
   } catch (e) {
-    toast.error('Error al cargar', { description: e.response?.data?.detail, duration: 3000 })
+    toast.error('Error al cargar', { description: e.data?.detail, duration: 3000 })
   } finally {
     loading.value = false
   }
 }
 
 async function cargarFallas() {
-  const primera = await api.get('/fallas', { params: { page: 1, size: 500 } })
-  let items = primera.data.items ?? []
-  const total = primera.data.total ?? items.length
+  const primera = await fallasService.listar({ page: 1, size: 500 })
+  let items = primera.items ?? []
+  const total = primera.total ?? items.length
   const pages = Math.ceil(total / 500)
   if (pages > 1) {
     const rest = await Promise.all(
-      Array.from({ length: pages - 1 }, (_, i) => api.get('/fallas', { params: { page: i + 2, size: 500 } })))
-    for (const r of rest) items = items.concat(r.data.items ?? [])
+      Array.from({ length: pages - 1 }, (_, i) => fallasService.listar({ page: i + 2, size: 500 })))
+    for (const r of rest) items = items.concat(r.items ?? [])
   }
   fallas.value = items
 }
@@ -176,7 +174,7 @@ function onUpdated(falla) {
 function onCreated() { cargarFallas() }
 
 async function fetchUnread() {
-  try { const { data } = await api.get('/notificaciones/count'); unreadCount.value = data.no_leidas ?? data.count ?? data.unread ?? 0 }
+  try { unreadCount.value = await notificacionesService.contarNoLeidas() }
   catch { /* silencioso */ }
 }
 
@@ -236,5 +234,4 @@ onMounted(() => { cargar(); fetchUnread() })
 .mf-card-foot { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
 .mf-prio { font-size: 12.5px; font-weight: 700; }
 .mf-time { font-size: 12px; color: #9ca3af; }
-.mf-assignee { margin-left: auto; width: 26px; height: 26px; border-radius: 50%; background: var(--color-unergy-purple); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 </style>

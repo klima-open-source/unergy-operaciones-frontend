@@ -1,10 +1,6 @@
-/**
- * Las notificaciones de la campana. Sobre `LegacyBaseService` porque las
- * consume el cliente axios compartido (`~/core/client.ts`), como el resto de la
- * app hoy — pasa a `BaseService` cuando ese resto migre.
- */
+/** Las notificaciones de la campana. */
 import type { Notificacion } from '~/features/notificaciones/types'
-import { LegacyBaseService } from '~/core/legacy-service'
+import { BaseService } from '~/core/service'
 
 /** El backend contesta a veces un array plano, a veces `{ items: [...] }`. */
 interface RespuestaListado {
@@ -12,19 +8,20 @@ interface RespuestaListado {
 }
 
 interface RespuestaConteo {
+  no_leidas?: number
   count?: number
   unread?: number
 }
 
-export class NotificacionesService extends LegacyBaseService {
+export class NotificacionesService extends BaseService {
   async contarNoLeidas(): Promise<number> {
     const data = await this.get<RespuestaConteo>('/notificaciones/count')
-    return data.count ?? data.unread ?? 0
+    return data.no_leidas ?? data.count ?? data.unread ?? 0
   }
 
   async listar(limit = 20): Promise<Notificacion[]> {
     const data = await this.get<Notificacion[] | RespuestaListado>('/notificaciones', {
-      params: { limit },
+      query: { limit },
     })
     return Array.isArray(data) ? data : (data.items ?? [])
   }
@@ -34,6 +31,6 @@ export class NotificacionesService extends LegacyBaseService {
   }
 
   marcarTodasLeidas(): Promise<void> {
-    return this.post('/notificaciones/leer-todas')
+    return this.patch('/notificaciones/leer-todas')
   }
 }

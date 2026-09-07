@@ -137,8 +137,11 @@ import DatePicker from 'primevue/datepicker'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
-import api from '~/core/client'
+import { ReporteCgmService } from '~/features/operadores-red/services/reporte-cgm'
+import { logger } from '~/core/logger'
 import { ChevronDownIcon, ChevronRightIcon, LoaderCircleIcon, SearchIcon, TriangleAlertIcon } from '@lucide/vue'
+
+const reporteCgmService = new ReporteCgmService()
 
 // Ventana para agrupar filas de email_envios en un solo "envio" (accion de
 // clic en Enviar): cada fila se guarda con su propio enviado_at (segundos
@@ -169,15 +172,15 @@ function normalizarNombre(s) {
 
 async function cargarNombresVigentes() {
   try {
-    const { data } = await api.get('/fronteras', { params: { limit: 500 } })
+    const fronteras = await reporteCgmService.listarFronteras()
     const set = new Set()
-    for (const f of data) {
+    for (const f of fronteras) {
       if (f.operador_comercial) set.add(normalizarNombre(f.operador_comercial))
       for (const c of f.clientes_cgm || []) set.add(normalizarNombre(c.nombre))
     }
     nombresVigentes.value = set
   } catch (e) {
-    console.error('Error cargando destinatarios vigentes:', e)
+    logger.error('operadores-red.historial-cgm', e)
   }
 }
 
@@ -217,8 +220,8 @@ function esParcial(item) {
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/informes/envios', { params: { tipo: 'reporte_cgm', limit: 500 } })
-    envios.value = data
+    const historial = await reporteCgmService.listarHistorialEnvios()
+    envios.value = historial
       .map(row => {
         const { periodo, nombre } = parsearAsunto(row.asunto)
         return {
@@ -234,7 +237,7 @@ async function cargar() {
       })
       .sort((a, b) => new Date(b.enviadoEn) - new Date(a.enviadoEn))
   } catch (e) {
-    console.error('Error cargando historial de envios:', e)
+    logger.error('operadores-red.historial-cgm', e)
     envios.value = []
   } finally {
     loading.value = false

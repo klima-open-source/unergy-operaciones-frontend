@@ -139,11 +139,12 @@ import Dialog from 'primevue/dialog'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
 import { CheckIcon, CircleCheckIcon, LoaderCircleIcon, PencilIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon } from '@lucide/vue'
 
 const router = useRouter()
+const liquidacionesApi = new LiquidacionesApiService()
 
 // Solo GD y minigranjas en operación.
 const TIPOS_INCLUIDOS = ['gd', 'minigranja']
@@ -243,7 +244,7 @@ function abrirEditar(row) {
 async function guardar() {
   guardando.value = true
   try {
-    await api.patch(`/liquidaciones-api/proyectos/${f.proyecto_id}`, {
+    await liquidacionesApi.actualizarConfigProyecto(f.proyecto_id, {
       sic_gen: f.sic_gen || null,
       sic_con: f.sic_con || null,
     })
@@ -251,7 +252,7 @@ async function guardar() {
     await cargar()
     toast.success('Códigos guardados', { duration: 2000 })
   } catch (e) {
-    toast.error('Error', { description: e.response?.data?.detail || 'No se pudo guardar', duration: 4000 })
+    toast.error('Error', { description: e.data?.detail || 'No se pudo guardar', duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -262,30 +263,22 @@ async function cargar() {
   loading.value = true
   errorApi.value = null
   try {
-    const [liqRes, proyRes] = await Promise.all([
-      api.get('/liquidaciones-api/proyectos'),
-      api.get('/proyectos', { params: { page: 1, size: 500 } }),
-    ])
-    const quoiaPorId = new Map(
-      (proyRes.data.items ?? proyRes.data).map(p => [p.id, p])
-    )
-    filas.value = (liqRes.data || [])
+    const liq = await liquidacionesApi.listarProyectos()
+    filas.value = (liq || [])
       .filter(r => TIPOS_INCLUIDOS.includes(r.tipo_proyecto) && r.estado === ESTADO_OPERATIVA)
       .map(r => {
-        const p = quoiaPorId.get(r.proyecto_id) || {}
-        // Los ids de Quoia son de los subproyectos, no del proyecto. Manda lo
-        // que diga la API — es la misma que los consume — y solo si allá no hay
-        // nada se muestra lo que quedó tecleado en esta base.
+        // Los ids de Quoia son de los subproyectos, no del proyecto -- viven
+        // solo en la API de Liquidaciones (ver auditoría 2026-08-31: la
+        // columna equivalente en esta base se eliminó por quedar siempre
+        // vacía y desconectada de este dato real).
         const sub = (r.subproyectos || [])
         const deLaApi = campo => sub.map(s => s[campo]).find(v => v !== null && v !== '') ?? null
         return {
           ...r,
           nombre_comercial: formatearNombreProyecto(r.nombre_comercial),
-          quoia_reporte_generacion_id:
-            deLaApi('quoia_report_gen_id') ?? p.quoia_reporte_generacion_id ?? null,
-          quoia_reporte_consumo_id:
-            deLaApi('quoia_report_con_id') ?? p.quoia_reporte_consumo_id ?? null,
-          quoia_nodo_id: deLaApi('quoia_node_id') ?? p.quoia_nodo_id ?? null,
+          quoia_reporte_generacion_id: deLaApi('quoia_report_gen_id'),
+          quoia_reporte_consumo_id: deLaApi('quoia_report_con_id'),
+          quoia_nodo_id: deLaApi('quoia_node_id'),
           // Cuántos subproyectos tiene: con más de uno, la columna muestra el
           // primero que tenga valor y hay que abrir el detalle para verlos todos.
           subproyectos_n: sub.length,
@@ -293,7 +286,7 @@ async function cargar() {
       })
       .sort((a, b) => a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch (e) {
-    errorApi.value = e.response?.data?.detail || 'No se pudo cargar la configuración de liquidaciones.'
+    errorApi.value = e.data?.detail || 'No se pudo cargar la configuración de liquidaciones.'
     filas.value = []
   } finally {
     loading.value = false

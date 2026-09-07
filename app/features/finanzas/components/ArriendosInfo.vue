@@ -113,10 +113,11 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import api from '~/core/client'
+import { ArriendosCalculoService } from '~/features/finanzas/services/arriendos-calculo'
 import { ChevronDownIcon } from '@lucide/vue'
 
 // ── Período (mismo criterio de "período actual" que Panel, sin selector — vista informativa) ──
+const arriendosCalculoService = new ArriendosCalculoService()
 const hoy = new Date()
 const periodoActual = computed(() => {
   const yyyy = hoy.getFullYear()
@@ -137,7 +138,7 @@ const filas   = ref([])
 async function cargarDatos() {
   loading.value = true
   try {
-    const { data } = await api.get(`/arriendos/calculo/${periodoActual.value}`)
+    const data = await arriendosCalculoService.obtenerCalculo(periodoActual.value)
     filas.value = data.filas || []
   } catch {
     filas.value = []

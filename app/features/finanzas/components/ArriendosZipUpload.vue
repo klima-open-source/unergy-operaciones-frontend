@@ -213,6 +213,7 @@ import { ref, computed } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
+import { logger } from '~/core/logger'
 import JSZip from 'jszip'
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -637,7 +638,7 @@ async function onZipSelected(e) {
     gruposPreview.value = grupos
     showDialog.value = true
   } catch (err) {
-    console.error(err)
+    logger.error('finanzas', err)
     toast.error('Error al procesar el ZIP', { description: err.message, duration: 5000 })
   } finally {
     procesando.value = false
@@ -692,7 +693,7 @@ async function confirmar() {
           else              sinMatch.push({ codigo: p.codigoPredio, carpeta: grupo.carpeta })
         }
       } catch (uploadErr) {
-        console.error('Error subiendo', grupo.carpeta, uploadErr)
+        logger.error('finanzas', uploadErr)
         toast.warning(`Error al subir ${grupo.carpeta}`, { duration: 4000 })
       }
     }
@@ -702,7 +703,7 @@ async function confirmar() {
     showResumen.value = true
     emit('docs-actualizados', periodoParse)
   } catch (err) {
-    console.error(err)
+    logger.error('finanzas', err)
     toast.error('Error al guardar', { description: err.message, duration: 4000 })
   } finally {
     guardando.value = false

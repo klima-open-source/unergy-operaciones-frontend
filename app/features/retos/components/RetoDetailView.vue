@@ -180,7 +180,7 @@ import Menu from 'primevue/menu'
 import Message from 'primevue/message'
 import Skeleton from 'primevue/skeleton'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { RetosService } from '~/features/retos/services/retos'
 import MetricaKpiCard from './MetricaKpiCard.vue'
 import MetricaDialog from './MetricaDialog.vue'
 import CopiarMetricasDialog from './CopiarMetricasDialog.vue'
@@ -192,6 +192,8 @@ import { ChevronLeftIcon, CopyIcon, EllipsisIcon, FileSpreadsheetIcon, FlagIcon,
 // se cargan bajo demanda.
 const MatrizSemanal = defineAsyncComponent(() => import('./MatrizSemanal.vue'))
 const SemanaDrawer = defineAsyncComponent(() => import('./SemanaDrawer.vue'))
+
+const retosService = new RetosService()
 
 const route = useRoute()
 const confirm = useConfirm()
@@ -294,7 +296,7 @@ function fechaLarga(iso) {
 
 /** Normaliza el `detail` del backend (string, lista de pydantic u objeto). */
 function mensajeError(err, fallback = 'Ocurrió un error inesperado') {
-  const det = err?.response?.data?.detail
+  const det = err?.data?.detail
   if (typeof det === 'string' && det.trim()) return det
   if (Array.isArray(det)) {
     const msg = det.map(e => e?.msg).filter(Boolean).join('; ')
@@ -304,8 +306,8 @@ function mensajeError(err, fallback = 'Ocurrió un error inesperado') {
     const m = det.mensaje ?? det.msg ?? det.detail
     if (typeof m === 'string' && m.trim()) return m
   }
-  if (err?.response?.status === 404) return 'El trimestre o la métrica ya no existe.'
-  if (err?.response?.status === 409) return 'El cambio choca con un registro existente.'
+  if (err?.status === 404) return 'El trimestre o la métrica ya no existe.'
+  if (err?.status === 409) return 'El cambio choca con un registro existente.'
   return fallback
 }
 
@@ -313,7 +315,7 @@ function mensajeError(err, fallback = 'Ocurrió un error inesperado') {
 async function cargar() {
   errorCarga.value = ''
   try {
-    const { data } = await api.get(`/retos/${retoId.value}`)
+    const data = await retosService.obtener(retoId.value)
     reto.value = data
     cargarRetosAnio(data.anio)
   } catch (e) {
@@ -330,7 +332,7 @@ async function cargar() {
 async function cargarRetosAnio(anio) {
   if (!anio) return
   try {
-    const { data } = await api.get('/retos', { params: { anio } })
+    const data = await retosService.listarPorAnio(anio)
     retosAnio.value = data?.retos || []
   } catch {
     retosAnio.value = []
@@ -402,7 +404,7 @@ async function guardarValor({ metricaId, semanaInicio, valor, nota }) {
     nota: nota === undefined || nota === '' ? null : nota,
   }
   try {
-    const { data } = await api.put(`/retos/metricas/${metricaId}/valores/${semanaInicio}`, cuerpo)
+    const data = await retosService.guardarValorSemanal(metricaId, semanaInicio, cuerpo)
     aplicarMetrica(data)
     aplicarValor(metricaId, semanaInicio, cuerpo.valor, cuerpo.nota)
     anuncio.value = 'Guardado'
@@ -430,9 +432,9 @@ async function submitMetrica(payload) {
   guardandoMetrica.value = true
   const editando = metricaEditando.value
   try {
-    const { data } = editando
-      ? await api.patch(`/retos/metricas/${editando.id}`, payload)
-      : await api.post(`/retos/${reto.value.id}/metricas`, payload)
+    const data = editando
+      ? await retosService.actualizarMetrica(editando.id, payload)
+      : await retosService.crearMetrica(reto.value.id, payload)
     aplicarMetrica(data)
     metricaVisible.value = false
     toast.success(editando ? 'Métrica actualizada' : 'Métrica creada', { duration: 2500 })
@@ -448,7 +450,7 @@ async function submitMetrica(payload) {
 
 async function alternarActiva(m) {
   try {
-    const { data } = await api.patch(`/retos/metricas/${m.id}`, { activa: !m.activa })
+    const data = await retosService.alternarActivaMetrica(m.id, { activa: !m.activa })
     aplicarMetrica(data)
     toast.success('Métrica actualizada', { duration: 2500 })
   } catch (e) {
@@ -472,7 +474,7 @@ function confirmarEliminarMetrica(m) {
 
 async function eliminarMetrica(m) {
   try {
-    await api.delete(`/retos/metricas/${m.id}`)
+    await retosService.eliminarMetrica(m.id)
     const arr = reto.value?.metricas || []
     const i = arr.findIndex(x => x.id === m.id)
     if (i >= 0) arr.splice(i, 1)
@@ -509,7 +511,7 @@ async function submitCopiar(origenId) {
   const antes = new Set((reto.value.metricas || []).map(m => m.id))
   const origen = otrosRetos.value.find(r => r.id === origenId)
   try {
-    await api.post(`/retos/${reto.value.id}/metricas/copiar-desde/${origenId}`)
+    await retosService.copiarMetricasDesde(reto.value.id, origenId)
     await cargar()
     copiarVisible.value = false
     const nuevas = (reto.value?.metricas || []).filter(m => !antes.has(m.id)).length
@@ -538,7 +540,7 @@ async function submitTrimestre(payload) {
   errorTrimestre.value = ''
   if (cambianFechas) recargando.value = true
   try {
-    const { data } = await api.patch(`/retos/${reto.value.id}`, payload)
+    const data = await retosService.actualizarTrimestre(reto.value.id, payload)
     reto.value = data
     editarVisible.value = false
     toast.success('Trimestre actualizado', { duration: 2500 })
@@ -546,7 +548,7 @@ async function submitTrimestre(payload) {
     const msg = mensajeError(e, 'No se pudo actualizar el trimestre')
     errorTrimestre.value = msg
     // Los 400 del contrato ya se ven bajo el campo de fecha; el resto sí sorprende.
-    if (e?.response?.status !== 400) {
+    if (e?.status !== 400) {
       toast.error('No se pudo actualizar el trimestre', { description: msg, duration: 5000 })
     }
   } finally {

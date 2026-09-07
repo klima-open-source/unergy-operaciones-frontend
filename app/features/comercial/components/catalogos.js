@@ -24,31 +24,32 @@
  * página, y un catálogo recortado en silencio es el mismo bug con otra cara —
  * la planta que buscás simplemente no está y no hay nada que lo indique.
  */
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { ClientesService } from '~/features/clientes/services/clientes'
 
 // El tope que acepta el backend. No subirlo: por encima responde 422.
 const SIZE_MAX = 500
-// Cortafuegos por si `pages` viniera absurdo: 20 páginas = 10.000 filas, muy por
-// encima de cualquier catálogo real de la plataforma.
+// Cortafuegos por si el total viniera absurdo: 20 páginas = 10.000 filas, muy
+// por encima de cualquier catálogo real de la plataforma.
 const MAX_PAGINAS = 20
 
 /**
  * Todas las filas de un endpoint paginado, en orden. Trae la primera página y,
  * si hay más, el resto en paralelo.
  */
-async function todasLasPaginas(ruta, params = {}) {
-  const { data } = await api.get(ruta, { params: { ...params, page: 1, size: SIZE_MAX } })
-  const primera = data.items ?? data
-  if (!Array.isArray(primera)) return []
+async function todasLasPaginas(listarPaginado) {
+  const primera = await listarPaginado({ page: 1, size: SIZE_MAX })
+  const items = [...(primera.items ?? [])]
+  const total = primera.total ?? 0
+  if (total <= items.length) return items
 
-  const paginas = Math.min(Number(data.pages) || 1, MAX_PAGINAS)
-  if (paginas <= 1) return primera
+  const totalPaginas = Math.min(Math.ceil(total / SIZE_MAX), MAX_PAGINAS)
+  if (totalPaginas <= 1) return items
 
   const resto = await Promise.all(
-    Array.from({ length: paginas - 1 }, (_, i) =>
-      api.get(ruta, { params: { ...params, page: i + 2, size: SIZE_MAX } })),
+    Array.from({ length: totalPaginas - 1 }, (_, i) => listarPaginado({ page: i + 2, size: SIZE_MAX })),
   )
-  return primera.concat(...resto.map((r) => r.data.items ?? r.data ?? []))
+  return items.concat(...resto.map((r) => r.items ?? []))
 }
 
 /**
@@ -63,7 +64,8 @@ async function todasLasPaginas(ruta, params = {}) {
  * a la planta equivocada.
  */
 export async function cargarProyectos() {
-  const filas = await todasLasPaginas('/proyectos')
+  const proyectosService = new ProyectosService()
+  const filas = await todasLasPaginas((opts) => proyectosService.listarPaginado(opts))
   return filas
     .map((p) => ({
       id: p.id,
@@ -78,5 +80,6 @@ export async function cargarProyectos() {
 
 /** Los clientes, para el paso 1 del registro. */
 export async function cargarClientes() {
-  return todasLasPaginas('/clientes')
+  const clientesService = new ClientesService()
+  return todasLasPaginas((opts) => clientesService.listarPaginado(opts))
 }

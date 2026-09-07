@@ -25,8 +25,10 @@
 
 <script setup>
 import { ref } from 'vue'
-import api from '~/core/client'
+import { InformeOmService } from '~/features/operaciones/services/informe-om'
 import { FileIcon, ImageIcon, LoaderCircleIcon, PaperclipIcon, XIcon } from '@lucide/vue'
+
+const informeOmService = new InformeOmService()
 
 const props = defineProps({
   proyectoId: { type: [Number, String], required: true },
@@ -49,13 +51,13 @@ async function subir(event) {
   event.target.value = ''
   if (!file) return
   subiendo.value = true
-  const fd = new FormData()
-  fd.append('archivo', file)
   try {
-    const { data } = await api.post(`/${props.basePath}/${props.proyectoId}/archivos/${props.seccion}`, fd)
+    const data = await informeOmService.subirEvidencia(
+      props.basePath, props.proyectoId, props.seccion, file,
+    )
     emit('update:modelValue', [...(props.modelValue || []), data])
   } catch (e) {
-    emit('error', e?.response?.data?.detail || 'No se pudo subir el archivo')
+    emit('error', e?.data?.detail || 'No se pudo subir el archivo')
   } finally {
     subiendo.value = false
   }
@@ -64,10 +66,10 @@ async function subir(event) {
 async function eliminar(archivoId) {
   eliminando.value = archivoId
   try {
-    await api.delete(`/${props.basePath}/${props.proyectoId}/archivos/${props.seccion}/${archivoId}`)
+    await informeOmService.eliminarEvidencia(props.basePath, props.proyectoId, props.seccion, archivoId)
     emit('update:modelValue', (props.modelValue || []).filter((a) => a.id !== archivoId))
   } catch (e) {
-    emit('error', e?.response?.data?.detail || 'No se pudo eliminar el archivo')
+    emit('error', e?.data?.detail || 'No se pudo eliminar el archivo')
   } finally {
     eliminando.value = null
   }

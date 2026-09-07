@@ -378,8 +378,10 @@ import Select from 'primevue/select'
 import Checkbox from 'primevue/checkbox'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import api from '~/core/client'
+import { RegistrosCndService } from '~/features/registros-cnd/services/registros-cnd'
 import { ArrowLeftIcon, BoxIcon, CopyIcon, ExternalLinkIcon, LoaderCircleIcon, PlusIcon, RefreshCwIcon, SaveIcon, SlidersHorizontalIcon, Trash2Icon } from '@lucide/vue'
+
+const registrosCndService = new RegistrosCndService()
 
 const route = useRoute()
 const proyectoId = route.params.proyectoId
@@ -486,33 +488,26 @@ function setReg(data) {
 }
 
 async function materializar() {
-  const { data } = await api.post(`/registros-cnd/por-proyecto/${proyectoId}`)
-  setReg(data)
+  setReg(await registrosCndService.materializarPorProyecto(proyectoId))
 }
 async function recargarReg() {
-  const { data } = await api.get(`/registros-cnd/${regId.value}`)
-  setReg(data)
+  setReg(await registrosCndService.obtener(regId.value))
 }
 async function cargarCatalogos() {
-  const { data } = await api.get('/registros-cnd/catalogos')
-  cat.value = data
+  cat.value = await registrosCndService.obtenerCatalogos()
 }
 async function cargarParams() {
-  const { data } = await api.get(`/registros-cnd/${regId.value}/parametros-93`)
-  params.value = data || {}
+  params.value = (await registrosCndService.obtenerParametros93(regId.value)) || {}
   await cargarValidacion()
 }
 async function cargarValidacion() {
-  const { data } = await api.get(`/registros-cnd/${regId.value}/validacion-93`)
-  validacion.value = data
+  validacion.value = await registrosCndService.obtenerValidacion93(regId.value)
 }
 async function cargarEquipos() {
-  const { data } = await api.get(`/registros-cnd/${regId.value}/equipos`)
-  equipos.value = data
+  equipos.value = await registrosCndService.listarEquipos(regId.value)
 }
 async function cargarDocumentos() {
-  const { data } = await api.get(`/registros-cnd/${regId.value}/documentos`)
-  documentos.value = data
+  documentos.value = await registrosCndService.listarDocumentos(regId.value)
 }
 
 async function guardarGeneral() {
@@ -520,11 +515,11 @@ async function guardarGeneral() {
   try {
     const payload = { ...general.value }
     for (const k of CAMPOS_GENERAL) if (payload[k] === '') payload[k] = null
-    await api.patch(`/registros-cnd/${regId.value}`, payload)
+    await registrosCndService.actualizar(regId.value, payload)
     await recargarReg()
     toast.success('Datos guardados', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.response?.data?.detail ?? '', duration: 6000 })
+    toast.error('No se pudo guardar', { description: e.data?.detail ?? '', duration: 6000 })
   } finally {
     guardandoGeneral.value = false
   }
@@ -533,13 +528,13 @@ async function guardarGeneral() {
 async function hacerTransicion(etapa, aEstado) {
   transicionando.value = true
   try {
-    const { data } = await api.post(`/registros-cnd/${regId.value}/transicion`, { etapa, a_estado: aEstado })
+    const data = await registrosCndService.transicionar(regId.value, etapa, aEstado)
     const prevSel = seleccionada.value
     setReg(data)
     seleccionada.value = prevSel  // mantener el foco en la etapa que se estaba tocando
     toast.success('Estado actualizado', { duration: 2500 })
   } catch (e) {
-    toast.error('Transición no válida', { description: e.response?.data?.detail ?? '', duration: 6000 })
+    toast.error('Transición no válida', { description: e.data?.detail ?? '', duration: 6000 })
   } finally {
     transicionando.value = false
   }
@@ -550,11 +545,11 @@ async function guardarParams() {
   try {
     const payload = {}
     for (const f of campos93) if (params.value[f.k] !== undefined && params.value[f.k] !== '') payload[f.k] = params.value[f.k]
-    await api.put(`/registros-cnd/${regId.value}/parametros-93`, payload)
+    await registrosCndService.guardarParametros93(regId.value, payload)
     await cargarValidacion()
     toast.success('Parámetros guardados', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.response?.data?.detail ?? '', duration: 6000 })
+    toast.error('No se pudo guardar', { description: e.data?.detail ?? '', duration: 6000 })
   } finally {
     guardandoParams.value = false
   }
@@ -563,11 +558,11 @@ async function guardarParams() {
 async function recomputar() {
   recomputando.value = true
   try {
-    const { data } = await api.post(`/registros-cnd/${regId.value}/alertas/recomputar`)
+    const data = await registrosCndService.recomputarAlertas(regId.value)
     alertas.value = data.alertas || []
     toast.success(`Alertas: ${data.alertas.length} (${data.creadas} nuevas)`, { duration: 3000 })
   } catch (e) {
-    toast.error('Error al recomputar', { description: e.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('Error al recomputar', { description: e.data?.detail ?? '', duration: 5000 })
   } finally {
     recomputando.value = false
   }
@@ -580,17 +575,17 @@ function abrirEquipo() { equipoForm.value = {}; equipoDialog.value = true }
 async function crearEquipo() {
   try {
     const payload = Object.fromEntries(Object.entries(equipoForm.value).filter(([, v]) => v !== '' && v != null))
-    await api.post(`/registros-cnd/${regId.value}/equipos`, payload)
+    await registrosCndService.crearEquipo(regId.value, payload)
     equipoDialog.value = false
     await cargarEquipos()
     toast.success('Equipo agregado', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo agregar', { description: e.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('No se pudo agregar', { description: e.data?.detail ?? '', duration: 5000 })
   }
 }
 async function borrarEquipo(row) {
   if (!confirm(`¿Eliminar el equipo ${row.tipo}?`)) return
-  await api.delete(`/registros-cnd/${regId.value}/equipos/${row.id}`)
+  await registrosCndService.eliminarEquipo(regId.value, row.id)
   await cargarEquipos()
 }
 
@@ -601,17 +596,17 @@ function abrirDoc() { docForm.value = { estado: 'BORRADOR' }; docDialog.value = 
 async function crearDoc() {
   try {
     const payload = Object.fromEntries(Object.entries(docForm.value).filter(([, v]) => v !== '' && v != null))
-    await api.post(`/registros-cnd/${regId.value}/documentos`, payload)
+    await registrosCndService.crearDocumento(regId.value, payload)
     docDialog.value = false
     await cargarDocumentos()
     toast.success('Documento agregado', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo agregar', { description: e.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('No se pudo agregar', { description: e.data?.detail ?? '', duration: 5000 })
   }
 }
 async function borrarDoc(row) {
   if (!confirm(`¿Eliminar el documento ${row.tipo}?`)) return
-  await api.delete(`/registros-cnd/${regId.value}/documentos/${row.id}`)
+  await registrosCndService.eliminarDocumento(regId.value, row.id)
   await cargarDocumentos()
 }
 
@@ -620,11 +615,10 @@ const correoDialog = ref(false)
 const correo = ref(null)
 async function generarCorreo(tipo) {
   try {
-    const { data } = await api.post(`/registros-cnd/${regId.value}/correos/${tipo}`)
-    correo.value = data
+    correo.value = await registrosCndService.generarCorreo(regId.value, tipo)
     correoDialog.value = true
   } catch (e) {
-    toast.error('No se pudo generar', { description: e.response?.data?.detail ?? '', duration: 5000 })
+    toast.error('No se pudo generar', { description: e.data?.detail ?? '', duration: 5000 })
   }
 }
 function copiarCorreo() {
@@ -638,7 +632,7 @@ onMounted(async () => {
     await Promise.all([cargarCatalogos(), cargarParams(), cargarEquipos(), cargarDocumentos()])
   } catch (e) {
     toast.error('No se pudo abrir el proyecto', {
-      description: e.response?.data?.detail ?? '',
+      description: e.data?.detail ?? '',
       duration: 6000,
     })
   }

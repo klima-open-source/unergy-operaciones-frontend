@@ -50,7 +50,9 @@ import { useRoute, useRouter } from 'vue-router'
 import InformesMensualesPanel from './InformesMensualesPanel.vue'
 import EnvioMensualPanel from './EnvioMensualPanel.vue'
 import PortafoliosGestionPanel from './PortafoliosGestionPanel.vue'
-import api from '~/core/client'
+import { InformesService } from '~/features/operaciones/services/informes'
+
+const informesService = new InformesService()
 
 const route = useRoute()
 const router = useRouter()
@@ -80,8 +82,8 @@ async function cargarBadge() {
     const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
     const hasta = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`
     // ✅ Filtro en backend para no depender del orden/límite
-    const { data } = await api.get('/informes/', {
-      params: { periodo_desde_gte: desde, periodo_desde_lte: hasta, limit: 500 }
+    const data = await informesService.listar({
+      periodo_desde_gte: desde, periodo_desde_lte: hasta, limit: 500,
     })
     const pendientes = (data || []).filter(i => i.estado !== 'aprobado' || !i.correo_enviado).length
     badgePipeline.value = pendientes || null

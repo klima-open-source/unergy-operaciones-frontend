@@ -435,11 +435,15 @@ import MultiSelect from 'primevue/multiselect'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import ProyectoForm from './ProyectoForm.vue'
 import { formatearNombreProyecto } from './proyectosUi'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { CheckIcon, ChevronDownIcon, EyeIcon, FileSpreadsheetIcon, LoaderCircleIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
+
+const proyectosService = new ProyectosService()
+const portafoliosService = new PortafoliosService()
 
 const router = useRouter()
 const route  = useRoute()
@@ -454,13 +458,15 @@ const invBackfillSoloMini  = ref(true)
 async function previewInversoresBackfill() {
   invBackfillLoading.value = true
   try {
-    const { data } = await api.post('/proyectos/inversores/backfill-minigranja', null,
-      { params: { dry_run: true, solo_minigranja: invBackfillSoloMini.value } })
+    const data = await proyectosService.backfillInversores({
+      dryRun: true,
+      soloMinigranja: invBackfillSoloMini.value,
+    })
     invBackfillReport.value = data
     invBackfillVisible.value = true
   } catch (e) {
     toast.error('No se pudo previsualizar', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   } finally {
@@ -471,8 +477,10 @@ async function previewInversoresBackfill() {
 async function applyInversoresBackfill() {
   invBackfillExecuting.value = true
   try {
-    const { data } = await api.post('/proyectos/inversores/backfill-minigranja', null,
-      { params: { dry_run: false, solo_minigranja: invBackfillSoloMini.value } })
+    const data = await proyectosService.backfillInversores({
+      dryRun: false,
+      soloMinigranja: invBackfillSoloMini.value,
+    })
     toast.success('Inversores sembrados', {
       description: `${data.a_sembrar} proyectos ahora tienen sus 5 inversores`,
       duration: 5000,
@@ -481,7 +489,7 @@ async function applyInversoresBackfill() {
     invBackfillReport.value = null
     await load()
   } catch (e) {
-    toast.error('El backfill falló', { description: e.response?.data?.detail || e.message, duration: 6000 })
+    toast.error('El backfill falló', { description: e.data?.detail || e.message, duration: 6000 })
   } finally {
     invBackfillExecuting.value = false
   }
@@ -738,36 +746,35 @@ function toggleSection(tipo) {
 
 // ── Carga de datos ─────────────────────────────────────────────────────────────
 async function loadPortafolios() {
-  const { data } = await api.get('/portafolios')
+  const data = await portafoliosService.listar()
   portafolios.value = data.portafolios ?? []
 }
 
-// Estado/Tipo/Portafolio/PPA se mandan al backend; pagina en loop (en vez de un
-// solo page=1&size=500) para no truncar en silencio cuando el total supera 500 --
-// el bug que tenía la version anterior, que nunca mandaba filtros al backend.
+// Estado/Tipo/Portafolio/PPA se mandan al backend (ProyectosService.listarPaginado);
+// pagina en loop (en vez de un solo page=1&size=500) para no truncar en
+// silencio cuando el total supera 500 -- el bug que tenía la version anterior,
+// que nunca mandaba filtros al backend. q y Departamento siguen client-side.
 async function load() {
   loading.value = true
   try {
-    const params = {}
-    if (filters.estado) params.estado = filters.estado
-    if (filters.tipo_proyecto) params.tipo_proyecto = filters.tipo_proyecto
-    if (filters.portafolio_id) params.portafolio_id = filters.portafolio_id
     const ppaIds = filters.ppa.filter(v => v !== PPA_SIN)
-    if (ppaIds.length) params.ppa_id = ppaIds
-    if (filters.ppa.includes(PPA_SIN)) params.sin_ppa = true
+    const sinPpa = filters.ppa.includes(PPA_SIN)
 
     const items = []
     let page = 1
     for (;;) {
-      const { data } = await api.get('/proyectos', {
-        params: { ...params, page, size: 500 },
-        // FastAPI espera "ppa_id=12&ppa_id=45" (repetido, sin corchetes) para
-        // list[int]; el default de axios manda "ppa_id[]=12&ppa_id[]=45", que
-        // FastAPI ignora silenciosamente (el filtro quedaría vacío).
-        paramsSerializer: { indexes: null },
+      const data = await proyectosService.listarPaginado({
+        page,
+        size: 500,
+        estado: filters.estado || undefined,
+        tipo_proyecto: filters.tipo_proyecto || undefined,
+        portafolio_id: filters.portafolio_id || undefined,
+        ppaIds,
+        sinPpa,
       })
       items.push(...(data.items ?? []))
-      if (!data.items?.length || items.length >= data.total) break
+      if (!data.items?.length) break
+      if (data.total != null && items.length >= data.total) break
       page++
     }
     allItems.value = items
@@ -815,10 +822,10 @@ function confirmDelete(row) {
 async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
   if (!infoTecnica || (infoTecnica.potencia_ac_kw == null && infoTecnica.capacidad_instalada_kwp == null && infoTecnica.cantidad_total_paneles == null)) return
   try {
-    await api.put(`/proyectos/${proyectoId}/info-tecnica`, infoTecnica)
+    await proyectosService.guardarInfoTecnica(proyectoId, infoTecnica)
   } catch (e) {
     toast.warning('Proyecto creado, pero la ficha técnica no se pudo guardar', {
-      description: e.response?.data?.detail,
+      description: e.data?.detail,
       duration: 5000,
     })
   }
@@ -826,16 +833,16 @@ async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
 
 async function onCreate(payload, infoTecnica) {
   try {
-    const { data } = await api.post('/proyectos', payload)
-    await guardarInfoTecnicaSiAplica(data.id, infoTecnica)
+    const proyecto = await proyectosService.crear(payload)
+    await guardarInfoTecnicaSiAplica(proyecto.id, infoTecnica)
     toast.success('Proyecto creado', { duration: 3000 })
     dialogVisible.value = false
     load()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
     // igual. Distinto de un choque real de columna única (detail es un string).
-    if (e.response?.status === 409 && detail?.duplicado_nombre) {
+    if (e.status === 409 && detail?.duplicado_nombre) {
       duplicadoInfo.value = detail
       pendingPayload.value = payload
       pendingInfoTecnica.value = infoTecnica
@@ -853,14 +860,14 @@ async function onCreate(payload, infoTecnica) {
 async function crearForzado() {
   forzando.value = true
   try {
-    const { data } = await api.post('/proyectos', pendingPayload.value, { params: { forzar: true } })
-    await guardarInfoTecnicaSiAplica(data.id, pendingInfoTecnica.value)
+    const proyecto = await proyectosService.crear(pendingPayload.value, true)
+    await guardarInfoTecnicaSiAplica(proyecto.id, pendingInfoTecnica.value)
     toast.success('Proyecto creado', { duration: 3000 })
     duplicadoVisible.value = false
     dialogVisible.value = false
     load()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     toast.error('Error', {
       description: typeof detail === 'string' ? detail : 'Error al guardar',
       duration: 4000,
@@ -873,12 +880,12 @@ async function crearForzado() {
 async function doDelete() {
   deleting.value = true
   try {
-    await api.delete(`/proyectos/${deleteProyecto.value.id}`)
+    await proyectosService.eliminar(deleteProyecto.value.id)
     toast.success('Proyecto eliminado', { duration: 3000 })
     deleteVisible.value = false
     load()
   } catch (e) {
-    const detail = e.response?.data?.detail || 'Error al eliminar'
+    const detail = e.data?.detail || 'Error al eliminar'
     toast.error('No se pudo eliminar', { description: detail, duration: 5000 })
   } finally {
     deleting.value = false
@@ -892,7 +899,7 @@ const pendientesVisible = ref(false)
 
 async function loadPendientes() {
   try {
-    const { data } = await api.get('/proyectos/pendientes')
+    const data = await proyectosService.listarPendientes()
     pendientes.value = data.map(p => ({
       ...p,
       _nombre: p.nombre_sugerido,
@@ -914,10 +921,10 @@ function abrirPendientes() {
 async function confirmarPendiente(p, forzar = false) {
   p._loading = 'confirmar'
   try {
-    await api.post(`/proyectos/pendientes/${p.clave}/confirmar`, {
+    await proyectosService.confirmarPendiente(p.clave, {
       nombre_comercial: p.tipo_sugerencia === 'crear' ? p._nombre : undefined,
       tipo_proyecto: p.tipo_sugerencia === 'crear' ? p._tipo : undefined,
-    }, forzar ? { params: { forzar: true } } : undefined)
+    }, forzar)
     pendientes.value = pendientes.value.filter(x => x.clave !== p.clave)
     duplicadoVisible.value = false
     toast.success(p.tipo_sugerencia === 'crear' ? 'Proyecto creado' : 'Proyecto actualizado', {
@@ -925,11 +932,11 @@ async function confirmarPendiente(p, forzar = false) {
     })
     load()
   } catch (e) {
-    const detail = e.response?.data?.detail
+    const detail = e.data?.detail
     // Mismo aviso de "nombre parecido" que en el alta manual -- evita que dos
     // candidatos pendientes distintos (p. ej. Sun Factory duplicado) creen el
     // mismo proyecto dos veces sin ningún aviso.
-    if (e.response?.status === 409 && detail?.duplicado_nombre) {
+    if (e.status === 409 && detail?.duplicado_nombre) {
       duplicadoInfo.value = detail
       duplicadoConfirmAction.value = async () => {
         forzando.value = true
@@ -953,13 +960,13 @@ async function confirmarPendiente(p, forzar = false) {
 
 function ignorarPendiente(p) {
   p._loading = 'ignorar'
-  api.post(`/proyectos/pendientes/${p.clave}/ignorar`, {})
+  proyectosService.ignorarPendiente(p.clave)
     .then(() => {
       pendientes.value = pendientes.value.filter(x => x.clave !== p.clave)
     })
     .catch(e => {
       toast.error('No se pudo ignorar', {
-        description: e.response?.data?.detail || e.message,
+        description: e.data?.detail || e.message,
         duration: 5000,
       })
     })

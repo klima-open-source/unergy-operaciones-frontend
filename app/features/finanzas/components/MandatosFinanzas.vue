@@ -59,8 +59,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import api from '~/core/client'
+import { MandatosFinanzasService } from '~/features/finanzas/services/mandatos-finanzas'
 import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+
+const mandatosFinanzasService = new MandatosFinanzasService()
 
 function mesISO (delta = 0) {
   const n = new Date()
@@ -106,15 +108,14 @@ function setTipo (t) { tipo.value = t; cargarLista() }
 async function cargarLista () {
   loading.value = true
   try {
-    const { data } = await api.get('/finanzas/mandatos', { params: { periodo: periodo.value, tipo: tipo.value } })
+    const data = await mandatosFinanzasService.listar({ periodo: periodo.value, tipo: tipo.value })
     mandatos.value = data.mandatos || []
   } finally {
     loading.value = false
   }
 }
 async function cargarResumen () {
-  const { data } = await api.get('/finanzas/mandatos/resumen', { params: { periodo: periodo.value } })
-  resumen.value = data
+  resumen.value = await mandatosFinanzasService.obtenerResumen(periodo.value)
 }
 async function cargar () { await Promise.all([cargarLista(), cargarResumen()]) }
 onMounted(cargar)

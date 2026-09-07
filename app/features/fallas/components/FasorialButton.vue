@@ -103,10 +103,14 @@ import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { renderFasorial } from '~/features/fallas/utils/fasorial'
 import { gaiaSnapshotToFasorial, validarSnapshot } from '~/features/fallas/utils/gaiaSnapshotToFasorial'
 import { ClockIcon, DownloadIcon, ImageIcon, MoonIcon, RefreshCwIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+
+const generacionSolarService = new GeneracionSolarService()
+const proyectosService = new ProyectosService()
 
 // Umbral (min) para considerar una lectura desactualizada
 const STALE_MIN = 15
@@ -145,15 +149,15 @@ async function abrir() {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const { data } = await api.get('/generacion-solar/monitoring')
+    const data = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = (data?.projects ?? [])
       .map((p) => ({ proyecto_id: p.proyecto_id, nombre: p.nombre }))
       .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
   } catch {
     // Fallback: lista general de proyectos
     try {
-      const { data } = await api.get('/proyectos', { params: { size: 500 } })
-      proyectos.value = (data?.items ?? [])
+      const lista = await proyectosService.listar({ size: 500 })
+      proyectos.value = lista
         .map((p) => ({ proyecto_id: p.id, nombre: p.nombre_comercial }))
         .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
     } catch {
@@ -238,11 +242,13 @@ async function generar() {
   sinCarga.value = false
 
   try {
-    const { data } = await api.get(`/generacion-solar/monitoring/${proyId}`)
+    // true: el fasorial necesita el snapshot electrico completo (voltaje,
+    // corriente y potencia por fase), que el detalle solo trae si se pide.
+    const data = await generacionSolarService.obtenerDetalle(proyId, true)
     lastDetail.value = data
     renderFromDetail(data)
   } catch (e) {
-    const detail = e?.response?.data?.detail
+    const detail = e?.data?.detail
     errorMsg.value = detail || e?.message || 'No se pudo obtener la lectura del medidor.'
     rendered.value = false
     lastDetail.value = null

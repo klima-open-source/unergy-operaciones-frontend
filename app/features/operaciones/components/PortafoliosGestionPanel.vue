@@ -101,8 +101,10 @@
 import { ref, onMounted } from 'vue'
 import draggable from 'vuedraggable'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { CheckIcon, FolderIcon, FolderOpenIcon, InboxIcon, InfoIcon, LoaderCircleIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, XIcon, ZapIcon } from '@lucide/vue'
+
+const portafoliosService = new PortafoliosService()
 
 const loading = ref(false)
 const creando = ref(false)
@@ -124,11 +126,11 @@ function toast(msg, err = false) {
 async function cargar() {
   loading.value = true
   try {
-    const { data } = await api.get('/portafolios')
+    const data = await portafoliosService.listar()
     portafolios.value = (data.portafolios || []).map(p => ({ ...p, proyectos: p.proyectos || [] }))
     sinPortafolio.value = data.sin_portafolio || []
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     loading.value = false
   }
@@ -139,10 +141,10 @@ async function onChange(evt, portafolioId) {
   if (!evt.added) return
   const proyecto = evt.added.element
   try {
-    await api.patch('/portafolios/asignar', { proyecto_id: proyecto.id, portafolio_id: portafolioId })
+    await portafoliosService.asignarProyecto(proyecto.id, portafolioId)
     toast(portafolioId ? `✅ ${proyecto.nombre} → portafolio` : `✅ ${proyecto.nombre} sin portafolio`)
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
     cargar()  // revertir al estado real
   }
 }
@@ -152,13 +154,13 @@ async function crear() {
   if (!nombre) return
   creando.value = true
   try {
-    const { data } = await api.post('/portafolios', { nombre })
+    const data = await portafoliosService.crear(nombre)
     portafolios.value.push({ ...data, proyectos: data.proyectos || [] })
     portafolios.value.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
     nuevoNombre.value = ''
     toast('✅ Portafolio creado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     creando.value = false
   }
@@ -169,12 +171,12 @@ async function renombrar(pt) {
   const nombre = editandoNombre.value.trim()
   if (!nombre || nombre === pt.nombre) { editandoId.value = null; return }
   try {
-    await api.patch(`/portafolios/${pt.id}`, { nombre })
+    await portafoliosService.renombrar(pt.id, nombre)
     pt.nombre = nombre
     portafolios.value.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
     toast('✅ Renombrado')
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   } finally {
     editandoId.value = null
   }
@@ -186,11 +188,11 @@ async function eliminar(pt) {
     : `¿Eliminar el portafolio "${pt.nombre}"?`
   if (!confirm(msg)) return
   try {
-    await api.delete(`/portafolios/${pt.id}`)
+    await portafoliosService.eliminar(pt.id)
     toast('🗑️ Portafolio eliminado')
     cargar()
   } catch (e) {
-    toast('⚠️ ' + (e.response?.data?.detail || e.message), true)
+    toast('⚠️ ' + (e.data?.detail || e.message), true)
   }
 }
 

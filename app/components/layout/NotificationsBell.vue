@@ -1,12 +1,5 @@
 <script setup>
-import {
-  BellIcon,
-  BellOffIcon,
-  CircleAlertIcon,
-  CircleCheckIcon,
-  InfoIcon,
-  TriangleAlertIcon,
-} from '@lucide/vue'
+import { BellIcon, BellOffIcon, InfoIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const {
   items: notifications,
@@ -16,27 +9,25 @@ const {
   marcarTodasLeidas,
 } = useNotificaciones()
 
-function severityBg(sev) {
+// Mismos 3 valores reales de TipoNotificacionEnum (alerta/info/accion) y los
+// mismos colores/íconos que ya usa NotificationsSheet.vue (móvil) -- antes
+// esto leía `n.severidad` (un campo que el backend nunca envía) contra un
+// mapa de 4 valores ('critica'/'alta'/'media'/'baja') que tampoco existen,
+// así que toda notificación caía siempre al ícono/color genérico.
+function tipoBg(tipo) {
   const map = {
-    critica: 'rgba(214,68,85,0.12)',
-    alta: 'rgba(234,88,12,0.12)',
-    media: 'rgba(240,192,64,0.12)',
-    baja: 'rgba(16,185,129,0.12)',
+    alerta: 'rgba(220,38,38,0.12)',
+    accion: 'rgba(145,91,216,0.12)',
   }
-  return map[sev] || 'rgba(145,91,216,0.08)'
+  return map[tipo] || 'rgba(14,165,233,0.12)'
 }
-function severityColor(sev) {
-  const map = { critica: '#D64455', alta: '#EA580C', media: '#CA8A04', baja: '#10B981' }
-  return map[sev] || '#915BD8'
+function tipoColor(tipo) {
+  const map = { alerta: '#dc2626', accion: '#915BD8' }
+  return map[tipo] || '#0ea5e9'
 }
-function severityIcon(sev) {
-  const map = {
-    critica: TriangleAlertIcon,
-    alta: CircleAlertIcon,
-    media: InfoIcon,
-    baja: CircleCheckIcon,
-  }
-  return map[sev] || BellIcon
+function tipoIcon(tipo) {
+  const map = { alerta: TriangleAlertIcon, accion: ZapIcon }
+  return map[tipo] || InfoIcon
 }
 
 function formatTimeAgo(dateStr) {
@@ -98,9 +89,9 @@ function onSelectNotificacion(e, n) {
         >
           <div
             class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full"
-            :style="{ backgroundColor: severityBg(n.severidad), color: severityColor(n.severidad) }"
+            :style="{ backgroundColor: tipoBg(n.tipo), color: tipoColor(n.tipo) }"
           >
-            <component :is="severityIcon(n.severidad)" class="size-3.5" />
+            <component :is="tipoIcon(n.tipo)" class="size-3.5" />
           </div>
           <div class="min-w-0 flex-1">
             <p class="text-sm leading-snug" :class="n.leida ? 'font-normal' : 'font-semibold'">

@@ -532,9 +532,13 @@ import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import Checkbox from 'primevue/checkbox'
 import ProgressSpinner from 'primevue/progressspinner'
-import api from '~/core/client'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
+
+const contratosServicioService = new ContratosServicioService()
+const proyectosService = new ProyectosService()
 
 const route = useRoute()
 const confirm = useConfirm()
@@ -604,13 +608,12 @@ const grupoEnConflicto = computed(() =>
 
 async function cargarDuplicados() {
   try {
-    const { data } = await api.get('/contratos-servicio/duplicados-representacion')
-    duplicados.value = data
+    duplicados.value = await contratosServicioService.buscarDuplicadosRepresentacion()
   } catch (e) {
     // Antes esto se tragaba el error y el aviso simplemente no aparecía, sin
     // forma de saber si no había duplicados o si la consulta había fallado.
     toast.warning('No se pudo revisar duplicados', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 5000,
     })
   }
@@ -634,21 +637,20 @@ function confirmarEliminar() {
 
 async function eliminar(id) {
   try {
-    await api.delete(`/contratos-servicio/${id}`)
+    await contratosServicioService.eliminar(id)
     contratos.value = contratos.value.filter(x => x.id !== id)
     idSeleccionado.value = contratos.value[0]?.id ?? null
     toast.success('Contrato eliminado', { duration: 2500 })
     await cargarDuplicados()
   } catch (e) {
-    toast.error('No se pudo eliminar', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('No se pudo eliminar', { description: e.data?.detail || e.message, duration: 4000 })
   }
 }
 
 async function fusionar() {
   fusionando.value = true
   try {
-    const { data } = await api.post('/contratos-servicio/fusionar-representacion',
-                                    { ids: grupoDuplicado.value.ids })
+    const data = await contratosServicioService.fusionarRepresentacion(grupoDuplicado.value.ids)
     toast.success('Registros fusionados', {
       description: `${data.contratos_eliminados} duplicado(s) eliminado(s)`,
       duration: 3500,
@@ -656,7 +658,7 @@ async function fusionar() {
     await cargar()
     await cargarDuplicados()
   } catch (e) {
-    toast.error('No se pudo fusionar', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('No se pudo fusionar', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     fusionando.value = false
   }
@@ -806,13 +808,13 @@ function guardar(campos) {
 async function enviar(payload) {
   guardando.value = true
   try {
-    const { data } = await api.patch(`/contratos-servicio/${c.value.id}`, payload)
+    const data = await contratosServicioService.actualizar(c.value.id, payload)
     const i = contratos.value.findIndex(x => x.id === data.id)
     if (i !== -1) contratos.value[i] = data
     edit.value = null
     toast.success('Cambios guardados', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('No se pudo guardar', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {
     guardando.value = false
   }
@@ -866,25 +868,26 @@ function guardarIdx(clave) {
 
 async function nuevoContrato() {
   try {
-    const { data } = await api.post('/contratos-servicio', {
+    const data = await contratosServicioService.crear({
       servicio_aplica: 'representacion',
       proyecto_id: Number(route.params.id),
       estado: 'vigente',
-      nombre_proyecto_ref: proyectoNombre.value || null,
     })
     contratos.value.push(data)
     idSeleccionado.value = data.id
     toast.success('Contrato creado', { description: 'Completa los datos con Editar', duration: 3000 })
   } catch (e) {
-    toast.error('No se pudo crear', { description: e.response?.data?.detail || e.message, duration: 4000 })
+    toast.error('No se pudo crear', { description: e.data?.detail || e.message, duration: 4000 })
   }
 }
 
 // ── Carga ────────────────────────────────────────────────────────────────────
 async function cargar() {
   const pid = Number(route.params.id)
-  const { data } = await api.get('/contratos-servicio', {
-    params: { tipo: 'representacion', proyecto_id: pid, limit: 500 },
+  const data = await contratosServicioService.listar({
+    tipo: 'representacion',
+    proyecto_id: pid,
+    limit: 500,
   })
   // El endpoint ensancha la búsqueda con codigo_tsf y con el número de la planta
   // en nombre_proyecto_ref, lo que puede traer contratos de otras plantas. Acá
@@ -897,15 +900,15 @@ async function cargar() {
 
 onMounted(async () => {
   try {
-    const { data } = await api.get(`/proyectos/${route.params.id}`)
-    proyectoNombre.value = data.nombre_comercial || ''
+    const proyecto = await proyectosService.obtener(route.params.id)
+    proyectoNombre.value = proyecto.nombre_comercial || ''
   } catch { /* el nombre es decorativo: la vista funciona sin él */ }
   try {
     await cargar()
     await cargarDuplicados()
   } catch (e) {
     toast.error('Error al cargar contratos', {
-      description: e.response?.data?.detail || e.message,
+      description: e.data?.detail || e.message,
       duration: 4000,
     })
   } finally {

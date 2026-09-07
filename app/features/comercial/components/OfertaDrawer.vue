@@ -216,10 +216,42 @@
           </Button>
           <p class="ayuda">Crea el contrato con sus tarifas y lo enlaza a esta oferta.</p>
         </div>
-        <p v-else-if="oferta.tipo === 'servicios_operacionales'" class="ayuda">
-          Las ofertas de servicios derivan en un contrato de representación, que se
-          crea en <router-link to="/servicios" class="underline" style="color:var(--color-unergy-purple)">Servicios</router-link>.
-        </p>
+        <div v-else-if="oferta.tipo === 'servicios_operacionales' && f.contrato_servicio_id"
+             class="rounded-md px-3 py-2" style="background:#E6F7F5;border:1px solid #99E0D8">
+          <router-link :to="`/contratos/${f.contrato_servicio_id}`" class="text-sm font-medium underline"
+                       style="color:#0F766E">
+            Contrato de Representación #{{ f.contrato_servicio_id }}
+          </router-link>
+          <div class="mt-1">
+            <Button label="Desvincular" text size="small" severity="secondary" @click="desvincularContrato">
+              <template #icon><UnlinkIcon class="size-[1em]" /></template>
+            </Button>
+          </div>
+        </div>
+        <div v-else-if="oferta.tipo === 'servicios_operacionales'">
+          <Button label="Crear contrato de representación" class="w-full" @click="showContratoWizard = true">
+            <template #icon><FileCheckIcon class="size-[1em]" /></template>
+          </Button>
+          <p class="ayuda">Crea el contrato y lo enlaza a esta oferta.</p>
+          <div class="mt-2">
+            <label class="etiqueta">O vincular uno ya creado</label>
+            <Select v-model="f.contrato_servicio_id" :options="contratosServicio" optionLabel="contratante_nombre"
+                    optionValue="id" filter showClear class="w-full" :loading="cargandoCatalogos"
+                    placeholder="Buscar contrato de representación existente…"
+                    @update:modelValue="autosave">
+              <template #option="{ option }">
+                <div class="min-w-0">
+                  <div class="text-sm" style="color:var(--color-unergy-deep)">{{ option.contratante_nombre || '—' }}</div>
+                  <div class="text-[11px]" style="color:#9b89b5">{{ option.numero_contrato || 'Sin N° de contrato' }}</div>
+                </div>
+              </template>
+            </Select>
+            <p class="ayuda">
+              Para un contrato creado desde otro camino (ej. la pestaña Servicios de un
+              proyecto), sin pasar por esta oferta.
+            </p>
+          </div>
+        </div>
       </section>
 
       <!-- ── Bitácora ────────────────────────────────────────────────────── -->
@@ -251,6 +283,11 @@
     <ProyectoDesdeCRMDialog v-if="oferta" v-model:visible="crearProyecto"
                             :oportunidad-id="oferta.oportunidad_id" :oferta="oferta"
                             @creado="proyectoCreado" />
+
+    <ContratoServicioWizard v-if="oferta && oferta.tipo === 'servicios_operacionales'"
+                            v-model:visible="showContratoWizard" tipo="representacion"
+                            :proyecto-id-default="f.proyecto_ids?.[0] ?? null"
+                            @creado="contratoCreado" @cerrar="showContratoWizard = false" />
   </Drawer>
 </template>
 
@@ -266,7 +303,8 @@ import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import {
   ETAPAS, TIPOS_OFERTA, TIPOS_GESTION, FUENTES, puedeFirmarPPA,
   aFecha, aFechaStr, fmtFecha, diasDesde, sinRespuesta,
@@ -274,7 +312,8 @@ import {
 } from './comercial.js'
 import { cargarProyectos } from './catalogos.js'
 import ProyectoDesdeCRMDialog from './ProyectoDesdeCRMDialog.vue'
-import { CheckIcon, FileCheckIcon, PlusIcon, SendIcon, Trash2Icon } from '@lucide/vue'
+import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
+import { CheckIcon, FileCheckIcon, PlusIcon, SendIcon, Trash2Icon, UnlinkIcon } from '@lucide/vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -290,6 +329,8 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'firmar'])
 
 const confirm = useConfirm()
+const operadoresRedService = new OperadoresRedService()
+const contratosServicioService = new ContratosServicioService()
 
 const moviendo = ref(false)
 const tocando = ref(false)
@@ -298,8 +339,10 @@ const guardandoGestion = ref(false)
 const estadoGuardado = ref('')
 const proyectos = ref([])
 const operadores = ref([])
+const contratosServicio = ref([])
 const cargandoCatalogos = ref(false)
 const crearProyecto = ref(false)
+const showContratoWizard = ref(false)
 let temporizador = null
 
 /**
@@ -352,6 +395,7 @@ function cargarFormulario(o) {
     departamento: o?.departamento ?? '',
     operador_red_id: o?.operador_red_id ?? null,
     energia_promedio_kwh_mes: o?.energia_promedio_kwh_mes ?? null,
+    contrato_servicio_id: o?.contrato_servicio_id ?? null,
   })
   plantasTocadas.value = false
   estadoGuardado.value = ''
@@ -367,9 +411,10 @@ watch(() => props.oferta?.id, () => {
 watch(() => props.visible, async (abierto) => {
   if (!abierto || proyectos.value.length || operadores.value.length) return
   cargandoCatalogos.value = true
-  const [pr, op] = await Promise.allSettled([
+  const [pr, op, cs] = await Promise.allSettled([
     cargarProyectos(),
-    api.get('/operadores-red'),
+    operadoresRedService.listar(),
+    contratosServicioService.listar({ tipo: 'representacion' }),
   ])
   if (pr.status === 'fulfilled') {
     proyectos.value = pr.value
@@ -377,8 +422,10 @@ watch(() => props.visible, async (abierto) => {
     toast.warning('No se pudo cargar la lista de proyectos', { duration: 4000 })
   }
   if (op.status === 'fulfilled') {
-    const filas = op.value.data.items ?? op.value.data
-    operadores.value = filas.map((o) => ({ id: o.id, nombre: o.nombre_comercial || o.nombre_legal }))
+    operadores.value = op.value.map((o) => ({ id: o.id, nombre: o.nombre_comercial || o.nombre_legal }))
+  }
+  if (cs.status === 'fulfilled') {
+    contratosServicio.value = cs.value
   }
   cargandoCatalogos.value = false
 })
@@ -438,9 +485,28 @@ function cambios() {
     departamento: f.departamento || null,
     operador_red_id: f.operador_red_id ?? null,
     energia_promedio_kwh_mes: f.energia_promedio_kwh_mes ?? null,
+    contrato_servicio_id: f.contrato_servicio_id ?? null,
   }
   if (plantasTocadas.value) c.proyecto_ids = f.proyecto_ids ?? []
   return c
+}
+
+/** El wizard crea el contrato y acá se enlaza a esta oferta (mismo autosave
+ * que el resto del panel) -- el equivalente de "Firmar → crear PPA" para
+ * servicios_operacionales, que no tiene un /firmar propio porque los
+ * contratos de representación se crean por su wizard genérico. */
+function contratoCreado(data) {
+  if (!data?.id) return
+  if (!contratosServicio.value.some((c) => c.id === data.id)) {
+    contratosServicio.value = [...contratosServicio.value, data]
+  }
+  f.contrato_servicio_id = data.id
+  autosave()
+}
+
+function desvincularContrato() {
+  f.contrato_servicio_id = null
+  autosave()
 }
 
 async function guardarAhora() {

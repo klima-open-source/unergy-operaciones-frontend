@@ -94,8 +94,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
-import api from '~/core/client'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { ArrowLeftIcon, LoaderCircleIcon, MailIcon, PlusIcon, Trash2Icon, XIcon } from '@lucide/vue'
+
+const operadoresRedService = new OperadoresRedService()
 
 const route = useRoute()
 const operador = ref(null)
@@ -113,22 +115,21 @@ function emailValido(email) {
 }
 
 async function cargar() {
-  const { data } = await api.get(`/operadores-red/${route.params.id}`)
-  operador.value = data
+  operador.value = await operadoresRedService.obtener(route.params.id)
 }
 
 async function crearContacto() {
   if (!nuevo.value || !emailValido(nuevo.value.email)) return
   try {
-    const { data } = await api.post(`/operadores-red/${operador.value.id}/contactos`, {
+    const contacto = await operadoresRedService.crearContacto(operador.value.id, {
       email: nuevo.value.email.trim().toLowerCase(),
       nombre: nuevo.value.nombre?.trim() || null,
     })
-    operador.value.contactos.push(data)
+    operador.value.contactos.push(contacto)
     nuevo.value = null
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo agregar el contacto',
+      description: e.data?.detail || 'No se pudo agregar el contacto',
       duration: 4000,
     })
   }
@@ -137,13 +138,13 @@ async function crearContacto() {
 async function guardarContacto(contacto) {
   if (!emailValido(contacto.email)) return
   try {
-    await api.patch(`/operadores-red/contactos/${contacto.id}`, {
+    await operadoresRedService.actualizarContacto(contacto.id, {
       email: contacto.email.trim().toLowerCase(),
       nombre: contacto.nombre?.trim() || null,
     })
   } catch (e) {
     toast.error('Error', {
-      description: e.response?.data?.detail || 'No se pudo guardar el contacto',
+      description: e.data?.detail || 'No se pudo guardar el contacto',
       duration: 4000,
     })
   }
@@ -151,7 +152,7 @@ async function guardarContacto(contacto) {
 
 async function eliminarContacto(contacto) {
   try {
-    await api.delete(`/operadores-red/contactos/${contacto.id}`)
+    await operadoresRedService.eliminarContacto(contacto.id)
     operador.value.contactos = operador.value.contactos.filter(c => c.id !== contacto.id)
   } catch (e) {
     toast.error('Error', { description: 'No se pudo eliminar el contacto', duration: 4000 })
