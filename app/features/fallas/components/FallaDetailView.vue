@@ -411,9 +411,10 @@ const titulo = computed(() => tituloFalla(falla.value))
 const categoria = computed(() => categoriaFalla(falla.value))
 const clasif = computed(() => clasificacionDetalle(falla.value))
 
-const sortedSeguimientos = computed(() =>
-  [...(falla.value?.seguimientos ?? [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-)
+// El backend ya los manda del mas reciente al mas viejo (`FallaSeguimiento.Meta
+// .ordering`, 2026-09-07). Antes se ordenaba aca y el movil no lo hacia, asi que
+// la misma falla mostraba su cronologia desordenada en el telefono.
+const sortedSeguimientos = computed(() => falla.value?.seguimientos ?? [])
 
 // El backend puede devolver `fotos_lista` como list[str] (URLs, legado) o como
 // list[obj] {url, nombre, ...} (formato actual). Normalizamos SIEMPRE a string:
