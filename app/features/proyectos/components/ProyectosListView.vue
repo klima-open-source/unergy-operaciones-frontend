@@ -754,7 +754,15 @@ async function loadPortafolios() {
 // pagina en loop (en vez de un solo page=1&size=500) para no truncar en
 // silencio cuando el total supera 500 -- el bug que tenía la version anterior,
 // que nunca mandaba filtros al backend. q y Departamento siguen client-side.
+//
+// `cargaVigente`: si el usuario cambia de filtro mientras load() todavia esta
+// paginando la carga anterior (varias llamadas encadenadas por filtro rapido),
+// una respuesta vieja que llega tarde ya NO debe pisar allItems con resultados
+// de un filtro que el usuario ya no tiene seleccionado.
+let cargaVigente = 0
+
 async function load() {
+  const idCarga = ++cargaVigente
   loading.value = true
   try {
     const ppaIds = filters.ppa.filter(v => v !== PPA_SIN)
@@ -772,11 +780,13 @@ async function load() {
         ppaIds,
         sinPpa,
       })
+      if (idCarga !== cargaVigente) return
       items.push(...(data.items ?? []))
       if (!data.items?.length) break
       if (data.total != null && items.length >= data.total) break
       page++
     }
+    if (idCarga !== cargaVigente) return
     allItems.value = items
     // Abrir la primera sección automáticamente en la carga inicial
     if (openSections.value.size === 0) {
@@ -784,7 +794,7 @@ async function load() {
       if (first) openSections.value = new Set([first])
     }
   } finally {
-    loading.value = false
+    if (idCarga === cargaVigente) loading.value = false
   }
 }
 
@@ -798,12 +808,17 @@ function goDetail(row) { router.push(`/proyectos/${row.id}`) }
 function goEdit(row)   { router.push(`/proyectos/${row.id}?edit=true`) }
 function openNew()     { dialogVisible.value = true }
 
+function nombrePortafolio(id) {
+  return portafolios.value.find(pf => pf.id === id)?.nombre ?? null
+}
+
 async function descargarExcel() {
   await exportarExcel(filteredItems.value, [
     { header: 'Cód. TSF', value: p => p.codigo_tsf || '' },
     { header: 'Nombre comercial', value: p => formatearNombreProyecto(p.nombre_comercial) },
     { header: 'Estado', value: p => ESTADO_LABELS[p.estado] || p.estado || '' },
     { header: 'Tipo', value: p => TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || '' },
+    { header: 'Portafolio', value: p => nombrePortafolio(p.portafolio_id) || '' },
     { header: 'Municipio', value: p => p.municipio || '' },
     { header: 'Departamento', value: p => p.departamento || '' },
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },

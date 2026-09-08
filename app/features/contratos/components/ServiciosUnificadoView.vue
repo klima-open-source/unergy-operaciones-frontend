@@ -216,7 +216,7 @@
           <template #filter="{ filterModel, filterCallback }">
             <Select v-model="filterModel.value" :options="estadoOpcionesProyectos"
                     optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+                    class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%"
@@ -229,7 +229,7 @@
           <template #filter="{ filterModel, filterCallback }">
             <Select v-model="filterModel.value" :options="tipoOpcionesProyectos"
                     optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+                    class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column field="portafolio_id" header="Portafolio" sortable style="width:10%"
@@ -240,7 +240,7 @@
           <template #filter="{ filterModel, filterCallback }">
             <Select v-model="filterModel.value" :options="portafolios"
                     optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+                    class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column field="municipio" header="Ubicación" sortable style="width:9%">
@@ -285,7 +285,7 @@
             <MultiSelect v-model="filterModel.value" :options="ppaOpcionesProyectos"
                          optionLabel="label" optionValue="value" filter display="chip"
                          placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
-                         class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+                         class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column header="Falta" style="width:9%">
@@ -734,6 +734,11 @@ const TIPO_BADGE_CLASS = {
   minigranja: 'badge-minigranja', autoconsumo: 'badge-autoconsumo', gd: 'badge-gd',
   movilidad_electrica: 'badge-movilidad', otro: 'badge-otro',
 }
+// `estado` real de Proyecto (apps/proyectos/models.py). "en_construccion" NO es
+// un valor de este campo -- es de `fase_construccion`, un campo distinto -- pero
+// se conserva en ESTADO_LABELS/ESTADO_CLASS por si algun dato viejo lo tiene, así
+// que el filtro (más abajo) usa su propia lista, no `Object.keys(ESTADO_LABELS)`.
+const ESTADOS = ['en_operacion', 'en_desarrollo', 'suspendido', 'cancelado']
 const ESTADO_LABELS = {
   en_operacion: 'En operación', en_desarrollo: 'En desarrollo', suspendido: 'Suspendido',
   cancelado: 'Cancelado', en_construccion: 'En construcción',
@@ -1098,7 +1103,7 @@ const filtrosProyectos = ref({
 })
 
 const estadoOpcionesProyectos = computed(() =>
-  Object.entries(ESTADO_LABELS).map(([value, label]) => ({ value, label })))
+  ESTADOS.map(value => ({ value, label: ESTADO_LABELS[value] })))
 const tipoOpcionesProyectos = computed(() =>
   Object.entries(TIPO_LABELS).map(([value, label]) => ({ value, label })))
 
