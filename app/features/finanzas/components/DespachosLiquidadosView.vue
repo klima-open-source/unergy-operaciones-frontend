@@ -281,6 +281,9 @@ const loading = ref(false)
 const error = ref(null)
 const despachos = ref([])
 const tipoSel = ref(null)
+// Avisos del backend sobre el período: proyectos cuyas cifras quedaron incompletas.
+const avisos = ref([])
+const avisosAbiertos = ref(false)
 
 const filtrados = computed(() => {
   const term = q.value.trim().toLowerCase()
@@ -331,9 +334,11 @@ async function cargar() {
   try {
     const data = await liquidacionesApi.listarDespachos(filtros)
     despachos.value = data.results || []
+    avisos.value = data.avisos || []
   } catch (e) {
     error.value = e.data?.detail || 'No se pudieron cargar los despachos liquidados.'
     despachos.value = []
+    avisos.value = []
   } finally {
     loading.value = false
   }
