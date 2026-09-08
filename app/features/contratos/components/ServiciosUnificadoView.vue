@@ -75,55 +75,47 @@
       </template>
     </div>
 
-    <!-- Sin FILA de filtros en ningún ángulo (decisión de 2026-08-20): el
+    <!-- Sin fila de filtros en Clientes/Servicios (decisión de 2026-08-20): el
          buscador de la cabecera cubre el caso y la fila le robaba alto a la
-         tabla, que es lo que interesa maximizar. Las columnas siguen siendo
-         ordenables, así que acotar por estado/tipo se hace con un clic en el
-         encabezado.
+         tabla, que es lo que interesa maximizar ahí. Las columnas siguen
+         siendo ordenables, así que acotar por estado/tipo se hace con un clic
+         en el encabezado.
 
-         Proyectos SÍ tiene filtros de Estado/Tipo/Portafolio/PPA, pero
-         centralizados en un solo panel desplegable (botón "Filtros", decisión
-         del 2026-09-08 -- antes eran un icono por columna, y "Agrupar por"
-         vivía en este mismo lugar; se retiró para dejarle el puesto a este
-         panel) en vez de una fila fija, respetando la misma decisión de
-         altura. -->
-    <div v-if="vista === 'proyectos'" class="flex flex-wrap items-center gap-2">
-      <Button label="Filtros" type="button" size="small" severity="secondary" outlined
-              @click="panelFiltrosProyectos?.toggle($event)">
-        <template #icon><FilterIcon class="size-[1em]" /></template>
-      </Button>
-      <span v-if="nFiltrosProyectosActivos" class="svc-tab-count">{{ nFiltrosProyectosActivos }}</span>
-      <Popover ref="panelFiltrosProyectos">
-        <div class="filtros-panel">
-          <div>
-            <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
-            <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
-                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    size="small" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
-            <Select v-model="filtrosProyectos.tipo_proyecto.value" :options="tipoOpcionesProyectos"
-                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    size="small" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
-            <Select v-model="filtrosProyectos.portafolio_id.value" :options="portafolios"
-                    optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
-                    size="small" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold" style="color:#6b5a8a">PPA</label>
-            <MultiSelect v-model="filtrosProyectos.ppa_contratos.value" :options="ppaOpcionesProyectos"
-                         optionLabel="label" optionValue="value" filter display="chip"
-                         placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
-                         size="small" class="w-full" />
-          </div>
-          <Button v-if="nFiltrosProyectosActivos" label="Limpiar filtros" text size="small"
-                  @click="limpiarFiltrosProyectos" />
-        </div>
-      </Popover>
+         Proyectos SÍ tiene una fila de filtros fija (Estado/Tipo/Portafolio/
+         PPA) -- decisión explícita del usuario, 2026-09-08, revirtiendo un
+         panel "Filtros" centralizado que se probó primero. El buscador de
+         Proyectos sigue siendo el de la cabecera, compartido con los otros
+         ángulos. -->
+    <div v-if="vista === 'proyectos'"
+         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
+         style="border-color:#ECE7F2">
+      <div>
+        <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+        <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
+                optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                size="small" class="w-40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+        <Select v-model="filtrosProyectos.tipo_proyecto.value" :options="tipoOpcionesProyectos"
+                optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                size="small" class="w-40" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+        <Select v-model="filtrosProyectos.portafolio_id.value" :options="portafolios"
+                optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
+                size="small" class="w-48" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold" style="color:#6b5a8a">PPA</label>
+        <MultiSelect v-model="filtrosProyectos.ppa_contratos.value" :options="ppaOpcionesProyectos"
+                     optionLabel="label" optionValue="value" filter display="chip"
+                     placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
+                     size="small" class="w-56" />
+      </div>
+      <Button v-if="nFiltrosProyectosActivos" label="Limpiar filtros" text size="small"
+              @click="limpiarFiltrosProyectos" />
     </div>
 
     <!-- ══════════════════ CLIENTES ══════════════════ -->
@@ -649,7 +641,6 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import Menu from 'primevue/menu'
-import Popover from 'primevue/popover'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { FilterMatchMode } from '@primevue/core/api'
@@ -662,7 +653,7 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, FilterIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -989,15 +980,12 @@ function ppaVigentes(p) {
 }
 
 // ── Filtros de Proyectos (Estado/Tipo/Portafolio/PPA) ───────────────────────
-// Centralizados en un panel desplegable (botón "Filtros", decisión del
-// 2026-09-08) en vez de un icono por columna o una fila fija: mismo criterio
-// de no restarle alto a la tabla que ya regía la fila de filtros original.
+// Fila de filtros fija, visible siempre (decisión del usuario, 2026-09-08).
 //
 // El filtrado real vive en `proyectosFiltrados` (JS plano): así el contador
 // del subtítulo ("X de Y plantas") y el Excel -- que leen `filasVisibles`, no
 // la tabla -- quedan siempre consistentes con lo que se ve.
 const portafolios = ref([])
-const panelFiltrosProyectos = ref(null)
 
 // Valor centinela "sin ningun PPA vigente" -- ningun contrato real tiene id
 // negativo, asi que convive con los ids reales en la misma lista de opciones.
@@ -1748,11 +1736,6 @@ function confirmarBorrarPpa(contrato) {
 
 /* Chips en una sola línea: si sobran, se recortan en vez de agrandar la fila */
 .chips-fila { display: flex; gap: 2px; overflow: hidden; min-width: 0; }
-
-/* Panel del botón "Filtros" de Proyectos (Estado/Tipo/Portafolio/PPA) */
-.filtros-panel {
-  display: flex; flex-direction: column; gap: 10px; min-width: 220px; padding: 4px;
-}
 
 /* Celda "Falta": dos contadores, campos y documentos */
 .falta-celda { display: flex; gap: 3px; }
