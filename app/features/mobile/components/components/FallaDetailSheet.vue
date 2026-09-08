@@ -80,7 +80,7 @@
             <!-- Datos -->
             <div class="fd-facts">
               <div class="fd-fact"><span>Proyecto</span><b>{{ fa.proyecto?.nombre_comercial || '—' }}</b></div>
-              <div class="fd-fact"><span>Identificada</span><b>{{ fmtFecha(fa.fecha_identificacion) }}</b></div>
+              <div class="fd-fact"><span>Identificada</span><b>{{ fmtFecha(fa.fecha_identificacion) }}<span v-if="fa.hora_identificacion"> · {{ String(fa.hora_identificacion).slice(0, 5) }}</span></b></div>
               <div class="fd-fact"><span>Registró</span><b>{{ fa.registrado_por?.nombre || '—' }}</b></div>
               <div v-if="fa.fecha_resolucion" class="fd-fact"><span>Resuelta</span><b class="fd-ok">{{ fmtFecha(fa.fecha_resolucion?.slice?.(0,10) || fa.fecha_resolucion) }}</b></div>
               <div v-if="fa.kwh_perdidos_estimado != null" class="fd-fact"><span>Energía perdida</span><b class="fd-bad">{{ Number(fa.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</b></div>
