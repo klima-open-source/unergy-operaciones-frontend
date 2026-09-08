@@ -192,7 +192,7 @@
           <span class="grupo-titulo">{{ data.__grupo }}</span>
           <span class="grupo-conteo">{{ conteoGrupo(data.__grupo) }}</span>
         </template>
-        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:16%">
+        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:14%">
           <template #body="{ data }">
             <span class="block text-[9px] leading-none mono"
                   :style="{ color: data.codigo_tsf ? '#9ca3af' : '#d1d5db' }">
@@ -232,7 +232,7 @@
                     class="w-full" @change="filterCallback()" />
           </template>
         </Column>
-        <Column field="portafolio_id" header="Portafolio" sortable style="width:10%"
+        <Column field="portafolio_id" header="Portafolio" sortable style="width:14%"
                 filterField="portafolio_id" :showFilterMenu="true">
           <template #body="{ data }">
             <span class="celda-txt sutil">{{ nombrePortafolio(data.portafolio_id) || '—' }}</span>
@@ -243,7 +243,7 @@
                     class="w-full" @change="filterCallback()" />
           </template>
         </Column>
-        <Column field="municipio" header="Ubicación" sortable style="width:9%">
+        <Column field="municipio" header="Ubicación" sortable style="width:7%">
           <template #body="{ data }">
             <span v-if="data.municipio || data.departamento" class="celda-txt sutil"
                   v-tooltip.bottom="[data.municipio, data.departamento].filter(Boolean).join(', ')">
