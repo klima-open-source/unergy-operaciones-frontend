@@ -279,7 +279,7 @@ import ContratoServicioWizard from './ContratoServicioWizard.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
-import { ArrowRightIcon, BadgeCheckIcon, ChartColumnIcon, CircleCheckIcon, CopyIcon, FilePenIcon, MinusIcon, PlusIcon, SearchIcon, Trash2Icon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, ChartColumnIcon, CircleCheckIcon, CopyIcon, FilePenIcon, MinusIcon, PlusIcon, SearchIcon, Trash2Icon, ZapIcon } from '@lucide/vue'
 
 const ppaService = new PpaService()
 const contratosServicioService = new ContratosServicioService()
@@ -292,7 +292,6 @@ const SERVICIOS = [
   { key: 'ppa',           label: 'PPA',           icon: ZapIcon,      color: '#f59e0b', bg: '#fffbeb' },
   { key: 'representacion',label: 'Representación', icon: FilePenIcon, color: '#3b82f6', bg: '#eff6ff' },
   { key: 'operacion',     label: 'Operación',      icon: ChartColumnIcon, color: '#10b981', bg: '#f0fdf4' },
-  { key: 'rec',           label: 'REC',            icon: BadgeCheckIcon,  color: '#14b8a6', bg: '#f0fdfa' },
 ]
 
 const ESTADO_LABELS = {

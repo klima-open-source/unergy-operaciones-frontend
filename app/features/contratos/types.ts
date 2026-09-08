@@ -190,7 +190,7 @@ export interface PlantasInscritasPorMes {
 // ── Contratos de servicio (mantenimiento, arriendo, internet, representación) ─
 
 export type TipoServicioContrato =
-  'mantenimiento' | 'arriendo' | 'internet' | 'representacion' | 'rec' | 'operacion' | string
+  'mantenimiento' | 'arriendo' | 'internet' | 'representacion' | 'operacion' | string
 
 /**
  * `/contratos-servicio` es una sola tabla para varios tipos de servicio; cada
@@ -230,11 +230,7 @@ export interface ContratoServicio {
   periodicidad_pago?: string | null
   indice_indexacion?: string | null
   responsable_iva?: boolean | null
-  tiene_cgm?: boolean | null
   cgm_codigo_sic?: string | null
-  rec_cantidad?: number | null
-  rec_precio_unitario?: number | null
-  rec_vintage?: string | null
   service_scope?: string | null
   specific_service_terms?: string | null
   slas?: string | null

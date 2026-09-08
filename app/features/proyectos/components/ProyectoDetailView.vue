@@ -682,7 +682,7 @@
         <ContratoServicioWizard
           v-if="showContratoWizard"
           :visible="showContratoWizard"
-          :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'rec'"
+          :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'representacion'"
           :proyecto-id-default="Number(route.params.id)"
           @cerrar="showContratoWizard = false"
           @creado="onContratoServicioCreado"
@@ -830,7 +830,7 @@
 </template>
 
 <script setup>
-import { ArrowRightIcon, BadgeCheckIcon, BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
@@ -879,7 +879,6 @@ const SERVICIOS_CARDS = [
   { key: 'srv_ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7', tipo: null },
   { key: 'srv_operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: null },
   { key: 'srv_representacion',label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff', tipo: 'representacion' },
-  { key: 'srv_rec',           label: 'REC',           icon: BadgeCheckIcon,   color: '#14b8a6', bg: '#f0fdfa', tipo: 'rec' },
 ]
 const SERVICIOS_FLAGS = [
   ...SERVICIOS_CARDS,

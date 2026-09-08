@@ -4,7 +4,6 @@ export const SERVICIO_LABELS = {
   representacion: 'Representación',
   cgm: 'CGM',
   ppa: 'PPA',
-  rec: 'REC',
   mantenimiento: 'Mantenimiento',
   arriendo: 'Arriendo',
   internet: 'Internet',

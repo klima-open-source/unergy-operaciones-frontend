@@ -505,7 +505,6 @@ const SERVICIOS_BADGES = [
   { key: 'srv_cgm',          badge: 'CGM',  tooltip: 'Control y gestión de medición' },
   { key: 'srv_ppa',          badge: 'PPA',  tooltip: null },
   { key: 'srv_promotor',     badge: 'PROM', tooltip: null },
-  { key: 'srv_rec',          badge: 'REC',  tooltip: null },
 ]
 
 const TIPO_LABELS = {

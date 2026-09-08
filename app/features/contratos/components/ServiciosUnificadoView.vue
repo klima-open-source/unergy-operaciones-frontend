@@ -662,7 +662,7 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, FilterIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, FilterIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -693,7 +693,6 @@ const SERVICIOS = [
   { key: 'ppa',            label: 'PPA',            icon: ZapIcon,      color: '#f59e0b', bg: '#fffbeb' },
   { key: 'representacion', label: 'Representación', icon: FilePenIcon, color: '#3b82f6', bg: '#eff6ff' },
   { key: 'operacion',      label: 'Operación',      icon: ChartColumnIcon, color: '#10b981', bg: '#f0fdf4' },
-  { key: 'rec',            label: 'REC',            icon: BadgeCheckIcon,  color: '#14b8a6', bg: '#f0fdfa' },
 ]
 
 // El enum `servicio_aplica` del backend NO tiene un valor "operacion": lo que
@@ -704,16 +703,15 @@ const SERVICIOS = [
 const TIPOS_POR_SERVICIO = {
   representacion: ['representacion'],
   operacion: ['mantenimiento', 'arriendo', 'internet'],
-  rec: ['rec'],
 }
 
 const TIPO_CONTRATO_LABELS = {
   mantenimiento: 'Mantenimiento', arriendo: 'Arriendo', internet: 'Internet',
-  representacion: 'Representación', rec: 'REC',
+  representacion: 'Representación',
 }
 const TIPO_CONTRATO_COLOR = {
   mantenimiento: '#f59e0b', arriendo: '#8b5cf6', internet: '#06b6d4',
-  representacion: '#3b82f6', rec: '#14b8a6',
+  representacion: '#3b82f6',
 }
 
 const SERVICIOS_BADGES = [
@@ -722,7 +720,6 @@ const SERVICIOS_BADGES = [
   { key: 'srv_cgm',            badge: 'CGM',  tooltip: 'Control y gestión de medición' },
   { key: 'srv_ppa',            badge: 'PPA',  tooltip: 'PPA' },
   { key: 'srv_promotor',       badge: 'PROM', tooltip: 'Promotor' },
-  { key: 'srv_rec',            badge: 'REC',  tooltip: 'REC' },
 ]
 
 const TIPO_LABELS = {

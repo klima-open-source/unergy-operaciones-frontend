@@ -59,7 +59,6 @@ export const SERVICIOS = [
   'representacion',
   'cgm',
   'ppa',
-  'rec',
   'mantenimiento',
   'arriendo',
   'internet',

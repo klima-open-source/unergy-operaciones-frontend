@@ -292,29 +292,6 @@
               </div>
             </div>
           </div>
-
-          <!-- REC extra fields at bottom of Términos -->
-          <template v-if="tipo === 'rec'">
-            <div class="border-t border-gray-100 pt-3">
-              <p class="text-xs font-semibold uppercase tracking-wide mb-3" :style="`color:${tipoColor}`">
-                Certificados REC
-              </p>
-              <div class="grid grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Cantidad (kWh)</label>
-                  <InputNumber v-model="form.rec_cantidad" :minFractionDigits="0" :maxFractionDigits="3" locale="en-US" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Precio unitario (COP/kWh)</label>
-                  <InputNumber v-model="form.rec_precio_unitario" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Vintage</label>
-                  <InputText v-model="form.rec_vintage" placeholder="Ej: 2024" class="w-full" />
-                </div>
-              </div>
-            </div>
-          </template>
         </div>
       </template>
 
@@ -404,11 +381,11 @@
           <!-- CGM -->
           <div class="rounded-lg border border-gray-200 p-4 space-y-3">
             <div class="flex items-center gap-3">
-              <ToggleSwitch v-model="form.tiene_cgm" />
+              <ToggleSwitch v-model="form.incluye_cgm" />
               <span class="text-sm font-semibold text-gray-700">Incluye CGM</span>
               <span class="text-xs text-gray-400">(Comercializador Generador Minorista)</span>
             </div>
-            <template v-if="form.tiene_cgm">
+            <template v-if="form.incluye_cgm">
               <div class="pt-1 max-w-xs">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Código SIC</label>
@@ -494,7 +471,6 @@ const nuevoClienteRol = ref('contratante')
 
 const TIPO_CONFIG = {
   representacion: { label: 'Representación', color: '#3b82f6' },
-  rec:            { label: 'REC',             color: '#14b8a6' },
   mantenimiento:  { label: 'Mantenimiento',   color: '#f59e0b' },
   arriendo:       { label: 'Arriendo',        color: '#8b5cf6' },
   internet:       { label: 'Internet',        color: '#06b6d4' },
@@ -547,11 +523,11 @@ const form = reactive({
   fecha_firma_contrato: null,
   enlace_drive: '',
   estado_pago: null,
-  tiene_cgm: false,
+  // Solo gobierna si se pide el codigo SIC: no viaja al backend. La columna
+  // `contratos_servicio.tiene_cgm` se elimino -- la verdad de si la planta
+  // tiene CGM es `proyectos.srv_cgm`, y aca el dato es el codigo.
+  incluye_cgm: false,
   cgm_codigo_sic: '',
-  rec_cantidad: null,
-  rec_precio_unitario: null,
-  rec_vintage: '',
   service_scope: '',
   specific_service_terms: '',
   slas: '',
@@ -798,11 +774,7 @@ async function crearContrato() {
       tarifa_base: form.tarifa_base ?? null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
-      tiene_cgm: form.tiene_cgm,
-      cgm_codigo_sic: form.tiene_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
-      rec_cantidad: form.rec_cantidad ?? null,
-      rec_precio_unitario: form.rec_precio_unitario ?? null,
-      rec_vintage: form.rec_vintage?.trim() || null,
+      cgm_codigo_sic: form.incluye_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
       service_scope: form.service_scope?.trim() || null,
       specific_service_terms: form.specific_service_terms?.trim() || null,
       slas: form.slas?.trim() || null,
