@@ -156,6 +156,7 @@ import Textarea from 'primevue/textarea'
 import { toast } from 'vue-sonner'
 import { fmtNumero } from './retosUi'
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '@lucide/vue'
+import { readDetail } from '~/core/errors'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -394,14 +395,9 @@ async function guardarSemana({ cerrarAlTerminar = true } = {}) {
   return false
 }
 
+/** `readDetail` sabe leer las tres formas de `detail` que manda la API. */
 function detalleError(e) {
-  return (
-    e?.response?.data?.detail ||
-    e?.data?.detail ||
-    e?.detail ||
-    e?.message ||
-    'No se pudo guardar el valor'
-  )
+  return readDetail(e?.data) ?? readDetail(e) ?? e?.message ?? 'No se pudo guardar el valor'
 }
 
 // ── Navegación y cierre ─────────────────────────────────────────────────

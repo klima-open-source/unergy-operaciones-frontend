@@ -268,6 +268,7 @@ import Menu from 'primevue/menu'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { fmtNumero, fmtValor, fmtPct, fmtPctEntero, parseValor, estadoColor } from './retosUi'
 import { CheckIcon, ChevronRightIcon, CircleAlertIcon, CircleQuestionMarkIcon, EllipsisIcon, LoaderCircleIcon, PencilIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
+import { readDetail } from '~/core/errors'
 
 const props = defineProps({
   metricas: { type: Array, required: true },
@@ -681,14 +682,9 @@ function reintentar(m, s) {
   guardar(m, s, k in locales ? locales[k] : valorDe(m, s))
 }
 
+/** `readDetail` sabe leer las tres formas de `detail` que manda la API. */
 function detalleError(e) {
-  return (
-    e?.response?.data?.detail ||
-    e?.data?.detail ||
-    e?.detail ||
-    e?.message ||
-    'No se pudo guardar el valor'
-  )
+  return readDetail(e?.data) ?? readDetail(e) ?? e?.message ?? 'No se pudo guardar el valor'
 }
 
 function horaCorta(d) {

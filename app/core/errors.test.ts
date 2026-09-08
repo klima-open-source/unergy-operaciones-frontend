@@ -1,6 +1,6 @@
 import { AirError } from '@korastd/air'
 import { describe, expect, it } from 'vitest'
-import { AppError, normalizeError } from './errors'
+import { AppError, normalizeError, readDetail } from './errors'
 
 /** An AirError as `air` builds it: `response` is absent when the call never landed. */
 function airError(body: unknown, httpStatus?: number): AirError {
@@ -149,5 +149,43 @@ describe('normalizeError (air responses)', () => {
 
     expect(err.code).toBe('CONFLICT')
     expect(err.message).toBe('Taken')
+  })
+})
+
+describe('readDetail (the legacy API answers with `detail`, not `message`)', () => {
+  it('reads a plain string, and treats a blank one as absent', () => {
+    expect(readDetail({ detail: 'El contrato ya existe' })).toBe('El contrato ya existe')
+    expect(readDetail({ detail: '   ' })).toBeUndefined()
+  })
+
+  it('joins the list of messages pydantic produces for a validation error', () => {
+    expect(readDetail({ detail: [{ msg: 'campo requerido' }, { msg: 'debe ser positivo' }] })).toBe(
+      'campo requerido; debe ser positivo',
+    )
+  })
+
+  it('reads an object detail by the keys the backend actually uses', () => {
+    expect(readDetail({ detail: { mensaje: 'Proyecto duplicado' } })).toBe('Proyecto duplicado')
+    expect(readDetail({ detail: { msg: 'Sin cupo' } })).toBe('Sin cupo')
+  })
+
+  it('returns undefined for a body that carries no usable detail', () => {
+    expect(readDetail({ detail: [{ loc: ['body'] }] })).toBeUndefined()
+    expect(readDetail({ detail: { otra: 'cosa' } })).toBeUndefined()
+    expect(readDetail({ message: 'no es detail' })).toBeUndefined()
+    expect(readDetail(undefined)).toBeUndefined()
+  })
+
+  it('surfaces the detail through normalizeError, which used to drop it', () => {
+    const err = normalizeError(airError({ detail: 'El trimestre ya no existe' }, 404))
+
+    expect(err.code).toBe('NOT_FOUND')
+    expect(err.message).toBe('El trimestre ya no existe')
+  })
+
+  it('still prefers `message`, the convention our own endpoints follow', () => {
+    expect(normalizeError(airError({ message: 'Propio', detail: 'Legacy' }, 400)).message).toBe(
+      'Propio',
+    )
   })
 })

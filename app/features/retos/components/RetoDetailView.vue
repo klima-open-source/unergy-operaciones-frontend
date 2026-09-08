@@ -187,6 +187,7 @@ import CopiarMetricasDialog from './CopiarMetricasDialog.vue'
 import EditarTrimestreDialog from './EditarTrimestreDialog.vue'
 import { fmtRango, TIPOS_AGREGACION } from './retosUi'
 import { ChevronLeftIcon, CopyIcon, EllipsisIcon, FileSpreadsheetIcon, FlagIcon, PencilIcon, PlusIcon } from '@lucide/vue'
+import { readDetail } from '~/core/errors'
 
 // La matriz y el drawer son pesados y no siempre se necesitan (estado vacío):
 // se cargan bajo demanda.
@@ -294,18 +295,9 @@ function fechaLarga(iso) {
   return `${d} de ${MESES_LARGOS[m - 1]}`
 }
 
-/** Normaliza el `detail` del backend (string, lista de pydantic u objeto). */
 function mensajeError(err, fallback = 'Ocurrió un error inesperado') {
-  const det = err?.data?.detail
-  if (typeof det === 'string' && det.trim()) return det
-  if (Array.isArray(det)) {
-    const msg = det.map(e => e?.msg).filter(Boolean).join('; ')
-    if (msg) return msg
-  }
-  if (det && typeof det === 'object') {
-    const m = det.mensaje ?? det.msg ?? det.detail
-    if (typeof m === 'string' && m.trim()) return m
-  }
+  const detalle = readDetail(err?.data)
+  if (detalle) return detalle
   if (err?.status === 404) return 'El trimestre o la métrica ya no existe.'
   if (err?.status === 409) return 'El cambio choca con un registro existente.'
   return fallback
