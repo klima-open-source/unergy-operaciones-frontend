@@ -50,6 +50,7 @@ import { toast } from 'vue-sonner'
 import { ComercialService } from '~/features/comercial/services/comercial'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import ProyectoForm from '~/features/proyectos/components/ProyectoForm.vue'
+import { readDetail } from '~/core/errors'
 
 const props = defineProps({
   visible: Boolean,
@@ -71,11 +72,8 @@ const codigoOferta = computed(() =>
 
 watch(() => props.visible, (v) => { if (!v) error.value = '' })
 
-function mensajeError(det) {
-  if (typeof det === 'string') return det
-  if (Array.isArray(det)) return det.map((e) => e.msg).filter(Boolean).join('; ') || 'Datos inválidos'
-  if (det && typeof det === 'object') return det.mensaje ?? det.msg ?? 'No se pudo crear el proyecto'
-  return 'No se pudo crear el proyecto'
+function mensajeError(err) {
+  return readDetail(err?.data) ?? 'No se pudo crear el proyecto'
 }
 
 /**
@@ -120,7 +118,7 @@ async function crear(payload, infoTecnica, forzar = false) {
         onConfirm: () => crear(payload, infoTecnica, true),
       })
     } else {
-      error.value = mensajeError(det)
+      error.value = mensajeError(err)
     }
   } finally {
     guardando.value = false

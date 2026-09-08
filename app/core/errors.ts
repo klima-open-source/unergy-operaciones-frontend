@@ -115,6 +115,42 @@ function fromStatusError(err: Error & { statusCode: number; statusMessage?: stri
 }
 
 /**
+ * Reads the legacy API's `detail` out of a body.
+ *
+ * Our own endpoints answer with `{ message }`, but the legacy API answers with
+ * `detail`, and in three shapes: a plain string, the list of `{ msg }` that
+ * pydantic produces for a validation error, or an object. Without this the
+ * backend's own message never reaches the user — `normalizeError` falls back
+ * to the generic default for the code, which says nothing about what failed.
+ *
+ * Exported because the views that still read the error by hand need the same
+ * reading: one shape, parsed in one place.
+ */
+export function readDetail(data: unknown): string | undefined {
+  if (!isRecord(data)) return undefined
+  const detail = data.detail
+
+  if (typeof detail === 'string') return detail.trim() || undefined
+
+  if (Array.isArray(detail)) {
+    const joined = detail
+      .map((e) => (isRecord(e) && typeof e.msg === 'string' ? e.msg : undefined))
+      .filter(Boolean)
+      .join('; ')
+    return joined || undefined
+  }
+
+  if (isRecord(detail)) {
+    for (const key of ['mensaje', 'msg', 'detail'] as const) {
+      const value = detail[key]
+      if (typeof value === 'string' && value.trim()) return value
+    }
+  }
+
+  return undefined
+}
+
+/**
  * Reads the `{ status, message, payload }` convention out of an unknown body.
  *
  * h3 wraps whatever a handler passes to `createError({ data })` in an envelope
@@ -133,9 +169,8 @@ function readErrorBody(data: unknown): {
   const message =
     typeof body.message === 'string'
       ? body.message
-      : typeof data.statusMessage === 'string'
-        ? data.statusMessage
-        : undefined
+      : (readDetail(body) ??
+        (typeof data.statusMessage === 'string' ? data.statusMessage : undefined))
 
   return {
     status: typeof body.status === 'string' ? body.status : undefined,

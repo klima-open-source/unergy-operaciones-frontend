@@ -39,10 +39,12 @@
             <InfoField label="Carpeta Drive" :value="proyecto.carpeta_drive_codigo" />
             <InfoField label="API ID Unergy" :value="proyecto.sub_project" />
             <InfoField label="Código TSF" :value="proyecto.codigo_tsf" />
-            <InfoField label="Fecha de entrada en operación" :value="fmtFecha(proyecto.fecha_entrada_operacion)" />
+            <InfoField label="Fecha de operación en MEM" :value="fmtFecha(proyecto.fecha_entrada_operacion)" />
             <InfoField
-              label="Inicio de comercialización"
+              label="Inicio de comercialización (pruebas)"
               :value="proyecto.fecha_inicio_comercializacion ? (fmtFecha(proyecto.fecha_inicio_comercializacion) + (proyecto.fecha_comercializacion_editada_manual ? ' (manual)' : ' (auto)')) : '—'" />
+            <InfoField label="Fecha de operación (mantenimiento)" :value="proyecto.fecha_operacion_mantenimiento ? fmtFecha(proyecto.fecha_operacion_mantenimiento) : '—'" />
+            <InfoField label="Fecha de entrega del proyecto" :value="proyecto.fecha_entrega_proyecto ? fmtFecha(proyecto.fecha_entrega_proyecto) : '—'" />
             <InfoField label="Fecha fin de representación" :value="proyecto.fecha_fin_representacion ? fmtFecha(proyecto.fecha_fin_representacion) : '—'" />
             <div class="flex flex-col gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wide">Comunidad energética</p>
@@ -96,13 +98,21 @@
               <InputText v-model="editForm.codigo_tsf" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha de entrada en operación</label>
+              <label class="field-label">Fecha de operación en MEM</label>
               <DatePicker v-model="editFechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Inicio de comercialización</label>
+              <label class="field-label">Inicio de comercialización (pruebas)</label>
               <DatePicker v-model="editFechaComerc" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Auto (1er día con generación)" />
               <small class="text-xs text-gray-400">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="field-label">Fecha de operación (mantenimiento)</label>
+              <DatePicker v-model="editFechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="field-label">Fecha de entrega del proyecto</label>
+              <DatePicker v-model="editFechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="field-label">Fecha fin de representación</label>
@@ -985,6 +995,8 @@ const editInfoTecnica = reactive({
 // Fechas del proyecto (DatePicker trabaja con Date; el API espera 'YYYY-MM-DD')
 const editFechaEntrada = ref(null)
 const editFechaComerc = ref(null)
+const editFechaOperMant = ref(null)
+const editFechaEntrega = ref(null)
 const editFechaFinRep = ref(null)
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
@@ -1093,6 +1105,8 @@ function populateEditForm() {
   editP99.value = parseMonthArray(p.p99_mensual_kwh)
   editFechaEntrada.value = toDate(p.fecha_entrada_operacion)
   editFechaComerc.value = toDate(p.fecha_inicio_comercializacion)
+  editFechaOperMant.value = toDate(p.fecha_operacion_mantenimiento)
+  editFechaEntrega.value = toDate(p.fecha_entrega_proyecto)
   editFechaFinRep.value = toDate(p.fecha_fin_representacion)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
@@ -1158,6 +1172,8 @@ async function saveEdit() {
     // Fechas: se inicializan desde los valores actuales, así que enviarlas siempre
     // preserva lo existente y permite limpiarlas (null) explícitamente.
     payload.fecha_entrada_operacion = formatFecha(editFechaEntrada.value)
+    payload.fecha_operacion_mantenimiento = formatFecha(editFechaOperMant.value)
+    payload.fecha_entrega_proyecto = formatFecha(editFechaEntrega.value)
     payload.fecha_fin_representacion = formatFecha(editFechaFinRep.value)
     // Inicio de comercialización: solo se envía si el usuario la cambió, para no
     // marcarla como "editada a mano" en cada guardado (el backend fija ese flag

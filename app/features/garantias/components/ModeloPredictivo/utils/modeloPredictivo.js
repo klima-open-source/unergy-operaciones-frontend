@@ -1,6 +1,8 @@
 // Constantes de dominio y helpers puros de presentacion del Modelo Predictivo.
 // Sin estado y sin dependencias de Vue: reutilizables y testeables por separado.
 
+import { readDetail } from '~/core/errors'
+
 export const ESTADO = Object.freeze({
   FIRME: 'firme',
   ESTIMADO: 'estimado',
@@ -122,8 +124,8 @@ const DETALLE_GENERICO = new Set([
  */
 export function mensajeError(e, fallback) {
   const status = e?.status
-  const detail = e?.data?.detail
+  const detail = readDetail(e?.data)
   const detalleValido = typeof status === 'number' && status >= 400 && status < 500
-    && typeof detail === 'string' && detail.trim() !== '' && !DETALLE_GENERICO.has(detail.trim())
+    && detail !== undefined && !DETALLE_GENERICO.has(detail.trim())
   return detalleValido ? detail : fallback
 }

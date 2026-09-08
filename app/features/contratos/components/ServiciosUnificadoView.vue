@@ -75,28 +75,56 @@
       </template>
     </div>
 
-    <!-- Agrupar el portafolio: reorganiza las mismas plantas por la dimensión
-         que interese, en vez de mandar al usuario a otra tabla. -->
-    <div v-if="vista === 'proyectos'" class="flex flex-wrap items-center gap-2">
-      <label class="text-xs font-semibold" style="color:#6b5a8a">Agrupar por</label>
-      <Select v-model="agruparPor" :options="AGRUPACIONES" optionLabel="label" optionValue="value"
-              size="small" class="w-52" />
-      <span v-if="agruparPor" class="text-xs" style="color:#9b8fb0">
-        {{ nGrupos }} grupo{{ nGrupos === 1 ? '' : 's' }} ·
-        {{ proyectosAgrupados.length }} fila{{ proyectosAgrupados.length === 1 ? '' : 's' }}
-      </span>
-    </div>
-
     <!-- Sin FILA de filtros en ningún ángulo (decisión de 2026-08-20): el
          buscador de la cabecera cubre el caso y la fila le robaba alto a la
          tabla, que es lo que interesa maximizar. Las columnas siguen siendo
          ordenables, así que acotar por estado/tipo se hace con un clic en el
          encabezado.
 
-         Proyectos SÍ tiene filtros de Estado/Tipo/Portafolio/PPA, pero como
-         icono de filtro por columna (filterDisplay="menu" de PrimeVue, ver
-         `filtrosProyectos` más abajo), no como fila fija -- respeta la misma
-         decisión de altura. -->
+         Proyectos SÍ tiene filtros de Estado/Tipo/Portafolio/PPA, pero
+         centralizados en un solo panel desplegable (botón "Filtros", decisión
+         del 2026-09-08 -- antes eran un icono por columna, y "Agrupar por"
+         vivía en este mismo lugar; se retiró para dejarle el puesto a este
+         panel) en vez de una fila fija, respetando la misma decisión de
+         altura. -->
+    <div v-if="vista === 'proyectos'" class="flex flex-wrap items-center gap-2">
+      <Button label="Filtros" type="button" size="small" severity="secondary" outlined
+              @click="panelFiltrosProyectos?.toggle($event)">
+        <template #icon><FilterIcon class="size-[1em]" /></template>
+      </Button>
+      <span v-if="nFiltrosProyectosActivos" class="svc-tab-count">{{ nFiltrosProyectosActivos }}</span>
+      <Popover ref="panelFiltrosProyectos">
+        <div class="filtros-panel">
+          <div>
+            <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+            <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
+                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                    size="small" class="w-full" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+            <Select v-model="filtrosProyectos.tipo_proyecto.value" :options="tipoOpcionesProyectos"
+                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                    size="small" class="w-full" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+            <Select v-model="filtrosProyectos.portafolio_id.value" :options="portafolios"
+                    optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
+                    size="small" class="w-full" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold" style="color:#6b5a8a">PPA</label>
+            <MultiSelect v-model="filtrosProyectos.ppa_contratos.value" :options="ppaOpcionesProyectos"
+                         optionLabel="label" optionValue="value" filter display="chip"
+                         placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
+                         size="small" class="w-full" />
+          </div>
+          <Button v-if="nFiltrosProyectosActivos" label="Limpiar filtros" text size="small"
+                  @click="limpiarFiltrosProyectos" />
+        </div>
+      </Popover>
+    </div>
 
     <!-- ══════════════════ CLIENTES ══════════════════ -->
     <div v-if="vista === 'clientes'" class="tabla-caja">
@@ -179,19 +207,13 @@
 
     <!-- ══════════════════ PROYECTOS ══════════════════ -->
     <div v-else-if="vista === 'proyectos'" class="tabla-caja">
-      <DataTable :value="proyectosAgrupados" v-model:filters="filtrosProyectos" filterDisplay="menu"
+      <DataTable :value="proyectosFiltrados"
                  :loading="loadingProyectos" size="small"
                  class="tabla" :class="{ 'tabla--compacta': compacta }"
                  scrollable :scrollHeight="scrollHeight"
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
-                 :sortField="agruparPor ? '__grupo' : 'nombre_comercial'" :sortOrder="1" rowHover
-                 :rowGroupMode="agruparPor ? 'subheader' : null"
-                 :groupRowsBy="agruparPor ? '__grupo' : null"
+                 sortField="nombre_comercial" :sortOrder="1" rowHover
                  emptyMessage="No se encontraron proyectos.">
-        <template v-if="agruparPor" #groupheader="{ data }">
-          <span class="grupo-titulo">{{ data.__grupo }}</span>
-          <span class="grupo-conteo">{{ conteoGrupo(data.__grupo) }}</span>
-        </template>
         <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:14%">
           <template #body="{ data }">
             <span class="block text-[9px] leading-none mono"
@@ -204,8 +226,7 @@
             </button>
           </template>
         </Column>
-        <Column field="estado" header="Estado" sortable style="width:10%"
-                filterField="estado" :showFilterMenu="true">
+        <Column field="estado" header="Estado" sortable style="width:10%">
           <template #body="{ data }">
             <span class="mini-chip inline-flex items-center gap-1"
                   :class="ESTADO_CLASS[data.estado] || 'estado-default'">
@@ -213,34 +234,17 @@
               {{ ESTADO_LABELS[data.estado] || data.estado || '—' }}
             </span>
           </template>
-          <template #filter="{ filterModel, filterCallback }">
-            <Select v-model="filterModel.value" :options="estadoOpcionesProyectos"
-                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" />
-          </template>
         </Column>
-        <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%"
-                filterField="tipo_proyecto" :showFilterMenu="true">
+        <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%">
           <template #body="{ data }">
             <span class="mini-chip" :class="TIPO_BADGE_CLASS[data.tipo_proyecto] || 'badge-otro'">
               {{ TIPO_LABELS[data.tipo_proyecto] || data.tipo_proyecto || '—' }}
             </span>
           </template>
-          <template #filter="{ filterModel, filterCallback }">
-            <Select v-model="filterModel.value" :options="tipoOpcionesProyectos"
-                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" />
-          </template>
         </Column>
-        <Column field="portafolio_id" header="Portafolio" sortable style="width:14%"
-                filterField="portafolio_id" :showFilterMenu="true">
+        <Column field="portafolio_id" header="Portafolio" sortable style="width:14%">
           <template #body="{ data }">
             <span class="celda-txt sutil">{{ nombrePortafolio(data.portafolio_id) || '—' }}</span>
-          </template>
-          <template #filter="{ filterModel, filterCallback }">
-            <Select v-model="filterModel.value" :options="portafolios"
-                    optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
-                    class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column field="municipio" header="Ubicación" sortable style="width:7%">
@@ -271,7 +275,7 @@
             </div>
           </template>
         </Column>
-        <Column header="PPA" style="width:13%" filterField="ppa_contratos" :showFilterMenu="true">
+        <Column header="PPA" style="width:13%">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="chips-fila">
               <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="ppa-chip"
@@ -280,12 +284,6 @@
               </button>
             </div>
             <span v-else class="vacio">—</span>
-          </template>
-          <template #filter="{ filterModel, filterCallback }">
-            <MultiSelect v-model="filterModel.value" :options="ppaOpcionesProyectos"
-                         optionLabel="label" optionValue="value" filter display="chip"
-                         placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
-                         class="w-full" @change="filterCallback()" />
           </template>
         </Column>
         <Column header="Falta" style="width:9%">
@@ -651,9 +649,10 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import Menu from 'primevue/menu'
+import Popover from 'primevue/popover'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
-import { FilterMatchMode, FilterService } from '@primevue/core/api'
+import { FilterMatchMode } from '@primevue/core/api'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
@@ -663,7 +662,7 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, FilterIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -772,47 +771,21 @@ const compacta = ref(localStorage.getItem('servicios_unificado_compacta') !== '0
 
 watch(compacta, v => localStorage.setItem('servicios_unificado_compacta', v ? '1' : '0'))
 
-// El watch que sincroniza la URL vive mas abajo, junto a `agruparPor`: watch()
-// evalua su arreglo de fuentes en el acto, asi que nombrar ahi una const que
-// todavia no se declaro rompe la vista entera al montarla.
+// Los filtros se sincronizan con la URL para poder compartir la vista tal cual
+// se esta viendo.
+watch([vista, servicio, q], () => {
+  const query = {}
+  if (vista.value) query.vista = vista.value
+  if (vista.value === 'servicios') query.srv = servicio.value
+  if (q.value) query.q = q.value
+  router.replace({ query })
+})
 
 const filasPorPagina = computed(() => (compacta.value ? 100 : 50))
 // Los filtros de Proyectos ocupan una fila extra, así que la tabla dispone de
 // algo menos de alto que en los demás ángulos.
 // Ningún ángulo lleva fila de filtros, así que todos disponen del mismo alto.
 const scrollHeight = 'calc(100vh - 250px)'
-
-
-
-// ── Agrupar el portafolio ─────────────────────────────────────────────────────
-// Cliente, PPA y Servicio son multivaluados: una planta puede tener dos
-// inversionistas o estar en dos PPA. En esos casos la planta aparece en cada
-// grupo al que pertenece, que es justo lo que se quiere ver -- por eso la lista
-// agrupada puede tener MAS filas que plantas, y el contador de arriba lo dice.
-const AGRUPACIONES = [
-  { value: '',             label: 'Sin agrupar' },
-  { value: 'cliente',      label: 'Cliente / inversionista' },
-  { value: 'ppa',          label: 'Contrato PPA' },
-  { value: 'servicio',     label: 'Servicio' },
-  { value: 'tipo',         label: 'Tipo de proyecto' },
-  { value: 'estado',       label: 'Estado' },
-  { value: 'departamento', label: 'Departamento' },
-]
-
-const agruparPor = ref(AGRUPACIONES.some(a => a.value === route.query.grupo) ? route.query.grupo : '')
-
-// Los filtros se sincronizan con la URL para poder compartir la vista tal cual
-// se esta viendo. Tiene que ir despues de `agruparPor`: es una de sus fuentes.
-watch([vista, servicio, q, agruparPor], () => {
-  const query = {}
-  if (vista.value) query.vista = vista.value
-  if (vista.value === 'proyectos' && agruparPor.value) query.grupo = agruparPor.value
-  if (vista.value === 'servicios') query.srv = servicio.value
-  if (q.value) query.q = q.value
-  router.replace({ query })
-})
-
-const SIN_DATO = 'Sin asignar'
 
 // Tope de `size` en /proyectos y /clientes: 501 devuelve 422, no una lista
 // corta. Mientras no haya paginacion de servidor, avisamos si se corta.
@@ -825,58 +798,6 @@ function avisarSiTrunca(total, mostrados, etiqueta) {
     duration: 8000,
   })
 }
-
-// Devuelve los grupos a los que pertenece una planta (uno o varios).
-function gruposDe(p) {
-  switch (agruparPor.value) {
-    case 'cliente': {
-      const n = (p.inversionistas || []).map(i => i.cliente_nombre).filter(Boolean)
-      return n.length ? [...new Set(n)] : [SIN_DATO]
-    }
-    case 'ppa': {
-      const n = ppaVigentes(p).map(ppaLabel).filter(Boolean)
-      return n.length ? [...new Set(n)] : ['Sin PPA']
-    }
-    case 'servicio': {
-      const n = SERVICIOS_BADGES.filter(sb => p[sb.key]).map(sb => sb.tooltip)
-      return n.length ? n : ['Sin servicios']
-    }
-    case 'tipo':
-      return [TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || SIN_DATO]
-    case 'estado':
-      return [ESTADO_LABELS[p.estado] || p.estado || SIN_DATO]
-    case 'departamento':
-      return [p.departamento || SIN_DATO]
-    default:
-      return []
-  }
-}
-
-const proyectosAgrupados = computed(() => {
-  if (!agruparPor.value) return proyectosFiltrados.value
-  const filas = []
-  for (const p of proyectosFiltrados.value) {
-    for (const g of gruposDe(p)) filas.push({ ...p, __grupo: g })
-  }
-  // PrimeVue pinta subencabezados solo si las filas del grupo vienen juntas.
-  // "Sin asignar" / "Sin PPA" al final: son el pendiente, no el encabezado.
-  return filas.sort((a, b) => {
-    const av = a.__grupo.startsWith('Sin ') ? 1 : 0
-    const bv = b.__grupo.startsWith('Sin ') ? 1 : 0
-    if (av !== bv) return av - bv
-    const g = a.__grupo.localeCompare(b.__grupo)
-    return g !== 0 ? g : (a.nombre_comercial || '').localeCompare(b.nombre_comercial || '')
-  })
-})
-
-const conteosPorGrupo = computed(() => {
-  const m = new Map()
-  for (const f of proyectosAgrupados.value) m.set(f.__grupo, (m.get(f.__grupo) || 0) + 1)
-  return m
-})
-
-function conteoGrupo(g) { return conteosPorGrupo.value.get(g) || 0 }
-const nGrupos = computed(() => conteosPorGrupo.value.size)
 
 // ── Completitud del registro ───────────────────────────────────
 // Se cuentan TODOS los campos del registro, no una lista curada. Lo unico que
@@ -1070,30 +991,20 @@ function ppaVigentes(p) {
   return (p.ppa_contratos || []).filter(c => !c.deleted_at && !c.eliminado)
 }
 
-// ── Filtros por columna (Estado/Tipo/Portafolio/PPA) ────────────────────────
-// Sin fila de filtros (decision de 2026-08-20, ver mas arriba): en su lugar,
-// un iconito de filtro en el encabezado de cada columna abre un mini-popover
-// (filterDisplay="menu" de PrimeVue), que no le resta alto a la tabla.
+// ── Filtros de Proyectos (Estado/Tipo/Portafolio/PPA) ───────────────────────
+// Centralizados en un panel desplegable (botón "Filtros", decisión del
+// 2026-09-08) en vez de un icono por columna o una fila fija: mismo criterio
+// de no restarle alto a la tabla que ya regía la fila de filtros original.
 //
-// El filtrado real ocurre en `proyectosFiltrados` (mismo criterio, en JS
-// plano) y no en el motor automatico de PrimeVue: asi el contador del
-// subtitulo ("X de Y plantas") y el Excel -- que leen `filasVisibles`, no la
-// tabla -- quedan siempre consistentes con lo que se ve. El `v-model:filters`
-// de la tabla solo hace falta para que aparezca el icono/popover de cada
-// columna; filtrar de nuevo (mismo criterio) sobre un arreglo ya filtrado no
-// cambia el resultado.
+// El filtrado real vive en `proyectosFiltrados` (JS plano): así el contador
+// del subtítulo ("X de Y plantas") y el Excel -- que leen `filasVisibles`, no
+// la tabla -- quedan siempre consistentes con lo que se ve.
 const portafolios = ref([])
+const panelFiltrosProyectos = ref(null)
 
 // Valor centinela "sin ningun PPA vigente" -- ningun contrato real tiene id
 // negativo, asi que convive con los ids reales en la misma lista de opciones.
 const PPA_SIN = -1
-
-FilterService.register('ppaSeleccionado', (value, filtro) => {
-  if (!filtro?.length) return true
-  const vivos = ppaVigentes({ ppa_contratos: value })
-  if (!vivos.length) return filtro.includes(PPA_SIN)
-  return vivos.some(c => filtro.includes(c.id))
-})
 
 const filtrosProyectos = ref({
   estado: { value: null, matchMode: FilterMatchMode.EQUALS },
@@ -1101,6 +1012,23 @@ const filtrosProyectos = ref({
   portafolio_id: { value: null, matchMode: FilterMatchMode.EQUALS },
   ppa_contratos: { value: null, matchMode: 'ppaSeleccionado' },
 })
+
+const nFiltrosProyectosActivos = computed(() => {
+  const f = filtrosProyectos.value
+  let n = 0
+  if (f.estado.value) n++
+  if (f.tipo_proyecto.value) n++
+  if (f.portafolio_id.value) n++
+  if (f.ppa_contratos.value?.length) n++
+  return n
+})
+
+function limpiarFiltrosProyectos() {
+  filtrosProyectos.value.estado.value = null
+  filtrosProyectos.value.tipo_proyecto.value = null
+  filtrosProyectos.value.portafolio_id.value = null
+  filtrosProyectos.value.ppa_contratos.value = null
+}
 
 const estadoOpcionesProyectos = computed(() =>
   ESTADOS.map(value => ({ value, label: ESTADO_LABELS[value] })))
@@ -1158,16 +1086,28 @@ const proyectosFiltrados = computed(() => {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const [data, portafoliosData] = await Promise.all([
+    // allSettled, no all: portafolios solo alimenta el filtro de esa columna.
+    // Si esa llamada falla (permisos, error transitorio) no debe tumbar la
+    // carga de proyectos, de la que dependen otros flujos -- ej. el selector
+    // de "Asociar a un proyecto" en Servicios > Representación, que quedaba
+    // sin ninguna planta para elegir cuando portafolios fallaba.
+    const [proyectosResult, portafoliosResult] = await Promise.allSettled([
       proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA }),
       portafoliosService.listar(),
     ])
-    proyectos.value = data.items ?? []
-    avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
-    portafolios.value = portafoliosData.portafolios ?? []
-    proyectosCargados.value = true
-  } catch (e) {
-    toast.error('Error al cargar proyectos', { description: e.message, duration: 4000 })
+    if (proyectosResult.status === 'fulfilled') {
+      const data = proyectosResult.value
+      proyectos.value = data.items ?? []
+      avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
+      proyectosCargados.value = true
+    } else {
+      toast.error('Error al cargar proyectos', { description: proyectosResult.reason?.message, duration: 4000 })
+    }
+    if (portafoliosResult.status === 'fulfilled') {
+      portafolios.value = portafoliosResult.value.portafolios ?? []
+    } else {
+      toast.error('Error al cargar portafolios', { description: portafoliosResult.reason?.message, duration: 4000 })
+    }
   } finally {
     loadingProyectos.value = false
   }
@@ -1812,14 +1752,10 @@ function confirmarBorrarPpa(contrato) {
 /* Chips en una sola línea: si sobran, se recortan en vez de agrandar la fila */
 .chips-fila { display: flex; gap: 2px; overflow: hidden; min-width: 0; }
 
-/* Subencabezado de grupo (cuando se agrupa el portafolio) */
-.grupo-titulo { font-size: 12px; font-weight: 800; color: var(--color-unergy-deep); }
-.grupo-conteo {
-  margin-left: 7px; background: #f0ebfd; color: var(--color-unergy-purple);
-  border-radius: 999px; font-size: 10px; font-weight: 800; padding: 0 6px;
+/* Panel del botón "Filtros" de Proyectos (Estado/Tipo/Portafolio/PPA) */
+.filtros-panel {
+  display: flex; flex-direction: column; gap: 10px; min-width: 220px; padding: 4px;
 }
-.tabla :deep(.p-rowgroup-header) { background: #FAF9FC; }
-.tabla :deep(.p-rowgroup-header > td) { padding: 4px 8px; }
 
 /* Celda "Falta": dos contadores, campos y documentos */
 .falta-celda { display: flex; gap: 3px; }
