@@ -123,6 +123,7 @@ import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import { XmAgenteLocalService } from '~/features/finanzas/services/xm'
 import { CircleAlertIcon, CloudDownloadIcon, DownloadIcon, FileIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon } from '@lucide/vue'
+import { readDetail } from '~/core/errors'
 
 const xm = new XmAgenteLocalService()
 
@@ -230,7 +231,7 @@ function mensajeError(e, generico) {
   if (XmAgenteLocalService.noDisponible(e)) {
     return 'No se pudo conectar con el agente local. Abre "iniciar_descarga_xm.bat" en tu computador y déjalo abierto, luego intenta de nuevo.'
   }
-  return e.data?.detail || generico
+  return readDetail(e?.data) ?? generico
 }
 
 const MAX_FALLOS_CONSECUTIVOS = 5 // ~10s de sondeos fallidos seguidos antes de darla por perdida
