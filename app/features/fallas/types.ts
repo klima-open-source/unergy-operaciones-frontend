@@ -100,6 +100,10 @@ export interface Falla {
   sla_limite_horas?: number | null
   sla_limite_horas_efectivo?: number | null
   sla_limite_dias?: number | null
+  /** Reloj del SLA, calculado por el backend: no recalcular en la vista. */
+  sla_horas_transcurridas?: number | null
+  /** % del SLA consumido, tope 110. `null` si la falla no tiene limite. */
+  sla_pct?: number | null
   sla_cumplido?: boolean | null
   dias_abierta?: number | null
   tiempo_afectacion_horas?: number | null

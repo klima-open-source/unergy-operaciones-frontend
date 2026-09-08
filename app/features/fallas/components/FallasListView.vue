@@ -175,14 +175,18 @@ watch(filters, (f) => {
   router.replace({ query })
 }, { deep: true })
 
+// "En riesgo" = ya consumio mas del 75 % del SLA pero todavia no lo excede. Es
+// la misma condicion de antes (`remaining > 0 && remaining < limite * 0.25`),
+// expresada sobre el `sla_pct` que ahora calcula el backend.
+//
+// La version anterior armaba el vencimiento desde
+// `fecha_identificacion + 'T00:00:00'` e ignoraba `hora_identificacion`: era la
+// cuarta copia del mismo ancla a medianoche, y la unica con esta forma (calculaba
+// el deadline en vez de las horas transcurridas).
 function slaAtRisk(data) {
-  if (!data.sla_limite_horas_efectivo || data.sla_cumplido !== null) return false
-  if (!data.fecha_identificacion) return false
-  const created = new Date(data.fecha_identificacion + 'T00:00:00')
-  const deadline = new Date(created.getTime() + data.sla_limite_horas_efectivo * 3600000)
-  const now = new Date()
-  const remaining = (deadline - now) / 3600000
-  return remaining > 0 && remaining < data.sla_limite_horas_efectivo * 0.25
+  if (data.sla_cumplido !== null) return false
+  const p = data.sla_pct
+  return p != null && p > 75 && p < 100
 }
 
 let debounceTimer = null

@@ -436,18 +436,19 @@ const adjuntos = computed(() => {
   return []
 })
 
-const horasTranscurridas = computed(() => {
-  if (!falla.value?.fecha_identificacion) return 0
-  const desde = new Date(falla.value.fecha_ocurrencia || falla.value.fecha_identificacion + 'T00:00:00')
-  const hasta = falla.value.fecha_resolucion ? new Date(falla.value.fecha_resolucion) : new Date()
-  return Math.round((hasta - desde) / 3_600_000)
-})
+// El reloj del SLA lo calcula el backend: `sla_horas_transcurridas` y `sla_pct`
+// vienen del serializer de fallas (`dominio.horas_transcurridas_sla` /
+// `dominio.sla_pct`). Esta vista solo los LEE.
+//
+// Antes las tres pantallas de fallas tenian cada una su copia de este calculo, y
+// las tres anclaban a `fecha_identificacion + 'T00:00:00'`: para una critica
+// (SLA 8 h) identificada a las 9 a.m. la barra marcaba "Excedido" desde que se
+// creaba. Y contaban desde `fecha_ocurrencia` mientras el limite se calculaba
+// desde la identificacion, asi que el porcentaje no correspondia con el badge de
+// la misma pantalla.
+const horasTranscurridas = computed(() => Math.round(falla.value?.sla_horas_transcurridas ?? 0))
 
-const slaPct = computed(() => {
-  const h = falla.value?.sla_limite_horas_efectivo
-  if (!h) return null
-  return Math.min(Math.round((horasTranscurridas.value / h) * 100), 110)
-})
+const slaPct = computed(() => falla.value?.sla_pct ?? null)
 
 const slaColor = computed(() => {
   const p = slaPct.value
