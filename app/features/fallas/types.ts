@@ -109,12 +109,16 @@ export interface Falla {
    * SLA **contractual** del Anexo 4: dias y umbral por CATEGORIA de falla. Es
    * otro compromiso que el operativo de arriba (horas por prioridad). Lo calcula
    * el backend; no recalcular en la vista.
+   *
+   * `cumple` en una falla ABIERTA significa "por ahora va dentro del plazo", no
+   * "cumplio". `null` --igual que `dias`-- cuando no se puede juzgar: una falla
+   * en estado final sin `fecha_resolucion` (dato legacy).
    */
   sla_contractual?: {
-    dias: number
+    dias: number | null
     plazo_dias: number
     etiqueta: string
-    cumple: boolean
+    cumple: boolean | null
   } | null
   dias_abierta?: number | null
   tiempo_afectacion_horas?: number | null
