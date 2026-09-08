@@ -192,7 +192,7 @@
           <span class="grupo-titulo">{{ data.__grupo }}</span>
           <span class="grupo-conteo">{{ conteoGrupo(data.__grupo) }}</span>
         </template>
-        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:17%">
+        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:16%">
           <template #body="{ data }">
             <span class="block text-[9px] leading-none mono"
                   :style="{ color: data.codigo_tsf ? '#9ca3af' : '#d1d5db' }">
@@ -260,7 +260,7 @@
             </span>
           </template>
         </Column>
-        <Column header="Servicios" style="width:12%">
+        <Column header="Servicios" style="width:11%">
           <template #body="{ data }">
             <div class="chips-fila">
               <template v-for="srv in SERVICIOS_BADGES" :key="srv.key">
@@ -271,7 +271,7 @@
             </div>
           </template>
         </Column>
-        <Column header="PPA" style="width:14%" filterField="ppa_contratos" :showFilterMenu="true">
+        <Column header="PPA" style="width:13%" filterField="ppa_contratos" :showFilterMenu="true">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="chips-fila">
               <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="ppa-chip"
