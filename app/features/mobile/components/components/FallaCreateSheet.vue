@@ -134,6 +134,14 @@
               <input v-model="f.fecha_identificacion" type="date" class="fc-input" />
             </label>
 
+            <!-- La hora arranca el reloj del SLA. Sin ella el backend lo ancla a
+                 las 00:00 del dia, y una falla critica (SLA 8 h) reportada por la
+                 mañana nace vencida. El formulario web siempre la manda; este
+                 sheet no la capturaba. Arranca con la hora actual de Colombia. -->
+            <label class="fc-label">Hora de identificación
+              <input v-model="f.hora_identificacion" type="time" class="fc-input" />
+            </label>
+
             <!-- Nota opcional -->
             <label class="fc-label">Nota inicial (opcional)
               <textarea v-model="f.nota" rows="2" class="fc-textarea" placeholder="Detalle / observación…"></textarea>
@@ -177,7 +185,7 @@ const f = reactive({
   afecta_medicion: false, perdida_comunicacion: false,
   inversores_ids: [], inversores_tipos: [],
   prioridad_id: null, estado_id: null, descripcion: '',
-  fecha_identificacion: '', nota: '',
+  fecha_identificacion: '', hora_identificacion: '', nota: '',
 })
 const err = reactive({})
 const error = ref('')
@@ -255,13 +263,17 @@ watch(() => f.proyecto_id, () => { if (f.categoria === 'inversores') cargarInver
 // Al abrir: limpiar + defaults + cargar estructura
 watch(() => props.open, async (o) => {
   if (!o) return
-  const today = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)
+  // Un solo corrimiento a UTC-5 para las dos: Colombia no tiene horario de verano.
+  const ahoraCol = new Date(Date.now() - 5 * 3600 * 1000).toISOString()
+  const today = ahoraCol.slice(0, 10)
+  const horaCol = ahoraCol.slice(11, 16)
   Object.assign(f, {
     proyecto_id: props.prefillProyectoId ?? null,
     categoria: null, subtipo: null, detalle: '',
     afecta_medicion: false, perdida_comunicacion: false,
     inversores_ids: [], inversores_tipos: [],
-    prioridad_id: null, estado_id: null, descripcion: '', fecha_identificacion: today, nota: '',
+    prioridad_id: null, estado_id: null, descripcion: '', fecha_identificacion: today,
+    hora_identificacion: horaCol, nota: '',
   })
   Object.keys(err).forEach(k => delete err[k])
   error.value = ''; invError.value = ''
@@ -306,6 +318,8 @@ async function submit() {
       prioridad_id: f.prioridad_id,
       descripcion: f.descripcion.trim(),
       fecha_identificacion: f.fecha_identificacion,
+      // `null` y no '' si la borraron: el backend cae a las 00:00.
+      hora_identificacion: f.hora_identificacion || null,
       categoria_codigo: f.categoria,
       notificacion: false,
     }
