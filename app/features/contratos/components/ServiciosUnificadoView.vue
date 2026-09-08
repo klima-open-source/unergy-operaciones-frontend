@@ -87,11 +87,16 @@
       </span>
     </div>
 
-    <!-- Sin fila de filtros en ningún ángulo (decisión de 2026-08-20): el
+    <!-- Sin FILA de filtros en ningún ángulo (decisión de 2026-08-20): el
          buscador de la cabecera cubre el caso y la fila le robaba alto a la
          tabla, que es lo que interesa maximizar. Las columnas siguen siendo
          ordenables, así que acotar por estado/tipo se hace con un clic en el
-         encabezado. -->
+         encabezado.
+
+         Proyectos SÍ tiene filtros de Estado/Tipo/Portafolio/PPA, pero como
+         icono de filtro por columna (filterDisplay="menu" de PrimeVue, ver
+         `filtrosProyectos` más abajo), no como fila fija -- respeta la misma
+         decisión de altura. -->
 
     <!-- ══════════════════ CLIENTES ══════════════════ -->
     <div v-if="vista === 'clientes'" class="tabla-caja">
@@ -174,7 +179,8 @@
 
     <!-- ══════════════════ PROYECTOS ══════════════════ -->
     <div v-else-if="vista === 'proyectos'" class="tabla-caja">
-      <DataTable :value="proyectosAgrupados" :loading="loadingProyectos" size="small"
+      <DataTable :value="proyectosAgrupados" v-model:filters="filtrosProyectos" filterDisplay="menu"
+                 :loading="loadingProyectos" size="small"
                  class="tabla" :class="{ 'tabla--compacta': compacta }"
                  scrollable :scrollHeight="scrollHeight"
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
@@ -186,7 +192,7 @@
           <span class="grupo-titulo">{{ data.__grupo }}</span>
           <span class="grupo-conteo">{{ conteoGrupo(data.__grupo) }}</span>
         </template>
-        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:21%">
+        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:17%">
           <template #body="{ data }">
             <span class="block text-[9px] leading-none mono"
                   :style="{ color: data.codigo_tsf ? '#9ca3af' : '#d1d5db' }">
@@ -198,7 +204,8 @@
             </button>
           </template>
         </Column>
-        <Column field="estado" header="Estado" sortable style="width:10%">
+        <Column field="estado" header="Estado" sortable style="width:10%"
+                filterField="estado" :showFilterMenu="true">
           <template #body="{ data }">
             <span class="mini-chip inline-flex items-center gap-1"
                   :class="ESTADO_CLASS[data.estado] || 'estado-default'">
@@ -206,15 +213,37 @@
               {{ ESTADO_LABELS[data.estado] || data.estado || '—' }}
             </span>
           </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <Select v-model="filterModel.value" :options="estadoOpcionesProyectos"
+                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+          </template>
         </Column>
-        <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%">
+        <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%"
+                filterField="tipo_proyecto" :showFilterMenu="true">
           <template #body="{ data }">
             <span class="mini-chip" :class="TIPO_BADGE_CLASS[data.tipo_proyecto] || 'badge-otro'">
               {{ TIPO_LABELS[data.tipo_proyecto] || data.tipo_proyecto || '—' }}
             </span>
           </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <Select v-model="filterModel.value" :options="tipoOpcionesProyectos"
+                    optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+          </template>
         </Column>
-        <Column field="municipio" header="Ubicación" sortable style="width:12%">
+        <Column field="portafolio_id" header="Portafolio" sortable style="width:10%"
+                filterField="portafolio_id" :showFilterMenu="true">
+          <template #body="{ data }">
+            <span class="celda-txt sutil">{{ nombrePortafolio(data.portafolio_id) || '—' }}</span>
+          </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <Select v-model="filterModel.value" :options="portafolios"
+                    optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
+                    class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
+          </template>
+        </Column>
+        <Column field="municipio" header="Ubicación" sortable style="width:9%">
           <template #body="{ data }">
             <span v-if="data.municipio || data.departamento" class="celda-txt sutil"
                   v-tooltip.bottom="[data.municipio, data.departamento].filter(Boolean).join(', ')">
@@ -242,7 +271,7 @@
             </div>
           </template>
         </Column>
-        <Column header="PPA" style="width:14%">
+        <Column header="PPA" style="width:14%" filterField="ppa_contratos" :showFilterMenu="true">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="chips-fila">
               <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="ppa-chip"
@@ -251,6 +280,12 @@
               </button>
             </div>
             <span v-else class="vacio">—</span>
+          </template>
+          <template #filter="{ filterModel, filterCallback }">
+            <MultiSelect v-model="filterModel.value" :options="ppaOpcionesProyectos"
+                         optionLabel="label" optionValue="value" filter display="chip"
+                         placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
+                         class="w-full" @change="filterCallback()" @update:modelValue="filterCallback()" />
           </template>
         </Column>
         <Column header="Falta" style="width:9%">
@@ -614,11 +649,14 @@ import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import Menu from 'primevue/menu'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
+import { FilterMatchMode, FilterService } from '@primevue/core/api'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatearNombre } from '~/utils/nombreFormato'
@@ -629,6 +667,7 @@ import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckI
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
+const portafoliosService = new PortafoliosService()
 const ppaService = new PpaService()
 const contratosServicioService = new ContratosServicioService()
 
@@ -1026,10 +1065,81 @@ function ppaVigentes(p) {
   return (p.ppa_contratos || []).filter(c => !c.deleted_at && !c.eliminado)
 }
 
+// ── Filtros por columna (Estado/Tipo/Portafolio/PPA) ────────────────────────
+// Sin fila de filtros (decision de 2026-08-20, ver mas arriba): en su lugar,
+// un iconito de filtro en el encabezado de cada columna abre un mini-popover
+// (filterDisplay="menu" de PrimeVue), que no le resta alto a la tabla.
+//
+// El filtrado real ocurre en `proyectosFiltrados` (mismo criterio, en JS
+// plano) y no en el motor automatico de PrimeVue: asi el contador del
+// subtitulo ("X de Y plantas") y el Excel -- que leen `filasVisibles`, no la
+// tabla -- quedan siempre consistentes con lo que se ve. El `v-model:filters`
+// de la tabla solo hace falta para que aparezca el icono/popover de cada
+// columna; filtrar de nuevo (mismo criterio) sobre un arreglo ya filtrado no
+// cambia el resultado.
+const portafolios = ref([])
+
+// Valor centinela "sin ningun PPA vigente" -- ningun contrato real tiene id
+// negativo, asi que convive con los ids reales en la misma lista de opciones.
+const PPA_SIN = -1
+
+FilterService.register('ppaSeleccionado', (value, filtro) => {
+  if (!filtro?.length) return true
+  const vivos = ppaVigentes({ ppa_contratos: value })
+  if (!vivos.length) return filtro.includes(PPA_SIN)
+  return vivos.some(c => filtro.includes(c.id))
+})
+
+const filtrosProyectos = ref({
+  estado: { value: null, matchMode: FilterMatchMode.EQUALS },
+  tipo_proyecto: { value: null, matchMode: FilterMatchMode.EQUALS },
+  portafolio_id: { value: null, matchMode: FilterMatchMode.EQUALS },
+  ppa_contratos: { value: null, matchMode: 'ppaSeleccionado' },
+})
+
+const estadoOpcionesProyectos = computed(() =>
+  Object.entries(ESTADO_LABELS).map(([value, label]) => ({ value, label })))
+const tipoOpcionesProyectos = computed(() =>
+  Object.entries(TIPO_LABELS).map(([value, label]) => ({ value, label })))
+
+// Contratos presentes en los proyectos cargados, deduplicados por id.
+const ppaOpcionesProyectos = computed(() => {
+  const porId = new Map()
+  let sinPpa = 0
+  for (const p of proyectos.value) {
+    const vivos = ppaVigentes(p)
+    if (!vivos.length) { sinPpa++; continue }
+    for (const c of vivos) if (!porId.has(c.id)) porId.set(c.id, c)
+  }
+  const opciones = [...porId.values()]
+    .map(c => ({ value: c.id, label: ppaLabel(c) }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+  if (sinPpa) opciones.unshift({ value: PPA_SIN, label: `Sin PPA (${sinPpa})` })
+  return opciones
+})
+
+function nombrePortafolio(id) {
+  return portafolios.value.find(pf => pf.id === id)?.nombre ?? null
+}
+
 const proyectosFiltrados = computed(() => {
+  const f = filtrosProyectos.value
+  let lista = proyectos.value
+  if (f.estado.value)         lista = lista.filter(p => p.estado === f.estado.value)
+  if (f.tipo_proyecto.value)  lista = lista.filter(p => p.tipo_proyecto === f.tipo_proyecto.value)
+  if (f.portafolio_id.value)  lista = lista.filter(p => p.portafolio_id === f.portafolio_id.value)
+  if (f.ppa_contratos.value?.length) {
+    const sel = new Set(f.ppa_contratos.value)
+    lista = lista.filter(p => {
+      const vivos = ppaVigentes(p)
+      if (!vivos.length) return sel.has(PPA_SIN)
+      return vivos.some(c => sel.has(c.id))
+    })
+  }
+
   const t = q.value.trim().toLowerCase()
-  if (!t) return proyectos.value
-  return proyectos.value.filter(p =>
+  if (!t) return lista
+  return lista.filter(p =>
     (p.nombre_comercial || '').toLowerCase().includes(t) ||
     (p.codigo_tsf || '').toLowerCase().includes(t) ||
     (p.municipio || '').toLowerCase().includes(t) ||
@@ -1043,9 +1153,13 @@ const proyectosFiltrados = computed(() => {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const data = await proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA })
+    const [data, portafoliosData] = await Promise.all([
+      proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA }),
+      portafoliosService.listar(),
+    ])
     proyectos.value = data.items ?? []
     avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
+    portafolios.value = portafoliosData.portafolios ?? []
     proyectosCargados.value = true
   } catch (e) {
     toast.error('Error al cargar proyectos', { description: e.message, duration: 4000 })
@@ -1339,6 +1453,7 @@ const COLUMNAS_EXCEL = {
     { header: 'Nombre comercial', value: p => formatearNombre(p.nombre_comercial) },
     { header: 'Estado', value: p => ESTADO_LABELS[p.estado] || p.estado || '' },
     { header: 'Tipo', value: p => TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || '' },
+    { header: 'Portafolio', value: p => nombrePortafolio(p.portafolio_id) || '' },
     { header: 'Municipio', value: p => p.municipio || '' },
     { header: 'Departamento', value: p => p.departamento || '' },
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },
