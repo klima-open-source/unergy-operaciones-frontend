@@ -88,8 +88,16 @@
         <InputText v-model="f.codigo_tsf" class="w-full" placeholder="ej: COLCEST58P2" />
       </div>
       <div>
-        <label class="field-label">Fecha de entrada en operación</label>
+        <label class="field-label">Fecha de operación en MEM</label>
         <DatePicker v-model="fechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+      </div>
+      <div>
+        <label class="field-label">Fecha de operación (mantenimiento)</label>
+        <DatePicker v-model="fechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+      </div>
+      <div>
+        <label class="field-label">Fecha de entrega del proyecto</label>
+        <DatePicker v-model="fechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
       </div>
       <div>
         <label class="field-label">Fecha fin de representación</label>
@@ -242,6 +250,8 @@ const cantidadTotalPaneles = ref(null)
 
 // Fechas del proyecto (DatePicker usa Date; el API espera 'YYYY-MM-DD')
 const fechaEntrada = ref(null)
+const fechaOperMant = ref(null)
+const fechaEntrega = ref(null)
 const fechaFinRep = ref(null)
 
 function toDate(v) {
@@ -291,6 +301,8 @@ function submit() {
   if (p50json !== null) payload.p50_mensual_kwh = p50json
   // Fechas del proyecto (null = sin fecha / vigente)
   payload.fecha_entrada_operacion = formatFecha(fechaEntrada.value)
+  payload.fecha_operacion_mantenimiento = formatFecha(fechaOperMant.value)
+  payload.fecha_entrega_proyecto = formatFecha(fechaEntrega.value)
   payload.fecha_fin_representacion = formatFecha(fechaFinRep.value)
   // potencia_instalada_kwp NO se manda: el dual-write se quitó en d68837e
   // porque ahora lo sincroniza el backend desde info-tecnica.
