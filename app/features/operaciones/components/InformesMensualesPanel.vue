@@ -192,7 +192,6 @@ import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
-import { calcSla } from '~/features/operaciones/utils/slaContractual'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
 import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
@@ -1192,8 +1191,21 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     if (v < avg * 0.7) atypical.push({ date: d, kwh: Math.round(v), pct: Math.round(v / avg * 100) })
   })
 
-  const fallasSla = mf.map(f => ({ f, sla: calcSla(f) }))
-  const fueraSla = fallasSla.filter(x => !x.sla.cumple && x.f.estado?.codigo !== 'cerrada').length
+  // El SLA contractual del Anexo 4 lo calcula el backend
+  // (`apps/monitoreo/services/fallas/sla_contractual.py`) y llega por falla en
+  // `sla_contractual`. Antes se calculaba aca, y su columna "DIAS ABIERTA"
+  // contaba hasta HOY sin mirar `fecha_resolucion`: una falla cerrada en un dia
+  // pero identificada tres meses atras imprimia "90d" en el informe del cliente.
+  //
+  // Si el campo NO llega (backend viejo), se muestra vacio a proposito. El
+  // fallback NO puede inventar un "OK": esto se imprime en un documento que ve
+  // el cliente, y un cumplimiento falso es peor que una celda en blanco.
+  const SLA_AUSENTE = { dias: null, plazo_dias: null, etiqueta: '—', cumple: null }
+  const fallasSla = mf.map(f => ({ f, sla: f.sla_contractual ?? SLA_AUSENTE }))
+  // `cumple === false` y no `!cumple`: distingue el incumplimiento real del
+  // campo ausente. Y no se repite aca la regla de "cerrada cuenta como cumplida"
+  // -- el backend ya pone `cumple: true` para todo estado final.
+  const fueraSla = fallasSla.filter(x => x.sla.cumple === false).length
 
   const weeks = buildWeeks(data, range, p90d)
 
@@ -1239,9 +1251,9 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
       slaHtml += '<tr>' +
         `<td style="font-weight:700;color:#6B35C0;font-size:10px">${esc(fmtD(f.fecha_identificacion))}</td>` +
         `<td>${esc(desc)}</td>` +
-        `<td style="font-size:10px">${esc(sla.slaLabel)}</td>` +
-        `<td style="text-align:center;font-weight:700">${sla.dias}d</td>` +
-        `<td class="${sla.cumple || f.estado?.codigo === 'cerrada' ? 'fmo-sla-ok' : 'fmo-sla-err'}">${sla.cumple || f.estado?.codigo === 'cerrada' ? '✅ OK' : '❌ Excede'}</td></tr>`
+        `<td style="font-size:10px">${esc(sla.etiqueta)}</td>` +
+        `<td style="text-align:center;font-weight:700">${sla.dias == null ? '—' : sla.dias + 'd'}</td>` +
+        `<td class="${sla.cumple === false ? 'fmo-sla-err' : 'fmo-sla-ok'}">${sla.cumple == null ? '—' : sla.cumple ? '✅ OK' : '❌ Excede'}</td></tr>`
     })
   } else {
     slaHtml += '<tr><td colspan="5" style="text-align:center;color:#A89EC0;padding:14px">Sin eventos en el período ✅</td></tr>'

@@ -105,6 +105,17 @@ export interface Falla {
   /** % del SLA consumido, tope 110. `null` si la falla no tiene limite. */
   sla_pct?: number | null
   sla_cumplido?: boolean | null
+  /**
+   * SLA **contractual** del Anexo 4: dias y umbral por CATEGORIA de falla. Es
+   * otro compromiso que el operativo de arriba (horas por prioridad). Lo calcula
+   * el backend; no recalcular en la vista.
+   */
+  sla_contractual?: {
+    dias: number
+    plazo_dias: number
+    etiqueta: string
+    cumple: boolean
+  } | null
   dias_abierta?: number | null
   tiempo_afectacion_horas?: number | null
   registrado_por?: string | null

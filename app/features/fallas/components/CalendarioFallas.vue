@@ -156,7 +156,7 @@
               </div>
               <div class="cal-detail-item">
                 <span class="cal-detail-lbl"><ClockIcon class="size-[1em]" /> SLA</span>
-                <span class="cal-detail-val">{{ detalle.sla_limite_horas_efectivo }}h ({{ detalle.sla_limite_dias }}d)</span>
+                <span class="cal-detail-val">{{ formatoLimiteSla(detalle.sla_limite_horas_efectivo) }}</span>
               </div>
             </div>
           </div>
@@ -203,6 +203,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { formatoLimiteSla } from '~/features/fallas/utils/formatoSla'
 import Select from 'primevue/select'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
