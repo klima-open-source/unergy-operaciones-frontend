@@ -192,6 +192,7 @@ import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
+import { calcSla } from '~/features/operaciones/utils/slaContractual'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
 import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
@@ -1143,25 +1144,6 @@ function buildConsolidatedPage(portName, projsData, range, totalPages) {
 }
 
 // ── Página FMO ───────────────────────────────────────────────────────
-function calcSLA(f) {
-  const fecha = f.fecha_identificacion?.slice(0, 10)
-  if (!fecha) return { dias: 0, slaRevision: 2, slaLabel: 'Crítico (≥90%)', cumple: true }
-  const dias = Math.max(0, Math.floor((Date.now() - new Date(fecha + 'T00:00:00')) / 86400000))
-  let slaRevision = 2, slaLabel = 'Crítico (≥90%)'
-  const cat = f?.clasificacion?.categoria
-  if (cat) {
-    // red = desconexión de suministro → crítico; frontera/inversores y falta de
-    // datos de generación → grave; eventos adversos externos → medio.
-    if (cat === 'frontera' || cat === 'inversores' || cat === 'generando_sin_datos') { slaRevision = 3; slaLabel = 'Grave (66-90%)' }
-    else if (cat === 'eventos_adversos') { slaRevision = 4; slaLabel = 'Medio (<66%)' }
-  } else {
-    const pre = String(f.tipo?.codigo || '').charAt(0)
-    if (pre === '1') { slaRevision = 3; slaLabel = 'Grave (66-90%)' }
-    else if (pre === '4' || pre === '5') { slaRevision = 4; slaLabel = 'Medio (<66%)' }
-  }
-  const cumple = f.estado?.codigo === 'cerrada' ? true : dias <= slaRevision
-  return { dias, slaRevision, slaLabel, cumple }
-}
 
 function buildFMOPage(cfg, genRes, mf, range, fmoData) {
   const data = genRes?.data || []
@@ -1210,7 +1192,7 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     if (v < avg * 0.7) atypical.push({ date: d, kwh: Math.round(v), pct: Math.round(v / avg * 100) })
   })
 
-  const fallasSla = mf.map(f => ({ f, sla: calcSLA(f) }))
+  const fallasSla = mf.map(f => ({ f, sla: calcSla(f) }))
   const fueraSla = fallasSla.filter(x => !x.sla.cumple && x.f.estado?.codigo !== 'cerrada').length
 
   const weeks = buildWeeks(data, range, p90d)
