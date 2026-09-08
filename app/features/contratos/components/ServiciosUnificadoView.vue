@@ -1158,16 +1158,28 @@ const proyectosFiltrados = computed(() => {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const [data, portafoliosData] = await Promise.all([
+    // allSettled, no all: portafolios solo alimenta el filtro de esa columna.
+    // Si esa llamada falla (permisos, error transitorio) no debe tumbar la
+    // carga de proyectos, de la que dependen otros flujos -- ej. el selector
+    // de "Asociar a un proyecto" en Servicios > Representación, que quedaba
+    // sin ninguna planta para elegir cuando portafolios fallaba.
+    const [proyectosResult, portafoliosResult] = await Promise.allSettled([
       proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA }),
       portafoliosService.listar(),
     ])
-    proyectos.value = data.items ?? []
-    avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
-    portafolios.value = portafoliosData.portafolios ?? []
-    proyectosCargados.value = true
-  } catch (e) {
-    toast.error('Error al cargar proyectos', { description: e.message, duration: 4000 })
+    if (proyectosResult.status === 'fulfilled') {
+      const data = proyectosResult.value
+      proyectos.value = data.items ?? []
+      avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
+      proyectosCargados.value = true
+    } else {
+      toast.error('Error al cargar proyectos', { description: proyectosResult.reason?.message, duration: 4000 })
+    }
+    if (portafoliosResult.status === 'fulfilled') {
+      portafolios.value = portafoliosResult.value.portafolios ?? []
+    } else {
+      toast.error('Error al cargar portafolios', { description: portafoliosResult.reason?.message, duration: 4000 })
+    }
   } finally {
     loadingProyectos.value = false
   }
