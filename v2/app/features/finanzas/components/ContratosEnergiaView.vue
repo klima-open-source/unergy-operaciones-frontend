@@ -255,6 +255,7 @@ import { LiquidacionesApiService } from '~/features/liquidaciones/services/liqui
 
 const liquidacionesApi = new LiquidacionesApiService()
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import { CheckIcon, CircleCheckIcon, CircleXIcon, FileIcon, InfoIcon, LoaderCircleIcon, PlusIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 
 
@@ -367,7 +368,7 @@ async function cargar() {
   try {
     contratos.value = await liquidacionesApi.listarContratosEnergia()
   } catch (e) {
-    error.value = e.response?.data?.detail || 'No se pudieron cargar los contratos de energía.'
+    error.value = mensajeDeError(e, 'No se pudieron cargar los contratos de energía.')
     contratos.value = []
   } finally {
     loading.value = false
@@ -393,8 +394,7 @@ async function cargarCatalogos() {
     empresasOptions.value = []
     preciosOptions.value = []
     toast.warning('Catálogos no disponibles', {
-      description: e.response?.data?.detail
-        || 'No se pudieron cargar comercializadores ni precios de energía.',
+      description: mensajeDeError(e, 'No se pudieron cargar comercializadores ni precios de energía.'),
       duration: 5000,
     })
   }
@@ -539,7 +539,7 @@ async function guardar() {
     formVisible.value = false
     await cargar()
   } catch (e) {
-    toast.error('No se pudo crear', { description: e.response?.data?.detail || e.message, duration: 10000 })
+    toast.error('No se pudo crear', { description: mensajeDeError(e), duration: 10000 })
   } finally {
     guardando.value = false
   }
