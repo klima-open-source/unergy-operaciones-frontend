@@ -893,6 +893,23 @@ const opcionesReportarCon = computed(() => {
     }
     return { key, nombre, curva: curvaPersistida, valor: suma(curvaPersistida), disabled: suma(curvaPersistida) == null }
   }
+  // El reconectador es dato físico real -- no una estimación como Inversores
+  // × FP o el histórico -- y el clasificador ya lo usa como fuente COMPLETA
+  // del día (Casos 5 y 7, `medidor_usado: 'reconectador'`), así que faltaba
+  // poder elegirlo a mano cuando el automático se fue por otro lado (Cumbia
+  // Generación 2026-09-09: sin lectura de ninguno de los dos medidores,
+  // reportado con Solenium incompleto, y el reconectador con el día
+  // completo al lado sin forma de usarlo).
+  //
+  // Solo se habilita con el día COMPLETO -- mismo criterio y misma cuenta
+  // que la fila 'Dato completo' de 'Detalle de las fuentes', para que las
+  // dos digan lo mismo. Es la fuente menos verificable de todas (dato crudo
+  // del dispositivo, sin nada con qué cruzarlo, ver reconectador.py en el
+  // backend): reportar un día suyo al que le faltan horas sería adivinar
+  // dos veces. Consumo no tiene reconectador -- ahí `curva_reconectador`
+  // llega null y la opción queda deshabilitada igual que 'Inversores × FP'.
+  const horasFaltanReconectador = horasFaltantesSolares(d.curva_reconectador)
+  const sumaReconectador = suma(d.curva_reconectador)
   return [
     {
       key: 'tipica', nombre: 'Curva típica (histórico)', curva: tipica?.curva,
@@ -901,6 +918,16 @@ const opcionesReportarCon = computed(() => {
     },
     opcionMedidor('principal', 'Medidor principal', d.curva_medidor_principal),
     opcionMedidor('respaldo', 'Medidor respaldo', d.curva_medidor_respaldo),
+    {
+      key: 'reconectador', nombre: 'Reconectador', curva: d.curva_reconectador,
+      valor: sumaReconectador,
+      disabled: sumaReconectador == null || horasFaltanReconectador.length > 0,
+      nota: sumaReconectador == null
+        ? 'sin dato del reconectador'
+        : (horasFaltanReconectador.length
+            ? `incompleto -- faltan ${formatearRangosHoras(horasFaltanReconectador)}`
+            : null),
+    },
     { key: 'inversores', nombre: 'Inversores × FP', curva: curvaInversoresFp, valor: suma(curvaInversoresFp), disabled: suma(curvaInversoresFp) == null },
     { key: 'ceros', nombre: 'Matriz de ceros', curva: Array(24).fill(0), valor: 0 },
   ]
