@@ -20,6 +20,7 @@ import {
   parseAsientos, extractMandate, suggestTag, reconciliar, fmt, norm as normNombre,
   parseIngresos, matchIngresoContab, normalizarCifra,
   parseIngresosPorConcepto, matchIngresoConceptos,
+  INGRESO_ACC_PREFIX, AUTOCONSUMO_ACC_PREFIXES, OPCIONES_AUTOCONSUMO,
 } from '~/features/finanzas/utils/conciliacionMandatos'
 
 const root = ref(null)
@@ -230,6 +231,11 @@ function initValidador(el) {
   let currentConcMode = 'ingresos'
   let contabilidadData = []   // [{asociado, planta, valor_contabilidad}]  cargado desde xlsx (modo total)
   let contabPorConcepto = []  // [{asociado, planta, conceptos:{clave:neto}}]  desglose por concepto (ingresos)
+  // El xlsx crudo se conserva para poder reparsearlo al cambiar de sub-pestaña:
+  // cada modo lee cuentas distintas del MISMO archivo.
+  let matrizCruda = null
+  let nombreXlsx  = ''
+  let periodoXlsx = ''
   let concResults      = []   // resultados del cruce (modos ingresos/autoconsumo)
 
   // --- Modo COSTOS: conciliación detallada por concepto ---
@@ -264,6 +270,50 @@ function initValidador(el) {
   }
 
   // ====== CARGA XLSX (SheetJS — todo en cliente) ======
+
+  /** Las cuentas del soporte según el modo. Autoconsumo NO comparte ninguna con
+   *  ingresos: leerlo con las de ingresos daba 0 grupos y dejaba el botón
+   *  «Ejecutar Conciliación» deshabilitado para siempre. */
+  function cuentasDelModo() {
+    return currentConcMode === 'autoconsumo' ? AUTOCONSUMO_ACC_PREFIXES : INGRESO_ACC_PREFIX
+  }
+
+  /** Autoconsumo se agrupa distinto: su contrapartida vive en la misma cuenta,
+   *  así que no se fusiona y se toma el lado por pagar. Ver OPCIONES_AUTOCONSUMO. */
+  function opcionesDelModo() {
+    return currentConcMode === 'autoconsumo' ? OPCIONES_AUTOCONSUMO : {}
+  }
+
+  function etiquetaCuentas() {
+    const c = cuentasDelModo()
+    return Array.isArray(c) ? `Cuentas ${c.join(' + ')}` : `Cuenta ${c}`
+  }
+
+  /** Reparsea el xlsx ya cargado. Se llama al cargarlo y al cambiar de
+   *  sub-pestaña: si no, el archivo queda leído con las cuentas del modo
+   *  anterior y el botón no se habilita aunque el archivo sí sirva. */
+  function procesarMatriz() {
+    if (!matrizCruda) return
+    const cuentas = cuentasDelModo()
+    const opciones = opcionesDelModo()
+    contabilidadData = parseIngresos(matrizCruda, cuentas, opciones)
+    try { contabPorConcepto = parseIngresosPorConcepto(matrizCruda, cuentas, opciones) } catch { contabPorConcepto = [] }
+    try {
+      const pa = parseAsientos(matrizCruda)
+      asientosDetalle = pa.details
+      tagsAnaliticos  = pa.tags
+    } catch { asientosDetalle = []; tagsAnaliticos = [] }
+
+    const esCostos = currentConcMode === 'costos'
+    const cuenta = esCostos ? asientosDetalle.length : contabilidadData.length
+    $('xlsxLabel').innerHTML = `<b style="color:var(--ok)">✅ ${nombreXlsx}</b> — <span style="color:#64748b">${cuenta} ${esCostos ? 'líneas de detalle' : 'grupos inversionista+planta'} cargados</span>`
+    $('dzExcel').classList.add('loaded')
+    $('xlsxStatus').textContent = esCostos
+      ? `Periodo: ${periodoXlsx} · ${asientosDetalle.length} líneas · ${tagsAnaliticos.length} proyectos (etiquetas analíticas)`
+      : `Periodo: ${periodoXlsx} · ${etiquetaCuentas()} (neto inversionista) · ${contabilidadData.length} grupos (inversionista + planta)`
+    updateConcBtn()
+  }
+
   function loadExcel(input) {
     const file = input.files[0]
     if (!file) return
@@ -272,28 +322,14 @@ function initValidador(el) {
       try {
         const wb = XLSX.read(e.target.result, {type:'array'})
         const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(ws, {defval:''})
-        // Matriz (con cabecera) para los motores de conciliacionMandatos.js:
+        // Matriz (con cabecera) para los motores de conciliacionMandatos:
         //  - INGRESOS/AUTOCONSUMO: parseIngresos agrupa (asociado, planta) sumando
-        //    el neto de 28150505 (mismo enfoque robusto de detección de columnas).
+        //    el neto de sus cuentas (mismo enfoque robusto de detección de columnas).
         //  - COSTOS: parseAsientos arma el detalle línea-a-línea (motor existente).
-        const matriz = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-        contabilidadData = parseIngresos(matriz)
-        try { contabPorConcepto = parseIngresosPorConcepto(matriz) } catch (e3) { contabPorConcepto = [] }
-        try {
-          const pa = parseAsientos(matriz)
-          asientosDetalle = pa.details
-          tagsAnaliticos  = pa.tags
-        } catch (e2) { asientosDetalle = []; tagsAnaliticos = [] }
-        const label = $('xlsxLabel')
-        const esCostos = currentConcMode === 'costos'
-        const cuenta = esCostos ? asientosDetalle.length : contabilidadData.length
-        label.innerHTML = `<b style="color:var(--ok)">✅ ${file.name}</b> — <span style="color:#64748b">${cuenta} ${esCostos ? 'líneas de detalle' : 'grupos inversionista+planta'} cargados</span>`
-        $('dzExcel').classList.add('loaded')
-        $('xlsxStatus').textContent = esCostos
-          ? `Periodo: ${detectPeriodo(rows)} · ${asientosDetalle.length} líneas · ${tagsAnaliticos.length} proyectos (etiquetas analíticas)`
-          : `Periodo: ${detectPeriodo(rows)} · Cuenta 28150505 (neto inversionista) · ${contabilidadData.length} grupos (inversionista + planta)`
-        updateConcBtn()
+        matrizCruda = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+        nombreXlsx  = file.name
+        periodoXlsx = detectPeriodo(XLSX.utils.sheet_to_json(ws, {defval:''}))
+        procesarMatriz()
       } catch(err) {
         $('xlsxLabel').innerHTML = `<span style="color:var(--err)">❌ Error leyendo el archivo: ${err.message}</span>`
       }
@@ -327,6 +363,10 @@ function initValidador(el) {
     // En COSTOS esta métrica cuenta mandatos SIN ETIQUETA ANALÍTICA asignada
     // (no un registro contable sin PDF, que es lo que mide en INGRESOS).
     $('csNoPdfLabel').textContent = m === 'costos' ? 'SIN ETIQUETA' : 'SIN PDF'
+    // Reparsear: cada modo lee cuentas distintas del mismo archivo. Sin esto,
+    // cargar el xlsx en un modo y cambiarse a otro dejaba los datos del modo
+    // anterior (y el botón deshabilitado con un archivo perfectamente válido).
+    procesarMatriz()
     updateConcBtn()
   }
 
