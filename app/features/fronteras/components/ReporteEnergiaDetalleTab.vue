@@ -910,7 +910,29 @@ const opcionesReportarCon = computed(() => {
   // llega null y la opción queda deshabilitada igual que 'Inversores × FP'.
   const horasFaltanReconectador = horasFaltantesSolares(d.curva_reconectador)
   const sumaReconectador = suma(d.curva_reconectador)
+  // El CGM va primero y es distinto de todos los demás: no es otra fuente para
+  // la matriz, es dejar en pie el reporte que Quoia YA tiene en su sistema --
+  // al guardarlo, /enviar se salta esta frontera (ver _reporte_ya_valido en el
+  // backend). Se habilita solo cuando hubo reporte automático válido, con el
+  // mismo criterio que la fila 'Automático' de 'Detalle de las fuentes'.
+  //
+  // Faltaba la salida para una fila que Quoia reportó bien y el clasificador
+  // mandó a 'Histórico' + revisar (Paso Norte Consumo 2026-09-07): validarla
+  // enviaba la estimación encima del reporte oficial, y no validarla bloqueaba
+  // el día completo. `curva_cgm` la trae el detalle en vivo -- no está
+  // persistida, así que si Quoia no responde llega null y esto queda
+  // deshabilitado.
+  const cgmValido = categoriaEstadoReporte(d.estado_reporte) === 'ok'
+  const sumaCgm = suma(d.curva_cgm)
   return [
+    {
+      key: 'cgm', nombre: 'Reporte CGM (Quoia)', curva: d.curva_cgm,
+      valor: sumaCgm,
+      disabled: !cgmValido || sumaCgm == null,
+      nota: !cgmValido
+        ? 'no hubo reporte automático válido ese día'
+        : (sumaCgm == null ? 'no se pudo leer la curva en Quoia' : 'no se enviará matriz: Quoia ya lo tiene'),
+    },
     {
       key: 'tipica', nombre: 'Curva típica (histórico)', curva: tipica?.curva,
       nota: tipica ? `mediana de ${tipica.dias_usados} días` : 'sin histórico suficiente',
@@ -947,9 +969,13 @@ function elegirFuenteReportar(op) {
   // criterio de siempre.
   curvaRespaldoEditable.value = Array(24).fill(null)
   fuenteManualElegida.value = op.key === 'tipica' ? 'historico' : op.key
+  // El CGM merece su propio aviso: la consecuencia de guardarlo no es "se
+  // reporta este número" sino "no se reporta nada", y eso no se adivina.
   toast.info(`${op.nombre} aplicado`, {
-    description: `${fmtKwh(op.valor)} -- revisa y guarda si está bien.`,
-    duration: 4000,
+    description: op.key === 'cgm'
+      ? `${fmtKwh(op.valor)} -- al guardar, esta frontera NO se envía: se deja en pie el reporte que Quoia ya tiene.`
+      : `${fmtKwh(op.valor)} -- revisa y guarda si está bien.`,
+    duration: op.key === 'cgm' ? 6000 : 4000,
   })
 }
 
