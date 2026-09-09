@@ -732,6 +732,15 @@ const hayCambiosSinGuardar = computed(() => {
   if (curvaRespaldoEditable.value.some((v) => v !== null && v !== undefined && v !== '')) {
     return true
   }
+  // Elegir una opción en 'Reportar con otra fuente' YA es un cambio sin
+  // guardar, aunque el número no se mueva: lo que cambia es `medidor_usado`
+  // (y con él `caso`, que decide si esta fila alimenta la mediana de días
+  // futuros). Sin esto, adoptar un medidor que Quoia acaba de corregir para
+  // que coincida con el que se venía reportando dejaba 'Guardar corrección'
+  // en gris, sin forma de confirmar la fuente (Ciénaga Consumo 2026-09-09:
+  // respaldo 19,2 kWh reportado, principal corregido en Quoia al mismo
+  // 19,2 -- curva idéntica hora por hora, comparación de arriba en falso).
+  if (fuenteManualElegida.value !== null) return true
   return false
 })
 
@@ -945,6 +954,10 @@ async function guardarCurva() {
     const data = await reporteEnergiaService.guardarCurva(props.fronteraId, props.fecha, payload)
     detalle.value = data
     curvaRespaldoEditable.value = Array(24).fill(null)
+    // Ya viajó en el payload -- si no se limpia, hayCambiosSinGuardar queda
+    // en true para siempre (solo se limpiaba al recargar el detalle), y con
+    // él 'Guardar corrección', 'Validar Frontera' y 'Rellenar horas'.
+    fuenteManualElegida.value = null
     toast.success('Corrección guardada', { duration: 2500 })
     emit('actualizado')
   } catch (e) {
