@@ -556,9 +556,51 @@ export function reconciliar(mandato: MandatoReconciliable, details: AsientoDetal
 /** Prefijo de cuenta cuyo neto (débito − crédito) equivale al valor a pagar. */
 export const INGRESO_ACC_PREFIX = '28150505'
 
+/**
+ * Cuentas del soporte de AUTOCONSUMO. No comparte ninguna con ingresos.
+ *
+ *   28150508  VALORES RECIBIDOS PARA TERCEROS - AUTOCONSUMO  → Ingreso Bruto
+ *   28150502  INTERESES POR MORA                             → Interés
+ *
+ * El mandato lista «Ingreso Bruto (Suma)» + «Interés (Suma)» = «Valor a pagar»,
+ * así que la conciliación suma las dos. Queda fuera a propósito la 28151305
+ * (CLIENTES NACIONALES - AUTOCONSUMO), que son retenciones —retefuente e ICA—
+ * y no aparecen en el mandato.
+ */
+export const AUTOCONSUMO_ACC_PREFIXES = ['28150508', '28150502'] as const
+
+/** Cómo agrupar el soporte. Ingresos y autoconsumo se contabilizan distinto. */
+export interface OpcionesIngresos {
+  /**
+   * Fusiona el operador (neto ≥ 0) dentro del inversionista (neto < 0) de la
+   * misma planta. Es correcto en INGRESOS, donde la contrapartida del
+   * inversionista vive en OTRA cuenta (28151001…) y por tanto ya está fuera.
+   *
+   * En autoconsumo hay que apagarlo: ahí la contrapartida está en la MISMA
+   * 28150508 —el cliente al debe y el mandante al haber, por el mismo importe—
+   * y fusionarlas las anula entre sí, dejando de residuo justo la retención.
+   */
+  fusionar?: boolean
+  /** Se queda solo con el lado por pagar (neto < 0): el del mandante. */
+  soloPagables?: boolean
+}
+
+export const OPCIONES_AUTOCONSUMO: OpcionesIngresos = { fusionar: false, soloPagables: true }
+
 const MESES_RE = /\b(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\b.*$/
 const CONCEPTO_RE = /^(INGRESO BRUTO|COMERCIALIZACION|SERVICIOS DESPACHO Y COORDINACION CND|DESPACHO|VENTAS EN BOLSA|COMPRAS EN BOLSA|ENERGIA EN BOLSA|REDISTRIBUCION DE INGRESOS DE ACUERDO AL PROTOCOLO|REDISTRIBUCION|ARRANQUE Y PARADA|SERVICIOS DE ADMINISTRACION SIC|I V A SIC(?: 19)?|CARGO POR CONFIABILIDAD|FAZNI)\s*(?:19\s*)?(?:COP\s*)?(?:GENERADOR|COMERCIALIZADOR)?\s*/
 const CLASIF_RE = /^(BIAC|UNGC|UNGG|PPA|TERPEL\s?\d?)\s+/
+
+// AUTOCONSUMO escribe la etiqueta al revés que ingresos:
+//
+//   ingresos     «INGRESO BRUTO MINIGRANJA SOLAR URUACO ABRIL 2026 TERPEL»
+//   autoconsumo  «AGOSTO 2026 PROY ALMACEN AMC SAS INGRESO BRUTO»
+//
+// Empieza por el mes, así que MESES_RE se lo comía entero y la planta salía
+// vacía: ninguna línea agrupaba y la conciliación de autoconsumo no encontraba
+// nada aunque la cuenta fuera la correcta.
+const PROY_RE = /\bPROY\b\s+(.*)$/
+const CONCEPTO_FINAL_RE = /\s+(INGRESO BRUTO|INTERESES|INTERES|RETENCION EN LA FUENTE|RETEFUENTE|ICA)\s*$/
 
 /**
  * Nombre de planta normalizado a partir de la columna ETIQUETA. Quita el
@@ -568,6 +610,10 @@ const CLASIF_RE = /^(BIAC|UNGC|UNGG|PPA|TERPEL\s?\d?)\s+/
  */
 export function plantaDesdeEtiqueta(etiqueta: unknown): string {
   let p = norm(etiqueta)            // mayúsculas, sin tildes, sólo [A-Z0-9 ]
+  // Autoconsumo: «MES AÑO PROY <planta> <CONCEPTO>». Va primero porque su mes
+  // está al principio y el recorte por mes de abajo dejaría la cadena vacía.
+  const proy = p.match(PROY_RE)
+  if (proy) return proy[1]!.replace(CONCEPTO_FINAL_RE, '').trim()
   p = p.replace(MESES_RE, '').trim() // corta "MES AÑO comercializador…"
   p = p.replace(CONCEPTO_RE, '')     // quita el concepto inicial
   p = p.replace(CLASIF_RE, '')       // quita BIAC/UNGC/PPA
@@ -624,11 +670,16 @@ export interface IngresoGrupoConcepto {
  * multi-inversionista, p. ej. Uruaco: Bancolombia + SUNO + RODRIGUEZ, cada uno
  * auto-contenido) NO se fusiona: cada inversionista queda como su propio grupo.
  */
-function _gruposIngresos(rows: unknown[][] | null | undefined, accPrefix: string = INGRESO_ACC_PREFIX): GrupoIngreso[] {
+/** Una cuenta o varias: autoconsumo necesita sumar dos (ver AUTOCONSUMO_ACC_PREFIXES). */
+export type Cuentas = string | readonly string[]
+
+function _gruposIngresos(rows: unknown[][] | null | undefined, accPrefix: Cuentas = INGRESO_ACC_PREFIX, opciones: OpcionesIngresos = {}): GrupoIngreso[] {
+  const { fusionar = true, soloPagables = false } = opciones
+  const prefijos = typeof accPrefix === 'string' ? [accPrefix] : accPrefix
   const { details } = parseAsientos(rows)
   const map = new Map<string, GrupoIngreso>()   // asociado|||planta → grupo
   for (const d of details) {
-    if (!d.acc || !d.acc.startsWith(accPrefix)) continue
+    if (!d.acc || !prefijos.some((p) => d.acc!.startsWith(p))) continue
     const planta = plantaDesdeEtiqueta(d.etiqueta || d.proj)
     if (!planta || !d.asociado) continue
     const key = norm(d.asociado) + '|||' + planta
@@ -639,6 +690,11 @@ function _gruposIngresos(rows: unknown[][] | null | undefined, accPrefix: string
     if (con) cur.conceptos[con] = (cur.conceptos[con] || 0) + neto
     map.set(key, cur)
   }
+  if (!fusionar) {
+    const todos = [...map.values()]
+    return soloPagables ? todos.filter((g) => g.valor_contabilidad < 0) : todos
+  }
+
   // Fusión operador → inversionista, por planta.
   const porPlanta = new Map<string, GrupoIngreso[]>()
   for (const g of map.values()) {
@@ -671,8 +727,8 @@ function _gruposIngresos(rows: unknown[][] | null | undefined, accPrefix: string
  * @param accPrefix  Prefijo de cuenta a sumar (def. 28150505).
  * @returns  valor_contabilidad < 0 = a pagar.
  */
-export function parseIngresos(rows: unknown[][] | null | undefined, accPrefix: string = INGRESO_ACC_PREFIX): IngresoGrupo[] {
-  return _gruposIngresos(rows, accPrefix)
+export function parseIngresos(rows: unknown[][] | null | undefined, accPrefix: Cuentas = INGRESO_ACC_PREFIX, opciones: OpcionesIngresos = {}): IngresoGrupo[] {
+  return _gruposIngresos(rows, accPrefix, opciones)
     .map((g) => ({ asociado: g.asociado, planta: g.planta, valor_contabilidad: g.valor_contabilidad }))
     .filter((g) => Math.abs(g.valor_contabilidad) > 1)
 }
@@ -758,8 +814,8 @@ export function conceptoDesdeEtiqueta(etiqueta: unknown): string | null {
  * (débito − crédito) del 28150505 DESGLOSADO POR CONCEPTO. Ignora los contra-
  * asientos (28151001/28151005/…) igual que parseIngresos.
  */
-export function parseIngresosPorConcepto(rows: unknown[][] | null | undefined, accPrefix: string = INGRESO_ACC_PREFIX): IngresoGrupoConcepto[] {
-  return _gruposIngresos(rows, accPrefix)
+export function parseIngresosPorConcepto(rows: unknown[][] | null | undefined, accPrefix: Cuentas = INGRESO_ACC_PREFIX, opciones: OpcionesIngresos = {}): IngresoGrupoConcepto[] {
+  return _gruposIngresos(rows, accPrefix, opciones)
     .map((g) => ({ asociado: g.asociado, planta: g.planta, conceptos: g.conceptos }))
 }
 
