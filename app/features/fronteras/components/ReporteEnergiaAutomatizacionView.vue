@@ -135,7 +135,7 @@
               :key="`${seleccionHistorial.frontera_id}-${fechaHistorialISO}`"
               :frontera-id="seleccionHistorial.frontera_id"
               :fecha="fechaHistorialISO"
-              @actualizado="cargarHistorial()"
+              @actualizado="cargarHistorial(true)"
             />
           </div>
         </div>
@@ -620,14 +620,28 @@ async function cargarLista(silent = false) {
   }
 }
 
-async function cargarHistorial() {
-  loadingHistorial.value = true
+// `silent` existe por la misma razón que en cargarLista(): refrescar la lista
+// tras guardar/validar NO debe pasar por el spinner. El `.workspace` del
+// Historial es el `v-else-if` de la cadena que abre `loadingHistorial`, así
+// que ponerlo en true destruye ese subárbol -- y con él el detalle, que al
+// recrearse vuelve a montar y relanza cargar()/cargarExclusiones()/
+// cargarCurvaTipicaPreview(). El efecto era que validar una frontera desde
+// Historial recargaba el panel entero y perdía el scroll, mientras que la
+// misma acción en 'Revisión de hoy' no lo hacía: ese handler sí llamaba
+// cargarLista(true). El botón "Ver" lo sigue llamando sin argumento, donde el
+// spinner sí corresponde: ahí se está cambiando de día.
+//
+// El `catch` también respeta `silent`: vaciar filasHistorial en un refresco de
+// fondo tumbaría el panel por un fallo de red pasajero (`v-else-if` de arriba),
+// justo cuando la persona acaba de guardar algo.
+async function cargarHistorial(silent = false) {
+  if (!silent) loadingHistorial.value = true
   try {
     filasHistorial.value = await reporteEnergiaService.listarFronteras(fechaHistorialISO.value)
   } catch (e) {
-    filasHistorial.value = []
+    if (!silent) filasHistorial.value = []
   } finally {
-    loadingHistorial.value = false
+    if (!silent) loadingHistorial.value = false
   }
 }
 
