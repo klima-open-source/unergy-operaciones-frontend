@@ -17,6 +17,7 @@
  */
 import type { AirClient, AirOptions, Fetch } from '@korastd/air'
 import { airClient } from '~/core/client'
+import { completarPaginas } from '~/core/paginacion'
 
 export class BaseService {
   protected api: AirClient
@@ -25,9 +26,23 @@ export class BaseService {
     this.api = instancia
   }
 
-  /** Devuelve el cuerpo de la respuesta, que es lo único que quiere quien llama. */
+  /**
+   * Devuelve el cuerpo de la respuesta, que es lo único que quiere quien llama.
+   *
+   * Pasa por `completarPaginas`: si se pidieron más filas de las que el
+   * servidor entrega por respuesta (100, ver `api/pagination.py`), pide las
+   * páginas que falten y las junta. Va acá y no en cada service porque son 52
+   * llamadas de este frontend las que piden más de 100, y todas fueron
+   * escritas para recibir la lista completa -- filtran y cuentan en el
+   * navegador. Con el recorte silencioso del servidor, cada una mostraba las
+   * primeras 100 filas como si fueran todas (ver el docstring de
+   * paginacion.ts: el caso de Sabana de Torres).
+   *
+   * Una petición que no pide más de 100, o cuya respuesta no es una lista,
+   * pasa de largo sin una sola llamada extra.
+   */
   protected get<T>(url: string, options?: AirOptions): Promise<T> {
-    return this.api.get<T>(url, options)
+    return completarPaginas<T>((opts) => this.api.get<T>(url, opts), options)
   }
 
   protected post<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
