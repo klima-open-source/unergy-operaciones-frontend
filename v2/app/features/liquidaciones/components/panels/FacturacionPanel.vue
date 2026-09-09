@@ -282,13 +282,18 @@
             <p class="v" :style="{ color: (cumpl.resumen.faltante_kwh || 0) ? '#c0392b' : undefined }">{{ fmtNum(cumpl.resumen.faltante_kwh) }} kWh</p>
             <p class="sub2">{{ fmtNum(cumpl.resumen.faltante_mwh) }} MWh</p>
           </div>
+          <div class="fac-kpi">
+            <p class="k">Valor a indemnizar</p>
+            <p class="v" :style="{ color: (cumpl.resumen.valor_indemnizar_total_cop || 0) ? '#c0392b' : undefined }">{{ fmtCOP(cumpl.resumen.valor_indemnizar_total_cop || 0) }}</p>
+            <p class="sub2">bolsa techada {{ cumpl.resumen.precio_bolsa_cop_kwh != null ? fmtNum(cumpl.resumen.precio_bolsa_cop_kwh) + ' $/kWh' : '—' }}</p>
+          </div>
         </div>
         <div class="fac-card">
           <div class="tblwrap">
             <table class="dt">
               <thead><tr>
                 <th class="l">Contrato (PPA)</th><th class="l">Comerc.</th>
-                <th>Mínimo (MWh)</th><th>Despachado (MWh)</th><th>Cumpl.</th><th>Incumplido (kWh)</th><th class="l">Estado</th>
+                <th>Mínimo (MWh)</th><th>Despachado (MWh)</th><th>Cumpl.</th><th>Incumplido (kWh)</th><th>A indemnizar (COP)</th><th class="l">Estado</th>
               </tr></thead>
               <tbody>
                 <tr v-for="f in cumpl.filas" :key="f.ppa || f.numero_contrato">
@@ -303,12 +308,16 @@
                   <td :style="{ color: f.faltante_kwh > 0 ? '#c0392b' : '#9b8fb0', fontWeight: f.faltante_kwh > 0 ? 600 : 400 }">
                     {{ f.faltante_kwh > 0 ? fmtNum(f.faltante_kwh) : '—' }}
                   </td>
+                  <td :style="{ color: (f.valor_indemnizar_cop || 0) > 0 ? '#c0392b' : '#9b8fb0', fontWeight: (f.valor_indemnizar_cop || 0) > 0 ? 600 : 400 }"
+                      :title="f.estado === 'bajo_minimo' && f.valor_indemnizar_cop == null ? 'Falta el precio de bolsa del mes o la tarifa del PPA para calcularlo' : (f.valor_indemnizar_bruto_cop != null && f.valor_indemnizar_bruto_cop < 0 ? 'La bolsa estuvo más barata que el PPA: el comprador no se perjudicó (piso en 0)' : '')">
+                    {{ f.valor_indemnizar_cop != null ? fmtCOP(f.valor_indemnizar_cop) : (f.estado === 'bajo_minimo' ? 's/precio' : '—') }}
+                  </td>
                   <td class="l">
                     <span class="tag" :style="cumplEstiloEstado(f.estado)">{{ MOTIVOS_CUMPL[f.estado] || f.estado }}</span>
                     <span v-if="f.unidad_sospechosa" class="tag" style="background:#fdecea;color:#a13527" title="La escala mínimo vs despacho se ve rara; revisa unidades (kWh vs MWh)">⚠ revisar unidad</span>
                   </td>
                 </tr>
-                <tr v-if="!cumpl.filas.length"><td class="l muted" colspan="7">Sin datos de cumplimiento para {{ formatPeriodo(periodo) }} (¿hay despacho cargado?).</td></tr>
+                <tr v-if="!cumpl.filas.length"><td class="l muted" colspan="8">Sin datos de cumplimiento para {{ formatPeriodo(periodo) }} (¿hay despacho cargado?).</td></tr>
               </tbody>
             </table>
           </div>
@@ -554,6 +563,9 @@ async function exportarCumplimiento () {
     { header: 'Despachado (MWh)', value: f => r2(f.despachado_mwh) },
     { header: '% Cumplimiento', value: f => f.pct },
     { header: 'Incumplido (kWh)', value: f => f.faltante_kwh > 0 ? r2(f.faltante_kwh) : 0 },
+    { header: 'Tarifa PPA ($/kWh)', value: f => f.tarifa_ppa_cop_kwh ?? '' },
+    { header: 'Precio bolsa ($/kWh)', value: f => f.precio_bolsa_cop_kwh ?? '' },
+    { header: 'A indemnizar (COP)', value: f => f.valor_indemnizar_cop ?? 0 },
     { header: 'Estado', value: f => MOTIVOS_CUMPL[f.estado] || f.estado },
   ]
   const mes = (formatPeriodo(props.periodo) || per.value).replace(/\s+/g, '_')
