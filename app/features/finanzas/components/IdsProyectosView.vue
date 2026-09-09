@@ -141,14 +141,14 @@ import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
+import { entraEnConfiguracion } from '~/features/finanzas/utils/proyectosLiquidaciones'
 import { CheckIcon, CircleCheckIcon, LoaderCircleIcon, PencilIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon } from '@lucide/vue'
 
 const router = useRouter()
 const liquidacionesApi = new LiquidacionesApiService()
 
 // Solo GD y minigranjas en operación.
-const TIPOS_INCLUIDOS = ['gd', 'minigranja']
-const ESTADO_OPERATIVA = 'en_operacion'
+// Todo lo que esté en operación salvo autoconsumo: ver `entraEnConfiguracion`.
 
 // Los códigos SIC viven en la API de Liquidaciones; los IDs de Quoia en esta base.
 const COLUMNAS = [
@@ -265,7 +265,7 @@ async function cargar() {
   try {
     const liq = await liquidacionesApi.listarProyectos()
     filas.value = (liq || [])
-      .filter(r => TIPOS_INCLUIDOS.includes(r.tipo_proyecto) && r.estado === ESTADO_OPERATIVA)
+      .filter(entraEnConfiguracion)
       .map(r => {
         // Los ids de Quoia son de los subproyectos, no del proyecto -- viven
         // solo en la API de Liquidaciones (ver auditoría 2026-08-31: la
