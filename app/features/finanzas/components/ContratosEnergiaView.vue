@@ -135,9 +135,12 @@
           </div>
 
           <div>
-            <label class="field-label">Código {{ f.tipo_contrato === 'no_contract' ? '' : '*' }}</label>
+            <label class="field-label">Código</label>
             <InputText v-model="f.codigo" class="w-full" placeholder="ej: 90060" />
-            <p class="text-[11px] text-gray-400 mt-1">Es el código del contrato en XM.</p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              Es el código del contrato en XM. Sin él, el proyecto no entra en la
+              descarga del FTP de ese mes.
+            </p>
           </div>
           <div>
             <label class="field-label">Comercializador</label>
@@ -491,9 +494,6 @@ function parseHoras(texto) {
 function validar() {
   if (!f.fecha_desde || !f.fecha_hasta || !f.tipo_contrato || !f.tipo_tarifa) {
     return 'Completa fecha desde, fecha hasta, tipo de contrato y tipo de tarifa.'
-  }
-  if (f.tipo_contrato !== 'no_contract' && !f.codigo.trim()) {
-    return 'El código del contrato en XM es obligatorio salvo en «Sin contrato».'
   }
   if (f.porcentaje != null && (f.porcentaje < 0 || f.porcentaje > 1)) {
     return 'El porcentaje es una fracción entre 0 y 1.'
