@@ -204,6 +204,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { formatoLimiteSla } from '~/features/fallas/utils/formatoSla'
+import { rangoDelMes } from '~/features/fallas/utils/rangoMes'
 import Select from 'primevue/select'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
@@ -340,26 +341,81 @@ function irAFalla(falla)     { emit('ver-falla', falla); detalle.value = null }
 function emitEditar(falla)   { emit('editar', falla);    detalle.value = null }
 
 // ── Carga de datos ────────────────────────────────────────────────────────────
+
+/** El rango que el calendario realmente pinta -- ver rangoMes.ts. */
+const rangoVisible = computed(() => rangoDelMes(mesActual.value))
+
+/**
+ * Las fallas del mes visible.
+ *
+ * Antes pedía `size: 5000` sin rango: el historial COMPLETO de fallas
+ * programadas, para pintar 30 días. Dos problemas. El servidor recorta toda
+ * respuesta a 100 filas (`api/pagination.py`), así que el calendario mostraba
+ * las primeras 100 fallas de la historia y los meses recientes salían vacíos
+ * sin que nada lo dijera. Y aunque llegaran todas, traer miles de filas para
+ * mostrar un mes es trabajo tirado: `eventosMes` descartaba el resto en el
+ * navegador.
+ *
+ * El endpoint ya filtra por rango (`fecha_programada__gte/lte` en
+ * `apps/monitoreo/services/fallas/consultas.py`), así que se le pide el mes y
+ * ya. `size: 200` es holgado para un mes; si alguno se pasara, `BaseService`
+ * completa las páginas que falten.
+ *
+ * `silencioso`: al navegar de mes NO se toca `loading`. La grilla vive en el
+ * `v-else` de ese flag, así que ponerlo en true la desmonta y la vuelve a
+ * montar -- un parpadeo en cada clic de flecha. Es la misma forma del bug que
+ * tenía "Validar" en el Historial del Reporte de energía.
+ */
+async function cargarFallas({ silencioso = false } = {}) {
+  if (!silencioso) loading.value = true
+  try {
+    const { desde, hasta } = rangoVisible.value
+    const res = await fallasService.listar({
+      size: 200,
+      con_fecha_programada: true,
+      fecha_programada_desde: desde,
+      fecha_programada_hasta: hasta,
+    })
+    fallas.value = res.items ?? []
+  } finally {
+    if (!silencioso) loading.value = false
+  }
+}
+
+/** Proyectos y catálogos alimentan los filtros y no dependen del mes: se piden
+ *  una sola vez, no en cada navegación. */
+async function cargarFijos() {
+  const [listaProyectos, catalogos] = await Promise.all([
+    proyectosService.listar({ size: 500 }),
+    fallasService.obtenerCatalogos(),
+  ])
+  proyectos.value = listaProyectos
+  estados.value = catalogos.estados ?? []
+}
+
 async function cargar() {
   loading.value = true
   try {
-    const [resFallas, listaProyectos, catalogos] = await Promise.all([
-      // Traer TODAS las fallas con fecha_programada (programadas + ejecutadas = historial completo)
-      fallasService.listar({ size: 5000, con_fecha_programada: true }),
-      proyectosService.listar({ size: 500 }),
-      fallasService.obtenerCatalogos(),
-    ])
-    fallas.value    = resFallas.items ?? []
-    proyectos.value = listaProyectos
-    estados.value   = catalogos.estados ?? []
+    await Promise.all([cargarFallas({ silencioso: true }), cargarFijos()])
   } finally {
     loading.value = false
   }
 }
 
+// Cambiar de mes trae las fallas de ese mes -- ya no están todas en memoria.
+//
+// Se observa el rango COMO TEXTO y no el computed: `rangoVisible` devuelve un
+// objeto nuevo cada vez que se recalcula, y `watch` compara por referencia, así
+// que "ir a hoy" estando ya en el mes actual dispararía una recarga que no hace
+// falta. Dos cadenas iguales son iguales.
+watch(
+  () => `${rangoVisible.value.desde}|${rangoVisible.value.hasta}`,
+  () => cargarFallas({ silencioso: true }),
+)
+
 // Recarga automática cuando el padre guarda una falla
 watch(() => props.refreshKey, (newVal, oldVal) => {
-  if (newVal !== oldVal) cargar()
+  if (newVal !== oldVal) cargarFallas({ silencioso: true })
 })
 
 onMounted(cargar)
