@@ -103,6 +103,11 @@
                 <CircleCheckIcon class="size-[1em]" v-if="row.proyectos.some(p => p.precio_energia_id)" style="color:#10B981" />
                 <CircleXIcon class="size-[1em]" v-else style="color:#D64455" />
               </td>
+              <td class="px-4 py-2 text-center">
+                <Button text rounded size="small" type="button" @click="abrirEdicion(row)" v-tooltip="'Editar'">
+                  <template #icon><PencilIcon class="size-[1em]" /></template>
+                </Button>
+              </td>
             </tr>
             <tr v-if="loading">
               <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-gray-400">
@@ -121,7 +126,7 @@
     </div>
 
     <!-- Dialog: nuevo contrato -->
-    <Dialog v-model:visible="formVisible" header="Nuevo contrato de energía" modal
+    <Dialog v-model:visible="formVisible" :header="editandoId ? `Editar contrato ${editandoId}` : 'Nuevo contrato de energía'" modal
             class="w-full max-w-3xl" :dismissableMask="false">
       <form @submit.prevent="guardar" class="space-y-5 pt-1">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -135,9 +140,12 @@
           </div>
 
           <div>
-            <label class="field-label">Código {{ f.tipo_contrato === 'no_contract' ? '' : '*' }}</label>
+            <label class="field-label">Código</label>
             <InputText v-model="f.codigo" class="w-full" placeholder="ej: 90060" />
-            <p class="text-[11px] text-gray-400 mt-1">Es el código del contrato en XM.</p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              Es el código del contrato en XM. Sin él, el proyecto no entra en la
+              descarga del FTP de ese mes.
+            </p>
           </div>
           <div>
             <label class="field-label">Comercializador</label>
@@ -157,11 +165,14 @@
                     class="w-full" placeholder="Seleccionar" />
           </div>
 
-          <div v-if="esPlg">
-            <label class="field-label">Porcentaje</label>
+          <div>
+            <label class="field-label">Porcentaje de despacho</label>
             <InputNumber v-model="f.porcentaje" :maxFractionDigits="4" :useGrouping="false"
                          class="w-full" placeholder="ej: 1.0" :min="0" :max="1" />
-            <p class="text-[11px] text-gray-400 mt-1">Fracción entre 0 y 1, no porcentaje. Solo PLG.</p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              Fracción entre 0 y 1, no porcentaje.
+              {{ esPlg ? 'En PLG define qué parte del despacho cubre el contrato.' : 'Fuera de PLG va completo (1.0).' }}
+            </p>
           </div>
         </div>
 
@@ -199,9 +210,13 @@
                         :disabled="f.tipo_tarifa === 'market'" />
               </div>
               <div class="col-span-1 flex justify-center pb-1">
-                <Button text rounded severity="danger" size="small" type="button" @click="quitarProyecto(idx)" v-tooltip="'Eliminar'">
+                <!-- Un proyecto ya vinculado no se puede desvincular: la API no
+                     expone DELETE. Se deja quitar solo lo que aún no se guardó. -->
+                <Button v-if="!linea.id" text rounded severity="danger" size="small" type="button"
+                        @click="quitarProyecto(idx)" v-tooltip="'Eliminar'">
                   <template #icon><XIcon class="size-[1em]" /></template>
                 </Button>
+                <span v-else class="text-[11px] text-gray-300" v-tooltip="'Un proyecto ya vinculado no se puede quitar desde aquí'">—</span>
               </div>
             </div>
 
@@ -254,7 +269,9 @@ import { LiquidacionesApiService } from '~/features/liquidaciones/services/liqui
 
 const liquidacionesApi = new LiquidacionesApiService()
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
-import { CheckIcon, CircleCheckIcon, CircleXIcon, FileIcon, InfoIcon, LoaderCircleIcon, PlusIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
+import { mensajeDeError } from '~/utils/mensajeDeError'
+import { porcentajeSugerido } from '~/features/finanzas/utils/contratosEnergia'
+import { CheckIcon, CircleCheckIcon, CircleXIcon, FileIcon, InfoIcon, LoaderCircleIcon, PencilIcon, PlusIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 
 
 const LABEL_TIPO_CONTRATO = Object.fromEntries(TIPOS_CONTRATO.map(t => [t.value, t.label]))
@@ -271,6 +288,7 @@ const COLUMNAS = [
   { key: 'tipo_tarifa',   label: 'Tipo de tarifa' },
   { key: 'porcentaje',    label: 'Porcentaje' },
   { key: 'tiene_precio',  label: 'Tiene precio de energía', center: true },
+  { key: 'acciones',      label: '', center: true },
 ]
 
 // ── Estado ───────────────────────────────────────────────────────────────────
@@ -366,7 +384,7 @@ async function cargar() {
   try {
     contratos.value = await liquidacionesApi.listarContratosEnergia()
   } catch (e) {
-    error.value = e.data?.detail || 'No se pudieron cargar los contratos de energía.'
+    error.value = mensajeDeError(e, 'No se pudieron cargar los contratos de energía.')
     contratos.value = []
   } finally {
     loading.value = false
@@ -392,8 +410,7 @@ async function cargarCatalogos() {
     empresasOptions.value = []
     preciosOptions.value = []
     toast.warning('Catálogos no disponibles', {
-      description: e.data?.detail
-        || 'No se pudieron cargar comercializadores ni precios de energía.',
+      description: mensajeDeError(e, 'No se pudieron cargar comercializadores ni precios de energía.'),
       duration: 5000,
     })
   }
@@ -416,6 +433,8 @@ async function cargarProyectos() {
 // ── Formulario ───────────────────────────────────────────────────────────────
 const formVisible = ref(false)
 const guardando = ref(false)
+// Id del contrato que se está editando; null cuando se está creando uno nuevo.
+const editandoId = ref(null)
 const f = reactive({
   fecha_desde: null,
   fecha_hasta: null,
@@ -436,7 +455,10 @@ const tarifasDisponibles = computed(() =>
 )
 watch(() => f.tipo_contrato, (nuevo) => {
   if (nuevo === 'no_contract') f.tipo_tarifa = 'market'
-  if (nuevo !== 'ppa_pay_as_generated') f.porcentaje = null
+  // Antes se borraba al salir de PLG, y como el campo estaba oculto no había
+  // forma de volver a ponerlo. Ahora se sugiere lo que la API asigna sola.
+  const sugerido = porcentajeSugerido(nuevo)
+  if (sugerido !== null) f.porcentaje = sugerido
 })
 // La tarifa de bolsa no admite precio de energía: se limpia para no mandarlo.
 watch(() => f.tipo_tarifa, (nuevo) => {
@@ -444,10 +466,42 @@ watch(() => f.tipo_tarifa, (nuevo) => {
 })
 
 function lineaVacia() {
-  return { project: null, energy_price: null, floorTexto: '', roofTexto: '' }
+  // `id`, `piso_id` y `techo_id` solo vienen al editar: dicen a qué registro de
+  // la API hacerle PATCH. Sin ellos, la línea es nueva y se crea.
+  return { id: null, piso_id: null, techo_id: null, project: null, energy_price: null, floorTexto: '', roofTexto: '' }
+}
+
+/** Las 24 horas como el texto que muestra el formulario. */
+function horasATexto(curva) {
+  return curva?.hours?.length ? curva.hours.join(', ') : ''
+}
+
+function abrirEdicion(row) {
+  editandoId.value = row.id
+  Object.assign(f, {
+    fecha_desde: row.fecha_desde ? new Date(row.fecha_desde + 'T00:00:00') : null,
+    fecha_hasta: row.fecha_hasta ? new Date(row.fecha_hasta + 'T00:00:00') : null,
+    codigo: row.codigo || '',
+    comercializador: row.empresa_id ?? null,
+    tipo_contrato: row.tipo_contrato,
+    tipo_tarifa: row.tipo_tarifa,
+    porcentaje: row.porcentaje ?? null,
+    proyectos: (row.proyectos || []).map(p => ({
+      id: p.id,
+      piso_id: p.piso?.id ?? null,
+      techo_id: p.techo?.id ?? null,
+      project: p.topico,
+      energy_price: p.precio_energia_id ?? null,
+      floorTexto: horasATexto(p.piso),
+      roofTexto: horasATexto(p.techo),
+    })),
+  })
+  if (!f.proyectos.length) f.proyectos = [lineaVacia()]
+  formVisible.value = true
 }
 
 function abrirFormulario() {
+  editandoId.value = null
   Object.assign(f, {
     fecha_desde: null, fecha_hasta: null, codigo: '', comercializador: null,
     tipo_contrato: null, tipo_tarifa: null, porcentaje: null, proyectos: [lineaVacia()],
@@ -485,9 +539,6 @@ function validar() {
   if (!f.fecha_desde || !f.fecha_hasta || !f.tipo_contrato || !f.tipo_tarifa) {
     return 'Completa fecha desde, fecha hasta, tipo de contrato y tipo de tarifa.'
   }
-  if (f.tipo_contrato !== 'no_contract' && !f.codigo.trim()) {
-    return 'El código del contrato en XM es obligatorio salvo en «Sin contrato».'
-  }
   if (f.porcentaje != null && (f.porcentaje < 0 || f.porcentaje > 1)) {
     return 'El porcentaje es una fracción entre 0 y 1.'
   }
@@ -518,27 +569,36 @@ async function guardar() {
   }
 
   guardando.value = true
+  const editando = editandoId.value
+  // En Bolsa la API exige que el precio de energía vaya vacío (§3.4).
+  const precio = l => (f.tipo_tarifa === 'market' ? undefined : (l.energy_price ?? undefined))
+  const cuerpo = {
+    date_from: fechaISO(f.fecha_desde),
+    date_to: fechaISO(f.fecha_hasta),
+    contract_type: f.tipo_contrato,
+    tariff_price_type: f.tipo_tarifa,
+    code: f.codigo.trim() || undefined,
+    company: f.comercializador ?? undefined,
+    percentage: f.porcentaje ?? undefined,
+    proyectos: f.proyectos.filter(l => l.project).map(l => ({
+      // Al editar, `id` dice que ese vínculo ya existe y hay que corregirlo en
+      // vez de crear otro; lo mismo `piso_id`/`techo_id` con las curvas.
+      ...(editando ? { id: l.id ?? undefined, piso_id: l.piso_id ?? undefined, techo_id: l.techo_id ?? undefined } : {}),
+      project: l.project,
+      energy_price: precio(l),
+      floor: esPlc.value ? parseHoras(l.floorTexto) : undefined,
+      roof: esPlc.value ? parseHoras(l.roofTexto) : undefined,
+    })),
+  }
   try {
-    await liquidacionesApi.crearContratoEnergia({
-      date_from: fechaISO(f.fecha_desde),
-      date_to: fechaISO(f.fecha_hasta),
-      contract_type: f.tipo_contrato,
-      tariff_price_type: f.tipo_tarifa,
-      code: f.codigo.trim() || undefined,
-      company: f.comercializador ?? undefined,
-      percentage: f.porcentaje ?? undefined,
-      proyectos: f.proyectos.filter(l => l.project).map(l => ({
-        project: l.project,
-        energy_price: f.tipo_tarifa === 'market' ? undefined : (l.energy_price ?? undefined),
-        floor: esPlc.value ? parseHoras(l.floorTexto) : undefined,
-        roof: esPlc.value ? parseHoras(l.roofTexto) : undefined,
-      })),
-    })
-    toast.success('Contrato creado', { duration: 4000 })
+    if (editando) await liquidacionesApi.editarContratoEnergia(editando, cuerpo)
+    else await liquidacionesApi.crearContratoEnergia(cuerpo)
+    toast.success(editando ? 'Contrato actualizado' : 'Contrato creado', { duration: 4000 })
     formVisible.value = false
     await cargar()
   } catch (e) {
-    toast.error('No se pudo crear', { description: e.data?.detail || e.message, duration: 10000 })
+    toast.error(editando ? 'No se pudo guardar' : 'No se pudo crear',
+                { description: mensajeDeError(e), duration: 10000 })
   } finally {
     guardando.value = false
   }

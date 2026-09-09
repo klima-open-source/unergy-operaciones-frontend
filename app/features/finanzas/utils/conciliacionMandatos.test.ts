@@ -9,7 +9,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  AUTOCONSUMO_ACC_PREFIXES,
   conceptoDesdeEtiqueta,
+  OPCIONES_AUTOCONSUMO,
   expandirAbreviaturas,
   extractMandate,
   matchIngresoConceptos,
@@ -723,5 +725,70 @@ describe('ingresos por concepto', () => {
     expect(m.vals['ARRANQUE Y PARADA']).toBe(612972)
     expect(m.vals['SERVICIOS DESPACHO Y COORDINACION CND']).toBe(387327)
     expect(m.vals['I V A SIC']).toBe(26283)
+  })
+})
+
+// 20) AUTOCONSUMO usa OTRAS CUENTAS — bug real (2026-09-09): el botón «Ejecutar
+//     Conciliación» nunca se habilitaba en la sub-pestaña AUTOCONSUMO. La vista
+//     llamaba `parseIngresos(matriz)` sin cuenta, así que filtraba por 28150505,
+//     que en autoconsumo no existe: 0 grupos → botón deshabilitado para siempre.
+//
+//     Las cuentas de autoconsumo, verificadas contra el soporte real de agosto
+//     de 2026 (AUTOCONSUMO AGOSTO 2026.xlsx, 90 líneas):
+//
+//       28150508  VALORES RECIBIDOS PARA TERCEROS - AUTOCONSUMO  → Ingreso Bruto
+//       28150502  INTERESES POR MORA                             → Interés
+//       28151305  CLIENTES NACIONALES - AUTOCONSUMO              → retenciones
+//
+//     El PDF del mandato lista «Ingreso Bruto (Suma)» + «Interés (Suma)» =
+//     «Valor a pagar», así que la conciliación suma las dos primeras. Las
+//     retenciones (retefuente e ICA) NO entran: no aparecen en el mandato.
+//     Y hay una segunda trampa: en autoconsumo la CONTRAPARTIDA vive en la
+//     MISMA cuenta. Cada proyecto sale dos veces en la 28150508 — el cliente al
+//     debe y SUNO (el mandante) al haber, por el mismo importe. La fusión
+//     operador→inversionista de ingresos las anulaba entre sí y dejaba de
+//     residuo justo la retención. Por eso autoconsumo no fusiona y se queda con
+//     el lado por pagar (neto < 0), que es el del mandante: es a él a quien va
+//     dirigido el mandato.
+describe('parseIngresos con las cuentas de AUTOCONSUMO', () => {
+  // Cifras reales de CMU1160 (Almacen Amc Sas), soporte de agosto 2026.
+  const rows = [
+    ['Asiento contable', 'Cuenta', 'Asociado', 'Etiqueta', 'Debe', 'Haber'],
+    // El cliente, al debe.
+    ['CM/2026/09/0001', '28150508 VALORES RECIBIDOS PARA TERCEROS - AUTOCONSUMO', 'ALMACEN AMC SAS', 'AGOSTO 2026 PROY ALMACEN AMC SAS INGRESO BRUTO', 4724156.57, 0],
+    ['CM/2026/09/0001', '28150502 INTERESES POR MORA', 'ALMACEN AMC SAS', 'AGOSTO 2026 PROY ALMACEN AMC SAS INTERES', 183486.18, 0],
+    // El mandante, al haber: el espejo, en la MISMA cuenta.
+    ['CM/2026/09/0001', '28150508 VALORES RECIBIDOS PARA TERCEROS - AUTOCONSUMO', 'SUNO ACTIVOS SOSTENIBLES S.A.S', 'AGOSTO 2026 PROY ALMACEN AMC SAS INGRESO BRUTO', 0, 4724156.57],
+    ['CM/2026/09/0001', '28150508 VALORES RECIBIDOS PARA TERCEROS - AUTOCONSUMO', 'SUNO ACTIVOS SOSTENIBLES S.A.S', 'AGOSTO 2026 PROY ALMACEN AMC SAS INTERES', 0, 183486.18],
+    // Retenciones: no aparecen en el mandato, no deben contar.
+    ['CM/2026/09/0001', '28151305 CLIENTES NACIONALES - AUTOCONSUMO', 'ALMACEN AMC SAS', 'AGOSTO 2026 PROY ALMACEN AMC SAS RETENCION EN LA FUENTE', 0, 150227],
+  ]
+
+  it('con la cuenta de ingresos no encuentra nada: eso dejaba el botón muerto', () => {
+    expect(parseIngresos(rows)).toHaveLength(0)
+  })
+
+  it('devuelve el lado del mandante: Ingreso Bruto + Interés, sin retenciones', () => {
+    const grupos = parseIngresos(rows, AUTOCONSUMO_ACC_PREFIXES, OPCIONES_AUTOCONSUMO)
+    expect(grupos).toHaveLength(1)
+    expect(grupos[0]!.asociado).toContain('SUNO')
+    expect(grupos[0]!.planta).toBe('ALMACEN AMC SAS')
+    // 4.724.157 + 183.486 = 4.907.643, sin los 150.227 de retención.
+    expect(Math.round(Math.abs(grupos[0]!.valor_contabilidad))).toBe(4907643)
+  })
+
+  it('sin las opciones de autoconsumo la fusión deja solo el residuo', () => {
+    // La regresión exacta: cliente y mandante se anulaban y quedaba ~0.
+    const grupos = parseIngresos(rows, AUTOCONSUMO_ACC_PREFIXES)
+    expect(grupos).toHaveLength(0)
+  })
+
+  it('ingresos sigue fusionando operador→inversionista como siempre', () => {
+    const ing = [
+      ['Asiento contable', 'Cuenta', 'Asociado', 'Etiqueta', 'Debe', 'Haber'],
+      ['CM/1', '28150505 INGRESO DE ENERGIA', 'RODRIGUEZ VELEZ BEATRIZ', 'INGRESO BRUTO MINIGRANJA SOLAR URUACO ABRIL 2026 TERPEL', 0, 3712635.47],
+      ['CM/1', '28150505 INGRESO DE ENERGIA', 'RODRIGUEZ VELEZ BEATRIZ', 'COMERCIALIZACIÓN MINIGRANJA SOLAR URUACO ABRIL 2026 TERPEL', 273321.72, 0],
+    ]
+    expect(Math.round(Math.abs(parseIngresos(ing)[0]!.valor_contabilidad))).toBe(3439314)
   })
 })

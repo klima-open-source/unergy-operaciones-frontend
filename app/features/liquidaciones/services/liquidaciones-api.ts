@@ -224,6 +224,16 @@ export class LiquidacionesApiService extends BaseService {
     return this.post<unknown>(RUTAS.contratosEnergia, payload)
   }
 
+  /**
+   * Edita un contrato ya creado. Es un PATCH: lo que no se manda no se toca.
+   *
+   * Desvincular un proyecto NO se puede — la API externa no expone DELETE en
+   * ninguno de los recursos del contrato.
+   */
+  editarContratoEnergia(id: number, payload: Record<string, unknown>): Promise<unknown> {
+    return this.patch<unknown>(`${RUTAS.contratosEnergia}/${id}`, payload)
+  }
+
   // ── Acciones del ciclo ─────────────────────────────────────────────────────
 
   /** IPP del DANE. Síncrono: devuelve el valor, no una tarea. */
