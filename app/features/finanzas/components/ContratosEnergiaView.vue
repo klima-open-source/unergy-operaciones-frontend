@@ -157,11 +157,14 @@
                     class="w-full" placeholder="Seleccionar" />
           </div>
 
-          <div v-if="esPlg">
-            <label class="field-label">Porcentaje</label>
+          <div>
+            <label class="field-label">Porcentaje de despacho</label>
             <InputNumber v-model="f.porcentaje" :maxFractionDigits="4" :useGrouping="false"
                          class="w-full" placeholder="ej: 1.0" :min="0" :max="1" />
-            <p class="text-[11px] text-gray-400 mt-1">Fracción entre 0 y 1, no porcentaje. Solo PLG.</p>
+            <p class="text-[11px] text-gray-400 mt-1">
+              Fracción entre 0 y 1, no porcentaje.
+              {{ esPlg ? 'En PLG define qué parte del despacho cubre el contrato.' : 'Fuera de PLG va completo (1.0).' }}
+            </p>
           </div>
         </div>
 
@@ -255,6 +258,7 @@ import { LiquidacionesApiService } from '~/features/liquidaciones/services/liqui
 const liquidacionesApi = new LiquidacionesApiService()
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
 import { mensajeDeError } from '~/utils/mensajeDeError'
+import { porcentajeSugerido } from '~/features/finanzas/utils/contratosEnergia'
 import { CheckIcon, CircleCheckIcon, CircleXIcon, FileIcon, InfoIcon, LoaderCircleIcon, PlusIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 
 
@@ -436,7 +440,10 @@ const tarifasDisponibles = computed(() =>
 )
 watch(() => f.tipo_contrato, (nuevo) => {
   if (nuevo === 'no_contract') f.tipo_tarifa = 'market'
-  if (nuevo !== 'ppa_pay_as_generated') f.porcentaje = null
+  // Antes se borraba al salir de PLG, y como el campo estaba oculto no había
+  // forma de volver a ponerlo. Ahora se sugiere lo que la API asigna sola.
+  const sugerido = porcentajeSugerido(nuevo)
+  if (sugerido !== null) f.porcentaje = sugerido
 })
 // La tarifa de bolsa no admite precio de energía: se limpia para no mandarlo.
 watch(() => f.tipo_tarifa, (nuevo) => {
