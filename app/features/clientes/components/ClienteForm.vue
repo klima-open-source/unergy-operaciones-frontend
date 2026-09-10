@@ -6,8 +6,11 @@
         <InputText v-model="f.razon_social_nombre" class="w-full" required />
       </div>
       <div>
-        <label class="field-label">NIT / Cédula</label>
-        <InputText v-model="f.nit_cedula" class="w-full" />
+        <label class="field-label">NIT / Cédula *</label>
+        <InputText v-model="f.nit_cedula" class="w-full" required />
+        <p class="text-[11px] mt-1" style="color:#9b89b5;">
+          Se guarda solo con los números: los puntos y el guion no cambian nada.
+        </p>
       </div>
       <div>
         <label class="field-label">Tipo de persona</label>
@@ -147,6 +150,10 @@ function agregarContacto()   { f.contactos = [...f.contactos, { nombre: '', tele
 function eliminarContacto(idx) { f.contactos = f.contactos.filter((_, i) => i !== idx) }
 
 function submit() {
+  // El NIT y la razon social son obligatorios en el backend, al crear Y al
+  // editar: el NIT es la unica identidad real del cliente, y mientras fue
+  // opcional lo unico que quedaba para detectar duplicados era el nombre. Se
+  // marcan `required` arriba para que el navegador lo pida antes de la llamada.
   const payload = {}
   for (const [k, v] of Object.entries(f)) {
     if (k === 'contactos') continue
