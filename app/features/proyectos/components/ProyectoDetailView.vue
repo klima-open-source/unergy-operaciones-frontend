@@ -883,7 +883,6 @@ const SERVICIOS_CARDS = [
 const SERVICIOS_FLAGS = [
   ...SERVICIOS_CARDS,
   { key: 'srv_cgm',     label: 'CGM',     icon: ChartColumnIcon, color: '#10b981', bg: '#ecfdf5' },
-  { key: 'srv_promotor',label: 'Promotor',icon: BriefcaseIcon, color: '#8b5cf6', bg: '#f5f3ff' },
 ]
 const ESTADO_LABELS_SRV = { vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación' }
 const ESTADO_SEVERITY_SRV = { vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning' }

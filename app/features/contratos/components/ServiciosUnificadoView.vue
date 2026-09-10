@@ -711,7 +711,6 @@ const SERVICIOS_BADGES = [
   { key: 'srv_representacion', badge: 'REP',  tooltip: 'Reporte de energía producida' },
   { key: 'srv_cgm',            badge: 'CGM',  tooltip: 'Control y gestión de medición' },
   { key: 'srv_ppa',            badge: 'PPA',  tooltip: 'PPA' },
-  { key: 'srv_promotor',       badge: 'PROM', tooltip: 'Promotor' },
 ]
 
 const TIPO_LABELS = {

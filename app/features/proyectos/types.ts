@@ -109,7 +109,6 @@ export interface ProyectoConDetalle extends Proyecto {
   srv_operacion?: boolean
   srv_representacion?: boolean
   srv_cgm?: boolean
-  srv_promotor?: boolean
   [clave: string]: unknown
 }
 
