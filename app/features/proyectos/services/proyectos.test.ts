@@ -56,23 +56,27 @@ describe('ProyectosService.listarPaginado', () => {
     expect(data.total).toBe(188)
     // Sin repetidas ni huecos: la 1 y la 188 estan, y cada id aparece una vez.
     expect(new Set(data.items.map((p) => p.id)).size).toBe(188)
+    // Dos paginas, y eso mismo es la prueba de que los parametros viajaron por
+    // `query`: con el querystring armado a mano, `completarPaginas` no podia
+    // leerlos y esto era una sola llamada de 100 filas.
     expect(urls.map((u) => u.searchParams.get('page'))).toEqual(['1', '2'])
-    // Cada respuesta sigue pesando 100 filas: es lo que protege el tope.
-    expect(urls.every((u) => u.searchParams.get('size') === String(TOPE_FILAS_SERVIDOR))).toBe(true)
+    // La 1a pide lo que pidio la vista (el servidor la recorta a 100 y por eso
+    // se sabe que hay mas); la 2a ya pide de a lo que el servidor entrega.
+    expect(urls.map((u) => u.searchParams.get('size'))).toEqual([
+      '500',
+      String(TOPE_FILAS_SERVIDOR),
+    ])
   })
 
-  it('manda los parametros por query, no en la URL armada a mano', async () => {
+  it('un listado que entra en una respuesta no gasta llamadas de mas', async () => {
     const { servicio, urls } = servidor(50)
 
     await servicio.listarPaginado({ page: 1, size: 500 })
 
-    // Que el `size` llegue reescrito a 100 es justo la prueba: solo
-    // `completarPaginas` lo cambia, y solo puede cambiarlo si pudo LEER la
-    // query. Con el querystring armado a mano llegaba el 500 pedido y la
-    // respuesta volvia recortada en silencio. Una sola llamada: 50 filas caben
-    // en una respuesta y la red no pide de mas.
+    // 50 filas vuelven en la primera respuesta y no llegan al tope: no hay
+    // señal de recorte, asi que no se pide una segunda pagina.
     expect(urls).toHaveLength(1)
-    expect(urls[0]!.searchParams.get('size')).toBe(String(TOPE_FILAS_SERVIDOR))
+    expect(urls[0]!.searchParams.get('size')).toBe('500')
   })
 
   it('conserva los filtros en todas las paginas', async () => {

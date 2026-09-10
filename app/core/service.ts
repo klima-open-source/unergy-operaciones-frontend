@@ -29,9 +29,10 @@ export class BaseService {
   /**
    * Devuelve el cuerpo de la respuesta, que es lo único que quiere quien llama.
    *
-   * Pasa por `completarPaginas`: si se pidieron más filas de las que el
-   * servidor entrega por respuesta (100, ver `api/pagination.py`), pide las
-   * páginas que falten y las junta. Va acá y no en cada service porque son 52
+   * Pasa por `completarPaginas`: si se pidieron más filas y el servidor las
+   * recortó (100 por respuesta en los listados de DRF, ver `api/pagination.py`),
+   * pide las páginas que falten y las junta. Si el endpoint las sirvió todas de
+   * una, no hace nada. Va acá y no en cada service porque son 52
    * llamadas de este frontend las que piden más de 100, y todas fueron
    * escritas para recibir la lista completa -- filtran y cuentan en el
    * navegador. Con el recorte silencioso del servidor, cada una mostraba las

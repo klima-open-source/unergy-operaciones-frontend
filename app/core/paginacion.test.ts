@@ -143,7 +143,10 @@ describe('paginacion por skip/limit (los listados que paginan a mano)', () => {
     const { pedir, consultas } = servidorPelado(247)
     const filas = await completarPaginas(pedir, { query: { limit: 500 } })
     expect(filas).toHaveLength(247)
-    expect(consultas.map((q) => q.skip)).toEqual([0, 100, 200])
+    // La 1a va tal como la pidio quien llamo (sin `skip`, con su `limit`); solo
+    // las siguientes desplazan, y de a lo que el servidor demostro entregar.
+    expect(consultas.map((q) => q.skip)).toEqual([undefined, 100, 200])
+    expect(consultas.map((q) => q.limit)).toEqual([500, 100, 100])
   })
 
   it('respeta el skip inicial de quien llamo', async () => {
@@ -164,6 +167,63 @@ describe('paginacion por skip/limit (los listados que paginan a mano)', () => {
     const filas = await completarPaginas(pedir, { query: { limit: 500 } })
     expect(filas).toHaveLength(0)
     expect(pedir).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('un endpoint que sirve el total de una', () => {
+  // Los cuatro que aceptan `limit` hasta 500 y lo sirven completo:
+  // /informes, /informes/envios, /contratos-servicio, /ppa. No hay nada que
+  // completar y no se les puede pedir una 2a pagina: no entienden `skip`.
+
+  /** Sirve hasta `limit` filas de una, y NUNCA mira `skip`. */
+  function servidorSinDesplazamiento(totalFilas: number, topePropio = 500) {
+    const consultas: Consulta[] = []
+    const pedir = vi.fn(async (options: AirOptions): Promise<Fila[]> => {
+      const q = (options?.query ?? {}) as Consulta
+      consultas.push(q)
+      const cuantas = Math.min(Number(q.limit ?? 50), topePropio, totalFilas)
+      return Array.from({ length: cuantas }, (_, i) => ({ id: i }))
+    })
+    return { pedir, consultas }
+  }
+
+  it('una sola llamada, con el limit que se pidio', async () => {
+    const { pedir, consultas } = servidorSinDesplazamiento(500)
+    const filas = await completarPaginas(pedir, { query: { limit: 500 } })
+    expect(filas).toHaveLength(500)
+    expect(pedir).toHaveBeenCalledTimes(1)
+    expect(consultas[0]!.limit).toBe(500)
+  })
+
+  it('menos filas que el tope: no pide una segunda pagina', async () => {
+    const { pedir } = servidorSinDesplazamiento(137)
+    const filas = await completarPaginas(pedir, { query: { limit: 500 } })
+    expect(filas).toHaveLength(137)
+    expect(pedir).toHaveBeenCalledTimes(1)
+  })
+
+  it('si recorta justo en el tope e ignora el skip, no apila copias', async () => {
+    // El bug del historial del Reporte CGM: 5 paginas identicas de 100 filas
+    // apiladas daban "500 envios" que eran 100 repetidos cinco veces, y cada
+    // destinatario aparecia cinco veces dentro de su lote.
+    const { pedir } = servidorSinDesplazamiento(1000, TOPE_FILAS_SERVIDOR)
+    const filas = await completarPaginas(pedir, { query: { limit: 500 } })
+
+    expect(filas).toHaveLength(TOPE_FILAS_SERVIDOR)
+    expect(new Set(filas.map((f) => f.id)).size).toBe(TOPE_FILAS_SERVIDOR)
+    // Se detecta en la 2a: no se gastan las 5 llamadas para descubrirlo.
+    expect(pedir).toHaveBeenCalledTimes(2)
+  })
+
+  it('lo detecta tambien con filas sin id, comparando la pagina entera', async () => {
+    // Sin `id` no se puede deduplicar fila por fila sin riesgo de tirar una
+    // legitima, asi que la senal es que la pagina llego identica a la anterior.
+    const pedir = vi.fn(async (): Promise<{ nombre: string }[]> =>
+      Array.from({ length: TOPE_FILAS_SERVIDOR }, () => ({ nombre: 'Afinia' })),
+    )
+    const filas = await completarPaginas(pedir, { query: { limit: 500 } })
+    expect(filas).toHaveLength(TOPE_FILAS_SERVIDOR)
+    expect(pedir).toHaveBeenCalledTimes(2)
   })
 })
 
