@@ -145,12 +145,24 @@
             {{ data.operador_comercial || data.operador_red || '—' }}
           </template>
         </Column>
-        <Column field="capacidad_efectiva_mw" header="Cap. MW" sortable style="min-width: 100px">
+        <Column field="proyecto_potencia_instalada_mw" header="Cap. MW" sortable style="min-width: 100px">
           <template #body="{ data }">
-            {{ data.capacidad_efectiva_mw ? Number(data.capacidad_efectiva_mw).toFixed(3) : '—' }}
+            <span v-if="capacidadMw(data) !== null">{{ capacidadMw(data).toFixed(3) }}</span>
+            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
           </template>
         </Column>
-        <Column field="municipio" header="Municipio" sortable style="min-width: 130px" />
+        <Column field="proyecto_municipio" header="Municipio" sortable style="min-width: 130px">
+          <template #body="{ data }">
+            <span v-if="data.proyecto_municipio">{{ data.proyecto_municipio }}</span>
+            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
+          </template>
+        </Column>
+        <Column field="proyecto_departamento" header="Departamento" sortable style="min-width: 130px">
+          <template #body="{ data }">
+            <span v-if="data.proyecto_departamento">{{ data.proyecto_departamento }}</span>
+            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
+          </template>
+        </Column>
         <Column header="" style="width: 90px">
           <template #body="{ data }">
             <Button text rounded size="small" severity="secondary" @click="editFrontera(data)" v-tooltip="'Editar'">
@@ -501,7 +513,8 @@ const filteredFronteras = computed(() => {
       (f.proyecto_nombre || '').toLowerCase().includes(s) ||
       (f.operador_red || '').toLowerCase().includes(s) ||
       (f.operador_comercial || '').toLowerCase().includes(s) ||
-      (f.municipio || '').toLowerCase().includes(s)
+      (f.proyecto_municipio || '').toLowerCase().includes(s) ||
+      (f.proyecto_departamento || '').toLowerCase().includes(s)
     )
   }
   return list
@@ -522,6 +535,42 @@ function generaDeVerdad(f) {
   return TIPOS_GENERACION.includes(f.tipo_frontera) && f.generando_actual === true
 }
 
+// La capacidad y la ubicacion son del PROYECTO, no de la frontera. Las columnas
+// `capacidad_efectiva_mw`/`municipio`/`departamento` de `fronteras` se
+// eliminaron el 2026-08-25 por ser una segunda copia del mismo dato (52 de 53
+// fronteras de generacion tenian la capacidad identica a
+// `potencia_instalada_kwp` del proyecto, solo con la conversion kWp->MW; ver
+// app/schemas/fronteras.py). La API manda el dato del proyecto como
+// `proyecto_potencia_instalada_mw` / `proyecto_municipio` /
+// `proyecto_departamento`, pero esta vista siguio leyendo los nombres viejos:
+// las dos columnas mostraban "—" en todas las filas, la tarjeta de capacidad
+// total daba 0.0, el buscador por municipio no encontraba nada y el Excel
+// exportaba las columnas vacias.
+
+/** Los MW del proyecto, solo en fronteras de generacion -- es la regla que
+ *  tenia la columna vieja, que no traia dato para consumo ni auxiliar. Se usa
+ *  `TIPOS_GENERACION` (el mismo criterio que "Generando actualmente" de esta
+ *  vista) para que una frontera Gen+Consumo no muestre capacidad en un lado y
+ *  no en el otro. `null` cuando no aplica o el proyecto no tiene potencia. */
+function capacidadMw(f) {
+  if (!TIPOS_GENERACION.includes(f.tipo_frontera)) return null
+  const mw = Number(f.proyecto_potencia_instalada_mw)
+  return Number.isFinite(mw) && mw > 0 ? mw : null
+}
+
+/** La capacidad total, sumada POR PROYECTO y no por fila: un proyecto con dos
+ *  fronteras de generacion aporta sus MW una vez, no dos. */
+function capacidadTotalMw(lista) {
+  const porProyecto = new Map()
+  for (const f of lista) {
+    const mw = capacidadMw(f)
+    if (mw === null) continue
+    // Sin `proyecto_id` no hay con quien agrupar: la fila cuenta por si sola.
+    porProyecto.set(f.proyecto_id ?? `sin-proyecto:${f.id}`, mw)
+  }
+  return [...porProyecto.values()].reduce((suma, mw) => suma + mw, 0)
+}
+
 const stats = computed(() => {
   const all = fronteras.value
   return [
@@ -529,7 +578,7 @@ const stats = computed(() => {
     { label: 'Activas', value: all.filter(f => f.estado === 'activa').length, color: '#10B981' },
     { label: 'En registro', value: all.filter(f => f.estado === 'en_registro').length, color: '#F0C040' },
     { label: 'Generando actualmente', value: all.filter(generaDeVerdad).length, color: '#3B82F6', clave: 'generando' },
-    { label: 'Cap. total MW', value: all.reduce((s, f) => s + (Number(f.capacidad_efectiva_mw) || 0), 0).toFixed(1), color: '#915BD8' },
+    { label: 'Cap. total MW', value: capacidadTotalMw(all).toFixed(1), color: '#915BD8' },
   ]
 })
 
@@ -558,8 +607,9 @@ async function descargarExcel() {
     { header: 'Serial Medidor Principal', value: f => f.nro_serie_med_ppal || '' },
     { header: 'Serial Medidor Respaldo', value: f => f.nro_serie_med_resp || '' },
     { header: 'Operador', value: f => f.operador_comercial || f.operador_red || '' },
-    { header: 'Cap. MW', value: f => f.capacidad_efectiva_mw ? Number(f.capacidad_efectiva_mw).toFixed(3) : '' },
-    { header: 'Municipio', value: f => f.municipio || '' },
+    { header: 'Cap. MW', value: f => (capacidadMw(f) !== null ? capacidadMw(f).toFixed(3) : '') },
+    { header: 'Municipio', value: f => f.proyecto_municipio || '' },
+    { header: 'Departamento', value: f => f.proyecto_departamento || '' },
   ], `fronteras_${new Date().toISOString().slice(0, 10)}.xlsx`, 'Fronteras')
 }
 

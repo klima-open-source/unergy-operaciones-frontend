@@ -41,8 +41,22 @@ export interface Frontera {
   /** Quién representa la frontera ante el mercado. */
   operador_comercial: string | null
 
-  municipio: string | null
-  capacidad_efectiva_mw: number | null
+  /**
+   * Ubicacion y capacidad son del PROYECTO, con el prefijo que lo dice.
+   *
+   * `fronteras` tenia sus propias columnas `municipio`, `departamento` y
+   * `capacidad_efectiva_mw`; se eliminaron el 2026-08-25 porque duplicaban el
+   * dato del proyecto (52 de 53 fronteras de generacion tenian la capacidad
+   * identica a `potencia_instalada_kwp`, solo con la conversion kWp->MW; ver
+   * `app/schemas/fronteras.py`). Este tipo siguio declarandolas, asi que
+   * `FronterasView` podia leer `f.municipio` y `f.capacidad_efectiva_mw` --
+   * claves que ya no llegan -- sin que el typecheck dijera nada: las dos
+   * columnas mostraban "—" en todas las filas y la capacidad total daba 0.
+   */
+  proyecto_municipio: string | null
+  proyecto_departamento: string | null
+  /** kWp del proyecto convertidos a MW por el backend. */
+  proyecto_potencia_instalada_mw: number | null
   fecha_registro_asic: FechaISO | null
 
   /** Si está inyectando ahora mismo. Lo calcula el backend contra el monitoreo. */
