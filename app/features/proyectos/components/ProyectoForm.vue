@@ -62,6 +62,12 @@
         <label class="field-label">Longitud</label>
         <InputNumber v-model="f.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" placeholder="-75.881000" />
       </div>
+      <!-- El backend acota la altitud a -100..6000 msnm (Colombia llega a ~5.700
+           en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
+      <div>
+        <label class="field-label">Altitud (msnm)</label>
+        <InputNumber v-model="f.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" placeholder="35" />
+      </div>
       <!-- Ortogonal al tipo y a la clasificación: cualquier planta puede o no
            pertenecer a una comunidad energética. -->
       <div>
@@ -205,6 +211,7 @@ const f = reactive({
   direccion_vereda: null,
   latitud: null,
   longitud: null,
+  altitud_msnm: null,
   operador_red_id: null,
   clasificacion_regulatoria: null,
   carpeta_drive_codigo: null,

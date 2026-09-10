@@ -89,6 +89,16 @@
               <Select v-model="editForm.municipio" :options="municipiosDisponibles" class="w-full" placeholder="Seleccionar" showClear filter
                 :disabled="!editForm.departamento" />
             </div>
+            <!-- La Ubicación se edita donde se lee. Estos dos campos habían
+                 quedado en Técnico cuando la vista de lectura pasó a General. -->
+            <div class="flex flex-col gap-1">
+              <label class="field-label">Dirección</label>
+              <InputText v-model="editForm.direccion_vereda" class="w-full" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="field-label">Link Google Maps</label>
+              <InputText v-model="editInfoTecnica.url_ubicacion" class="w-full" placeholder="https://maps.app.goo.gl/..." />
+            </div>
             <div class="flex flex-col gap-1">
               <label class="field-label">Operador de red</label>
               <Select v-model="editForm.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
@@ -173,6 +183,7 @@
                 <InfoField label="Producción específica (kWh/kWp)" :value="proyecto.produccion_especifica_kwh_kwp" />
                 <InfoField label="Latitud" :value="proyecto.latitud" />
                 <InfoField label="Longitud" :value="proyecto.longitud" />
+                <InfoField label="Altitud (msnm)" :value="proyecto.altitud_msnm" />
               </div>
             </div>
             <!-- Paneles -->
@@ -244,14 +255,6 @@
                   <InputNumber v-model="editForm.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Dirección</label>
-                  <InputText v-model="editForm.direccion_vereda" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="field-label">Link Google Maps</label>
-                  <InputText v-model="editInfoTecnica.url_ubicacion" class="w-full" placeholder="https://maps.app.goo.gl/..." />
-                </div>
-                <div class="flex flex-col gap-1">
                   <label class="field-label">RETIE (link Drive)</label>
                   <InputText v-model="editInfoTecnica.retie_url" class="w-full" placeholder="https://drive.google.com/..." />
                 </div>
@@ -280,6 +283,10 @@
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Producción específica (kWh/kWp)</label>
                   <InputNumber v-model="editForm.produccion_especifica_kwh_kwp" :maxFractionDigits="2" locale="en-US" class="w-full" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="field-label">Altitud (msnm)</label>
+                  <InputNumber v-model="editForm.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" />
                 </div>
               </div>
             </div>
@@ -950,6 +957,13 @@ const editForm = reactive({
   municipio: null,
   latitud: null,
   longitud: null,
+  // `altitud_msnm` y `direccion_vereda` faltaban acá, y `populateEditForm` solo
+  // llena las claves declaradas: la Dirección aparecía SIEMPRE vacía al entrar
+  // en edición aunque el proyecto la tuviera, y la altitud no se podía editar
+  // desde ninguna parte (el campo existe en la base y en la API desde que se
+  // eliminó `fronteras.altitud_msnm`, pero se perdió al migrar la ficha).
+  altitud_msnm: null,
+  direccion_vereda: null,
   operador_red_id: null,
   clasificacion_regulatoria: null,
   carpeta_drive_codigo: null,
