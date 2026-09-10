@@ -34,6 +34,19 @@
             <InfoField label="Capacidad instalada (kWp)" :value="proyecto.info_tecnica?.capacidad_instalada_kwp" />
             <InfoField label="Departamento" :value="proyecto.departamento" />
             <InfoField label="Municipio" :value="proyecto.municipio" />
+            <!-- Dirección y mapa, junto al resto de la ubicación. Estaban en la
+                 pestaña Técnico, lejos de Departamento y Municipio. -->
+            <div class="flex flex-col gap-1">
+              <p class="text-xs text-gray-400 uppercase tracking-wide">Ubicación</p>
+              <p v-if="proyecto.direccion_vereda" class="text-gray-700">{{ proyecto.direccion_vereda }}</p>
+              <a v-if="proyecto.info_tecnica?.url_ubicacion" :href="proyecto.info_tecnica.url_ubicacion"
+                 target="_blank" rel="noopener"
+                 class="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs">
+                <MapPinIcon class="size-[1em]" /> Ver en Google Maps
+              </a>
+              <span v-if="!proyecto.direccion_vereda && !proyecto.info_tecnica?.url_ubicacion"
+                    class="text-gray-400">—</span>
+            </div>
             <InfoField label="Operador de red" :value="proyecto.operador_red_legal || proyecto.operador_red" />
             <InfoField label="Clasificación" :value="proyecto.clasificacion_regulatoria" />
             <InfoField label="Carpeta Drive" :value="proyecto.carpeta_drive_codigo" />
@@ -139,18 +152,8 @@
 
           <!-- Vista lectura -->
           <template v-if="!isEditMode">
-            <!-- Ubicación -->
-            <div v-if="proyecto.direccion_vereda || proyecto.info_tecnica?.url_ubicacion">
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ubicación</p>
-              <div class="space-y-1">
-                <p v-if="proyecto.direccion_vereda" class="text-gray-700">{{ proyecto.direccion_vereda }}</p>
-                <a v-if="proyecto.info_tecnica?.url_ubicacion" :href="proyecto.info_tecnica.url_ubicacion"
-                   target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs">
-                  <MapPinIcon class="size-[1em]" /> Ver en Google Maps
-                </a>
-              </div>
-            </div>
+            <!-- La Ubicación vive en la pestaña General, junto a Departamento y
+                 Municipio: es dónde está la planta, no cómo está construida. -->
             <!-- Documentación -->
             <div v-if="proyecto.info_tecnica?.retie_url">
               <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Documentación</p>
