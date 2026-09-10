@@ -775,8 +775,10 @@ const filasPorPagina = computed(() => (compacta.value ? 100 : 50))
 // Ningún ángulo lleva fila de filtros, así que todos disponen del mismo alto.
 const scrollHeight = 'calc(100vh - 250px)'
 
-// Tope de `size` en /proyectos y /clientes: 501 devuelve 422, no una lista
-// corta. Mientras no haya paginacion de servidor, avisamos si se corta.
+// Cuantas filas pide esta vista de una sola vez. El servidor entrega 100 por
+// respuesta y `completarPaginas` (`~/core/paginacion.ts`) junta las que falten,
+// asi que pedir 500 trae hasta 500 filas completas. Mientras no haya
+// paginacion de servidor en esta tabla, avisamos si el total las pasa.
 const TOPE_PAGINA = 500
 
 function avisarSiTrunca(total, mostrados, etiqueta) {

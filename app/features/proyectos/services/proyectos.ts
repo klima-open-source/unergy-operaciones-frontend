@@ -64,11 +64,18 @@ export class ProyectosService extends BaseService {
    * portafolio y PPA (por contrato especifico, `ppaIds`, o `sinPpa` para "sin
    * ningún contrato" — se combinan con OR, igual que en GET /proyectos).
    *
-   * El querystring se arma a mano (no con la opción `query` de `BaseService`)
-   * porque `ppa_id` viaja repetido (`ppa_id=12&ppa_id=45`, lo que espera
-   * FastAPI para `list[int]`) y no hay forma de confirmar cómo serializa
-   * `air` un array dentro de `query` sin poder instalar el paquete en este
-   * entorno — ver nota en ProyectosListView.vue::load().
+   * **Todo va por `query`, nunca en un querystring pegado a la URL.** Antes se
+   * armaba a mano y eso dejaba esta llamada fuera de `completarPaginas`
+   * (`~/core/paginacion.ts`), que para completar una lista recortada necesita
+   * poder LEER el `size` que se pidió: una query que no se puede inspeccionar
+   * pasa de largo. Sintoma: la vista unificada pedía 500 plantas, el servidor
+   * devolvía 100 con un 200 y la tabla mostraba "100 de 188" con la red de
+   * paginacion intacta al lado.
+   *
+   * `ppa_id` viaja repetido (`ppa_id=12&ppa_id=45`, lo que espera el backend
+   * para `list[int]`) y `air` lo hace solo: `buildURL` recorre el valor y hace
+   * un `append` por elemento. Un array vacío no agrega nada y un `undefined`
+   * tampoco, así que los filtros opcionales se pasan tal cual.
    */
   listarPaginado({
     page = 1,
@@ -87,13 +94,22 @@ export class ProyectosService extends BaseService {
     ppaIds?: number[]
     sinPpa?: boolean
   } = {}): Promise<Paginado<ProyectoConDetalle>> {
-    const params = new URLSearchParams({ page: String(page), size: String(size) })
-    if (estado) params.set('estado', estado)
-    if (tipo_proyecto) params.set('tipo_proyecto', tipo_proyecto)
-    if (portafolio_id) params.set('portafolio_id', String(portafolio_id))
-    for (const id of ppaIds) params.append('ppa_id', String(id))
-    if (sinPpa) params.set('sin_ppa', 'true')
-    return this.get<Paginado<ProyectoConDetalle>>(`${RUTAS.proyectos}?${params}`)
+    return this.get<Paginado<ProyectoConDetalle>>(RUTAS.proyectos, {
+      query: {
+        page,
+        size,
+        // `|| undefined` y no el valor tal cual: `air` omite un `undefined`,
+        // pero un string vacío SÍ viajaría (`estado=`), y para el backend eso
+        // es un filtro por el estado "" -- cero resultados en vez de "todos".
+        estado: estado || undefined,
+        tipo_proyecto: tipo_proyecto || undefined,
+        portafolio_id: portafolio_id || undefined,
+        ppa_id: ppaIds,
+        // Solo cuando es true: `sin_ppa=false` es un filtro pedido, no la
+        // ausencia de filtro, y el backend lo lee como bandera.
+        sin_ppa: sinPpa || undefined,
+      },
+    })
   }
 
   obtener(id: Proyecto['id']): Promise<ProyectoConDetalle> {

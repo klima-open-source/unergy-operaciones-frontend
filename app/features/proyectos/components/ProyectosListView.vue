@@ -435,6 +435,7 @@ import MultiSelect from 'primevue/multiselect'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
+import { TOPE_FILAS_SERVIDOR } from '~/core/paginacion'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import ProyectoForm from './ProyectoForm.vue'
@@ -754,6 +755,13 @@ async function loadPortafolios() {
 // silencio cuando el total supera 500 -- el bug que tenía la version anterior,
 // que nunca mandaba filtros al backend. q y Departamento siguen client-side.
 //
+// Pide paginas de TOPE_FILAS_SERVIDOR, que es lo que el servidor entrega por
+// respuesta: asi el `page` que manda esta vista significa lo mismo que el que
+// entiende el backend. Con `size: 500` la red de `completarPaginas` juntaba
+// hasta 500 filas dentro de la PRIMERA llamada, y a partir de ahi el `page++`
+// de este loop volvia a pedir desde la fila 101 -- filas repetidas en cuanto
+// el total pasara de 500. Este loop no necesita esa red: ya pagina el solo.
+//
 // `cargaVigente`: si el usuario cambia de filtro mientras load() todavia esta
 // paginando la carga anterior (varias llamadas encadenadas por filtro rapido),
 // una respuesta vieja que llega tarde ya NO debe pisar allItems con resultados
@@ -772,7 +780,7 @@ async function load() {
     for (;;) {
       const data = await proyectosService.listarPaginado({
         page,
-        size: 500,
+        size: TOPE_FILAS_SERVIDOR,
         estado: filters.estado || undefined,
         tipo_proyecto: filters.tipo_proyecto || undefined,
         portafolio_id: filters.portafolio_id || undefined,
