@@ -17,6 +17,13 @@
         <Button label="Consultar IPP" size="small" outlined :loading="accion === 'ipp'" @click="abrir('ipp')">
           <template #icon><PercentIcon class="size-[1em]" /></template>
         </Button>
+        <!-- El IPP de la API es el MISMO que usa Facturación, pero nuestra
+             tabla se llenaba a mano y se quedaba corta. Esto la pone al día. -->
+        <Button label="Guardar IPP en facturación" size="small" outlined severity="secondary"
+                :loading="sincronizandoIpp" @click="sincronizarIpp"
+                v-tooltip.bottom="'Trae el histórico del IPP del DANE y lo guarda donde lo lee Facturación'">
+          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        </Button>
         <Button label="Consultar FTP" size="small" outlined :loading="accion === 'ftp'" @click="abrir('ftp')">
           <template #icon><DownloadIcon class="size-[1em]" /></template>
         </Button>
@@ -214,6 +221,7 @@ import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import { CircleCheckIcon, CircleXIcon, DownloadIcon, LoaderCircleIcon, PercentIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
@@ -307,6 +315,42 @@ const totales = computed(() => filtrados.value.reduce(
 // El IPP del período, si ya se consultó alguna vez. Hay una fila por consulta,
 // no una por mes: el backend marca cuál es la vigente.
 const ippVigente = ref(null)
+const sincronizandoIpp = ref(false)
+
+/**
+ * Trae el histórico del IPP del DANE y lo guarda en `ipp_mensual`, que es de
+ * donde lo lee Facturación. Es el mismo número que consulta la liquidación,
+ * pero esa tabla se llenaba a mano: el 2026-09-10 le faltaban 15 meses, entre
+ * ellos el que se iba a facturar y todo el rango del que salen los `ipp_base`.
+ *
+ * Se dispara a mano a propósito: el IPP sale una vez al mes.
+ */
+async function sincronizarIpp() {
+  sincronizandoIpp.value = true
+  try {
+    const r = await liquidacionesApi.sincronizarIpp()
+    const partes = []
+    if (r.creados) partes.push(`${r.creados} mes(es) nuevo(s)`)
+    if (r.actualizados) partes.push(`${r.actualizados} corregido(s)`)
+    if (!partes.length) partes.push('ya estaba al día')
+    toast.success('IPP guardado en facturación', {
+      description: `${partes.join(' · ')}. En total hay ${r.total_en_base} meses.`,
+      duration: 6000,
+    })
+    // Un valor que CAMBIA mueve un mes que quizá ya se facturó: no puede pasar
+    // desapercibido entre el resto del resumen.
+    if (r.cambios?.length) {
+      toast.warning('Se corrigieron meses que ya existían', {
+        description: r.cambios.map(c => `${c.periodo}: ${c.antes} → ${c.ahora}`).join(' · '),
+        duration: 12000,
+      })
+    }
+  } catch (e) {
+    toast.error('No se pudo guardar el IPP', { description: mensajeDeError(e), duration: 10000 })
+  } finally {
+    sincronizandoIpp.value = false
+  }
+}
 
 function nombreMes(m) {
   return MESES.find(x => x.value === m)?.label || m
