@@ -82,8 +82,8 @@
           <div class="fmv-info-row" v-if="proyectoSel.municipio">
             <MapPinIcon class="size-[1em]" /> {{ proyectoSel.municipio }}{{ proyectoSel.departamento ? ', ' + proyectoSel.departamento : '' }}
           </div>
-          <div class="fmv-info-row" v-if="proyectoSel.potencia_instalada_kwp">
-            <SunIcon class="size-[1em]" /> {{ Number(proyectoSel.potencia_instalada_kwp).toLocaleString('es-CO') }} kW AC
+          <div class="fmv-info-row" v-if="proyectoSel.potencia_ac_kw">
+            <SunIcon class="size-[1em]" /> {{ Number(proyectoSel.potencia_ac_kw).toLocaleString('es-CO') }} kW AC
           </div>
           <div class="fmv-info-row" v-if="proyectoSel.operador_red">
             <ZapIcon class="size-[1em]" /> OR: {{ proyectoSel.operador_red }}

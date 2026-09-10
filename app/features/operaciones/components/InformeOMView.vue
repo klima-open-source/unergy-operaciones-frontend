@@ -35,7 +35,7 @@
           </div>
           <div class="om-card-meta">
             <span v-if="p.municipio || p.departamento"><MapPinIcon class="size-[1em]" /> {{ [p.municipio, p.departamento].filter(Boolean).join(', ') }}</span>
-            <span v-if="p.potencia_instalada_kwp"><ZapIcon class="size-[1em]" /> {{ fmtCapacidad(p.potencia_instalada_kwp) }}</span>
+            <span v-if="p.potencia_ac_kw"><ZapIcon class="size-[1em]" /> {{ fmtCapacidad(p.potencia_ac_kw) }}</span>
           </div>
         </button>
       </div>
@@ -74,7 +74,7 @@
           <div class="om-hero-facts">
             <div class="om-fact"><span class="om-fact-label">Cliente</span><span class="om-fact-val">{{ detalle.proyecto.nombre_clientes || '—' }}</span></div>
             <div class="om-fact"><span class="om-fact-label">Ubicación</span><span class="om-fact-val">{{ ubicacion || '—' }}</span></div>
-            <div class="om-fact"><span class="om-fact-label">Potencia AC instalada</span><span class="om-fact-val">{{ fmtCapacidad(detalle.proyecto.potencia_instalada_kwp) }}</span></div>
+            <div class="om-fact"><span class="om-fact-label">Potencia AC instalada</span><span class="om-fact-val">{{ fmtCapacidad(detalle.proyecto.potencia_ac_kw) }}</span></div>
             <div class="om-fact"><span class="om-fact-label">Puesta en marcha</span><span class="om-fact-val">{{ fmtFecha(ficha.fecha_inicio_operacion) || '—' }}</span></div>
             <div class="om-fact">
               <span class="om-fact-label">Versión</span>
@@ -873,7 +873,7 @@ async function descargarPdf() {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(44, 32, 57)
     doc.text(detalle.proyecto.nombre_comercial || '', marginX, y); y += 18
     doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(122, 110, 138)
-    doc.text([detalle.proyecto.nombre_clientes, ubicacion.value, fmtCapacidad(detalle.proyecto.potencia_instalada_kwp)].filter(Boolean).join(' · '), marginX, y); y += 14
+    doc.text([detalle.proyecto.nombre_clientes, ubicacion.value, fmtCapacidad(detalle.proyecto.potencia_ac_kw)].filter(Boolean).join(' · '), marginX, y); y += 14
     doc.text(`Versión: ${ficha.version || '—'}  ·  Elaborado por: ${ficha.elaborado_por || '—'}  ·  Puesta en marcha: ${fmtFecha(ficha.fecha_inicio_operacion) || '—'}`, marginX, y); y += 22
 
     const k = detalle.kpis

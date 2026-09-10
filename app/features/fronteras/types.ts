@@ -47,7 +47,7 @@ export interface Frontera {
    * `fronteras` tenia sus propias columnas `municipio`, `departamento` y
    * `capacidad_efectiva_mw`; se eliminaron el 2026-08-25 porque duplicaban el
    * dato del proyecto (52 de 53 fronteras de generacion tenian la capacidad
-   * identica a `potencia_instalada_kwp`, solo con la conversion kWp->MW; ver
+   * identica a `potencia_ac_kw`, solo con la conversion kWp->MW; ver
    * `app/schemas/fronteras.py`). Este tipo siguio declarandolas, asi que
    * `FronterasView` podia leer `f.municipio` y `f.capacidad_efectiva_mw` --
    * claves que ya no llegan -- sin que el typecheck dijera nada: las dos

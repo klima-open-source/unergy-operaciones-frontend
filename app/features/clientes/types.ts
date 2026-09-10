@@ -146,7 +146,7 @@ export interface ProyectoClienteResumen {
   nombre_comercial: string
   municipio?: string | null
   departamento?: string | null
-  potencia_instalada_kwp?: number | null
+  potencia_ac_kw?: number | null
   estado?: string
 }
 

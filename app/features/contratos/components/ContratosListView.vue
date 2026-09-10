@@ -152,9 +152,9 @@
             <span class="font-medium text-gray-800">{{ data.nombre_comercial }}</span>
           </template>
         </Column>
-        <Column field="potencia_instalada_kwp" header="Potencia AC (kW)" sortable style="width:130px">
+        <Column field="potencia_ac_kw" header="Potencia AC (kW)" sortable style="width:130px">
           <template #body="{ data }">
-            <span class="text-gray-600">{{ data.potencia_instalada_kwp ? Number(data.potencia_instalada_kwp).toLocaleString('es-CO') : '—' }}</span>
+            <span class="text-gray-600">{{ data.potencia_ac_kw ? Number(data.potencia_ac_kw).toLocaleString('es-CO') : '—' }}</span>
           </template>
         </Column>
         <Column field="estado" header="Estado" sortable style="width:130px">

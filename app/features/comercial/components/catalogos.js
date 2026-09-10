@@ -73,7 +73,7 @@ export async function cargarProyectos() {
       municipio: p.municipio ?? null,
       departamento: p.departamento ?? null,
       estado: p.estado ?? null,
-      potencia_instalada_kwp: p.potencia_instalada_kwp ?? null,
+      potencia_ac_kw: p.potencia_ac_kw ?? null,
     }))
     .sort((a, b) => (a.nombre_comercial || '').localeCompare(b.nombre_comercial || '', 'es'))
 }

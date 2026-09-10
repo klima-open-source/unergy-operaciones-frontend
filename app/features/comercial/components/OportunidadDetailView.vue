@@ -107,7 +107,7 @@
           <Column field="nombre_comercial" header="Nombre" />
           <Column header="Potencia AC">
             <template #body="{ data }">
-              {{ data.potencia_instalada_kwp ? `${data.potencia_instalada_kwp} kW` : '—' }}
+              {{ data.potencia_ac_kw ? `${data.potencia_ac_kw} kW` : '—' }}
             </template>
           </Column>
           <Column field="municipio" header="Municipio" />

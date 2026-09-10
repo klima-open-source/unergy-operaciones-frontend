@@ -240,7 +240,7 @@ onMounted(async () => {
 // Técnico), que requiere un proyecto_id existente, así que no son parte de `f`
 // (el payload de POST/PATCH /proyectos). El submit las emite aparte para que
 // quien las reciba haga el PUT a /proyectos/{id}/info-tecnica después de crear.
-// Ese PUT ya espeja capacidad_instalada_kwp a proyectos.potencia_instalada_kwp
+// Ese PUT ya espeja capacidad_instalada_kwp a proyectos.potencia_ac_kw
 // del lado del backend (ver app/api/v1/proyectos.py::upsert_info_tecnica) --
 // no hace falta duplicarlo aquí.
 const potenciaAcKw = ref(null)
@@ -304,7 +304,7 @@ function submit() {
   payload.fecha_operacion_mantenimiento = formatFecha(fechaOperMant.value)
   payload.fecha_entrega_proyecto = formatFecha(fechaEntrega.value)
   payload.fecha_fin_representacion = formatFecha(fechaFinRep.value)
-  // potencia_instalada_kwp NO se manda: el dual-write se quitó en d68837e
+  // potencia_ac_kw NO se manda: el dual-write se quitó en d68837e
   // porque ahora lo sincroniza el backend desde info-tecnica.
   // Comunidad energética: el flag viaja siempre (el bucle de arriba lo dejaría
   // fuera cuando es false) y el nombre solo si el flag está prendido, para que

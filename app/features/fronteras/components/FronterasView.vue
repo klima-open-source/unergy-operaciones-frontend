@@ -539,7 +539,7 @@ function generaDeVerdad(f) {
 // `capacidad_efectiva_mw`/`municipio`/`departamento` de `fronteras` se
 // eliminaron el 2026-08-25 por ser una segunda copia del mismo dato (52 de 53
 // fronteras de generacion tenian la capacidad identica a
-// `potencia_instalada_kwp` del proyecto, solo con la conversion kWp->MW; ver
+// `potencia_ac_kw` del proyecto, solo con la conversion kWp->MW; ver
 // app/schemas/fronteras.py). La API manda el dato del proyecto como
 // `proyecto_potencia_instalada_mw` / `proyecto_municipio` /
 // `proyecto_departamento`, pero esta vista siguio leyendo los nombres viejos:

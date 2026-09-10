@@ -942,7 +942,7 @@ const editForm = reactive({
   estado: '',
   tipo_proyecto: null,
   tipo_tecnologia: null,
-  potencia_instalada_kwp: null,
+  potencia_ac_kw: null,
   departamento: null,
   municipio: null,
   latitud: null,
@@ -1053,7 +1053,7 @@ async function descargarSimulacionExcel() {
     })
     const aoa = [
       [`Simulación de generación — ${proyecto.value.nombre_comercial || ''}`],
-      [`Potencia AC instalada: ${proyecto.value.potencia_instalada_kwp ?? '—'} kW`],
+      [`Potencia AC instalada: ${proyecto.value.potencia_ac_kw ?? '—'} kW`],
       [`Exportado: ${new Date().toLocaleString('es-CO')}`],
       [],
       header,

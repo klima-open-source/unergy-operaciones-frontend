@@ -152,8 +152,8 @@
                   <div class="text-sm" style="color:var(--color-unergy-deep)">{{ option.nombre_comercial }}</div>
                   <div class="text-[11px]" style="color:#9b89b5">
                     {{ [option.municipio, option.departamento].filter(Boolean).join(', ') || 'Sin ubicación' }}
-                    <span v-if="option.potencia_instalada_kwp">
-                      · {{ Number(option.potencia_instalada_kwp).toLocaleString('es-CO', { maximumFractionDigits: 0 }) }} kWp
+                    <span v-if="option.potencia_ac_kw">
+                      · {{ Number(option.potencia_ac_kw).toLocaleString('es-CO', { maximumFractionDigits: 0 }) }} kWp
                     </span>
                   </div>
                 </div>
