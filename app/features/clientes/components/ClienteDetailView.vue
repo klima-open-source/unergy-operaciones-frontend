@@ -1,5 +1,19 @@
 <template>
   <div class="space-y-4" v-if="cliente">
+    <!-- Dialog: nombre parecido a otro cliente (al guardar la ficha) -->
+    <Dialog v-model:visible="duplicadoVisible" header="Cliente parecido ya existe" modal class="w-full max-w-sm">
+      <p class="text-sm text-gray-700 mb-4">
+        Ya existe otro cliente con un nombre muy parecido:
+        <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
+        (ID {{ duplicadoInfo?.candidato_id }}).
+        Si de verdad son clientes distintos, puedes guardar igual.
+      </p>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancelar" severity="secondary" @click="duplicadoVisible = false" />
+        <Button label="Guardar de todos modos" :loading="forzando" @click="guardarForzado" />
+      </div>
+    </Dialog>
+
     <!-- Dialog: eliminar cliente -->
     <Dialog v-model:visible="deleteVisible" header="Eliminar cliente" modal class="w-full max-w-sm">
       <p class="text-sm text-gray-700 mb-4">
@@ -483,6 +497,7 @@ import Textarea from 'primevue/textarea'
 import DatePicker from 'primevue/datepicker'
 import InputNumber from 'primevue/inputnumber'
 import { ClientesService } from '~/features/clientes/services/clientes'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import ClienteForm from './ClienteForm.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 import ClienteResumen from './ClienteResumen.vue'
@@ -659,10 +674,49 @@ async function eliminarDocumento(doc) {
 
 // ── Info ──────────────────────────────────────────────────────────────────────
 
+// Aviso de nombre parecido al EDITAR: el backend lo revisa desde que la
+// protección dejó de ser solo del alta. Sin este camino, renombrar un cliente a
+// algo parecido a otro devolvía un 409 que esta vista no atrapaba -- una promesa
+// rechazada sin toast, o sea: el usuario creia que habia guardado.
+const duplicadoVisible = ref(false)
+const duplicadoInfo = ref(null)   // { mensaje, candidato_id, candidato_nombre }
+const pendingPayload = ref(null)
+const forzando = ref(false)
+
 async function saveInfo(payload) {
-  await clientesService.actualizar(route.params.id, payload)
-  toast.success('Información actualizada', { duration: 3000 })
-  await cargar()
+  try {
+    await clientesService.actualizar(route.params.id, payload)
+    toast.success('Información actualizada', { duration: 3000 })
+    await cargar()
+  } catch (e) {
+    if (e.status === 409 && e.data?.detail?.duplicado_nombre) {
+      duplicadoInfo.value = e.data.detail
+      pendingPayload.value = payload
+      duplicadoVisible.value = true
+      return
+    }
+    toast.error('No se pudo guardar', {
+      description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
+      duration: 6000,
+    })
+  }
+}
+
+async function guardarForzado() {
+  forzando.value = true
+  try {
+    await clientesService.actualizar(route.params.id, pendingPayload.value, true)
+    toast.success('Información actualizada', { duration: 3000 })
+    duplicadoVisible.value = false
+    await cargar()
+  } catch (e) {
+    toast.error('No se pudo guardar', {
+      description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
+      duration: 6000,
+    })
+  } finally {
+    forzando.value = false
+  }
 }
 
 async function doDelete() {
@@ -672,8 +726,10 @@ async function doDelete() {
     toast.success('Cliente eliminado', { duration: 3000 })
     router.push('/clientes')
   } catch (e) {
-    const detail = e.data?.detail || 'Error al eliminar'
-    toast.error('No se pudo eliminar', { description: detail, duration: 5000 })
+    toast.error('No se pudo eliminar', {
+      description: mensajeDeError(e, 'Error al eliminar'),
+      duration: 5000,
+    })
   } finally {
     deleting.value = false
   }

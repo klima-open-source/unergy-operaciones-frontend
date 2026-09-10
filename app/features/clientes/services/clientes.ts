@@ -83,8 +83,13 @@ export class ClientesService extends BaseService {
     return this.get<ClienteDetalle>(RUTAS.cliente(id))
   }
 
-  actualizar(id: number, payload: Partial<ClienteEditable>): Promise<unknown> {
-    return this.patch<unknown>(RUTAS.cliente(id), payload)
+  /**
+   * `forzar`: igual que en `crear`. El backend revisa el nombre parecido
+   * también al editar (antes solo al crear, así que la protección se saltaba
+   * renombrando después), y responde el mismo 409 con `duplicado_nombre`.
+   */
+  actualizar(id: number, payload: Partial<ClienteEditable>, forzar = false): Promise<unknown> {
+    return this.patch<unknown>(RUTAS.cliente(id), payload, { query: { forzar } })
   }
 
   eliminar(id: number): Promise<unknown> {
