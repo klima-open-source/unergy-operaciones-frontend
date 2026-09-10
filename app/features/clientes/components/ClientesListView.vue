@@ -84,6 +84,20 @@
     <Dialog v-model:visible="dialogVisible" header="Nuevo cliente" modal class="w-full max-w-lg">
       <ClienteForm :initial="{}" @save="onSave" @cancel="dialogVisible = false" />
     </Dialog>
+
+    <!-- Dialog: Nombre parecido a uno existente -->
+    <Dialog v-model:visible="duplicadoVisible" header="Cliente parecido ya existe" modal class="w-full max-w-sm">
+      <p class="text-sm text-gray-700 mb-4">
+        Ya existe un cliente con un nombre muy parecido:
+        <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
+        (ID {{ duplicadoInfo?.candidato_id }}).
+        Si de verdad es un cliente distinto, puedes crearlo igual.
+      </p>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancelar" severity="secondary" @click="duplicadoVisible = false" />
+        <Button label="Crear de todos modos" :loading="forzando" @click="crearForzado" />
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -104,6 +118,7 @@ import { ClientesService } from '~/features/clientes/services/clientes'
 import ClienteForm from './ClienteForm.vue'
 import { SEMAFORO, servicioLabel, fmt } from './clientesUi'
 import { formatearNombre } from '~/utils/nombreFormato'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { ChevronRightIcon, FileSpreadsheetIcon, PlusIcon, SearchIcon } from '@lucide/vue'
 
@@ -113,6 +128,12 @@ const router = useRouter()
 const items = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
+// Aviso de nombre parecido (409 estructurado del backend): se puede confirmar y
+// crear igual, reintentando con `forzar`.
+const duplicadoVisible = ref(false)
+const duplicadoInfo = ref(null)   // { mensaje, candidato_id, candidato_nombre }
+const pendingPayload = ref(null)  // payload a reintentar con forzar=true
+const forzando = ref(false)
 
 const q = ref('')
 const filtroServicios = ref([])
@@ -191,7 +212,41 @@ async function onSave(payload) {
     dialogVisible.value = false
     router.push(`/clientes/${cliente.id}`)
   } catch (e) {
-    toast.error('Error', { description: e.data?.detail, duration: 4000 })
+    // Nombre parecido: es un aviso, no un error de datos. Se ofrece crear igual.
+    // Distinto de un choque real de columna única, donde `detail` es un string.
+    if (e.status === 409 && e.data?.detail?.duplicado_nombre) {
+      duplicadoInfo.value = e.data.detail
+      pendingPayload.value = payload
+      duplicadoVisible.value = true
+      return
+    }
+    // `mensajeDeError` y no `e.data?.detail`: cuando DRF rechaza por validación
+    // no manda `detail`, manda un diccionario por campo
+    // (`{"nit_cedula": ["..."]}`), asi que la descripcion salia vacia y el
+    // toast decia "Error" sin una palabra de por que. El helper lee las tres
+    // formas del cuerpo.
+    toast.error('No se pudo crear el cliente', {
+      description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
+      duration: 6000,
+    })
+  }
+}
+
+async function crearForzado() {
+  forzando.value = true
+  try {
+    const cliente = await clientesService.crear(pendingPayload.value, true)
+    toast.success('Cliente creado', { duration: 3000 })
+    duplicadoVisible.value = false
+    dialogVisible.value = false
+    router.push(`/clientes/${cliente.id}`)
+  } catch (e) {
+    toast.error('No se pudo crear el cliente', {
+      description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
+      duration: 6000,
+    })
+  } finally {
+    forzando.value = false
   }
 }
 </script>

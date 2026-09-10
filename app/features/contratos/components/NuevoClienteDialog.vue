@@ -58,6 +58,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import { ClientesService } from '~/features/clientes/services/clientes'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import { CheckIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
@@ -112,7 +113,10 @@ async function guardar() {
     emit('creado', cliente)
     emit('update:visible', false)
   } catch (e) {
-    errores.nombre = e.data?.detail || e.message
+    // El motivo real: la validacion por campo de DRF no viene en `detail`, y el
+    // aviso de nombre parecido lo manda como objeto -- asignado tal cual, el
+    // campo mostraba "[object Object]".
+    errores.nombre = mensajeDeError(e, 'No se pudo crear el cliente.')
   } finally {
     guardando.value = false
   }

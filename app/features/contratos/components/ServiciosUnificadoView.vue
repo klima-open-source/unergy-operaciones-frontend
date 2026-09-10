@@ -650,6 +650,7 @@ import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatearNombre } from '~/utils/nombreFormato'
+import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
@@ -1450,7 +1451,14 @@ async function crearCliente(payload) {
     dialogCliente.value = false
     router.push(`/clientes/${cliente.id}`)
   } catch (e) {
-    toast.error('Error', { description: e.data?.detail, duration: 4000 })
+    // `mensajeDeError` y no `e.data?.detail`: la validacion por campo de DRF no
+    // manda `detail` y la descripcion salia vacia -- un toast que decia "Error"
+    // y nada mas. El aviso de nombre parecido (409) se lee tambien, aunque
+    // "crear de todos modos" solo esta en la pagina de Clientes.
+    toast.error('No se pudo crear el cliente', {
+      description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
+      duration: 6000,
+    })
   }
 }
 

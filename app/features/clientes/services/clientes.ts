@@ -65,11 +65,18 @@ export class ClientesService extends BaseService {
    * `razon_social_nombre` es el único campo que de verdad exige el backend; el
    * resto de `ClienteEditable` lo completa el formulario largo, pero el alta
    * rápida desde un wizard de contrato solo manda nombre, NIT y tipo.
+   *
+   * `forzar`: el backend responde 409 con `duplicado_nombre` cuando el nombre
+   * se parece a uno ya registrado (no es un choque de columna única, es un
+   * aviso); repetir con `forzar: true` lo crea igual. Mismo contrato que
+   * `ProyectosService.crear`. Sin este parámetro no había forma de salir del
+   * aviso: el diálogo mostraba "Error" y no dejaba continuar.
    */
   crear(
     payload: Partial<ClienteEditable> & Pick<ClienteEditable, 'razon_social_nombre'>,
+    forzar = false,
   ): Promise<ClienteDetalle> {
-    return this.post<ClienteDetalle>(RUTAS.clientes, payload)
+    return this.post<ClienteDetalle>(RUTAS.clientes, payload, { query: { forzar } })
   }
 
   obtener(id: number): Promise<ClienteDetalle> {

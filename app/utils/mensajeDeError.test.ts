@@ -10,26 +10,59 @@ describe('mensajeDeError', () => {
   const axiosError = (data: unknown) => ({ response: { data }, message: 'Request failed with 400' })
 
   it('lee el `detail` de siempre', () => {
-    expect(mensajeDeError(axiosError({ detail: 'No hay ids para actualizar' })))
-      .toBe('No hay ids para actualizar')
+    expect(mensajeDeError(axiosError({ detail: 'No hay ids para actualizar' }))).toBe(
+      'No hay ids para actualizar',
+    )
   })
 
   it('arma el mensaje de los errores por campo de DRF, que era lo que se perdía', () => {
-    expect(mensajeDeError(axiosError({ code: ['Este campo es requerido.'] })))
-      .toBe('code: Este campo es requerido.')
+    expect(mensajeDeError(axiosError({ code: ['Este campo es requerido.'] }))).toBe(
+      'code: Este campo es requerido.',
+    )
   })
 
   it('junta varios campos y varios mensajes por campo', () => {
-    const m = mensajeDeError(axiosError({
-      code: ['Este campo es requerido.'],
-      company: ['Este campo es requerido.'],
-    }))
+    const m = mensajeDeError(
+      axiosError({
+        code: ['Este campo es requerido.'],
+        company: ['Este campo es requerido.'],
+      }),
+    )
     expect(m).toBe('code: Este campo es requerido. · company: Este campo es requerido.')
   })
 
+  it('no prefija `non_field_errors`, que no es el nombre de un campo', () => {
+    expect(
+      mensajeDeError(
+        axiosError({
+          non_field_errors: ['Ya existe un cliente con ese NIT/cédula.'],
+        }),
+      ),
+    ).toBe('Ya existe un cliente con ese NIT/cédula.')
+  })
+
   it('acepta una lista suelta, como la que devuelve un ValidationError sin campo', () => {
-    expect(mensajeDeError(axiosError(['No se enviaron campos para actualizar'])))
-      .toBe('No se enviaron campos para actualizar')
+    expect(mensajeDeError(axiosError(['No se enviaron campos para actualizar']))).toBe(
+      'No se enviaron campos para actualizar',
+    )
+  })
+
+  it('lee el `mensaje` de un `detail` que es objeto, no [object Object]', () => {
+    // El 409 de "nombre parecido" al crear un cliente o un proyecto: el detail
+    // es estructurado porque la vista lo usa para ofrecer "crear de todos
+    // modos". El texto para el usuario esta en `mensaje`.
+    expect(
+      mensajeDeError(
+        axiosError({
+          detail: {
+            mensaje: "Ya existe un cliente con un nombre muy parecido: 'Quantum' (ID 12).",
+            duplicado_nombre: true,
+            candidato_id: 12,
+            candidato_nombre: 'Quantum',
+          },
+        }),
+      ),
+    ).toBe("Ya existe un cliente con un nombre muy parecido: 'Quantum' (ID 12).")
   })
 
   it('acepta un cuerpo que ya es texto', () => {
@@ -38,8 +71,9 @@ describe('mensajeDeError', () => {
 
   it('lee tambien el cuerpo de ofetch, que lo pone en `data`', () => {
     // main usa ofetch ($fetch) y master axios: el cuerpo cambia de sitio.
-    expect(mensajeDeError({ data: { code: ['Este campo es requerido.'] }, message: 'x' }))
-      .toBe('code: Este campo es requerido.')
+    expect(mensajeDeError({ data: { code: ['Este campo es requerido.'] }, message: 'x' })).toBe(
+      'code: Este campo es requerido.',
+    )
   })
 
   it('cae al mensaje del error cuando no hay cuerpo que leer', () => {
