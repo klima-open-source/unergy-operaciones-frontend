@@ -275,11 +275,21 @@
                   <p class="text-sm font-semibold" style="color: var(--color-unergy-deep);">{{ p.nombre_comercial }}</p>
                   <p class="text-xs" style="color: #6b5a8a;">
                     {{ [p.municipio, p.departamento].filter(Boolean).join(', ') || '—' }}
-                    <span v-if="p.potencia_instalada_kwp" class="ml-2">{{ p.potencia_instalada_kwp }} kW AC</span>
+                    <span v-if="p.potencia_ac_kw" class="ml-2">{{ p.potencia_ac_kw }} kW AC</span>
                   </p>
                 </div>
               </div>
               <div class="flex items-center gap-2">
+                <!-- Por qué esta planta está en la lista del cliente: por
+                     participación, por el contrato de servicio o por un PPA
+                     (ver `roles` en GET /clientes/{id}/proyectos). Sin esto la
+                     pestaña muestra plantas donde el cliente no tiene ninguna
+                     participación y no hay forma de saber de dónde salieron. -->
+                <span v-for="rol in (p.roles || [])" :key="rol"
+                  class="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style="background:rgba(145,91,216,0.1);color:var(--color-unergy-purple);">
+                  {{ ROL_LABELS[rol] || rol }}
+                </span>
                 <span v-if="p.estado" class="text-xs px-2 py-0.5 rounded-full font-medium"
                   :style="p.estado === 'en_operacion' ? 'background:rgba(16,185,129,0.1);color:#10B981' : 'background:rgba(240,192,64,0.1);color:#CA8A04'">
                   {{ p.estado === 'en_operacion' ? 'En operación' : p.estado }}
@@ -516,6 +526,17 @@ const deleting = ref(false)
 const activeTab = ref('resumen')   // DetalleLayout sincroniza con ?tab=
 const guardando = ref(false)
 const archivoSeleccionado = ref(null)
+
+// Por qué una planta aparece en la ficha del cliente. Los devuelve
+// `GET /clientes/{id}/proyectos` en `roles`, y son los tres caminos de
+// `proyectos_por_cliente`: participación, contrato de servicio (como quien lo
+// firma o quien lo presta) y PPA.
+const ROL_LABELS = {
+  inversionista: 'Inversionista',
+  contratante: 'Contratante',
+  prestador: 'Prestador',
+  ppa: 'PPA',
+}
 
 const tabs = [
   { key: 'resumen',    label: 'Resumen',       icon: LayoutGridIcon },
