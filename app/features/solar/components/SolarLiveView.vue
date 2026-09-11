@@ -109,7 +109,11 @@
       @end="saveOrder"
     >
       <template #item="{ element: proy }">
-        <div v-show="matchesFiltro(proy)" class="sl-project-block">
+        <div
+          v-show="matchesFiltro(proy)"
+          :ref="el => observarTarjeta(el, proy.proyecto_id)"
+          class="sl-project-block"
+        >
 
           <!-- Nombre + estado -->
           <div class="sl-project-name">
@@ -544,6 +548,55 @@ function getChartMax(id) {
 function chartOptionsInv(id) { return makeOptions('#915BD8', getChartMax(id)) }
 function chartOptionsMed(id) { return makeOptions('#D4A017', getChartMax(id)) }
 
+// ── Carga perezosa del detalle ──────────────────────────────────────────────
+//
+// El detalle de UNA tarjeta cuesta cuatro llamadas externas (la curva de
+// potencia, la generacion de hoy y los dos medidores). Pedirlo de las ~47
+// plantas eran ~188 llamadas por carga, la mayoria de tarjetas que el usuario
+// nunca bajaba a ver. Ahora se pide de las que estan en pantalla.
+//
+// El esqueleto por tarjeta ("Cargando datos...") ya existia, asi que las que
+// aun no llegaron no se ven rotas: se ven cargando, que es lo que estan.
+
+const tarjetasVisibles = new Set()
+const idDeTarjeta = new WeakMap()
+const detalleEnVuelo = new Set()
+let observador = null
+
+/** Un poco antes de que entre: para cuando el usuario llega, ya esta. */
+const MARGEN_PRECARGA = '400px'
+
+/**
+ * Cuantas tarjetas cargar sin esperar a que el observador diga nada.
+ *
+ * En la primera carga todavia no hay nada dibujado, asi que el observador no
+ * puede saber que se ve. Tres filas cubren la pantalla en cualquiera de los
+ * anchos de columna que ofrece el selector, y el observador se encarga del
+ * resto apenas se pinta.
+ */
+function tamanoPrimeraOla() {
+  return Math.min(12, Math.max(4, cols.value * 3))
+}
+
+function observarTarjeta(el, id) {
+  if (!el) return
+  idDeTarjeta.set(el, id)
+  observador?.observe(el)   // observar dos veces el mismo nodo no hace nada
+}
+
+function alCambiarVisibilidad(entradas) {
+  for (const entrada of entradas) {
+    const id = idDeTarjeta.get(entrada.target)
+    if (id == null) continue
+    if (entrada.isIntersecting) {
+      tarjetasVisibles.add(id)
+      loadDetail(id)
+    } else {
+      tarjetasVisibles.delete(id)
+    }
+  }
+}
+
 // ── Carga ─────────────────────────────────────────────────────────────────
 async function cargar() {
   loading.value = true
@@ -552,39 +605,70 @@ async function cargar() {
     proyectos.value = applyOrder(res.projects ?? [])
     lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 
-    // El boton sigue en "cargando" hasta que terminen tambien gen-hoy y los
-    // detalles. Antes `loading` se apagaba apenas respondia /monitoring, que
+    // El boton sigue en "cargando" hasta que lleguen tambien los detalles de lo
+    // que se ve. Antes `loading` se apagaba apenas respondia /monitoring, que
     // solo trae la lista y el estado: las tarjetas -- que son lo que de verdad
-    // cambia en pantalla -- seguian llegando de a 10 despues, asi que el boton
-    // decia "listo" varios segundos antes de que los numeros se movieran.
+    // cambia en pantalla -- seguian llegando despues, asi que el boton decia
+    // "listo" varios segundos antes de que los numeros se movieran.
+    //
+    // En el refresco automatico se refrescan las que estan en pantalla. Las que
+    // quedaron arriba o abajo no se vuelven a pedir hasta que se vuelvan a ver:
+    // nadie las esta mirando, y volver a pedirlas era el grueso del gasto de un
+    // refresco cada minuto.
     const ids = proyectos.value.map(p => p.proyecto_id)
+    const aCargar = tarjetasVisibles.size
+      ? ids.filter(id => tarjetasVisibles.has(id))
+      : ids.slice(0, tamanoPrimeraOla())
+
     const BATCH = 10
-    const detalles = (async () => {
-      for (let i = 0; i < ids.length; i += BATCH) {
-        await Promise.all(ids.slice(i, i + BATCH).map(id => loadDetail(id)))
-      }
-    })()
-    await detalles
+    for (let i = 0; i < aCargar.length; i += BATCH) {
+      await Promise.all(aCargar.slice(i, i + BATCH).map(id => loadDetail(id, true)))
+    }
   } catch { /* silencioso */ } finally {
     loading.value = false
   }
 }
 
-async function loadDetail(id) {
+/**
+ * El detalle de una tarjeta. `refrescar` lo vuelve a pedir aunque ya este.
+ *
+ * Sin `refrescar`, una tarjeta ya cargada no se vuelve a pedir: el observador
+ * dispara cada vez que entra y sale de pantalla, y sin esta guarda scrollear
+ * arriba y abajo pedia lo mismo una y otra vez.
+ */
+async function loadDetail(id, refrescar = false) {
+  if (!refrescar && detailMap[id] !== undefined) return
+  if (detalleEnVuelo.has(id)) return
+  detalleEnVuelo.add(id)
   try {
     detailMap[id] = await generacionSolarService.obtenerDetalle(id)
-  } catch { detailMap[id] = {} }
+  } catch {
+    // `{}` y no dejarlo sin definir: sin esto la tarjeta se queda con el
+    // esqueleto girando para siempre en vez de mostrar que no hay datos.
+    detailMap[id] = {}
+  } finally {
+    detalleEnVuelo.delete(id)
+  }
 }
 
 
 
 onMounted(() => {
+  // Sin IntersectionObserver (navegador viejo) no se rompe nada: `observador`
+  // queda en null, `observarTarjeta` no hace nada y cada carga trae la primera
+  // ola, igual que antes pero mas corta.
+  if (typeof IntersectionObserver !== 'undefined') {
+    observador = new IntersectionObserver(alCambiarVisibilidad, { rootMargin: MARGEN_PRECARGA })
+  }
   cargar()
   if (autoInterval.value) refreshTimer = setInterval(cargar, autoInterval.value)
   document.addEventListener('click', onClickOutside)
 })
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
+  observador?.disconnect()
+  observador = null
+  tarjetasVisibles.clear()
   document.removeEventListener('click', onClickOutside)
 })
 </script>
