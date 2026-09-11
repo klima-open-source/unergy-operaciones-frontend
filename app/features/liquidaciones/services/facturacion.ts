@@ -29,6 +29,7 @@ const RUTAS = {
   emitida: '/facturacion/emitida',
   bolsa: '/facturacion/bolsa',
   cumplimiento: '/facturacion/cumplimiento',
+  cumplimientoExport: '/facturacion/cumplimiento/export',
   vsDespachos: '/facturacion/vs-despachos',
   ippMensual: '/ppa/ipp/mensual',
 } as const
@@ -92,6 +93,11 @@ export class FacturacionService extends BaseService {
    */
   obtenerVsDespachos(periodo: string): Promise<RespuestaVsDespachos> {
     return this.get<RespuestaVsDespachos>(RUTAS.vsDespachos, { query: { periodo } })
+  }
+
+  /** Excel formulado del valor a indemnizar (3 hojas), generado en el backend. */
+  descargarCumplimientoExport(periodo: string): Promise<Blob> {
+    return this.get<Blob>(RUTAS.cumplimientoExport, { query: { periodo }, parse: 'blob' })
   }
 
   // ── IPP mensual (PPA) ─────────────────────────────────────────────────────────
