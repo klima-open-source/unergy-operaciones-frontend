@@ -553,6 +553,26 @@
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
                  sortField="fecha_inicio" :sortOrder="1" rowHover
                  :emptyMessage="`No hay contratos de ${servicioInfo?.label} registrados.`">
+        <!-- Proyecto va PRIMERO y con el nombre más grande: es lo que identifica
+             la fila. Un contrato de servicio se firma SOBRE una planta, así que
+             sin esta columna la tabla no dice de qué habla cada fila. Cuando el
+             contrato quedó huérfano (proyecto_id NULL) la celda es el botón para
+             arreglarlo, en vez de un "—" que no lleva a ninguna parte. -->
+        <Column field="proyecto.nombre_comercial" header="Proyecto"
+                sortable :style="esRepresentacion ? 'width:26%' : 'width:24%'">
+          <template #body="{ data }">
+            <button v-if="data.proyecto" type="button" class="celda-enlace"
+                    v-tooltip.bottom="'Ver la planta'"
+                    @click.stop="ir(rutaDeLaPlanta(data))">
+              <span class="celda-txt celda-proyecto">{{ data.proyecto.nombre_comercial }}</span>
+            </button>
+            <button v-else type="button" class="chip-huerfano"
+                    v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
+                    @click.stop="abrirAsociarProyecto(data)">
+              <LinkIcon class="size-[1em]" />Sin proyecto
+            </button>
+          </template>
+        </Column>
         <Column v-if="tiposDelServicio.length > 1" field="servicio_aplica" header="Tipo"
                 sortable style="width:11%">
           <template #body="{ data }">
@@ -563,31 +583,12 @@
             </span>
           </template>
         </Column>
-        <!-- Proyecto: un contrato de representación se firma SOBRE una planta,
-             así que sin esta columna la tabla no dice de qué habla cada fila.
-             Cuando el contrato quedó huérfano (proyecto_id NULL) la celda es el
-             botón para arreglarlo, en vez de un "—" que no lleva a ninguna
-             parte. -->
-        <Column field="proyecto.nombre_comercial" header="Proyecto"
-                sortable :style="esRepresentacion ? 'width:24%' : 'width:18%'">
-          <template #body="{ data }">
-            <button v-if="data.proyecto" type="button" class="celda-enlace"
-                    v-tooltip.bottom="'Ver la planta'"
-                    @click.stop="ir(rutaDeLaPlanta(data))">
-              <span class="celda-txt font-semibold">{{ data.proyecto.nombre_comercial }}</span>
-            </button>
-            <button v-else type="button" class="chip-huerfano"
-                    v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
-                    @click.stop="abrirAsociarProyecto(data)">
-              <LinkIcon class="size-[1em]" />Sin proyecto
-            </button>
-          </template>
-        </Column>
         <!-- La clase de planta, en columna propia: pegada al nombre competía con
              él por el ancho y no se podía ordenar ni leer en vertical. Se llama
              "Tipo de planta" y no "Tipo" porque en Operación ya hay una columna
-             Tipo, la del contrato (mantenimiento/arriendo/internet). -->
-        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:10%">
+             Tipo, la del contrato (mantenimiento/arriendo/internet). El 13% es
+             para que el encabezado entre entero: con 10% se cortaba. -->
+        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:13%">
           <template #body="{ data }">
             <span v-if="data.proyecto" class="mini-chip"
                   :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
@@ -606,8 +607,12 @@
             </span>
           </template>
         </Column>
-        <Column field="numero_contrato" header="N° contrato" sortable
-                :style="esRepresentacion ? 'width:11%' : 'width:15%'">
+        <!-- Solo en Representación: ahí el número está cargado y sirve para
+             identificar el contrato. En Operación ninguno lo trae, así que era
+             una columna de 66 guiones ocupando el 15% del ancho. El buscador de
+             la cabecera sigue mirando `numero_contrato` en las dos pestañas. -->
+        <Column v-if="esRepresentacion" field="numero_contrato" header="N° contrato" sortable
+                style="width:11%">
           <template #body="{ data }"><span class="celda-txt mono">{{ data.numero_contrato || '—' }}</span></template>
         </Column>
         <!-- Contratante y prestador salen del cuadro en Representación: el seed
@@ -1980,6 +1985,12 @@ function confirmarBorrarPpa(contrato) {
   display: block; min-width: 0; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* El nombre de la planta es lo que identifica la fila, así que va un punto más
+   grande que el resto de la celda (12px) y en semibold. El modo compacto baja
+   la tabla a 11px: acá se mantiene la misma diferencia de dos puntos. */
+.celda-proyecto { font-size: 14px; font-weight: 600; }
+.tabla--compacta .celda-proyecto { font-size: 13px; }
 
 /* Chips en una sola línea: si sobran, se recortan en vez de agrandar la fila */
 .chips-fila { display: flex; gap: 2px; overflow: hidden; min-width: 0; }
