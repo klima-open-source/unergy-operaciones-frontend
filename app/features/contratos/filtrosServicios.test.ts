@@ -147,15 +147,6 @@ describe('filtrarServicios', () => {
     ).toEqual([1, 2])
   })
 
-  it('filtra por contratante y por prestador', () => {
-    expect(
-      ids(filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, prestador: 'Solenium' })),
-    ).toEqual([3])
-    expect(
-      ids(filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, contratante: 'Unergy' })),
-    ).toEqual([3, 4])
-  })
-
   it('aísla los contratos sin proyecto asociado', () => {
     const sin = filtrarServicios(SERVICIOS, {
       ...FILTROS_SERVICIO_VACIOS,

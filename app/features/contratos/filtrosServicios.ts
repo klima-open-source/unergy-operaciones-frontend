@@ -38,8 +38,6 @@ export interface FiltrosServicio {
   estado: string | null
   inversionista: string | null
   portafolio: string | null
-  contratante: string | null
-  prestador: string | null
   proyecto: ConProyecto | null
 }
 
@@ -56,8 +54,6 @@ export const FILTROS_SERVICIO_VACIOS: FiltrosServicio = {
   estado: null,
   inversionista: null,
   portafolio: null,
-  contratante: null,
-  prestador: null,
   proyecto: null,
 }
 
@@ -100,9 +96,7 @@ export function filtrarServicios<T extends Fila>(filas: T[], f: FiltrosServicio)
       coincide(fila, 'servicio_aplica', f.tipo) &&
       coincide(fila, 'estado', f.estado) &&
       coincide(fila, 'inversionista_nombre', f.inversionista) &&
-      coincide(fila, 'portafolio', f.portafolio) &&
-      coincide(fila, 'contratante_nombre', f.contratante) &&
-      coincide(fila, 'prestador_nombre', f.prestador)
+      coincide(fila, 'portafolio', f.portafolio)
     )
   })
 }
