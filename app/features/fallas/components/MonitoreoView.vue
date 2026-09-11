@@ -1703,11 +1703,41 @@ const barGenHoyData = computed(() => ({
   ],
 }))
 
+/**
+ * De donde sale el kWh real de cada planta.
+ *
+ * El backend no siempre lo mide en el mismo lugar: manda los inversores, y si
+ * esa planta no reporto, cae al medidor de frontera y lo marca en `fuente`.
+ * Son dos puntos distintos del circuito --el medidor esta aguas abajo del
+ * cableado y el trafo, y en una planta con autoconsumo solo ve el excedente que
+ * sale a la red-- asi que ese numero no es estrictamente comparable ni con las
+ * otras barras ni con el P90 de al lado.
+ *
+ * El dato llegaba y se guardaba desde siempre (`cargarGenHoy` lo mete en cada
+ * fila), pero no se mostraba en ningun lado. La hoja de estilos de este mismo
+ * archivo tenia `.gen-fuente-badge--inv/--med/--nd` escritas y sin usar, para
+ * una tabla que no existe: esto es un grafico de barras. El lugar donde cabe la
+ * aclaracion es el tooltip, asi que las clases muertas se fueron.
+ */
+const FUENTE_DEL_DATO = {
+  inversor: 'Medido en los inversores',
+  medidor: 'Medido en la frontera — los inversores no reportaron',
+  sin_dato: 'Sin dato de inversores ni de medidor',
+}
+
 const barGenHoyOpts = {
   indexAxis: 'y', responsive: true, maintainAspectRatio: false,
   plugins: {
     legend: { position: 'top', align: 'end', labels: { font: FONT, padding: 12, boxWidth: 12, boxHeight: 12 } },
-    tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('es-CO')} kWh` } },
+    tooltip: {
+      callbacks: {
+        label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('es-CO')} kWh`,
+        // Solo bajo la barra de "Real": el P90 es una simulacion, no se mide.
+        afterLabel: ctx => (ctx.datasetIndex === 0
+          ? FUENTE_DEL_DATO[genHoyRows.value[ctx.dataIndex]?.fuente ?? 'sin_dato']
+          : undefined),
+      },
+    },
   },
   scales: {
     x: { grid: { color: GRID_COLOR }, ticks: { font: FONT, color: '#6b7280' }, border: { display: false } },
@@ -2790,32 +2820,6 @@ watch(bucket, (newBucket) => {
   border-radius: 999px;
   transition: width 0.5s cubic-bezier(.4,0,.2,1);
   min-width: 2px;
-}
-
-/* ── Badges de fuente de datos (INV / MED / S/D) ── */
-.gen-fuente-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 1px 4px;
-  border-radius: 3px;
-  margin-left: 3px;
-  vertical-align: middle;
-  cursor: default;
-}
-.gen-fuente-badge--inv {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.gen-fuente-badge--med {
-  background: #d1fae5;
-  color: #065f46;
-}
-.gen-fuente-badge--nd {
-  background: #f3f4f6;
-  color: #9ca3af;
 }
 
 /* ── Generación por proyecto — controles ── */
