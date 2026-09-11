@@ -512,7 +512,7 @@
       <!-- Todo contrato de representación pertenece a una planta. Los que no la
            tienen son un error de datos, no un estado válido: la barra los cuenta
            y deja aislarlos para irlos cerrando hasta llegar a cero. -->
-      <div v-if="esRepresentacion && nHuerfanos" class="barra-huerfanos">
+      <div v-if="nHuerfanos" class="barra-huerfanos">
         <TriangleAlertIcon class="size-[1em]" />
         <span><strong>{{ nHuerfanos }}</strong> de {{ contratosServicio.length }} contratos sin proyecto asociado</span>
         <Button :label="soloHuerfanos ? 'Ver todos' : 'Ver solo estos'" text size="small"
@@ -560,12 +560,12 @@
              Cuando el contrato quedó huérfano (proyecto_id NULL) la celda es el
              botón para arreglarlo, en vez de un "—" que no lleva a ninguna
              parte. -->
-        <Column v-if="esRepresentacion" field="proyecto.nombre_comercial" header="Proyecto"
-                sortable style="width:24%">
+        <Column field="proyecto.nombre_comercial" header="Proyecto"
+                sortable :style="esRepresentacion ? 'width:24%' : 'width:18%'">
           <template #body="{ data }">
             <button v-if="data.proyecto" type="button" class="celda-enlace"
-                    v-tooltip.bottom="'Ver representación de la planta'"
-                    @click.stop="ir(`/proyectos/${data.proyecto.id}/representacion`)">
+                    v-tooltip.bottom="'Ver la planta'"
+                    @click.stop="ir(rutaDeLaPlanta(data))">
               <span class="celda-txt font-semibold">{{ data.proyecto.nombre_comercial }}</span>
               <span class="mini-chip shrink-0"
                     :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
@@ -632,7 +632,7 @@
         <Column :style="esRepresentacion ? 'width:8%' : 'width:6%'">
           <template #body="{ data }">
             <div class="acciones">
-              <Button v-if="esRepresentacion" text size="small" severity="secondary" v-tooltip.bottom="data.proyecto ? 'Cambiar de proyecto' : 'Asociar a un proyecto'" @click.stop="abrirAsociarProyecto(data)">
+              <Button text size="small" severity="secondary" v-tooltip.bottom="data.proyecto ? 'Cambiar de proyecto' : 'Asociar a un proyecto'" @click.stop="abrirAsociarProyecto(data)">
                 <template #icon><LinkIcon class="size-[1em]" /></template>
               </Button>
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="irAEditarContratoServicio(data)">
@@ -662,13 +662,26 @@
     <Dialog v-model:visible="dialogAsociarProyecto" header="Asociar contrato a un proyecto"
             modal class="w-full max-w-lg">
       <div v-if="contratoAAsociar" class="space-y-3">
+        <!-- Los datos que sirven de pista son distintos por tipo: un contrato de
+             Operación no tiene inversionista ni código Sun Factory, y mostrarlos
+             vacíos solo estorba al decidir. -->
         <div class="rounded-lg p-3 text-xs space-y-0.5" style="background:#F7F5FB; color:#6b5a8a">
-          <p><span class="font-semibold">Inversionista:</span>
-            {{ contratoAAsociar.inversionista_nombre || '—' }}</p>
+          <template v-if="contratoAAsociar.servicio_aplica === 'representacion'">
+            <p><span class="font-semibold">Inversionista:</span>
+              {{ contratoAAsociar.inversionista_nombre || '—' }}</p>
+            <p><span class="font-semibold">Código Sun Factory:</span>
+              {{ contratoAAsociar.codigo_sun_factory || '—' }}</p>
+          </template>
+          <template v-else>
+            <p><span class="font-semibold">Tipo:</span>
+              {{ TIPO_CONTRATO_LABELS[contratoAAsociar.servicio_aplica] || contratoAAsociar.servicio_aplica }}</p>
+            <p><span class="font-semibold">Prestador:</span>
+              {{ contratoAAsociar.prestador_nombre || '—' }}</p>
+            <p><span class="font-semibold">N° de contrato:</span>
+              {{ contratoAAsociar.numero_contrato || '—' }}</p>
+          </template>
           <p><span class="font-semibold">Proyecto según el contrato:</span>
             {{ contratoAAsociar.nombre_proyecto_ref || '—' }}</p>
-          <p><span class="font-semibold">Código Sun Factory:</span>
-            {{ contratoAAsociar.codigo_sun_factory || '—' }}</p>
         </div>
         <div>
           <label class="text-xs font-semibold" style="color:#6b5a8a">Planta</label>
@@ -736,6 +749,7 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
+import { sugerirProyecto as calcularSugerencia } from '~/features/contratos/sugerirProyecto'
 import {
   ConProyecto,
   FILTROS_PPA_VACIOS,
@@ -1037,6 +1051,14 @@ function tipFalta(fila, tipo) {
 function fmtFecha(v) { return v ? String(v).slice(0, 10) : '—' }
 function num(v) { return v == null || v === '' ? '—' : Number(v).toLocaleString('es-CO') }
 function ir(path) { router.push(path) }
+
+// La ficha de la planta que corresponde al contrato: Representación y Operación
+// son pestañas distintas dentro del proyecto, y mandar a la equivocada hace
+// parecer que la planta no tiene el contrato que se acaba de ver en la tabla.
+function rutaDeLaPlanta(contrato) {
+  const seccion = contrato.servicio_aplica === 'representacion' ? 'representacion' : 'operacion'
+  return `/proyectos/${contrato.proyecto.id}/${seccion}`
+}
 
 // ── Clientes ─────────────────────────────────────────────────────────────────
 const clientes = ref([])
@@ -1459,25 +1481,15 @@ async function abrirAsociarProyecto(contrato) {
 // Sun Factory, después el número de cuatro dígitos del nombre de referencia. Es
 // una sugerencia que el operador confirma, nunca una asignación automática:
 // donde el seed ya acertó, el contrato no está huérfano.
+// El criterio vive en `~/features/contratos/sugerirProyecto` (con pruebas). Ahí
+// se agregó el emparejamiento por NOMBRE de planta, que es la única pista de los
+// contratos de Operación: muchos traen la planta escrita en `prestador_nombre`.
+// Ante dos plantas posibles no propone nada, a propósito.
 function sugerirProyecto(contrato) {
-  const sf = (contrato.codigo_sun_factory || '').trim().toLowerCase()
-  if (sf) {
-    const porTsf = proyectos.value.find(p => (p.codigo_tsf || '').trim().toLowerCase() === sf)
-    if (porTsf) {
-      proyectoElegido.value = porTsf.id
-      proyectoSugerido.value = `código Sun Factory ${contrato.codigo_sun_factory}`
-      return
-    }
-  }
-  const ref_ = contrato.nombre_proyecto_ref || ''
-  for (const num of ref_.match(/\d{4}/g) || []) {
-    const porNum = proyectos.value.find(p => (p.nombre_comercial || '').includes(num))
-    if (porNum) {
-      proyectoElegido.value = porNum.id
-      proyectoSugerido.value = `número ${num} de "${ref_}"`
-      return
-    }
-  }
+  const sugerencia = calcularSugerencia(contrato, proyectos.value)
+  if (!sugerencia) return
+  proyectoElegido.value = sugerencia.proyectoId
+  proyectoSugerido.value = sugerencia.motivo
 }
 
 async function guardarProyectoContrato() {
