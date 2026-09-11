@@ -51,6 +51,7 @@ const RUTAS = {
   ciclo: (accion: AccionCiclo | string) => `${BASE}/ciclo/${accion}`,
   cicloIpp: `${BASE}/ciclo/ipp`,
   ipp: `${BASE}/ipp`,
+  ippSincronizar: `${BASE}/ipp/sincronizar`,
   cicloDiagnostico: `${BASE}/ciclo/diagnostico`,
   proyectos: `${BASE}/proyectos`,
   proyecto: (id: number) => `${BASE}/proyectos/${id}`,
@@ -248,6 +249,22 @@ export class LiquidacionesApiService extends BaseService {
    */
   listarIpp({ year, month }: { year?: number; month?: number } = {}): Promise<unknown[]> {
     return this.get<unknown[]>(RUTAS.ipp, { query: { year, month } })
+  }
+
+  /**
+   * Trae el histórico del IPP del DANE desde la API y lo guarda en nuestra
+   * tabla, que es la que lee Facturación. Es el mismo número, pero se llenaba a
+   * mano y se quedaba corto.
+   */
+  sincronizarIpp(): Promise<{
+    creados: number
+    actualizados: number
+    sin_cambio: number
+    periodos_creados: string[]
+    cambios: { periodo: string, antes: number, ahora: number }[]
+    total_en_base: number
+  }> {
+    return this.post(RUTAS.ippSincronizar, {})
   }
 
   /** Lanza una acción asíncrona del ciclo y espera a que termine. */
