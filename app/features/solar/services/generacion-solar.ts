@@ -30,10 +30,22 @@ export class GeneracionSolarService extends BaseService {
    * `incluirSnapshot` agrega el snapshot eléctrico del medidor (voltaje,
    * corriente y potencia por fase) — lo que necesita el diagrama fasorial.
    * Cuesta una llamada extra por nodo, así que las tarjetas no lo piden.
+   *
+   * `incluir_30d: false` va SIEMPRE: la serie diaria del último mes cuesta una
+   * llamada externa por tarjeta y ninguna vista la dibuja. Lo único que la leía
+   * era `acumuladoInversores`, como segunda opción para el kWh de hoy, y esa
+   * segunda opción era además la menos confiable de las tres: viene del total
+   * que declara el proveedor, con los picos espurios adentro — que es
+   * exactamente por lo que el backend no usa ese total y recalcula el de hoy
+   * sumando solo las horas plausibles. Queda la tercera, integrar la curva de
+   * potencia, que sí pasa por ese filtro.
+   *
+   * El parámetro es opt-out y no opt-in porque el backend ya mandaba estos
+   * campos: apagarlo desde acá no toca a ningún otro consumidor.
    */
   obtenerDetalle(proyectoId: number, incluirSnapshot = false): Promise<DetalleMonitoreoSolar> {
     return this.get<DetalleMonitoreoSolar>(RUTAS.monitoringDetalle(proyectoId), {
-      query: incluirSnapshot ? { incluir_snapshot: true } : undefined,
+      query: { incluir_30d: false, ...(incluirSnapshot ? { incluir_snapshot: true } : {}) },
     })
   }
 
