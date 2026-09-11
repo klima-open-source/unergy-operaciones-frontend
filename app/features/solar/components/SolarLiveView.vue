@@ -334,7 +334,6 @@ function onFiltroComplete(e) {
 }
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
-const genHoyMap  = reactive({})   // proyecto_id → { kwh_real, fuente }
 // El P90 del dia lo manda /monitoring en cada proyecto (`p90_diario_kwh`).
 //
 // Antes se calculaba aca, y para eso esta vista se traia el listado COMPLETO de
@@ -346,22 +345,32 @@ function dailyP90(proyectoId) {
   return p?.p90_diario_kwh ?? 0
 }
 
+/**
+ * Lo generado hoy y contra que meta, para la barra inferior de cada tarjeta.
+ *
+ * Sale del DETALLE que esta misma vista ya cargo, no de `/generacion-hoy`.
+ * Ese endpoint devolvia el mismo numero por otro camino --vuelve a preguntarle
+ * a SolarView planta por planta, una o dos llamadas externas cada una-- asi que
+ * la pantalla pedia dos veces lo mismo. Y al ser dos caminos distintos podian
+ * no coincidir entre si: la tarjeta mostraba un numero arriba y otro abajo.
+ *
+ * El criterio de la fuente es el mismo que usaba el backend: mandan los
+ * inversores y el medidor es el respaldo cuando dan cero.
+ */
 function getGenHoy(id) {
-  const g    = genHoyMap[id]
-  const real = g ? +Number(g.kwh_real || 0).toFixed(1) : 0
-  const p90  = dailyP90(id)
-  const fuente = g?.fuente ?? 'sin_dato'
-  const pct  = p90 > 0 ? Math.round(real / p90 * 100) : null
-  return { real, p90, fuente, pct }
-}
+  const d = detailMap[id]
+  const inv = acumuladoInversores(d)
+  const med = acumuladoMedidor(d)
 
-async function cargarGenHoy() {
-  try {
-    const filasHoy = await generacionSolarService.obtenerGeneracionHoy()
-    for (const row of filasHoy) {
-      genHoyMap[row.proyecto_id] = { kwh_real: row.kwh_real, fuente: row.fuente }
-    }
-  } catch { /* silencioso */ }
+  let real = 0
+  let fuente = 'sin_dato'
+  if (inv > 0) { real = inv; fuente = 'inversor' }
+  else if (med > 0) { real = med; fuente = 'medidor' }
+
+  real = +Number(real).toFixed(1)
+  const p90 = dailyP90(id)
+  const pct = p90 > 0 ? Math.round(real / p90 * 100) : null
+  return { real, p90, fuente, pct }
 }
 
 // ── Auto-refresh ───────────────────────────────────────────────────────────
@@ -555,7 +564,7 @@ async function cargar() {
         await Promise.all(ids.slice(i, i + BATCH).map(id => loadDetail(id)))
       }
     })()
-    await Promise.all([cargarGenHoy(), detalles])
+    await detalles
   } catch { /* silencioso */ } finally {
     loading.value = false
   }
