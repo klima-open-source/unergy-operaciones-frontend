@@ -178,18 +178,6 @@
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-44" />
         </div>
-        <div v-if="!esRepresentacion">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Contratante</label>
-          <Select v-model="filtrosServicio.contratante" :options="opcionesContratante"
-                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-48" />
-        </div>
-        <div v-if="!esRepresentacion">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Prestador</label>
-          <Select v-model="filtrosServicio.prestador" :options="opcionesPrestador"
-                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-48" />
-        </div>
         <!-- Solo si hay más de una clase entre los contratos cargados: con una
              sola, el desplegable no seleccionaría nada distinto. -->
         <div v-if="opcionesTipoPlanta.length > 1">
@@ -198,12 +186,10 @@
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-40" />
         </div>
-        <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Proyecto</label>
-          <Select v-model="filtrosServicio.proyecto" :options="PROYECTO_OPCIONES"
-                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-40" />
-        </div>
+        <!-- Sin desplegable de "Proyecto": aislar los huérfanos sigue estando en
+             el botón "Ver solo estos" de la barra de aviso, que es de donde salió
+             y donde tiene el contexto (dice cuántos son). El filtro sigue
+             existiendo en el estado; lo que se quitó es el control duplicado. -->
         <Button v-if="nFiltrosServicioActivos" label="Limpiar filtros" text size="small"
                 @click="limpiarFiltrosServicio" />
       </template>
@@ -573,6 +559,22 @@
             </button>
           </template>
         </Column>
+        <!-- La clase de planta, en columna propia: pegada al nombre competía con
+             él por el ancho y no se podía ordenar ni leer en vertical. Se llama
+             "Tipo de planta" y no "Tipo" porque en Operación ya hay una columna
+             Tipo, la del contrato (mantenimiento/arriendo/internet). El 13% es
+             para que el encabezado entre entero: con 10% se cortaba.
+             Va junto al nombre —y antes que el tipo de contrato— porque describe
+             la PLANTA: las dos primeras columnas hablan de la misma cosa. -->
+        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:13%">
+          <template #body="{ data }">
+            <span v-if="data.proyecto" class="mini-chip"
+                  :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
+              {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
+            </span>
+            <span v-else style="color:#9b89b5">—</span>
+          </template>
+        </Column>
         <Column v-if="tiposDelServicio.length > 1" field="servicio_aplica" header="Tipo"
                 sortable style="width:11%">
           <template #body="{ data }">
@@ -581,20 +583,6 @@
               background: (TIPO_CONTRATO_COLOR[data.servicio_aplica] || '#6b7280') + '1f' }">
               {{ TIPO_CONTRATO_LABELS[data.servicio_aplica] || data.servicio_aplica || '—' }}
             </span>
-          </template>
-        </Column>
-        <!-- La clase de planta, en columna propia: pegada al nombre competía con
-             él por el ancho y no se podía ordenar ni leer en vertical. Se llama
-             "Tipo de planta" y no "Tipo" porque en Operación ya hay una columna
-             Tipo, la del contrato (mantenimiento/arriendo/internet). El 13% es
-             para que el encabezado entre entero: con 10% se cortaba. -->
-        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:13%">
-          <template #body="{ data }">
-            <span v-if="data.proyecto" class="mini-chip"
-                  :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
-              {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
-            </span>
-            <span v-else style="color:#9b89b5">—</span>
           </template>
         </Column>
         <!-- El inversionista es lo que distingue dos contratos de la misma
@@ -1408,19 +1396,12 @@ const ESTADO_CONTRATO_OPCIONES = [
   { value: 'terminado', label: 'Terminado' },
 ]
 
-const PROYECTO_OPCIONES = [
-  { value: ConProyecto.CON, label: 'Con proyecto' },
-  { value: ConProyecto.SIN, label: 'Sin proyecto' },
-]
-
 // Tipo solo aplica a Operación, que junta mantenimiento, arriendo e internet;
 // Representación tiene un único tipo y el desplegable no aportaría nada.
 const opcionesServicioTipo = computed(() =>
   tiposDelServicio.value.map(t => ({ value: t, label: TIPO_CONTRATO_LABELS[t] || t })))
 const opcionesInversionista = computed(() => opcionesDe(contratosServicio.value, 'inversionista_nombre'))
 const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'portafolio'))
-const opcionesContratante = computed(() => opcionesDe(contratosServicio.value, 'contratante_nombre'))
-const opcionesPrestador = computed(() => opcionesDe(contratosServicio.value, 'prestador_nombre'))
 
 // Los tipos se muestran con la misma etiqueta y el mismo color que el chip de la
 // columna, para que el filtro y la tabla hablen igual.
@@ -1476,8 +1457,6 @@ async function cargarContratosServicio(servicioKey) {
       tipo: tiposDelServicio.value,
       inversionista: opcionesInversionista.value.map(o => o.value),
       portafolio: opcionesPortafolio.value.map(o => o.value),
-      contratante: opcionesContratante.value.map(o => o.value),
-      prestador: opcionesPrestador.value.map(o => o.value),
       tipoPlanta: opcionesTipoPlanta.value.map(o => o.value),
     })
     soloDuplicados.value = false
