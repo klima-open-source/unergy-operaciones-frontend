@@ -290,11 +290,9 @@ import {
   inverterSeries,
   meterSeries,
 } from '~/features/solar/serieSolar'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
 
 const generacionSolarService = new GeneracionSolarService()
-const proyectosService = new ProyectosService()
 import { ChartLineIcon, ChevronDownIcon, ClockIcon, LoaderCircleIcon, MenuIcon, RefreshCwIcon, SearchIcon, SunIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
@@ -337,17 +335,15 @@ function onFiltroComplete(e) {
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
 const genHoyMap  = reactive({})   // proyecto_id → { kwh_real, fuente }
-const p90List    = ref([])        // proyectos con p90_mensual_kwh
-
-const _todayColStr = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)
-
+// El P90 del dia lo manda /monitoring en cada proyecto (`p90_diario_kwh`).
+//
+// Antes se calculaba aca, y para eso esta vista se traia el listado COMPLETO de
+// proyectos (~188, con las cinco relaciones anidadas del serializer de
+// /proyectos) para leer un array de 12 numeros de las ~47 plantas que muestra.
+// Era la peticion mas pesada de la pantalla y existia solo para eso.
 function dailyP90(proyectoId) {
-  const p   = p90List.value.find(x => x.id === proyectoId)
-  const arr = p?.p90_mensual_kwh
-  if (!arr?.length) return 0
-  const dt           = new Date(_todayColStr + 'T00:00:00')
-  const daysInMonth  = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate()
-  return +((Number(arr[dt.getMonth()]) || 0) / daysInMonth).toFixed(1)
+  const p = proyectos.value.find(x => x.proyecto_id === proyectoId)
+  return p?.p90_diario_kwh ?? 0
 }
 
 function getGenHoy(id) {
@@ -361,11 +357,7 @@ function getGenHoy(id) {
 
 async function cargarGenHoy() {
   try {
-    const [filasHoy, proyectos] = await Promise.all([
-      generacionSolarService.obtenerGeneracionHoy(),
-      proyectosService.listar({ size: 500 }),
-    ])
-    p90List.value = proyectos
+    const filasHoy = await generacionSolarService.obtenerGeneracionHoy()
     for (const row of filasHoy) {
       genHoyMap[row.proyecto_id] = { kwh_real: row.kwh_real, fuente: row.fuente }
     }
