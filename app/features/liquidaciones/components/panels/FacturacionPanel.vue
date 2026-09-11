@@ -8,9 +8,19 @@
           <component :is="s.icon" class="size-[1em]" /><span>{{ s.label }}</span>
         </button>
       </div>
-      <span class="text-[11px]" style="color:#9b8fb0">
-        Energía del despacho × tarifa PPA indexada por IPP · {{ formatPeriodo(periodo) }}
-      </span>
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Cruza lo que debe entrar por proyecto contra lo ya liquidado. Va acá,
+             fuera de las sub-pestañas, porque mezcla las dos fuentes y no
+             pertenece a ninguna de ellas. -->
+        <button class="fac-upload" :disabled="exportandoVs" @click="exportarVsDespachos">
+          <LoaderCircleIcon v-if="exportandoVs" class="text-xs size-[1em] animate-spin" />
+          <FileSpreadsheetIcon v-else class="text-xs size-[1em]" />
+          Ingresos vs. despachos
+        </button>
+        <span class="text-[11px]" style="color:#9b8fb0">
+          Energía del despacho × tarifa PPA indexada por IPP · {{ formatPeriodo(periodo) }}
+        </span>
+      </div>
     </div>
 
     <ProgressSpinner v-if="loading" class="block mx-auto my-10" />
@@ -480,6 +490,7 @@ import { toast } from 'vue-sonner'
 import { FacturacionService } from '~/features/liquidaciones/services/facturacion'
 import { fmtCOP, formatPeriodo } from '~/features/liquidaciones/utils/liquidaciones'
 import { exportarExcel } from '~/utils/exportarExcel'
+import { columnasVsDespachos, nombreArchivoVsDespachos } from '~/features/liquidaciones/utils/vsDespachos'
 import { ArrowRightIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, CircleCheckIcon, CopyIcon, DatabaseIcon, DollarSignIcon, FileIcon, FileSpreadsheetIcon, HashIcon, ImageIcon, InfoIcon, LoaderCircleIcon, MenuIcon, NetworkIcon, PercentIcon, SaveIcon, SearchIcon, TriangleAlertIcon, UploadIcon } from '@lucide/vue'
 
 const facturacionService = new FacturacionService()
@@ -523,6 +534,7 @@ const guardandoIpp = ref(false)
 const bolsa = ref({ manual: null, sugerido: null, vigente: null })
 const bolsaInput = ref(null)
 const guardandoBolsa = ref(false)
+const exportandoVs = ref(false)   // export de ingresos vs. despachos liquidados
 
 const per = computed(() => (props.periodo || '').slice(0, 7))
 const añoMes = computed(() => { const [a, m] = per.value.split('-').map(Number); return { a, m } })
@@ -572,6 +584,33 @@ async function exportarCumplimiento () {
   ]
   const mes = (formatPeriodo(props.periodo) || per.value).replace(/\s+/g, '_')
   await exportarExcel(cumpl.value.filas, cols, `Cumplimiento_${mes}.xlsx`, 'Cumplimiento')
+}
+// Ingresos vs. despachos: lo que DEBE entrar por proyecto contra lo que ya se
+// liquidó (despacho + venta en bolsa, sin restar las compras en bolsa). El cruce
+// lo hace el backend porque toca la API de Liquidaciones y es una regla, no una
+// vista: repetirla acá la desincronizaría.
+async function exportarVsDespachos () {
+  exportandoVs.value = true
+  try {
+    const data = await facturacionService.obtenerVsDespachos(per.value)
+    if (!data.results?.length) {
+      toast.info('Nada que exportar', { description: 'El período no tiene facturación ni despachos liquidados.', duration: 5000 })
+      return
+    }
+    await exportarExcel(data.results, columnasVsDespachos,
+      nombreArchivoVsDespachos(per.value), 'Ingresos vs despachos')
+    // Si falta el precio de bolsa, la energía sin PPA quedó sin valorizar y el
+    // «debe ingresar» de esos proyectos sale corto. Mejor decirlo que dejar que
+    // se lea como un faltante de plata.
+    if (data.resumen?.sin_valorizar) {
+      toast.warning('Hay energía sin valorizar', {
+        description: `${data.resumen.sin_valorizar} línea(s) sin tarifa, sin IPP o sin precio de bolsa. Ver la columna «kWh sin valorizar».`,
+        duration: 8000,
+      })
+    }
+  } catch (e) {
+    toast.error('No se pudo exportar', { description: e?.data?.detail || e.message, duration: 6000 })
+  } finally { exportandoVs.value = false }
 }
 // Facturas: buscador por planta / PPA / contrato / N° de factura. Para ubicar una
 // rápido sin recorrer toda la lista.

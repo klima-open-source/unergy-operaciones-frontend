@@ -17,6 +17,7 @@ import type {
   RespuestaFacturacion,
   RespuestaFacturacionDespacho,
 } from '~/features/liquidaciones/types'
+import type { RespuestaVsDespachos } from '~/features/liquidaciones/utils/vsDespachos'
 import { BaseService } from '~/core/service'
 
 const RUTAS = {
@@ -28,6 +29,7 @@ const RUTAS = {
   emitida: '/facturacion/emitida',
   bolsa: '/facturacion/bolsa',
   cumplimiento: '/facturacion/cumplimiento',
+  vsDespachos: '/facturacion/vs-despachos',
   ippMensual: '/ppa/ipp/mensual',
 } as const
 
@@ -81,6 +83,15 @@ export class FacturacionService extends BaseService {
 
   obtenerCumplimiento(periodo: string): Promise<RespuestaCumplimientoFacturacion> {
     return this.get<RespuestaCumplimientoFacturacion>(RUTAS.cumplimiento, { query: { periodo } })
+  }
+
+  /**
+   * Lo que DEBE entrar por proyecto contra lo ya liquidado en despachos.
+   * Consulta la API de Liquidaciones del lado del servidor, así que tarda más
+   * que el resto del panel.
+   */
+  obtenerVsDespachos(periodo: string): Promise<RespuestaVsDespachos> {
+    return this.get<RespuestaVsDespachos>(RUTAS.vsDespachos, { query: { periodo } })
   }
 
   // ── IPP mensual (PPA) ─────────────────────────────────────────────────────────
