@@ -118,6 +118,89 @@
               @click="limpiarFiltrosProyectos" />
     </div>
 
+    <!-- Filtros de Servicios. Misma fila fija que la de Proyectos; los controles
+         cambian según la pestaña porque las tres tablas no comparten columnas.
+         Los predicados viven en `~/features/contratos/filtrosServicios`. -->
+    <div v-if="vista === 'servicios'"
+         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
+         style="border-color:#ECE7F2">
+      <template v-if="servicio === 'ppa'">
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <Select v-model="filtrosPpa.estado" :options="VIGENCIA_OPCIONES"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <Select v-model="filtrosPpa.tipo" :options="opcionesPpaTipo"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-36" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Comprador</label>
+          <Select v-model="filtrosPpa.comprador" :options="opcionesPpaComprador"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Vendedor</label>
+          <Select v-model="filtrosPpa.vendedor" :options="opcionesPpaVendedor"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <Button v-if="nFiltrosPpaActivos" label="Limpiar filtros" text size="small"
+                @click="limpiarFiltrosPpa" />
+      </template>
+
+      <template v-else>
+        <div v-if="tiposDelServicio.length > 1">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <Select v-model="filtrosServicio.tipo" :options="opcionesServicioTipo"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-44" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <Select v-model="filtrosServicio.estado" :options="ESTADO_CONTRATO_OPCIONES"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <div v-if="esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Inversionista</label>
+          <Select v-model="filtrosServicio.inversionista" :options="opcionesInversionista"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-56" />
+        </div>
+        <div v-if="esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+          <Select v-model="filtrosServicio.portafolio" :options="opcionesPortafolio"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-44" />
+        </div>
+        <div v-if="!esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Contratante</label>
+          <Select v-model="filtrosServicio.contratante" :options="opcionesContratante"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <div v-if="!esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Prestador</label>
+          <Select v-model="filtrosServicio.prestador" :options="opcionesPrestador"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Proyecto</label>
+          <Select v-model="filtrosServicio.proyecto" :options="PROYECTO_OPCIONES"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <Button v-if="nFiltrosServicioActivos" label="Limpiar filtros" text size="small"
+                @click="limpiarFiltrosServicio" />
+      </template>
+    </div>
+
     <!-- ══════════════════ CLIENTES ══════════════════ -->
     <div v-if="vista === 'clientes'" class="tabla-caja">
       <DataTable :value="clientesFiltrados" :loading="loadingClientes" size="small"
@@ -433,7 +516,7 @@
         <TriangleAlertIcon class="size-[1em]" />
         <span><strong>{{ nHuerfanos }}</strong> de {{ contratosServicio.length }} contratos sin proyecto asociado</span>
         <Button :label="soloHuerfanos ? 'Ver todos' : 'Ver solo estos'" text size="small"
-                class="ml-auto" @click="soloHuerfanos = !soloHuerfanos" />
+                class="ml-auto" @click="alternarHuerfanos" />
       </div>
 
       <!-- Duplicados: el mismo contrato escrito por varias fuentes. Se limpian
@@ -653,6 +736,16 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
+import {
+  ConProyecto,
+  FILTROS_PPA_VACIOS,
+  FILTROS_SERVICIO_VACIOS,
+  contarActivos,
+  depurarFiltros,
+  filtrarPpa,
+  filtrarServicios,
+  opcionesDe,
+} from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
 import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
@@ -759,15 +852,47 @@ const compacta = ref(localStorage.getItem('servicios_unificado_compacta') !== '0
 
 watch(compacta, v => localStorage.setItem('servicios_unificado_compacta', v ? '1' : '0'))
 
+// ── Filtros de Servicios (PPA / Representación / Operación) ─────────────────
+// Los predicados viven en `~/features/contratos/filtrosServicios` (con pruebas);
+// acá solo está el estado y su ida y vuelta con la URL.
+//
+// Van en la URL por lo mismo que `vista`, `srv` y `q`, que es lo que dice el
+// comentario de la sincronización de abajo: poder compartir la vista tal cual se
+// está viendo. Se prefijan para que los dos grupos no se pisen entre pestañas.
+const PREFIJO_PPA = 'fp_'
+const PREFIJO_SRV = 'fs_'
+
+function leerFiltros(vacios, prefijo) {
+  const f = { ...vacios }
+  for (const clave of Object.keys(vacios)) {
+    const valor = route.query[prefijo + clave]
+    if (typeof valor === 'string' && valor !== '') f[clave] = valor
+  }
+  return f
+}
+
+function volcarFiltros(query, filtros, prefijo) {
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor !== null && valor !== undefined && valor !== '') query[prefijo + clave] = valor
+  }
+}
+
+const filtrosPpa = ref(leerFiltros(FILTROS_PPA_VACIOS, PREFIJO_PPA))
+const filtrosServicio = ref(leerFiltros(FILTROS_SERVICIO_VACIOS, PREFIJO_SRV))
+
 // Los filtros se sincronizan con la URL para poder compartir la vista tal cual
 // se esta viendo.
-watch([vista, servicio, q], () => {
+watch([vista, servicio, q, filtrosPpa, filtrosServicio], () => {
   const query = {}
   if (vista.value) query.vista = vista.value
-  if (vista.value === 'servicios') query.srv = servicio.value
+  if (vista.value === 'servicios') {
+    query.srv = servicio.value
+    if (servicio.value === 'ppa') volcarFiltros(query, filtrosPpa.value, PREFIJO_PPA)
+    else volcarFiltros(query, filtrosServicio.value, PREFIJO_SRV)
+  }
   if (q.value) query.q = q.value
   router.replace({ query })
-})
+}, { deep: true })
 
 const filasPorPagina = computed(() => (compacta.value ? 100 : 50))
 // Los filtros de Proyectos ocupan una fila extra, así que la tabla dispone de
@@ -1105,6 +1230,27 @@ const ppa = ref([])
 const loadingPpa = ref(false)
 const ppaCargados = ref(false)
 
+// Las mismas claves y etiquetas que produce `estadoVigenciaPPA`, para que el
+// filtro diga lo mismo que la columna Estado.
+const VIGENCIA_OPCIONES = [
+  { value: 'vigente', label: 'Vigente' },
+  { value: 'por_vencer', label: 'Por vencer' },
+  { value: 'vencido', label: 'Vencido' },
+  { value: 'por_iniciar', label: 'Por iniciar' },
+  { value: 'sin_fechas', label: 'Sin fechas' },
+]
+
+// Opciones derivadas de lo ya cargado: no hace falta pedirle nada más a la API.
+const opcionesPpaTipo = computed(() => opcionesDe(ppa.value, 'tipo_contrato'))
+const opcionesPpaComprador = computed(() => opcionesDe(ppa.value, 'comprador_nombre'))
+const opcionesPpaVendedor = computed(() => opcionesDe(ppa.value, 'vendedor_nombre'))
+
+const nFiltrosPpaActivos = computed(() => contarActivos(filtrosPpa.value))
+
+function limpiarFiltrosPpa() {
+  filtrosPpa.value = { ...FILTROS_PPA_VACIOS }
+}
+
 const ppaFiltrados = computed(() => {
   const t = q.value.trim().toLowerCase()
   const base = !t ? ppa.value : ppa.value.filter(c =>
@@ -1115,7 +1261,8 @@ const ppaFiltrados = computed(() => {
     (c.proyectos || []).some(p => (p.nombre_comercial || '').toLowerCase().includes(t)))
   // `_vigencia` se precalcula acá y no en la celda para que la columna Estado
   // sea ordenable (PrimeVue ordena por campo, no por lo que pinta el template).
-  return base.map(c => ({ ...c, _vigencia: estadoVigenciaPPA(c) }))
+  // Los filtros se aplican DESPUÉS del map porque el de estado lee `_vigencia`.
+  return filtrarPpa(base.map(c => ({ ...c, _vigencia: estadoVigenciaPPA(c) })), filtrosPpa.value)
 })
 
 async function cargarPpa() {
@@ -1123,6 +1270,11 @@ async function cargarPpa() {
   try {
     ppa.value = await ppaService.listar()
     ppaCargados.value = true
+    filtrosPpa.value = depurarFiltros(filtrosPpa.value, {
+      tipo: opcionesPpaTipo.value.map(o => o.value),
+      comprador: opcionesPpaComprador.value.map(o => o.value),
+      vendedor: opcionesPpaVendedor.value.map(o => o.value),
+    })
   } catch (e) {
     toast.error('Error al cargar contratos PPA', { description: e.message, duration: 4000 })
   } finally {
@@ -1141,8 +1293,9 @@ const servicioCargado = ref(null)   // el tipo que hay en memoria
 const esRepresentacion = computed(() => servicio.value === 'representacion')
 
 // Contratos de representación sin planta asociada: son datos por corregir, no
-// una categoría del negocio. `soloHuerfanos` los aísla para poder cerrarlos.
-const soloHuerfanos = ref(false)
+// una categoría del negocio. Aislarlos es hoy el filtro "Proyecto" — ver
+// `soloHuerfanos` más abajo, que deriva de él para que la barra de aviso y el
+// desplegable no puedan decir cosas distintas.
 
 // ── Duplicados de representación ─────────────────────────────────────────────
 // Quién es duplicado y si se puede fusionar sin perder datos lo decide el
@@ -1203,9 +1356,43 @@ async function fusionarDuplicados() {
 const nHuerfanos = computed(() =>
   contratosServicio.value.filter(c => !c.proyecto_id).length)
 
+const ESTADO_CONTRATO_OPCIONES = [
+  { value: 'vigente', label: 'Vigente' },
+  { value: 'en_renovacion', label: 'En renovación' },
+  { value: 'vencido', label: 'Vencido' },
+  { value: 'terminado', label: 'Terminado' },
+]
+
+const PROYECTO_OPCIONES = [
+  { value: ConProyecto.CON, label: 'Con proyecto' },
+  { value: ConProyecto.SIN, label: 'Sin proyecto' },
+]
+
+// Tipo solo aplica a Operación, que junta mantenimiento, arriendo e internet;
+// Representación tiene un único tipo y el desplegable no aportaría nada.
+const opcionesServicioTipo = computed(() =>
+  tiposDelServicio.value.map(t => ({ value: t, label: TIPO_CONTRATO_LABELS[t] || t })))
+const opcionesInversionista = computed(() => opcionesDe(contratosServicio.value, 'inversionista_nombre'))
+const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'portafolio'))
+const opcionesContratante = computed(() => opcionesDe(contratosServicio.value, 'contratante_nombre'))
+const opcionesPrestador = computed(() => opcionesDe(contratosServicio.value, 'prestador_nombre'))
+
+const nFiltrosServicioActivos = computed(() => contarActivos(filtrosServicio.value))
+
+function limpiarFiltrosServicio() {
+  filtrosServicio.value = { ...FILTROS_SERVICIO_VACIOS }
+}
+
+// El aviso de huérfanos y el filtro "Proyecto" son la MISMA decisión: el botón
+// de la barra solo pone o quita el filtro, para que no puedan contradecirse.
+const soloHuerfanos = computed(() => filtrosServicio.value.proyecto === ConProyecto.SIN)
+
+function alternarHuerfanos() {
+  filtrosServicio.value.proyecto = soloHuerfanos.value ? null : ConProyecto.SIN
+}
+
 const contratosServicioFiltrados = computed(() => {
-  let base = contratosServicio.value
-  if (esRepresentacion.value && soloHuerfanos.value) base = base.filter(c => !c.proyecto_id)
+  let base = filtrarServicios(contratosServicio.value, filtrosServicio.value)
   if (esRepresentacion.value && soloDuplicados.value) {
     base = base.filter(c => idsDuplicados.value.has(c.id))
   }
@@ -1232,7 +1419,15 @@ async function cargarContratosServicio(servicioKey) {
       t => contratosServicioService.listar({ tipo: t, limit: 500 })))
     contratosServicio.value = respuestas.flat()
     servicioCargado.value = servicioKey
-    soloHuerfanos.value = false
+    // Un link viejo puede nombrar un inversionista o un prestador que ya no
+    // esta: aplicarlo dejaria la tabla vacia con un filtro que nadie entiende.
+    filtrosServicio.value = depurarFiltros(filtrosServicio.value, {
+      tipo: tiposDelServicio.value,
+      inversionista: opcionesInversionista.value.map(o => o.value),
+      portafolio: opcionesPortafolio.value.map(o => o.value),
+      contratante: opcionesContratante.value.map(o => o.value),
+      prestador: opcionesPrestador.value.map(o => o.value),
+    })
     soloDuplicados.value = false
     if (servicioKey === 'representacion') cargarDuplicados()
   } catch (e) {
@@ -1322,6 +1517,12 @@ function seleccionarVista(key) {
 }
 
 function seleccionarServicio(key) {
+  if (key !== servicio.value) {
+    // Las tres pestanas no comparten columnas: arrastrar el filtro de una a
+    // otra solo produce tablas vacias sin explicacion.
+    limpiarFiltrosPpa()
+    limpiarFiltrosServicio()
+  }
   servicio.value = key
   asegurarDatos()
 }
