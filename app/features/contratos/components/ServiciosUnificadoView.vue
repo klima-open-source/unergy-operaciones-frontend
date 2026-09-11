@@ -190,6 +190,14 @@
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-48" />
         </div>
+        <!-- Solo si hay más de una clase entre los contratos cargados: con una
+             sola, el desplegable no seleccionaría nada distinto. -->
+        <div v-if="opcionesTipoPlanta.length > 1">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo de planta</label>
+          <Select v-model="filtrosServicio.tipoPlanta" :options="opcionesTipoPlanta"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
         <div>
           <label class="text-xs font-semibold" style="color:#6b5a8a">Proyecto</label>
           <Select v-model="filtrosServicio.proyecto" :options="PROYECTO_OPCIONES"
@@ -567,16 +575,25 @@
                     v-tooltip.bottom="'Ver la planta'"
                     @click.stop="ir(rutaDeLaPlanta(data))">
               <span class="celda-txt font-semibold">{{ data.proyecto.nombre_comercial }}</span>
-              <span class="mini-chip shrink-0"
-                    :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
-                {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
-              </span>
             </button>
             <button v-else type="button" class="chip-huerfano"
                     v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
                     @click.stop="abrirAsociarProyecto(data)">
               <LinkIcon class="size-[1em]" />Sin proyecto
             </button>
+          </template>
+        </Column>
+        <!-- La clase de planta, en columna propia: pegada al nombre competía con
+             él por el ancho y no se podía ordenar ni leer en vertical. Se llama
+             "Tipo de planta" y no "Tipo" porque en Operación ya hay una columna
+             Tipo, la del contrato (mantenimiento/arriendo/internet). -->
+        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:10%">
+          <template #body="{ data }">
+            <span v-if="data.proyecto" class="mini-chip"
+                  :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
+              {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
+            </span>
+            <span v-else style="color:#9b89b5">—</span>
           </template>
         </Column>
         <!-- El inversionista es lo que distingue dos contratos de la misma
@@ -759,6 +776,7 @@ import {
   filtrarPpa,
   filtrarServicios,
   opcionesDe,
+  tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
 import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
@@ -1399,6 +1417,12 @@ const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'p
 const opcionesContratante = computed(() => opcionesDe(contratosServicio.value, 'contratante_nombre'))
 const opcionesPrestador = computed(() => opcionesDe(contratosServicio.value, 'prestador_nombre'))
 
+// Los tipos se muestran con la misma etiqueta y el mismo color que el chip de la
+// columna, para que el filtro y la tabla hablen igual.
+const opcionesTipoPlanta = computed(() =>
+  tiposDePlantaPresentes(contratosServicio.value)
+    .map(tipo => ({ value: tipo, label: TIPO_LABELS[tipo] || tipo })))
+
 const nFiltrosServicioActivos = computed(() => contarActivos(filtrosServicio.value))
 
 function limpiarFiltrosServicio() {
@@ -1449,6 +1473,7 @@ async function cargarContratosServicio(servicioKey) {
       portafolio: opcionesPortafolio.value.map(o => o.value),
       contratante: opcionesContratante.value.map(o => o.value),
       prestador: opcionesPrestador.value.map(o => o.value),
+      tipoPlanta: opcionesTipoPlanta.value.map(o => o.value),
     })
     soloDuplicados.value = false
     if (servicioKey === 'representacion') cargarDuplicados()

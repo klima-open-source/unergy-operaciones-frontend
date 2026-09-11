@@ -22,6 +22,7 @@ import {
   filtrarPpa,
   filtrarServicios,
   opcionesDe,
+  tiposDePlantaPresentes,
 } from './filtrosServicios'
 
 const PPA = [
@@ -56,6 +57,7 @@ const SERVICIOS = [
     inversionista_nombre: 'PA Sol',
     portafolio: 'Norte',
     proyecto_id: 10,
+    proyecto: { id: 10, nombre_comercial: 'GD NAOS 1', tipo_proyecto: 'gd' },
   },
   {
     id: 2,
@@ -72,6 +74,7 @@ const SERVICIOS = [
     contratante_nombre: 'Unergy',
     prestador_nombre: 'Solenium',
     proyecto_id: 11,
+    proyecto: { id: 11, nombre_comercial: 'MGS 0018 La Paz Leyenda', tipo_proyecto: 'minigranja' },
   },
   {
     id: 4,
@@ -178,6 +181,54 @@ describe('filtrarServicios', () => {
     expect(
       ids(filtrarServicios(filas, { ...FILTROS_SERVICIO_VACIOS, proyecto: ConProyecto.SIN })),
     ).toEqual([9])
+  })
+})
+
+// ── Tipo de planta ────────────────────────────────────────────────────────────
+//
+// Se llama "tipo de planta" y no "tipo" porque en Operación ya hay una columna
+// Tipo, la del contrato (mantenimiento/arriendo/internet). Son dos cosas
+// distintas y quedan una al lado de la otra.
+
+describe('filtrarServicios por tipo de planta', () => {
+  it('filtra por el tipo del proyecto asociado, que es un campo anidado', () => {
+    const gd = filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, tipoPlanta: 'gd' })
+    expect(ids(gd)).toEqual([1])
+  })
+
+  it('distingue minigranja de GD', () => {
+    const mg = filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, tipoPlanta: 'minigranja' })
+    expect(ids(mg)).toEqual([3])
+  })
+
+  it('deja fuera los contratos sin planta, que no tienen tipo', () => {
+    // Los huérfanos (2 y 4) no tienen `proyecto`, así que ningún tipo los toma.
+    const gd = filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, tipoPlanta: 'gd' })
+    expect(ids(gd)).not.toContain(2)
+    expect(ids(gd)).not.toContain(4)
+  })
+
+  it('se combina con los demás filtros', () => {
+    const r = filtrarServicios(SERVICIOS, {
+      ...FILTROS_SERVICIO_VACIOS,
+      tipoPlanta: 'gd',
+      estado: 'terminado',
+    })
+    expect(ids(r)).toEqual([])
+  })
+})
+
+describe('tiposDePlantaPresentes', () => {
+  it('saca los tipos que de verdad hay entre las filas, ordenados', () => {
+    expect(tiposDePlantaPresentes(SERVICIOS)).toEqual(['gd', 'minigranja'])
+  })
+
+  it('ignora los contratos sin planta', () => {
+    expect(tiposDePlantaPresentes([{ id: 1, proyecto: null }])).toEqual([])
+  })
+
+  it('devuelve [] sin filas', () => {
+    expect(tiposDePlantaPresentes([])).toEqual([])
   })
 })
 

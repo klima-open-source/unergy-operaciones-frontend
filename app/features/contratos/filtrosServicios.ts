@@ -29,6 +29,12 @@ export interface FiltrosPpa {
 /** Filtros de Representación y Operación, que comparten tabla y datos. */
 export interface FiltrosServicio {
   tipo: string | null
+  /**
+   * El tipo del PROYECTO (minigranja, gd, autoconsumo…), no el del contrato.
+   * Se llama `tipoPlanta` y no `tipo` porque en Operación conviven los dos:
+   * `tipo` es mantenimiento/arriendo/internet y este es la clase de planta.
+   */
+  tipoPlanta: string | null
   estado: string | null
   inversionista: string | null
   portafolio: string | null
@@ -46,6 +52,7 @@ export const FILTROS_PPA_VACIOS: FiltrosPpa = {
 
 export const FILTROS_SERVICIO_VACIOS: FiltrosServicio = {
   tipo: null,
+  tipoPlanta: null,
   estado: null,
   inversionista: null,
   portafolio: null,
@@ -87,6 +94,8 @@ export function filtrarServicios<T extends Fila>(filas: T[], f: FiltrosServicio)
       const tiene = Boolean(fila.proyecto_id)
       if (tiene !== (f.proyecto === ConProyecto.CON)) return false
     }
+    if (puesto(f.tipoPlanta) && tipoDePlanta(fila) !== f.tipoPlanta) return false
+
     return (
       coincide(fila, 'servicio_aplica', f.tipo) &&
       coincide(fila, 'estado', f.estado) &&
@@ -96,6 +105,27 @@ export function filtrarServicios<T extends Fila>(filas: T[], f: FiltrosServicio)
       coincide(fila, 'prestador_nombre', f.prestador)
     )
   })
+}
+
+/** El tipo de la planta asociada, o `null` si el contrato quedó huérfano. */
+function tipoDePlanta(fila: Fila): string | null {
+  const proyecto = fila.proyecto as { tipo_proyecto?: string | null } | null | undefined
+  return proyecto?.tipo_proyecto || null
+}
+
+/**
+ * Los tipos de planta que de verdad aparecen entre las filas, ordenados.
+ *
+ * Se derivan de los datos y no del catálogo completo para no ofrecer un filtro
+ * que no seleccionaría nada.
+ */
+export function tiposDePlantaPresentes<T extends Fila>(filas: T[]): string[] {
+  const vistos = new Set<string>()
+  for (const fila of filas) {
+    const tipo = tipoDePlanta(fila)
+    if (tipo) vistos.add(tipo)
+  }
+  return [...vistos].sort()
 }
 
 /**
