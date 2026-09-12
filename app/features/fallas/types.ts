@@ -180,6 +180,15 @@ export interface FiltrosListaFallas {
   prioridad_id?: number
   con_fecha_programada?: boolean
   q?: string
+  /**
+   * Rango sobre CUÁNDO SE IDENTIFICÓ la falla (`YYYY-MM-DD`), que es la fecha
+   * por la que se mira un período hacia atrás.
+   *
+   * No confundir con `fecha_programada_*` (cuándo se planeó atenderla) ni con
+   * `activa_en_fecha` (qué estaba abierto en un día dado).
+   */
+  fecha_identificacion_desde?: string
+  fecha_identificacion_hasta?: string
 }
 
 /** `POST /fallas/:id/notificar`. */

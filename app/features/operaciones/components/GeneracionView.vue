@@ -630,6 +630,10 @@ async function cargar() {
     const fInicio = isoDate(fechaDesde.value)
     const fFin = isoDate(fechaHasta.value)
 
+    // En paralelo con la generacion: el panel de fallas es independiente y no
+    // debe retrasar la grafica, que es lo que se vino a ver.
+    cargarFallas(fInicio, fFin)
+
     // Una llamada por proyecto: getGeneration trae lecturas en vivo de Unergy.
     // Endpoint real: /api/v1/monitoreo/_legacy (baseURL del cliente ya es /api/v1).
     const results = await Promise.allSettled(
@@ -1048,23 +1052,38 @@ async function cargarProyectos() {
   }
 }
 
-// Carga todas las fallas una vez (se filtran en cliente por proyecto + rango).
-async function cargarFallas() {
+/**
+ * Las fallas del período consultado.
+ *
+ * Antes se traía el historial COMPLETO --6.400 fallas-- al abrir la pestaña,
+ * antes de que se eligiera nada, para después filtrarlo en el navegador por
+ * fecha y por planta. Dos problemas:
+ *
+ * 1. Eran 33 peticiones de arranque, cada una con el serializer entero de la
+ *    lista de fallas (seis relaciones anidadas y trece campos calculados) de
+ *    los que esta vista usa ocho.
+ * 2. El bucle contaba páginas de 200 y el servidor las sirve de 100, así que
+ *    cada página se solapaba 100 filas con la anterior y la lista se cortaba
+ *    en la 3.400: llegaban 3.200 fallas DUPLICADAS y faltaba el 47% del
+ *    historial. `kWh perdido` salía inflado sobre una base incompleta.
+ *
+ * Ahora el rango va en la petición (`fecha_identificacion_desde/hasta`, que el
+ * backend no aceptaba y se agregó para esto) y la lista cabe casi siempre en
+ * una sola respuesta. Si no cupiera, `completarPaginas` la completa sola: el
+ * bucle de acá, que era el que duplicaba, ya no existe.
+ *
+ * Se llama desde `cargar()`, no al montar: hasta que no se aprieta Consultar no
+ * se sabe qué período mirar.
+ */
+async function cargarFallas(desde, hasta) {
   fallasCargando.value = true
   try {
-    const primera = await fallasService.listar({ page: 1, size: 200 })
-    const total = primera.total ?? 0
-    const items = [...(primera.items ?? [])]
-    if (total > 200) {
-      const totalPages = Math.ceil(total / 200)
-      const rest = await Promise.allSettled(
-        Array.from({ length: totalPages - 1 }, (_, i) =>
-          fallasService.listar({ page: i + 2, size: 200 })
-        )
-      )
-      for (const r of rest) if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
-    }
-    allFallas.value = items
+    const res = await fallasService.listar({
+      fecha_identificacion_desde: desde,
+      fecha_identificacion_hasta: hasta,
+      size: 100,
+    })
+    allFallas.value = res.items ?? []
   } catch (e) {
     /* no crítico: la gráfica funciona sin el cruce de fallas */
   } finally {
@@ -1077,7 +1096,6 @@ let resizeObserver
 onMounted(async () => {
   recomputarFechas()   // fija el rango inicial según granularidad/modo por defecto
   await cargarProyectos()
-  cargarFallas()
   await nextTick()
   if (chartWrapRef.value) {
     const upd = () => { chartContainerWidth.value = chartWrapRef.value?.clientWidth || 900 }
