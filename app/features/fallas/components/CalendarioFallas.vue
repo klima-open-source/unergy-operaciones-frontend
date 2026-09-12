@@ -207,11 +207,12 @@ import { formatoLimiteSla } from '~/features/fallas/utils/formatoSla'
 import { rangoDelMes } from '~/features/fallas/utils/rangoMes'
 import Select from 'primevue/select'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { AlignLeftIcon, ArrowRightIcon, CalendarClockIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, ClockIcon, FlagIcon, LoaderCircleIcon, PencilIcon, SearchIcon, SquareCheckIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -386,7 +387,7 @@ async function cargarFallas({ silencioso = false } = {}) {
  *  una sola vez, no en cada navegación. */
 async function cargarFijos() {
   const [listaProyectos, catalogos] = await Promise.all([
-    proyectosService.listar({ size: 500 }),
+    catalogoProyectos.cargar(),
     fallasService.obtenerCatalogos(),
   ])
   proyectos.value = listaProyectos

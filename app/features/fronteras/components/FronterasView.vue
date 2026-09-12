@@ -368,7 +368,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { logger } from '~/core/logger'
 import { FronterasService } from '~/features/fronteras/services/fronteras'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -383,7 +382,9 @@ import { CheckIcon, FileSpreadsheetIcon, LoaderCircleIcon, PencilIcon, PlusIcon,
 
 const confirm = useConfirm()
 const fronterasService = new FronterasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const operadoresRedService = new OperadoresRedService()
 
 const route = useRoute()
@@ -768,7 +769,7 @@ async function loadPendientesQuoia() {
 async function loadProyectosAll() {
   if (proyectosAll.value.length) return
   try {
-    proyectosAll.value = await proyectosService.listar({ size: 500 })
+    proyectosAll.value = await catalogoProyectos.cargar()
   } catch {
     proyectosAll.value = []
   }

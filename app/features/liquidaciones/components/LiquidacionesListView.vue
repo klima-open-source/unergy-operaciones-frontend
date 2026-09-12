@@ -144,7 +144,6 @@ import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import { toast } from 'vue-sonner'
 import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { proyectoActivoEnMes } from '~/utils/proyectoActivo'
 import { fmtCompact, formatPeriodo, estadoFlujoPanel } from '~/features/liquidaciones/utils/liquidaciones'
 import { EyeIcon, PlusIcon, SearchIcon } from '@lucide/vue'
@@ -158,7 +157,9 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const liquidacionesService = new LiquidacionesService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 // Filtro por tipo de proyecto vía query ?tipo= (minigranja | autoconsumo | null)
 const tipoFilter = computed(() => {
@@ -232,7 +233,7 @@ function toISOMonth(d) {
 
 async function loadProyectosOpciones() {
   try {
-    proyectosOpciones.value = await proyectosService.listar({ size: 500 })
+    proyectosOpciones.value = await catalogoProyectos.cargar()
   } catch {
     proyectosOpciones.value = []
   }

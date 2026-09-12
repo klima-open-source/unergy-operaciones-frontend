@@ -689,7 +689,6 @@ import {
 } from 'chart.js'
 ChartJS.register(Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Filler)
 import { FallasService } from '~/features/fallas/services/fallas'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { tituloFalla, categoriaFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
@@ -697,7 +696,9 @@ import { formatCOP as fmtCOP } from '~/utils/currency'
 import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const generacionSolarService = new GeneracionSolarService()
 
 const route          = useRoute()
@@ -1012,7 +1013,7 @@ async function cargarCatalogos() {
 
 async function cargarProyectos() {
   try {
-    proyectos.value = await proyectosService.listar({ size: 500 })
+    proyectos.value = await catalogoProyectos.cargar()
     // Cargar gráficos de generación una vez que los proyectos estén disponibles
     cargarGenHoy()
     cargarGen7()

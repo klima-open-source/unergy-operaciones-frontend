@@ -95,7 +95,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
 import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.vue'
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
@@ -105,7 +104,9 @@ import { BellIcon, CircleCheckIcon, LoaderCircleIcon, PlusIcon, SearchIcon, Wren
 import { toast } from 'vue-sonner'
 
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const notificacionesService = new NotificacionesService()
 const fallas = ref([])
 const catalogos = reactive({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
@@ -168,7 +169,7 @@ async function cargar() {
   try {
     const [cat, proy] = await Promise.all([
       fallasService.obtenerCatalogos().catch(() => ({ estados: [], prioridades: [], tipos: [], resoluciones: [] })),
-      proyectosService.listar({ size: 500 }).catch(() => []),
+      catalogoProyectos.cargar().catch(() => []),
     ])
     Object.assign(catalogos, cat)
     proyectos.value = proy ?? []

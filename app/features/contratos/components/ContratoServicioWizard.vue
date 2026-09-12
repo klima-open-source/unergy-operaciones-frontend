@@ -444,13 +444,14 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
 import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { formatCOP } from '~/utils/currency'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, LinkIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const clientesService = new ClientesService()
 
 const props = defineProps({
@@ -829,7 +830,7 @@ function finalizarArriendo() {
 
 onMounted(async () => {
   const [proyectos, clientes] = await Promise.all([
-    proyectosService.listar({ size: 500 }),
+    catalogoProyectos.cargar(),
     clientesService.listar({ size: 500 }),
   ])
   todosProyectos.value = proyectos

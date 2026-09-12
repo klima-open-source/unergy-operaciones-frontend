@@ -535,11 +535,12 @@ import DataTable  from 'primevue/datatable'
 import Column     from 'primevue/column'
 import { toast } from 'vue-sonner'
 import { SolarService } from '~/features/solar/services/solar'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ChartColumnIcon, ChartLineIcon, DatabaseIcon, DownloadIcon, GlobeIcon, LayoutGridIcon, ListIcon, MapIcon, MapPinIcon, RefreshCwIcon, SearchIcon, SlidersHorizontalIcon, SunIcon, TrophyIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const solarService = new SolarService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 // ─── Constantes de diseño ────────────────────────────────────────────────────
 
@@ -656,7 +657,7 @@ async function loadProyectos() {
 
 async function loadInternos() {
   try {
-    const items = await proyectosService.listar({ size: 500, page: 1 })
+    const items = await catalogoProyectos.cargar()
     internosOpts.value = items.map(p => ({ label: p.nombre_comercial, value: p.id }))
   } catch { /* silencioso */ }
 }

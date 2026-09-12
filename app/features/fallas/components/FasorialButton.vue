@@ -104,13 +104,14 @@ import SelectButton from 'primevue/selectbutton'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { renderFasorial } from '~/features/fallas/utils/fasorial'
 import { gaiaSnapshotToFasorial, validarSnapshot } from '~/features/fallas/utils/gaiaSnapshotToFasorial'
 import { ClockIcon, DownloadIcon, ImageIcon, MoonIcon, RefreshCwIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const generacionSolarService = new GeneracionSolarService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 // Umbral (min) para considerar una lectura desactualizada
 const STALE_MIN = 15
@@ -156,7 +157,7 @@ async function cargarProyectos() {
   } catch {
     // Fallback: lista general de proyectos
     try {
-      const lista = await proyectosService.listar({ size: 500 })
+      const lista = await catalogoProyectos.cargar()
       proyectos.value = lista
         .map((p) => ({ proyecto_id: p.id, nombre: p.nombre_comercial }))
         .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))

@@ -138,12 +138,13 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import Select from 'primevue/select'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { BuildingIcon, CircleAlertIcon, CircleCheckIcon, LoaderCircleIcon, MapIcon, MapPinIcon, RefreshCwIcon, Share2Icon, SunIcon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { colorPrioridad } from '~/features/fallas/utils/colores'
 
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 const props = defineProps({
   fallas: { type: Array, default: () => [] },
@@ -217,7 +218,7 @@ async function cargar() {
   subSel.value   = null
   try {
     const [proyRes, mapaRes] = await Promise.allSettled([
-      proyectosService.listar({ size: 500 }),
+      catalogoProyectos.cargar(),
       operadorSel.value ? fallasService.obtenerMapa(operadorSel.value) : Promise.resolve(null),
     ])
 

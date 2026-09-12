@@ -411,11 +411,12 @@ import DatePicker from 'primevue/datepicker'
 import Textarea from 'primevue/textarea'
 import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
 
 const ppaService = new PpaService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const clientesService = new ClientesService()
 
 const props = defineProps({
@@ -727,7 +728,7 @@ async function guardar() {
 onMounted(async () => {
   try {
     const [proyectos, clientes] = await Promise.all([
-      proyectosService.listar({ size: 500 }),
+      catalogoProyectos.cargar(),
       clientesService.listar({ size: 500 }),
     ])
     todosProyectos.value = proyectos

@@ -137,11 +137,12 @@ import InputIcon from 'primevue/inputicon'
 import Select from 'primevue/select'
 import FallaForm from './FallaForm.vue'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ChevronRightIcon, PlusIcon, SearchIcon, XIcon } from '@lucide/vue'
 
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 const route = useRoute()
 const router = useRouter()
@@ -276,7 +277,7 @@ async function onCreate(payload) {
 
 async function loadProyectos() {
   try {
-    proyectos.value = await proyectosService.listar({ size: 500 })
+    proyectos.value = await catalogoProyectos.cargar()
   } catch {
     // non-critical
   }

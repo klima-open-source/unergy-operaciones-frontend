@@ -2432,11 +2432,12 @@ import { isAirError } from '@korastd/air'
 import { logger } from '~/core/logger'
 import { CumplimientoService } from '~/features/mem/services/cumplimiento'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 
 const cumplimientoService = new CumplimientoService()
 const ppaService = new PpaService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 import { ArrowDownWideNarrowIcon, ArrowUpNarrowWideIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, CircleCheckIcon, CircleMinusIcon, CompassIcon, DownloadIcon, EyeIcon, EyeOffIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, FolderOpenIcon, HistoryIcon, ImageIcon, InfoIcon, LoaderCircleIcon, LogOutIcon, MaximizeIcon, PlusIcon, RefreshCwIcon, ShieldIcon, ShoppingCartIcon, Trash2Icon, TriangleAlertIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 // ── LocalStorage cache ───────────────────────────────────────────────────────
@@ -2609,7 +2610,7 @@ const backendProyectos = ref([])
 
 async function loadBackendProyectos() {
   try {
-    backendProyectos.value = await proyectosService.listar({ size: 500 })
+    backendProyectos.value = await catalogoProyectos.cargar()
   } catch { /* degradar silenciosamente */ }
 }
 

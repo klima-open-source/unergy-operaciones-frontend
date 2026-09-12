@@ -878,11 +878,12 @@ import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowDownRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, BadgeCheckIcon, BookIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronRightIcon, CircleCheckIcon, CircleIcon, CirclePlusIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FileTextIcon, HourglassIcon, IdCardIcon, InfoIcon, LinkIcon, ListIcon, LoaderCircleIcon, MinusIcon, MoveHorizontalIcon, MoveVerticalIcon, NetworkIcon, PencilIcon, PlusIcon, RefreshCwIcon, SunIcon, TriangleAlertIcon, UploadIcon, UsersIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const ppaService = new PpaService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const VISTAS = [{ label: 'Mensual', value: 'mensual' }, { label: 'Anual', value: 'anual' }]
@@ -1414,7 +1415,7 @@ async function abrirAsociar() {
   if (todosProyectos.value.length) return
   cargandoProyectos.value = true
   try {
-    const proyectos = await proyectosService.listar({ size: 500 })
+    const proyectos = await catalogoProyectos.cargar()
     todosProyectos.value = proyectos.sort((a, b) =>
       (a.nombre_comercial ?? '').localeCompare(b.nombre_comercial ?? ''))
   } catch (e) {

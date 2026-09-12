@@ -376,6 +376,9 @@ import { AlignLeftIcon, BellIcon, CalendarIcon, CheckIcon, CircleCheckIcon, Cloc
 import { iconoCategoriaFalla } from '~/features/fallas/utils/fallaTitulo'
 
 const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 const props = defineProps({
   initial:            { type: Object, default: null },
@@ -792,7 +795,7 @@ onMounted(async () => {
   // solo se pide aparte si no llegaron (uso del form fuera de esa vista).
   if (!proyectos.value.length) {
     try {
-      proyectos.value = await proyectosService.listar({ size: 500 })
+      proyectos.value = await catalogoProyectos.cargar()
     } catch { /* no crítico */ }
   }
   estructura.value = await getEstructuraFallas()

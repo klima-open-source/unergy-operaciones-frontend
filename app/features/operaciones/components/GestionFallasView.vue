@@ -477,14 +477,15 @@ import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
 import FallaForm from '~/features/fallas/components/FallaForm.vue'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { tituloFalla, categoriaFalla } from '~/features/fallas/utils/fallaTitulo'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 
 const route = useRoute()
 const router = useRouter()
 const fallasService = new FallasService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const confirm = useConfirm()
 
 // ── Constantes ──────────────────────────────────────────────────────────
@@ -683,7 +684,7 @@ async function cargarCatalogos() {
 
 async function cargarProyectos() {
   try {
-    proyectos.value = await proyectosService.listar({ size: 500 })
+    proyectos.value = await catalogoProyectos.cargar()
   } catch { /* no crítico */ }
 }
 

@@ -570,11 +570,12 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { conflictosAtribucion } from '~/features/mem/utils/validacionContratos'
 
 const ppaService = new PpaService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 import GesconModificacionForm from './GesconModificacionForm.vue'
 import GesconTerminacionForm from './GesconTerminacionForm.vue'
 import DataTable from 'primevue/datatable'
@@ -842,7 +843,7 @@ function confirmarEliminar(row) {
 const proyectos = ref([])
 async function cargarProyectos() {
   try {
-    const data = await proyectosService.listar({ size: 500 })
+    const data = await catalogoProyectos.cargar()
     proyectos.value = data.sort((a, b) =>
       a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch { /* silencioso */ }

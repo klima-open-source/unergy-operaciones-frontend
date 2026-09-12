@@ -277,12 +277,13 @@ import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import { toast } from 'vue-sonner'
 import { StarlinkService } from '~/features/finanzas/services/starlink'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, LinkIcon, LoaderCircleIcon, SearchIcon, TriangleAlertIcon, UploadIcon, WifiIcon } from '@lucide/vue'
 
 
 const starlinkService = new StarlinkService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 
 // ── Períodos guardados ────────────────────────────────────────────────────────
 const periodos       = ref([])   // ['2026-05', '2026-04', ...] — desc
@@ -479,7 +480,7 @@ function _normSitio(s) {
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const lista = await proyectosService.listar({ size: 500 })
+    const lista = await catalogoProyectos.cargar()
     proyectos.value = [...lista].sort((a, b) => a.nombre_comercial.localeCompare(b.nombre_comercial))
   } catch {
     proyectos.value = []

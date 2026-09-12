@@ -284,7 +284,6 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { toast } from 'vue-sonner'
 import { StarlinkService } from '~/features/finanzas/services/starlink'
-import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { generarExcelCostos } from './costosExcelExport.js'
 import FacturasMantenimiento from '~/features/contratos/components/FacturasMantenimiento.vue'
@@ -298,7 +297,9 @@ import { BuildingIcon, CalculatorIcon, CheckIcon, ChevronDownIcon, CircleCheckIc
 
 
 const starlinkService = new StarlinkService()
-const proyectosService = new ProyectosService()
+// El catalogo de plantas se pide UNA vez para toda la aplicacion:
+// ver ~/composables/useProyectosCatalogo.
+const catalogoProyectos = useProyectosCatalogo()
 const contratosServicioService = new ContratosServicioService()
 
 const SUBTABS_OM = [
@@ -444,8 +445,10 @@ onMounted(async () => {
   loadingProyectos.value = true
   try {
     const [r1, r2] = await Promise.allSettled([
-      proyectosService.listar({ size: 500 }),
-      proyectosService.listar({ size: 500, tipo_proyecto: 'minigranja' }),
+      catalogoProyectos.cargar(),
+      // Las minigranjas salen del mismo catalogo: antes era una segunda
+      // peticion identica con un filtro que el propio dato ya trae.
+      catalogoProyectos.cargar().then(l => l.filter(p => p.tipo_proyecto === 'minigranja')),
     ])
     const lista1 = r1.status === 'fulfilled' ? r1.value : []
     const lista2 = r2.status === 'fulfilled' ? r2.value : []
