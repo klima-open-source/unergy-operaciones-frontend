@@ -29,6 +29,12 @@ export interface RespuestaGeneracionLegacy {
   ok?: boolean
   data: { fecha?: string; kwh: number; [clave: string]: unknown }[]
   simulation?: { p90_monthly?: number | null; [clave: string]: unknown }
+  /**
+   * De dónde salió la curva. `verified_by_operator` es un campo de la API de
+   * Unergy que marca las lecturas que alguien revisó; cuando una planta no
+   * tiene ninguna, el backend cae a las crudas. No son el mismo dato.
+   */
+  fuente?: 'verificada' | 'cruda' | 'sin_datos'
   [clave: string]: unknown
 }
 

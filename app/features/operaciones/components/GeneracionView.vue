@@ -220,6 +220,9 @@
             @click="ds.hidden = !ds.hidden">
             <span class="gen-legend-dot" :style="{ background: ds.color }" />
             <span class="gen-legend-name">{{ ds.nombre }}</span>
+            <span v-if="ds.fuente === 'cruda'" class="gen-fuente-tag" :title="TITULO_CRUDA">
+              sin verificar
+            </span>
             <span class="gen-legend-total">{{ fmtNum(ds.total) }} kWh</span>
           </button>
           <!-- No es un boton: la meta no se apaga, es la referencia. -->
@@ -462,6 +465,19 @@ const mesSel = ref(new Date())                  // diaria  · "Mes…"  (cualqui
 const diaSel = ref(new Date())                  // horaria · "Día…"
 const rango = ref(null)                         // modo intervalo: UN solo picker de rango [desde, hasta]
 
+/**
+ * Solo se marca la CRUDA, no la verificada.
+ *
+ * Lo normal es que la curva venga de lecturas revisadas --medido contra la API
+ * el 2026-09-12: 19 de 20 plantas las tenian-- asi que etiquetar las dos
+ * llenaria la leyenda de ruido para senalar lo esperado. Se marca la excepcion,
+ * que es la que cambia como leer el numero.
+ */
+const TITULO_CRUDA =
+  'Esta planta no tiene lecturas verificadas por un operador en la API de ' +
+  'Unergy, asi que se muestran todas tal como llegaron del medidor. No es ' +
+  'estrictamente comparable con las curvas verificadas ni con la meta P90.'
+
 const datasets = ref([])
 const tipoGrafico = ref('line')
 const chartWrapRef = ref(null)
@@ -676,7 +692,11 @@ async function cargar() {
       const raw = Array.isArray(body?.data) ? body.data : []
       // `simulation` viene desde siempre y esta vista la tiraba: la curva se
       // dibujaba sin nada contra que compararla.
-      parsed.push({ sub, nombre, map: sumarPorGranularidad(raw), sim: body?.simulation ?? null })
+      parsed.push({
+        sub, nombre, map: sumarPorGranularidad(raw),
+        sim: body?.simulation ?? null,
+        fuente: body?.fuente ?? null,
+      })
     })
 
     // Si TODAS fallaron, es un fallo real: mostrarlo (no "sin datos").
@@ -696,7 +716,7 @@ async function cargar() {
     const ds = parsed.map((p, idx) => {
       const points = keys.map(k => ({ key: k, kwh: p.map.get(k) ?? 0, label: labelDeClave(k) }))
       const total = points.reduce((s, pt) => s + pt.kwh, 0)
-      return { proyectoId: p.sub, nombre: p.nombre, color: PALETTE[idx % PALETTE.length], points, total, hidden: false, sim: p.sim }
+      return { proyectoId: p.sub, nombre: p.nombre, color: PALETTE[idx % PALETTE.length], points, total, hidden: false, sim: p.sim, fuente: p.fuente }
     })
     ds.sort((a, b) => b.total - a.total)
     datasets.value = ds
@@ -1458,6 +1478,17 @@ watch(chartWrapRef, (el) => {
 .gen-legend-item--off { opacity: 0.4; }
 .gen-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
 .gen-legend-item--meta { cursor: default; }
+.gen-fuente-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #fef3c7;
+  color: #92400e;
+  white-space: nowrap;
+  cursor: help;
+}
 .gen-legend-dash {
   width: 14px;
   height: 0;
