@@ -12,7 +12,6 @@ export interface ProyectoMonitoreoSolar {
   nombre?: string
   status?: string
   power_kw?: number | null
-  energy_today_kwh?: number | null
   utilization_pct?: number | null
   availability_pct?: number | null
   [clave: string]: unknown

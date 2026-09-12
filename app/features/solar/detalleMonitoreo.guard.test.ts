@@ -37,7 +37,6 @@ const CAMPOS_DEL_DETALLE = new Set([
   'gaia_node_principal',
   'gaia_node_respaldo',
   'capacity_kwp',
-  'inverters',
   'power_curve',
   'generation_today_kwh',
   'generation_today_hasta',
