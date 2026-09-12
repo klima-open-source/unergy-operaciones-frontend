@@ -156,14 +156,26 @@ export class LiquidacionesApiService extends BaseService {
   }
 
   /** Sube un lote de facturas en PDF. El mes y el año los extrae la IA del PDF. */
+  /**
+   * Sube el lote de facturas. `apiKey` es opcional: es la clave de Gemini con la
+   * que la API externa leerá los PDF. Si no se manda, esa API usa la del
+   * servidor —o la suya— y no hay que escribirla en cada subida.
+   *
+   * La clave NO se guarda en ninguna parte: viaja con la petición y se olvida.
+   */
   subirFacturasXm(
     archivos: File[],
     version: VersionCiclo = VERSION_INICIAL,
-    { onProgreso }: { onProgreso?: (porcentaje: number) => void } = {},
+    { onProgreso, apiKey }: {
+      onProgreso?: (porcentaje: number) => void
+      apiKey?: string
+    } = {},
   ): Promise<RespuestaSubidaFacturas> {
     const form = new FormData()
     for (const archivo of archivos) form.append('files', archivo)
     form.append('version', version)
+    // Vacía no se manda: el backend la trata como "usa la del servidor".
+    if (apiKey?.trim()) form.append('api_key', apiKey.trim())
 
     return this.postFormData<RespuestaSubidaFacturas>(RUTAS.facturasXm, form, onProgreso)
   }

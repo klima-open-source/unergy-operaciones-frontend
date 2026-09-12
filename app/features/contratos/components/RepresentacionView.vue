@@ -535,6 +535,15 @@ import ProgressSpinner from 'primevue/progressspinner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
+import {
+  anioDeFila,
+  estadoFilaIndexacion,
+  fechaAniversario,
+  indiceVigente,
+  ordenarIndexacion,
+  valorVigente as tarifaVigenteDeFilas,
+} from '~/features/contratos/tarifasCgm'
+import { hoyColombia } from '~/utils/fecha'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
@@ -570,7 +579,8 @@ const guardando = ref(false)
 
 const c = computed(() => contratos.value.find(x => x.id === idSeleccionado.value) || null)
 
-const hoy = new Date().toISOString().slice(0, 10)
+// Bogotá, no UTC: `toISOString()` adelanta un día entre las 19:00 y medianoche.
+const hoy = hoyColombia()
 
 // ── Formato ──────────────────────────────────────────────────────────────────
 function fmtFecha(v) { return v ? String(v).slice(0, 10) : '—' }
@@ -668,44 +678,31 @@ async function fusionar() {
 // El JSONB guarda {año, ipc, valor, esBase}. La fecha exacta del aniversario no
 // se persiste: se deriva de la firma manteniendo mes y día, igual que hace
 // `_anniversary_date` en el backend. Sin firma solo se puede mostrar el año.
-const idxCgm = computed(() => ordenar(c.value?.indexacion_cgm))
-const idxRep = computed(() => ordenar(c.value?.indexacion_representacion))
+const idxCgm = computed(() => ordenarIndexacion(c.value?.indexacion_cgm))
+const idxRep = computed(() => ordenarIndexacion(c.value?.indexacion_representacion))
 
 const TABLAS_IDX = computed(() => [
   { clave: 'cgm', titulo: 'Indexación CGM', filas: idxCgm.value },
   { clave: 'rep', titulo: 'Indexación Representación', filas: idxRep.value },
 ])
 
-function ordenar(filas) {
-  if (!Array.isArray(filas)) return []
-  return [...filas].sort((a, b) => (anio(a) || 0) - (anio(b) || 0))
-}
-function anio(f) { return Number(f?.año ?? f?.anio ?? f?.year) || null }
+// Adaptadores para el template. La decisión de qué aniversario está vigente vive
+// en `~/features/contratos/tarifasCgm` (con pruebas) y no acá: cuando estuvo
+// escrita dentro de esta vista se perdió el arreglo que el util del legacy ya
+// tenía, y volvió a marcarse como vigente un aniversario que no había llegado.
+const firma = computed(() => c.value?.fecha_firma_contrato)
 
 function etiquetaAnio(f) {
-  const a = anio(f)
-  if (!a) return '—'
-  const firma = c.value?.fecha_firma_contrato
-  return firma && String(firma).length >= 10 ? `${a}-${String(firma).slice(5, 10)}` : String(a)
+  return fechaAniversario(f, firma.value) || '—'
 }
-
-// Fila vigente: la del aniversario más reciente que ya pasó.
 function iVigente(filas) {
-  let idx = -1
-  for (let i = 0; i < filas.length; i++) {
-    if (etiquetaAnio(filas[i]) <= hoy || String(anio(filas[i])) <= hoy.slice(0, 4)) idx = i
-  }
-  return idx
+  return indiceVigente(filas, firma.value, hoy)
 }
 function valorVigente(filas) {
-  const i = iVigente(filas)
-  return i >= 0 ? filas[i].valor : null
+  return tarifaVigenteDeFilas(filas, firma.value, null, hoy)
 }
 function estadoFila(filas, i) {
-  const v = iVigente(filas)
-  if (i < v) return 'pagado'
-  if (i === v) return 'vigente'
-  return 'pendiente'
+  return estadoFilaIndexacion(filas, i, firma.value, hoy)
 }
 
 // ── Resumen ──────────────────────────────────────────────────────────────────
@@ -829,7 +826,7 @@ const filasEdit = ref([])
 function abrirIdx(clave) {
   const origen = clave === 'cgm' ? idxCgm.value : idxRep.value
   filasEdit.value = origen.map(f => ({
-    anio: anio(f),
+    anio: anioDeFila(f),
     ipc: f.ipc != null ? Number(f.ipc) : null,
     valor: f.valor != null ? Number(f.valor) : null,
     esBase: !!f.esBase,

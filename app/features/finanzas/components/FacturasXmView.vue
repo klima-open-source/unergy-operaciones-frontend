@@ -13,7 +13,8 @@
            @change="onArchivosSeleccionados" />
 
     <!-- Dialog: Subir facturas -->
-    <Dialog v-model:visible="subidaVisible" header="Subir facturas de XM" modal class="w-full max-w-lg">
+    <Dialog v-model:visible="subidaVisible" header="Subir facturas de XM" modal class="w-full max-w-lg"
+            @hide="alCerrarSubida">
       <div class="space-y-4 pt-1">
         <button type="button" class="dropzone" :disabled="subiendo" @click="seleccionarArchivos">
           <CloudUploadIcon class="text-3xl size-[1em]" style="color:var(--color-unergy-purple)" />
@@ -26,6 +27,19 @@
         <div>
           <label class="field-label">Versión</label>
           <Select v-model="versionSubida" :options="VERSIONES" class="w-full" :disabled="subiendo" />
+        </div>
+
+        <div>
+          <label class="field-label">Clave de Gemini <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <!-- Enmascarada y sin autocompletar: es un secreto. No se guarda en
+               ninguna parte — viaja con la subida y se olvida al cerrar. -->
+          <Password v-model="apiKey" :feedback="false" toggleMask class="w-full" inputClass="w-full"
+                    autocomplete="off" :disabled="subiendo"
+                    placeholder="Déjala vacía para usar la del servidor" />
+          <p class="text-[11px] text-gray-400 mt-1">
+            Con la que la IA lee los PDF. Vacía, se usa la configurada en el servidor.
+            No se guarda: se olvida al cerrar esta ventana.
+          </p>
         </div>
 
         <div v-if="archivos.length" class="space-y-2 max-h-56 overflow-y-auto">
@@ -184,6 +198,7 @@ import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
+import Password from 'primevue/password'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
@@ -280,6 +295,9 @@ const subidaVisible = ref(false)
 const fileInput = ref(null)
 const archivos = ref([])
 const versionSubida = ref(VERSION_INICIAL)
+// La clave NUNCA se persiste (ni en localStorage ni en el store): vive mientras
+// el diálogo está abierto y se borra al cerrarlo.
+const apiKey = ref('')
 const subiendo = ref(false)
 const progresoSubida = ref(0)
 const progresoTarea = ref('')
@@ -288,8 +306,14 @@ function abrirSubida() {
   archivos.value = []
   progresoSubida.value = 0
   progresoTarea.value = ''
+  apiKey.value = ''
   versionSubida.value = filtros.version || VERSION_INICIAL
   subidaVisible.value = true
+}
+
+/** Al cerrar se borra la clave: no puede quedar escrita de una subida a otra. */
+function alCerrarSubida() {
+  apiKey.value = ''
 }
 
 function seleccionarArchivos() {
@@ -334,7 +358,7 @@ async function subir() {
     const res = await liquidacionesApi.subirFacturasXm(
       archivos.value.map(a => a.file),
       versionSubida.value,
-      { onProgreso: (p) => { progresoSubida.value = p } },
+      { onProgreso: (p) => { progresoSubida.value = p }, apiKey: apiKey.value },
     )
     progresoTarea.value = `Procesando ${res.files_queued} factura(s) con la IA…`
 

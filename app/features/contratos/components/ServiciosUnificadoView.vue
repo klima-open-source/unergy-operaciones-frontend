@@ -118,6 +118,83 @@
               @click="limpiarFiltrosProyectos" />
     </div>
 
+    <!-- Filtros de Servicios. Misma fila fija que la de Proyectos; los controles
+         cambian según la pestaña porque las tres tablas no comparten columnas.
+         Los predicados viven en `~/features/contratos/filtrosServicios`. -->
+    <div v-if="vista === 'servicios'"
+         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
+         style="border-color:#ECE7F2">
+      <template v-if="servicio === 'ppa'">
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <Select v-model="filtrosPpa.estado" :options="VIGENCIA_OPCIONES"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <Select v-model="filtrosPpa.tipo" :options="opcionesPpaTipo"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-36" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Comprador</label>
+          <Select v-model="filtrosPpa.comprador" :options="opcionesPpaComprador"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Vendedor</label>
+          <Select v-model="filtrosPpa.vendedor" :options="opcionesPpaVendedor"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-48" />
+        </div>
+        <Button v-if="nFiltrosPpaActivos" label="Limpiar filtros" text size="small"
+                @click="limpiarFiltrosPpa" />
+      </template>
+
+      <template v-else>
+        <div v-if="tiposDelServicio.length > 1">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <Select v-model="filtrosServicio.tipo" :options="opcionesServicioTipo"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-44" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <Select v-model="filtrosServicio.estado" :options="ESTADO_CONTRATO_OPCIONES"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <div v-if="esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Inversionista</label>
+          <Select v-model="filtrosServicio.inversionista" :options="opcionesInversionista"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-56" />
+        </div>
+        <div v-if="esRepresentacion">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+          <Select v-model="filtrosServicio.portafolio" :options="opcionesPortafolio"
+                  optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
+                  size="small" class="w-44" />
+        </div>
+        <!-- Solo si hay más de una clase entre los contratos cargados: con una
+             sola, el desplegable no seleccionaría nada distinto. -->
+        <div v-if="opcionesTipoPlanta.length > 1">
+          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo de planta</label>
+          <Select v-model="filtrosServicio.tipoPlanta" :options="opcionesTipoPlanta"
+                  optionLabel="label" optionValue="value" placeholder="Todos" showClear
+                  size="small" class="w-40" />
+        </div>
+        <!-- Sin desplegable de "Proyecto": aislar los huérfanos sigue estando en
+             el botón "Ver solo estos" de la barra de aviso, que es de donde salió
+             y donde tiene el contexto (dice cuántos son). El filtro sigue
+             existiendo en el estado; lo que se quitó es el control duplicado. -->
+        <Button v-if="nFiltrosServicioActivos" label="Limpiar filtros" text size="small"
+                @click="limpiarFiltrosServicio" />
+      </template>
+    </div>
+
     <!-- ══════════════════ CLIENTES ══════════════════ -->
     <div v-if="vista === 'clientes'" class="tabla-caja">
       <DataTable :value="clientesFiltrados" :loading="loadingClientes" size="small"
@@ -429,11 +506,11 @@
       <!-- Todo contrato de representación pertenece a una planta. Los que no la
            tienen son un error de datos, no un estado válido: la barra los cuenta
            y deja aislarlos para irlos cerrando hasta llegar a cero. -->
-      <div v-if="esRepresentacion && nHuerfanos" class="barra-huerfanos">
+      <div v-if="nHuerfanos" class="barra-huerfanos">
         <TriangleAlertIcon class="size-[1em]" />
         <span><strong>{{ nHuerfanos }}</strong> de {{ contratosServicio.length }} contratos sin proyecto asociado</span>
         <Button :label="soloHuerfanos ? 'Ver todos' : 'Ver solo estos'" text size="small"
-                class="ml-auto" @click="soloHuerfanos = !soloHuerfanos" />
+                class="ml-auto" @click="alternarHuerfanos" />
       </div>
 
       <!-- Duplicados: el mismo contrato escrito por varias fuentes. Se limpian
@@ -462,6 +539,42 @@
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
                  sortField="fecha_inicio" :sortOrder="1" rowHover
                  :emptyMessage="`No hay contratos de ${servicioInfo?.label} registrados.`">
+        <!-- Proyecto va PRIMERO y con el nombre más grande: es lo que identifica
+             la fila. Un contrato de servicio se firma SOBRE una planta, así que
+             sin esta columna la tabla no dice de qué habla cada fila. Cuando el
+             contrato quedó huérfano (proyecto_id NULL) la celda es el botón para
+             arreglarlo, en vez de un "—" que no lleva a ninguna parte. -->
+        <Column field="proyecto.nombre_comercial" header="Proyecto"
+                sortable :style="esRepresentacion ? 'width:26%' : 'width:24%'">
+          <template #body="{ data }">
+            <button v-if="data.proyecto" type="button" class="celda-enlace"
+                    v-tooltip.bottom="'Ver la planta'"
+                    @click.stop="ir(rutaDeLaPlanta(data))">
+              <span class="celda-txt celda-proyecto">{{ data.proyecto.nombre_comercial }}</span>
+            </button>
+            <button v-else type="button" class="chip-huerfano"
+                    v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
+                    @click.stop="abrirAsociarProyecto(data)">
+              <LinkIcon class="size-[1em]" />Sin proyecto
+            </button>
+          </template>
+        </Column>
+        <!-- La clase de planta, en columna propia: pegada al nombre competía con
+             él por el ancho y no se podía ordenar ni leer en vertical. Se llama
+             "Tipo de planta" y no "Tipo" porque en Operación ya hay una columna
+             Tipo, la del contrato (mantenimiento/arriendo/internet). El 13% es
+             para que el encabezado entre entero: con 10% se cortaba.
+             Va junto al nombre —y antes que el tipo de contrato— porque describe
+             la PLANTA: las dos primeras columnas hablan de la misma cosa. -->
+        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:13%">
+          <template #body="{ data }">
+            <span v-if="data.proyecto" class="mini-chip"
+                  :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
+              {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
+            </span>
+            <span v-else style="color:#9b89b5">—</span>
+          </template>
+        </Column>
         <Column v-if="tiposDelServicio.length > 1" field="servicio_aplica" header="Tipo"
                 sortable style="width:11%">
           <template #body="{ data }">
@@ -470,30 +583,6 @@
               background: (TIPO_CONTRATO_COLOR[data.servicio_aplica] || '#6b7280') + '1f' }">
               {{ TIPO_CONTRATO_LABELS[data.servicio_aplica] || data.servicio_aplica || '—' }}
             </span>
-          </template>
-        </Column>
-        <!-- Proyecto: un contrato de representación se firma SOBRE una planta,
-             así que sin esta columna la tabla no dice de qué habla cada fila.
-             Cuando el contrato quedó huérfano (proyecto_id NULL) la celda es el
-             botón para arreglarlo, en vez de un "—" que no lleva a ninguna
-             parte. -->
-        <Column v-if="esRepresentacion" field="proyecto.nombre_comercial" header="Proyecto"
-                sortable style="width:24%">
-          <template #body="{ data }">
-            <button v-if="data.proyecto" type="button" class="celda-enlace"
-                    v-tooltip.bottom="'Ver representación de la planta'"
-                    @click.stop="ir(`/proyectos/${data.proyecto.id}/representacion`)">
-              <span class="celda-txt font-semibold">{{ data.proyecto.nombre_comercial }}</span>
-              <span class="mini-chip shrink-0"
-                    :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
-                {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
-              </span>
-            </button>
-            <button v-else type="button" class="chip-huerfano"
-                    v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
-                    @click.stop="abrirAsociarProyecto(data)">
-              <LinkIcon class="size-[1em]" />Sin proyecto
-            </button>
           </template>
         </Column>
         <!-- El inversionista es lo que distingue dos contratos de la misma
@@ -506,8 +595,12 @@
             </span>
           </template>
         </Column>
-        <Column field="numero_contrato" header="N° contrato" sortable
-                :style="esRepresentacion ? 'width:11%' : 'width:15%'">
+        <!-- Solo en Representación: ahí el número está cargado y sirve para
+             identificar el contrato. En Operación ninguno lo trae, así que era
+             una columna de 66 guiones ocupando el 15% del ancho. El buscador de
+             la cabecera sigue mirando `numero_contrato` en las dos pestañas. -->
+        <Column v-if="esRepresentacion" field="numero_contrato" header="N° contrato" sortable
+                style="width:11%">
           <template #body="{ data }"><span class="celda-txt mono">{{ data.numero_contrato || '—' }}</span></template>
         </Column>
         <!-- Contratante y prestador salen del cuadro en Representación: el seed
@@ -549,7 +642,7 @@
         <Column :style="esRepresentacion ? 'width:8%' : 'width:6%'">
           <template #body="{ data }">
             <div class="acciones">
-              <Button v-if="esRepresentacion" text size="small" severity="secondary" v-tooltip.bottom="data.proyecto ? 'Cambiar de proyecto' : 'Asociar a un proyecto'" @click.stop="abrirAsociarProyecto(data)">
+              <Button text size="small" severity="secondary" v-tooltip.bottom="data.proyecto ? 'Cambiar de proyecto' : 'Asociar a un proyecto'" @click.stop="abrirAsociarProyecto(data)">
                 <template #icon><LinkIcon class="size-[1em]" /></template>
               </Button>
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="irAEditarContratoServicio(data)">
@@ -579,13 +672,26 @@
     <Dialog v-model:visible="dialogAsociarProyecto" header="Asociar contrato a un proyecto"
             modal class="w-full max-w-lg">
       <div v-if="contratoAAsociar" class="space-y-3">
+        <!-- Los datos que sirven de pista son distintos por tipo: un contrato de
+             Operación no tiene inversionista ni código Sun Factory, y mostrarlos
+             vacíos solo estorba al decidir. -->
         <div class="rounded-lg p-3 text-xs space-y-0.5" style="background:#F7F5FB; color:#6b5a8a">
-          <p><span class="font-semibold">Inversionista:</span>
-            {{ contratoAAsociar.inversionista_nombre || '—' }}</p>
+          <template v-if="contratoAAsociar.servicio_aplica === 'representacion'">
+            <p><span class="font-semibold">Inversionista:</span>
+              {{ contratoAAsociar.inversionista_nombre || '—' }}</p>
+            <p><span class="font-semibold">Código Sun Factory:</span>
+              {{ contratoAAsociar.codigo_sun_factory || '—' }}</p>
+          </template>
+          <template v-else>
+            <p><span class="font-semibold">Tipo:</span>
+              {{ TIPO_CONTRATO_LABELS[contratoAAsociar.servicio_aplica] || contratoAAsociar.servicio_aplica }}</p>
+            <p><span class="font-semibold">Prestador:</span>
+              {{ contratoAAsociar.prestador_nombre || '—' }}</p>
+            <p><span class="font-semibold">N° de contrato:</span>
+              {{ contratoAAsociar.numero_contrato || '—' }}</p>
+          </template>
           <p><span class="font-semibold">Proyecto según el contrato:</span>
             {{ contratoAAsociar.nombre_proyecto_ref || '—' }}</p>
-          <p><span class="font-semibold">Código Sun Factory:</span>
-            {{ contratoAAsociar.codigo_sun_factory || '—' }}</p>
         </div>
         <div>
           <label class="text-xs font-semibold" style="color:#6b5a8a">Planta</label>
@@ -653,6 +759,18 @@ import { formatearNombre } from '~/utils/nombreFormato'
 import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
+import { sugerirProyecto as calcularSugerencia } from '~/features/contratos/sugerirProyecto'
+import {
+  ConProyecto,
+  FILTROS_PPA_VACIOS,
+  FILTROS_SERVICIO_VACIOS,
+  contarActivos,
+  depurarFiltros,
+  filtrarPpa,
+  filtrarServicios,
+  opcionesDe,
+  tiposDePlantaPresentes,
+} from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
 import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
@@ -759,15 +877,47 @@ const compacta = ref(localStorage.getItem('servicios_unificado_compacta') !== '0
 
 watch(compacta, v => localStorage.setItem('servicios_unificado_compacta', v ? '1' : '0'))
 
+// ── Filtros de Servicios (PPA / Representación / Operación) ─────────────────
+// Los predicados viven en `~/features/contratos/filtrosServicios` (con pruebas);
+// acá solo está el estado y su ida y vuelta con la URL.
+//
+// Van en la URL por lo mismo que `vista`, `srv` y `q`, que es lo que dice el
+// comentario de la sincronización de abajo: poder compartir la vista tal cual se
+// está viendo. Se prefijan para que los dos grupos no se pisen entre pestañas.
+const PREFIJO_PPA = 'fp_'
+const PREFIJO_SRV = 'fs_'
+
+function leerFiltros(vacios, prefijo) {
+  const f = { ...vacios }
+  for (const clave of Object.keys(vacios)) {
+    const valor = route.query[prefijo + clave]
+    if (typeof valor === 'string' && valor !== '') f[clave] = valor
+  }
+  return f
+}
+
+function volcarFiltros(query, filtros, prefijo) {
+  for (const [clave, valor] of Object.entries(filtros)) {
+    if (valor !== null && valor !== undefined && valor !== '') query[prefijo + clave] = valor
+  }
+}
+
+const filtrosPpa = ref(leerFiltros(FILTROS_PPA_VACIOS, PREFIJO_PPA))
+const filtrosServicio = ref(leerFiltros(FILTROS_SERVICIO_VACIOS, PREFIJO_SRV))
+
 // Los filtros se sincronizan con la URL para poder compartir la vista tal cual
 // se esta viendo.
-watch([vista, servicio, q], () => {
+watch([vista, servicio, q, filtrosPpa, filtrosServicio], () => {
   const query = {}
   if (vista.value) query.vista = vista.value
-  if (vista.value === 'servicios') query.srv = servicio.value
+  if (vista.value === 'servicios') {
+    query.srv = servicio.value
+    if (servicio.value === 'ppa') volcarFiltros(query, filtrosPpa.value, PREFIJO_PPA)
+    else volcarFiltros(query, filtrosServicio.value, PREFIJO_SRV)
+  }
   if (q.value) query.q = q.value
   router.replace({ query })
-})
+}, { deep: true })
 
 const filasPorPagina = computed(() => (compacta.value ? 100 : 50))
 // Los filtros de Proyectos ocupan una fila extra, así que la tabla dispone de
@@ -912,6 +1062,14 @@ function tipFalta(fila, tipo) {
 function fmtFecha(v) { return v ? String(v).slice(0, 10) : '—' }
 function num(v) { return v == null || v === '' ? '—' : Number(v).toLocaleString('es-CO') }
 function ir(path) { router.push(path) }
+
+// La ficha de la planta que corresponde al contrato: Representación y Operación
+// son pestañas distintas dentro del proyecto, y mandar a la equivocada hace
+// parecer que la planta no tiene el contrato que se acaba de ver en la tabla.
+function rutaDeLaPlanta(contrato) {
+  const seccion = contrato.servicio_aplica === 'representacion' ? 'representacion' : 'operacion'
+  return `/proyectos/${contrato.proyecto.id}/${seccion}`
+}
 
 // ── Clientes ─────────────────────────────────────────────────────────────────
 const clientes = ref([])
@@ -1105,6 +1263,27 @@ const ppa = ref([])
 const loadingPpa = ref(false)
 const ppaCargados = ref(false)
 
+// Las mismas claves y etiquetas que produce `estadoVigenciaPPA`, para que el
+// filtro diga lo mismo que la columna Estado.
+const VIGENCIA_OPCIONES = [
+  { value: 'vigente', label: 'Vigente' },
+  { value: 'por_vencer', label: 'Por vencer' },
+  { value: 'vencido', label: 'Vencido' },
+  { value: 'por_iniciar', label: 'Por iniciar' },
+  { value: 'sin_fechas', label: 'Sin fechas' },
+]
+
+// Opciones derivadas de lo ya cargado: no hace falta pedirle nada más a la API.
+const opcionesPpaTipo = computed(() => opcionesDe(ppa.value, 'tipo_contrato'))
+const opcionesPpaComprador = computed(() => opcionesDe(ppa.value, 'comprador_nombre'))
+const opcionesPpaVendedor = computed(() => opcionesDe(ppa.value, 'vendedor_nombre'))
+
+const nFiltrosPpaActivos = computed(() => contarActivos(filtrosPpa.value))
+
+function limpiarFiltrosPpa() {
+  filtrosPpa.value = { ...FILTROS_PPA_VACIOS }
+}
+
 const ppaFiltrados = computed(() => {
   const t = q.value.trim().toLowerCase()
   const base = !t ? ppa.value : ppa.value.filter(c =>
@@ -1115,7 +1294,8 @@ const ppaFiltrados = computed(() => {
     (c.proyectos || []).some(p => (p.nombre_comercial || '').toLowerCase().includes(t)))
   // `_vigencia` se precalcula acá y no en la celda para que la columna Estado
   // sea ordenable (PrimeVue ordena por campo, no por lo que pinta el template).
-  return base.map(c => ({ ...c, _vigencia: estadoVigenciaPPA(c) }))
+  // Los filtros se aplican DESPUÉS del map porque el de estado lee `_vigencia`.
+  return filtrarPpa(base.map(c => ({ ...c, _vigencia: estadoVigenciaPPA(c) })), filtrosPpa.value)
 })
 
 async function cargarPpa() {
@@ -1123,6 +1303,11 @@ async function cargarPpa() {
   try {
     ppa.value = await ppaService.listar()
     ppaCargados.value = true
+    filtrosPpa.value = depurarFiltros(filtrosPpa.value, {
+      tipo: opcionesPpaTipo.value.map(o => o.value),
+      comprador: opcionesPpaComprador.value.map(o => o.value),
+      vendedor: opcionesPpaVendedor.value.map(o => o.value),
+    })
   } catch (e) {
     toast.error('Error al cargar contratos PPA', { description: e.message, duration: 4000 })
   } finally {
@@ -1141,8 +1326,9 @@ const servicioCargado = ref(null)   // el tipo que hay en memoria
 const esRepresentacion = computed(() => servicio.value === 'representacion')
 
 // Contratos de representación sin planta asociada: son datos por corregir, no
-// una categoría del negocio. `soloHuerfanos` los aísla para poder cerrarlos.
-const soloHuerfanos = ref(false)
+// una categoría del negocio. Aislarlos es hoy el filtro "Proyecto" — ver
+// `soloHuerfanos` más abajo, que deriva de él para que la barra de aviso y el
+// desplegable no puedan decir cosas distintas.
 
 // ── Duplicados de representación ─────────────────────────────────────────────
 // Quién es duplicado y si se puede fusionar sin perder datos lo decide el
@@ -1203,9 +1389,42 @@ async function fusionarDuplicados() {
 const nHuerfanos = computed(() =>
   contratosServicio.value.filter(c => !c.proyecto_id).length)
 
+const ESTADO_CONTRATO_OPCIONES = [
+  { value: 'vigente', label: 'Vigente' },
+  { value: 'en_renovacion', label: 'En renovación' },
+  { value: 'vencido', label: 'Vencido' },
+  { value: 'terminado', label: 'Terminado' },
+]
+
+// Tipo solo aplica a Operación, que junta mantenimiento, arriendo e internet;
+// Representación tiene un único tipo y el desplegable no aportaría nada.
+const opcionesServicioTipo = computed(() =>
+  tiposDelServicio.value.map(t => ({ value: t, label: TIPO_CONTRATO_LABELS[t] || t })))
+const opcionesInversionista = computed(() => opcionesDe(contratosServicio.value, 'inversionista_nombre'))
+const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'portafolio'))
+
+// Los tipos se muestran con la misma etiqueta y el mismo color que el chip de la
+// columna, para que el filtro y la tabla hablen igual.
+const opcionesTipoPlanta = computed(() =>
+  tiposDePlantaPresentes(contratosServicio.value)
+    .map(tipo => ({ value: tipo, label: TIPO_LABELS[tipo] || tipo })))
+
+const nFiltrosServicioActivos = computed(() => contarActivos(filtrosServicio.value))
+
+function limpiarFiltrosServicio() {
+  filtrosServicio.value = { ...FILTROS_SERVICIO_VACIOS }
+}
+
+// El aviso de huérfanos y el filtro "Proyecto" son la MISMA decisión: el botón
+// de la barra solo pone o quita el filtro, para que no puedan contradecirse.
+const soloHuerfanos = computed(() => filtrosServicio.value.proyecto === ConProyecto.SIN)
+
+function alternarHuerfanos() {
+  filtrosServicio.value.proyecto = soloHuerfanos.value ? null : ConProyecto.SIN
+}
+
 const contratosServicioFiltrados = computed(() => {
-  let base = contratosServicio.value
-  if (esRepresentacion.value && soloHuerfanos.value) base = base.filter(c => !c.proyecto_id)
+  let base = filtrarServicios(contratosServicio.value, filtrosServicio.value)
   if (esRepresentacion.value && soloDuplicados.value) {
     base = base.filter(c => idsDuplicados.value.has(c.id))
   }
@@ -1232,7 +1451,14 @@ async function cargarContratosServicio(servicioKey) {
       t => contratosServicioService.listar({ tipo: t, limit: 500 })))
     contratosServicio.value = respuestas.flat()
     servicioCargado.value = servicioKey
-    soloHuerfanos.value = false
+    // Un link viejo puede nombrar un inversionista o un prestador que ya no
+    // esta: aplicarlo dejaria la tabla vacia con un filtro que nadie entiende.
+    filtrosServicio.value = depurarFiltros(filtrosServicio.value, {
+      tipo: tiposDelServicio.value,
+      inversionista: opcionesInversionista.value.map(o => o.value),
+      portafolio: opcionesPortafolio.value.map(o => o.value),
+      tipoPlanta: opcionesTipoPlanta.value.map(o => o.value),
+    })
     soloDuplicados.value = false
     if (servicioKey === 'representacion') cargarDuplicados()
   } catch (e) {
@@ -1264,25 +1490,15 @@ async function abrirAsociarProyecto(contrato) {
 // Sun Factory, después el número de cuatro dígitos del nombre de referencia. Es
 // una sugerencia que el operador confirma, nunca una asignación automática:
 // donde el seed ya acertó, el contrato no está huérfano.
+// El criterio vive en `~/features/contratos/sugerirProyecto` (con pruebas). Ahí
+// se agregó el emparejamiento por NOMBRE de planta, que es la única pista de los
+// contratos de Operación: muchos traen la planta escrita en `prestador_nombre`.
+// Ante dos plantas posibles no propone nada, a propósito.
 function sugerirProyecto(contrato) {
-  const sf = (contrato.codigo_sun_factory || '').trim().toLowerCase()
-  if (sf) {
-    const porTsf = proyectos.value.find(p => (p.codigo_tsf || '').trim().toLowerCase() === sf)
-    if (porTsf) {
-      proyectoElegido.value = porTsf.id
-      proyectoSugerido.value = `código Sun Factory ${contrato.codigo_sun_factory}`
-      return
-    }
-  }
-  const ref_ = contrato.nombre_proyecto_ref || ''
-  for (const num of ref_.match(/\d{4}/g) || []) {
-    const porNum = proyectos.value.find(p => (p.nombre_comercial || '').includes(num))
-    if (porNum) {
-      proyectoElegido.value = porNum.id
-      proyectoSugerido.value = `número ${num} de "${ref_}"`
-      return
-    }
-  }
+  const sugerencia = calcularSugerencia(contrato, proyectos.value)
+  if (!sugerencia) return
+  proyectoElegido.value = sugerencia.proyectoId
+  proyectoSugerido.value = sugerencia.motivo
 }
 
 async function guardarProyectoContrato() {
@@ -1322,6 +1538,12 @@ function seleccionarVista(key) {
 }
 
 function seleccionarServicio(key) {
+  if (key !== servicio.value) {
+    // Las tres pestanas no comparten columnas: arrastrar el filtro de una a
+    // otra solo produce tablas vacias sin explicacion.
+    limpiarFiltrosPpa()
+    limpiarFiltrosServicio()
+  }
   servicio.value = key
   asegurarDatos()
 }
@@ -1742,6 +1964,12 @@ function confirmarBorrarPpa(contrato) {
   display: block; min-width: 0; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* El nombre de la planta es lo que identifica la fila, así que va un punto más
+   grande que el resto de la celda (12px) y en semibold. El modo compacto baja
+   la tabla a 11px: acá se mantiene la misma diferencia de dos puntos. */
+.celda-proyecto { font-size: 14px; font-weight: 600; }
+.tabla--compacta .celda-proyecto { font-size: 13px; }
 
 /* Chips en una sola línea: si sobran, se recortan en vez de agrandar la fila */
 .chips-fila { display: flex; gap: 2px; overflow: hidden; min-width: 0; }

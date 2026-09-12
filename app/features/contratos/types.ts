@@ -267,6 +267,17 @@ export interface EntradaIndexacion {
   esBase?: boolean
 }
 
+/**
+ * Estado de una fila de indexación frente al aniversario vigente: los que ya
+ * pasaron, el que se cobra hoy, y los que faltan. Lo calcula
+ * `estadoFilaIndexacion` en `tarifasCgm.ts`.
+ */
+export enum EstadoFilaIndexacion {
+  PAGADO = 'pagado',
+  VIGENTE = 'vigente',
+  PENDIENTE = 'pendiente',
+}
+
 /** `GET /om/indexacion/:id` y `GET /arriendos/indexacion/:id`: la serie calculada por el backend. */
 export interface SerieIndexacionCalculada {
   anual: unknown[]
