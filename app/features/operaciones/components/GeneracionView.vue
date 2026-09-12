@@ -222,6 +222,13 @@
             <span class="gen-legend-name">{{ ds.nombre }}</span>
             <span class="gen-legend-total">{{ fmtNum(ds.total) }} kWh</span>
           </button>
+          <!-- No es un boton: la meta no se apaga, es la referencia. -->
+          <span v-if="hayMetaP90" class="gen-legend-item gen-legend-item--meta">
+            <span class="gen-legend-dash" />
+            <span class="gen-legend-name">
+              Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
+            </span>
+          </span>
         </div>
 
         <!-- SVG chart -->
@@ -265,6 +272,12 @@
                   rx="1.5" />
               </g>
             </template>
+
+            <!-- Meta P90 de la simulación. Punteada y gris: es una referencia,
+                 no una medición, y no debe competir con las series reales. -->
+            <polyline v-if="hayMetaP90" :points="metaP90Points" fill="none"
+              stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"
+              stroke-linejoin="round" pointer-events="none" />
 
             <!-- Fallas con impacto en generación: subrayado rojo del día/período -->
             <g v-if="periodosFlagged.length" class="gen-faults" pointer-events="none">
@@ -661,7 +674,9 @@ async function cargar() {
         return
       }
       const raw = Array.isArray(body?.data) ? body.data : []
-      parsed.push({ sub, nombre, map: sumarPorGranularidad(raw) })
+      // `simulation` viene desde siempre y esta vista la tiraba: la curva se
+      // dibujaba sin nada contra que compararla.
+      parsed.push({ sub, nombre, map: sumarPorGranularidad(raw), sim: body?.simulation ?? null })
     })
 
     // Si TODAS fallaron, es un fallo real: mostrarlo (no "sin datos").
@@ -681,7 +696,7 @@ async function cargar() {
     const ds = parsed.map((p, idx) => {
       const points = keys.map(k => ({ key: k, kwh: p.map.get(k) ?? 0, label: labelDeClave(k) }))
       const total = points.reduce((s, pt) => s + pt.kwh, 0)
-      return { proyectoId: p.sub, nombre: p.nombre, color: PALETTE[idx % PALETTE.length], points, total, hidden: false }
+      return { proyectoId: p.sub, nombre: p.nombre, color: PALETTE[idx % PALETTE.length], points, total, hidden: false, sim: p.sim }
     })
     ds.sort((a, b) => b.total - a.total)
     datasets.value = ds
@@ -786,12 +801,67 @@ const paddingB = 30
 const chartH = 280
 const chartW = computed(() => chartContainerWidth.value)
 
+/**
+ * La meta P90 de cada periodo del eje, sumando los proyectos visibles.
+ *
+ * El backend manda `curva_p90_kwh`: los doce valores mensuales del proyecto, que
+ * son ENERGIA DEL MES. De ahi salen los dos casos que tienen sentido dibujar:
+ *
+ *   · mensual -> el valor del mes, tal cual;
+ *   · diaria  -> ese valor repartido entre los dias de ESE mes.
+ *
+ * En horaria no se dibuja nada. Repartir la energia del mes entre sus horas
+ * daria una linea plana que no se parece a nada: la generacion solar no es
+ * uniforme --de noche es cero-- asi que esa "meta" estaria inventada.
+ *
+ * Se usan los doce valores y no el `p90_monthly` que tambien viene, porque ese
+ * es el del mes en que ARRANCA el rango: con un rango de enero a diciembre
+ * pintaria la referencia de enero sobre los doce meses, y el P90 varia fuerte
+ * por estacion.
+ *
+ * `null` en un periodo --no cero-- cuando ningun proyecto visible tiene curva:
+ * un cero se lee como "la meta era no generar nada".
+ */
+const metaP90 = computed(() => {
+  if (granularidad.value === 'horaria') return []
+  const visibles = datasets.value.filter(d => !d.hidden && d.sim?.curva_p90_kwh)
+  if (!visibles.length) return []
+
+  return periodos.value.map(p => {
+    const [anio, mes] = p.key.split('-').map(Number)
+    if (!anio || !mes) return null
+    const diasDelMes = new Date(anio, mes, 0).getDate()
+    let suma = 0
+    let alguno = false
+    for (const ds of visibles) {
+      const delMes = Number(ds.sim.curva_p90_kwh[mes - 1])
+      if (!Number.isFinite(delMes) || delMes <= 0) continue
+      suma += granularidad.value === 'diaria' ? delMes / diasDelMes : delMes
+      alguno = true
+    }
+    return alguno ? suma : null
+  })
+})
+
+const hayMetaP90 = computed(() => metaP90.value.some(v => v != null))
+
+/** La polilinea de la meta, saltando los periodos sin dato. */
+const metaP90Points = computed(() =>
+  metaP90.value
+    .map((v, i) => (v == null ? null : `${xToPx(i)},${yToPx(v)}`))
+    .filter(Boolean)
+    .join(' '),
+)
+
 const maxY = computed(() => {
   let max = 0
   datasets.value.forEach(d => {
     if (d.hidden) return
     d.points.forEach(p => { if (p.kwh > max) max = p.kwh })
   })
+  // La meta entra en la escala: si no, una planta que rinde por debajo deja la
+  // linea fuera del grafico y no se ve justo cuando mas importa.
+  metaP90.value.forEach(v => { if (v != null && v > max) max = v })
   return max > 0 ? max * 1.08 : 10
 })
 
@@ -1387,6 +1457,13 @@ watch(chartWrapRef, (el) => {
 .gen-legend-item:hover { background: #f3f1f8; }
 .gen-legend-item--off { opacity: 0.4; }
 .gen-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+.gen-legend-item--meta { cursor: default; }
+.gen-legend-dash {
+  width: 14px;
+  height: 0;
+  border-top: 2px dashed #f59e0b;
+  flex: none;
+}
 .gen-legend-name { font-weight: 600; color: var(--color-unergy-deep); }
 .gen-legend-total { color: #6b5a8a; font-weight: 500; }
 
