@@ -184,17 +184,46 @@ async function cargar() {
   }
 }
 
+/**
+ * Cuanto historial de fallas CERRADAS se trae.
+ *
+ * Mas corto que en escritorio (90 dias): esta vista se usa en campo para
+ * atender lo que esta abierto, no para revisar el historico, y cada fila es el
+ * serializer completo de la lista de fallas.
+ */
+const DIAS_HISTORIAL = 30
+
+function desdeISO(dias) {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - dias)
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  // Partes locales y no `toISOString()`, que pasa por UTC y puede caer un dia
+  // antes segun la zona del telefono.
+  return `${d.getFullYear()}-${mes}-${dia}`
+}
+
 async function cargarFallas() {
-  const primera = await fallasService.listar({ page: 1, size: 500 })
-  let items = primera.items ?? []
-  const total = primera.total ?? items.length
-  const pages = Math.ceil(total / 500)
-  if (pages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: pages - 1 }, (_, i) => fallasService.listar({ page: i + 2, size: 500 })))
-    for (const r of rest) items = items.concat(r.items ?? [])
+  // Dos peticiones, no 33.
+  //
+  // Antes se traia el historial COMPLETO: el bucle pedia paginas de 500 y el
+  // servidor las sirve de 100 (TOPE_FILAS en api/pagination.py), asi que cada
+  // pagina se solapaba con la anterior --filas duplicadas-- y la lista se
+  // cortaba antes de tiempo. Y de todas las fallas vivas la gran mayoria estan
+  // CERRADAS: se traian miles para mostrar las abiertas, que es a lo que se
+  // entra aca.
+  const [abiertas, cerradas] = await Promise.all([
+    fallasService.listar({ solo_activas: true, size: 500 }),
+    fallasService.listar({ fecha_identificacion_desde: desdeISO(DIAS_HISTORIAL), size: 500 }),
+  ])
+  // Se solapan --una falla abierta identificada dentro de la ventana llega en
+  // las dos-- asi que se unen por id.
+  const porId = new Map()
+  for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? [])]) {
+    porId.set(f.id, f)
   }
-  fallas.value = items
+  fallas.value = [...porId.values()]
 }
 
 function openDetail(f) { detailFalla.value = f; detailOpen.value = true }

@@ -372,11 +372,10 @@ function toast(msg, isErr = false) {
 async function cargarCatalogos() {
   loadingCatalogos.value = true
   try {
-    const [projRes, portRes, contRes, falRes] = await Promise.allSettled([
+    const [projRes, portRes, contRes] = await Promise.allSettled([
       monitoreoLegacyService.obtenerProyectos(),
       monitoreoLegacyService.obtenerPortafolios(),
       monitoreoLegacyService.obtenerTodosLosContratos(),
-      cargarFallas(),
     ])
     if (projRes.status === 'fulfilled' && projRes.value?.projects) {
       proyectos.value = (projRes.value.projects || []).filter(p => p.sub_project)
@@ -395,23 +394,30 @@ async function cargarCatalogos() {
   }
 }
 
-async function cargarFallas() {
+/**
+ * Las fallas del periodo del informe.
+ *
+ * Antes se traia el historial COMPLETO al abrir el panel --antes de saber que
+ * periodo se iba a informar-- y se filtraba por fecha en el navegador
+ * (`getFaultsForRange`). El bucle ademas contaba paginas de 200 y el servidor
+ * las sirve de 100 (TOPE_FILAS en api/pagination.py), asi que cada pagina se
+ * solapaba con la anterior y la lista se cortaba antes de tiempo: llegaban
+ * filas duplicadas y faltaba parte del historial.
+ *
+ * En un informe que se le manda al cliente eso no es lentitud, es una falla
+ * contada dos veces y otra que no aparece.
+ *
+ * Ahora el rango va en la peticion, y se llama desde `generar()`, que es donde
+ * `buildRange()` resuelve el periodo. Hasta entonces no hay nada que pedir.
+ */
+async function cargarFallas(range) {
   try {
-    const primera = await fallasService.listar({ page: 1, size: 200 })
-    const total = primera.total ?? 0
-    const items = [...(primera.items ?? [])]
-    if (total > 200) {
-      const totalPages = Math.ceil(total / 200)
-      const restResults = await Promise.allSettled(
-        Array.from({ length: totalPages - 1 }, (_, i) =>
-          fallasService.listar({ page: i + 2, size: 200 })
-        )
-      )
-      for (const r of restResults) {
-        if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
-      }
-    }
-    fallas.value = items
+    const res = await fallasService.listar({
+      fecha_identificacion_desde: range.from,
+      fecha_identificacion_hasta: range.to,
+      size: 500,
+    })
+    fallas.value = res.items ?? []
   } catch { /* no crítico */ }
 }
 
@@ -1411,6 +1417,8 @@ async function generar() {
   htmlContent.value = ''
   informeIdGuardado.value = null
   ultimoRange.value = range
+  // Las fallas del periodo, ahora que se sabe cual es.
+  await cargarFallas(range)
   loadingMsg.value = 'Consultando generación…'
   loadingSub.value = ''
 
