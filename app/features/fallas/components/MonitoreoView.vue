@@ -979,31 +979,89 @@ const navIndex = computed(() => {
 })
 
 // ── Carga de datos ────────────────────────────────────────────────────────
-async function cargar() {
+//
+// Se traia el historial COMPLETO de fallas al abrir la vista. Con 6.400 filas
+// eso eran 33 peticiones, y ademas mal contadas: el bucle pedia paginas de 500
+// y el servidor las sirve de 100, asi que cada pagina se solapaba con la
+// anterior y la lista se cortaba a la mitad. Llegaban filas duplicadas y
+// faltaba el 47%.
+//
+// Pero el arreglo no es paginar bien: de esas 6.400, solo ~115 estan ABIERTAS.
+// La vista se traia seis mil filas cerradas para mostrar ciento quince.
+//
+// Ahora son dos peticiones con sentido:
+//
+//   · las abiertas, TODAS, filtradas en el servidor (`solo_activas`, un filtro
+//     que ya existia y nadie usaba). Son las que alimentan las pestanas
+//     Activas y Alerta, que es para lo que se abre esta pantalla.
+//   · las cerradas de una ventana de tiempo, porque el historico completo no
+//     se lee con el scroll -- se busca.
+//
+// Y la ventana la manda el filtro "Desde" que ya esta en la barra: si se pide
+// una fecha anterior a la cargada, se vuelve a pedir al servidor desde ahi. El
+// historico sigue estando entero, solo que se trae cuando se pide.
+
+/** Cuanto historial de fallas CERRADAS se trae sin que nadie lo pida. */
+const DIAS_HISTORIAL = 90
+
+/** Desde que fecha estan cargadas las cerradas. */
+const ventanaDesde = ref(null)
+
+function haceDias(dias) {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - dias)
+  return d
+}
+
+/**
+ * `YYYY-MM-DD` de una fecha LOCAL.
+ *
+ * No `toISOString()`: eso pasa por UTC, y la medianoche local de Bogota
+ * (UTC-5) es el mismo dia, pero en un navegador al este de Greenwich seria el
+ * dia anterior. Acá ese numero decide que se le pide al servidor, asi que se
+ * arma con las partes locales.
+ */
+function fechaLocalISO(d) {
+  const mes = String(d.getMonth() + 1).padStart(2, '0')
+  const dia = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mes}-${dia}`
+}
+
+async function cargar(desde = null) {
   loading.value = true
   error.value   = null
+  const inicio = desde ?? haceDias(DIAS_HISTORIAL)
   try {
-    const primera = await fallasService.listar({ page: 1, size: 500 })
-    const total = primera.total ?? 0
-    const items = [...(primera.items ?? [])]
-    if (total > 500) {
-      const totalPages = Math.ceil(total / 500)
-      const rest = await Promise.allSettled(
-        Array.from({ length: totalPages - 1 }, (_, i) =>
-          fallasService.listar({ page: i + 2, size: 500 })
-        )
-      )
-      for (const r of rest) {
-        if (r.status === 'fulfilled') items.push(...(r.value.items ?? []))
-      }
+    const [abiertas, cerradas] = await Promise.all([
+      // Sin `size`: son ~115 y caben en una respuesta. Si algun dia no
+      // cupieran, `completarPaginas` no se activa sin `size` -- por eso va
+      // explicito y holgado.
+      fallasService.listar({ solo_activas: true, size: 500 }),
+      fallasService.listar({ fecha_identificacion_desde: fechaLocalISO(inicio), size: 500 }),
+    ])
+    // Las dos listas se solapan (una falla abierta identificada dentro de la
+    // ventana esta en ambas), asi que se unen por id.
+    const porId = new Map()
+    for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? [])]) {
+      porId.set(f.id, f)
     }
-    allFallas.value = items
+    allFallas.value = [...porId.values()]
+    ventanaDesde.value = inicio
   } catch (e) {
     error.value = e.data?.detail || e.message || 'Error de conexión'
   } finally {
     loading.value = false
   }
 }
+
+// Pedir una fecha anterior a la cargada trae ese tramo del historico. Al
+// revés no: estrechar el filtro se resuelve en el navegador, sin ir a la red.
+watch(filtroFechaDesde, (nueva) => {
+  if (nueva && ventanaDesde.value && startOfDay(nueva) < ventanaDesde.value) {
+    cargar(startOfDay(nueva))
+  }
+})
 
 async function cargarCatalogos() {
   try {

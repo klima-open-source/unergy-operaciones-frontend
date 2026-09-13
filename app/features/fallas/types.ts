@@ -181,6 +181,13 @@ export interface FiltrosListaFallas {
   con_fecha_programada?: boolean
   q?: string
   /**
+   * Solo las fallas cuyo estado NO es final.
+   *
+   * El filtro existe en el backend desde siempre y ninguna vista lo usaba: se
+   * traian las ~6.400 fallas para mostrar las ~115 abiertas.
+   */
+  solo_activas?: boolean
+  /**
    * Rango sobre CUÁNDO SE IDENTIFICÓ la falla (`YYYY-MM-DD`), que es la fecha
    * por la que se mira un período hacia atrás.
    *
