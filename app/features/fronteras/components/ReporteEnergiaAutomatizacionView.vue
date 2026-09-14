@@ -439,7 +439,15 @@ async function cargarResumenHistorico() {
 // tablas de abajo, así que "Medidor"/"bajo % de problema" y "Estimación"/
 // "% medio" comparten intención visual aunque sean secciones distintas.
 const GRUPO_COLOR = {
-  'Medidor': '#4f9d78', 'Inversor': '#6b8fd6', 'Estimación': '#c9a13f',
+  // CGM en verde oscuro y Medidor en verde medio: son la misma familia --dato
+  // medido-- y el tono mas fuerte es el de mayor respaldo. Separados desde el
+  // 2026-09-14; antes iban los dos en la misma barra.
+  'CGM': '#2f7d5b',
+  'Medidor': '#4f9d78', 'Inversor': '#6b8fd6',
+  // Morado y no otro verde: un Excel de un tercero o el dato de otra empresa
+  // NO son una medicion nuestra, y el color no debe sugerir que si.
+  'Reportado por terceros': '#a06fa8',
+  'Estimación': '#c9a13f',
   // "Apagado" es un estado confirmado (el proyecto no genera), no una
   // estimación de dato faltante -- tono neutro propio, distinto de
   // Estimación (pedido 2026-08-21).
