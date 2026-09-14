@@ -20,7 +20,7 @@ export interface ClienteVistaComercial {
 // ── Detalle: documentos comerciales ───────────────────────────────────────────
 
 export type TipoDocumentoCliente =
-  'rut' | 'certificado_bancario' | 'camara_comercio' | 'oferta' | 'contrato'
+  'rut' | 'cedula_ciudadania' | 'certificado_bancario' | 'camara_comercio' | 'oferta' | 'contrato'
 
 export type EstadoDocumentoCliente = 'borrador' | 'enviado' | 'aceptado' | 'firmado' | 'rechazado'
 
