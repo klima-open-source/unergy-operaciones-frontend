@@ -39,6 +39,15 @@ const PLANTAS = [
   { id: 2, nombre_comercial: 'Planta Dos', tipo_proyecto: 'techo' },
 ]
 
+/** Una de cada caso, para el filtro de `cargarOperativos`. */
+const MEZCLA = [
+  { id: 1, nombre_comercial: 'Opera Y La Operamos', estado: 'en_operacion', srv_operacion: true },
+  { id: 2, nombre_comercial: 'Opera Sin Servicio', estado: 'en_operacion', srv_operacion: false },
+  { id: 3, nombre_comercial: 'En Obra', estado: 'en_desarrollo', srv_operacion: true },
+  { id: 4, nombre_comercial: 'Cancelada', estado: 'cancelado', srv_operacion: true },
+  { id: 5, nombre_comercial: 'Sin Bandera', estado: 'en_operacion' },
+]
+
 async function cargarComposable() {
   vi.resetModules()
   const mod = await import('./useProyectosCatalogo')
@@ -141,6 +150,41 @@ describe('useProyectosCatalogo', () => {
     await usar().cargar()
     await expect(usar().cargar()).resolves.toEqual(PLANTAS)
     expect(listar).toHaveBeenCalledTimes(2)
+  })
+
+  it('cargarOperativos deja solo las que pueden tener una falla', async () => {
+    // 188 plantas en el catálogo y más de la mitad no califican: una en obra no
+    // genera y no puede tener una falla de operación, pero en un desplegable
+    // alfabético queda al lado de la que sí opera y se llama parecido.
+    const usar = await cargarComposable()
+    listar.mockResolvedValue(MEZCLA)
+
+    const operativos = await usar().cargarOperativos()
+
+    expect(operativos.map((p) => p.nombre_comercial)).toEqual(['Opera Y La Operamos'])
+  })
+
+  it('cargarOperativos no gasta una petición aparte', async () => {
+    // `estado` y `srv_operacion` vienen en cada fila: se filtra lo ya cargado.
+    const usar = await cargarComposable()
+    listar.mockResolvedValue(MEZCLA)
+
+    await usar().cargar()
+    await usar().cargarOperativos()
+
+    expect(listar).toHaveBeenCalledTimes(1)
+  })
+
+  it('cargarOperativos deja intacto el catálogo completo', async () => {
+    // El filtro es para el formulario de fallas; el resto de las vistas siguen
+    // necesitando las 188.
+    const usar = await cargarComposable()
+    listar.mockResolvedValue(MEZCLA)
+
+    const c = usar()
+    await c.cargarOperativos()
+
+    expect(c.proyectos.value).toHaveLength(MEZCLA.length)
   })
 
   it('marca cuándo está cargando', async () => {

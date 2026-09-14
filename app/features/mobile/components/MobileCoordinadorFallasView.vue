@@ -169,7 +169,9 @@ async function cargar() {
   try {
     const [cat, proy] = await Promise.all([
       fallasService.obtenerCatalogos().catch(() => ({ estados: [], prioridades: [], tipos: [], resoluciones: [] })),
-      catalogoProyectos.cargar().catch(() => []),
+      // Este listado solo alimenta el formulario de crear falla, asi que
+      // van solo las plantas que pueden tener una.
+      catalogoProyectos.cargarOperativos().catch(() => []),
     ])
     Object.assign(catalogos, cat)
     proyectos.value = proy ?? []

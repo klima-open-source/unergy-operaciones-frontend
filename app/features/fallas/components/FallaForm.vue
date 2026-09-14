@@ -795,7 +795,8 @@ onMounted(async () => {
   // solo se pide aparte si no llegaron (uso del form fuera de esa vista).
   if (!proyectos.value.length) {
     try {
-      proyectos.value = await catalogoProyectos.cargar()
+      // Solo las que pueden tener una falla: ver `cargarOperativos`.
+      proyectos.value = await catalogoProyectos.cargarOperativos()
     } catch { /* no crítico */ }
   }
   estructura.value = await getEstructuraFallas()

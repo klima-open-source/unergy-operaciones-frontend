@@ -93,5 +93,24 @@ export function useProyectosCatalogo() {
     return cargar()
   }
 
-  return { proyectos, cargando, cargar, refrescar }
+  /**
+   * Las plantas a las que se les puede registrar una falla: **en operación y
+   * con servicio de operación**.
+   *
+   * El catálogo completo son 188, y más de la mitad no califican: 91 están en
+   * desarrollo y 2 canceladas. Una planta en obra no genera, no tiene medidor
+   * reportando y no puede tener una falla de operación — pero en un desplegable
+   * alfabético de 188 nombres queda justo al lado de la que sí opera y suele
+   * llamarse parecido. De los 95 que operan, 84 tienen el servicio: los otros
+   * 11 operan pero no los operamos nosotros.
+   *
+   * Se filtra del catálogo ya cargado, sin una petición aparte: `estado` y
+   * `srv_operacion` vienen en cada fila.
+   */
+  async function cargarOperativos(): Promise<ProyectoConDetalle[]> {
+    const todos = await cargar()
+    return todos.filter((p) => p.estado === 'en_operacion' && p.srv_operacion)
+  }
+
+  return { proyectos, cargando, cargar, cargarOperativos, refrescar }
 }
