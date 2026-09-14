@@ -1031,6 +1031,8 @@ function fechaLocalISO(d) {
 async function cargar(desde = null) {
   loading.value = true
   error.value   = null
+  // Un refresco manual tiene que traer datos frescos, no la promesa vieja.
+  genHoyPeticion = null
   const inicio = desde ?? haceDias(DIAS_HISTORIAL)
   try {
     const [abiertas, cerradas] = await Promise.all([
@@ -1095,6 +1097,30 @@ function dailyP90Total(fecha) {
   return projs.reduce((sum, p) => sum + dailyP90(p.id, fecha), 0)
 }
 
+/**
+ * `/generacion-hoy`, pedido UNA vez por carga.
+ *
+ * Esta vista lo usaba desde dos lados --`cargarGenHoy` para la barra por planta
+ * y `cargarGen7` solo para el total de hoy-- y los disparaba en paralelo. Es el
+ * mismo dato por dos caminos.
+ *
+ * El backend cachea ese endpoint 2 minutos, pero ahi no servia de nada: las dos
+ * peticiones salian antes de que la primera respondiera, asi que las dos
+ * pagaban las ~47 llamadas a SolarView completas. Medido el 2026-09-14: 40 y 48
+ * segundos, para 1,4 kB de respuesta.
+ *
+ * La promesa se comparte y se suelta en cada `cargar()`, para que el refresco
+ * manual sí traiga datos frescos.
+ */
+let genHoyPeticion = null
+
+function generacionDeHoy() {
+  if (!genHoyPeticion) {
+    genHoyPeticion = generacionSolarService.obtenerGeneracionHoyCompleta()
+  }
+  return genHoyPeticion
+}
+
 // ── Carga: Generación de hoy ─────────────────────────────────────────────
 // P90: desde p90_mensual_kwh del proyecto (ya funciona).
 // Real: desde Solenium vía /generacion-solar/generacion-hoy (proyecto_id + kwh_real).
@@ -1115,7 +1141,7 @@ async function cargarGenHoy() {
 
     // 2. Real desde Solenium — el backend empareja por project_id_solenium o por nombre
     try {
-      const filas = await generacionSolarService.obtenerGeneracionHoy()
+      const filas = (await generacionDeHoy()).proyectos ?? []
       for (const row of filas) {
         if (byProyecto[row.proyecto_id] !== undefined) {
           byProyecto[row.proyecto_id].real   = Number(row.kwh_real || 0)
@@ -1149,7 +1175,8 @@ async function cargarGen7() {
     // Fetch Unergy (histórico) y Solenium (hoy) en paralelo
     const [unergRes, solRes] = await Promise.allSettled([
       fallasService.obtenerResumenGeneracion({ date_from: fi, date_to: ff }),
-      generacionSolarService.obtenerGeneracionHoyCompleta(),
+      // La MISMA peticion que usa la barra de arriba: de aca solo sale `.total`.
+      generacionDeHoy(),
     ])
 
     // Indexar real por fecha (Unergy histórico)
