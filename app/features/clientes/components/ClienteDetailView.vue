@@ -562,6 +562,7 @@ const loadingTasas = ref(false)
 
 const TIPOS_DOC = [
   { value: 'rut',                label: 'RUT' },
+  { value: 'cedula_ciudadania',  label: 'Cédula de ciudadanía' },
   { value: 'certificado_bancario', label: 'Certificado bancario' },
   { value: 'camara_comercio',    label: 'Cámara de comercio' },
   { value: 'oferta',             label: 'Oferta de servicio' },
@@ -576,7 +577,7 @@ const ESTADOS_DOC = [
   { value: 'rechazado', label: 'Rechazado' },
 ]
 
-const TIPOS_IDENTIFICACION = ['rut', 'certificado_bancario', 'camara_comercio']
+const TIPOS_IDENTIFICACION = ['rut', 'cedula_ciudadania', 'certificado_bancario', 'camara_comercio']
 const TIPOS_COMERCIAL = ['oferta', 'contrato']
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -632,6 +633,7 @@ function onTipoChange() {
 function nombreSugerido(tipo) {
   const labels = {
     rut: 'RUT',
+    cedula_ciudadania: 'Cédula de ciudadanía',
     certificado_bancario: 'Certificado bancario',
     camara_comercio: 'Cámara de comercio',
     oferta: 'Oferta de servicio',
@@ -769,6 +771,7 @@ function estadoLabel(estado) {
 function badgeStyle(tipo) {
   const styles = {
     rut:                  'background:#e3f0fd; color:#1976D2',
+    cedula_ciudadania:    'background:#e8eaf6; color:#3949AB',
     certificado_bancario: 'background:#e8f5e9; color:#388E3C',
     camara_comercio:      'background:#fff3e0; color:#F57C00',
     oferta:               'background:#f5f0fb; color:#915BD8',
