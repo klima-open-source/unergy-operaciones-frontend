@@ -16,6 +16,7 @@ import type {
   PayloadServicioToggle,
   ProyectoConDetalle,
   ProyectoConServicioRepresentacion,
+  ProyectoLiviano,
   ProyectoPendiente,
   ReporteBackfillInversores,
 } from '~/features/proyectos/types'
@@ -42,11 +43,30 @@ const RUTAS = {
   backfillInversores: `${BASE}/inversores/backfill-minigranja`,
   vincularSunFactory: (proyectoId: number, sunfactoryProjectId: string) =>
     `${BASE}/${proyectoId}/vincular-sunfactory/${sunfactoryProjectId}`,
+  proyectosLista: '/proyectos/lista',
   fronteras: '/fronteras',
   contratosServicio: '/contratos-servicio',
 } as const
 
 export class ProyectosService extends BaseService {
+  /**
+   * `GET /proyectos/lista`: los 9 campos que identifican un proyecto, sin las
+   * cinco relaciones anidadas y SIN PAGINAR.
+   *
+   * Existe en el backend desde la migracion y el frontend nunca lo uso. Para un
+   * desplegable es lo correcto: 41 kB en una peticion, contra 538 kB en dos del
+   * catalogo completo (medido el 2026-09-14).
+   *
+   * Trae `id`, `nombre_comercial`, `estado`, `tipo_proyecto`, `municipio`,
+   * `departamento`, `potencia_ac_kw`, `sub_project` y `codigo_tsf`. Si una
+   * vista necesita mas que eso --inversionistas, info tecnica, contratos--
+   * tiene que seguir usando `listar()`.
+   */
+  async listarLiviano(): Promise<ProyectoLiviano[]> {
+    const data = await this.get<{ total: number; items: ProyectoLiviano[] }>(RUTAS.proyectosLista)
+    return data.items ?? []
+  }
+
   async listar({
     page = 1,
     size = 500,

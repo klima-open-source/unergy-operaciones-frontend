@@ -998,7 +998,9 @@ async function cargarCatalogos() {
 
 async function cargarProyectos() {
   try {
-    proyectos.value = await catalogoProyectos.cargar()
+    // Solo alimenta el desplegable "Proyecto" de los filtros: `id` y
+    // `nombre_comercial`. El catalogo completo son 538 kB en dos peticiones.
+    proyectos.value = await catalogoProyectos.cargarLiviano()
     // Cargar gráficos de generación una vez que los proyectos estén disponibles
   } catch { /* no crítico */ }
 }

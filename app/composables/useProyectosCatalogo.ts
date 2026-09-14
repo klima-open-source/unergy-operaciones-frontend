@@ -33,7 +33,7 @@
  * `cargar()` antes de que el primero haya respondido. Sin esto, se piden dos
  * catálogos completos para tirar uno.
  */
-import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import type { ProyectoConDetalle, ProyectoLiviano } from '~/features/proyectos/types'
 import { logger } from '~/core/logger'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 
@@ -51,9 +51,12 @@ const servicio = new ProyectosService()
  * es del cliente, y ahí el módulo se evalúa una vez.
  */
 let enVuelo: Promise<ProyectoConDetalle[]> | null = null
+let livianoEnVuelo: Promise<ProyectoLiviano[]> | null = null
 
 export function useProyectosCatalogo() {
   const proyectos = useState<ProyectoConDetalle[]>('proyectos-catalogo', () => [])
+  const livianos = useState<ProyectoLiviano[]>('proyectos-catalogo-liviano', () => [])
+  const livianoEn = useState<number>('proyectos-catalogo-liviano-ts', () => 0)
   const cargadoEn = useState<number>('proyectos-catalogo-ts', () => 0)
   const cargando = useState<boolean>('proyectos-catalogo-cargando', () => false)
 
@@ -112,5 +115,38 @@ export function useProyectosCatalogo() {
     return todos.filter((p) => p.estado === 'en_operacion' && p.srv_operacion)
   }
 
-  return { proyectos, cargando, cargar, cargarOperativos, refrescar }
+  /**
+   * El listado LIVIANO, para vistas que solo llenan un desplegable.
+   *
+   * Va por `GET /proyectos/lista`: 41 kB en una peticion, contra 538 kB en dos
+   * del catalogo completo. La diferencia son las cinco relaciones anidadas
+   * --inversionistas, info tecnica, inversores, contactos de area y contratos
+   * PPA-- que un desplegable no mira.
+   *
+   * Caché propio, separado del completo: son dos formas distintas y mezclarlas
+   * haria que una vista recibiera el objeto recortado cuando otra ya habia
+   * cargado el completo, o al reves. Un campo faltante en ese caso no da error,
+   * da `undefined`.
+   */
+  async function cargarLiviano(): Promise<ProyectoLiviano[]> {
+    if (livianos.value.length && Date.now() - livianoEn.value < VIGENCIA_MS) {
+      return livianos.value
+    }
+    if (livianoEnVuelo) return livianoEnVuelo
+    livianoEnVuelo = (async () => {
+      try {
+        livianos.value = await servicio.listarLiviano()
+        livianoEn.value = Date.now()
+        return livianos.value
+      } catch (err) {
+        logger.error(SCOPE, err)
+        return livianos.value
+      } finally {
+        livianoEnVuelo = null
+      }
+    })()
+    return livianoEnVuelo
+  }
+
+  return { proyectos, cargando, cargar, cargarOperativos, cargarLiviano, refrescar }
 }

@@ -220,3 +220,20 @@ export interface ReporteBackfillInversores {
   a_sembrar: number
   [clave: string]: unknown
 }
+
+/**
+ * `GET /proyectos/lista`: lo justo para identificar un proyecto en un
+ * desplegable. **No tiene las relaciones anidadas** -- si hace falta algo mas,
+ * es `ProyectoConDetalle` y otra peticion.
+ */
+export interface ProyectoLiviano {
+  id: number
+  nombre_comercial: string
+  estado?: string | null
+  tipo_proyecto?: string | null
+  municipio?: string | null
+  departamento?: string | null
+  potencia_ac_kw?: number | string | null
+  sub_project?: string | null
+  codigo_tsf?: string | null
+}
