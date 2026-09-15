@@ -238,7 +238,10 @@ onMounted(cargar)
 </script>
 
 <style scoped>
-@reference "~/assets/css/main.css";
+/* MIGRACION -- Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y
+   no ve el tema, asi que `@apply` falla con "unknown utility class".
+   `@reference` se lo trae. Mismo criterio que el resto de las vistas. */
+@reference 'tailwindcss';
 
 .chip {
   @apply inline-block text-[10px] font-bold rounded-full px-2 py-0.5;
