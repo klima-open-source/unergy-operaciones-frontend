@@ -258,6 +258,12 @@ export interface ResumenHistoricoReporteEnergia {
     dias_grupo: number
     [clave: string]: unknown
   }[]
-  incompletos: Record<string, unknown>[]
-  incompletos_callouts: { etiqueta: string; valor: unknown }[]
+  /** Cuánto del reporte salió automático por CGM — generación y consumo juntos. */
+  distribucion_automatico: { etiqueta: string; total: number }[]
+  detalle_automatico: {
+    grupo: string
+    frontera_id: number
+    dias_grupo: number
+    [clave: string]: unknown
+  }[]
 }

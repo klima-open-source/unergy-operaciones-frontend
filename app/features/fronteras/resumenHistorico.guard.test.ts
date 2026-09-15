@@ -29,11 +29,22 @@ const TIPOS = join(RAIZ, 'app/features/fronteras/types.ts')
 // `resumenHistorico.value`, que no es un campo de la respuesta.
 const NO_SON_CAMPOS = new Set(['value'])
 
-/** Los `resumenHistorico.<campo>` que aparecen en el archivo de la vista. */
+/**
+ * Los `resumenHistorico.<campo>` que aparecen en el archivo de la vista.
+ *
+ * Cuenta las DOS formas, y eso no es cosmético: el template lee
+ * `resumenHistorico.campo` y el `<script>` lee `resumenHistorico.value?.campo`.
+ * Mirando solo la primera, este guard tenía un punto ciego por el que se colaron
+ * `distribucion_automatico` y `detalle_automatico` (2026-09-15): se leían desde
+ * un computed y el tipo nunca los declaró. Y cuando la última lectura directa
+ * del template se fue --al quitar la tabla de datos incompletos-- el guard se
+ * quedó sin nada que mirar y solo se noto por la prueba de sanidad.
+ */
 function camposLeidosEnLaVista(): Set<string> {
   const fuente = readFileSync(VISTA, 'utf8')
   const campos = new Set<string>()
-  for (const m of fuente.matchAll(/resumenHistorico\??\.([a-zA-Z_][a-zA-Z0-9_]*)/g)) {
+  const patron = /resumenHistorico\??\.(?:value\??\.)?([a-zA-Z_][a-zA-Z0-9_]*)/g
+  for (const m of fuente.matchAll(patron)) {
     if (!NO_SON_CAMPOS.has(m[1]!)) campos.add(m[1]!)
   }
   return campos
