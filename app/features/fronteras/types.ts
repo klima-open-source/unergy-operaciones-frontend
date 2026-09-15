@@ -269,9 +269,12 @@ export interface ResumenHistoricoReporteEnergia {
   /**
    * Tasa de reporte automático, día a día y del rango.
    *
-   * El denominador son las fronteras que DEBÍAN reportar (registradas en ASIC),
-   * no las que reportaron: registrada, una frontera tiene que reportar todos
-   * los días aunque sea una matriz de ceros.
+   * El denominador (`fronteras`) son las que el clasificador PROCESÓ ese día.
+   *
+   * `registradas` y `sin_reportar` van al lado, no como divisor: son la alarma.
+   * Una frontera registrada en ASIC que no aparece en el reporte es el peor
+   * caso posible, y así pasaron desapercibidas las 9 que se borraron el
+   * 2026-09-15 (BAYUNCA I, SAN ONOFRE, DELTA 2, NAOS 2 y 3, con sus consumos).
    *
    * `dias` los trae todos, incluidos los que no cuentan. Un día con
    * `sin_corrida` es uno en que el clasificador no corrió --el 5 y 6 de
@@ -283,7 +286,8 @@ export interface ResumenHistoricoReporteEnergia {
       fecha: string
       automaticas: number
       fronteras: number
-      reportaron: number
+      registradas: number
+      sin_reportar: number
       sin_corrida: boolean
       tasa: number
     }[]
