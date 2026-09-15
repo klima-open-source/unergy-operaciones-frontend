@@ -254,34 +254,37 @@
           <section class="mb-6">
             <p class="text-sm font-bold" style="color:var(--color-unergy-deep);">Reportes automáticos</p>
             <p class="text-xs mb-3" style="color:#9b89b5;">
-              {{ pctAutomatico }}% de los {{ totalDias(kpiAuto) }} días-frontera del rango se reportaron solos vía CGM ·
-              generación y consumo juntos · clic en una barra para ver el detalle
+              {{ pctAutomatico }}% de los reportes salieron automáticos vía CGM · generación y consumo juntos
+              <template v-if="auto.dias_sin_corrida">
+                <br />{{ auto.dias_contados }} de {{ auto.dias.length }} días ·
+                {{ auto.dias_sin_corrida }} sin corrida del clasificador (no cuentan en la tasa)
+              </template>
             </p>
             <div v-if="kpiAuto.length" class="bg-white rounded-xl border p-3" style="border-color:#e8e0f0; height:220px;">
               <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
             </div>
             <p v-else class="text-xs text-center py-8" style="color:#9b89b5;">Sin datos en este rango.</p>
 
-            <div v-if="grupoSeleccionadoAuto" class="mt-4">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-bold flex items-center gap-1.5" style="color:var(--color-unergy-deep);">
-                  <span class="inline-block w-2 h-2 rounded-full" :style="{ background: grupoColor(grupoSeleccionadoAuto).texto }" />
-                  Detalle — {{ grupoSeleccionadoAuto }}
-                </p>
-                <span class="text-xs cursor-pointer" style="color:#9b89b5;" @click="grupoSeleccionadoAuto = null">Cerrar ✕</span>
-              </div>
-              <DataTable :value="detalleFiltrado('auto')" class="text-sm resumen-tabla" stripedRows rowHover
+            <div v-if="auto.por_frontera?.length" class="mt-4">
+              <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">
+                Por frontera — las que menos se reportan solas primero
+              </p>
+              <p class="text-xs mb-2" style="color:#9b89b5;">
+                El orden es la información: arriba está la cola de trabajo.
+              </p>
+              <DataTable :value="auto.por_frontera" class="text-sm resumen-tabla" stripedRows rowHover
                          paginator :rows="10" @row-click="e => irAFronteraHistorial(e.data.frontera_id)">
                 <Column field="nombre_proyecto" header="Proyecto / frontera" sortable />
-                <Column field="dias_totales" header="Días totales" sortable style="width:110px" />
-                <Column field="dias_grupo" header="Días" sortable style="width:110px" />
-                <Column header="% del tiempo" style="width:160px" sortable :sortField="'dias_grupo'">
+                <Column field="dias" header="Días" sortable style="width:90px" />
+                <Column field="automaticos" header="Automáticos" sortable style="width:110px" />
+                <Column header="% automático" style="width:170px" sortable :sortField="'tasa'">
                   <template #body="{ data }">
                     <div class="flex items-center gap-2">
                       <div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background:#f0ebf6;">
-                        <div class="h-full rounded-full" :style="{ width: pctDe(data.dias_grupo, data.dias_totales) + '%', background: grupoColor(grupoSeleccionadoAuto).texto }" />
+                        <div class="h-full rounded-full"
+                             :style="{ width: data.tasa + '%', background: grupoColor('Automático (CGM)').texto }" />
                       </div>
-                      <span class="text-xs font-bold w-10 text-right">{{ pctDe(data.dias_grupo, data.dias_totales) }}%</span>
+                      <span class="text-xs font-bold w-10 text-right">{{ Math.round(data.tasa) }}%</span>
                     </div>
                   </template>
                 </Column>
@@ -401,7 +404,6 @@ const resumenHastaISO = computed(() => resumenHasta.value.toISOString().slice(0,
 async function cargarResumenHistorico() {
   loadingResumenHistorico.value = true
   grupoSeleccionadoGen.value = null
-  grupoSeleccionadoAuto.value = null
   grupoSeleccionadoCon.value = null
   try {
     resumenHistorico.value = await reporteEnergiaService.obtenerResumenHistorico(
@@ -471,12 +473,27 @@ const kpiCon = computed(() => conPct(resumenHistorico.value?.distribucion_fuente
  * entran en ninguno de los dos lados: no se reportaron a proposito, asi que no
  * son ni un exito ni un fallo de la automatizacion.
  */
-const kpiAuto = computed(() => conPct(resumenHistorico.value?.distribucion_automatico || []))
+const auto = computed(() => resumenHistorico.value?.serie_automatico || { dias: [] })
+
+/**
+ * Las dos barras, sobre las fronteras que DEBIAN reportar.
+ *
+ * El denominador ya no son "las que reportaron" sino las registradas en ASIC:
+ * registrada, una frontera tiene que reportar todos los dias asi sea una
+ * matriz de ceros, y antes una que no reportaba nada salia de los dos lados de
+ * la division -- el peor caso posible, invisible.
+ */
+const kpiAuto = computed(() => {
+  const a = auto.value
+  if (!a.fronteras) return []
+  return conPct([
+    { etiqueta: 'Automático (CGM)', total: a.automaticas },
+    { etiqueta: 'Otra fuente', total: a.fronteras - a.automaticas },
+  ])
+})
 
 /** El numero que se viene a ver: que porcentaje salio solo. */
-const pctAutomatico = computed(
-  () => kpiAuto.value.find(i => i.etiqueta === 'Automático (CGM)')?.pct ?? 0,
-)
+const pctAutomatico = computed(() => auto.value.tasa ?? 0)
 
 // Barras separadas (no apiladas) -- comparar el tamaño de cada grupo es
 // más preciso con una escala común en 0 que con segmentos de un stacked
@@ -505,30 +522,45 @@ function chartDeGrupos(items) {
     datasets: [{ data: items.map(i => i.pct), backgroundColor: items.map(i => grupoColor(i.etiqueta).texto), borderRadius: 6, maxBarThickness: 70 }],
   }
 }
-function chartOptionsPara(tipo, items) {
-  return {
+/**
+ * Opciones del grafico de barras.
+ *
+ * `tipo` null = sin desglose por grupo: no se arma el `onClick` ni se cambia el
+ * cursor. Un grafico que invita a hacer clic y no hace nada es peor que uno
+ * que no invita.
+ */
+function chartOptionsPara(tipo, items, unidad = 'días') {
+  const opciones = {
     responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (ctx) => `${items[ctx.dataIndex].total} días` } },
+      tooltip: { callbacks: { label: (ctx) => `${items[ctx.dataIndex].total} ${unidad}` } },
     },
     scales: {
       x: { ticks: { font: { size: 11, weight: '600' }, color: '#6b5a8a' }, grid: { display: false } },
       y: { display: false, beginAtZero: true, max: 100 },
     },
-    onClick: (evt, elements) => {
+  }
+  if (tipo) {
+    opciones.onClick = (evt, elements) => {
       if (!elements.length) return
       toggleGrupo(tipo, items[elements[0].index].etiqueta)
-    },
-    onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default' },
+    }
+    opciones.onHover = (evt, elements) => {
+      evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'
+    }
   }
+  return opciones
 }
 const chartGen = computed(() => chartDeGrupos(kpiGen.value))
 const chartCon = computed(() => chartDeGrupos(kpiCon.value))
 const chartOptionsGen = computed(() => chartOptionsPara('gen', kpiGen.value))
 const chartOptionsCon = computed(() => chartOptionsPara('con', kpiCon.value))
 const chartAuto = computed(() => chartDeGrupos(kpiAuto.value))
-const chartOptionsAuto = computed(() => chartOptionsPara('auto', kpiAuto.value))
+// Sin `onClick`: este grafico ya no tiene desglose por grupo -- la tabla de
+// abajo muestra TODAS las fronteras siempre. Dejar el clic vivo seria un
+// gesto que no hace nada.
+const chartOptionsAuto = computed(() => chartOptionsPara(null, kpiAuto.value, 'reportes'))
 
 // Semáforo de severidad del drill-down por fuente: acá un % más alto es
 // PEOR, al revés que en las tarjetas KPI, por eso tiene su propia escala en
@@ -565,12 +597,10 @@ function severidadColor(pct) {
 // para Generación/Consumo, ya que son secciones separadas en la misma vista.
 const grupoSeleccionadoGen = ref(null)
 const grupoSeleccionadoCon = ref(null)
-const grupoSeleccionadoAuto = ref(null)
 
 const SELECCION_POR_TIPO = {
   gen: grupoSeleccionadoGen,
   con: grupoSeleccionadoCon,
-  auto: grupoSeleccionadoAuto,
 }
 
 function toggleGrupo(tipo, etiqueta) {
@@ -580,7 +610,6 @@ function toggleGrupo(tipo, etiqueta) {
 const DETALLE_POR_TIPO = {
   gen: 'detalle_fuente_generacion',
   con: 'detalle_fuente_consumo',
-  auto: 'detalle_automatico',
 }
 
 function detalleFiltrado(tipo) {

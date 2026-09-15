@@ -266,4 +266,39 @@ export interface ResumenHistoricoReporteEnergia {
     dias_grupo: number
     [clave: string]: unknown
   }[]
+  /**
+   * Tasa de reporte automático, día a día y del rango.
+   *
+   * El denominador son las fronteras que DEBÍAN reportar (registradas en ASIC),
+   * no las que reportaron: registrada, una frontera tiene que reportar todos
+   * los días aunque sea una matriz de ceros.
+   *
+   * `dias` los trae todos, incluidos los que no cuentan. Un día con
+   * `sin_corrida` es uno en que el clasificador no corrió --el 5 y 6 de
+   * septiembre de 2026 fue la migración del servidor-- y queda fuera de `tasa`,
+   * pero se sigue viendo.
+   */
+  serie_automatico: {
+    dias: {
+      fecha: string
+      automaticas: number
+      fronteras: number
+      reportaron: number
+      sin_corrida: boolean
+      tasa: number
+    }[]
+    dias_contados: number
+    dias_sin_corrida: number
+    automaticas: number
+    fronteras: number
+    tasa: number
+    /** Cada frontera con su % de días automáticos, la peor primero. */
+    por_frontera: {
+      frontera_id: number
+      nombre_proyecto: string
+      dias: number
+      automaticos: number
+      tasa: number
+    }[]
+  }
 }
