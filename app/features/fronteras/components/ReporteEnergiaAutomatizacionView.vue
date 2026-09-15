@@ -250,6 +250,45 @@
             </div>
           </section>
 
+          <!-- Reportes automáticos (CGM) -->
+          <section class="mb-6">
+            <p class="text-sm font-bold" style="color:var(--color-unergy-deep);">Reportes automáticos</p>
+            <p class="text-xs mb-3" style="color:#9b89b5;">
+              {{ pctAutomatico }}% de los {{ totalDias(kpiAuto) }} días-frontera del rango se reportaron solos vía CGM ·
+              generación y consumo juntos · clic en una barra para ver el detalle
+            </p>
+            <div v-if="kpiAuto.length" class="bg-white rounded-xl border p-3" style="border-color:#e8e0f0; height:220px;">
+              <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
+            </div>
+            <p v-else class="text-xs text-center py-8" style="color:#9b89b5;">Sin datos en este rango.</p>
+
+            <div v-if="grupoSeleccionadoAuto" class="mt-4">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-bold flex items-center gap-1.5" style="color:var(--color-unergy-deep);">
+                  <span class="inline-block w-2 h-2 rounded-full" :style="{ background: grupoColor(grupoSeleccionadoAuto).texto }" />
+                  Detalle — {{ grupoSeleccionadoAuto }}
+                </p>
+                <span class="text-xs cursor-pointer" style="color:#9b89b5;" @click="grupoSeleccionadoAuto = null">Cerrar ✕</span>
+              </div>
+              <DataTable :value="detalleFiltrado('auto')" class="text-sm resumen-tabla" stripedRows rowHover
+                         paginator :rows="10" @row-click="e => irAFronteraHistorial(e.data.frontera_id)">
+                <Column field="nombre_proyecto" header="Proyecto / frontera" sortable />
+                <Column field="dias_totales" header="Días totales" sortable style="width:110px" />
+                <Column field="dias_grupo" header="Días" sortable style="width:110px" />
+                <Column header="% del tiempo" style="width:160px" sortable :sortField="'dias_grupo'">
+                  <template #body="{ data }">
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background:#f0ebf6;">
+                        <div class="h-full rounded-full" :style="{ width: pctDe(data.dias_grupo, data.dias_totales) + '%', background: grupoColor(grupoSeleccionadoAuto).texto }" />
+                      </div>
+                      <span class="text-xs font-bold w-10 text-right">{{ pctDe(data.dias_grupo, data.dias_totales) }}%</span>
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </section>
+
           <!-- Datos incompletos -->
           <div class="bg-white rounded-xl shadow-sm border p-4 mb-5" style="border-color:#e8e0f0;">
             <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">Datos incompletos de medidores e inversores</p>
@@ -418,6 +457,7 @@ const resumenHastaISO = computed(() => resumenHasta.value.toISOString().slice(0,
 async function cargarResumenHistorico() {
   loadingResumenHistorico.value = true
   grupoSeleccionadoGen.value = null
+  grupoSeleccionadoAuto.value = null
   grupoSeleccionadoCon.value = null
   try {
     resumenHistorico.value = await reporteEnergiaService.obtenerResumenHistorico(
@@ -448,6 +488,10 @@ const GRUPO_COLOR = {
   // NO son una medicion nuestra, y el color no debe sugerir que si.
   'Reportado por terceros': '#a06fa8',
   'Estimación': '#c9a13f',
+  // Las dos barras del grafico de automatizacion. El verde del CGM es el mismo
+  // de su barra en los otros dos graficos: es el mismo dato, visto de otra forma.
+  'Automático (CGM)': '#2f7d5b',
+  'Otra fuente': '#8a94a6',
   // "Apagado" es un estado confirmado (el proyecto no genera), no una
   // estimación de dato faltante -- tono neutro propio, distinto de
   // Estimación (pedido 2026-08-21).
@@ -470,6 +514,25 @@ function conPct(items) {
 }
 const kpiGen = computed(() => conPct(resumenHistorico.value?.distribucion_fuente_generacion || []))
 const kpiCon = computed(() => conPct(resumenHistorico.value?.distribucion_fuente_consumo || []))
+
+/**
+ * Cuanto del reporte salio automatico por CGM.
+ *
+ * Pregunta distinta de la de los otros dos graficos: esos dicen DE DONDE salio
+ * el dato, este dice CUANTO salio solo. Es la metrica para saber si la
+ * automatizacion avanza.
+ *
+ * Generacion y consumo van juntos --el backend ya los suma-- porque lo que se
+ * mide es el reporte entero, no una de sus mitades. Los dias EXCLUIDOS no
+ * entran en ninguno de los dos lados: no se reportaron a proposito, asi que no
+ * son ni un exito ni un fallo de la automatizacion.
+ */
+const kpiAuto = computed(() => conPct(resumenHistorico.value?.distribucion_automatico || []))
+
+/** El numero que se viene a ver: que porcentaje salio solo. */
+const pctAutomatico = computed(
+  () => kpiAuto.value.find(i => i.etiqueta === 'Automático (CGM)')?.pct ?? 0,
+)
 
 // Barras separadas (no apiladas) -- comparar el tamaño de cada grupo es
 // más preciso con una escala común en 0 que con segmentos de un stacked
@@ -520,6 +583,8 @@ const chartGen = computed(() => chartDeGrupos(kpiGen.value))
 const chartCon = computed(() => chartDeGrupos(kpiCon.value))
 const chartOptionsGen = computed(() => chartOptionsPara('gen', kpiGen.value))
 const chartOptionsCon = computed(() => chartOptionsPara('con', kpiCon.value))
+const chartAuto = computed(() => chartDeGrupos(kpiAuto.value))
+const chartOptionsAuto = computed(() => chartOptionsPara('auto', kpiAuto.value))
 
 // Semáforo de severidad del drill-down por fuente: acá un % más alto es
 // PEOR, al revés que en las tarjetas KPI, por eso tiene su propia escala en
@@ -576,14 +641,27 @@ const ESTILO_PLANO = { color: '#6b5a8a' }
 // para Generación/Consumo, ya que son secciones separadas en la misma vista.
 const grupoSeleccionadoGen = ref(null)
 const grupoSeleccionadoCon = ref(null)
+const grupoSeleccionadoAuto = ref(null)
+
+const SELECCION_POR_TIPO = {
+  gen: grupoSeleccionadoGen,
+  con: grupoSeleccionadoCon,
+  auto: grupoSeleccionadoAuto,
+}
+
 function toggleGrupo(tipo, etiqueta) {
-  const actual = tipo === 'gen' ? grupoSeleccionadoGen : grupoSeleccionadoCon
+  const actual = SELECCION_POR_TIPO[tipo]
   actual.value = actual.value === etiqueta ? null : etiqueta
 }
+const DETALLE_POR_TIPO = {
+  gen: 'detalle_fuente_generacion',
+  con: 'detalle_fuente_consumo',
+  auto: 'detalle_automatico',
+}
+
 function detalleFiltrado(tipo) {
-  const grupo = tipo === 'gen' ? grupoSeleccionadoGen.value : grupoSeleccionadoCon.value
-  const detalle = tipo === 'gen'
-    ? resumenHistorico.value?.detalle_fuente_generacion : resumenHistorico.value?.detalle_fuente_consumo
+  const grupo = SELECCION_POR_TIPO[tipo].value
+  const detalle = resumenHistorico.value?.[DETALLE_POR_TIPO[tipo]]
   if (!grupo || !detalle) return []
   return detalle.filter(d => d.grupo === grupo).sort((a, b) => b.dias_grupo - a.dias_grupo)
 }
