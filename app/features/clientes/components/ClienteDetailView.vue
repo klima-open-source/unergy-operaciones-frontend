@@ -747,7 +747,9 @@ async function doDelete() {
   try {
     await clientesService.eliminar(route.params.id)
     toast.success('Cliente eliminado', { duration: 3000 })
-    router.push('/clientes')
+    // A la vista unificada: /clientes se retiro el 2026-09-15 por ser un
+    // duplicado de su pestana Clientes.
+    router.push('/servicios-unificado?vista=clientes')
   } catch (e) {
     toast.error('No se pudo eliminar', {
       description: mensajeDeError(e, 'Error al eliminar'),
