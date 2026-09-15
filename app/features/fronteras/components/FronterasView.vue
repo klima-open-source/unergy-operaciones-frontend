@@ -168,7 +168,8 @@
             <Button text rounded size="small" severity="secondary" @click="editFrontera(data)" v-tooltip="'Editar'">
               <template #icon><PencilIcon class="size-[1em]" /></template>
             </Button>
-            <Button text rounded size="small" severity="danger" @click="deleteFrontera(data)" v-tooltip="'Eliminar'">
+            <Button text rounded size="small" severity="danger" :loading="borrandoId === data.id"
+                    :disabled="borrandoId !== null" @click="deleteFrontera(data)" v-tooltip="'Eliminar'">
               <template #icon><Trash2Icon class="size-[1em]" /></template>
             </Button>
           </template>
@@ -707,20 +708,52 @@ async function crearFronteraForzado() {
   }
 }
 
+/**
+ * Que frontera se esta borrando ahora mismo. Deshabilita TODOS los botones de
+ * borrar, no solo el de su fila: el problema no era clickear dos veces la
+ * misma, era clickear la de al lado.
+ */
+const borrandoId = ref(null)
+
+/**
+ * Borrar una frontera.
+ *
+ * **El 2026-09-15 esto borro dos fronteras de mas** (BARAYA y BRAYA SERV AUX,
+ * ids 5 y 6, que estaban reportando). No fue un clic torpe: era la pantalla.
+ *
+ * Antes, al confirmar, se esperaba el DELETE y despues se recargaba el listado
+ * ENTERO (`limit: 500`). Durante esos segundos la tabla seguia mostrando la
+ * lista vieja --parecia que no habia pasado nada-- y al terminar las filas
+ * subian una posicion. Un segundo clic en el mismo punto de la pantalla caia
+ * sobre la frontera SIGUIENTE. Con vecinas que ademas se llaman parecido, el
+ * error es invisible hasta que se cuentan las filas.
+ *
+ * Ahora: los botones se apagan mientras hay un borrado en curso, y la fila se
+ * quita de la lista local en vez de recargar las 500. Nada se reacomoda debajo
+ * del cursor.
+ */
 function deleteFrontera(f) {
   confirm({
     title: 'Confirmar eliminación',
-    description: `¿Eliminar la frontera ${f.codigo_frontera}? Esta acción no se puede deshacer.`,
+    // El nombre primero: con codigos como frt55044 y frt55050 nadie nota que
+    // se equivoco de fila. Y el aviso ya no promete que sea irreversible,
+    // porque no lo es: es borrado logico, y se revierte poniendo `deleted_at`
+    // en NULL. Un aviso falso asusta y no protege.
+    description: `¿Eliminar ${f.nombre_frontera} (${f.codigo_frontera})? `
+      + 'Dejará de aparecer en el listado y de reportar al ASIC.',
     confirmLabel: 'Eliminar',
     cancelLabel: 'Cancelar',
     variant: 'destructive',
     onConfirm: async () => {
+      borrandoId.value = f.id
       try {
         await fronterasService.eliminar(f.id)
-        toast.success('Frontera eliminada', { duration: 2000 })
-        await loadData()
+        fronteras.value = fronteras.value.filter(x => x.id !== f.id)
+        toast.success(`${f.nombre_frontera} eliminada`, { duration: 2000 })
       } catch (e) {
         toast.error('Error', { description: e.data?.detail || 'Error al eliminar', duration: 4000 })
+      } finally {
+        borrandoId.value = null
       }
     },
   })
