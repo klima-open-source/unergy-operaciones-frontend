@@ -86,6 +86,11 @@
          panel "Filtros" centralizado que se probó primero. El buscador de
          Proyectos sigue siendo el de la cabecera, compartido con los otros
          ángulos. -->
+    <!-- Proyectos que las fuentes externas proponen. Vivia en /proyectos, que
+         salio del menu cuando llego esta vista: el aviso quedo inalcanzable y
+         nadie lo noto por semanas. -->
+    <ProyectosPendientesPanel v-if="vista === 'proyectos'" @cambio="cargarProyectos" />
+
     <div v-if="vista === 'proyectos'"
          class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
          style="border-color:#ECE7F2">
@@ -750,6 +755,7 @@ import Menu from 'primevue/menu'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import { FilterMatchMode } from '@primevue/core/api'
+import ProyectosPendientesPanel from '~/features/proyectos/components/ProyectosPendientesPanel.vue'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
