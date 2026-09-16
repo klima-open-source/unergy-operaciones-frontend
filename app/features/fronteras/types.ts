@@ -276,10 +276,12 @@ export interface ResumenHistoricoReporteEnergia {
    * caso posible, y así pasaron desapercibidas las 9 que se borraron el
    * 2026-09-15 (BAYUNCA I, SAN ONOFRE, DELTA 2, NAOS 2 y 3, con sus consumos).
    *
-   * `dias` los trae todos, incluidos los que no cuentan. Un día con
-   * `sin_corrida` es uno en que el clasificador no corrió --el 5 y 6 de
-   * septiembre de 2026 fue la migración del servidor-- y queda fuera de `tasa`,
-   * pero se sigue viendo.
+   * `dias` los trae todos, incluidos los que no cuentan. Un día `excluido` es
+   * uno en que el clasificador no hizo su trabajo, y su `motivo` dice cuál de
+   * las tres formas fue: no corrió (5 y 6 de septiembre de 2026, la migración
+   * del servidor), corrió a medias (4 de septiembre, 19 fronteras de consumo
+   * sin clasificar) o clasificó sin usar CGM en ninguna (9 de agosto, que no
+   * pasa nunca). Quedan fuera de `tasa` pero se siguen viendo.
    */
   serie_automatico: {
     dias: {
@@ -288,11 +290,14 @@ export interface ResumenHistoricoReporteEnergia {
       fronteras: number
       registradas: number
       sin_reportar: number
-      sin_corrida: boolean
+      /** Fuera de la tasa: el clasificador no hizo su trabajo ese día. */
+      excluido: boolean
+      /** `sin_corrida` | `corrida_parcial` | `clasificacion_fallida` | null. */
+      motivo: string | null
       tasa: number
     }[]
     dias_contados: number
-    dias_sin_corrida: number
+    dias_excluidos: number
     automaticas: number
     fronteras: number
     tasa: number

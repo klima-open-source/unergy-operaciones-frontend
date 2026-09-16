@@ -253,12 +253,9 @@
           <!-- Reportes automáticos (CGM) -->
           <section class="mb-6">
             <p class="text-sm font-bold" style="color:var(--color-unergy-deep);">Reportes automáticos</p>
-            <p class="text-xs mb-3" style="color:#9b89b5;">
-              {{ pctAutomatico }}% de los reportes salieron automáticos vía CGM · generación y consumo juntos
-              <template v-if="auto.dias_sin_corrida">
-                <br />{{ auto.dias_contados }} de {{ auto.dias.length }} días ·
-                {{ auto.dias_sin_corrida }} sin corrida del clasificador (no cuentan en la tasa)
-              </template>
+            <p v-if="auto.dias_excluidos" class="text-xs mb-3" style="color:#9b89b5;">
+              {{ auto.dias_contados }} de {{ auto.dias.length }} días ·
+              {{ auto.dias_excluidos }} fuera de la tasa ({{ motivosExcluidos }})
             </p>
             <div v-if="kpiAuto.length" class="bg-white rounded-xl border p-3" style="border-color:#e8e0f0; height:220px;">
               <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
@@ -266,11 +263,8 @@
             <p v-else class="text-xs text-center py-8" style="color:#9b89b5;">Sin datos en este rango.</p>
 
             <div v-if="auto.por_frontera?.length" class="mt-4">
-              <p class="text-sm font-bold mb-1" style="color:var(--color-unergy-deep);">
-                Por frontera — las que menos se reportan solas primero
-              </p>
-              <p class="text-xs mb-2" style="color:#9b89b5;">
-                El orden es la información: arriba está la cola de trabajo.
+              <p class="text-sm font-bold mb-2" style="color:var(--color-unergy-deep);">
+                Por frontera
               </p>
               <DataTable :value="auto.por_frontera" class="text-sm resumen-tabla" stripedRows rowHover
                          paginator :rows="10" @row-click="e => irAFronteraHistorial(e.data.frontera_id)">
@@ -492,8 +486,29 @@ const kpiAuto = computed(() => {
   ])
 })
 
-/** El numero que se viene a ver: que porcentaje salio solo. */
-const pctAutomatico = computed(() => auto.value.tasa ?? 0)
+/**
+ * Por que se cayeron los dias que no cuentan, en palabras.
+ *
+ * Sin esto, la linea solo dice "2 fuera de la tasa" y quien lea tiene que
+ * adivinar si fue una caida, un bug o una decision. Los tres motivos son
+ * fallas del clasificador, pero mandan a buscar en lugares distintos.
+ */
+const TEXTO_MOTIVO = {
+  sin_corrida: 'no corrió',
+  corrida_parcial: 'corrió a medias',
+  clasificacion_fallida: 'clasificó sin CGM',
+}
+const motivosExcluidos = computed(() => {
+  const cuenta = {}
+  for (const d of auto.value.dias ?? []) {
+    if (!d.excluido) continue
+    const texto = TEXTO_MOTIVO[d.motivo] ?? d.motivo
+    cuenta[texto] = (cuenta[texto] ?? 0) + 1
+  }
+  return Object.entries(cuenta)
+    .map(([texto, n]) => (n > 1 ? `${n} ${texto}` : texto))
+    .join(' · ')
+})
 
 // Barras separadas (no apiladas) -- comparar el tamaño de cada grupo es
 // más preciso con una escala común en 0 que con segmentos de un stacked
