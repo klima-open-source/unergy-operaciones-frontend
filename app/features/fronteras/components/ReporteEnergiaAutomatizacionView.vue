@@ -255,7 +255,7 @@
             <p class="text-sm font-bold" style="color:var(--color-unergy-deep);">Reportes automáticos</p>
             <p v-if="auto.dias_excluidos" class="text-xs mb-3" style="color:#9b89b5;">
               {{ auto.dias_contados }} de {{ auto.dias.length }} días ·
-              {{ auto.dias_excluidos }} fuera de la tasa ({{ motivosExcluidos }})
+              {{ auto.dias_excluidos }} excluidos por fallas del clasificador
             </p>
             <div v-if="kpiAuto.length" class="bg-white rounded-xl border p-3" style="border-color:#e8e0f0; height:220px;">
               <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
@@ -484,30 +484,6 @@ const kpiAuto = computed(() => {
     { etiqueta: 'Automático (CGM)', total: a.automaticas },
     { etiqueta: 'Otra fuente', total: a.fronteras - a.automaticas },
   ])
-})
-
-/**
- * Por que se cayeron los dias que no cuentan, en palabras.
- *
- * Sin esto, la linea solo dice "2 fuera de la tasa" y quien lea tiene que
- * adivinar si fue una caida, un bug o una decision. Los tres motivos son
- * fallas del clasificador, pero mandan a buscar en lugares distintos.
- */
-const TEXTO_MOTIVO = {
-  sin_corrida: 'no corrió',
-  corrida_parcial: 'corrió a medias',
-  clasificacion_fallida: 'clasificó sin CGM',
-}
-const motivosExcluidos = computed(() => {
-  const cuenta = {}
-  for (const d of auto.value.dias ?? []) {
-    if (!d.excluido) continue
-    const texto = TEXTO_MOTIVO[d.motivo] ?? d.motivo
-    cuenta[texto] = (cuenta[texto] ?? 0) + 1
-  }
-  return Object.entries(cuenta)
-    .map(([texto, n]) => (n > 1 ? `${n} ${texto}` : texto))
-    .join(' · ')
 })
 
 // Barras separadas (no apiladas) -- comparar el tamaño de cada grupo es
