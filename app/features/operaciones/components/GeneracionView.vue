@@ -1,396 +1,583 @@
 <template>
-  <div class="gen-page">
-
-    <!-- ══ STICKY HEADER ═══════════════════════════════════════════════ -->
-    <div class="gen-sticky-header">
-
-      <!-- Title row -->
-      <div class="gen-titlebar">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(145,91,216,0.12)">
-            <ChartLineIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-          </div>
-          <h2 class="text-base font-bold text-gray-800">Generación</h2>
-          <span class="text-xs text-gray-500 hidden sm:inline">· Compara la energía generada por proyecto</span>
-        </div>
-        <div class="flex items-center gap-2 ml-auto">
-          <Button label="Excel" size="small" severity="success" outlined :disabled="!datasets.length" @click="exportarExcel">
-            <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
-          </Button>
-          <Button size="small" outlined :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-          </Button>
-        </div>
+  <div class="flex flex-col gap-4">
+    <!-- Encabezado -->
+    <div class="flex items-center gap-2.5">
+      <ChartLineIcon class="size-4 text-primary" />
+      <h2 class="text-base font-bold text-foreground">Generación</h2>
+      <span class="hidden text-xs text-muted-foreground sm:inline">
+        · Compara la energía generada por proyecto
+      </span>
+      <div class="ml-auto flex items-center gap-2">
+        <Button variant="outline" size="sm" :disabled="!datasets.length" @click="exportarExcel">
+          <FileSpreadsheetIcon />
+          Excel
+        </Button>
+        <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <RefreshCwIcon v-else />
+          Actualizar
+        </Button>
       </div>
+    </div>
 
-      <!-- Filter row -->
-      <div class="gen-filterbar">
+    <!-- Filtros -->
+    <Card size="sm">
+      <CardContent class="flex flex-wrap items-center gap-2.5">
         <!-- 1) Granularidad -->
-        <div class="gen-segmented">
-          <button v-for="g in GRANULARIDADES" :key="g.key"
-            class="gen-seg-btn"
-            :class="{ 'gen-seg-btn--active': granularidad === g.key }"
-            @click="onGranularidadChange(g.key)">
-            <component :is="g.icon" class="size-[1em]" />
-            <span>{{ g.label }}</span>
-          </button>
+        <div class="flex items-center gap-1">
+          <Button
+            v-for="g in GRANULARIDADES"
+            :key="g.key"
+            type="button"
+            :variant="granularidad === g.key ? 'secondary' : 'outline'"
+            size="sm"
+            @click="onGranularidadChange(g.key)"
+          >
+            <component :is="g.icon" />
+            {{ g.label }}
+          </Button>
         </div>
 
-        <!-- 2) Modo (cambia según granularidad: presets + intervalo) -->
-        <div class="gen-segmented gen-segmented--modo">
-          <button v-for="m in modosActuales" :key="m.key"
-            class="gen-seg-btn"
-            :class="{ 'gen-seg-btn--active': modo === m.key }"
-            @click="onModoChange(m.key)">
+        <!-- 2) Modo -->
+        <div class="flex items-center gap-1">
+          <Button
+            v-for="m in modosActuales"
+            :key="m.key"
+            type="button"
+            :variant="modo === m.key ? 'secondary' : 'outline'"
+            size="sm"
+            @click="onModoChange(m.key)"
+          >
             {{ m.label }}
-          </button>
+          </Button>
         </div>
 
         <!-- 3) Selector contextual según granularidad + modo -->
-        <!-- Mensual · Año específico -->
-        <Select v-if="granularidad === 'mensual' && modo === 'anio'"
-          v-model="anioSel" :options="aniosDisponibles" optionLabel="label" optionValue="value"
-          class="w-28" size="small" @update:modelValue="aplicarModo" />
-        <!-- Mensual · Intervalo de meses (un solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'mensual' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" view="month" dateFormat="mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-56" :maxDate="hoy"
-          placeholder="Mes inicial → final" @update:modelValue="aplicarModo" />
-        <!-- Diaria · Mes específico -->
-        <DatePicker v-else-if="granularidad === 'diaria' && modo === 'mes'"
-          v-model="mesSel" view="month" dateFormat="MM yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-44" :maxDate="hoy"
-          placeholder="Elige un mes" @update:modelValue="aplicarModo" />
-        <!-- Diaria · Intervalo de días (UN solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'diaria' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" :numberOfMonths="2" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-64" :maxDate="hoy"
-          placeholder="Día inicial → final" @update:modelValue="aplicarModo" />
-        <!-- Horaria · Día específico -->
-        <DatePicker v-else-if="granularidad === 'horaria' && modo === 'dia'"
-          v-model="diaSel" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-44" :maxDate="hoy"
-          placeholder="Elige un día" @update:modelValue="aplicarModo" />
-        <!-- Horaria · Intervalo de días (UN solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'horaria' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" :numberOfMonths="2" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-64" :maxDate="hoy"
-          placeholder="Día inicial → final" @update:modelValue="aplicarModo" />
+        <Select
+          v-if="granularidad === 'mensual' && modo === 'anio'"
+          :model-value="String(anioSel)"
+          @update:model-value="(v) => { anioSel = Number(v); aplicarModo() }"
+        >
+          <SelectTrigger class="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="a in aniosDisponibles" :key="a.value" :value="String(a.value)">{{ a.label }}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div v-else-if="modo === 'intervalo'" class="flex items-center gap-1.5">
+          <Input v-model="rangoDesdeInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+          <span class="text-muted-foreground">→</span>
+          <Input v-model="rangoHastaInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+        </div>
+
+        <Input
+          v-else-if="granularidad === 'diaria' && modo === 'mes'"
+          v-model="mesSelInput"
+          type="month"
+          class="w-auto"
+        />
+
+        <Input
+          v-else-if="granularidad === 'horaria' && modo === 'dia'"
+          v-model="diaSelInput"
+          type="date"
+          class="w-auto"
+        />
 
         <!-- Etiqueta del rango resuelto -->
-        <span class="gen-range-label"><CalendarClockIcon class="size-[1em]" /> {{ rangoLabel }}</span>
+        <Badge variant="secondary">
+          <CalendarClockIcon />
+          {{ rangoLabel }}
+        </Badge>
 
         <!-- Avisos -->
-        <span v-if="rangoError && rangoError !== 'Selecciona un rango'" class="gen-err">
-          <CircleAlertIcon class="size-[1em]" /> {{ rangoError }}
+        <span
+          v-if="rangoError && rangoError !== 'Selecciona un rango'"
+          class="flex items-center gap-1 text-xs font-medium text-destructive"
+        >
+          <CircleAlertIcon class="size-3.5" /> {{ rangoError }}
         </span>
-        <span v-else-if="avisoRango" class="gen-aviso">
-          <InfoIcon class="size-[1em]" /> {{ avisoRango }}
+        <span v-else-if="avisoRango" class="flex items-center gap-1 text-xs font-medium text-warning">
+          <InfoIcon class="size-3.5" /> {{ avisoRango }}
         </span>
 
-        <!-- Project multi-select (valor = sub_project = ID de API Unergy) -->
-        <div class="gen-project-picker">
-          <MultiSelect v-model="proyectosSel" :options="proyectos" optionLabel="nombre_comercial"
-            optionValue="sub_project" :filter="true" :showToggleAll="false"
-            display="chip" placeholder="Selecciona proyectos…"
-            :maxSelectedLabels="3" :selectedItemsLabel="`{0} proyectos seleccionados`"
-            class="w-full" size="small" @change="onProyectosChange">
-            <template #option="{ option }">
-              <div class="flex items-center justify-between gap-2 w-full">
-                <span>{{ option.nombre_comercial }}</span>
-                <span class="text-[10px] text-gray-400 whitespace-nowrap">{{ option.municipio }}</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </div>
+        <!-- Selección de proyectos -->
+        <Popover v-model:open="proyectosPickerOpen">
+          <PopoverTrigger as-child>
+            <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
+              <span v-if="!proyectosSel.length" class="text-muted-foreground">Selecciona proyectos…</span>
+              <span v-else>{{ proyectosSel.length }} proyecto{{ proyectosSel.length > 1 ? 's' : '' }} seleccionados</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-80 p-0" align="start">
+            <div class="border-b border-border p-2">
+              <Input v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
+            </div>
+            <div class="max-h-72 overflow-y-auto p-1">
+              <label
+                v-for="p in proyectosFiltrados"
+                :key="p.sub_project"
+                class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
+              >
+                <Checkbox
+                  :model-value="proyectosSel.includes(p.sub_project)"
+                  @update:model-value="() => toggleProyecto(p.sub_project)"
+                />
+                <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
+              </label>
+              <p v-if="!proyectosFiltrados.length" class="px-2 py-3 text-center text-sm text-muted-foreground">
+                Sin resultados.
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
 
-        <!-- Consultar (dispara la query del intervalo seleccionado) -->
-        <Button label="Consultar" size="small" class="gen-consultar" :class="{ 'gen-consultar--pendiente': pendiente && proyectosSel.length && !rangoError }" :disabled="!proyectosSel.length || !!rangoError" :loading="loading" @click="cargar" v-tooltip.bottom="!proyectosSel.length ? 'Selecciona al menos un proyecto' : (rangoError ? 'Corrige el rango de fechas' : 'Consultar generación')">
-          <template #icon><SearchIcon class="size-[1em]" /></template>
+        <!-- Consultar -->
+        <Button
+          :variant="pendiente && proyectosSel.length && !rangoError ? 'default' : 'outline'"
+          :disabled="!proyectosSel.length || !!rangoError"
+          @click="cargar"
+        >
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <SearchIcon v-else />
+          Consultar
         </Button>
-      </div>
+      </CardContent>
+    </Card>
 
-      <!-- Fuente de datos -->
-      <div v-if="proyectos.length" class="gen-datahint">
-        <ZapIcon class="size-[1em]" />
-        <span>{{ proyectos.length }} proyectos disponibles · generación en vivo desde la API de Unergy</span>
-      </div>
+    <p v-if="proyectos.length" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <ZapIcon class="size-3.5" />
+      {{ proyectos.length }} proyectos disponibles · generación en vivo desde la API de Unergy
+    </p>
 
-    </div><!-- /sticky-header -->
+    <!-- Estados vacíos -->
+    <Card v-if="!proyectosSel.length">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <InfoIcon class="mb-2 size-8 text-primary" />
+        <p class="text-base font-semibold text-foreground">Selecciona uno o más proyectos para comenzar</p>
+        <p class="text-sm text-muted-foreground">
+          Elige proyectos y un rango, luego presiona <strong>Consultar</strong>.
+        </p>
+      </CardContent>
+    </Card>
 
-    <!-- ══ EMPTY STATE / GUIDE ════════════════════════════════════════ -->
-    <div v-if="!proyectosSel.length" class="gen-empty">
-      <InfoIcon class="text-3xl mb-3 size-[1em]" style="color:var(--color-unergy-purple)" />
-      <p class="text-base font-semibold text-gray-700">Selecciona uno o más proyectos para comenzar</p>
-      <p class="text-sm text-gray-500 mt-1">Elige proyectos y un rango, luego presiona <strong>Consultar</strong>.</p>
-    </div>
+    <Card v-else-if="loading">
+      <CardContent class="flex flex-col items-center gap-3 py-12 text-center">
+        <LoaderCircleIcon class="size-8 animate-spin text-primary" />
+        <p class="text-sm text-muted-foreground">Cargando datos de generación…</p>
+      </CardContent>
+    </Card>
 
-    <!-- ══ LOADING ════════════════════════════════════════════════════ -->
-    <div v-else-if="loading" class="gen-loading">
-      <ProgressSpinner style="width:40px;height:40px" />
-      <p class="text-sm text-gray-500 mt-3">Cargando datos de generación…</p>
-    </div>
+    <Card v-else-if="error">
+      <CardContent class="flex items-start gap-3">
+        <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
+        <div class="flex-1">
+          <p class="font-semibold text-destructive">No se pudo consultar la generación</p>
+          <p class="mt-0.5 text-sm text-muted-foreground">{{ error }}</p>
+        </div>
+        <Button variant="outline" size="sm" @click="cargar">
+          <RefreshCwIcon />
+          Reintentar
+        </Button>
+      </CardContent>
+    </Card>
 
-    <!-- ══ ERROR ═════════════════════════════════════════════════════ -->
-    <div v-else-if="error" class="gen-error">
-      <CircleAlertIcon class="text-2xl text-red-500 size-[1em]" />
-      <div class="flex-1">
-        <p class="font-semibold text-red-700">No se pudo consultar la generación</p>
-        <p class="text-sm text-gray-600 mt-0.5">{{ error }}</p>
-      </div>
-      <Button label="Reintentar" outlined size="small" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
+    <Card v-else-if="!hasQueried">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <SearchIcon class="mb-2 size-8 text-primary" />
+        <p class="text-base font-semibold text-foreground">Listo para consultar</p>
+        <p class="text-sm text-muted-foreground">Ajusta el rango y la granularidad, luego presiona Consultar.</p>
+        <Button class="mt-3" :disabled="!!rangoError" @click="cargar">
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <SearchIcon v-else />
+          Consultar
+        </Button>
+      </CardContent>
+    </Card>
 
-    <!-- ══ READY TO QUERY (proyectos elegidos, aún sin consultar) ═════ -->
-    <div v-else-if="!hasQueried" class="gen-empty">
-      <SearchIcon class="text-3xl mb-3 size-[1em]" style="color:var(--color-unergy-purple)" />
-      <p class="text-base font-semibold text-gray-700">Listo para consultar</p>
-      <p class="text-sm text-gray-500 mt-1">Ajusta el rango y la granularidad, luego presiona Consultar.</p>
-      <Button label="Consultar" size="small" class="mt-3" :disabled="!!rangoError" :loading="loading" @click="cargar">
-        <template #icon><SearchIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
+    <Card v-else-if="!datasets.length || datasets.every((d) => !d.points.length)">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <DatabaseIcon class="mb-2 size-8 text-muted-foreground" />
+        <p class="text-base font-semibold text-foreground">Sin datos para el rango seleccionado</p>
+        <p class="text-sm text-muted-foreground">
+          Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con un rango más
+          amplio o fechas anteriores.
+        </p>
+        <Button variant="outline" class="mt-3" @click="verEsteAnioMensual">
+          <CalendarIcon />
+          Ver el año en curso (mensual)
+        </Button>
+      </CardContent>
+    </Card>
 
-    <!-- ══ NO DATA ═══════════════════════════════════════════════════ -->
-    <div v-else-if="!datasets.length || datasets.every(d => !d.points.length)" class="gen-empty">
-      <DatabaseIcon class="text-3xl mb-3 text-gray-300 size-[1em]" />
-      <p class="text-base font-semibold text-gray-700">Sin datos para el rango seleccionado</p>
-      <p class="text-sm text-gray-500 mt-1">Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con un rango más amplio o fechas anteriores.</p>
-      <Button label="Ver el año en curso (mensual)" outlined size="small" class="mt-3" @click="verEsteAnioMensual">
-        <template #icon><CalendarIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <!-- ══ MAIN CONTENT ══════════════════════════════════════════════ -->
+    <!-- Contenido principal -->
     <template v-else>
-
-      <!-- KPI cards -->
-      <div class="gen-kpis">
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(212,160,23,0.12); color:#D4A017"><ZapIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val">{{ fmtNum(totalKwh) }}</div>
-            <div class="gen-kpi-lbl">kWh totales</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(145,91,216,0.12); color:var(--color-unergy-purple)"><ChartColumnIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val">{{ fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1) }}</div>
-            <div class="gen-kpi-lbl">Promedio kWh / {{ unidadPeriodo }}</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981"><TrophyIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val text-sm">{{ topProyecto?.nombre || '—' }}</div>
-            <div class="gen-kpi-lbl">Mayor generación</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(59,130,246,0.12); color:#3b82f6"><CalendarIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val text-sm">{{ periodos.length }} {{ unidadPeriodoPlural }}</div>
-            <div class="gen-kpi-lbl">Período cubierto</div>
-          </div>
-        </div>
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+              <ZapIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-xl font-extrabold text-foreground">{{ fmtNum(totalKwh) }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">kWh totales</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ChartColumnIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-xl font-extrabold text-foreground">
+                {{ fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1) }}
+              </div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Promedio kWh / {{ unidadPeriodo }}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+              <TrophyIcon class="size-4" />
+            </div>
+            <div>
+              <div class="truncate text-sm font-extrabold text-foreground">{{ topProyecto?.nombre || '—' }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Mayor generación</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <CalendarIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-sm font-extrabold text-foreground">{{ periodos.length }} {{ unidadPeriodoPlural }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Período cubierto</div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <!-- Chart card -->
-      <section class="gen-card">
-        <header class="gen-card-head">
-          <ChartLineIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-          <h3 class="gen-card-title">{{ tituloGrafico }}</h3>
-          <div class="flex items-center gap-2 ml-auto">
-            <button v-for="t in ['line', 'bar']" :key="t"
-              class="gen-toggle-btn" :class="{ 'gen-toggle-btn--active': tipoGrafico === t }"
-              @click="tipoGrafico = t">
-              <ChartLineIcon v-if="t === 'line'" class="size-[1em]" />
-              <ChartColumnIcon v-else class="size-[1em]" />
+      <!-- Gráfica -->
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ tituloGrafico }}</CardTitle>
+          <CardAction class="flex items-center gap-1">
+            <Button
+              type="button"
+              :variant="tipoGrafico === 'line' ? 'secondary' : 'outline'"
+              size="icon-sm"
+              aria-label="Líneas"
+              @click="tipoGrafico = 'line'"
+            >
+              <ChartLineIcon />
+            </Button>
+            <Button
+              type="button"
+              :variant="tipoGrafico === 'bar' ? 'secondary' : 'outline'"
+              size="icon-sm"
+              aria-label="Barras"
+              @click="tipoGrafico = 'bar'"
+            >
+              <ChartColumnIcon />
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-3">
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="ds in datasets"
+              :key="ds.proyectoId"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs transition-opacity hover:bg-muted"
+              :class="ds.hidden ? 'opacity-40' : ''"
+              @click="ds.hidden = !ds.hidden"
+            >
+              <span class="size-2 shrink-0 rounded-full" :style="{ background: ds.color }" />
+              <span class="font-medium text-foreground">{{ ds.nombre }}</span>
+              <Badge v-if="ds.fuente === 'cruda'" variant="outline" :title="TITULO_CRUDA">sin verificar</Badge>
+              <span class="text-muted-foreground">{{ fmtNum(ds.total) }} kWh</span>
             </button>
+            <!-- No es un boton: la meta no se apaga, es la referencia. -->
+            <span
+              v-if="hayMetaP90"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs"
+            >
+              <span class="h-0 w-3.5 border-t-2 border-dashed border-warning" />
+              <span class="font-medium text-foreground">
+                Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
+              </span>
+            </span>
           </div>
-        </header>
 
-        <!-- Legend -->
-        <div class="gen-legend">
-          <button v-for="(ds, idx) in datasets" :key="ds.proyectoId"
-            class="gen-legend-item" :class="{ 'gen-legend-item--off': ds.hidden }"
-            @click="ds.hidden = !ds.hidden">
-            <span class="gen-legend-dot" :style="{ background: ds.color }" />
-            <span class="gen-legend-name">{{ ds.nombre }}</span>
-            <span v-if="ds.fuente === 'cruda'" class="gen-fuente-tag" :title="TITULO_CRUDA">
-              sin verificar
-            </span>
-            <span class="gen-legend-total">{{ fmtNum(ds.total) }} kWh</span>
-          </button>
-          <!-- No es un boton: la meta no se apaga, es la referencia. -->
-          <span v-if="hayMetaP90" class="gen-legend-item gen-legend-item--meta">
-            <span class="gen-legend-dash" />
-            <span class="gen-legend-name">
-              Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
-            </span>
-          </span>
-        </div>
-
-        <!-- SVG chart -->
-        <div class="gen-chart-wrap" ref="chartWrapRef">
-          <svg ref="chartSvgRef" :viewBox="`0 0 ${chartW} ${chartH}`" preserveAspectRatio="none" class="gen-chart-svg"
-            @mousemove="onChartMove" @mouseleave="onChartLeave">
-            <!-- Y grid lines + labels -->
-            <g class="gen-grid">
-              <template v-for="(y, i) in yTicks" :key="'y' + i">
-                <line :x1="paddingL" :x2="chartW - paddingR" :y1="yToPx(y)" :y2="yToPx(y)" />
-                <text :x="paddingL - 6" :y="yToPx(y) + 3.5">{{ fmtYTick(y) }}</text>
-              </template>
-            </g>
-            <!-- X labels -->
-            <g class="gen-xlabels">
-              <text v-for="(p, i) in xLabels" :key="'x' + i"
-                :x="xToPx(p.idx)" :y="chartH - paddingB / 2 + 4"
-                :text-anchor="i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'">
-                {{ p.label }}
-              </text>
-            </g>
-            <!-- Line series -->
-            <template v-if="tipoGrafico === 'line'">
-              <g v-for="ds in datasets.filter(d => !d.hidden)" :key="ds.proyectoId">
-                <polyline
-                  :points="lineaPoints(ds)" fill="none"
-                  :stroke="ds.color" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                <circle v-for="(pt, i) in ds.points" :key="i"
-                  :cx="xToPx(i)" :cy="yToPx(pt.kwh)" r="2.5" :fill="ds.color" />
+          <!-- SVG chart -->
+          <div ref="chartWrapRef" class="relative w-full">
+            <svg
+              ref="chartSvgRef"
+              :viewBox="`0 0 ${chartW} ${chartH}`"
+              preserveAspectRatio="none"
+              class="block h-70 w-full"
+              @mousemove="onChartMove"
+              @mouseleave="onChartLeave"
+            >
+              <!-- Y grid lines + labels -->
+              <g>
+                <template v-for="(y, i) in yTicks" :key="'y' + i">
+                  <line
+                    :x1="paddingL"
+                    :x2="chartW - paddingR"
+                    :y1="yToPx(y)"
+                    :y2="yToPx(y)"
+                    class="stroke-border"
+                    stroke-dasharray="3 3"
+                  />
+                  <text
+                    :x="paddingL - 6"
+                    :y="yToPx(y) + 3.5"
+                    class="fill-muted-foreground text-[9px]"
+                    text-anchor="end"
+                  >
+                    {{ fmtYTick(y) }}
+                  </text>
+                </template>
               </g>
-            </template>
-            <!-- Bar series -->
-            <template v-else>
-              <g v-for="(p, i) in periodos" :key="'b' + i">
-                <rect v-for="(ds, j) in datasets.filter(d => !d.hidden)" :key="ds.proyectoId"
-                  :x="barX(i, j, datasets.filter(d => !d.hidden).length)"
-                  :y="yToPx(ds.points[i]?.kwh ?? 0)"
-                  :width="barW(datasets.filter(d => !d.hidden).length)"
-                  :height="Math.max(0, chartH - paddingB - yToPx(ds.points[i]?.kwh ?? 0))"
-                  :fill="ds.color"
-                  rx="1.5" />
+              <!-- X labels -->
+              <g>
+                <text
+                  v-for="(p, i) in xLabels"
+                  :key="'x' + i"
+                  :x="xToPx(p.idx)"
+                  :y="chartH - paddingB / 2 + 4"
+                  class="fill-muted-foreground text-[9px]"
+                  :text-anchor="i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'"
+                >
+                  {{ p.label }}
+                </text>
               </g>
-            </template>
-
-            <!-- Meta P90 de la simulación. Punteada y gris: es una referencia,
-                 no una medición, y no debe competir con las series reales. -->
-            <polyline v-if="hayMetaP90" :points="metaP90Points" fill="none"
-              stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"
-              stroke-linejoin="round" pointer-events="none" />
-
-            <!-- Fallas con impacto en generación: subrayado rojo del día/período -->
-            <g v-if="periodosFlagged.length" class="gen-faults" pointer-events="none">
-              <template v-for="i in periodosFlagged" :key="'fl' + i">
-                <line :x1="xToPx(i)" :x2="xToPx(i)" :y1="paddingT" :y2="chartH - paddingB"
-                  class="gen-fault-vline" />
-                <line :x1="xToPx(i) - marcadorHalfW" :x2="xToPx(i) + marcadorHalfW"
-                  :y1="chartH - paddingB + 2.5" :y2="chartH - paddingB + 2.5"
-                  class="gen-fault-underline" />
-                <circle :cx="xToPx(i)" :cy="paddingT + 2" r="2.6" class="gen-fault-dot" />
+              <!-- Line series -->
+              <template v-if="tipoGrafico === 'line'">
+                <g v-for="ds in datasets.filter((d) => !d.hidden)" :key="ds.proyectoId">
+                  <polyline
+                    :points="lineaPoints(ds)"
+                    fill="none"
+                    :stroke="ds.color"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    v-for="(pt, i) in ds.points"
+                    :key="i"
+                    :cx="xToPx(i)"
+                    :cy="yToPx(pt.kwh)"
+                    r="2.5"
+                    :fill="ds.color"
+                  />
+                </g>
               </template>
-            </g>
+              <!-- Bar series -->
+              <template v-else>
+                <g v-for="(p, i) in periodos" :key="'b' + i">
+                  <rect
+                    v-for="(ds, j) in datasets.filter((d) => !d.hidden)"
+                    :key="ds.proyectoId"
+                    :x="barX(i, j, datasets.filter((d) => !d.hidden).length)"
+                    :y="yToPx(ds.points[i]?.kwh ?? 0)"
+                    :width="barW(datasets.filter((d) => !d.hidden).length)"
+                    :height="Math.max(0, chartH - paddingB - yToPx(ds.points[i]?.kwh ?? 0))"
+                    :fill="ds.color"
+                    rx="1.5"
+                  />
+                </g>
+              </template>
 
-            <!-- Hover: línea guía vertical + puntos resaltados -->
-            <g v-if="hover" class="gen-hover" pointer-events="none">
-              <line :x1="hover.gx" :x2="hover.gx" :y1="paddingT" :y2="chartH - paddingB" class="gen-hover-line" />
-              <circle v-for="s in hoverSeries" :key="'h' + s.proyectoId"
-                :cx="hover.gx" :cy="yToPx(s.kwh)" r="4" :fill="s.color" stroke="#fff" stroke-width="1.5" />
-            </g>
-          </svg>
+              <!-- Meta P90 de la simulación. Punteada y gris: es una referencia,
+                   no una medición, y no debe competir con las series reales. -->
+              <polyline
+                v-if="hayMetaP90"
+                :points="metaP90Points"
+                fill="none"
+                stroke="#f59e0b"
+                stroke-width="2"
+                stroke-dasharray="6 4"
+                stroke-linejoin="round"
+                pointer-events="none"
+              />
 
-          <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
-          <div v-if="hover" class="gen-tooltip" :class="{ 'gen-tooltip--flip': hover.flip }"
-            :style="{ left: hover.tipLeft + 'px', top: hover.tipTop + 'px' }">
-            <div class="gen-tooltip-x">{{ hover.label }}</div>
-            <div v-for="s in hoverSeries" :key="'t' + s.proyectoId" class="gen-tooltip-row">
-              <span class="gen-tooltip-dot" :style="{ background: s.color }" />
-              <span class="gen-tooltip-name">{{ s.nombre }}</span>
-              <span class="gen-tooltip-val">{{ fmtNum(s.kwh, 1) }} kWh</span>
-            </div>
-            <div v-if="hoverSeries.length > 1" class="gen-tooltip-row gen-tooltip-total">
-              <span class="gen-tooltip-name">Total</span>
-              <span class="gen-tooltip-val">{{ fmtNum(hoverTotal, 1) }} kWh</span>
-            </div>
-            <div v-if="hoverFalla" class="gen-tooltip-fault">
-              <TriangleAlertIcon class="size-[1em]" />
-              {{ hoverFalla.count }} falla{{ hoverFalla.count !== 1 ? 's' : '' }} de generación · {{ fmtNum(hoverFalla.kwh) }} kWh perdidos
+              <!-- Fallas con impacto en generación: subrayado rojo del día/período -->
+              <g v-if="periodosFlagged.length" pointer-events="none">
+                <template v-for="i in periodosFlagged" :key="'fl' + i">
+                  <line
+                    :x1="xToPx(i)"
+                    :x2="xToPx(i)"
+                    :y1="paddingT"
+                    :y2="chartH - paddingB"
+                    class="stroke-destructive/35"
+                    stroke-dasharray="2 3"
+                  />
+                  <line
+                    :x1="xToPx(i) - marcadorHalfW"
+                    :x2="xToPx(i) + marcadorHalfW"
+                    :y1="chartH - paddingB + 2.5"
+                    :y2="chartH - paddingB + 2.5"
+                    class="stroke-destructive"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                  <circle :cx="xToPx(i)" :cy="paddingT + 2" r="2.6" class="fill-destructive" />
+                </template>
+              </g>
+
+              <!-- Hover: línea guía vertical + puntos resaltados -->
+              <g v-if="hover" pointer-events="none">
+                <line
+                  :x1="hover.gx"
+                  :x2="hover.gx"
+                  :y1="paddingT"
+                  :y2="chartH - paddingB"
+                  class="stroke-primary/75"
+                  stroke-dasharray="4 3"
+                />
+                <circle
+                  v-for="s in hoverSeries"
+                  :key="'h' + s.proyectoId"
+                  :cx="hover.gx"
+                  :cy="yToPx(s.kwh)"
+                  r="4"
+                  :fill="s.color"
+                  stroke="#fff"
+                  stroke-width="1.5"
+                />
+              </g>
+            </svg>
+
+            <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
+            <div
+              v-if="hover"
+              class="absolute z-10 min-w-36 max-w-60 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
+              :style="{
+                left: `${hover.tipLeft}px`,
+                top: `${hover.tipTop}px`,
+                transform: hover.flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)',
+              }"
+            >
+              <div class="mb-1 font-bold whitespace-nowrap text-foreground">{{ hover.label }}</div>
+              <div v-for="s in hoverSeries" :key="'t' + s.proyectoId" class="flex items-center gap-1.5 py-px">
+                <span class="size-2 shrink-0 rounded-full" :style="{ background: s.color }" />
+                <span class="flex-1 truncate text-muted-foreground">{{ s.nombre }}</span>
+                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(s.kwh, 1) }} kWh</span>
+              </div>
+              <div v-if="hoverSeries.length > 1" class="mt-1 flex items-center gap-1.5 border-t border-border pt-1">
+                <span class="flex-1 text-muted-foreground">Total</span>
+                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(hoverTotal, 1) }} kWh</span>
+              </div>
+              <div
+                v-if="hoverFalla"
+                class="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 font-bold text-destructive"
+              >
+                <TriangleAlertIcon class="size-3.5" />
+                {{ hoverFalla.count }} falla{{ hoverFalla.count !== 1 ? 's' : '' }} de generación ·
+                {{ fmtNum(hoverFalla.kwh) }} kWh perdidos
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <!-- Fallas reportadas en el período (cruce con generación) -->
-      <section class="gen-card">
-        <header class="gen-card-head">
-          <TriangleAlertIcon class="text-sm size-[1em]" style="color:#dc2626" />
-          <h3 class="gen-card-title">Fallas reportadas en el período</h3>
-          <div class="ml-auto flex items-center gap-1.5 flex-wrap">
-            <span class="gen-fchip">{{ fallasDelPeriodo.length }} en total</span>
-            <span v-if="fallasGenCount" class="gen-fchip gen-fchip--red">{{ fallasGenCount }} afectan generación</span>
-            <span v-if="kwhPerdidoTotal > 0" class="gen-fchip gen-fchip--red">
-              {{ fmtNum(kwhPerdidoTotal) }} kWh perdidos
-            </span>
+      <!-- Fallas reportadas en el período -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <TriangleAlertIcon class="size-4 text-destructive" />
+            Fallas reportadas en el período
+          </CardTitle>
+          <CardAction class="flex flex-wrap items-center gap-1.5">
+            <Badge variant="secondary">{{ fallasDelPeriodo.length }} en total</Badge>
+            <Badge v-if="fallasGenCount" variant="destructive">{{ fallasGenCount }} afectan generación</Badge>
+            <Badge v-if="kwhPerdidoTotal > 0" variant="destructive">{{ fmtNum(kwhPerdidoTotal) }} kWh perdidos</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <div
+            v-if="fallasCargando && !allFallas.length"
+            class="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground"
+          >
+            <LoaderCircleIcon class="size-6 animate-spin" />
+            <p>Cargando fallas…</p>
           </div>
-        </header>
+          <div
+            v-else-if="!fallasDelPeriodo.length"
+            class="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground"
+          >
+            <CircleCheckIcon class="size-6 text-success" />
+            <p>Sin fallas reportadas en este intervalo para los proyectos seleccionados.</p>
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <div class="overflow-x-auto rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Proyecto</TableHead>
+                    <TableHead>Falla</TableHead>
+                    <TableHead>Prioridad</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Energía perdida</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    v-for="f in fallasVisibles"
+                    :key="f.id"
+                    class="cursor-pointer"
+                    :class="involucraGeneracion(f) ? 'bg-destructive/5 hover:bg-destructive/10' : ''"
+                    @click="router.push(`/fallas/${f.id}`)"
+                  >
+                    <TableCell class="font-medium whitespace-nowrap">{{ fmtFechaCorta(f.fecha_identificacion) }}</TableCell>
+                    <TableCell>{{ f.proyecto?.nombre_comercial || '—' }}</TableCell>
+                    <TableCell>
+                      <div class="font-medium text-foreground">{{ f.tipo?.etiqueta || 'Sin tipo' }}</div>
+                      <div class="line-clamp-1 max-w-90 text-xs text-muted-foreground">{{ f.descripcion }}</div>
+                    </TableCell>
+                    <TableCell>
+                      <GBadge :color="colorPrioridad(f.prioridad?.codigo)">{{ f.prioridad?.etiqueta || '—' }}</GBadge>
+                    </TableCell>
+                    <TableCell>
+                      <GBadge :color="colorEstado(f.estado?.codigo)">{{ f.estado?.etiqueta || '—' }}</GBadge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge v-if="involucraGeneracion(f)" variant="destructive">
+                        <ZapIcon /> {{ fmtNum(energiaPerdida(f)) }} kWh
+                      </Badge>
+                      <span v-else class="text-muted-foreground">—</span>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
 
-        <div v-if="fallasCargando && !allFallas.length" class="gen-fallas-empty">
-          <ProgressSpinner style="width:28px;height:28px" />
-          <p>Cargando fallas…</p>
-        </div>
-        <div v-else-if="!fallasDelPeriodo.length" class="gen-fallas-empty">
-          <CircleCheckIcon class="text-2xl size-[1em]" style="color:#16a34a" />
-          <p>Sin fallas reportadas en este intervalo para los proyectos seleccionados.</p>
-        </div>
-        <div v-else class="overflow-x-auto">
-          <DataTable :value="fallasDelPeriodo" stripedRows rowHover class="text-sm gen-table"
-            :rows="10" paginator :rowsPerPageOptions="[10, 20, 50]" :alwaysShowPaginator="fallasDelPeriodo.length > 10"
-            :rowClass="fallaRowClass" selectionMode="single"
-            @row-click="(e) => router.push('/fallas/' + e.data.id)">
-            <Column header="" style="width:6px;padding:0" :pt="{ headerCell: { style: 'padding:0; border:none' } }">
-              <template #body="{ data }">
-                <div class="gen-falla-stripe" :class="{ 'gen-falla-stripe--gen': involucraGeneracion(data) }" />
-              </template>
-            </Column>
-            <Column header="Fecha" field="fecha_identificacion" sortable style="width:96px">
-              <template #body="{ data }">
-                <span class="font-medium text-gray-800">{{ fmtFechaCorta(data.fecha_identificacion) }}</span>
-              </template>
-            </Column>
-            <Column header="Proyecto" style="min-width:130px">
-              <template #body="{ data }"><span class="text-gray-700">{{ data.proyecto?.nombre_comercial || '—' }}</span></template>
-            </Column>
-            <Column header="Falla" style="min-width:240px">
-              <template #body="{ data }">
-                <div class="font-medium text-gray-800">{{ data.tipo?.etiqueta || 'Sin tipo' }}</div>
-                <div class="text-xs text-gray-500 gen-falla-desc">{{ data.descripcion }}</div>
-              </template>
-            </Column>
-            <Column header="Prioridad" style="width:96px">
-              <template #body="{ data }">
-                <span class="gen-prio-pill" :style="prioPillStyle(data.prioridad?.codigo)">{{ data.prioridad?.etiqueta || '—' }}</span>
-              </template>
-            </Column>
-            <Column header="Estado" style="width:120px">
-              <template #body="{ data }">
-                <GBadge :color="colorEstado(data.estado?.codigo)">{{ data.estado?.etiqueta || '—' }}</GBadge>
-              </template>
-            </Column>
-            <Column header="Energía perdida" style="width:140px">
-              <template #body="{ data }">
-                <span v-if="involucraGeneracion(data)" class="gen-energy-badge">
-                  <ZapIcon class="size-[1em]" /> {{ fmtNum(energiaPerdida(data)) }} kWh
-                </span>
-                <span v-else class="text-gray-300">—</span>
-              </template>
-            </Column>
-          </DataTable>
-        </div>
-      </section>
-
+            <div v-if="fallasTotalPages > 1" class="flex items-center justify-between text-sm">
+              <span class="text-muted-foreground">Página {{ fallasPagina }} de {{ fallasTotalPages }}</span>
+              <div class="flex items-center gap-2">
+                <Button variant="outline" size="sm" :disabled="fallasPagina <= 1" @click="fallasPagina--">
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" :disabled="fallasPagina >= fallasTotalPages" @click="fallasPagina++">
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </template>
   </div>
 </template>
@@ -399,17 +586,10 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
-import Button from 'primevue/button'
-import DatePicker from 'primevue/datepicker'
-import MultiSelect from 'primevue/multiselect'
-import Select from 'primevue/select'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import ProgressSpinner from 'primevue/progressspinner'
 import { useRouter } from 'vue-router'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { CalendarClockIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, DatabaseIcon, FileSpreadsheetIcon, InfoIcon, ListIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, TrophyIcon, ZapIcon } from '@lucide/vue'
+import { CalendarClockIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, DatabaseIcon, FileSpreadsheetIcon, InfoIcon, ListIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, TrophyIcon, ZapIcon } from '@lucide/vue'
 
 const router = useRouter()
 const monitoreoLegacyService = new MonitoreoLegacyService()
@@ -454,6 +634,8 @@ const loading = ref(false)
 const error = ref(null)
 const proyectos = ref([])
 const proyectosSel = ref([])
+const proyectosPickerOpen = ref(false)
+const proyectosFiltro = ref('')
 
 const granularidad = ref('diaria')
 const modo = ref('actual')
@@ -499,24 +681,67 @@ const nombrePorSub = computed(() => {
   return m
 })
 
-// ── Fallas del período (correlación generación ↔ incidencias) ─────────
-const allFallas = ref([])
-const fallasCargando = ref(false)
-// Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
-// con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
-const qDesde = ref(null)
-const qHasta = ref(null)
-const qNombres = ref([])  // nombres_comerciales consultados
-
-// ── Modo de selección + cálculo de fechas ─────────────────────────────
-const modosActuales = computed(() => MODOS[granularidad.value] || [])
-
-const aniosDisponibles = computed(() => {
-  const y = new Date().getFullYear()
-  const arr = []
-  for (let a = y; a >= 2019; a--) arr.push({ label: String(a), value: a })
-  return arr
+const proyectosFiltrados = computed(() => {
+  const q = proyectosFiltro.value.trim().toLowerCase()
+  if (!q) return proyectos.value
+  return proyectos.value.filter((p) => (p.nombre_comercial || '').toLowerCase().includes(q))
 })
+
+function toggleProyecto(sub) {
+  proyectosSel.value = proyectosSel.value.includes(sub)
+    ? proyectosSel.value.filter((s) => s !== sub)
+    : [...proyectosSel.value, sub]
+  onProyectosChange()
+}
+
+// ── Adaptadores para <input type="month"|"date"> ──────────────────────
+function toMonthInput(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function fromMonthInput(v) {
+  const [y, m] = v.split('-').map(Number)
+  return new Date(y, m - 1, 1)
+}
+function fromDateInput(v) {
+  const [y, m, d] = v.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+const mesSelInput = computed({
+  get: () => toMonthInput(mesSel.value),
+  set: (v) => { if (!v) return; mesSel.value = fromMonthInput(v); aplicarModo() },
+})
+const diaSelInput = computed({
+  get: () => isoDate(diaSel.value),
+  set: (v) => { if (!v) return; diaSel.value = fromDateInput(v); aplicarModo() },
+})
+
+// El rango comparte un solo picker "desde/hasta" para las tres granularidades:
+// mensual usa <input type="month">, diaria/horaria usan <input type="date">.
+const rangoEsMensual = computed(() => granularidad.value === 'mensual')
+
+const rangoDesdeInput = computed({
+  get: () => {
+    const d = rango.value?.[0] ?? fechaDesde.value
+    return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
+  },
+  set: (v) => setRango(0, v),
+})
+const rangoHastaInput = computed({
+  get: () => {
+    const d = rango.value?.[1] ?? rango.value?.[0] ?? fechaHasta.value
+    return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
+  },
+  set: (v) => setRango(1, v),
+})
+function setRango(idx, v) {
+  if (!v) return
+  const d = rangoEsMensual.value ? fromMonthInput(v) : fromDateInput(v)
+  const current = rango.value ? [...rango.value] : [d, d]
+  current[idx] = d
+  rango.value = current
+  aplicarModo()
+}
 
 function finDeAnioOHoy(y) {
   const t = new Date(); t.setHours(0, 0, 0, 0)
@@ -943,7 +1168,7 @@ function fmtYTick(v) {
 function fmtNum(v, maxDecimals = 0) {
   return (v ?? 0)
     .toLocaleString('es-CO', { maximumFractionDigits: maxDecimals })
-    .replace(/\./g, ' ')
+    .replace(/\./g, ' ')
 }
 
 // ── Hover (tooltip de valores X/Y) ───────────────────────────────────
@@ -1050,20 +1275,22 @@ const hoverFalla = computed(() => {
   return infoFallaPeriodo(periodos.value[hover.value.idx]?.key)
 })
 
-// Helpers visuales de la tabla de fallas.
-function prioPillStyle(codigo) {
-  const c = colorPrioridad(codigo, '#9ca3af')
-  return { background: c + '18', color: c, border: `1px solid ${c}40` }
-}
 function fmtFechaCorta(d) {
   if (!d) return '—'
   return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
-function fallaRowClass(data) {
-  return involucraGeneracion(data) ? 'gen-falla-row--gen' : ''
-}
 
-// ── Tabla ────────────────────────────────────────────────────────────
+// ── Tabla de fallas: paginación simple sobre lo ya cargado ────────────
+const FALLAS_POR_PAGINA = 10
+const fallasPagina = ref(1)
+watch(fallasDelPeriodo, () => { fallasPagina.value = 1 })
+const fallasTotalPages = computed(() => Math.max(1, Math.ceil(fallasDelPeriodo.value.length / FALLAS_POR_PAGINA)))
+const fallasVisibles = computed(() => {
+  const start = (fallasPagina.value - 1) * FALLAS_POR_PAGINA
+  return fallasDelPeriodo.value.slice(start, start + FALLAS_POR_PAGINA)
+})
+
+// ── Tabla (detalle para exportar) ─────────────────────────────────────
 const tablaFilas = computed(() => {
   return periodos.value.map((p, i) => {
     const row = { periodo: p.label, total: 0 }
@@ -1198,467 +1425,13 @@ onMounted(async () => {
 watch(chartWrapRef, (el) => {
   if (el && resizeObserver) resizeObserver.observe(el)
 })
+
+// ── Fallas del período (correlación generación ↔ incidencias) ─────────
+const allFallas = ref([])
+const fallasCargando = ref(false)
+// Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
+// con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
+const qDesde = ref(null)
+const qHasta = ref(null)
+const qNombres = ref([])  // nombres_comerciales consultados
 </script>
-
-<style scoped>
-.gen-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* ── Sticky header (title + filters) ───────────────────────────────── */
-.gen-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: #f3f4f6;
-  padding-top: 4px;
-  padding-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* Tapa la franja superior (padding 24px del <main>) por la que el contenido
-   se asomaría al hacer scroll. Mismo patrón que Gestión de Fallas. */
-.gen-sticky-header::before {
-  content: "";
-  position: absolute;
-  left: -24px;
-  right: -24px;
-  bottom: 100%;
-  height: 28px;
-  background: #f3f4f6;
-  pointer-events: none;
-}
-
-.gen-titlebar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 6px 12px;
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  min-height: 42px;
-}
-
-.gen-filterbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
-
-/* Segmented control (granularity) */
-.gen-segmented {
-  display: inline-flex;
-  background: #f3f1f8;
-  border-radius: 8px;
-  padding: 2px;
-}
-.gen-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: inherit;
-}
-.gen-seg-btn:hover:not(:disabled) { color: var(--color-unergy-deep); }
-.gen-seg-btn--active {
-  background: #fff;
-  color: var(--color-unergy-purple);
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.1);
-}
-.gen-seg-btn--disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Segmento de "modo" — tono distinto para diferenciarlo de la granularidad */
-.gen-segmented--modo { background: #eef4ff; }
-.gen-segmented--modo .gen-seg-btn--active { color: #2563eb; }
-
-/* Etiqueta del rango resuelto */
-.gen-range-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #4a3b6b;
-  background: #faf5ff;
-  border: 1px solid #e9ddff;
-  border-radius: 999px;
-  padding: 3px 10px;
-  white-space: nowrap;
-}
-.gen-range-label svg { font-size: 11px; color: var(--color-unergy-purple); }
-
-/* Aviso no bloqueante */
-.gen-aviso {
-  font-size: 11.5px;
-  color: #b45309;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Validation error */
-.gen-err {
-  font-size: 11.5px;
-  color: #dc2626;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Project picker */
-.gen-project-picker { flex: 1; min-width: 240px; }
-.gen-project-picker :deep(.p-multiselect) { width: 100%; }
-
-/* Línea de disponibilidad de datos */
-.gen-datahint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 4px 12px;
-  font-size: 11.5px;
-  color: #6b5a8a;
-}
-.gen-datahint > svg { font-size: 11px; }
-.gen-datahint-btn {
-  border: 1px solid #e9ddff;
-  background: #faf5ff;
-  color: #7c3aed;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-.gen-datahint-btn:hover { background: #f1e8ff; }
-
-/* Botón Consultar */
-.gen-consultar { flex-shrink: 0; }
-/* Resalta cuando hay filtros sin aplicar (pendiente de consultar) */
-.gen-consultar--pendiente :deep(.p-button),
-.gen-consultar--pendiente.p-button {
-  animation: gen-pulse 1.6s ease-in-out infinite;
-}
-@keyframes gen-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(145, 91, 216, 0.45); }
-  50%      { box-shadow: 0 0 0 4px rgba(145, 91, 216, 0.18); }
-}
-
-/* Empty / loading / error states */
-.gen-empty, .gen-loading, .gen-error {
-  background: #fff;
-  border: 1px solid #ece8f4;
-  border-radius: 12px;
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.gen-error {
-  flex-direction: row;
-  align-items: flex-start;
-  text-align: left;
-  padding: 18px;
-  gap: 14px;
-}
-
-/* KPIs */
-.gen-kpis {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (min-width: 768px) {
-  .gen-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-.gen-kpi {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
-.gen-kpi-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.gen-kpi-val { font-size: 20px; font-weight: 800; line-height: 1.1; color: var(--color-unergy-deep); }
-.gen-kpi-lbl { font-size: 11.5px; font-weight: 600; color: #6b5a8a; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
-
-/* Card */
-.gen-card {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  overflow: hidden;
-}
-.gen-card-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ece8f4;
-  background: #faf9fc;
-}
-.gen-card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin: 0;
-}
-
-/* Chart toggle */
-.gen-toggle-btn {
-  width: 30px; height: 30px;
-  border: 1px solid #ece8f4;
-  background: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #6b5a8a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.gen-toggle-btn--active { background: var(--color-unergy-purple); color: #fff; border-color: var(--color-unergy-purple); }
-.gen-toggle-btn svg { font-size: 12px; }
-
-/* Legend */
-.gen-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ece8f4;
-}
-.gen-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: #faf9fc;
-  border: 1px solid #ece8f4;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.gen-legend-item:hover { background: #f3f1f8; }
-.gen-legend-item--off { opacity: 0.4; }
-.gen-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
-.gen-legend-item--meta { cursor: default; }
-.gen-fuente-tag {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: #fef3c7;
-  color: #92400e;
-  white-space: nowrap;
-  cursor: help;
-}
-.gen-legend-dash {
-  width: 14px;
-  height: 0;
-  border-top: 2px dashed #f59e0b;
-  flex: none;
-}
-.gen-legend-name { font-weight: 600; color: var(--color-unergy-deep); }
-.gen-legend-total { color: #6b5a8a; font-weight: 500; }
-
-/* Chart SVG */
-.gen-chart-wrap {
-  width: 100%;
-  padding: 12px 16px 4px;
-  position: relative;   /* ancla del tooltip de hover */
-}
-.gen-chart-svg {
-  width: 100%;
-  height: 280px;
-  display: block;
-}
-
-/* Hover: línea guía + tooltip de valores X/Y */
-.gen-hover-line {
-  stroke: var(--color-unergy-purple);
-  stroke-width: 1;
-  stroke-dasharray: 4 3;
-  opacity: 0.75;
-}
-.gen-tooltip {
-  position: absolute;
-  z-index: 5;
-  pointer-events: none;
-  min-width: 150px;
-  max-width: 240px;
-  background: #fff;
-  border: 1px solid #e9ddff;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(28, 18, 50, 0.16);
-  padding: 8px 10px;
-  font-size: 11.5px;
-  transform: translate(12px, -50%);
-}
-.gen-tooltip--flip { transform: translate(calc(-100% - 12px), -50%); }
-.gen-tooltip-x {
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin-bottom: 5px;
-  white-space: nowrap;
-}
-.gen-tooltip-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 0;
-}
-.gen-tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.gen-tooltip-name {
-  color: #6b5a8a;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.gen-tooltip-val { font-weight: 700; color: var(--color-unergy-deep); font-variant-numeric: tabular-nums; }
-.gen-tooltip-total { border-top: 1px solid #f0ebf7; margin-top: 4px; padding-top: 4px; }
-.gen-tooltip-fault {
-  border-top: 1px solid #fde2e2;
-  margin-top: 5px;
-  padding-top: 5px;
-  color: #dc2626;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.gen-tooltip-fault svg { font-size: 11px; }
-
-/* Marcadores de falla en la gráfica (subrayado rojo del día/período) */
-.gen-fault-underline { stroke: #dc2626; stroke-width: 3; stroke-linecap: round; }
-.gen-fault-vline { stroke: #dc2626; stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.35; }
-.gen-fault-dot { fill: #dc2626; }
-
-.gen-chart-svg .gen-grid line {
-  stroke: #ece8f4;
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-.gen-chart-svg .gen-grid text {
-  font-size: 9px;
-  fill: #6b5a8a;
-  text-anchor: end;
-  font-family: inherit;
-}
-.gen-chart-svg .gen-xlabels text {
-  font-size: 9px;
-  fill: #6b5a8a;
-  font-family: inherit;
-}
-
-/* Table */
-.gen-table :deep(.p-datatable-thead > tr > th) {
-  background: #faf9fc;
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #6b5a8a;
-}
-.gen-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 8px 12px;
-  vertical-align: middle;
-}
-.gen-table :deep(.p-datatable-tbody > tr) { cursor: pointer; }
-
-/* ── Panel de fallas del período ─────────────────────────────────────── */
-.gen-fchip {
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b5a8a;
-  background: #f3f1f8;
-  border: 1px solid #ece8f4;
-  border-radius: 999px;
-  padding: 2px 9px;
-  white-space: nowrap;
-}
-.gen-fchip--red { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
-
-.gen-fallas-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px 20px;
-  color: #6b7280;
-  font-size: 13px;
-  text-align: center;
-}
-
-.gen-falla-stripe { width: 4px; height: 30px; border-radius: 2px; background: #d1d5db; margin: 0 auto; }
-.gen-falla-stripe--gen { background: #dc2626; }
-.gen-falla-row--gen :deep(td) { background: #fff7f7; }
-:deep(.gen-falla-row--gen:hover td) { background: #fdeaea !important; }
-
-.gen-falla-desc {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  max-width: 360px;
-}
-.gen-prio-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-}
-.gen-energy-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-.gen-energy-badge svg { font-size: 10px; }
-</style>
