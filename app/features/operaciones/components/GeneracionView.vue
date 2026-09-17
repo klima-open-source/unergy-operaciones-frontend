@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { Falla } from '~/features/fallas/types'
-import type { ProyectoMonitoreoLegacy, RespuestaGeneracionLegacy } from '~/features/operaciones/types'
+import type {
+  ProyectoMonitoreoLegacy,
+  RespuestaGeneracionLegacy,
+} from '~/features/operaciones/types'
 import {
   CalendarClockIcon,
   CalendarIcon,
@@ -32,7 +35,20 @@ const monitoreoLegacyService = new MonitoreoLegacyService()
 const fallasService = new FallasService()
 
 // ── Constantes ────────────────────────────────────────────────────────
-const MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const MESES_ES = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+]
 const PALETTE = [
   '#915BD8',
   '#2563eb',
@@ -74,7 +90,11 @@ const MODOS: Record<Granularidad, { key: string; label: string }[]> = {
     { key: 'intervalo', label: 'Intervalo' },
   ],
 }
-const MODO_DEFAULT: Record<Granularidad, string> = { mensual: 'actual', diaria: 'actual', horaria: 'ayer' }
+const MODO_DEFAULT: Record<Granularidad, string> = {
+  mensual: 'actual',
+  diaria: 'actual',
+  horaria: 'ayer',
+}
 
 const hoy = new Date()
 hoy.setHours(0, 0, 0, 0)
@@ -152,7 +172,8 @@ const pendiente = ref(false)
 // Mapa sub_project → nombre comercial (para etiquetar cada serie).
 const nombrePorSub = computed(() => {
   const m: Record<string, string> = {}
-  for (const p of proyectos.value) if (p.sub_project) m[p.sub_project] = p.nombre_comercial ?? p.sub_project
+  for (const p of proyectos.value)
+    if (p.sub_project) m[p.sub_project] = p.nombre_comercial ?? p.sub_project
   return m
 })
 
@@ -374,11 +395,15 @@ function setRango(idx: 0 | 1, v: string) {
 // ── Validación (sin límites de tamaño: sólo coherencia) ───────────────
 const rangoDias = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 0
-  return Math.max(0, Math.ceil((fechaHasta.value.getTime() - fechaDesde.value.getTime()) / 86400000) + 1)
+  return Math.max(
+    0,
+    Math.ceil((fechaHasta.value.getTime() - fechaDesde.value.getTime()) / 86400000) + 1,
+  )
 })
 const rangoError = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 'Selecciona un rango'
-  if (fechaHasta.value < fechaDesde.value) return 'La fecha final debe ser igual o posterior a la inicial'
+  if (fechaHasta.value < fechaDesde.value)
+    return 'La fecha final debe ser igual o posterior a la inicial'
   return null
 })
 // Aviso NO bloqueante (rango horario muy amplio puede truncarse en la API).
@@ -396,13 +421,16 @@ const rangoLabel = computed(() => {
   if (granularidad.value === 'mensual') {
     return `${MESES_ES[d.getMonth()]} ${d.getFullYear()} → ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`
   }
-  const f = (x: Date) => `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()]!.toLowerCase()} ${x.getFullYear()}`
+  const f = (x: Date) =>
+    `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()]!.toLowerCase()} ${x.getFullYear()}`
   if (d.getTime() === h.getTime()) return f(d)
   return `${f(d)} → ${f(h)}`
 })
 
 // ── Período label helper ─────────────────────────────────────────────
-const unidadPeriodo = computed(() => ({ mensual: 'mes', diaria: 'día', horaria: 'hora' })[granularidad.value])
+const unidadPeriodo = computed(
+  () => ({ mensual: 'mes', diaria: 'día', horaria: 'hora' })[granularidad.value],
+)
 const unidadPeriodoPlural = computed(
   () => ({ mensual: 'meses', diaria: 'días', horaria: 'horas' })[granularidad.value],
 )
@@ -419,7 +447,9 @@ async function cargar() {
   // Snapshot del query → el panel de fallas se alinea con lo que muestra la gráfica.
   qDesde.value = new Date(fechaDesde.value)
   qHasta.value = new Date(fechaHasta.value)
-  qNombres.value = proyectosSel.value.map((sub) => nombrePorSub.value[sub]).filter((n): n is string => Boolean(n))
+  qNombres.value = proyectosSel.value
+    .map((sub) => nombrePorSub.value[sub])
+    .filter((n): n is string => Boolean(n))
   try {
     const fInicio = isoDate(fechaDesde.value)
     const fFin = isoDate(fechaHasta.value)
@@ -438,7 +468,13 @@ async function cargar() {
       ),
     )
 
-    const parsed: { sub: string; nombre: string; map: Map<string, number>; sim: Dataset['sim']; fuente: Dataset['fuente'] }[] = []
+    const parsed: {
+      sub: string
+      nombre: string
+      map: Map<string, number>
+      sim: Dataset['sim']
+      fuente: Dataset['fuente']
+    }[] = []
     const errores: string[] = []
     results.forEach((r, idx) => {
       const sub = proyectosSel.value[idx]!
@@ -451,7 +487,9 @@ async function cargar() {
       }
       const body = r.value.body
       if (body && body.ok === false) {
-        errores.push(`${nombre}: ${(body as { error?: string }).error || 'la API de Unergy no devolvió datos'}`)
+        errores.push(
+          `${nombre}: ${(body as { error?: string }).error || 'la API de Unergy no devolvió datos'}`,
+        )
         return
       }
       const raw = Array.isArray(body?.data) ? body.data : []
@@ -468,12 +506,16 @@ async function cargar() {
 
     // Si TODAS fallaron, es un fallo real: mostrarlo (no "sin datos").
     if (!parsed.length && errores.length) {
-      error.value = errores.length === 1 ? errores[0]! : `No se pudo consultar ningún proyecto. ${errores[0]}`
+      error.value =
+        errores.length === 1 ? errores[0]! : `No se pudo consultar ningún proyecto. ${errores[0]}`
       datasets.value = []
       return
     }
     if (errores.length) {
-      toast.warning('Algunos proyectos no cargaron', { description: errores.join(' · '), duration: 6000 })
+      toast.warning('Algunos proyectos no cargaron', {
+        description: errores.join(' · '),
+        duration: 6000,
+      })
     }
 
     // Eje común continuo → todas las series quedan alineadas en chart y tabla.
@@ -514,7 +556,12 @@ function sumarPorGranularidad(raw: RespuestaGeneracionLegacy['data']): Map<strin
     else {
       // horaria: agrupa por hora real usando el timestamp de la lectura
       const t = it.time || ''
-      k = t.length >= 13 ? `${t.slice(0, 10)} ${t.slice(11, 13)}:00` : it.date ? `${it.date} 00:00` : null
+      k =
+        t.length >= 13
+          ? `${t.slice(0, 10)} ${t.slice(11, 13)}:00`
+          : it.date
+            ? `${it.date} 00:00`
+            : null
     }
     if (!k) continue
     map.set(k, (map.get(k) || 0) + Number(it.kwh))
@@ -592,7 +639,12 @@ const tituloGrafico = computed(() => {
   if (!datasets.value.length) return 'Sin datos'
   const d1 = isoDate(fechaDesde.value)
   const d2 = isoDate(fechaHasta.value)
-  const etiqueta = granularidad.value === 'mensual' ? 'mensual' : granularidad.value === 'diaria' ? 'diaria' : 'horaria'
+  const etiqueta =
+    granularidad.value === 'mensual'
+      ? 'mensual'
+      : granularidad.value === 'diaria'
+        ? 'diaria'
+        : 'horaria'
   return `Generación ${etiqueta} · ${d1} → ${d2}`
 })
 
@@ -728,7 +780,9 @@ function fmtYTick(v: number): string {
 
 // Separador de miles = espacio (evita confundirlo con la coma decimal), coma decimal.
 function fmtNum(v: number | null | undefined, maxDecimals = 0): string {
-  return (v ?? 0).toLocaleString('es-CO', { maximumFractionDigits: maxDecimals }).replace(/\./g, ' ')
+  return (v ?? 0)
+    .toLocaleString('es-CO', { maximumFractionDigits: maxDecimals })
+    .replace(/\./g, ' ')
 }
 
 // ── Hover (tooltip de valores X/Y) ───────────────────────────────────
@@ -738,7 +792,12 @@ const hoverSeries = computed(() => {
   const i = hover.value.idx
   return datasets.value
     .filter((d) => !d.hidden)
-    .map((d) => ({ proyectoId: d.proyectoId, color: d.color, nombre: d.nombre, kwh: d.points[i]?.kwh ?? 0 }))
+    .map((d) => ({
+      proyectoId: d.proyectoId,
+      color: d.color,
+      nombre: d.nombre,
+      kwh: d.points[i]?.kwh ?? 0,
+    }))
 })
 const hoverTotal = computed(() => hoverSeries.value.reduce((s, d) => s + d.kwh, 0))
 
@@ -759,7 +818,14 @@ function onChartMove(e: MouseEvent) {
   const tipLeft = wrapRect ? e.clientX - wrapRect.left : 0
   const tipTop = wrapRect ? e.clientY - wrapRect.top : 0
   const flip = wrapRect ? tipLeft > wrapRect.width * 0.6 : false
-  hover.value = { idx, gx: xToPx(idx), tipLeft, tipTop, flip, label: periodos.value[idx]?.label || '' }
+  hover.value = {
+    idx,
+    gx: xToPx(idx),
+    tipLeft,
+    tipTop,
+    flip,
+    label: periodos.value[idx]?.label || '',
+  }
 }
 function onChartLeave() {
   hover.value = null
@@ -790,7 +856,9 @@ const fallasDelPeriodo = computed(() => {
 })
 
 const fallasGenCount = computed(() => fallasDelPeriodo.value.filter(involucraGeneracion).length)
-const kwhPerdidoTotal = computed(() => fallasDelPeriodo.value.reduce((s, f) => s + energiaPerdida(f), 0))
+const kwhPerdidoTotal = computed(() =>
+  fallasDelPeriodo.value.reduce((s, f) => s + energiaPerdida(f), 0),
+)
 
 // Días con fallas que impactan generación → para subrayar en rojo.
 const faultsByDay = computed(() => {
@@ -856,7 +924,10 @@ watch(fallasDelPeriodo, (rows) => {
   fallasPagina.goTo(1)
 })
 const fallasVisibles = computed(() =>
-  fallasDelPeriodo.value.slice(fallasPagina.offset.value, fallasPagina.offset.value + fallasPagina.pageSize.value),
+  fallasDelPeriodo.value.slice(
+    fallasPagina.offset.value,
+    fallasPagina.offset.value + fallasPagina.pageSize.value,
+  ),
 )
 
 // ── Tabla (detalle para exportar) ─────────────────────────────────────
@@ -1042,7 +1113,12 @@ watch(chartWrapRef, (el) => {
         </ToggleGroup>
 
         <ToggleGroup type="single" :model-value="modo" variant="outline">
-          <ToggleGroupItem v-for="m in modosActuales" :key="m.key" :value="m.key" @click="onModoChange(m.key)">
+          <ToggleGroupItem
+            v-for="m in modosActuales"
+            :key="m.key"
+            :value="m.key"
+            @click="onModoChange(m.key)"
+          >
             {{ m.label }}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -1051,20 +1127,35 @@ watch(chartWrapRef, (el) => {
         <Select
           v-if="granularidad === 'mensual' && modo === 'anio'"
           :model-value="String(anioSel)"
-          @update:model-value="(v) => { anioSel = Number(v); aplicarModo() }"
+          @update:model-value="
+            (v) => {
+              anioSel = Number(v)
+              aplicarModo()
+            }
+          "
         >
           <SelectTrigger class="w-28">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="a in aniosDisponibles" :key="a" :value="String(a)">{{ a }}</SelectItem>
+            <SelectItem v-for="a in aniosDisponibles" :key="a" :value="String(a)">{{
+              a
+            }}</SelectItem>
           </SelectContent>
         </Select>
 
         <div v-else-if="modo === 'intervalo'" class="flex items-center gap-1.5">
-          <Input v-model="rangoDesdeInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+          <Input
+            v-model="rangoDesdeInput"
+            :type="rangoEsMensual ? 'month' : 'date'"
+            class="w-auto"
+          />
           <span class="text-muted-foreground">→</span>
-          <Input v-model="rangoHastaInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+          <Input
+            v-model="rangoHastaInput"
+            :type="rangoEsMensual ? 'month' : 'date'"
+            class="w-auto"
+          />
         </div>
 
         <Input
@@ -1088,10 +1179,16 @@ watch(chartWrapRef, (el) => {
         </Badge>
 
         <!-- Avisos -->
-        <span v-if="rangoError && rangoError !== 'Selecciona un rango'" class="flex items-center gap-1 text-xs font-medium text-destructive">
+        <span
+          v-if="rangoError && rangoError !== 'Selecciona un rango'"
+          class="flex items-center gap-1 text-xs font-medium text-destructive"
+        >
           <CircleAlertIcon class="size-3.5" /> {{ rangoError }}
         </span>
-        <span v-else-if="avisoRango" class="flex items-center gap-1 text-xs font-medium text-warning">
+        <span
+          v-else-if="avisoRango"
+          class="flex items-center gap-1 text-xs font-medium text-warning"
+        >
           <InfoIcon class="size-3.5" /> {{ avisoRango }}
         </span>
 
@@ -1099,8 +1196,15 @@ watch(chartWrapRef, (el) => {
         <Popover v-model:open="proyectosPickerOpen">
           <PopoverTrigger as-child>
             <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
-              <span v-if="!proyectosSel.length" class="text-muted-foreground">Selecciona proyectos…</span>
-              <span v-else>{{ proyectosSel.length }} proyecto{{ proyectosSel.length > 1 ? 's' : '' }} seleccionados</span>
+              <span v-if="!proyectosSel.length" class="text-muted-foreground"
+                >Selecciona proyectos…</span
+              >
+              <span v-else
+                >{{ proyectosSel.length }} proyecto{{
+                  proyectosSel.length > 1 ? 's' : ''
+                }}
+                seleccionados</span
+              >
             </Button>
           </PopoverTrigger>
           <PopoverContent class="w-80 p-0" align="start">
@@ -1112,10 +1216,12 @@ watch(chartWrapRef, (el) => {
                   <CommandItem
                     v-for="p in proyectos"
                     :key="p.sub_project"
-                    :value="p.nombre_comercial"
+                    :value="p.nombre_comercial ?? p.sub_project"
                     @select="toggleProyecto(p.sub_project)"
                   >
-                    <CheckIcon :class="proyectosSel.includes(p.sub_project) ? 'opacity-100' : 'opacity-0'" />
+                    <CheckIcon
+                      :class="proyectosSel.includes(p.sub_project) ? 'opacity-100' : 'opacity-0'"
+                    />
                     <span class="flex-1 truncate">{{ p.nombre_comercial }}</span>
                     <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
                   </CommandItem>
@@ -1147,7 +1253,9 @@ watch(chartWrapRef, (el) => {
     <Card v-if="!proyectosSel.length">
       <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
         <InfoIcon class="mb-2 size-8 text-primary" />
-        <p class="text-base font-semibold text-foreground">Selecciona uno o más proyectos para comenzar</p>
+        <p class="text-base font-semibold text-foreground">
+          Selecciona uno o más proyectos para comenzar
+        </p>
         <p class="text-sm text-muted-foreground">
           Elige proyectos y un rango, luego presiona <strong>Consultar</strong>.
         </p>
@@ -1179,7 +1287,9 @@ watch(chartWrapRef, (el) => {
       <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
         <SearchIcon class="mb-2 size-8 text-primary" />
         <p class="text-base font-semibold text-foreground">Listo para consultar</p>
-        <p class="text-sm text-muted-foreground">Ajusta el rango y la granularidad, luego presiona Consultar.</p>
+        <p class="text-sm text-muted-foreground">
+          Ajusta el rango y la granularidad, luego presiona Consultar.
+        </p>
         <Button class="mt-3" :disabled="!!rangoError" @click="cargar">
           <LoaderCircleIcon v-if="loading" class="animate-spin" />
           <SearchIcon v-else />
@@ -1193,8 +1303,8 @@ watch(chartWrapRef, (el) => {
         <DatabaseIcon class="mb-2 size-8 text-muted-foreground" />
         <p class="text-base font-semibold text-foreground">Sin datos para el rango seleccionado</p>
         <p class="text-sm text-muted-foreground">
-          Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con un rango más
-          amplio o fechas anteriores.
+          Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con
+          un rango más amplio o fechas anteriores.
         </p>
         <Button variant="outline" class="mt-3" @click="verEsteAnioMensual">
           <CalendarIcon />
@@ -1209,7 +1319,9 @@ watch(chartWrapRef, (el) => {
       <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card size="sm">
           <CardContent class="flex items-center gap-3">
-            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning"
+            >
               <ZapIcon class="size-4" />
             </div>
             <div>
@@ -1220,36 +1332,54 @@ watch(chartWrapRef, (el) => {
         </Card>
         <Card size="sm">
           <CardContent class="flex items-center gap-3">
-            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+            >
               <ChartColumnIcon class="size-4" />
             </div>
             <div>
               <div class="text-xl font-extrabold text-foreground">
-                {{ fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1) }}
+                {{
+                  fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1)
+                }}
               </div>
-              <div class="text-xs font-medium text-muted-foreground uppercase">Promedio kWh / {{ unidadPeriodo }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">
+                Promedio kWh / {{ unidadPeriodo }}
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card size="sm">
           <CardContent class="flex items-center gap-3">
-            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success"
+            >
               <TrophyIcon class="size-4" />
             </div>
             <div>
-              <div class="truncate text-sm font-extrabold text-foreground">{{ topProyecto?.nombre || '—' }}</div>
-              <div class="text-xs font-medium text-muted-foreground uppercase">Mayor generación</div>
+              <div class="truncate text-sm font-extrabold text-foreground">
+                {{ topProyecto?.nombre || '—' }}
+              </div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">
+                Mayor generación
+              </div>
             </div>
           </CardContent>
         </Card>
         <Card size="sm">
           <CardContent class="flex items-center gap-3">
-            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <div
+              class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+            >
               <CalendarIcon class="size-4" />
             </div>
             <div>
-              <div class="text-sm font-extrabold text-foreground">{{ periodos.length }} {{ unidadPeriodoPlural }}</div>
-              <div class="text-xs font-medium text-muted-foreground uppercase">Período cubierto</div>
+              <div class="text-sm font-extrabold text-foreground">
+                {{ periodos.length }} {{ unidadPeriodoPlural }}
+              </div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">
+                Período cubierto
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1282,11 +1412,16 @@ watch(chartWrapRef, (el) => {
             >
               <span class="size-2 shrink-0 rounded-full" :style="{ background: ds.color }" />
               <span class="font-medium text-foreground">{{ ds.nombre }}</span>
-              <Badge v-if="ds.fuente === 'cruda'" variant="outline" :title="TITULO_CRUDA">sin verificar</Badge>
+              <Badge v-if="ds.fuente === 'cruda'" variant="outline" :title="TITULO_CRUDA"
+                >sin verificar</Badge
+              >
               <span class="text-muted-foreground">{{ fmtNum(ds.total) }} kWh</span>
             </button>
             <!-- No es un boton: la meta no se apaga, es la referencia. -->
-            <span v-if="hayMetaP90" class="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs">
+            <span
+              v-if="hayMetaP90"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs"
+            >
               <span class="h-0 w-3.5 border-t-2 border-dashed border-warning" />
               <span class="font-medium text-foreground">
                 Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
@@ -1315,7 +1450,12 @@ watch(chartWrapRef, (el) => {
                     class="stroke-border"
                     stroke-dasharray="3 3"
                   />
-                  <text :x="paddingL - 6" :y="yToPx(y) + 3.5" class="fill-muted-foreground text-[9px]" text-anchor="end">
+                  <text
+                    :x="paddingL - 6"
+                    :y="yToPx(y) + 3.5"
+                    class="fill-muted-foreground text-[9px]"
+                    text-anchor="end"
+                  >
                     {{ fmtYTick(y) }}
                   </text>
                 </template>
@@ -1433,24 +1573,40 @@ watch(chartWrapRef, (el) => {
             <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
             <div
               v-if="hover"
-              class="absolute z-10 min-w-36 max-w-60 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
+              class="absolute z-10 max-w-60 min-w-36 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
               :style="{
                 left: `${hover.tipLeft}px`,
                 top: `${hover.tipTop}px`,
-                transform: hover.flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)',
+                transform: hover.flip
+                  ? 'translate(calc(-100% - 12px), -50%)'
+                  : 'translate(12px, -50%)',
               }"
             >
               <div class="mb-1 font-bold whitespace-nowrap text-foreground">{{ hover.label }}</div>
-              <div v-for="s in hoverSeries" :key="'t' + s.proyectoId" class="flex items-center gap-1.5 py-px">
+              <div
+                v-for="s in hoverSeries"
+                :key="'t' + s.proyectoId"
+                class="flex items-center gap-1.5 py-px"
+              >
                 <span class="size-2 shrink-0 rounded-full" :style="{ background: s.color }" />
                 <span class="flex-1 truncate text-muted-foreground">{{ s.nombre }}</span>
-                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(s.kwh, 1) }} kWh</span>
+                <span class="font-bold text-foreground tabular-nums"
+                  >{{ fmtNum(s.kwh, 1) }} kWh</span
+                >
               </div>
-              <div v-if="hoverSeries.length > 1" class="mt-1 flex items-center gap-1.5 border-t border-border pt-1">
+              <div
+                v-if="hoverSeries.length > 1"
+                class="mt-1 flex items-center gap-1.5 border-t border-border pt-1"
+              >
                 <span class="flex-1 text-muted-foreground">Total</span>
-                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(hoverTotal, 1) }} kWh</span>
+                <span class="font-bold text-foreground tabular-nums"
+                  >{{ fmtNum(hoverTotal, 1) }} kWh</span
+                >
               </div>
-              <div v-if="hoverFalla" class="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 font-bold text-destructive">
+              <div
+                v-if="hoverFalla"
+                class="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 font-bold text-destructive"
+              >
                 <TriangleAlertIcon class="size-3.5" />
                 {{ hoverFalla.count }} falla{{ hoverFalla.count !== 1 ? 's' : '' }} de generación ·
                 {{ fmtNum(hoverFalla.kwh) }} kWh perdidos
@@ -1469,16 +1625,26 @@ watch(chartWrapRef, (el) => {
           </CardTitle>
           <CardAction class="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">{{ fallasDelPeriodo.length }} en total</Badge>
-            <Badge v-if="fallasGenCount" variant="destructive">{{ fallasGenCount }} afectan generación</Badge>
-            <Badge v-if="kwhPerdidoTotal > 0" variant="destructive">{{ fmtNum(kwhPerdidoTotal) }} kWh perdidos</Badge>
+            <Badge v-if="fallasGenCount" variant="destructive"
+              >{{ fallasGenCount }} afectan generación</Badge
+            >
+            <Badge v-if="kwhPerdidoTotal > 0" variant="destructive"
+              >{{ fmtNum(kwhPerdidoTotal) }} kWh perdidos</Badge
+            >
           </CardAction>
         </CardHeader>
         <CardContent>
-          <div v-if="fallasCargando && !allFallas.length" class="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
+          <div
+            v-if="fallasCargando && !allFallas.length"
+            class="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground"
+          >
             <LoaderCircleIcon class="size-6 animate-spin" />
             <p>Cargando fallas…</p>
           </div>
-          <div v-else-if="!fallasDelPeriodo.length" class="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
+          <div
+            v-else-if="!fallasDelPeriodo.length"
+            class="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground"
+          >
             <CircleCheckIcon class="size-6 text-success" />
             <p>Sin fallas reportadas en este intervalo para los proyectos seleccionados.</p>
           </div>
@@ -1500,20 +1666,32 @@ watch(chartWrapRef, (el) => {
                     v-for="f in fallasVisibles"
                     :key="f.id"
                     class="cursor-pointer"
-                    :class="involucraGeneracion(f) ? 'bg-destructive/5 hover:bg-destructive/10' : ''"
+                    :class="
+                      involucraGeneracion(f) ? 'bg-destructive/5 hover:bg-destructive/10' : ''
+                    "
                     @click="router.push(`/fallas/${f.id}`)"
                   >
-                    <TableCell class="font-medium whitespace-nowrap">{{ fmtFechaCorta(f.fecha_identificacion) }}</TableCell>
+                    <TableCell class="font-medium whitespace-nowrap">{{
+                      fmtFechaCorta(f.fecha_identificacion)
+                    }}</TableCell>
                     <TableCell>{{ f.proyecto?.nombre_comercial || '—' }}</TableCell>
                     <TableCell>
-                      <div class="font-medium text-foreground">{{ f.tipo?.etiqueta || 'Sin tipo' }}</div>
-                      <div class="line-clamp-1 max-w-90 text-xs text-muted-foreground">{{ f.descripcion }}</div>
+                      <div class="font-medium text-foreground">
+                        {{ f.tipo?.etiqueta || 'Sin tipo' }}
+                      </div>
+                      <div class="line-clamp-1 max-w-90 text-xs text-muted-foreground">
+                        {{ f.descripcion }}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <GBadge :color="colorPrioridad(f.prioridad?.codigo)">{{ f.prioridad?.etiqueta || '—' }}</GBadge>
+                      <GBadge :color="colorPrioridad(f.prioridad?.codigo)">{{
+                        f.prioridad?.etiqueta || '—'
+                      }}</GBadge>
                     </TableCell>
                     <TableCell>
-                      <GBadge :color="colorEstado(f.estado?.codigo)">{{ f.estado?.etiqueta || '—' }}</GBadge>
+                      <GBadge :color="colorEstado(f.estado?.codigo)">{{
+                        f.estado?.etiqueta || '—'
+                      }}</GBadge>
                     </TableCell>
                     <TableCell>
                       <Badge v-if="involucraGeneracion(f)" variant="destructive">
@@ -1526,13 +1704,28 @@ watch(chartWrapRef, (el) => {
               </Table>
             </div>
 
-            <div v-if="fallasPagina.totalPages.value > 1" class="flex items-center justify-between text-sm">
-              <span class="text-muted-foreground">Página {{ fallasPagina.page.value }} de {{ fallasPagina.totalPages.value }}</span>
+            <div
+              v-if="fallasPagina.totalPages.value > 1"
+              class="flex items-center justify-between text-sm"
+            >
+              <span class="text-muted-foreground"
+                >Página {{ fallasPagina.page.value }} de {{ fallasPagina.totalPages.value }}</span
+              >
               <div class="flex items-center gap-2">
-                <Button variant="outline" size="sm" :disabled="!fallasPagina.hasPrev.value" @click="fallasPagina.prev()">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  :disabled="!fallasPagina.hasPrev.value"
+                  @click="fallasPagina.prev()"
+                >
                   Anterior
                 </Button>
-                <Button variant="outline" size="sm" :disabled="!fallasPagina.hasNext.value" @click="fallasPagina.next()">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  :disabled="!fallasPagina.hasNext.value"
+                  @click="fallasPagina.next()"
+                >
                   Siguiente
                 </Button>
               </div>
