@@ -26,25 +26,24 @@ const TONE_CLASSES: Record<DashboardAlert['tone'], string> = {
       <h2 class="text-sm font-semibold text-foreground">Alertas operacionales</h2>
       <Badge variant="destructive" class="ml-auto">{{ alerts.length }}</Badge>
     </div>
-    <ul class="divide-y divide-border">
-      <li v-for="alert in alerts" :key="alert.key">
-        <NuxtLink
-          :to="alert.to"
-          class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
-        >
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-lg"
-            :class="TONE_CLASSES[alert.tone]"
-          >
-            <component :is="alert.icon" class="size-4" />
-          </span>
-          <span class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-foreground">{{ alert.title }}</p>
-            <p class="truncate text-xs text-muted-foreground">{{ alert.detail }}</p>
-          </span>
-          <ChevronRightIcon class="size-4 shrink-0 text-muted-foreground" />
-        </NuxtLink>
-      </li>
-    </ul>
+    <ItemGroup class="gap-0 p-2">
+      <template v-for="(alert, index) in alerts" :key="alert.key">
+        <ItemSeparator v-if="index > 0" class="my-0" />
+        <Item as-child size="sm">
+          <NuxtLink :to="alert.to">
+            <ItemMedia variant="icon" :class="[TONE_CLASSES[alert.tone], 'size-8 rounded-lg']">
+              <component :is="alert.icon" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{{ alert.title }}</ItemTitle>
+              <ItemDescription>{{ alert.detail }}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <ChevronRightIcon class="size-4 text-muted-foreground" />
+            </ItemActions>
+          </NuxtLink>
+        </Item>
+      </template>
+    </ItemGroup>
   </div>
 </template>

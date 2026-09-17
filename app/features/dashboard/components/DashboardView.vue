@@ -344,20 +344,16 @@ onMounted(loadKpis)
 
           <!-- Accesos rápidos -->
           <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <NuxtLink
-              v-for="link in QUICK_LINKS"
-              :key="link.to"
-              :to="link.to"
-              class="flex items-center gap-3 rounded-xl border border-border bg-card p-4 shadow-xs transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
-            >
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-lg"
-                :class="QUICK_LINK_TONE_CLASSES[link.tone]"
-              >
-                <component :is="link.icon" class="size-4" />
-              </span>
-              <span class="text-sm font-medium text-foreground">{{ link.label }}</span>
-            </NuxtLink>
+            <Item v-for="link in QUICK_LINKS" :key="link.to" as-child variant="outline" class="bg-card">
+              <NuxtLink :to="link.to">
+                <ItemMedia variant="icon" :class="[QUICK_LINK_TONE_CLASSES[link.tone], 'size-10 rounded-lg']">
+                  <component :is="link.icon" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{{ link.label }}</ItemTitle>
+                </ItemContent>
+              </NuxtLink>
+            </Item>
           </div>
         </div>
       </template>
