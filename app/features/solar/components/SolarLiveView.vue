@@ -151,127 +151,132 @@
 
           <template v-else>
             <!-- % diferencia inversores vs medidores (mejor nodo) -->
-            <div v-if="getDiffPct(proy.proyecto_id) !== null" class="sl-diff-row">
-              <span class="sl-diff-label">Inversores vs Medidor</span>
-              <span :class="['sl-diff-badge', Math.abs(getDiffPct(proy.proyecto_id)) > 5 ? 'sl-diff-warn' : 'sl-diff-ok']">
+            <div v-if="getDiffPct(proy.proyecto_id) !== null" class="flex items-center gap-2 text-xs">
+              <span class="text-muted-foreground">Inversores vs medidor</span>
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-bold"
+                :class="Math.abs(getDiffPct(proy.proyecto_id)) > 5 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'"
+              >
                 {{ getDiffPct(proy.proyecto_id) > 0 ? '+' : '' }}{{ getDiffPct(proy.proyecto_id) }}%
               </span>
             </div>
 
             <!-- Gráficas -->
-            <div class="sl-charts-row">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 
               <!-- Inversores -->
-              <div class="sl-chart-card">
-                <div class="sl-chart-header">
-                  <div class="sl-chart-title">
-                    <span class="sl-dot" style="background:var(--color-unergy-purple)" />
-                    Inversores
-                  </div>
+              <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
+                <div class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                  <span class="size-2 shrink-0 rounded-full bg-primary" />
+                  Inversores
                 </div>
                 <!-- Mismo tratamiento que Medidores: el acumulado del dia en
                      grande, con hasta que hora cubre. Son horas sumadas, no una
                      lectura del ultimo instante. -->
-                <div class="sl-ahora">
-                  <span :class="['sl-ahora-kw', { 'sl-ahora-sin': acumuladoInversores(detailMap[proy.proyecto_id]) === null }]">
+                <div class="flex items-baseline gap-2">
+                  <span
+                    class="text-xl font-bold tabular-nums"
+                    :class="acumuladoInversores(detailMap[proy.proyecto_id]) === null ? 'text-muted-foreground' : 'text-foreground'"
+                  >
                     {{ fmtKwh(acumuladoInversores(detailMap[proy.proyecto_id])) }}
                   </span>
-                  <span v-if="hastaInversores(detailMap[proy.proyecto_id])" class="sl-ahora-t">
+                  <span v-if="hastaInversores(detailMap[proy.proyecto_id])" class="text-[10px] text-muted-foreground">
                     hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
                     <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
                       · {{ haceCuanto(hastaInversores(detailMap[proy.proyecto_id])) }}
                     </template>
                   </span>
                 </div>
-                <div v-if="getInversorData(proy.proyecto_id).labels.length" class="sl-chart-wrap">
+                <div v-if="getInversorData(proy.proyecto_id).labels.length" class="relative h-45">
                   <Line :data="getInversorData(proy.proyecto_id)" :options="chartOptionsInv(proy.proyecto_id)"
                     :plugins="[crosshairPlugin]" :key="'inv-' + proy.proyecto_id" />
                 </div>
-                <div v-else class="sl-no-data">Sin datos</div>
+                <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin datos</div>
               </div>
 
               <!-- Medidores -- el backend ya eligio cual mostrar -->
-              <div class="sl-chart-card">
+              <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
                 <template v-if="panelesMedidor[proy.proyecto_id]">
-                  <div class="sl-chart-header">
-                    <div class="sl-chart-title">
-                      <span class="sl-dot" style="background:#D4A017" />
-                      Medidores
-                      <span v-if="panelesMedidor[proy.proyecto_id].tipo" class="sl-med-tipo">{{ panelesMedidor[proy.proyecto_id].tipo }}</span>
-                    </div>
+                  <div class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                    <span class="size-2 shrink-0 rounded-full bg-warning" />
+                    Medidores
+                    <Badge v-if="panelesMedidor[proy.proyecto_id].tipo" variant="outline">{{ panelesMedidor[proy.proyecto_id].tipo }}</Badge>
                   </div>
                   <!-- El numero grande es la generacion del dia: es lo que alguien
                        quiere saber de un vistazo, y no se cae a cero de noche como
                        la potencia instantanea. Sale del contador, con su hora. -->
-                  <div class="sl-ahora">
-                    <span :class="['sl-ahora-kw', { 'sl-ahora-sin': panelesMedidor[proy.proyecto_id].energiaKwh === null }]">
+                  <div class="flex items-baseline gap-2">
+                    <span
+                      class="text-xl font-bold tabular-nums"
+                      :class="panelesMedidor[proy.proyecto_id].energiaKwh === null ? 'text-muted-foreground' : 'text-foreground'"
+                    >
                       {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
                     </span>
-                    <span v-if="panelesMedidor[proy.proyecto_id].energiaHasta" class="sl-ahora-t">
+                    <span v-if="panelesMedidor[proy.proyecto_id].energiaHasta" class="text-[10px] text-muted-foreground">
                       hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
                       <template v-if="haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta)">
                         · {{ haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta) }}
                       </template>
                     </span>
                   </div>
-                  <div v-if="panelesMedidor[proy.proyecto_id].chart" class="sl-chart-wrap">
+                  <div v-if="panelesMedidor[proy.proyecto_id].chart" class="relative h-45">
                     <Line :data="panelesMedidor[proy.proyecto_id].chart" :options="chartOptionsMed(proy.proyecto_id)"
                       :plugins="[crosshairPlugin]" :key="'med-' + proy.proyecto_id" />
                   </div>
-                  <div v-else class="sl-no-data">Sin datos</div>
+                  <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin datos</div>
                 </template>
-                <div v-else class="sl-no-data">Sin medidor</div>
+                <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin medidor</div>
               </div>
 
             </div>
 
             <!-- ── Generación de hoy ── -->
-            <div class="sl-genhoy">
-              <div class="sl-genhoy-head">
-                <span class="sl-genhoy-title">
-                  <SunIcon class="size-[1em]" style="color:#f59e0b;font-size:11px" />
+            <div class="flex flex-col gap-1.5 border-t border-border pt-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-warning uppercase">
+                  <SunIcon class="size-3" />
                   Generación de hoy
                 </span>
-                <div class="sl-genhoy-vals">
-                  <span :style="{
-                    color: getGenHoy(proy.proyecto_id).pct === null ? '#6b5a8a'
-                         : getGenHoy(proy.proyecto_id).pct >= 100 ? '#4ade80'
-                         : getGenHoy(proy.proyecto_id).pct >= 75  ? '#fbbf24'
-                         : '#f87171',
-                    fontWeight: 700, fontSize: '12px'
-                  }">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span
+                    class="text-xs font-bold"
+                    :class="getGenHoy(proy.proyecto_id).pct === null ? 'text-muted-foreground'
+                      : getGenHoy(proy.proyecto_id).pct >= 100 ? 'text-success'
+                      : getGenHoy(proy.proyecto_id).pct >= 75 ? 'text-warning'
+                      : 'text-destructive'"
+                  >
                     {{ getGenHoy(proy.proyecto_id).real.toLocaleString('es-CO') }} kWh
                   </span>
-                  <span style="color:#4a3960;font-size:11px">/</span>
-                  <span style="color:#a89fc0;font-size:11px">
+                  <span class="text-xs text-muted-foreground">/</span>
+                  <span class="text-xs text-muted-foreground">
                     {{ getGenHoy(proy.proyecto_id).p90.toLocaleString('es-CO') }} kWh P90
                   </span>
-                  <span v-if="getGenHoy(proy.proyecto_id).pct !== null"
-                    class="sl-genhoy-pct"
-                    :style="{
-                      color: getGenHoy(proy.proyecto_id).pct >= 100 ? '#4ade80'
-                           : getGenHoy(proy.proyecto_id).pct >= 75  ? '#fbbf24'
-                           : '#f87171'
-                    }">
+                  <span
+                    v-if="getGenHoy(proy.proyecto_id).pct !== null"
+                    class="text-xs font-bold"
+                    :class="getGenHoy(proy.proyecto_id).pct >= 100 ? 'text-success'
+                      : getGenHoy(proy.proyecto_id).pct >= 75 ? 'text-warning'
+                      : 'text-destructive'"
+                  >
                     {{ getGenHoy(proy.proyecto_id).pct }}%
                   </span>
-                  <span v-if="getGenHoy(proy.proyecto_id).fuente === 'inversor'"
-                    class="sl-genhoy-badge" title="Dato de inversores">INV</span>
-                  <span v-else-if="getGenHoy(proy.proyecto_id).fuente === 'medidor'"
-                    class="sl-genhoy-badge sl-genhoy-badge--med" title="Dato de medidor de frontera">MED</span>
-                  <span v-else
-                    class="sl-genhoy-badge sl-genhoy-badge--nd" title="Sin dato disponible">S/D</span>
+                  <Badge v-if="getGenHoy(proy.proyecto_id).fuente === 'inversor'" variant="secondary" title="Dato de inversores">INV</Badge>
+                  <Badge v-else-if="getGenHoy(proy.proyecto_id).fuente === 'medidor'" variant="secondary" title="Dato de medidor de frontera">MED</Badge>
+                  <Badge v-else variant="outline" title="Sin dato disponible">S/D</Badge>
                 </div>
               </div>
-              <div class="sl-genhoy-track">
-                <div class="sl-genhoy-fill" :style="{
-                  width: getGenHoy(proy.proyecto_id).p90 > 0
-                    ? Math.min(100, getGenHoy(proy.proyecto_id).real / getGenHoy(proy.proyecto_id).p90 * 100) + '%'
-                    : '0%',
-                  background: getGenHoy(proy.proyecto_id).pct >= 100 ? '#4ADE80'
-                    : getGenHoy(proy.proyecto_id).real > 0 ? '#C4B5FD'
-                    : '#e9e6f5'
-                }" />
+              <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="getGenHoy(proy.proyecto_id).pct >= 100 ? 'bg-success'
+                    : getGenHoy(proy.proyecto_id).real > 0 ? 'bg-primary/40'
+                    : 'bg-muted'"
+                  :style="{
+                    width: getGenHoy(proy.proyecto_id).p90 > 0
+                      ? Math.min(100, getGenHoy(proy.proyecto_id).real / getGenHoy(proy.proyecto_id).p90 * 100) + '%'
+                      : '0%'
+                  }"
+                />
               </div>
             </div>
 
