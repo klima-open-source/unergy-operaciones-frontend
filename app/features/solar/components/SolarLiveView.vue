@@ -58,7 +58,7 @@
           </Button>
         </div>
         <!-- Botón actualizar + auto-refresh -->
-        <div class="sl-refresh-wrap">
+        <div class="flex items-center gap-1.5">
           <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
             <LoaderCircleIcon v-if="loading" class="animate-spin" />
             <RefreshCwIcon v-else />
@@ -123,7 +123,7 @@
       v-model="proyectos"
       item-key="proyecto_id"
       handle=".sl-drag-handle"
-      class="sl-grid"
+      class="grid gap-4"
       :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }"
       :disabled="!!filtro.trim()"
       @end="saveOrder"
@@ -287,14 +287,14 @@
       </template>
     </draggable>
 
-    </div><!-- /sl-page live -->
+    </div><!-- /live tab -->
 
     <!-- ══ HISTORIC TAB ══ -->
-    <div v-else class="sl-hist">
+    <div v-else class="flex-1 overflow-y-auto">
       <GeneracionView />
     </div>
 
-  </div><!-- /sl-root -->
+  </div><!-- /root -->
 
 </template>
 
@@ -681,38 +681,3 @@ onUnmounted(() => {
   tarjetasVisibles.clear()
 })
 </script>
-
-<style scoped>
-/* ── Root (full height shell) ── */
-.sl-root {
-  display: flex; flex-direction: column; height: 100%; overflow: hidden;
-  font-family: 'Sora', system-ui, sans-serif; background: #f3f4f6;
-}
-
-
-/* ── Live tab content ── */
-.sl-page {
-  flex: 1; display: flex; flex-direction: column; gap: 20px;
-  overflow-y: auto; padding: 24px; box-sizing: border-box;
-}
-
-/* ── Historic tab content ── */
-.sl-hist {
-  flex: 1; overflow-y: auto; background: #f3f4f6;
-  padding: 0 24px 24px; box-sizing: border-box;
-}
-
-/* ── Header ── */
-.sl-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.sl-header-right { display: flex; align-items: center; gap: 10px; }
-
-/* ── Refresh ── */
-.sl-refresh-wrap { display: flex; align-items: center; gap: 6px; }
-
-
-/* ── Estados ── */
-
-/* ── Grid ── */
-.sl-grid { display: grid; gap: 20px; }
-
-</style>
