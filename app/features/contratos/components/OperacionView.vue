@@ -1086,8 +1086,8 @@ const ESTADO_PAGO_OPCIONES = [
 const ESTADO_PAGO_LABELS    = { pendiente: 'Pendiente', revisado: 'Revisado', aprobado: 'Aprobado' }
 const ESTADO_PAGO_SEVERITY  = { pendiente: 'danger', revisado: 'warn', aprobado: 'success' }
 
-const CONTRATO_LABELS   = { vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación', en_revision: 'En revisión' }
-const CONTRATO_SEVERITY = { vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning', en_revision: 'warning' }
+const CONTRATO_LABELS   = { firmado: 'Firmado', vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación', en_revision: 'En revisión' }
+const CONTRATO_SEVERITY = { firmado: 'success', vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning', en_revision: 'warning' }
 
 const ESTADOS_MANT = [
   { label: 'Vigente',     value: 'vigente' },

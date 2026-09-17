@@ -553,10 +553,10 @@ const route = useRoute()
 const confirm = useConfirm()
 
 const ESTADO_LABELS = {
-  vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación',
+  firmado: 'Firmado', vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación',
 }
 const ESTADO_SEVERITY = {
-  vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning',
+  firmado: 'success', vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning',
 }
 const ESTADOS_OPCIONES = Object.entries(ESTADO_LABELS).map(([value, label]) => ({ value, label }))
 const SI_NO = [{ value: true, label: 'Sí' }, { value: false, label: 'No' }]

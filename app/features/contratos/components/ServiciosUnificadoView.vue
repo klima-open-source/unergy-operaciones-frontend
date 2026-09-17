@@ -881,13 +881,13 @@ const ESTADO_CLASS = {
 const CUMPLIMIENTO_LABELS = { on_track: 'Al día', at_risk: 'En riesgo', deficit: 'Déficit' }
 const CUMPLIMIENTO_CLASS = { on_track: 'chip-ok', at_risk: 'chip-warn', deficit: 'chip-danger' }
 const ESTADO_CONTRATO_LABELS = {
-  vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación',
+  firmado: 'Firmado', vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación',
 }
 // Chips propios en vez de <Tag>: los estilos de PrimeVue se inyectan después de
 // Tailwind y ganan el empate de especificidad, así que un Tag no se deja
 // encoger a la tipografía compacta del resto de la tabla.
 const ESTADO_CONTRATO_CLASS = {
-  vigente: 'chip-ok', vencido: 'chip-danger', terminado: 'chip-neutral', en_renovacion: 'chip-warn',
+  firmado: 'chip-ok', vigente: 'chip-ok', vencido: 'chip-danger', terminado: 'chip-neutral', en_renovacion: 'chip-warn',
 }
 
 // ── Estado de la vista (se sincroniza con la URL para poder compartirla) ─────
@@ -1430,10 +1430,12 @@ async function fusionarDuplicados() {
 const nHuerfanos = computed(() =>
   contratosServicio.value.filter(c => !c.proyecto_id).length)
 
+// Los estados que una persona elige. 'Vigente' y 'Vencido' ya no son opciones:
+// los calcula el backend desde la fecha fin. Las etiquetas de arriba sí los
+// conservan, para las filas que todavía los traigan.
 const ESTADO_CONTRATO_OPCIONES = [
-  { value: 'vigente', label: 'Vigente' },
+  { value: 'firmado', label: 'Firmado' },
   { value: 'en_renovacion', label: 'En renovación' },
-  { value: 'vencido', label: 'Vencido' },
   { value: 'terminado', label: 'Terminado' },
 ]
 
