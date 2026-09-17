@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AcceptableValue } from 'reka-ui'
 import {
   ChevronDownIcon,
   ClockIcon,
@@ -29,47 +28,45 @@ const AUTO_OPTIONS = [
 ] as const
 
 const autoLabel = computed(() => AUTO_OPTIONS.find((o) => o.ms === autoInterval.value)?.label ?? '')
+const autoMenuOpen = ref(false)
 
-function onColsChange(value: AcceptableValue | AcceptableValue[]) {
-  if (typeof value === 'string' && value) cols.value = Number(value)
-}
-
-function onAutoChange(value: AcceptableValue) {
-  if (typeof value === 'string') autoInterval.value = Number(value)
+function selectAuto(ms: number) {
+  autoInterval.value = ms
+  autoMenuOpen.value = false
 }
 </script>
 
 <template>
   <div class="flex flex-wrap items-center gap-2.5">
-    <div class="w-64">
-      <InputGroup>
-        <InputGroupAddon>
-          <SearchIcon />
-        </InputGroupAddon>
-        <InputGroupInput v-model="filtro" placeholder="Buscar proyecto..." />
-        <InputGroupAddon v-if="filtro" align="inline-end">
-          <InputGroupButton size="icon-xs" aria-label="Limpiar filtro" @click="filtro = ''">
-            <XIcon />
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
+    <div class="relative w-64">
+      <SearchIcon
+        class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+      />
+      <Input v-model="filtro" placeholder="Buscar proyecto..." class="pl-8" />
+      <button
+        v-if="filtro"
+        type="button"
+        class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        aria-label="Limpiar filtro"
+        @click="filtro = ''"
+      >
+        <XIcon class="size-4" />
+      </button>
     </div>
 
-    <ToggleGroup
-      type="single"
-      :model-value="String(cols)"
-      variant="outline"
-      @update:model-value="onColsChange"
-    >
-      <ToggleGroupItem
+    <ButtonGroup>
+      <Button
         v-for="c in COLUMN_OPTIONS"
         :key="c"
-        :value="String(c)"
+        type="button"
+        :variant="cols === c ? 'secondary' : 'outline'"
+        size="sm"
         :aria-label="`${c} columna${c > 1 ? 's' : ''}`"
+        @click="cols = c"
       >
         {{ c }}
-      </ToggleGroupItem>
-    </ToggleGroup>
+      </Button>
+    </ButtonGroup>
 
     <Button variant="outline" size="sm" :disabled="loading" @click="$emit('refresh')">
       <LoaderCircleIcon v-if="loading" class="animate-spin" />
@@ -77,25 +74,36 @@ function onAutoChange(value: AcceptableValue) {
       Actualizar
     </Button>
 
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
+    <Popover v-model:open="autoMenuOpen">
+      <PopoverTrigger as-child>
         <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
           <ClockIcon />
           <span v-if="autoInterval">{{ autoLabel }}</span>
           <ChevronDownIcon />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuRadioGroup
-          :model-value="String(autoInterval)"
-          @update:model-value="onAutoChange"
+      </PopoverTrigger>
+      <PopoverContent align="end" class="w-44 p-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="w-full justify-start"
+          :class="!autoInterval ? 'bg-muted' : ''"
+          @click="selectAuto(0)"
         >
-          <DropdownMenuRadioItem value="0">Desactivado</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem v-for="opt in AUTO_OPTIONS" :key="opt.ms" :value="String(opt.ms)">
-            Cada {{ opt.label }}
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          Desactivado
+        </Button>
+        <Button
+          v-for="opt in AUTO_OPTIONS"
+          :key="opt.ms"
+          variant="ghost"
+          size="sm"
+          class="w-full justify-start"
+          :class="autoInterval === opt.ms ? 'bg-muted' : ''"
+          @click="selectAuto(opt.ms)"
+        >
+          Cada {{ opt.label }}
+        </Button>
+      </PopoverContent>
+    </Popover>
   </div>
 </template>
