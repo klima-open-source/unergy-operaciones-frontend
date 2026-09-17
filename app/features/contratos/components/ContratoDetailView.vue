@@ -877,6 +877,7 @@ import Select from 'primevue/select'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
+import { idsConPlantaAgregada, yaEstaVinculada } from '~/features/contratos/plantasDelContrato'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ArrowDownRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, BadgeCheckIcon, BookIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronRightIcon, CircleCheckIcon, CircleIcon, CirclePlusIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FileTextIcon, HourglassIcon, IdCardIcon, InfoIcon, LinkIcon, ListIcon, LoaderCircleIcon, MinusIcon, MoveHorizontalIcon, MoveVerticalIcon, NetworkIcon, PencilIcon, PlusIcon, RefreshCwIcon, SunIcon, TriangleAlertIcon, UploadIcon, UsersIcon, XIcon, ZapIcon } from '@lucide/vue'
 
@@ -1425,12 +1426,43 @@ async function abrirAsociar() {
   }
 }
 
+/**
+ * Asocia una planta al contrato con `PATCH /ppa/:id`.
+ *
+ * Antes llamaba a `POST /ppa/:id/proyectos`, que NO EXISTE —ni en Django ni en
+ * el FastAPI de antes—: siempre respondió 404 y la planta nunca se guardó.
+ *
+ * Dos cuidados, los dos por lo mismo: `proyecto_ids` REEMPLAZA el conjunto.
+ *
+ * 1. Se manda la lista completa (`idsConPlantaAgregada`). Mandar solo la nueva
+ *    borraría las demás en la base.
+ * 2. Se relee el contrato JUSTO ANTES de armarla. Dos personas con el detalle
+ *    abierto tienen cada una su copia; la segunda en guardar mandaría su lista
+ *    —sin la planta que agregó la primera— y la borraría. El GET extra ocurre
+ *    solo al guardar.
+ *
+ * La pantalla se actualiza con lo que devuelve el PATCH, no con el objeto del
+ * catálogo: quién está vinculado al contrato lo decide el backend.
+ */
 async function asociarProyecto() {
   if (!proyectoSeleccionado.value) return
   asociando.value = true
   try {
-    await ppaService.vincularProyecto(contrato.value.id, proyectoSeleccionado.value.id)
-    contrato.value.proyectos = [...(contrato.value.proyectos ?? []), proyectoSeleccionado.value]
+    const actual = await ppaService.obtener(contrato.value.id)
+    if (yaEstaVinculada(actual.proyectos, proyectoSeleccionado.value)) {
+      contrato.value.proyectos = actual.proyectos
+      showAsociar.value = false
+      toast.info('Ya estaba asociado', {
+        description: proyectoSeleccionado.value.nombre_comercial,
+        duration: 2500,
+      })
+      return
+    }
+
+    const data = await ppaService.actualizar(contrato.value.id, {
+      proyecto_ids: idsConPlantaAgregada(actual.proyectos, proyectoSeleccionado.value),
+    })
+    contrato.value.proyectos = data.proyectos
     showAsociar.value = false
     toast.success('Proyecto asociado', {
       description: proyectoSeleccionado.value.nombre_comercial,

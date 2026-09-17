@@ -25,7 +25,6 @@ const RUTAS = {
   contrato: (id: ContratoPpa['id']) => `${BASE}/${id}`,
   tarifas: (id: ContratoPpa['id']) => `${BASE}/${id}/tarifas`,
   compromisos: (id: ContratoPpa['id']) => `${BASE}/${id}/compromisos`,
-  proyectosVinculados: (id: ContratoPpa['id']) => `${BASE}/${id}/proyectos`,
   responsables: `${BASE}/responsables`,
   responsable: (id: ResponsablePpa['id']) => `${BASE}/responsables/${id}`,
   responsablesAsignar: `${BASE}/responsables/asignar`,
@@ -71,9 +70,11 @@ export class PpaService extends BaseService {
     return this.put<CompromisoEnergiaPpa[]>(RUTAS.compromisos(id), compromisos)
   }
 
-  vincularProyecto(id: ContratoPpa['id'], proyectoId: number): Promise<unknown> {
-    return this.post<unknown>(RUTAS.proyectosVinculados(id), { proyecto_id: proyectoId })
-  }
+  // Para fijar las plantas de un contrato NO hay un endpoint aparte: va en
+  // `actualizar()` con `proyecto_ids`, que reemplaza el conjunto. Aquí vivía
+  // `vincularProyecto()`, que llamaba a `POST /ppa/:id/proyectos` — una ruta que
+  // nunca existió, ni en Django ni en el FastAPI de antes, y que siempre
+  // respondió 404. Ver `plantasDelContrato.ts`.
 
   listarResponsables(): Promise<ResponsablePpa[]> {
     return this.get<ResponsablePpa[]>(RUTAS.responsables)
