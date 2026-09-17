@@ -1027,10 +1027,13 @@ const ESTADO_PAGO_SEVERITY  = { pendiente: 'danger', revisado: 'warn', aprobado:
 const CONTRATO_LABELS   = { firmado: 'Firmado', vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación', en_revision: 'En revisión' }
 const CONTRATO_SEVERITY = { firmado: 'success', vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning', en_revision: 'warning' }
 
+// Los estados que una persona decide. `vigente` y `vencido` los calcula el
+// backend desde la fecha fin, y `en_revision` NUNCA existio en el enum -- elegir
+// cualquiera de los tres devolvia 400 al guardar.
 const ESTADOS_MANT = [
-  { label: 'Vigente',     value: 'vigente' },
-  { label: 'Vencido',     value: 'vencido' },
-  { label: 'En revisión', value: 'en_revision' },
+  { label: 'Firmado',       value: 'firmado' },
+  { label: 'En renovación', value: 'en_renovacion' },
+  { label: 'Terminado',     value: 'terminado' },
 ]
 
 const PERIODICIDADES = [
@@ -1084,7 +1087,7 @@ const dialogMant = reactive({
     tarifa_base: null,
     tarifa_mensual: null,
     enlace_drive: '',
-    estado: 'vigente',
+    estado: 'firmado',
     periodicidad_pago: 'mensual',
   },
   errores: {},
@@ -1357,7 +1360,7 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.tarifa_base        = c.tarifa_base ?? null
     dialogMant.form.tarifa_mensual     = c.tarifa_mensual ?? (c.tarifa_base != null ? Math.round(c.tarifa_base / 12) : null)
     dialogMant.form.enlace_drive       = c.enlace_drive || ''
-    dialogMant.form.estado             = c.estado || 'vigente'
+    dialogMant.form.estado             = c.estado || 'firmado'
     dialogMant.form.periodicidad_pago  = c.periodicidad_pago || 'mensual'
   } else {
     dialogMant.form.contratante_nombre = ''
@@ -1367,7 +1370,7 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.tarifa_base        = null
     dialogMant.form.tarifa_mensual     = null
     dialogMant.form.enlace_drive       = ''
-    dialogMant.form.estado             = 'vigente'
+    dialogMant.form.estado             = 'firmado'
     dialogMant.form.periodicidad_pago  = 'mensual'
   }
   dialogMant.visible = true
@@ -1476,7 +1479,7 @@ async function cargarDesdeExcel(event) {
     const mensualExcel                 = parseNum(fila['Valor mensual'])
     dialogMant.form.tarifa_mensual     = mensualExcel ?? (dialogMant.form.tarifa_base != null ? Math.round(dialogMant.form.tarifa_base / 12) : null)
     dialogMant.form.enlace_drive       = String(fila['Enlace del contrato en Drive'] ?? '').trim()
-    dialogMant.form.estado             = contratos.mantenimiento?.estado ?? 'vigente'
+    dialogMant.form.estado             = contratos.mantenimiento?.estado ?? 'firmado'
     dialogMant.errores                 = {}
     dialogMant.modo                    = contratos.mantenimiento ? 'editar' : 'crear'
     dialogMant.visible                 = true
