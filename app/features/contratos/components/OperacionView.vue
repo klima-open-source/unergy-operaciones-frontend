@@ -1758,6 +1758,224 @@ const InfoLink = {
   `,
 }
 
+const Acordeon = {
+  props: {
+    titulo: String,
+    /** Componente de `@lucide/vue`. */
+    icono: { type: [Object, Function], default: null },
+    color: { type: String, default: '#f59e0b' },
+    count: { type: Number, default: 0 },
+  },
+  components: { ChevronDownIcon },
+  setup(props) {
+    const abierto = ref(false)
+    return { ...toRefs(props), abierto }
+  },
+  template: `
+    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
+      <button type="button"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/60 transition-colors text-left"
+        @click="abierto = !abierto">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            :style="'background:' + color + '18'">
+            <component :is="icono" class="text-xs size-[1em]" :style="'color:' + color" />
+          </div>
+          <span class="text-sm font-semibold" style="color:#2C2039">{{ titulo }}</span>
+          <span class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none"
+            :style="'background:' + color + '15; color:' + color">{{ count }}</span>
+        </div>
+        <ChevronDownIcon class="text-xs text-gray-400 transition-transform duration-200 size-[1em]" :style="abierto ? 'transform:rotate(180deg)' : ''" />
+      </button>
+      <transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0">
+        <div v-if="abierto" class="border-t border-gray-100">
+          <slot />
+        </div>
+      </transition>
+    </div>
+  `,
+}
+
+// Acordeón 1: Facturas cobradas
+const FacturasCobradas = {
+  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
+  props: {
+    datos: { type: Array, default: () => [] },
+    proyectoNombre: String,
+  },
+  setup(props) {
+    const filtroAño = ref(null)
+    const filtroMes = ref(null)
+
+    const datosFiltrados = computed(() => {
+      let r = props.datos
+      if (filtroAño.value) r = r.filter(f => f.anio === filtroAño.value)
+      if (filtroMes.value) r = r.filter(f => f.mes === filtroMes.value)
+      return r
+    })
+    const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
+
+    function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
+
+    return {
+      ...toRefs(props),
+      filtroAño,
+      filtroMes,
+      AÑOS_STATIC,
+      MESES_OPCIONES_STATIC,
+      MESES_NOMBRES_STATIC,
+      datosFiltrados,
+      hayFiltros,
+      limpiarFiltros,
+      formatCOP,
+    }
+  },
+  template: `
+    <Acordeon titulo="Facturas cobradas" :icono="FileInputIcon" color="#f59e0b" :count="datos.length">
+      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+        <div class="flex items-center gap-1.5">
+          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
+          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
+        </div>
+        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
+          showClear class="text-sm" style="height:32px;min-width:90px" />
+        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
+          optionLabel="label" optionValue="value" placeholder="Mes"
+          showClear class="text-sm" style="height:32px;min-width:110px" />
+        <button v-if="hayFiltros" type="button"
+          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          @click="limpiarFiltros">
+          <XIcon class="text-xs size-[1em]" /> Limpiar
+        </button>
+        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
+          {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
+        emptyMessage="Sin facturas cobradas registradas.">
+        <Column header="Mes" style="min-width:100px">
+          <template #body="{ data }">
+            <span class="font-medium" style="color:#2C2039">{{ MESES_NOMBRES_STATIC[data.mes] ?? data.mes }}</span>
+          </template>
+        </Column>
+        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
+        <Column field="inversionista" header="Inversionista" style="min-width:130px" />
+        <Column header="Monto" style="min-width:140px">
+          <template #body="{ data }">
+            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
+          </template>
+        </Column>
+        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
+        <Column header="Soporte" style="width:80px" bodyClass="text-center">
+          <template #body="{ data }">
+            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
+              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
+              style="color:#f59e0b" title="Ver soporte">
+              <FileIcon class="text-sm size-[1em]" />
+            </a>
+            <span v-else class="text-gray-300 text-sm">—</span>
+          </template>
+        </Column>
+      </DataTable>
+    </Acordeon>
+  `,
+}
+
+// Acordeón 2: Facturas emitidas
+const FacturasEmitidas = {
+  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
+  props: {
+    datos: { type: Array, default: () => [] },
+    proyectoNombre: String,
+  },
+  setup(props) {
+    const filtroAño = ref(null)
+    const filtroMes = ref(null)
+
+    const datosFiltrados = computed(() => {
+      let r = props.datos
+      if (filtroAño.value) {
+        r = r.filter(f => {
+          const d = f.fecha ? new Date(f.fecha) : null
+          return d && d.getFullYear() === filtroAño.value
+        })
+      }
+      if (filtroMes.value) {
+        r = r.filter(f => {
+          const d = f.fecha ? new Date(f.fecha) : null
+          return d && d.getMonth() + 1 === filtroMes.value
+        })
+      }
+      return r
+    })
+    const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
+
+    function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
+
+    return {
+      ...toRefs(props),
+      filtroAño,
+      filtroMes,
+      AÑOS_STATIC,
+      MESES_OPCIONES_STATIC,
+      datosFiltrados,
+      hayFiltros,
+      limpiarFiltros,
+      formatCOP,
+    }
+  },
+  template: `
+    <Acordeon titulo="Facturas emitidas" :icono="FileOutputIcon" color="#f59e0b" :count="datos.length">
+      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+        <div class="flex items-center gap-1.5">
+          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
+          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
+        </div>
+        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
+          showClear class="text-sm" style="height:32px;min-width:90px" />
+        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
+          optionLabel="label" optionValue="value" placeholder="Mes"
+          showClear class="text-sm" style="height:32px;min-width:110px" />
+        <button v-if="hayFiltros" type="button"
+          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          @click="limpiarFiltros">
+          <XIcon class="text-xs size-[1em]" /> Limpiar
+        </button>
+        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
+          {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
+        </span>
+      </div>
+      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
+        emptyMessage="Sin facturas emitidas registradas.">
+        <Column field="fecha" header="Fecha" style="min-width:110px" />
+        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
+        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
+        <Column header="Monto" style="min-width:140px">
+          <template #body="{ data }">
+            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
+          </template>
+        </Column>
+        <Column header="Soporte" style="width:80px" bodyClass="text-center">
+          <template #body="{ data }">
+            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
+              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
+              style="color:#f59e0b" title="Ver soporte">
+              <FileIcon class="text-sm size-[1em]" />
+            </a>
+            <span v-else class="text-gray-300 text-sm">—</span>
+          </template>
+        </Column>
+      </DataTable>
+    </Acordeon>
+  `,
+}
+
 export default {
   components: { InfoIcon, InfoBadge, InfoLink, Acordeon, FacturasCobradas, FacturasEmitidas },
 }
