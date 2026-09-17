@@ -492,11 +492,13 @@ const STEPS = computed(() => {
   return base
 })
 
+// Solo lo que una persona decide. 'Vigente' y 'Vencido' salieron de acá: los
+// calcula el backend desde la fecha fin, y ofrecerlos dejaba marcar un contrato
+// como vigente cuando su fecha ya había pasado (8 contratos así en producción).
 const ESTADOS = [
-  { label: 'Vigente',       value: 'vigente' },
-  { label: 'Vencido',       value: 'vencido' },
-  { label: 'Terminado',     value: 'terminado' },
+  { label: 'Firmado',       value: 'firmado' },
   { label: 'En renovación', value: 'en_renovacion' },
+  { label: 'Terminado',     value: 'terminado' },
 ]
 
 const PERIODICIDADES = [
@@ -509,7 +511,7 @@ const PERIODICIDADES = [
 const form = reactive({
   proyecto_id: null,
   numero_contrato: '',
-  estado: 'vigente',
+  estado: 'firmado',
   contratante_id: null,
   contratante_nombre: null,
   contratante_nit: '',
@@ -760,7 +762,7 @@ async function crearContrato() {
       servicio_aplica: props.tipo,
       proyecto_id: form.proyecto_id ?? null,
       numero_contrato: form.numero_contrato?.trim() || null,
-      estado: form.estado ?? 'vigente',
+      estado: form.estado ?? 'firmado',
       contratante_id: form.contratante_id ?? null,
       contratante_nombre: form.contratante_nombre || null,
       contratante_nit: form.contratante_nit?.trim() || null,

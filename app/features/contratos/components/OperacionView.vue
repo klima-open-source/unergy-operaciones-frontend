@@ -27,7 +27,7 @@
     </div>
 
     <!-- ── Tabs ──────────────────────────────────────────────────────────────── -->
-    <TabView v-else v-model:activeIndex="activeIndex" @tab-change="onTabChange">
+    <TabView v-else v-model:activeIndex="activeIndex">
 
       <!-- ══════════ MANTENIMIENTO ══════════ -->
       <TabPanel>
@@ -312,18 +312,6 @@
               </Button>
             </div>
           </template>
-
-          <!-- Payments section -->
-          <PagosTabla
-            tipo="mantenimiento"
-            color="#f59e0b"
-            :contrato-id="contratos.mantenimiento?.id ?? null"
-            :pagos="pagos.mantenimiento"
-            :loading-pagos="loadingPagos.mantenimiento"
-            :filtros="filtros.mantenimiento"
-            @open-pago="openNuevoPago('mantenimiento')"
-            @eliminar="(id) => eliminarPago('mantenimiento', id)"
-          />
 
           <!-- Facturas -->
           <FacturasCobradas
@@ -679,17 +667,6 @@
             </div>
           </template>
 
-          <PagosTabla
-            tipo="arriendo"
-            color="#8b5cf6"
-            :contrato-id="contratos.arriendo?.id ?? null"
-            :pagos="pagos.arriendo"
-            :loading-pagos="loadingPagos.arriendo"
-            :filtros="filtros.arriendo"
-            @open-pago="openNuevoPago('arriendo')"
-            @eliminar="(id) => eliminarPago('arriendo', id)"
-          />
-
         </div>
       </TabPanel>
 
@@ -1004,45 +981,6 @@
       </template>
     </Dialog>
 
-    <!-- ── Dialog nuevo pago ─────────────────────────────────────────────────── -->
-    <Dialog v-model:visible="dialogPago.visible" modal header="Registrar pago" :style="{ width: '420px' }"
-      :breakpoints="{ '500px': '95vw' }">
-      <div class="space-y-4 pt-1">
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Mes</label>
-            <Select v-model="dialogPago.form.mes" :options="MESES_OPCIONES"
-              optionLabel="label" optionValue="value" placeholder="Mes" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Año</label>
-            <InputNumber v-model="dialogPago.form.año" :useGrouping="false"
-              :min="2020" :max="2099" class="w-full" />
-          </div>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Valor pagado (COP)</label>
-          <InputNumber v-model="dialogPago.form.valor_pagado" mode="currency" currency="COP"
-            locale="es-CO" :maxFractionDigits="0" class="w-full" placeholder="$ 0" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Estado</label>
-          <Select v-model="dialogPago.form.estado" :options="ESTADO_PAGO_OPCIONES"
-            optionLabel="label" optionValue="value" class="w-full" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Enlace de factura (Drive)</label>
-          <InputText v-model="dialogPago.form.enlace_factura" placeholder="https://drive.google.com/…" class="w-full" />
-        </div>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="dialogPago.visible = false" />
-        <Button label="Registrar" :loading="guardandoPago" @click="guardarPago">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </Dialog>
-
   </div>
 </template>
 
@@ -1086,8 +1024,8 @@ const ESTADO_PAGO_OPCIONES = [
 const ESTADO_PAGO_LABELS    = { pendiente: 'Pendiente', revisado: 'Revisado', aprobado: 'Aprobado' }
 const ESTADO_PAGO_SEVERITY  = { pendiente: 'danger', revisado: 'warn', aprobado: 'success' }
 
-const CONTRATO_LABELS   = { vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación', en_revision: 'En revisión' }
-const CONTRATO_SEVERITY = { vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning', en_revision: 'warning' }
+const CONTRATO_LABELS   = { firmado: 'Firmado', vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación', en_revision: 'En revisión' }
+const CONTRATO_SEVERITY = { firmado: 'success', vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning', en_revision: 'warning' }
 
 const ESTADOS_MANT = [
   { label: 'Vigente',     value: 'vigente' },
@@ -1112,7 +1050,6 @@ const DIALOG_EDIT_LABEL = { mantenimiento: 'Mantenimiento', arriendo: 'Arriendo'
 // ── Estado reactivo ───────────────────────────────────────────────────────────
 const loading          = ref(true)
 const proyectoNombre   = ref('')
-const guardandoPago    = ref(false)
 const guardandoContrato = ref(false)
 const guardandoMant      = ref(false)
 const excelInputRef      = ref(null)
@@ -1154,7 +1091,6 @@ const dialogMant = reactive({
 })
 
 const contratos = reactive({ mantenimiento: null, arriendo: null, internet: null })
-const pagos     = reactive({ mantenimiento: [],   arriendo: [],   internet: [] })
 
 // ── Mapa de ubicación del servicio de Internet (solo lectura) ─────────────────
 const internetMapEl = ref(null)
@@ -1257,7 +1193,6 @@ onBeforeUnmount(() => {
   dialogEditMap?.remove()
   dialogEditMap = null
 })
-const loadingPagos = reactive({ mantenimiento: false, arriendo: false, internet: false })
 
 const filtros = reactive({
   mantenimiento: { año: null, mes: null },
@@ -1273,12 +1208,6 @@ const dialogEdit = reactive({
   tipo: 'mantenimiento',
   form: { tarifa_base: null, fecha_firma_contrato: null, fecha_inicio: null, fecha_inicio_om: null, enlace_drive: '', estado_pago: null, periodicidad_pago: 'mensual', responsable_iva: false, plan_datos_gb: '', velocidad_mbps: null, tipo_conexion: null,
     linea_servicio: '', id_router: '', numero_kit: '', latencia_ms: null, wifi_seguridad: null, wifi_password: '', ubicacion_lat: null, ubicacion_lng: null },
-})
-
-const dialogPago = reactive({
-  visible: false,
-  tipo: 'mantenimiento',
-  form: { mes: null, año: new Date().getFullYear(), valor_pagado: null, estado: 'pendiente', enlace_factura: '' },
 })
 
 // ── Carga inicial ─────────────────────────────────────────────────────────────
@@ -1302,81 +1231,12 @@ onMounted(async () => {
     await cargarIndexacionOM()
     await cargarArrendadores()
     await cargarIndexacionArriendo()
-    await loadPagos('mantenimiento')
   } catch (e) {
     toast.error('Error al cargar', { description: e.message, duration: 4000 })
   } finally {
     loading.value = false
   }
 })
-
-// ── Pagos ─────────────────────────────────────────────────────────────────────
-async function loadPagos(tipo) {
-  if (!contratos[tipo]) { pagos[tipo] = []; return }
-  loadingPagos[tipo] = true
-  try {
-    pagos[tipo] = await contratosServicioService.listarPagos(contratos[tipo].id)
-  } catch {
-    pagos[tipo] = []
-  } finally {
-    loadingPagos[tipo] = false
-  }
-}
-
-function onTabChange(e) {
-  const tipo = TABS_TIPOS[e.index]
-  // Internet no tiene tab de Pagos (PagosTabla no se renderiza para este tipo)
-  if (tipo && tipo !== 'internet') loadPagos(tipo)
-}
-
-function openNuevoPago(tipo) {
-  dialogPago.tipo = tipo
-  dialogPago.form = { mes: null, año: new Date().getFullYear(), valor_pagado: null, estado: 'pendiente', enlace_factura: '' }
-  dialogPago.visible = true
-}
-
-async function guardarPago() {
-  const tipo = dialogPago.tipo
-  if (!contratos[tipo]) return
-  if (!dialogPago.form.mes || !dialogPago.form.año) {
-    toast.warning('Completa mes y año', { duration: 2500 })
-    return
-  }
-  guardandoPago.value = true
-  try {
-    await contratosServicioService.registrarPago(contratos[tipo].id, {
-      mes:          dialogPago.form.mes,
-      año:          dialogPago.form.año,
-      valor_pagado: dialogPago.form.valor_pagado,
-      estado:       dialogPago.form.estado,
-      enlace_factura: dialogPago.form.enlace_factura || null,
-    })
-    await loadPagos(tipo)
-    dialogPago.visible = false
-    toast.success('Pago registrado', { duration: 2500 })
-  } catch (e) {
-    const msg = e.data?.detail
-    const isDup = typeof msg === 'string' && msg.includes('uq_pago_servicio')
-    toast.error(isDup ? 'Ya existe un pago para ese período' : 'Error al registrar', {
-      description: isDup ? undefined : String(msg ?? ''),
-      duration: 4000,
-    })
-  } finally {
-    guardandoPago.value = false
-  }
-}
-
-async function eliminarPago(tipo, pagoId) {
-  if (!contratos[tipo]) return
-  if (!confirm('¿Eliminar este pago?')) return
-  try {
-    await contratosServicioService.eliminarPago(contratos[tipo].id, pagoId)
-    pagos[tipo] = pagos[tipo].filter(p => p.id !== pagoId)
-    toast.success('Pago eliminado', { duration: 2000 })
-  } catch {
-    toast.error('Error al eliminar', { duration: 3000 })
-  }
-}
 
 // ── Edición de contrato ───────────────────────────────────────────────────────
 function openEditContrato(tipo) {
@@ -1480,7 +1340,6 @@ async function onContratoCreado() {
       await cargarIndexacionArriendo()
     }
     if (tipo === 'internet') await initInternetMap(contratos.internet)
-    await loadPagos(tipo)
   } catch { /* ignore */ }
 }
 
@@ -1550,7 +1409,6 @@ async function saveMantenimiento() {
       await contratosServicioService.crear(payload)
       const data = await contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId })
       contratos.mantenimiento = data.length ? data[0] : null
-      await loadPagos('mantenimiento')
     } else {
       const data = await contratosServicioService.actualizar(contratos.mantenimiento.id, payload)
       contratos.mantenimiento = { ...contratos.mantenimiento, ...data }
@@ -1900,352 +1758,7 @@ const InfoLink = {
   `,
 }
 
-// Tabla de pagos mensuales reutilizable
-const PagosTabla = {
-  components: { GBadge, Button, DataTable, Column, Select, ExternalLinkIcon, FilterIcon, PlusIcon, TableIcon, Trash2Icon, XIcon },
-  emits: ['open-pago', 'eliminar'],
-  props: {
-    tipo: String,
-    color: String,
-    contratoId: { type: Number, default: null },
-    pagos: { type: Array, default: () => [] },
-    loadingPagos: Boolean,
-    filtros: { type: Object, default: () => ({ año: null, mes: null }) },
-  },
-  setup(props) {
-    // `filtros` es un objeto pasado por el padre y se muta directamente (igual
-    // que hacía `this.filtros.año = null`): `toRefs` expone un ref hacia la
-    // misma prop reactiva, no una copia, así que la mutación sigue viéndola el
-    // padre.
-    const { filtros } = toRefs(props)
-
-    const pagosFiltrados = computed(() => {
-      let result = props.pagos || []
-      if (filtros.value.año) result = result.filter(p => p.año === filtros.value.año)
-      if (filtros.value.mes) result = result.filter(p => p.mes === filtros.value.mes)
-      return result
-    })
-    const hayFiltros = computed(() => filtros.value.año || filtros.value.mes)
-
-    function limpiar() {
-      filtros.value.año = null
-      filtros.value.mes = null
-    }
-    return {
-      ...toRefs(props),
-      MESES_NOMBRES_STATIC,
-      MESES_OPCIONES_STATIC,
-      ESTADO_PAGO_LABELS_S,
-      ESTADO_PAGO_SEVERITY_S,
-      AÑOS_STATIC,
-      pagosFiltrados,
-      hayFiltros,
-      limpiar,
-      formatCOP,
-    }
-  },
-  template: `
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
-      <!-- Header de la tabla -->
-      <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
-        <div class="flex items-center gap-2">
-          <TableIcon class="text-sm size-[1em]" :style="'color:' + color" />
-          <span class="text-sm font-semibold" style="color:#2C2039">Historial de pagos</span>
-        </div>
-        <Button v-if="contratoId" label="Registrar pago" size="small" :style="'background:' + color + ';border-color:' + color" @click="$emit('open-pago')">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </div>
-
-      <!-- Filtros -->
-      <div class="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-gray-50 bg-gray-50/60">
-        <div class="flex items-center gap-1.5">
-          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
-        </div>
-        <Select v-model="filtros.año" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm" style="height:32px;min-width:90px" />
-        <Select v-model="filtros.mes" :options="MESES_OPCIONES_STATIC"
-          optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm" style="height:32px;min-width:110px" />
-        <Button v-if="hayFiltros" label="Limpiar" text severity="secondary" size="small" @click="limpiar">
-          <template #icon><XIcon class="size-[1em]" /></template>
-        </Button>
-        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
-          {{ pagosFiltrados.length }} resultado{{ pagosFiltrados.length !== 1 ? 's' : '' }}
-        </span>
-      </div>
-
-      <!-- Tabla -->
-      <DataTable :value="pagosFiltrados" :loading="loadingPagos" stripedRows
-        class="text-sm" rowHover
-        emptyMessage="Sin pagos registrados para este período.">
-        <Column header="Mes" style="width:120px">
-          <template #body="{ data }">
-            <span class="font-medium" style="color:#2C2039">{{ MESES_NOMBRES_STATIC[data.mes] }}</span>
-          </template>
-        </Column>
-        <Column field="año" header="Año" style="width:80px">
-          <template #body="{ data }">
-            <span class="font-mono text-sm">{{ data.año }}</span>
-          </template>
-        </Column>
-        <Column header="Valor pagado" style="width:150px">
-          <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:#2C2039">
-              {{ formatCOP(data.valor_pagado) }}
-            </span>
-          </template>
-        </Column>
-        <Column header="Estado" style="width:130px">
-          <template #body="{ data }">
-            <GBadge :color="ESTADO_PAGO_SEVERITY_S[data.estado]">{{ ESTADO_PAGO_LABELS_S[data.estado] }}</GBadge>
-          </template>
-        </Column>
-        <Column header="Factura" style="width:90px" bodyClass="text-center">
-          <template #body="{ data }">
-            <a v-if="data.enlace_factura" :href="data.enlace_factura"
-              target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center gap-1 text-xs font-medium hover:underline"
-              style="color:#915BD8">
-              <ExternalLinkIcon class="size-[1em]" />
-              Ver
-            </a>
-            <span v-else class="text-gray-300 text-sm">—</span>
-          </template>
-        </Column>
-        <Column style="width:50px" bodyClass="text-right">
-          <template #body="{ data }">
-            <Button text severity="danger" size="small" @click="$emit('eliminar', data.id)" v-tooltip.left="'Eliminar'">
-              <template #icon><Trash2Icon class="size-[1em]" /></template>
-            </Button>
-          </template>
-        </Column>
-      </DataTable>
-    </div>
-  `,
-}
-
-// Acordeón desplegable con animación suave
-const Acordeon = {
-  props: {
-    titulo: String,
-    /** Componente de `@lucide/vue`. */
-    icono: { type: [Object, Function], default: null },
-    color: { type: String, default: '#f59e0b' },
-    count: { type: Number, default: 0 },
-  },
-  components: { ChevronDownIcon },
-  setup(props) {
-    const abierto = ref(false)
-    return { ...toRefs(props), abierto }
-  },
-  template: `
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
-      <button type="button"
-        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/60 transition-colors text-left"
-        @click="abierto = !abierto">
-        <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            :style="'background:' + color + '18'">
-            <component :is="icono" class="text-xs size-[1em]" :style="'color:' + color" />
-          </div>
-          <span class="text-sm font-semibold" style="color:#2C2039">{{ titulo }}</span>
-          <span class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none"
-            :style="'background:' + color + '15; color:' + color">{{ count }}</span>
-        </div>
-        <ChevronDownIcon class="text-xs text-gray-400 transition-transform duration-200 size-[1em]" :style="abierto ? 'transform:rotate(180deg)' : ''" />
-      </button>
-      <transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0">
-        <div v-if="abierto" class="border-t border-gray-100">
-          <slot />
-        </div>
-      </transition>
-    </div>
-  `,
-}
-
-// Acordeón 1: Facturas cobradas
-const FacturasCobradas = {
-  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
-  props: {
-    datos: { type: Array, default: () => [] },
-    proyectoNombre: String,
-  },
-  setup(props) {
-    const filtroAño = ref(null)
-    const filtroMes = ref(null)
-
-    const datosFiltrados = computed(() => {
-      let r = props.datos
-      if (filtroAño.value) r = r.filter(f => f.anio === filtroAño.value)
-      if (filtroMes.value) r = r.filter(f => f.mes === filtroMes.value)
-      return r
-    })
-    const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
-
-    function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
-
-    return {
-      ...toRefs(props),
-      filtroAño,
-      filtroMes,
-      AÑOS_STATIC,
-      MESES_OPCIONES_STATIC,
-      MESES_NOMBRES_STATIC,
-      datosFiltrados,
-      hayFiltros,
-      limpiarFiltros,
-      formatCOP,
-    }
-  },
-  template: `
-    <Acordeon titulo="Facturas cobradas" :icono="FileInputIcon" color="#f59e0b" :count="datos.length">
-      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
-        <div class="flex items-center gap-1.5">
-          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
-        </div>
-        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm" style="height:32px;min-width:90px" />
-        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
-          optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm" style="height:32px;min-width:110px" />
-        <button v-if="hayFiltros" type="button"
-          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
-          @click="limpiarFiltros">
-          <XIcon class="text-xs size-[1em]" /> Limpiar
-        </button>
-        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
-          {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
-        </span>
-      </div>
-      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
-        emptyMessage="Sin facturas cobradas registradas.">
-        <Column header="Mes" style="min-width:100px">
-          <template #body="{ data }">
-            <span class="font-medium" style="color:#2C2039">{{ MESES_NOMBRES_STATIC[data.mes] ?? data.mes }}</span>
-          </template>
-        </Column>
-        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
-        <Column field="inversionista" header="Inversionista" style="min-width:130px" />
-        <Column header="Monto" style="min-width:140px">
-          <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
-          </template>
-        </Column>
-        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
-        <Column header="Soporte" style="width:80px" bodyClass="text-center">
-          <template #body="{ data }">
-            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
-              style="color:#f59e0b" title="Ver soporte">
-              <FileIcon class="text-sm size-[1em]" />
-            </a>
-            <span v-else class="text-gray-300 text-sm">—</span>
-          </template>
-        </Column>
-      </DataTable>
-    </Acordeon>
-  `,
-}
-
-// Acordeón 2: Facturas emitidas
-const FacturasEmitidas = {
-  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
-  props: {
-    datos: { type: Array, default: () => [] },
-    proyectoNombre: String,
-  },
-  setup(props) {
-    const filtroAño = ref(null)
-    const filtroMes = ref(null)
-
-    const datosFiltrados = computed(() => {
-      let r = props.datos
-      if (filtroAño.value) {
-        r = r.filter(f => {
-          const d = f.fecha ? new Date(f.fecha) : null
-          return d && d.getFullYear() === filtroAño.value
-        })
-      }
-      if (filtroMes.value) {
-        r = r.filter(f => {
-          const d = f.fecha ? new Date(f.fecha) : null
-          return d && d.getMonth() + 1 === filtroMes.value
-        })
-      }
-      return r
-    })
-    const hayFiltros = computed(() => filtroAño.value || filtroMes.value)
-
-    function limpiarFiltros() { filtroAño.value = null; filtroMes.value = null }
-
-    return {
-      ...toRefs(props),
-      filtroAño,
-      filtroMes,
-      AÑOS_STATIC,
-      MESES_OPCIONES_STATIC,
-      datosFiltrados,
-      hayFiltros,
-      limpiarFiltros,
-      formatCOP,
-    }
-  },
-  template: `
-    <Acordeon titulo="Facturas emitidas" :icono="FileOutputIcon" color="#f59e0b" :count="datos.length">
-      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
-        <div class="flex items-center gap-1.5">
-          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
-        </div>
-        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm" style="height:32px;min-width:90px" />
-        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
-          optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm" style="height:32px;min-width:110px" />
-        <button v-if="hayFiltros" type="button"
-          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
-          @click="limpiarFiltros">
-          <XIcon class="text-xs size-[1em]" /> Limpiar
-        </button>
-        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
-          {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
-        </span>
-      </div>
-      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
-        emptyMessage="Sin facturas emitidas registradas.">
-        <Column field="fecha" header="Fecha" style="min-width:110px" />
-        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
-        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
-        <Column header="Monto" style="min-width:140px">
-          <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
-          </template>
-        </Column>
-        <Column header="Soporte" style="width:80px" bodyClass="text-center">
-          <template #body="{ data }">
-            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
-              style="color:#f59e0b" title="Ver soporte">
-              <FileIcon class="text-sm size-[1em]" />
-            </a>
-            <span v-else class="text-gray-300 text-sm">—</span>
-          </template>
-        </Column>
-      </DataTable>
-    </Acordeon>
-  `,
-}
-
 export default {
-  components: { InfoIcon, InfoBadge, InfoLink, PagosTabla, Acordeon, FacturasCobradas, FacturasEmitidas },
+  components: { InfoIcon, InfoBadge, InfoLink, Acordeon, FacturasCobradas, FacturasEmitidas },
 }
 </script>

@@ -1,6 +1,6 @@
 /**
  * Los contratos de servicio: mantenimiento, arriendo, internet, representación
- * y REC — una sola tabla en el backend, con sus arrendadores, pagos, facturas
+ * y REC — una sola tabla en el backend, con sus arrendadores, facturas
  * e indexación calculada.
  */
 import type {
@@ -8,11 +8,9 @@ import type {
   ContratoServicio,
   DuplicadosRepresentacion,
   FacturaContratoServicio,
-  PagoContratoServicio,
   PayloadArrendador,
   PayloadContratoServicio,
   PayloadFacturaContratoServicio,
-  PayloadPagoContratoServicio,
   RespuestaFusionarRepresentacion,
   SerieIndexacionCalculada,
   TipoServicioContrato,
@@ -26,9 +24,6 @@ const RUTAS = {
   contrato: (id: ContratoServicio['id']) => `${BASE}/${id}`,
   duplicadosRepresentacion: `${BASE}/duplicados-representacion`,
   fusionarRepresentacion: `${BASE}/fusionar-representacion`,
-  pagos: (id: ContratoServicio['id']) => `${BASE}/${id}/pagos`,
-  pago: (id: ContratoServicio['id'], pagoId: PagoContratoServicio['id']) =>
-    `${BASE}/${id}/pagos/${pagoId}`,
   facturas: (id: ContratoServicio['id']) => `${BASE}/${id}/facturas`,
   factura: (id: ContratoServicio['id'], facturaId: FacturaContratoServicio['id']) =>
     `${BASE}/${id}/facturas/${facturaId}`,
@@ -72,23 +67,6 @@ export class ContratosServicioService extends BaseService {
       RUTAS.fusionarRepresentacion,
       ids ? { ids } : {},
     )
-  }
-
-  // ── Pagos ──────────────────────────────────────────────────────────────────────
-
-  listarPagos(id: ContratoServicio['id']): Promise<PagoContratoServicio[]> {
-    return this.get<PagoContratoServicio[]>(RUTAS.pagos(id))
-  }
-
-  registrarPago(
-    id: ContratoServicio['id'],
-    payload: PayloadPagoContratoServicio,
-  ): Promise<unknown> {
-    return this.post<unknown>(RUTAS.pagos(id), payload)
-  }
-
-  eliminarPago(id: ContratoServicio['id'], pagoId: PagoContratoServicio['id']): Promise<unknown> {
-    return this.delete<unknown>(RUTAS.pago(id, pagoId))
   }
 
   // ── Facturas (mantenimiento: Solenium / inversionista) ────────────────────────
