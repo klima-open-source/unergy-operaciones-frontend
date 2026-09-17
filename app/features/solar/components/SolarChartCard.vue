@@ -58,10 +58,10 @@ const crosshairPlugin: Plugin<'line'> = {
         </span>
       </div>
 
-      <div v-if="chartData?.labels?.length" class="relative h-[180px]">
+      <div v-if="chartData?.labels?.length" class="relative h-45">
         <Line :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
       </div>
-      <div v-else class="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
+      <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">
         {{ emptyLabel }}
       </div>
     </CardContent>
