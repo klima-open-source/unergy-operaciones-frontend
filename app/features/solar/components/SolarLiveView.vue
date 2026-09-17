@@ -19,49 +19,51 @@
     <!-- ══ HEADER ══ -->
     <div class="sl-header">
       <div>
-        <h1 class="sl-title">Generación Solar</h1>
-        <p class="sl-subtitle">
+        <h1 class="text-lg font-extrabold text-foreground">Generación Solar</h1>
+        <p class="mt-0.5 text-xs text-muted-foreground">
           Potencia en tiempo real por proyecto
           <!-- Es la hora en que se PREGUNTO, no la del dato. Decirlo evita que
                se lea como frescura: media flota puede estar horas atrasada y
                este numero seguiria diciendo la hora actual. -->
-          <span v-if="lastUpdated" class="sl-ts">· consultado {{ lastUpdated }}</span>
+          <span v-if="lastUpdated" class="text-muted-foreground/70">· consultado {{ lastUpdated }}</span>
         </p>
       </div>
       <div class="sl-header-right">
         <!-- Filtro por proyecto -->
-        <div class="sl-filter-wrap">
-          <SearchIcon class="sl-filter-icon size-[1em]" />
-          <AutoComplete
-            v-model="filtro"
-            :suggestions="projectSuggestions"
-            @complete="onFiltroComplete"
-            :completeOnFocus="true"
-            :delay="0"
-            scrollHeight="280px"
-            placeholder="Buscar o seleccionar proyecto..."
-            class="sl-filter-ac"
-            inputClass="sl-filter-input"
-          />
-          <XIcon class="sl-filter-clear size-[1em]" v-if="filtro" @click="filtro = ''" />
+        <div class="relative w-64">
+          <SearchIcon class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="filtro" placeholder="Buscar proyecto..." class="pl-8" />
+          <button
+            v-if="filtro"
+            type="button"
+            class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpiar filtro"
+            @click="filtro = ''"
+          >
+            <XIcon class="size-4" />
+          </button>
         </div>
         <!-- Toggle columnas -->
-        <div class="sl-cols-toggle">
-          <button v-for="c in [1,2,4]" :key="c"
-            :class="['sl-col-btn', cols === c && 'sl-col-btn--active']"
-            @click="cols = c" :title="`${c} columna${c > 1 ? 's' : ''}`">
-            <span class="sl-col-icon">
-              <span v-for="n in c" :key="n" class="sl-col-bar" />
-            </span>
-          </button>
+        <div class="flex items-center gap-1">
+          <Button
+            v-for="c in [1, 2, 4]"
+            :key="c"
+            type="button"
+            :variant="cols === c ? 'secondary' : 'outline'"
+            size="sm"
+            :title="`${c} columna${c > 1 ? 's' : ''}`"
+            @click="cols = c"
+          >
+            {{ c }}
+          </Button>
         </div>
         <!-- Botón actualizar + auto-refresh -->
         <div class="sl-refresh-wrap">
-          <button class="sl-refresh-btn" @click="cargar" :disabled="loading">
-            <LoaderCircleIcon v-if="loading" class="size-[1em] animate-spin" />
-            <RefreshCwIcon v-else class="size-[1em]" />
+          <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+            <LoaderCircleIcon v-if="loading" class="animate-spin" />
+            <RefreshCwIcon v-else />
             Actualizar
-          </button>
+          </Button>
           <div class="sl-auto-wrap">
             <button class="sl-auto-btn" :class="autoInterval && 'sl-auto-btn--on'" @click="toggleAutoMenu" :title="autoInterval ? `Auto: ${autoLabel}` : 'Auto-actualizar'">
               <ClockIcon class="size-[1em]" />
@@ -80,21 +82,21 @@
     </div>
 
     <!-- ══ LOADING inicial ══ -->
-    <div v-if="loading && !proyectos.length" class="sl-loading">
-      <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:28px;color:var(--color-unergy-purple)" />
-      <span>Cargando proyectos...</span>
+    <div v-if="loading && !proyectos.length" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+      <LoaderCircleIcon class="size-7 animate-spin text-primary" />
+      <span class="text-sm">Cargando proyectos...</span>
     </div>
 
     <!-- ══ EMPTY ══ -->
-    <div v-else-if="!loading && !proyectos.length" class="sl-empty">
-      <SunIcon class="size-[1em]" style="font-size:32px;color:#cbd5e1" />
-      <p>Sin proyectos disponibles</p>
+    <div v-else-if="!loading && !proyectos.length" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+      <SunIcon class="size-8 text-muted-foreground/40" />
+      <p class="text-sm">Sin proyectos disponibles</p>
     </div>
 
     <!-- ══ SIN COINCIDENCIAS ══ -->
-    <div v-else-if="sinCoincidencias" class="sl-empty">
-      <SearchIcon class="size-[1em]" style="font-size:32px;color:#cbd5e1" />
-      <p>Ningún proyecto coincide con "{{ filtro }}"</p>
+    <div v-else-if="sinCoincidencias" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+      <SearchIcon class="size-8 text-muted-foreground/40" />
+      <p class="text-sm">Ningún proyecto coincide con "{{ filtro }}"</p>
     </div>
 
     <!-- ══ PROYECTOS (drag & drop) ══ -->
@@ -278,7 +280,6 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
-import AutoComplete from 'primevue/autocomplete'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 // Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
 // aparte porque las dos ya se separaron dos veces leyendo el mismo endpoint --
@@ -326,16 +327,6 @@ function matchesFiltro(proy) {
 const sinCoincidencias = computed(() =>
   !!filtro.value.trim() && !proyectos.value.some(matchesFiltro)
 )
-
-// Sugerencias para el AutoComplete: escribir filtra en vivo (mismo filtro),
-// enfocar despliega la lista completa de proyectos para seleccionar.
-const projectSuggestions = ref([])
-function onFiltroComplete(e) {
-  const nombres = [...new Set((proyectos.value || []).map(p => p.nombre).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b))
-  const q = (e.query || '').toLowerCase().trim()
-  projectSuggestions.value = q ? nombres.filter(n => n.toLowerCase().includes(q)) : nombres
-}
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
 // El P90 del dia lo manda /monitoring en cada proyecto (`p90_diario_kwh`).
@@ -696,45 +687,9 @@ onUnmounted(() => {
 /* ── Header ── */
 .sl-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .sl-header-right { display: flex; align-items: center; gap: 10px; }
-.sl-title { font-size: 20px; font-weight: 800; color: var(--color-unergy-deep); margin: 0; }
-.sl-subtitle { font-size: 12px; color: #6b5a8a; margin: 3px 0 0; }
-.sl-ts { color: #9ca3af; }
-
-/* ── Filtro por proyecto ── */
-.sl-filter-wrap { position: relative; display: flex; align-items: center; }
-.sl-filter-icon { position: absolute; left: 11px; font-size: 12px; color: #9ca3af; pointer-events: none; }
-.sl-filter-input {
-  width: 260px; padding: 7px 28px 7px 30px; border-radius: 8px; border: 1px solid #e5e7eb;
-  background: #fff; font-size: 13px; font-family: inherit; color: var(--color-unergy-deep); outline: none;
-  transition: border-color 0.15s;
-}
-.sl-filter-input:focus { border-color: var(--color-unergy-purple); }
-.sl-filter-input::placeholder { color: #9ca3af; }
-/* AutoComplete del filtro: mismo aspecto que el input anterior */
-.sl-filter-ac :deep(input) {
-  width: 260px; padding: 7px 28px 7px 30px; border-radius: 8px; border: 1px solid #e5e7eb;
-  background: #fff; font-size: 13px; font-family: inherit; color: var(--color-unergy-deep); outline: none;
-  transition: border-color 0.15s;
-}
-.sl-filter-ac :deep(input:focus) { border-color: var(--color-unergy-purple); }
-.sl-filter-ac :deep(input::placeholder) { color: #9ca3af; }
-.sl-filter-clear { position: absolute; right: 10px; font-size: 11px; color: #9ca3af; cursor: pointer; }
-.sl-filter-clear:hover { color: #6b5a8a; }
-
-/* ── Column toggle ── */
-.sl-cols-toggle { display: flex; gap: 4px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 3px; }
-.sl-col-btn { display: flex; align-items: center; justify-content: center; width: 30px; height: 26px; border-radius: 6px; border: none; background: transparent; cursor: pointer; transition: background 0.15s; }
-.sl-col-btn:hover { background: rgba(145,91,216,0.12); }
-.sl-col-btn--active { background: var(--color-unergy-purple); }
-.sl-col-icon { display: flex; gap: 2px; align-items: center; }
-.sl-col-bar { display: block; width: 4px; height: 14px; border-radius: 2px; background: #9ca3af; }
-.sl-col-btn--active .sl-col-bar { background: #fff; }
 
 /* ── Refresh ── */
 .sl-refresh-wrap { display: flex; align-items: center; gap: 6px; }
-.sl-refresh-btn { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; background: var(--color-unergy-purple); color: #fff; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; }
-.sl-refresh-btn:hover:not(:disabled) { background: #7a3fc0; }
-.sl-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Auto-refresh dropdown ── */
 .sl-auto-wrap { position: relative; }
@@ -749,7 +704,6 @@ onUnmounted(() => {
 .sl-auto-option--active { background: rgba(145,91,216,0.1); color: #7c3aed; font-weight: 600; }
 
 /* ── Estados ── */
-.sl-loading, .sl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 0; color: #6b5a8a; font-size: 14px; }
 
 /* ── Grid ── */
 .sl-grid { display: grid; gap: 20px; }
