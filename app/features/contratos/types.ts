@@ -88,6 +88,12 @@ export interface ContratoPpa {
   tarifas?: TarifaPpa[]
   compromisos_energia?: CompromisoEnergiaPpa[]
   estado?: string
+  /**
+   * Solo en la respuesta de `POST /ppa`: lo que quedo cojo -- sin plantas, sin
+   * tarifas, sin compromisos. No son errores, el contrato existe; son las cosas
+   * que impiden que Cumplimiento o Facturacion puedan trabajar con el.
+   */
+  avisos?: string[]
   [clave: string]: unknown
 }
 
@@ -101,6 +107,14 @@ export type PayloadPpa = Partial<
 > & {
   proyecto_id?: number
   proyecto_ids?: number[]
+  /**
+   * Solo en `POST`: el contrato y sus dos series viajan juntos y el backend los
+   * escribe en una transaccion. En `PATCH` no se mandan -- los `PUT` de tarifas
+   * y compromisos REEMPLAZAN el conjunto, y mandarlos en cada edicion borraria
+   * las series de quien solo vino a corregir una fecha.
+   */
+  tarifas?: TarifaPpa[]
+  compromisos?: CompromisoEnergiaPpa[]
 }
 
 export interface RegistroAsic {

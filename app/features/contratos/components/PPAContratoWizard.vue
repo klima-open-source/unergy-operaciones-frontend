@@ -717,6 +717,21 @@ function formatFecha(v) {
 
 // ── Guardar ──────────────────────────────────────────────────────────────────
 
+/**
+ * Guarda el contrato.
+ *
+ * **Al CREAR va todo en una sola petición** — contrato, plantas, tarifas y
+ * compromisos—, porque el backend lo escribe en una transacción: o queda
+ * completo o no queda nada. Antes eran tres peticiones seguidas sin transacción
+ * común: si fallaba la segunda, el contrato quedaba creado y sin tarifas, y el
+ * usuario no tenía cómo saberlo. Así quedaron 13 contratos sin tarifas y 14 sin
+ * compromisos (ver `docs/DIAGNOSTICO_PPA.md` en el backend).
+ *
+ * **Al EDITAR siguen siendo peticiones aparte**, y no es una inconsistencia: los
+ * `PUT` de tarifas y compromisos REEMPLAZAN el conjunto, así que mandarlos en
+ * cada edición del contrato borraría las series de quien solo vino a corregir
+ * una fecha. Se mandan solo si el usuario tocó esas pestañas.
+ */
 async function guardar() {
   guardando.value = true
   try {
@@ -727,28 +742,36 @@ async function guardar() {
     }
     payload.proyecto_ids = proyectosSeleccionados.value.map(p => p.id)
 
-    const contrato = props.editandoId
-      ? await ppaService.actualizar(props.editandoId, payload)
-      : await ppaService.crear(payload)
-
-    const contratoId = contrato?.id ?? props.editandoId
-    if (tarifasRows.value.length) {
-      await ppaService.guardarTarifas(contratoId, tarifasRows.value)
-    }
-    if (energiaRows.value.length) {
-      await ppaService.guardarCompromisos(contratoId, energiaRows.value)
-    }
-
+    let contrato
     if (props.editandoId) {
+      contrato = await ppaService.actualizar(props.editandoId, payload)
+      if (tarifasRows.value.length) {
+        await ppaService.guardarTarifas(props.editandoId, tarifasRows.value)
+      }
+      if (energiaRows.value.length) {
+        await ppaService.guardarCompromisos(props.editandoId, energiaRows.value)
+      }
       toast.success('Contrato actualizado', { duration: 3000 })
       emit('editado', contrato)
     } else {
+      contrato = await ppaService.crear({
+        ...payload,
+        tarifas: tarifasRows.value,
+        compromisos: energiaRows.value,
+      })
       const msg = [
         `Contrato "${contrato.nombre_interno || contrato.numero_codigo_contrato}" creado`,
         tarifasRows.value.length ? `${tarifasRows.value.length} tarifas` : null,
         energiaRows.value.length ? `${energiaRows.value.length} compromisos` : null,
       ].filter(Boolean).join(' · ')
       toast.success('Contrato creado', { description: msg, duration: 4000 })
+
+      // Lo que quedó cojo lo dice el backend, no el formulario: un contrato sin
+      // plantas o sin compromisos no lo puede medir Cumplimiento. Se muestra
+      // aparte del «creado» para que no se lea como un error.
+      for (const aviso of contrato.avisos ?? []) {
+        toast.warning('Revisa el contrato', { description: aviso, duration: 8000 })
+      }
       emit('creado', contrato)
     }
     emit('cerrar')
