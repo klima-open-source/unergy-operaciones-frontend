@@ -40,8 +40,9 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // métrica de avance de la fase 3: cuando un slice se migra, se borra su
   // línea y el linter empieza a exigirle.
   //
-  // `auth` va archivo por archivo porque su carpeta está mezclada: el
-  // `LoginForm.vue` es del template y sí cumple las reglas.
+  // `auth` y `solar` van archivo por archivo porque su carpeta está mezclada:
+  // `LoginForm.vue` y las piezas de `SolarLiveView.vue` son del template y sí
+  // cumplen las reglas; `SolarView.vue` todavía no se migró.
   'app/features/admin/components/**',
   'app/features/alertas/components/**',
   'app/features/auth/components/ForgotPasswordView.vue',
@@ -63,7 +64,7 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/proyectos/components/**',
   'app/features/registros-cnd/components/**',
   'app/features/retos/components/**',
-  'app/features/solar/components/**',
+  'app/features/solar/components/SolarView.vue',
 ]
 
 export default withNuxt(prettier, {

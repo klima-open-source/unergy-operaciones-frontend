@@ -14,6 +14,8 @@ export interface ProyectoMonitoreoSolar {
   power_kw?: number | null
   utilization_pct?: number | null
   availability_pct?: number | null
+  /** P90 diario, en kWh — meta contra la que se compara la generación de hoy. */
+  p90_diario_kwh?: number
   [clave: string]: unknown
 }
 
@@ -22,10 +24,41 @@ export interface RespuestaMonitoreoSolar {
   projects: ProyectoMonitoreoSolar[]
 }
 
-/** `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma variable por planta. */
+/** Un punto de la curva de potencia (inversores) o del medidor, kW cada 5 min. */
+export interface PuntoCurvaSolar {
+  time?: string
+  kw?: number | string | null
+  [clave: string]: unknown
+}
+
+/** El medidor ya resuelto por el backend (`medidor`, `medidor_principal`, `medidor_respaldo`). */
+export interface MedidorMonitoreoSolar {
+  node_id?: string | number
+  curva?: PuntoCurvaSolar[]
+  energia_kwh?: number | null
+  energia_hasta?: string | null
+  [clave: string]: unknown
+}
+
+/** Generación de un día del histórico de 30 días. */
+export interface GeneracionDiaSolar {
+  date?: string
+  kwh?: number
+}
+
+/**
+ * `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma
+ * variable por planta. Solo se tipan los campos que algún consumidor lee de
+ * verdad — ver la lista completa en `detalleMonitoreo.guard.test.ts`.
+ */
 export interface DetalleMonitoreoSolar {
-  generation_?: unknown
-  power_curve?: unknown
+  power_curve?: PuntoCurvaSolar[]
+  generation_today_kwh?: number | null
+  generation_today_hasta?: string | null
+  generation_30d?: GeneracionDiaSolar[]
+  medidor?: MedidorMonitoreoSolar | null
+  medidor_principal?: MedidorMonitoreoSolar | null
+  medidor_respaldo?: MedidorMonitoreoSolar | null
   [clave: string]: unknown
 }
 

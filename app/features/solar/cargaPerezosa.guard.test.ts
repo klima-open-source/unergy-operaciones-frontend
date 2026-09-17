@@ -56,7 +56,7 @@ describe('carga perezosa de las tarjetas', () => {
   })
 
   it('el refresco automático mira solo lo que está en pantalla', () => {
-    expect(fuente).toContain('ids.filter(id => tarjetasVisibles.has(id))')
+    expect(fuente).toContain('ids.filter((id) => tarjetasVisibles.has(id))')
   })
 
   it('la primera carga no espera al observador', () => {

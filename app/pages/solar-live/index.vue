@@ -1,15 +1,15 @@
-<script setup>
+<script setup lang="ts">
 /**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
+ * `layout: 'legacy'` es intencional, no un resabio: es el único layout que
+ * pinta esta ruta a pantalla completa, sin el padding del contenido normal
+ * (ver `app/layouts/legacy.vue`). `SolarLiveView` maneja su propio scroll y
+ * su propia pestaña histórica de ancho completo.
  */
-import View from '~/features/solar/components/SolarLiveView.vue'
+import SolarLiveView from '~/features/solar/components/SolarLiveView.vue'
 
 definePageMeta({ layout: 'legacy' })
 </script>
 
 <template>
-  <View />
+  <SolarLiveView />
 </template>

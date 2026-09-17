@@ -19,6 +19,7 @@
  * y un cambio tocó una copia. Lo que vive acá no es solo utilería: es **qué
  * campo es el número de cada panel**, que es justo lo que divergió.
  */
+import type { DetalleMonitoreoSolar, MedidorMonitoreoSolar } from '~/features/solar/types'
 
 // ── Ejes de tiempo ────────────────────────────────────────────────────────
 
@@ -30,21 +31,25 @@ export const TIME_LABELS = Array.from({ length: 288 }, (_, i) => {
 })
 
 /** Hora `HH:MM` de un timestamp de Gaia (medidor). */
-export function gaiaTime(t) {
+export function gaiaTime(t: string | null | undefined): string {
   if (!t) return ''
   const idx = t.indexOf('T')
   return idx >= 0 ? t.slice(idx + 1, idx + 6) : t.slice(0, 5)
 }
 
 /** Agrupa puntos en buckets de 5 min y promedia. */
-export function mapMinutes(points, getTime, getKw) {
-  const buckets = {}
+export function mapMinutes<T>(
+  points: T[],
+  getTime: (pt: T) => string,
+  getKw: (pt: T) => number | null,
+): (number | null)[] {
+  const buckets: Record<number, number[]> = {}
   for (const pt of points) {
     const raw = getTime(pt)
     if (!raw) continue
     const m = raw.match(/(\d{1,2}):(\d{2})/)
     if (!m) continue
-    const slot = parseInt(m[1], 10) * 12 + Math.floor(parseInt(m[2], 10) / 5)
+    const slot = Number.parseInt(m[1]!, 10) * 12 + Math.floor(Number.parseInt(m[2]!, 10) / 5)
     if (!buckets[slot]) buckets[slot] = []
     const v = getKw(pt)
     if (v != null) buckets[slot].push(v)
@@ -62,21 +67,25 @@ export function mapMinutes(points, getTime, getKw) {
  * El medidor a mostrar lo elige el BACKEND y llega resuelto en `medidor`.
  * Antes se re-decidía en cada vista, y podían mostrar medidores distintos.
  */
-export function medidorDelDetalle(detail) {
+export function medidorDelDetalle(
+  detail: DetalleMonitoreoSolar | null | undefined,
+): MedidorMonitoreoSolar | null {
   return detail?.medidor ?? null
 }
 
 /** Serie de inversores: 288 valores kW o null. */
-export function inverterSeries(detail) {
+export function inverterSeries(
+  detail: DetalleMonitoreoSolar | null | undefined,
+): (number | null)[] | null {
   const curve = detail?.power_curve ?? []
   if (!curve.length) return null
   const data = mapMinutes(
     curve,
     (pt) => {
       const t = pt.time || ''
-      return t.includes(' ') ? t.split(' ')[1] : t
+      return t.includes(' ') ? t.split(' ')[1]! : t
     },
-    (pt) => (pt.kw != null ? +pt.kw : null),
+    (pt) => (pt.kw != null ? Number(pt.kw) : null),
   )
   return data.every((v) => v == null) ? null : data
 }
@@ -87,13 +96,15 @@ export function inverterSeries(detail) {
  * `curva` viene sin rellenar y con el signo y la unidad ya resueltos por el
  * backend: si la telemetría de potencia se cayó, el hueco se ve.
  */
-export function meterSeries(detail) {
+export function meterSeries(
+  detail: DetalleMonitoreoSolar | null | undefined,
+): (number | null)[] | null {
   const rows = (medidorDelDetalle(detail)?.curva ?? []).filter((r) => r.kw != null)
   if (!rows.length) return null
   const data = mapMinutes(
     rows,
     (r) => gaiaTime(r.time),
-    (r) => +r.kw,
+    (r) => Number(r.kw),
   )
   return data.every((v) => v == null) ? null : data
 }
@@ -105,17 +116,17 @@ export function meterSeries(detail) {
 // estas dos funciones -- si una lee el campo crudo, vuelven a divergir.
 
 /** Fecha de hoy en Colombia (UTC−5), `YYYY-MM-DD`. */
-export function hoyColombia() {
+export function hoyColombia(): string {
   return new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
 }
 
-function horasEntre(t1, t2) {
+function horasEntre(t1: string | null | undefined, t2: string | null | undefined): number {
   if (!t1 || !t2) return 0
   try {
-    const aMin = (t) => {
-      const s = t.replace('T', ' ').split(' ').pop()
+    const aMin = (t: string) => {
+      const s = t.replace('T', ' ').split(' ').pop()!
       const [h, m] = s.split(':').map(Number)
-      return h * 60 + (m || 0)
+      return h! * 60 + (m || 0)
     }
     return Math.abs(aMin(t2) - aMin(t1)) / 60
   } catch {
@@ -132,32 +143,35 @@ function horasEntre(t1, t2) {
  *   2. la fila de hoy del histórico de 30 días, si el día ya cerró;
  *   3. integración trapezoidal de la curva de potencia, último recurso.
  */
-export function acumuladoInversores(detail, hoyStr = hoyColombia()) {
+export function acumuladoInversores(
+  detail: DetalleMonitoreoSolar | null | undefined,
+  hoyStr: string = hoyColombia(),
+): number | null {
   const genHoy = detail?.generation_today_kwh
   if (genHoy != null && genHoy > 0) return genHoy
 
   const hoy = (detail?.generation_30d ?? []).find((d) => d.date === hoyStr)
-  if (hoy?.kwh > 0) return hoy.kwh
+  if (hoy?.kwh != null && hoy.kwh > 0) return hoy.kwh
 
   const curve = detail?.power_curve ?? []
   if (curve.length < 2) return null
   let kwh = 0
   for (let i = 1; i < curve.length; i++) {
-    const dtH = horasEntre(curve[i - 1].time, curve[i].time)
-    const avgKw = (+(curve[i - 1].kw || 0) + +(curve[i].kw || 0)) / 2
+    const dtH = horasEntre(curve[i - 1]!.time, curve[i]!.time)
+    const avgKw = (Number(curve[i - 1]!.kw ?? 0) + Number(curve[i]!.kw ?? 0)) / 2
     kwh += avgKw * dtH
   }
   return kwh > 0 ? kwh : null
 }
 
 /** Energía acumulada de hoy según el MEDIDOR (contador `eae`), en kWh. */
-export function acumuladoMedidor(detail) {
+export function acumuladoMedidor(detail: DetalleMonitoreoSolar | null | undefined): number | null {
   const m = medidorDelDetalle(detail)
-  return m?.energia_kwh > 0 ? m.energia_kwh : null
+  return m?.energia_kwh != null && m.energia_kwh > 0 ? m.energia_kwh : null
 }
 
 /** Hasta qué hora `HH:MM` cubre el acumulado de inversores. */
-export function hastaInversores(detail) {
+export function hastaInversores(detail: DetalleMonitoreoSolar | null | undefined): string | null {
   return detail?.generation_today_hasta || null
 }
 
@@ -168,7 +182,7 @@ export function hastaInversores(detail) {
  * ir hasta media hora por detrás -- se dice, en vez de dar a entender que es
  * del último instante.
  */
-export function hastaMedidor(detail) {
+export function hastaMedidor(detail: DetalleMonitoreoSolar | null | undefined): string | null {
   return gaiaTime(medidorDelDetalle(detail)?.energia_hasta ?? '') || null
 }
 
@@ -181,13 +195,13 @@ export function hastaMedidor(detail) {
  * Es lo que separa "este proyecto no generó" de "este dato es viejo": sin
  * esto, una tarjeta congelada a las 06:15 se veía igual que una al día.
  */
-export function haceCuanto(hhmm) {
+export function haceCuanto(hhmm: string | null | undefined): string {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || '')
   if (!m) return ''
   const ahora = new Date()
   const dato = new Date(ahora)
-  dato.setHours(+m[1], +m[2], 0, 0)
-  const min = Math.floor((ahora - dato) / 60000)
+  dato.setHours(+m[1]!, +m[2]!, 0, 0)
+  const min = Math.floor((ahora.getTime() - dato.getTime()) / 60000)
   if (min < 0) return '' // reloj adelantado: mejor no decir nada
   if (min < 60) return `hace ${min} min`
   return `hace ${Math.floor(min / 60)} h`
@@ -199,7 +213,7 @@ export function haceCuanto(hhmm) {
 // lado del acumulado en el movil-- vuelven juntas, no una sola.
 
 /** kWh → "5.995 kWh" / "—", con separador de miles en es-CO. */
-export function fmtKwh(kwh) {
+export function fmtKwh(kwh: number | null | undefined): string {
   if (kwh == null) return '—'
-  return kwh.toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh'
+  return `${kwh.toLocaleString('es-CO', { maximumFractionDigits: 1 })} kWh`
 }

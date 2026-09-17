@@ -23,7 +23,12 @@ import { formatCOP } from '~/utils/currency'
 
 const QUICK_LINKS = [
   { to: '/generacion-solar', label: 'Generación Solar', icon: SunIcon, tone: 'warning' as const },
-  { to: '/mem/cumplimiento', label: 'Cumplimiento PPA', icon: ShieldIcon, tone: 'success' as const },
+  {
+    to: '/mem/cumplimiento',
+    label: 'Cumplimiento PPA',
+    icon: ShieldIcon,
+    tone: 'success' as const,
+  },
   { to: '/mem/descubrimientos', label: 'Descubrimientos', icon: ZapIcon, tone: 'primary' as const },
   { to: '/liquidaciones', label: 'Liquidaciones', icon: FilePenIcon, tone: 'muted' as const },
 ]
@@ -59,7 +64,9 @@ const cumplimientoStatus = computed<'idle' | 'loading' | 'error' | 'ready'>(() =
 const fleetPowerDisplay = computed(() => {
   const kw = kpis.value?.fleet_power_kw
   if (kw == null) return null
-  return kw > 1000 ? { value: (kw / 1000).toFixed(1), unit: 'MW' } : { value: String(kw), unit: 'kW' }
+  return kw > 1000
+    ? { value: (kw / 1000).toFixed(1), unit: 'MW' }
+    : { value: String(kw), unit: 'kW' }
 })
 
 const fallasBreakdown = computed(() => {
@@ -148,7 +155,10 @@ async function loadKpis() {
 
   const now = new Date()
   await cumplimientoQuery.run(() =>
-    dashboardService.obtenerResumenCumplimiento({ year: now.getFullYear(), month: now.getMonth() + 1 }),
+    dashboardService.obtenerResumenCumplimiento({
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+    }),
   )
   if (cumplimientoQuery.error) {
     logger.error('dashboard.cumplimiento', cumplimientoQuery.error)
@@ -178,9 +188,13 @@ onMounted(loadKpis)
       </template>
 
       <template #error="{ error }">
-        <div class="flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-12 text-center">
+        <div
+          class="flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-12 text-center"
+        >
           <CircleAlertIcon class="size-8 text-destructive" />
-          <p class="text-sm font-medium text-destructive">No se pudieron cargar los KPIs del dashboard</p>
+          <p class="text-sm font-medium text-destructive">
+            No se pudieron cargar los KPIs del dashboard
+          </p>
           <p class="text-sm text-muted-foreground">{{ error.message }}</p>
           <Button variant="outline" size="sm" @click="loadKpis">
             <RefreshCwIcon class="size-4" />
@@ -235,7 +249,10 @@ onMounted(loadKpis)
               <CardHeader>
                 <CardTitle>Generación flota</CardTitle>
                 <CardAction>
-                  <NuxtLink to="/generacion-solar" class="text-xs font-medium text-primary hover:underline">
+                  <NuxtLink
+                    to="/generacion-solar"
+                    class="text-xs font-medium text-primary hover:underline"
+                  >
                     Ver detalle →
                   </NuxtLink>
                 </CardAction>
@@ -244,7 +261,9 @@ onMounted(loadKpis)
                 <div v-if="fleetPowerDisplay" class="flex items-baseline gap-2">
                   <span
                     class="text-3xl font-bold"
-                    :class="(kpis?.fleet_power_kw ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'"
+                    :class="
+                      (kpis?.fleet_power_kw ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'
+                    "
                   >
                     {{ fleetPowerDisplay.value }}
                   </span>
@@ -269,14 +288,19 @@ onMounted(loadKpis)
               <CardHeader>
                 <CardTitle>Precio de bolsa</CardTitle>
                 <CardAction>
-                  <NuxtLink to="/mem/precio-bolsa" class="text-xs font-medium text-primary hover:underline">
+                  <NuxtLink
+                    to="/mem/precio-bolsa"
+                    class="text-xs font-medium text-primary hover:underline"
+                  >
                     Ver detalle →
                   </NuxtLink>
                 </CardAction>
               </CardHeader>
               <CardContent>
                 <div v-if="kpis?.precio_bolsa_cop_kwh != null" class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-foreground">{{ formatCOP(kpis.precio_bolsa_cop_kwh) }}</span>
+                  <span class="text-3xl font-bold text-foreground">{{
+                    formatCOP(kpis.precio_bolsa_cop_kwh)
+                  }}</span>
                   <span class="text-sm text-muted-foreground">/kWh</span>
                 </div>
                 <p v-else class="text-sm text-muted-foreground">Sin datos de precio disponibles</p>
@@ -299,7 +323,11 @@ onMounted(loadKpis)
                     {{ kpis?.alarmas_mgs === 1 ? 'alarma activa' : 'alarmas activas' }}
                   </span>
                 </div>
-                <Badge v-if="(kpis?.alarmas_mgs_criticas ?? 0) > 0" variant="destructive" class="mt-2">
+                <Badge
+                  v-if="(kpis?.alarmas_mgs_criticas ?? 0) > 0"
+                  variant="destructive"
+                  class="mt-2"
+                >
                   {{ kpis?.alarmas_mgs_criticas }} críticas
                 </Badge>
               </CardContent>
@@ -319,8 +347,14 @@ onMounted(loadKpis)
               </CardHeader>
               <CardContent>
                 <div v-if="(kpis?.fallas_abiertas ?? 0) > 0" class="space-y-2.5">
-                  <div v-for="bar in fallasBreakdown" :key="bar.code" class="flex items-center gap-3">
-                    <span class="w-14 text-right text-xs font-medium" :class="bar.textClass">{{ bar.label }}</span>
+                  <div
+                    v-for="bar in fallasBreakdown"
+                    :key="bar.code"
+                    class="flex items-center gap-3"
+                  >
+                    <span class="w-14 text-right text-xs font-medium" :class="bar.textClass">{{
+                      bar.label
+                    }}</span>
                     <div class="h-5 flex-1 overflow-hidden rounded-full bg-muted">
                       <div
                         class="h-full rounded-full transition-all duration-500"
@@ -344,9 +378,18 @@ onMounted(loadKpis)
 
           <!-- Accesos rápidos -->
           <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Item v-for="link in QUICK_LINKS" :key="link.to" as-child variant="outline" class="bg-card">
+            <Item
+              v-for="link in QUICK_LINKS"
+              :key="link.to"
+              as-child
+              variant="outline"
+              class="bg-card"
+            >
               <NuxtLink :to="link.to">
-                <ItemMedia variant="icon" :class="[QUICK_LINK_TONE_CLASSES[link.tone], 'size-10 rounded-lg']">
+                <ItemMedia
+                  variant="icon"
+                  :class="[QUICK_LINK_TONE_CLASSES[link.tone], 'size-10 rounded-lg']"
+                >
                   <component :is="link.icon" />
                 </ItemMedia>
                 <ItemContent>
