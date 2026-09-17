@@ -1,5 +1,5 @@
 <template>
-  <div class="sl-root">
+  <div class="flex h-full flex-col overflow-hidden">
 
     <!-- ══ TAB BAR ══ -->
     <GTabs :model-value="tab" @update:model-value="(v) => (tab = v)">
@@ -14,10 +14,10 @@
     </GTabs>
 
     <!-- ══ LIVE TAB ══ -->
-    <div v-if="tab === 'live'" class="sl-page">
+    <div v-if="tab === 'live'" class="flex flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
 
     <!-- ══ HEADER ══ -->
-    <div class="sl-header">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 class="text-lg font-extrabold text-foreground">Generación Solar</h1>
         <p class="mt-0.5 text-xs text-muted-foreground">
@@ -28,7 +28,7 @@
           <span v-if="lastUpdated" class="text-muted-foreground/70">· consultado {{ lastUpdated }}</span>
         </p>
       </div>
-      <div class="sl-header-right">
+      <div class="flex items-center gap-2.5">
         <!-- Filtro por proyecto -->
         <div class="relative w-64">
           <SearchIcon class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
