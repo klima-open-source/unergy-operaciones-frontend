@@ -55,12 +55,11 @@ const CAMPOS_DEL_DETALLE = new Set([
 
 /** Archivos que consumen el detalle, con el nombre que le dan a la variable. */
 const CONSUMIDORES: { archivo: string; variables: string[] }[] = [
-  { archivo: 'app/features/solar/serieSolar.ts', variables: ['detail'] },
+  { archivo: 'app/features/solar/serieSolar.js', variables: ['detail'] },
   {
     archivo: 'app/features/solar/components/SolarLiveView.vue',
     variables: ['detailMap\\[id\\]', 'detailMap\\[proy\\.proyecto_id\\]'],
   },
-  { archivo: 'app/features/solar/components/SolarProjectCard.vue', variables: ['detalle'] },
 ]
 
 function camposLeidos(archivo: string, variables: string[]): string[] {

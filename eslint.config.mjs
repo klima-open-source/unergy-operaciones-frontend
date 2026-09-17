@@ -40,9 +40,8 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // métrica de avance de la fase 3: cuando un slice se migra, se borra su
   // línea y el linter empieza a exigirle.
   //
-  // `auth` y `solar` van archivo por archivo porque su carpeta está mezclada:
-  // `LoginForm.vue` y las piezas de `SolarLiveView.vue` son del template y sí
-  // cumplen las reglas; `SolarView.vue` todavía no se migró.
+  // `auth` va archivo por archivo porque su carpeta está mezclada: el
+  // `LoginForm.vue` es del template y sí cumple las reglas.
   'app/features/admin/components/**',
   'app/features/alertas/components/**',
   'app/features/auth/components/ForgotPasswordView.vue',
@@ -58,27 +57,13 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/liquidaciones/components/**',
   'app/features/mem/components/**',
   'app/features/mobile/components/**',
-  // `GeneracionView.vue` se migró (es el contenido de la tab "Histórico" de
-  // `/solar-live`) — el resto de `operaciones` sigue igual. Archivo por
-  // archivo porque la negación de un glob de carpeta no funciona en
-  // `ignores` de ESLint flat config.
-  'app/features/operaciones/components/EnvioMensualPanel.vue',
-  'app/features/operaciones/components/EvidenciaUploader.vue',
-  'app/features/operaciones/components/GestionFallasView.vue',
-  'app/features/operaciones/components/InformeDetailView.vue',
-  'app/features/operaciones/components/InformeOMView.vue',
-  'app/features/operaciones/components/InformesListView.vue',
-  'app/features/operaciones/components/InformesMensualesPanel.vue',
-  'app/features/operaciones/components/InformesMensualesView.vue',
-  'app/features/operaciones/components/ListaEditable.vue',
-  'app/features/operaciones/components/PolizasView.vue',
-  'app/features/operaciones/components/PortafoliosGestionPanel.vue',
+  'app/features/operaciones/components/**',
   'app/features/operadores-red/components/**',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',
   'app/features/registros-cnd/components/**',
   'app/features/retos/components/**',
-  'app/features/solar/components/SolarView.vue',
+  'app/features/solar/components/**',
 ]
 
 export default withNuxt(prettier, {
