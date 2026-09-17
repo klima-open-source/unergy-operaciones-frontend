@@ -16,6 +16,7 @@ export interface ProyectoMonitoreoLegacy {
   nombre_comercial?: string
   nombre_display?: string
   nombre_clientes?: string
+  municipio?: string
   [clave: string]: unknown
 }
 
@@ -24,11 +25,25 @@ export interface RespuestaProyectosLegacy {
   projects: ProyectoMonitoreoLegacy[]
 }
 
+/** Una lectura de generación: `date`/`time` según la granularidad del punto. */
+export interface PuntoGeneracionLegacy {
+  fecha?: string
+  date?: string
+  time?: string
+  kwh: number
+  [clave: string]: unknown
+}
+
 /** `getGeneration`: la serie diaria y, si el backend simuló, el P90 mensual. */
 export interface RespuestaGeneracionLegacy {
   ok?: boolean
-  data: { fecha?: string; kwh: number; [clave: string]: unknown }[]
-  simulation?: { p90_monthly?: number | null; [clave: string]: unknown }
+  data: PuntoGeneracionLegacy[]
+  simulation?: {
+    p90_monthly?: number | null
+    /** Los doce valores mensuales de P90 (energía del mes), en orden Ene→Dic. */
+    curva_p90_kwh?: number[]
+    [clave: string]: unknown
+  }
   /**
    * De dónde salió la curva. `verified_by_operator` es un campo de la API de
    * Unergy que marca las lecturas que alguien revisó; cuando una planta no

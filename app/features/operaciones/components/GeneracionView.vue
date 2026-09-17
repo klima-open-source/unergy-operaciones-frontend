@@ -1,469 +1,100 @@
-<template>
-  <div class="gen-page">
-
-    <!-- ══ STICKY HEADER ═══════════════════════════════════════════════ -->
-    <div class="gen-sticky-header">
-
-      <!-- Title row -->
-      <div class="gen-titlebar">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: rgba(145,91,216,0.12)">
-            <ChartLineIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-          </div>
-          <h2 class="text-base font-bold text-gray-800">Generación</h2>
-          <span class="text-xs text-gray-500 hidden sm:inline">· Compara la energía generada por proyecto</span>
-        </div>
-        <div class="flex items-center gap-2 ml-auto">
-          <Button label="Excel" size="small" severity="success" outlined :disabled="!datasets.length" @click="exportarExcel">
-            <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
-          </Button>
-          <Button size="small" outlined :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-          </Button>
-        </div>
-      </div>
-
-      <!-- Filter row -->
-      <div class="gen-filterbar">
-        <!-- 1) Granularidad -->
-        <div class="gen-segmented">
-          <button v-for="g in GRANULARIDADES" :key="g.key"
-            class="gen-seg-btn"
-            :class="{ 'gen-seg-btn--active': granularidad === g.key }"
-            @click="onGranularidadChange(g.key)">
-            <component :is="g.icon" class="size-[1em]" />
-            <span>{{ g.label }}</span>
-          </button>
-        </div>
-
-        <!-- 2) Modo (cambia según granularidad: presets + intervalo) -->
-        <div class="gen-segmented gen-segmented--modo">
-          <button v-for="m in modosActuales" :key="m.key"
-            class="gen-seg-btn"
-            :class="{ 'gen-seg-btn--active': modo === m.key }"
-            @click="onModoChange(m.key)">
-            {{ m.label }}
-          </button>
-        </div>
-
-        <!-- 3) Selector contextual según granularidad + modo -->
-        <!-- Mensual · Año específico -->
-        <Select v-if="granularidad === 'mensual' && modo === 'anio'"
-          v-model="anioSel" :options="aniosDisponibles" optionLabel="label" optionValue="value"
-          class="w-28" size="small" @update:modelValue="aplicarModo" />
-        <!-- Mensual · Intervalo de meses (un solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'mensual' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" view="month" dateFormat="mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-56" :maxDate="hoy"
-          placeholder="Mes inicial → final" @update:modelValue="aplicarModo" />
-        <!-- Diaria · Mes específico -->
-        <DatePicker v-else-if="granularidad === 'diaria' && modo === 'mes'"
-          v-model="mesSel" view="month" dateFormat="MM yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-44" :maxDate="hoy"
-          placeholder="Elige un mes" @update:modelValue="aplicarModo" />
-        <!-- Diaria · Intervalo de días (UN solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'diaria' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" :numberOfMonths="2" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-64" :maxDate="hoy"
-          placeholder="Día inicial → final" @update:modelValue="aplicarModo" />
-        <!-- Horaria · Día específico -->
-        <DatePicker v-else-if="granularidad === 'horaria' && modo === 'dia'"
-          v-model="diaSel" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-44" :maxDate="hoy"
-          placeholder="Elige un día" @update:modelValue="aplicarModo" />
-        <!-- Horaria · Intervalo de días (UN solo picker de rango) -->
-        <DatePicker v-else-if="granularidad === 'horaria' && modo === 'intervalo'"
-          v-model="rango" selectionMode="range" :numberOfMonths="2" dateFormat="dd/mm/yy" :manualInput="false"
-          :showIcon="true" size="small" class="w-64" :maxDate="hoy"
-          placeholder="Día inicial → final" @update:modelValue="aplicarModo" />
-
-        <!-- Etiqueta del rango resuelto -->
-        <span class="gen-range-label"><CalendarClockIcon class="size-[1em]" /> {{ rangoLabel }}</span>
-
-        <!-- Avisos -->
-        <span v-if="rangoError && rangoError !== 'Selecciona un rango'" class="gen-err">
-          <CircleAlertIcon class="size-[1em]" /> {{ rangoError }}
-        </span>
-        <span v-else-if="avisoRango" class="gen-aviso">
-          <InfoIcon class="size-[1em]" /> {{ avisoRango }}
-        </span>
-
-        <!-- Project multi-select (valor = sub_project = ID de API Unergy) -->
-        <div class="gen-project-picker">
-          <MultiSelect v-model="proyectosSel" :options="proyectos" optionLabel="nombre_comercial"
-            optionValue="sub_project" :filter="true" :showToggleAll="false"
-            display="chip" placeholder="Selecciona proyectos…"
-            :maxSelectedLabels="3" :selectedItemsLabel="`{0} proyectos seleccionados`"
-            class="w-full" size="small" @change="onProyectosChange">
-            <template #option="{ option }">
-              <div class="flex items-center justify-between gap-2 w-full">
-                <span>{{ option.nombre_comercial }}</span>
-                <span class="text-[10px] text-gray-400 whitespace-nowrap">{{ option.municipio }}</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </div>
-
-        <!-- Consultar (dispara la query del intervalo seleccionado) -->
-        <Button label="Consultar" size="small" class="gen-consultar" :class="{ 'gen-consultar--pendiente': pendiente && proyectosSel.length && !rangoError }" :disabled="!proyectosSel.length || !!rangoError" :loading="loading" @click="cargar" v-tooltip.bottom="!proyectosSel.length ? 'Selecciona al menos un proyecto' : (rangoError ? 'Corrige el rango de fechas' : 'Consultar generación')">
-          <template #icon><SearchIcon class="size-[1em]" /></template>
-        </Button>
-      </div>
-
-      <!-- Fuente de datos -->
-      <div v-if="proyectos.length" class="gen-datahint">
-        <ZapIcon class="size-[1em]" />
-        <span>{{ proyectos.length }} proyectos disponibles · generación en vivo desde la API de Unergy</span>
-      </div>
-
-    </div><!-- /sticky-header -->
-
-    <!-- ══ EMPTY STATE / GUIDE ════════════════════════════════════════ -->
-    <div v-if="!proyectosSel.length" class="gen-empty">
-      <InfoIcon class="text-3xl mb-3 size-[1em]" style="color:var(--color-unergy-purple)" />
-      <p class="text-base font-semibold text-gray-700">Selecciona uno o más proyectos para comenzar</p>
-      <p class="text-sm text-gray-500 mt-1">Elige proyectos y un rango, luego presiona <strong>Consultar</strong>.</p>
-    </div>
-
-    <!-- ══ LOADING ════════════════════════════════════════════════════ -->
-    <div v-else-if="loading" class="gen-loading">
-      <ProgressSpinner style="width:40px;height:40px" />
-      <p class="text-sm text-gray-500 mt-3">Cargando datos de generación…</p>
-    </div>
-
-    <!-- ══ ERROR ═════════════════════════════════════════════════════ -->
-    <div v-else-if="error" class="gen-error">
-      <CircleAlertIcon class="text-2xl text-red-500 size-[1em]" />
-      <div class="flex-1">
-        <p class="font-semibold text-red-700">No se pudo consultar la generación</p>
-        <p class="text-sm text-gray-600 mt-0.5">{{ error }}</p>
-      </div>
-      <Button label="Reintentar" outlined size="small" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <!-- ══ READY TO QUERY (proyectos elegidos, aún sin consultar) ═════ -->
-    <div v-else-if="!hasQueried" class="gen-empty">
-      <SearchIcon class="text-3xl mb-3 size-[1em]" style="color:var(--color-unergy-purple)" />
-      <p class="text-base font-semibold text-gray-700">Listo para consultar</p>
-      <p class="text-sm text-gray-500 mt-1">Ajusta el rango y la granularidad, luego presiona Consultar.</p>
-      <Button label="Consultar" size="small" class="mt-3" :disabled="!!rangoError" :loading="loading" @click="cargar">
-        <template #icon><SearchIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <!-- ══ NO DATA ═══════════════════════════════════════════════════ -->
-    <div v-else-if="!datasets.length || datasets.every(d => !d.points.length)" class="gen-empty">
-      <DatabaseIcon class="text-3xl mb-3 text-gray-300 size-[1em]" />
-      <p class="text-base font-semibold text-gray-700">Sin datos para el rango seleccionado</p>
-      <p class="text-sm text-gray-500 mt-1">Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con un rango más amplio o fechas anteriores.</p>
-      <Button label="Ver el año en curso (mensual)" outlined size="small" class="mt-3" @click="verEsteAnioMensual">
-        <template #icon><CalendarIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <!-- ══ MAIN CONTENT ══════════════════════════════════════════════ -->
-    <template v-else>
-
-      <!-- KPI cards -->
-      <div class="gen-kpis">
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(212,160,23,0.12); color:#D4A017"><ZapIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val">{{ fmtNum(totalKwh) }}</div>
-            <div class="gen-kpi-lbl">kWh totales</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(145,91,216,0.12); color:var(--color-unergy-purple)"><ChartColumnIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val">{{ fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1) }}</div>
-            <div class="gen-kpi-lbl">Promedio kWh / {{ unidadPeriodo }}</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(16,185,129,0.12); color:#10b981"><TrophyIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val text-sm">{{ topProyecto?.nombre || '—' }}</div>
-            <div class="gen-kpi-lbl">Mayor generación</div>
-          </div>
-        </div>
-        <div class="gen-kpi">
-          <div class="gen-kpi-icon" style="background:rgba(59,130,246,0.12); color:#3b82f6"><CalendarIcon class="size-[1em]" /></div>
-          <div>
-            <div class="gen-kpi-val text-sm">{{ periodos.length }} {{ unidadPeriodoPlural }}</div>
-            <div class="gen-kpi-lbl">Período cubierto</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart card -->
-      <section class="gen-card">
-        <header class="gen-card-head">
-          <ChartLineIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-          <h3 class="gen-card-title">{{ tituloGrafico }}</h3>
-          <div class="flex items-center gap-2 ml-auto">
-            <button v-for="t in ['line', 'bar']" :key="t"
-              class="gen-toggle-btn" :class="{ 'gen-toggle-btn--active': tipoGrafico === t }"
-              @click="tipoGrafico = t">
-              <ChartLineIcon v-if="t === 'line'" class="size-[1em]" />
-              <ChartColumnIcon v-else class="size-[1em]" />
-            </button>
-          </div>
-        </header>
-
-        <!-- Legend -->
-        <div class="gen-legend">
-          <button v-for="(ds, idx) in datasets" :key="ds.proyectoId"
-            class="gen-legend-item" :class="{ 'gen-legend-item--off': ds.hidden }"
-            @click="ds.hidden = !ds.hidden">
-            <span class="gen-legend-dot" :style="{ background: ds.color }" />
-            <span class="gen-legend-name">{{ ds.nombre }}</span>
-            <span v-if="ds.fuente === 'cruda'" class="gen-fuente-tag" :title="TITULO_CRUDA">
-              sin verificar
-            </span>
-            <span class="gen-legend-total">{{ fmtNum(ds.total) }} kWh</span>
-          </button>
-          <!-- No es un boton: la meta no se apaga, es la referencia. -->
-          <span v-if="hayMetaP90" class="gen-legend-item gen-legend-item--meta">
-            <span class="gen-legend-dash" />
-            <span class="gen-legend-name">
-              Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
-            </span>
-          </span>
-        </div>
-
-        <!-- SVG chart -->
-        <div class="gen-chart-wrap" ref="chartWrapRef">
-          <svg ref="chartSvgRef" :viewBox="`0 0 ${chartW} ${chartH}`" preserveAspectRatio="none" class="gen-chart-svg"
-            @mousemove="onChartMove" @mouseleave="onChartLeave">
-            <!-- Y grid lines + labels -->
-            <g class="gen-grid">
-              <template v-for="(y, i) in yTicks" :key="'y' + i">
-                <line :x1="paddingL" :x2="chartW - paddingR" :y1="yToPx(y)" :y2="yToPx(y)" />
-                <text :x="paddingL - 6" :y="yToPx(y) + 3.5">{{ fmtYTick(y) }}</text>
-              </template>
-            </g>
-            <!-- X labels -->
-            <g class="gen-xlabels">
-              <text v-for="(p, i) in xLabels" :key="'x' + i"
-                :x="xToPx(p.idx)" :y="chartH - paddingB / 2 + 4"
-                :text-anchor="i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'">
-                {{ p.label }}
-              </text>
-            </g>
-            <!-- Line series -->
-            <template v-if="tipoGrafico === 'line'">
-              <g v-for="ds in datasets.filter(d => !d.hidden)" :key="ds.proyectoId">
-                <polyline
-                  :points="lineaPoints(ds)" fill="none"
-                  :stroke="ds.color" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
-                <circle v-for="(pt, i) in ds.points" :key="i"
-                  :cx="xToPx(i)" :cy="yToPx(pt.kwh)" r="2.5" :fill="ds.color" />
-              </g>
-            </template>
-            <!-- Bar series -->
-            <template v-else>
-              <g v-for="(p, i) in periodos" :key="'b' + i">
-                <rect v-for="(ds, j) in datasets.filter(d => !d.hidden)" :key="ds.proyectoId"
-                  :x="barX(i, j, datasets.filter(d => !d.hidden).length)"
-                  :y="yToPx(ds.points[i]?.kwh ?? 0)"
-                  :width="barW(datasets.filter(d => !d.hidden).length)"
-                  :height="Math.max(0, chartH - paddingB - yToPx(ds.points[i]?.kwh ?? 0))"
-                  :fill="ds.color"
-                  rx="1.5" />
-              </g>
-            </template>
-
-            <!-- Meta P90 de la simulación. Punteada y gris: es una referencia,
-                 no una medición, y no debe competir con las series reales. -->
-            <polyline v-if="hayMetaP90" :points="metaP90Points" fill="none"
-              stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"
-              stroke-linejoin="round" pointer-events="none" />
-
-            <!-- Fallas con impacto en generación: subrayado rojo del día/período -->
-            <g v-if="periodosFlagged.length" class="gen-faults" pointer-events="none">
-              <template v-for="i in periodosFlagged" :key="'fl' + i">
-                <line :x1="xToPx(i)" :x2="xToPx(i)" :y1="paddingT" :y2="chartH - paddingB"
-                  class="gen-fault-vline" />
-                <line :x1="xToPx(i) - marcadorHalfW" :x2="xToPx(i) + marcadorHalfW"
-                  :y1="chartH - paddingB + 2.5" :y2="chartH - paddingB + 2.5"
-                  class="gen-fault-underline" />
-                <circle :cx="xToPx(i)" :cy="paddingT + 2" r="2.6" class="gen-fault-dot" />
-              </template>
-            </g>
-
-            <!-- Hover: línea guía vertical + puntos resaltados -->
-            <g v-if="hover" class="gen-hover" pointer-events="none">
-              <line :x1="hover.gx" :x2="hover.gx" :y1="paddingT" :y2="chartH - paddingB" class="gen-hover-line" />
-              <circle v-for="s in hoverSeries" :key="'h' + s.proyectoId"
-                :cx="hover.gx" :cy="yToPx(s.kwh)" r="4" :fill="s.color" stroke="#fff" stroke-width="1.5" />
-            </g>
-          </svg>
-
-          <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
-          <div v-if="hover" class="gen-tooltip" :class="{ 'gen-tooltip--flip': hover.flip }"
-            :style="{ left: hover.tipLeft + 'px', top: hover.tipTop + 'px' }">
-            <div class="gen-tooltip-x">{{ hover.label }}</div>
-            <div v-for="s in hoverSeries" :key="'t' + s.proyectoId" class="gen-tooltip-row">
-              <span class="gen-tooltip-dot" :style="{ background: s.color }" />
-              <span class="gen-tooltip-name">{{ s.nombre }}</span>
-              <span class="gen-tooltip-val">{{ fmtNum(s.kwh, 1) }} kWh</span>
-            </div>
-            <div v-if="hoverSeries.length > 1" class="gen-tooltip-row gen-tooltip-total">
-              <span class="gen-tooltip-name">Total</span>
-              <span class="gen-tooltip-val">{{ fmtNum(hoverTotal, 1) }} kWh</span>
-            </div>
-            <div v-if="hoverFalla" class="gen-tooltip-fault">
-              <TriangleAlertIcon class="size-[1em]" />
-              {{ hoverFalla.count }} falla{{ hoverFalla.count !== 1 ? 's' : '' }} de generación · {{ fmtNum(hoverFalla.kwh) }} kWh perdidos
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Fallas reportadas en el período (cruce con generación) -->
-      <section class="gen-card">
-        <header class="gen-card-head">
-          <TriangleAlertIcon class="text-sm size-[1em]" style="color:#dc2626" />
-          <h3 class="gen-card-title">Fallas reportadas en el período</h3>
-          <div class="ml-auto flex items-center gap-1.5 flex-wrap">
-            <span class="gen-fchip">{{ fallasDelPeriodo.length }} en total</span>
-            <span v-if="fallasGenCount" class="gen-fchip gen-fchip--red">{{ fallasGenCount }} afectan generación</span>
-            <span v-if="kwhPerdidoTotal > 0" class="gen-fchip gen-fchip--red">
-              {{ fmtNum(kwhPerdidoTotal) }} kWh perdidos
-            </span>
-          </div>
-        </header>
-
-        <div v-if="fallasCargando && !allFallas.length" class="gen-fallas-empty">
-          <ProgressSpinner style="width:28px;height:28px" />
-          <p>Cargando fallas…</p>
-        </div>
-        <div v-else-if="!fallasDelPeriodo.length" class="gen-fallas-empty">
-          <CircleCheckIcon class="text-2xl size-[1em]" style="color:#16a34a" />
-          <p>Sin fallas reportadas en este intervalo para los proyectos seleccionados.</p>
-        </div>
-        <div v-else class="overflow-x-auto">
-          <DataTable :value="fallasDelPeriodo" stripedRows rowHover class="text-sm gen-table"
-            :rows="10" paginator :rowsPerPageOptions="[10, 20, 50]" :alwaysShowPaginator="fallasDelPeriodo.length > 10"
-            :rowClass="fallaRowClass" selectionMode="single"
-            @row-click="(e) => router.push('/fallas/' + e.data.id)">
-            <Column header="" style="width:6px;padding:0" :pt="{ headerCell: { style: 'padding:0; border:none' } }">
-              <template #body="{ data }">
-                <div class="gen-falla-stripe" :class="{ 'gen-falla-stripe--gen': involucraGeneracion(data) }" />
-              </template>
-            </Column>
-            <Column header="Fecha" field="fecha_identificacion" sortable style="width:96px">
-              <template #body="{ data }">
-                <span class="font-medium text-gray-800">{{ fmtFechaCorta(data.fecha_identificacion) }}</span>
-              </template>
-            </Column>
-            <Column header="Proyecto" style="min-width:130px">
-              <template #body="{ data }"><span class="text-gray-700">{{ data.proyecto?.nombre_comercial || '—' }}</span></template>
-            </Column>
-            <Column header="Falla" style="min-width:240px">
-              <template #body="{ data }">
-                <div class="font-medium text-gray-800">{{ data.tipo?.etiqueta || 'Sin tipo' }}</div>
-                <div class="text-xs text-gray-500 gen-falla-desc">{{ data.descripcion }}</div>
-              </template>
-            </Column>
-            <Column header="Prioridad" style="width:96px">
-              <template #body="{ data }">
-                <span class="gen-prio-pill" :style="prioPillStyle(data.prioridad?.codigo)">{{ data.prioridad?.etiqueta || '—' }}</span>
-              </template>
-            </Column>
-            <Column header="Estado" style="width:120px">
-              <template #body="{ data }">
-                <GBadge :color="colorEstado(data.estado?.codigo)">{{ data.estado?.etiqueta || '—' }}</GBadge>
-              </template>
-            </Column>
-            <Column header="Energía perdida" style="width:140px">
-              <template #body="{ data }">
-                <span v-if="involucraGeneracion(data)" class="gen-energy-badge">
-                  <ZapIcon class="size-[1em]" /> {{ fmtNum(energiaPerdida(data)) }} kWh
-                </span>
-                <span v-else class="text-gray-300">—</span>
-              </template>
-            </Column>
-          </DataTable>
-        </div>
-      </section>
-
-    </template>
-  </div>
-</template>
-
-<script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+<script setup lang="ts">
+import type { Falla } from '~/features/fallas/types'
+import type { ProyectoMonitoreoLegacy, RespuestaGeneracionLegacy } from '~/features/operaciones/types'
+import {
+  CalendarClockIcon,
+  CalendarIcon,
+  ChartColumnIcon,
+  ChartLineIcon,
+  CheckIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  ClockIcon,
+  DatabaseIcon,
+  FileSpreadsheetIcon,
+  InfoIcon,
+  ListIcon,
+  LoaderCircleIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  TriangleAlertIcon,
+  TrophyIcon,
+  ZapIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
-import Button from 'primevue/button'
-import DatePicker from 'primevue/datepicker'
-import MultiSelect from 'primevue/multiselect'
-import Select from 'primevue/select'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import ProgressSpinner from 'primevue/progressspinner'
-import { useRouter } from 'vue-router'
-import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { CalendarClockIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, DatabaseIcon, FileSpreadsheetIcon, InfoIcon, ListIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, TrophyIcon, ZapIcon } from '@lucide/vue'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
+import { usePagination } from '~/composables/usePagination'
 
 const router = useRouter()
 const monitoreoLegacyService = new MonitoreoLegacyService()
 const fallasService = new FallasService()
 
 // ── Constantes ────────────────────────────────────────────────────────
-const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const PALETTE = ['#915BD8', '#2563eb', '#10b981', '#D4A017', '#dc2626', '#0891b2', '#7c3aed', '#db2777', '#65a30d', '#0d9488']
+const MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const PALETTE = [
+  '#915BD8',
+  '#2563eb',
+  '#10b981',
+  '#D4A017',
+  '#dc2626',
+  '#0891b2',
+  '#7c3aed',
+  '#db2777',
+  '#65a30d',
+  '#0d9488',
+]
 
-const GRANULARIDADES = [
+type Granularidad = 'mensual' | 'diaria' | 'horaria'
+
+const GRANULARIDADES: { key: Granularidad; label: string; icon: Component }[] = [
   { key: 'mensual', label: 'Mensual', icon: CalendarIcon },
-  { key: 'diaria',  label: 'Diaria',  icon: ListIcon },
+  { key: 'diaria', label: 'Diaria', icon: ListIcon },
   { key: 'horaria', label: 'Horaria', icon: ClockIcon },
 ]
 
 // Modos de selección por granularidad: presets rápidos + intervalo libre.
 // La unidad natural de cada granularidad: año (mensual), mes (diaria), día (horaria).
-const MODOS = {
+const MODOS: Record<Granularidad, { key: string; label: string }[]> = {
   mensual: [
-    { key: 'actual',    label: 'Este año' },
-    { key: 'pasado',    label: 'Año pasado' },
-    { key: 'anio',      label: 'Año…' },
+    { key: 'actual', label: 'Este año' },
+    { key: 'pasado', label: 'Año pasado' },
+    { key: 'anio', label: 'Año…' },
     { key: 'intervalo', label: 'Intervalo' },
   ],
   diaria: [
-    { key: 'actual',    label: 'Este mes' },
-    { key: 'mes',       label: 'Mes…' },
+    { key: 'actual', label: 'Este mes' },
+    { key: 'mes', label: 'Mes…' },
     { key: 'intervalo', label: 'Intervalo' },
   ],
   horaria: [
-    { key: 'ayer',      label: 'Ayer' },
-    { key: 'dia',       label: 'Día…' },
+    { key: 'ayer', label: 'Ayer' },
+    { key: 'dia', label: 'Día…' },
     { key: 'intervalo', label: 'Intervalo' },
   ],
 }
-const MODO_DEFAULT = { mensual: 'actual', diaria: 'actual', horaria: 'ayer' }
+const MODO_DEFAULT: Record<Granularidad, string> = { mensual: 'actual', diaria: 'actual', horaria: 'ayer' }
 
-const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+const hoy = new Date()
+hoy.setHours(0, 0, 0, 0)
 
 // ── Estado ───────────────────────────────────────────────────────────
 const loading = ref(false)
-const error = ref(null)
-const proyectos = ref([])
-const proyectosSel = ref([])
+const error = ref<string | null>(null)
+const proyectos = ref<ProyectoMonitoreoLegacy[]>([])
+const proyectosSel = ref<string[]>([])
+const proyectosPickerOpen = ref(false)
 
-const granularidad = ref('diaria')
+const granularidad = ref<Granularidad>('diaria')
 const modo = ref('actual')
 const fechaDesde = ref(new Date())
 const fechaHasta = ref(new Date())
 // Selectores específicos por modo:
-const anioSel = ref(new Date().getFullYear())  // mensual · "Año…"
-const mesSel = ref(new Date())                  // diaria  · "Mes…"  (cualquier día del mes)
-const diaSel = ref(new Date())                  // horaria · "Día…"
-const rango = ref(null)                         // modo intervalo: UN solo picker de rango [desde, hasta]
+const anioSel = ref(new Date().getFullYear()) // mensual · "Año…"
+const mesSel = ref(new Date()) // diaria  · "Mes…"  (cualquier día del mes)
+const diaSel = ref(new Date()) // horaria · "Día…"
+const rango = ref<[Date, Date] | null>(null) // modo intervalo: UN solo picker de rango [desde, hasta]
 
 /**
  * Solo se marca la CRUDA, no la verificada.
@@ -478,14 +109,40 @@ const TITULO_CRUDA =
   'Unergy, asi que se muestran todas tal como llegaron del medidor. No es ' +
   'estrictamente comparable con las curvas verificadas ni con la meta P90.'
 
-const datasets = ref([])
-const tipoGrafico = ref('line')
-const chartWrapRef = ref(null)
-const chartSvgRef = ref(null)
+interface DatasetPunto {
+  key: string
+  kwh: number
+  label: string
+}
+
+interface Dataset {
+  proyectoId: string
+  nombre: string
+  color: string
+  points: DatasetPunto[]
+  total: number
+  hidden: boolean
+  sim: RespuestaGeneracionLegacy['simulation'] | null
+  fuente: RespuestaGeneracionLegacy['fuente'] | null
+}
+
+const datasets = ref<Dataset[]>([])
+const tipoGrafico = ref<'line' | 'bar'>('line')
+const chartWrapRef = ref<HTMLElement | null>(null)
+const chartSvgRef = ref<SVGSVGElement | null>(null)
 const chartContainerWidth = ref(900)
 
+interface HoverState {
+  idx: number
+  gx: number
+  tipLeft: number
+  tipTop: number
+  flip: boolean
+  label: string
+}
+
 // Hover sobre la gráfica: período (X) + valor kWh (Y) de cada serie bajo el cursor.
-const hover = ref(null)  // { idx, gx, tipLeft, tipTop, flip, label } | null
+const hover = ref<HoverState | null>(null)
 
 // Consulta manual: hasQueried distingue "aún no consultado" de "sin datos";
 // pendiente resalta el botón Consultar cuando hay cambios sin aplicar.
@@ -494,85 +151,123 @@ const pendiente = ref(false)
 
 // Mapa sub_project → nombre comercial (para etiquetar cada serie).
 const nombrePorSub = computed(() => {
-  const m = {}
-  for (const p of proyectos.value) if (p.sub_project) m[p.sub_project] = p.nombre_comercial
+  const m: Record<string, string> = {}
+  for (const p of proyectos.value) if (p.sub_project) m[p.sub_project] = p.nombre_comercial ?? p.sub_project
   return m
 })
 
 // ── Fallas del período (correlación generación ↔ incidencias) ─────────
-const allFallas = ref([])
+const allFallas = ref<Falla[]>([])
 const fallasCargando = ref(false)
 // Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
 // con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
-const qDesde = ref(null)
-const qHasta = ref(null)
-const qNombres = ref([])  // nombres_comerciales consultados
+const qDesde = ref<Date | null>(null)
+const qHasta = ref<Date | null>(null)
+const qNombres = ref<string[]>([]) // nombres_comerciales consultados
 
 // ── Modo de selección + cálculo de fechas ─────────────────────────────
 const modosActuales = computed(() => MODOS[granularidad.value] || [])
 
 const aniosDisponibles = computed(() => {
   const y = new Date().getFullYear()
-  const arr = []
-  for (let a = y; a >= 2019; a--) arr.push({ label: String(a), value: a })
+  const arr: number[] = []
+  for (let a = y; a >= 2019; a--) arr.push(a)
   return arr
 })
 
-function finDeAnioOHoy(y) {
-  const t = new Date(); t.setHours(0, 0, 0, 0)
+function finDeAnioOHoy(y: number): Date {
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
   const last = new Date(y, 11, 31)
   return last > t ? t : last
 }
-function finDeMesOHoy(y, m) { // m 0-based
-  const t = new Date(); t.setHours(0, 0, 0, 0)
+function finDeMesOHoy(y: number, m: number): Date {
+  // m 0-based
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
   const last = new Date(y, m + 1, 0)
   return last > t ? t : last
 }
 
 // Rango del picker único (modo intervalo) para día/hora → [desde, hasta] normalizado.
-function rangoDiasSel() {
-  const r = rango.value || []
-  const a = r[0] ? new Date(r[0]) : new Date(fechaDesde.value)
-  const b = r[1] ? new Date(r[1]) : new Date(r[0] || fechaHasta.value)
-  a.setHours(0, 0, 0, 0); b.setHours(0, 0, 0, 0)
+function rangoDiasSel(): [Date, Date] {
+  const r = rango.value
+  const a = r?.[0] ? new Date(r[0]) : new Date(fechaDesde.value)
+  const b = r?.[1] ? new Date(r[1]) : new Date(r?.[0] || fechaHasta.value)
+  a.setHours(0, 0, 0, 0)
+  b.setHours(0, 0, 0, 0)
   return b < a ? [b, a] : [a, b]
 }
 // Rango del picker único (modo intervalo mensual) → límites de mes.
-function rangoMesesSel() {
-  const r = rango.value || []
-  const a0 = r[0] ? new Date(r[0]) : new Date(fechaDesde.value)
-  const b0 = r[1] ? new Date(r[1]) : new Date(r[0] || fechaHasta.value)
-  let a = new Date(a0.getFullYear(), a0.getMonth(), 1)
-  let b = finDeMesOHoy(b0.getFullYear(), b0.getMonth())
-  return b < a ? [new Date(b0.getFullYear(), b0.getMonth(), 1), finDeMesOHoy(a0.getFullYear(), a0.getMonth())] : [a, b]
+function rangoMesesSel(): [Date, Date] {
+  const r = rango.value
+  const a0 = r?.[0] ? new Date(r[0]) : new Date(fechaDesde.value)
+  const b0 = r?.[1] ? new Date(r[1]) : new Date(r?.[0] || fechaHasta.value)
+  const a = new Date(a0.getFullYear(), a0.getMonth(), 1)
+  const b = finDeMesOHoy(b0.getFullYear(), b0.getMonth())
+  return b < a
+    ? [new Date(b0.getFullYear(), b0.getMonth(), 1), finDeMesOHoy(a0.getFullYear(), a0.getMonth())]
+    : [a, b]
 }
 
 // Calcula fechaDesde/fechaHasta a partir de {granularidad, modo, selectores}.
 function recomputarFechas() {
-  const t = new Date(); t.setHours(0, 0, 0, 0)
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
   const y = t.getFullYear()
-  let d = null, h = null
+  let d: Date | null = null
+  let h: Date | null = null
   if (granularidad.value === 'mensual') {
-    if (modo.value === 'actual') { d = new Date(y, 0, 1); h = finDeAnioOHoy(y) }
-    else if (modo.value === 'pasado') { d = new Date(y - 1, 0, 1); h = new Date(y - 1, 11, 31) }
-    else if (modo.value === 'anio') { const yy = anioSel.value || y; d = new Date(yy, 0, 1); h = finDeAnioOHoy(yy) }
-    else { [d, h] = rangoMesesSel() }
+    if (modo.value === 'actual') {
+      d = new Date(y, 0, 1)
+      h = finDeAnioOHoy(y)
+    } else if (modo.value === 'pasado') {
+      d = new Date(y - 1, 0, 1)
+      h = new Date(y - 1, 11, 31)
+    } else if (modo.value === 'anio') {
+      const yy = anioSel.value || y
+      d = new Date(yy, 0, 1)
+      h = finDeAnioOHoy(yy)
+    } else {
+      ;[d, h] = rangoMesesSel()
+    }
   } else if (granularidad.value === 'diaria') {
-    if (modo.value === 'actual') { d = new Date(y, t.getMonth(), 1); h = new Date(t) }
-    else if (modo.value === 'mes') { const m = mesSel.value || t; d = new Date(m.getFullYear(), m.getMonth(), 1); h = finDeMesOHoy(m.getFullYear(), m.getMonth()) }
-    else { [d, h] = rangoDiasSel() }
-  } else { // horaria
-    if (modo.value === 'ayer') { const ay = new Date(t); ay.setDate(ay.getDate() - 1); d = ay; h = new Date(ay) }
-    else if (modo.value === 'dia') { const dd = new Date(diaSel.value || t); dd.setHours(0, 0, 0, 0); d = dd; h = new Date(dd) }
-    else { [d, h] = rangoDiasSel() }
+    if (modo.value === 'actual') {
+      d = new Date(y, t.getMonth(), 1)
+      h = new Date(t)
+    } else if (modo.value === 'mes') {
+      const m = mesSel.value || t
+      d = new Date(m.getFullYear(), m.getMonth(), 1)
+      h = finDeMesOHoy(m.getFullYear(), m.getMonth())
+    } else {
+      ;[d, h] = rangoDiasSel()
+    }
+  } else {
+    // horaria
+    if (modo.value === 'ayer') {
+      const ay = new Date(t)
+      ay.setDate(ay.getDate() - 1)
+      d = ay
+      h = new Date(ay)
+    } else if (modo.value === 'dia') {
+      const dd = new Date(diaSel.value || t)
+      dd.setHours(0, 0, 0, 0)
+      d = dd
+      h = new Date(dd)
+    } else {
+      ;[d, h] = rangoDiasSel()
+    }
   }
   if (d) fechaDesde.value = d
   if (h) fechaHasta.value = h
 }
 
-function aplicarModo() { recomputarFechas(); marcarPendiente() }
+function aplicarModo() {
+  recomputarFechas()
+  marcarPendiente()
+}
 
-function onGranularidadChange(g) {
+function onGranularidadChange(g: Granularidad) {
   if (g === granularidad.value) return
   granularidad.value = g
   modo.value = MODO_DEFAULT[g]
@@ -580,7 +275,7 @@ function onGranularidadChange(g) {
   marcarPendiente()
 }
 
-function onModoChange(m) {
+function onModoChange(m: string) {
   if (m === modo.value) return
   modo.value = m
   // Al entrar a "intervalo", precarga el picker de rango con el rango vigente.
@@ -598,7 +293,9 @@ function verEsteAnioMensual() {
 }
 
 // Marca que hay filtros sin aplicar (resalta el botón Consultar).
-function marcarPendiente() { pendiente.value = true }
+function marcarPendiente() {
+  pendiente.value = true
+}
 
 // Cambio en la selección de proyectos: si se vacía, limpia resultados.
 function onProyectosChange() {
@@ -610,10 +307,74 @@ function onProyectosChange() {
   }
 }
 
+function toggleProyecto(sub: string) {
+  proyectosSel.value = proyectosSel.value.includes(sub)
+    ? proyectosSel.value.filter((s) => s !== sub)
+    : [...proyectosSel.value, sub]
+  onProyectosChange()
+}
+
+// ── Adaptadores para <input type="month"|"date"> (sin librería de fechas) ──
+function toMonthInput(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+function fromMonthInput(v: string): Date {
+  const [y, m] = v.split('-').map(Number)
+  return new Date(y!, m! - 1, 1)
+}
+function fromDateInput(v: string): Date {
+  const [y, m, d] = v.split('-').map(Number)
+  return new Date(y!, m! - 1, d!)
+}
+
+const mesSelInput = computed<string>({
+  get: () => toMonthInput(mesSel.value),
+  set: (v) => {
+    if (!v) return
+    mesSel.value = fromMonthInput(v)
+    aplicarModo()
+  },
+})
+const diaSelInput = computed<string>({
+  get: () => isoDate(diaSel.value),
+  set: (v) => {
+    if (!v) return
+    diaSel.value = fromDateInput(v)
+    aplicarModo()
+  },
+})
+
+// El rango comparte un solo picker "desde/hasta" para las tres granularidades:
+// mensual usa <input type="month">, diaria/horaria usan <input type="date">.
+const rangoEsMensual = computed(() => granularidad.value === 'mensual')
+
+const rangoDesdeInput = computed<string>({
+  get: () => {
+    const d = rango.value?.[0] ?? fechaDesde.value
+    return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
+  },
+  set: (v) => setRango(0, v),
+})
+const rangoHastaInput = computed<string>({
+  get: () => {
+    const d = rango.value?.[1] ?? rango.value?.[0] ?? fechaHasta.value
+    return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
+  },
+  set: (v) => setRango(1, v),
+})
+function setRango(idx: 0 | 1, v: string) {
+  if (!v) return
+  const d = rangoEsMensual.value ? fromMonthInput(v) : fromDateInput(v)
+  const current: [Date, Date] = rango.value ? [...rango.value] : [d, d]
+  current[idx] = d
+  rango.value = current
+  aplicarModo()
+}
+
 // ── Validación (sin límites de tamaño: sólo coherencia) ───────────────
 const rangoDias = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 0
-  return Math.max(0, Math.ceil((fechaHasta.value - fechaDesde.value) / 86400000) + 1)
+  return Math.max(0, Math.ceil((fechaHasta.value.getTime() - fechaDesde.value.getTime()) / 86400000) + 1)
 })
 const rangoError = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 'Selecciona un rango'
@@ -624,23 +385,27 @@ const rangoError = computed(() => {
 const avisoRango = computed(() =>
   granularidad.value === 'horaria' && rangoDias.value > 31
     ? 'Rango horario amplio: la API puede truncar lecturas muy extensas.'
-    : null
+    : null,
 )
 
 // Etiqueta legible del rango resuelto (feedback claro de qué se va a consultar).
 const rangoLabel = computed(() => {
-  const d = fechaDesde.value, h = fechaHasta.value
+  const d = fechaDesde.value
+  const h = fechaHasta.value
   if (!d || !h) return ''
-  if (granularidad.value === 'mensual')
+  if (granularidad.value === 'mensual') {
     return `${MESES_ES[d.getMonth()]} ${d.getFullYear()} → ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`
-  const f = x => `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()].toLowerCase()} ${x.getFullYear()}`
+  }
+  const f = (x: Date) => `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()]!.toLowerCase()} ${x.getFullYear()}`
   if (d.getTime() === h.getTime()) return f(d)
   return `${f(d)} → ${f(h)}`
 })
 
 // ── Período label helper ─────────────────────────────────────────────
-const unidadPeriodo = computed(() => ({ mensual: 'mes', diaria: 'día', horaria: 'hora' }[granularidad.value]))
-const unidadPeriodoPlural = computed(() => ({ mensual: 'meses', diaria: 'días', horaria: 'horas' }[granularidad.value]))
+const unidadPeriodo = computed(() => ({ mensual: 'mes', diaria: 'día', horaria: 'hora' })[granularidad.value])
+const unidadPeriodoPlural = computed(
+  () => ({ mensual: 'meses', diaria: 'días', horaria: 'horas' })[granularidad.value],
+)
 
 // ── Carga (datos EN VIVO de la API de Unergy vía /monitoreo/_legacy) ──────
 // La generación NO vive en la tabla local; se consulta a api.unergy.io con el
@@ -654,7 +419,7 @@ async function cargar() {
   // Snapshot del query → el panel de fallas se alinea con lo que muestra la gráfica.
   qDesde.value = new Date(fechaDesde.value)
   qHasta.value = new Date(fechaHasta.value)
-  qNombres.value = proyectosSel.value.map(sub => nombrePorSub.value[sub]).filter(Boolean)
+  qNombres.value = proyectosSel.value.map((sub) => nombrePorSub.value[sub]).filter((n): n is string => Boolean(n))
   try {
     const fInicio = isoDate(fechaDesde.value)
     const fFin = isoDate(fechaHasta.value)
@@ -666,34 +431,36 @@ async function cargar() {
     // Una llamada por proyecto: getGeneration trae lecturas en vivo de Unergy.
     // Endpoint real: /api/v1/monitoreo/_legacy (baseURL del cliente ya es /api/v1).
     const results = await Promise.allSettled(
-      proyectosSel.value.map(sub =>
+      proyectosSel.value.map((sub) =>
         monitoreoLegacyService
           .obtenerGeneracion({ sub_project: sub, date_from: fInicio, date_to: fFin })
-          .then(body => ({ sub, body }))
-      )
+          .then((body) => ({ sub, body })),
+      ),
     )
 
-    const parsed = []
-    const errores = []
+    const parsed: { sub: string; nombre: string; map: Map<string, number>; sim: Dataset['sim']; fuente: Dataset['fuente'] }[] = []
+    const errores: string[] = []
     results.forEach((r, idx) => {
-      const sub = proyectosSel.value[idx]
+      const sub = proyectosSel.value[idx]!
       const nombre = nombrePorSub.value[sub] || sub
       if (r.status !== 'fulfilled') {
-        const reason = r.reason
+        const reason = r.reason as { data?: { detail?: string }; message?: string }
         const msg = reason?.data?.detail || reason?.message || 'error de conexión'
         errores.push(`${nombre}: ${msg}`)
         return
       }
       const body = r.value.body
       if (body && body.ok === false) {
-        errores.push(`${nombre}: ${body.error || 'la API de Unergy no devolvió datos'}`)
+        errores.push(`${nombre}: ${(body as { error?: string }).error || 'la API de Unergy no devolvió datos'}`)
         return
       }
       const raw = Array.isArray(body?.data) ? body.data : []
       // `simulation` viene desde siempre y esta vista la tiraba: la curva se
       // dibujaba sin nada contra que compararla.
       parsed.push({
-        sub, nombre, map: sumarPorGranularidad(raw),
+        sub,
+        nombre,
+        map: sumarPorGranularidad(raw),
         sim: body?.simulation ?? null,
         fuente: body?.fuente ?? null,
       })
@@ -701,9 +468,7 @@ async function cargar() {
 
     // Si TODAS fallaron, es un fallo real: mostrarlo (no "sin datos").
     if (!parsed.length && errores.length) {
-      error.value = errores.length === 1
-        ? errores[0]
-        : `No se pudo consultar ningún proyecto. ${errores[0]}`
+      error.value = errores.length === 1 ? errores[0]! : `No se pudo consultar ningún proyecto. ${errores[0]}`
       datasets.value = []
       return
     }
@@ -714,14 +479,24 @@ async function cargar() {
     // Eje común continuo → todas las series quedan alineadas en chart y tabla.
     const keys = construirEjeKeys()
     const ds = parsed.map((p, idx) => {
-      const points = keys.map(k => ({ key: k, kwh: p.map.get(k) ?? 0, label: labelDeClave(k) }))
+      const points = keys.map((k) => ({ key: k, kwh: p.map.get(k) ?? 0, label: labelDeClave(k) }))
       const total = points.reduce((s, pt) => s + pt.kwh, 0)
-      return { proyectoId: p.sub, nombre: p.nombre, color: PALETTE[idx % PALETTE.length], points, total, hidden: false, sim: p.sim, fuente: p.fuente }
+      return {
+        proyectoId: p.sub,
+        nombre: p.nombre,
+        color: PALETTE[idx % PALETTE.length]!,
+        points,
+        total,
+        hidden: false,
+        sim: p.sim,
+        fuente: p.fuente,
+      }
     })
     ds.sort((a, b) => b.total - a.total)
     datasets.value = ds
   } catch (e) {
-    error.value = e.data?.detail || e.message || 'Error de conexión'
+    const err = e as { data?: { detail?: string }; message?: string }
+    error.value = err.data?.detail || err.message || 'Error de conexión'
   } finally {
     loading.value = false
   }
@@ -729,17 +504,17 @@ async function cargar() {
 
 // ── Agregación por granularidad ───────────────────────────────────────
 // raw: [{ time: 'YYYY-MM-DD HH:MM', date: 'YYYY-MM-DD', kwh: number }] (deltas por intervalo)
-function sumarPorGranularidad(raw) {
-  const map = new Map()
+function sumarPorGranularidad(raw: RespuestaGeneracionLegacy['data']): Map<string, number> {
+  const map = new Map<string, number>()
   for (const it of raw) {
     if (it == null || it.kwh == null) continue
-    let k = null
-    if (granularidad.value === 'diaria') k = it.date
+    let k: string | null = null
+    if (granularidad.value === 'diaria') k = it.date ?? null
     else if (granularidad.value === 'mensual') k = (it.date || '').slice(0, 7)
     else {
       // horaria: agrupa por hora real usando el timestamp de la lectura
       const t = it.time || ''
-      k = t.length >= 13 ? `${t.slice(0, 10)} ${t.slice(11, 13)}:00` : (it.date ? `${it.date} 00:00` : null)
+      k = t.length >= 13 ? `${t.slice(0, 10)} ${t.slice(11, 13)}:00` : it.date ? `${it.date} 00:00` : null
     }
     if (!k) continue
     map.set(k, (map.get(k) || 0) + Number(it.kwh))
@@ -748,21 +523,30 @@ function sumarPorGranularidad(raw) {
 }
 
 // Eje continuo de períodos en el rango seleccionado (alinea todas las series).
-function construirEjeKeys() {
-  const keys = []
+function construirEjeKeys(): string[] {
+  const keys: string[] = []
   if (!fechaDesde.value || !fechaHasta.value) return keys
-  const start = new Date(fechaDesde.value); start.setHours(0, 0, 0, 0)
-  const end = new Date(fechaHasta.value); end.setHours(0, 0, 0, 0)
+  const start = new Date(fechaDesde.value)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(fechaHasta.value)
+  end.setHours(0, 0, 0, 0)
   if (granularidad.value === 'diaria') {
     const cur = new Date(start)
-    while (cur <= end) { keys.push(isoDate(cur)); cur.setDate(cur.getDate() + 1) }
+    while (cur <= end) {
+      keys.push(isoDate(cur))
+      cur.setDate(cur.getDate() + 1)
+    }
   } else if (granularidad.value === 'mensual') {
     const cur = new Date(start.getFullYear(), start.getMonth(), 1)
     const last = new Date(end.getFullYear(), end.getMonth(), 1)
-    while (cur <= last) { keys.push(isoDate(cur).slice(0, 7)); cur.setMonth(cur.getMonth() + 1) }
+    while (cur <= last) {
+      keys.push(isoDate(cur).slice(0, 7))
+      cur.setMonth(cur.getMonth() + 1)
+    }
   } else {
     const cur = new Date(start)
-    const endH = new Date(end); endH.setHours(23, 0, 0, 0)
+    const endH = new Date(end)
+    endH.setHours(23, 0, 0, 0)
     while (cur <= endH) {
       keys.push(`${isoDate(cur)} ${String(cur.getHours()).padStart(2, '0')}:00`)
       cur.setHours(cur.getHours() + 1)
@@ -771,23 +555,23 @@ function construirEjeKeys() {
   return keys
 }
 
-function labelDeClave(k) {
+function labelDeClave(k: string): string {
   if (granularidad.value === 'mensual') return mesLabel(k)
   if (granularidad.value === 'horaria') return `${k.slice(8, 10)}/${k.slice(5, 7)} ${k.slice(11)}`
   return diaLabel(k)
 }
 
-function mesLabel(yyyymm) {
+function mesLabel(yyyymm: string): string {
   const [y, m] = yyyymm.split('-')
-  return `${MESES_ES[+m - 1]} ${y.slice(2)}`
+  return `${MESES_ES[+m! - 1]} ${y!.slice(2)}`
 }
 
-function diaLabel(yyyymmdd) {
-  const [y, m, d] = yyyymmdd.split('-')
+function diaLabel(yyyymmdd: string): string {
+  const [, m, d] = yyyymmdd.split('-')
   return `${d}/${m}`
 }
 
-function isoDate(d) {
+function isoDate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -797,12 +581,10 @@ function isoDate(d) {
 // ── Período + chart data ─────────────────────────────────────────────
 const periodos = computed(() => datasets.value[0]?.points || [])
 
-const totalKwh = computed(() =>
-  datasets.value.reduce((s, d) => s + (d.hidden ? 0 : d.total), 0)
-)
+const totalKwh = computed(() => datasets.value.reduce((s, d) => s + (d.hidden ? 0 : d.total), 0))
 
 const topProyecto = computed(() => {
-  const sorted = [...datasets.value].filter(d => !d.hidden).sort((a, b) => b.total - a.total)
+  const sorted = [...datasets.value].filter((d) => !d.hidden).sort((a, b) => b.total - a.total)
   return sorted[0] || null
 })
 
@@ -810,7 +592,8 @@ const tituloGrafico = computed(() => {
   if (!datasets.value.length) return 'Sin datos'
   const d1 = isoDate(fechaDesde.value)
   const d2 = isoDate(fechaHasta.value)
-  return `Generación ${granularidad.value === 'mensual' ? 'mensual' : granularidad.value === 'diaria' ? 'diaria' : 'horaria'} · ${d1} → ${d2}`
+  const etiqueta = granularidad.value === 'mensual' ? 'mensual' : granularidad.value === 'diaria' ? 'diaria' : 'horaria'
+  return `Generación ${etiqueta} · ${d1} → ${d2}`
 })
 
 // ── Chart geometry (SVG) ─────────────────────────────────────────────
@@ -842,19 +625,19 @@ const chartW = computed(() => chartContainerWidth.value)
  * `null` en un periodo --no cero-- cuando ningun proyecto visible tiene curva:
  * un cero se lee como "la meta era no generar nada".
  */
-const metaP90 = computed(() => {
+const metaP90 = computed<(number | null)[]>(() => {
   if (granularidad.value === 'horaria') return []
-  const visibles = datasets.value.filter(d => !d.hidden && d.sim?.curva_p90_kwh)
+  const visibles = datasets.value.filter((d) => !d.hidden && d.sim?.curva_p90_kwh)
   if (!visibles.length) return []
 
-  return periodos.value.map(p => {
+  return periodos.value.map((p) => {
     const [anio, mes] = p.key.split('-').map(Number)
     if (!anio || !mes) return null
     const diasDelMes = new Date(anio, mes, 0).getDate()
     let suma = 0
     let alguno = false
     for (const ds of visibles) {
-      const delMes = Number(ds.sim.curva_p90_kwh[mes - 1])
+      const delMes = Number(ds.sim!.curva_p90_kwh![mes - 1])
       if (!Number.isFinite(delMes) || delMes <= 0) continue
       suma += granularidad.value === 'diaria' ? delMes / diasDelMes : delMes
       alguno = true
@@ -863,7 +646,7 @@ const metaP90 = computed(() => {
   })
 })
 
-const hayMetaP90 = computed(() => metaP90.value.some(v => v != null))
+const hayMetaP90 = computed(() => metaP90.value.some((v) => v != null))
 
 /** La polilinea de la meta, saltando los periodos sin dato. */
 const metaP90Points = computed(() =>
@@ -875,13 +658,17 @@ const metaP90Points = computed(() =>
 
 const maxY = computed(() => {
   let max = 0
-  datasets.value.forEach(d => {
+  datasets.value.forEach((d) => {
     if (d.hidden) return
-    d.points.forEach(p => { if (p.kwh > max) max = p.kwh })
+    d.points.forEach((p) => {
+      if (p.kwh > max) max = p.kwh
+    })
   })
   // La meta entra en la escala: si no, una planta que rinde por debajo deja la
   // linea fuera del grafico y no se ve justo cuando mas importa.
-  metaP90.value.forEach(v => { if (v != null && v > max) max = v })
+  metaP90.value.forEach((v) => {
+    if (v != null && v > max) max = v
+  })
   return max > 0 ? max * 1.08 : 10
 })
 
@@ -891,28 +678,28 @@ const yTicks = computed(() => {
   return [0, step, step * 2, step * 3, max]
 })
 
-function yToPx(y) {
+function yToPx(y: number): number {
   if (maxY.value === 0) return chartH - paddingB
   return paddingT + (1 - y / maxY.value) * (chartH - paddingT - paddingB)
 }
 
-function xToPx(idx) {
+function xToPx(idx: number): number {
   const n = periodos.value.length
   if (n <= 1) return paddingL
   return paddingL + (idx / (n - 1)) * (chartW.value - paddingL - paddingR)
 }
 
-function lineaPoints(ds) {
+function lineaPoints(ds: Dataset): string {
   return ds.points.map((p, i) => `${xToPx(i)},${yToPx(p.kwh)}`).join(' ')
 }
 
-function barX(periodIdx, dsIdx, dsCount) {
+function barX(periodIdx: number, dsIdx: number, dsCount: number): number {
   const slotW = (chartW.value - paddingL - paddingR) / Math.max(1, periodos.value.length)
   const innerW = slotW * 0.7
   const barWidth = innerW / Math.max(1, dsCount)
   return paddingL + slotW * periodIdx + (slotW - innerW) / 2 + barWidth * dsIdx
 }
-function barW(dsCount) {
+function barW(dsCount: number): number {
   const slotW = (chartW.value - paddingL - paddingR) / Math.max(1, periodos.value.length)
   return (slotW * 0.7) / Math.max(1, dsCount)
 }
@@ -922,28 +709,26 @@ const xLabels = computed(() => {
   if (n === 0) return []
   // Show max ~8 labels evenly distributed
   const stride = Math.max(1, Math.ceil(n / 8))
-  const labels = []
+  const labels: { idx: number; label: string }[] = []
   for (let i = 0; i < n; i += stride) {
-    labels.push({ idx: i, label: periodos.value[i].label })
+    labels.push({ idx: i, label: periodos.value[i]!.label })
   }
   // Always show the last one
   if (labels[labels.length - 1]?.idx !== n - 1) {
-    labels.push({ idx: n - 1, label: periodos.value[n - 1].label })
+    labels.push({ idx: n - 1, label: periodos.value[n - 1]!.label })
   }
   return labels
 })
 
-function fmtYTick(v) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M'
-  if (v >= 1_000) return (v / 1_000).toFixed(1) + 'k'
+function fmtYTick(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`
   return v.toFixed(0)
 }
 
 // Separador de miles = espacio (evita confundirlo con la coma decimal), coma decimal.
-function fmtNum(v, maxDecimals = 0) {
-  return (v ?? 0)
-    .toLocaleString('es-CO', { maximumFractionDigits: maxDecimals })
-    .replace(/\./g, ' ')
+function fmtNum(v: number | null | undefined, maxDecimals = 0): string {
+  return (v ?? 0).toLocaleString('es-CO', { maximumFractionDigits: maxDecimals }).replace(/\./g, ' ')
 }
 
 // ── Hover (tooltip de valores X/Y) ───────────────────────────────────
@@ -952,18 +737,21 @@ const hoverSeries = computed(() => {
   if (!hover.value) return []
   const i = hover.value.idx
   return datasets.value
-    .filter(d => !d.hidden)
-    .map(d => ({ proyectoId: d.proyectoId, color: d.color, nombre: d.nombre, kwh: d.points[i]?.kwh ?? 0 }))
+    .filter((d) => !d.hidden)
+    .map((d) => ({ proyectoId: d.proyectoId, color: d.color, nombre: d.nombre, kwh: d.points[i]?.kwh ?? 0 }))
 })
 const hoverTotal = computed(() => hoverSeries.value.reduce((s, d) => s + d.kwh, 0))
 
-function onChartMove(e) {
+function onChartMove(e: MouseEvent) {
   const n = periodos.value.length
-  if (!n || !chartSvgRef.value) { hover.value = null; return }
+  if (!n || !chartSvgRef.value) {
+    hover.value = null
+    return
+  }
   const rect = chartSvgRef.value.getBoundingClientRect()
   if (!rect.width) return
   // mapea pixel del cursor → coordenada X del viewBox (preserveAspectRatio=none ⇒ lineal)
-  const userX = (e.clientX - rect.left) / rect.width * chartW.value
+  const userX = ((e.clientX - rect.left) / rect.width) * chartW.value
   const span = chartW.value - paddingL - paddingR
   let idx = n <= 1 ? 0 : Math.round(((userX - paddingL) / span) * (n - 1))
   idx = Math.max(0, Math.min(n - 1, idx))
@@ -973,14 +761,16 @@ function onChartMove(e) {
   const flip = wrapRect ? tipLeft > wrapRect.width * 0.6 : false
   hover.value = { idx, gx: xToPx(idx), tipLeft, tipTop, flip, label: periodos.value[idx]?.label || '' }
 }
-function onChartLeave() { hover.value = null }
+function onChartLeave() {
+  hover.value = null
+}
 
 // ── Fallas del período + correlación con la gráfica ───────────────────
-function energiaPerdida(f) {
-  const v = f?.kwh_perdidos_estimado
+function energiaPerdida(f: Falla): number {
+  const v = f.kwh_perdidos_estimado
   return v == null ? 0 : Number(v) || 0
 }
-function involucraGeneracion(f) {
+function involucraGeneracion(f: Falla): boolean {
   return energiaPerdida(f) > 0
 }
 
@@ -991,10 +781,10 @@ const fallasDelPeriodo = computed(() => {
   const desde = isoDate(qDesde.value)
   const hasta = isoDate(qHasta.value)
   return allFallas.value
-    .filter(f => {
+    .filter((f) => {
       const fi = (f.fecha_identificacion || '').slice(0, 10)
       if (!fi || fi < desde || fi > hasta) return false
-      return nombres.has(f.proyecto?.nombre_comercial)
+      return nombres.has(f.proyecto?.nombre_comercial ?? '')
     })
     .sort((a, b) => (b.fecha_identificacion || '').localeCompare(a.fecha_identificacion || ''))
 })
@@ -1004,38 +794,39 @@ const kwhPerdidoTotal = computed(() => fallasDelPeriodo.value.reduce((s, f) => s
 
 // Días con fallas que impactan generación → para subrayar en rojo.
 const faultsByDay = computed(() => {
-  const m = {}  // 'YYYY-MM-DD' → { count, kwh }
+  const m: Record<string, { count: number; kwh: number }> = {} // 'YYYY-MM-DD' → { count, kwh }
   for (const f of fallasDelPeriodo.value) {
     if (!involucraGeneracion(f)) continue
     const d = (f.fecha_identificacion || '').slice(0, 10)
     if (!d) continue
     if (!m[d]) m[d] = { count: 0, kwh: 0 }
-    m[d].count++; m[d].kwh += energiaPerdida(f)
+    m[d].count++
+    m[d].kwh += energiaPerdida(f)
   }
   return m
 })
 const flaggedMonths = computed(() => {
-  const s = {}
+  const s: Record<string, { count: number; kwh: number }> = {}
   for (const d in faultsByDay.value) {
     const mk = d.slice(0, 7)
     if (!s[mk]) s[mk] = { count: 0, kwh: 0 }
-    s[mk].count += faultsByDay.value[d].count
-    s[mk].kwh += faultsByDay.value[d].kwh
+    s[mk].count += faultsByDay.value[d]!.count
+    s[mk].kwh += faultsByDay.value[d]!.kwh
   }
   return s
 })
 
 // Info de fallas-generación para la clave de un período del eje (según granularidad).
-function infoFallaPeriodo(key) {
+function infoFallaPeriodo(key: string | undefined): { count: number; kwh: number } | null {
   if (!key) return null
   if (granularidad.value === 'mensual') return flaggedMonths.value[key] || null
   if (granularidad.value === 'horaria') return faultsByDay.value[key.slice(0, 10)] || null
-  return faultsByDay.value[key] || null  // diaria
+  return faultsByDay.value[key] || null // diaria
 }
 
 // Índices de períodos marcados (para los subrayados rojos).
 const periodosFlagged = computed(() =>
-  periodos.value.map((p, i) => (infoFallaPeriodo(p.key) ? i : -1)).filter(i => i >= 0)
+  periodos.value.map((p, i) => (infoFallaPeriodo(p.key) ? i : -1)).filter((i) => i >= 0),
 )
 // Medio ancho del marcador rojo en coordenadas SVG.
 const marcadorHalfW = computed(() => {
@@ -1050,24 +841,32 @@ const hoverFalla = computed(() => {
   return infoFallaPeriodo(periodos.value[hover.value.idx]?.key)
 })
 
-// Helpers visuales de la tabla de fallas.
-function prioPillStyle(codigo) {
-  const c = colorPrioridad(codigo, '#9ca3af')
-  return { background: c + '18', color: c, border: `1px solid ${c}40` }
-}
-function fmtFechaCorta(d) {
+function fmtFechaCorta(d: string | undefined): string {
   if (!d) return '—'
-  return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
-}
-function fallaRowClass(data) {
-  return involucraGeneracion(data) ? 'gen-falla-row--gen' : ''
+  return new Date(`${String(d).slice(0, 10)}T00:00:00`).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+  })
 }
 
-// ── Tabla ────────────────────────────────────────────────────────────
+// ── Tabla de fallas: paginación simple sobre lo ya cargado ────────────
+const fallasPagina = usePagination(10)
+watch(fallasDelPeriodo, (rows) => {
+  fallasPagina.total.value = rows.length
+  fallasPagina.goTo(1)
+})
+const fallasVisibles = computed(() =>
+  fallasDelPeriodo.value.slice(fallasPagina.offset.value, fallasPagina.offset.value + fallasPagina.pageSize.value),
+)
+
+// ── Tabla (detalle para exportar) ─────────────────────────────────────
 const tablaFilas = computed(() => {
   return periodos.value.map((p, i) => {
-    const row = { periodo: p.label, total: 0 }
-    datasets.value.forEach(ds => {
+    const row: { periodo: string; total: number; [proyectoId: string]: string | number } = {
+      periodo: p.label,
+      total: 0,
+    }
+    datasets.value.forEach((ds) => {
       const v = ds.points[i]?.kwh
       if (v != null) {
         row[ds.proyectoId] = v
@@ -1090,10 +889,10 @@ async function exportarExcel() {
       [`Generado: ${new Date().toLocaleString('es-CO')}`],
       [`Granularidad: ${unidadPeriodo.value}`],
       [`Período: ${isoDate(fechaDesde.value)} → ${isoDate(fechaHasta.value)}`],
-      [`Proyectos: ${datasets.value.map(d => d.nombre).join(', ')}`],
+      [`Proyectos: ${datasets.value.map((d) => d.nombre).join(', ')}`],
       [],
       ['Proyecto', 'Total kWh', `Promedio kWh/${unidadPeriodo.value}`],
-      ...datasets.value.map(d => [
+      ...datasets.value.map((d) => [
         d.nombre,
         Number(d.total.toFixed(2)),
         Number((d.total / Math.max(1, d.points.length)).toFixed(2)),
@@ -1104,10 +903,13 @@ async function exportarExcel() {
     XLSX.utils.book_append_sheet(wb, ws1, 'Resumen')
 
     // Hoja 2: Detalle
-    const headers = [unidadPeriodo.value, ...datasets.value.map(d => d.nombre), 'Total']
-    const rows = tablaFilas.value.map(r => {
-      const arr = [r.periodo]
-      datasets.value.forEach(ds => arr.push(r[ds.proyectoId] != null ? Number(r[ds.proyectoId].toFixed(2)) : null))
+    const headers = [unidadPeriodo.value, ...datasets.value.map((d) => d.nombre), 'Total']
+    const rows = tablaFilas.value.map((r) => {
+      const arr: (string | number | null)[] = [r.periodo]
+      datasets.value.forEach((ds) => {
+        const v = r[ds.proyectoId]
+        arr.push(typeof v === 'number' ? Number(v.toFixed(2)) : null)
+      })
       arr.push(Number(r.total.toFixed(2)))
       return arr
     })
@@ -1119,7 +921,7 @@ async function exportarExcel() {
     XLSX.writeFile(wb, filename)
     toast.success('Excel descargado', { description: filename, duration: 2500 })
   } catch (e) {
-    toast.error('Error al exportar', { description: e?.message, duration: 4000 })
+    toast.error('Error al exportar', { description: (e as Error)?.message, duration: 4000 })
   }
 }
 
@@ -1129,15 +931,15 @@ async function exportarExcel() {
 async function cargarProyectos() {
   try {
     const data = await monitoreoLegacyService.obtenerProyectos()
-    const seen = new Set()
+    const seen = new Set<string>()
     proyectos.value = (data?.projects ?? [])
-      .filter(p => {
+      .filter((p) => {
         if (!p.sub_project || seen.has(p.sub_project)) return false
         seen.add(p.sub_project)
         return true
       })
       .sort((a, b) => (a.nombre_comercial || '').localeCompare(b.nombre_comercial || ''))
-  } catch (e) {
+  } catch {
     error.value = 'No se pudieron cargar los proyectos'
   }
 }
@@ -1165,7 +967,7 @@ async function cargarProyectos() {
  * Se llama desde `cargar()`, no al montar: hasta que no se aprieta Consultar no
  * se sabe qué período mirar.
  */
-async function cargarFallas(desde, hasta) {
+async function cargarFallas(desde: string, hasta: string) {
   fallasCargando.value = true
   try {
     const res = await fallasService.listar({
@@ -1174,7 +976,7 @@ async function cargarFallas(desde, hasta) {
       size: 100,
     })
     allFallas.value = res.items ?? []
-  } catch (e) {
+  } catch {
     /* no crítico: la gráfica funciona sin el cruce de fallas */
   } finally {
     fallasCargando.value = false
@@ -1182,13 +984,15 @@ async function cargarFallas(desde, hasta) {
 }
 
 // ── ResizeObserver para chart responsive ─────────────────────────────
-let resizeObserver
+let resizeObserver: ResizeObserver | undefined
 onMounted(async () => {
-  recomputarFechas()   // fija el rango inicial según granularidad/modo por defecto
+  recomputarFechas() // fija el rango inicial según granularidad/modo por defecto
   await cargarProyectos()
   await nextTick()
   if (chartWrapRef.value) {
-    const upd = () => { chartContainerWidth.value = chartWrapRef.value?.clientWidth || 900 }
+    const upd = () => {
+      chartContainerWidth.value = chartWrapRef.value?.clientWidth || 900
+    }
     upd()
     resizeObserver = new ResizeObserver(upd)
     resizeObserver.observe(chartWrapRef.value)
@@ -1200,465 +1004,542 @@ watch(chartWrapRef, (el) => {
 })
 </script>
 
-<style scoped>
-.gen-page {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+<template>
+  <div class="flex flex-col gap-4">
+    <!-- Encabezado -->
+    <div class="flex items-center gap-2.5">
+      <ChartLineIcon class="size-4 text-primary" />
+      <h2 class="text-base font-bold text-foreground">Generación</h2>
+      <span class="hidden text-xs text-muted-foreground sm:inline">
+        · Compara la energía generada por proyecto
+      </span>
+      <div class="ml-auto flex items-center gap-2">
+        <Button variant="outline" size="sm" :disabled="!datasets.length" @click="exportarExcel">
+          <FileSpreadsheetIcon />
+          Excel
+        </Button>
+        <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <RefreshCwIcon v-else />
+          Actualizar
+        </Button>
+      </div>
+    </div>
 
-/* ── Sticky header (title + filters) ───────────────────────────────── */
-.gen-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: #f3f4f6;
-  padding-top: 4px;
-  padding-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-/* Tapa la franja superior (padding 24px del <main>) por la que el contenido
-   se asomaría al hacer scroll. Mismo patrón que Gestión de Fallas. */
-.gen-sticky-header::before {
-  content: "";
-  position: absolute;
-  left: -24px;
-  right: -24px;
-  bottom: 100%;
-  height: 28px;
-  background: #f3f4f6;
-  pointer-events: none;
-}
+    <!-- Filtros -->
+    <Card size="sm">
+      <CardContent class="flex flex-wrap items-center gap-2.5">
+        <ToggleGroup type="single" :model-value="granularidad" variant="outline">
+          <ToggleGroupItem
+            v-for="g in GRANULARIDADES"
+            :key="g.key"
+            :value="g.key"
+            @click="onGranularidadChange(g.key)"
+          >
+            <component :is="g.icon" />
+            {{ g.label }}
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-.gen-titlebar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 6px 12px;
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  min-height: 42px;
-}
+        <ToggleGroup type="single" :model-value="modo" variant="outline">
+          <ToggleGroupItem v-for="m in modosActuales" :key="m.key" :value="m.key" @click="onModoChange(m.key)">
+            {{ m.label }}
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-.gen-filterbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
+        <!-- Selector contextual según granularidad + modo -->
+        <Select
+          v-if="granularidad === 'mensual' && modo === 'anio'"
+          :model-value="String(anioSel)"
+          @update:model-value="(v) => { anioSel = Number(v); aplicarModo() }"
+        >
+          <SelectTrigger class="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="a in aniosDisponibles" :key="a" :value="String(a)">{{ a }}</SelectItem>
+          </SelectContent>
+        </Select>
 
-/* Segmented control (granularity) */
-.gen-segmented {
-  display: inline-flex;
-  background: #f3f1f8;
-  border-radius: 8px;
-  padding: 2px;
-}
-.gen-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-family: inherit;
-}
-.gen-seg-btn:hover:not(:disabled) { color: var(--color-unergy-deep); }
-.gen-seg-btn--active {
-  background: #fff;
-  color: var(--color-unergy-purple);
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.1);
-}
-.gen-seg-btn--disabled { opacity: 0.5; cursor: not-allowed; }
+        <div v-else-if="modo === 'intervalo'" class="flex items-center gap-1.5">
+          <Input v-model="rangoDesdeInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+          <span class="text-muted-foreground">→</span>
+          <Input v-model="rangoHastaInput" :type="rangoEsMensual ? 'month' : 'date'" class="w-auto" />
+        </div>
 
-/* Segmento de "modo" — tono distinto para diferenciarlo de la granularidad */
-.gen-segmented--modo { background: #eef4ff; }
-.gen-segmented--modo .gen-seg-btn--active { color: #2563eb; }
+        <Input
+          v-else-if="granularidad === 'diaria' && modo === 'mes'"
+          v-model="mesSelInput"
+          type="month"
+          class="w-auto"
+        />
 
-/* Etiqueta del rango resuelto */
-.gen-range-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #4a3b6b;
-  background: #faf5ff;
-  border: 1px solid #e9ddff;
-  border-radius: 999px;
-  padding: 3px 10px;
-  white-space: nowrap;
-}
-.gen-range-label svg { font-size: 11px; color: var(--color-unergy-purple); }
+        <Input
+          v-else-if="granularidad === 'horaria' && modo === 'dia'"
+          v-model="diaSelInput"
+          type="date"
+          class="w-auto"
+        />
 
-/* Aviso no bloqueante */
-.gen-aviso {
-  font-size: 11.5px;
-  color: #b45309;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
+        <!-- Etiqueta del rango resuelto -->
+        <Badge variant="secondary">
+          <CalendarClockIcon />
+          {{ rangoLabel }}
+        </Badge>
 
-/* Validation error */
-.gen-err {
-  font-size: 11.5px;
-  color: #dc2626;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
+        <!-- Avisos -->
+        <span v-if="rangoError && rangoError !== 'Selecciona un rango'" class="flex items-center gap-1 text-xs font-medium text-destructive">
+          <CircleAlertIcon class="size-3.5" /> {{ rangoError }}
+        </span>
+        <span v-else-if="avisoRango" class="flex items-center gap-1 text-xs font-medium text-warning">
+          <InfoIcon class="size-3.5" /> {{ avisoRango }}
+        </span>
 
-/* Project picker */
-.gen-project-picker { flex: 1; min-width: 240px; }
-.gen-project-picker :deep(.p-multiselect) { width: 100%; }
+        <!-- Project multi-select -->
+        <Popover v-model:open="proyectosPickerOpen">
+          <PopoverTrigger as-child>
+            <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
+              <span v-if="!proyectosSel.length" class="text-muted-foreground">Selecciona proyectos…</span>
+              <span v-else>{{ proyectosSel.length }} proyecto{{ proyectosSel.length > 1 ? 's' : '' }} seleccionados</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-80 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Buscar proyecto..." />
+              <CommandList>
+                <CommandEmpty>Sin resultados.</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem
+                    v-for="p in proyectos"
+                    :key="p.sub_project"
+                    :value="p.nombre_comercial"
+                    @select="toggleProyecto(p.sub_project)"
+                  >
+                    <CheckIcon :class="proyectosSel.includes(p.sub_project) ? 'opacity-100' : 'opacity-0'" />
+                    <span class="flex-1 truncate">{{ p.nombre_comercial }}</span>
+                    <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
-/* Línea de disponibilidad de datos */
-.gen-datahint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 4px 12px;
-  font-size: 11.5px;
-  color: #6b5a8a;
-}
-.gen-datahint > svg { font-size: 11px; }
-.gen-datahint-btn {
-  border: 1px solid #e9ddff;
-  background: #faf5ff;
-  color: #7c3aed;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-.gen-datahint-btn:hover { background: #f1e8ff; }
+        <!-- Consultar -->
+        <Button
+          :variant="pendiente && proyectosSel.length && !rangoError ? 'default' : 'outline'"
+          :disabled="!proyectosSel.length || !!rangoError"
+          @click="cargar"
+        >
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <SearchIcon v-else />
+          Consultar
+        </Button>
+      </CardContent>
+    </Card>
 
-/* Botón Consultar */
-.gen-consultar { flex-shrink: 0; }
-/* Resalta cuando hay filtros sin aplicar (pendiente de consultar) */
-.gen-consultar--pendiente :deep(.p-button),
-.gen-consultar--pendiente.p-button {
-  animation: gen-pulse 1.6s ease-in-out infinite;
-}
-@keyframes gen-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(145, 91, 216, 0.45); }
-  50%      { box-shadow: 0 0 0 4px rgba(145, 91, 216, 0.18); }
-}
+    <p v-if="proyectos.length" class="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <ZapIcon class="size-3.5" />
+      {{ proyectos.length }} proyectos disponibles · generación en vivo desde la API de Unergy
+    </p>
 
-/* Empty / loading / error states */
-.gen-empty, .gen-loading, .gen-error {
-  background: #fff;
-  border: 1px solid #ece8f4;
-  border-radius: 12px;
-  padding: 48px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.gen-error {
-  flex-direction: row;
-  align-items: flex-start;
-  text-align: left;
-  padding: 18px;
-  gap: 14px;
-}
+    <!-- Estados vacíos -->
+    <Card v-if="!proyectosSel.length">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <InfoIcon class="mb-2 size-8 text-primary" />
+        <p class="text-base font-semibold text-foreground">Selecciona uno o más proyectos para comenzar</p>
+        <p class="text-sm text-muted-foreground">
+          Elige proyectos y un rango, luego presiona <strong>Consultar</strong>.
+        </p>
+      </CardContent>
+    </Card>
 
-/* KPIs */
-.gen-kpis {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (min-width: 768px) {
-  .gen-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-.gen-kpi {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
-.gen-kpi-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.gen-kpi-val { font-size: 20px; font-weight: 800; line-height: 1.1; color: var(--color-unergy-deep); }
-.gen-kpi-lbl { font-size: 11.5px; font-weight: 600; color: #6b5a8a; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    <Card v-else-if="loading">
+      <CardContent class="flex flex-col items-center gap-3 py-12 text-center">
+        <LoaderCircleIcon class="size-8 animate-spin text-primary" />
+        <p class="text-sm text-muted-foreground">Cargando datos de generación…</p>
+      </CardContent>
+    </Card>
 
-/* Card */
-.gen-card {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  overflow: hidden;
-}
-.gen-card-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ece8f4;
-  background: #faf9fc;
-}
-.gen-card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin: 0;
-}
+    <Card v-else-if="error">
+      <CardContent class="flex items-start gap-3">
+        <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
+        <div class="flex-1">
+          <p class="font-semibold text-destructive">No se pudo consultar la generación</p>
+          <p class="mt-0.5 text-sm text-muted-foreground">{{ error }}</p>
+        </div>
+        <Button variant="outline" size="sm" @click="cargar">
+          <RefreshCwIcon />
+          Reintentar
+        </Button>
+      </CardContent>
+    </Card>
 
-/* Chart toggle */
-.gen-toggle-btn {
-  width: 30px; height: 30px;
-  border: 1px solid #ece8f4;
-  background: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #6b5a8a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.gen-toggle-btn--active { background: var(--color-unergy-purple); color: #fff; border-color: var(--color-unergy-purple); }
-.gen-toggle-btn svg { font-size: 12px; }
+    <Card v-else-if="!hasQueried">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <SearchIcon class="mb-2 size-8 text-primary" />
+        <p class="text-base font-semibold text-foreground">Listo para consultar</p>
+        <p class="text-sm text-muted-foreground">Ajusta el rango y la granularidad, luego presiona Consultar.</p>
+        <Button class="mt-3" :disabled="!!rangoError" @click="cargar">
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <SearchIcon v-else />
+          Consultar
+        </Button>
+      </CardContent>
+    </Card>
 
-/* Legend */
-.gen-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ece8f4;
-}
-.gen-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: #faf9fc;
-  border: 1px solid #ece8f4;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-.gen-legend-item:hover { background: #f3f1f8; }
-.gen-legend-item--off { opacity: 0.4; }
-.gen-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
-.gen-legend-item--meta { cursor: default; }
-.gen-fuente-tag {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: #fef3c7;
-  color: #92400e;
-  white-space: nowrap;
-  cursor: help;
-}
-.gen-legend-dash {
-  width: 14px;
-  height: 0;
-  border-top: 2px dashed #f59e0b;
-  flex: none;
-}
-.gen-legend-name { font-weight: 600; color: var(--color-unergy-deep); }
-.gen-legend-total { color: #6b5a8a; font-weight: 500; }
+    <Card v-else-if="!datasets.length || datasets.every((d) => !d.points.length)">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <DatabaseIcon class="mb-2 size-8 text-muted-foreground" />
+        <p class="text-base font-semibold text-foreground">Sin datos para el rango seleccionado</p>
+        <p class="text-sm text-muted-foreground">
+          Los proyectos seleccionados no tienen generación registrada en este intervalo. Prueba con un rango más
+          amplio o fechas anteriores.
+        </p>
+        <Button variant="outline" class="mt-3" @click="verEsteAnioMensual">
+          <CalendarIcon />
+          Ver el año en curso (mensual)
+        </Button>
+      </CardContent>
+    </Card>
 
-/* Chart SVG */
-.gen-chart-wrap {
-  width: 100%;
-  padding: 12px 16px 4px;
-  position: relative;   /* ancla del tooltip de hover */
-}
-.gen-chart-svg {
-  width: 100%;
-  height: 280px;
-  display: block;
-}
+    <!-- Contenido principal -->
+    <template v-else>
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+              <ZapIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-xl font-extrabold text-foreground">{{ fmtNum(totalKwh) }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">kWh totales</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ChartColumnIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-xl font-extrabold text-foreground">
+                {{ fmtNum(totalKwh / Math.max(1, datasets.length) / Math.max(1, periodos.length), 1) }}
+              </div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Promedio kWh / {{ unidadPeriodo }}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+              <TrophyIcon class="size-4" />
+            </div>
+            <div>
+              <div class="truncate text-sm font-extrabold text-foreground">{{ topProyecto?.nombre || '—' }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Mayor generación</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card size="sm">
+          <CardContent class="flex items-center gap-3">
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <CalendarIcon class="size-4" />
+            </div>
+            <div>
+              <div class="text-sm font-extrabold text-foreground">{{ periodos.length }} {{ unidadPeriodoPlural }}</div>
+              <div class="text-xs font-medium text-muted-foreground uppercase">Período cubierto</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-/* Hover: línea guía + tooltip de valores X/Y */
-.gen-hover-line {
-  stroke: var(--color-unergy-purple);
-  stroke-width: 1;
-  stroke-dasharray: 4 3;
-  opacity: 0.75;
-}
-.gen-tooltip {
-  position: absolute;
-  z-index: 5;
-  pointer-events: none;
-  min-width: 150px;
-  max-width: 240px;
-  background: #fff;
-  border: 1px solid #e9ddff;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(28, 18, 50, 0.16);
-  padding: 8px 10px;
-  font-size: 11.5px;
-  transform: translate(12px, -50%);
-}
-.gen-tooltip--flip { transform: translate(calc(-100% - 12px), -50%); }
-.gen-tooltip-x {
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin-bottom: 5px;
-  white-space: nowrap;
-}
-.gen-tooltip-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 0;
-}
-.gen-tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.gen-tooltip-name {
-  color: #6b5a8a;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.gen-tooltip-val { font-weight: 700; color: var(--color-unergy-deep); font-variant-numeric: tabular-nums; }
-.gen-tooltip-total { border-top: 1px solid #f0ebf7; margin-top: 4px; padding-top: 4px; }
-.gen-tooltip-fault {
-  border-top: 1px solid #fde2e2;
-  margin-top: 5px;
-  padding-top: 5px;
-  color: #dc2626;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.gen-tooltip-fault svg { font-size: 11px; }
+      <!-- Gráfica -->
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ tituloGrafico }}</CardTitle>
+          <CardAction>
+            <ToggleGroup type="single" :model-value="tipoGrafico" variant="outline">
+              <ToggleGroupItem value="line" aria-label="Líneas" @click="tipoGrafico = 'line'">
+                <ChartLineIcon />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="bar" aria-label="Barras" @click="tipoGrafico = 'bar'">
+                <ChartColumnIcon />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </CardAction>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-3">
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              v-for="ds in datasets"
+              :key="ds.proyectoId"
+              class="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs transition-opacity hover:bg-muted"
+              :class="ds.hidden ? 'opacity-40' : ''"
+              @click="ds.hidden = !ds.hidden"
+            >
+              <span class="size-2 shrink-0 rounded-full" :style="{ background: ds.color }" />
+              <span class="font-medium text-foreground">{{ ds.nombre }}</span>
+              <Badge v-if="ds.fuente === 'cruda'" variant="outline" :title="TITULO_CRUDA">sin verificar</Badge>
+              <span class="text-muted-foreground">{{ fmtNum(ds.total) }} kWh</span>
+            </button>
+            <!-- No es un boton: la meta no se apaga, es la referencia. -->
+            <span v-if="hayMetaP90" class="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs">
+              <span class="h-0 w-3.5 border-t-2 border-dashed border-warning" />
+              <span class="font-medium text-foreground">
+                Meta P90 ({{ granularidad === 'diaria' ? 'diaria' : 'mensual' }})
+              </span>
+            </span>
+          </div>
 
-/* Marcadores de falla en la gráfica (subrayado rojo del día/período) */
-.gen-fault-underline { stroke: #dc2626; stroke-width: 3; stroke-linecap: round; }
-.gen-fault-vline { stroke: #dc2626; stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.35; }
-.gen-fault-dot { fill: #dc2626; }
+          <!-- SVG chart -->
+          <div ref="chartWrapRef" class="relative w-full">
+            <svg
+              ref="chartSvgRef"
+              :viewBox="`0 0 ${chartW} ${chartH}`"
+              preserveAspectRatio="none"
+              class="block h-70 w-full"
+              @mousemove="onChartMove"
+              @mouseleave="onChartLeave"
+            >
+              <!-- Y grid lines + labels -->
+              <g>
+                <template v-for="(y, i) in yTicks" :key="'y' + i">
+                  <line
+                    :x1="paddingL"
+                    :x2="chartW - paddingR"
+                    :y1="yToPx(y)"
+                    :y2="yToPx(y)"
+                    class="stroke-border"
+                    stroke-dasharray="3 3"
+                  />
+                  <text :x="paddingL - 6" :y="yToPx(y) + 3.5" class="fill-muted-foreground text-[9px]" text-anchor="end">
+                    {{ fmtYTick(y) }}
+                  </text>
+                </template>
+              </g>
+              <!-- X labels -->
+              <g>
+                <text
+                  v-for="(p, i) in xLabels"
+                  :key="'x' + i"
+                  :x="xToPx(p.idx)"
+                  :y="chartH - paddingB / 2 + 4"
+                  class="fill-muted-foreground text-[9px]"
+                  :text-anchor="i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'"
+                >
+                  {{ p.label }}
+                </text>
+              </g>
+              <!-- Line series -->
+              <template v-if="tipoGrafico === 'line'">
+                <g v-for="ds in datasets.filter((d) => !d.hidden)" :key="ds.proyectoId">
+                  <polyline
+                    :points="lineaPoints(ds)"
+                    fill="none"
+                    :stroke="ds.color"
+                    stroke-width="2"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                  />
+                  <circle
+                    v-for="(pt, i) in ds.points"
+                    :key="i"
+                    :cx="xToPx(i)"
+                    :cy="yToPx(pt.kwh)"
+                    r="2.5"
+                    :fill="ds.color"
+                  />
+                </g>
+              </template>
+              <!-- Bar series -->
+              <template v-else>
+                <g v-for="(p, i) in periodos" :key="'b' + i">
+                  <rect
+                    v-for="(ds, j) in datasets.filter((d) => !d.hidden)"
+                    :key="ds.proyectoId"
+                    :x="barX(i, j, datasets.filter((d) => !d.hidden).length)"
+                    :y="yToPx(ds.points[i]?.kwh ?? 0)"
+                    :width="barW(datasets.filter((d) => !d.hidden).length)"
+                    :height="Math.max(0, chartH - paddingB - yToPx(ds.points[i]?.kwh ?? 0))"
+                    :fill="ds.color"
+                    rx="1.5"
+                  />
+                </g>
+              </template>
 
-.gen-chart-svg .gen-grid line {
-  stroke: #ece8f4;
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-.gen-chart-svg .gen-grid text {
-  font-size: 9px;
-  fill: #6b5a8a;
-  text-anchor: end;
-  font-family: inherit;
-}
-.gen-chart-svg .gen-xlabels text {
-  font-size: 9px;
-  fill: #6b5a8a;
-  font-family: inherit;
-}
+              <!-- Meta P90 de la simulación. Punteada y gris: es una referencia,
+                   no una medición, y no debe competir con las series reales. -->
+              <polyline
+                v-if="hayMetaP90"
+                :points="metaP90Points"
+                fill="none"
+                stroke="#f59e0b"
+                stroke-width="2"
+                stroke-dasharray="6 4"
+                stroke-linejoin="round"
+                pointer-events="none"
+              />
 
-/* Table */
-.gen-table :deep(.p-datatable-thead > tr > th) {
-  background: #faf9fc;
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #6b5a8a;
-}
-.gen-table :deep(.p-datatable-tbody > tr > td) {
-  padding: 8px 12px;
-  vertical-align: middle;
-}
-.gen-table :deep(.p-datatable-tbody > tr) { cursor: pointer; }
+              <!-- Fallas con impacto en generación: subrayado rojo del día/período -->
+              <g v-if="periodosFlagged.length" pointer-events="none">
+                <template v-for="i in periodosFlagged" :key="'fl' + i">
+                  <line
+                    :x1="xToPx(i)"
+                    :x2="xToPx(i)"
+                    :y1="paddingT"
+                    :y2="chartH - paddingB"
+                    class="stroke-destructive/35"
+                    stroke-dasharray="2 3"
+                  />
+                  <line
+                    :x1="xToPx(i) - marcadorHalfW"
+                    :x2="xToPx(i) + marcadorHalfW"
+                    :y1="chartH - paddingB + 2.5"
+                    :y2="chartH - paddingB + 2.5"
+                    class="stroke-destructive"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                  <circle :cx="xToPx(i)" :cy="paddingT + 2" r="2.6" class="fill-destructive" />
+                </template>
+              </g>
 
-/* ── Panel de fallas del período ─────────────────────────────────────── */
-.gen-fchip {
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b5a8a;
-  background: #f3f1f8;
-  border: 1px solid #ece8f4;
-  border-radius: 999px;
-  padding: 2px 9px;
-  white-space: nowrap;
-}
-.gen-fchip--red { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
+              <!-- Hover: línea guía vertical + puntos resaltados -->
+              <g v-if="hover" pointer-events="none">
+                <line
+                  :x1="hover.gx"
+                  :x2="hover.gx"
+                  :y1="paddingT"
+                  :y2="chartH - paddingB"
+                  class="stroke-primary/75"
+                  stroke-dasharray="4 3"
+                />
+                <circle
+                  v-for="s in hoverSeries"
+                  :key="'h' + s.proyectoId"
+                  :cx="hover.gx"
+                  :cy="yToPx(s.kwh)"
+                  r="4"
+                  :fill="s.color"
+                  stroke="#fff"
+                  stroke-width="1.5"
+                />
+              </g>
+            </svg>
 
-.gen-fallas-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 32px 20px;
-  color: #6b7280;
-  font-size: 13px;
-  text-align: center;
-}
+            <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
+            <div
+              v-if="hover"
+              class="absolute z-10 min-w-36 max-w-60 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
+              :style="{
+                left: `${hover.tipLeft}px`,
+                top: `${hover.tipTop}px`,
+                transform: hover.flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)',
+              }"
+            >
+              <div class="mb-1 font-bold whitespace-nowrap text-foreground">{{ hover.label }}</div>
+              <div v-for="s in hoverSeries" :key="'t' + s.proyectoId" class="flex items-center gap-1.5 py-px">
+                <span class="size-2 shrink-0 rounded-full" :style="{ background: s.color }" />
+                <span class="flex-1 truncate text-muted-foreground">{{ s.nombre }}</span>
+                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(s.kwh, 1) }} kWh</span>
+              </div>
+              <div v-if="hoverSeries.length > 1" class="mt-1 flex items-center gap-1.5 border-t border-border pt-1">
+                <span class="flex-1 text-muted-foreground">Total</span>
+                <span class="font-bold tabular-nums text-foreground">{{ fmtNum(hoverTotal, 1) }} kWh</span>
+              </div>
+              <div v-if="hoverFalla" class="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5 font-bold text-destructive">
+                <TriangleAlertIcon class="size-3.5" />
+                {{ hoverFalla.count }} falla{{ hoverFalla.count !== 1 ? 's' : '' }} de generación ·
+                {{ fmtNum(hoverFalla.kwh) }} kWh perdidos
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-.gen-falla-stripe { width: 4px; height: 30px; border-radius: 2px; background: #d1d5db; margin: 0 auto; }
-.gen-falla-stripe--gen { background: #dc2626; }
-.gen-falla-row--gen :deep(td) { background: #fff7f7; }
-:deep(.gen-falla-row--gen:hover td) { background: #fdeaea !important; }
+      <!-- Fallas reportadas en el período -->
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <TriangleAlertIcon class="size-4 text-destructive" />
+            Fallas reportadas en el período
+          </CardTitle>
+          <CardAction class="flex flex-wrap items-center gap-1.5">
+            <Badge variant="secondary">{{ fallasDelPeriodo.length }} en total</Badge>
+            <Badge v-if="fallasGenCount" variant="destructive">{{ fallasGenCount }} afectan generación</Badge>
+            <Badge v-if="kwhPerdidoTotal > 0" variant="destructive">{{ fmtNum(kwhPerdidoTotal) }} kWh perdidos</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <div v-if="fallasCargando && !allFallas.length" class="flex flex-col items-center gap-2 py-8 text-sm text-muted-foreground">
+            <LoaderCircleIcon class="size-6 animate-spin" />
+            <p>Cargando fallas…</p>
+          </div>
+          <div v-else-if="!fallasDelPeriodo.length" class="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
+            <CircleCheckIcon class="size-6 text-success" />
+            <p>Sin fallas reportadas en este intervalo para los proyectos seleccionados.</p>
+          </div>
+          <div v-else class="flex flex-col gap-3">
+            <div class="overflow-x-auto rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Proyecto</TableHead>
+                    <TableHead>Falla</TableHead>
+                    <TableHead>Prioridad</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Energía perdida</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow
+                    v-for="f in fallasVisibles"
+                    :key="f.id"
+                    class="cursor-pointer"
+                    :class="involucraGeneracion(f) ? 'bg-destructive/5 hover:bg-destructive/10' : ''"
+                    @click="router.push(`/fallas/${f.id}`)"
+                  >
+                    <TableCell class="font-medium whitespace-nowrap">{{ fmtFechaCorta(f.fecha_identificacion) }}</TableCell>
+                    <TableCell>{{ f.proyecto?.nombre_comercial || '—' }}</TableCell>
+                    <TableCell>
+                      <div class="font-medium text-foreground">{{ f.tipo?.etiqueta || 'Sin tipo' }}</div>
+                      <div class="line-clamp-1 max-w-90 text-xs text-muted-foreground">{{ f.descripcion }}</div>
+                    </TableCell>
+                    <TableCell>
+                      <GBadge :color="colorPrioridad(f.prioridad?.codigo)">{{ f.prioridad?.etiqueta || '—' }}</GBadge>
+                    </TableCell>
+                    <TableCell>
+                      <GBadge :color="colorEstado(f.estado?.codigo)">{{ f.estado?.etiqueta || '—' }}</GBadge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge v-if="involucraGeneracion(f)" variant="destructive">
+                        <ZapIcon /> {{ fmtNum(energiaPerdida(f)) }} kWh
+                      </Badge>
+                      <span v-else class="text-muted-foreground">—</span>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
 
-.gen-falla-desc {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  max-width: 360px;
-}
-.gen-prio-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-}
-.gen-energy-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  padding: 2px 8px;
-}
-.gen-energy-badge svg { font-size: 10px; }
-</style>
+            <div v-if="fallasPagina.totalPages.value > 1" class="flex items-center justify-between text-sm">
+              <span class="text-muted-foreground">Página {{ fallasPagina.page.value }} de {{ fallasPagina.totalPages.value }}</span>
+              <div class="flex items-center gap-2">
+                <Button variant="outline" size="sm" :disabled="!fallasPagina.hasPrev.value" @click="fallasPagina.prev()">
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" :disabled="!fallasPagina.hasNext.value" @click="fallasPagina.next()">
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </template>
+  </div>
+</template>
