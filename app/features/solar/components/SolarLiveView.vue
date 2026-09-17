@@ -680,22 +680,6 @@ onUnmounted(() => {
   font-family: 'Sora', system-ui, sans-serif; background: #f3f4f6;
 }
 
-/* ── Tab bar ── */
-.sl-tabbar {
-  display: flex; align-items: center; padding: 10px 24px 0;
-  background: #f3f4f6; border-bottom: 1px solid #e5e7eb; flex-shrink: 0;
-}
-.sl-tabs { display: flex; gap: 2px; }
-.sl-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 16px 9px; border: none; background: transparent; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: #6b5a8a; border-radius: 6px 6px 0 0;
-  font-family: inherit; transition: color 0.15s; border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.sl-tab:hover { color: var(--color-unergy-deep); }
-.sl-tab--active { color: var(--color-unergy-purple); border-bottom-color: var(--color-unergy-purple); }
-.sl-tab svg { font-size: 12px; }
 
 /* ── Live tab content ── */
 .sl-page {
