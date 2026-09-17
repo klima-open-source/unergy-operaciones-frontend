@@ -50,7 +50,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/clientes/components/**',
   'app/features/comercial/components/**',
   'app/features/contratos/components/**',
-  'app/features/dashboard/components/**',
   'app/features/fallas/components/**',
   'app/features/finanzas/components/**',
   'app/features/fronteras/components/**',
