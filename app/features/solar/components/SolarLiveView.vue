@@ -64,19 +64,37 @@
             <RefreshCwIcon v-else />
             Actualizar
           </Button>
-          <div class="sl-auto-wrap">
-            <button class="sl-auto-btn" :class="autoInterval && 'sl-auto-btn--on'" @click="toggleAutoMenu" :title="autoInterval ? `Auto: ${autoLabel}` : 'Auto-actualizar'">
-              <ClockIcon class="size-[1em]" />
-              <span v-if="autoInterval" class="sl-auto-label">{{ autoLabel }}</span>
-              <ChevronDownIcon class="sl-auto-caret size-[1em]" />
-            </button>
-            <div v-if="autoMenuOpen" class="sl-auto-menu">
-              <button class="sl-auto-option" :class="!autoInterval && 'sl-auto-option--active'" @click="setAuto(0)">Desactivado</button>
-              <button v-for="opt in autoOptions" :key="opt.ms" class="sl-auto-option" :class="autoInterval === opt.ms && 'sl-auto-option--active'" @click="setAuto(opt.ms)">
+          <Popover v-model:open="autoMenuOpen">
+            <PopoverTrigger as-child>
+              <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
+                <ClockIcon />
+                <span v-if="autoInterval">{{ autoLabel }}</span>
+                <ChevronDownIcon />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" class="w-44 p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="w-full justify-start"
+                :class="!autoInterval ? 'bg-muted' : ''"
+                @click="setAuto(0)"
+              >
+                Desactivado
+              </Button>
+              <Button
+                v-for="opt in autoOptions"
+                :key="opt.ms"
+                variant="ghost"
+                size="sm"
+                class="w-full justify-start"
+                :class="autoInterval === opt.ms ? 'bg-muted' : ''"
+                @click="setAuto(opt.ms)"
+              >
                 Cada {{ opt.label }}
-              </button>
-            </div>
-          </div>
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </div>
@@ -114,19 +132,20 @@
         <div
           v-show="matchesFiltro(proy)"
           :ref="el => observarTarjeta(el, proy.proyecto_id)"
-          class="sl-project-block"
         >
+        <Card size="sm">
+        <CardContent class="flex flex-col gap-3">
 
           <!-- Nombre + estado -->
-          <div class="sl-project-name">
-            <MenuIcon class="sl-drag-handle size-[1em]" title="Arrastrar para reorganizar" />
-            <span class="sl-status-dot" :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }" />
-            <span class="sl-project-nombre">{{ proy.nombre }}</span>
+          <div class="flex items-center gap-2 text-sm font-extrabold text-foreground">
+            <MenuIcon class="sl-drag-handle size-4 shrink-0 cursor-grab text-muted-foreground/50 hover:text-primary active:cursor-grabbing" title="Arrastrar para reorganizar" />
+            <span class="size-2 shrink-0 rounded-full" :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }" />
+            <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
           </div>
 
           <!-- Cargando detalle -->
-          <div v-if="!detailMap[proy.proyecto_id]" class="sl-detail-loading">
-            <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:14px;color:#6b5a8a" />
+          <div v-if="!detailMap[proy.proyecto_id]" class="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+            <LoaderCircleIcon class="size-3.5 animate-spin" />
             <span>Cargando datos...</span>
           </div>
 
@@ -257,6 +276,8 @@
             </div>
 
           </template>
+        </CardContent>
+        </Card>
         </div>
       </template>
     </draggable>
@@ -386,12 +407,6 @@ function setAuto(ms) {
   localStorage.setItem(AUTO_KEY, String(ms))
   if (refreshTimer) clearInterval(refreshTimer)
   refreshTimer = ms ? setInterval(cargar, ms) : null
-}
-
-function toggleAutoMenu() { autoMenuOpen.value = !autoMenuOpen.value }
-
-function onClickOutside(e) {
-  if (!e.target.closest('.sl-auto-wrap')) autoMenuOpen.value = false
 }
 
 const STATUS_COLORS = {
@@ -653,14 +668,12 @@ onMounted(() => {
   }
   cargar()
   if (autoInterval.value) refreshTimer = setInterval(cargar, autoInterval.value)
-  document.addEventListener('click', onClickOutside)
 })
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
   observador?.disconnect()
   observador = null
   tarjetasVisibles.clear()
-  document.removeEventListener('click', onClickOutside)
 })
 </script>
 
@@ -691,33 +704,11 @@ onUnmounted(() => {
 /* ── Refresh ── */
 .sl-refresh-wrap { display: flex; align-items: center; gap: 6px; }
 
-/* ── Auto-refresh dropdown ── */
-.sl-auto-wrap { position: relative; }
-.sl-auto-btn { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 8px; background: #fff; color: #6b5a8a; border: 1px solid #e5e7eb; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; white-space: nowrap; }
-.sl-auto-btn:hover { background: #f3f1f8; color: var(--color-unergy-deep); }
-.sl-auto-btn--on { background: rgba(145,91,216,0.1); color: #7c3aed; border-color: var(--color-unergy-purple); }
-.sl-auto-label { font-size: 11px; }
-.sl-auto-caret { font-size: 10px; }
-.sl-auto-menu { position: absolute; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; min-width: 140px; overflow: hidden; z-index: 50; box-shadow: 0 8px 24px rgba(28,18,50,0.12); }
-.sl-auto-option { display: block; width: 100%; padding: 9px 14px; background: none; border: none; color: #4a3b6b; font-size: 13px; text-align: left; cursor: pointer; transition: background 0.15s; }
-.sl-auto-option:hover { background: #f3f1f8; }
-.sl-auto-option--active { background: rgba(145,91,216,0.1); color: #7c3aed; font-weight: 600; }
 
 /* ── Estados ── */
 
 /* ── Grid ── */
 .sl-grid { display: grid; gap: 20px; }
-
-/* ── Bloque proyecto ── */
-.sl-project-block { background: #fff; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #ece8f4; box-shadow: 0 1px 3px rgba(28,18,50,0.04); }
-
-/* ── Drag handle ── */
-.sl-drag-handle { font-size: 13px; color: #cbd5e1; cursor: grab; flex-shrink: 0; transition: color 0.15s; }
-.sl-drag-handle:hover { color: var(--color-unergy-purple); }
-.sl-drag-handle:active { cursor: grabbing; }
-
-.sl-project-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--color-unergy-deep); }
-.sl-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
 /* Potencia instantanea del medidor */
 .sl-ahora { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
@@ -726,9 +717,6 @@ onUnmounted(() => {
 .sl-ahora-t { font-size: 10px; color: #9b89b5; }
 .sl-acum-hasta { font-weight: 400; opacity: 0.75; }
 .sl-power-badge { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--color-unergy-purple); background: rgba(145,91,216,0.12); padding: 2px 10px; border-radius: 999px; }
-
-/* ── Loading detalle ── */
-.sl-detail-loading { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #9ca3af; padding: 8px 0; }
 
 /* ── % Diferencia ── */
 .sl-diff-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
@@ -767,8 +755,5 @@ onUnmounted(() => {
 .sl-genhoy-badge--nd  { background: #f1f0f5; color: #9ca3af; }
 .sl-genhoy-track { height: 5px; background: #e9e6f5; border-radius: 999px; overflow: hidden; }
 .sl-genhoy-fill  { height: 100%; border-radius: 999px; transition: width 0.6s ease, background 0.3s; }
-
-/* ── Project name row ── */
-.sl-project-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 </style>
