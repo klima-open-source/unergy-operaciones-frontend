@@ -1,5 +1,5 @@
 /**
- * Forma verificada contra las vistas de `contratos`: `PPAView.vue`,
+ * Forma verificada contra las vistas de `contratos`:
  * `PPAContratoWizard.vue`, `ContratoDetailView.vue`, `ContratosListView.vue`,
  * `ContratoServicioWizard.vue`, `RepresentacionView.vue`, `OperacionView.vue`,
  * `FacturasMantenimiento.vue` y `ServiciosUnificadoView.vue`.

@@ -2,10 +2,11 @@
 /**
  * Redirección: los PPA de una planta se ven en la vista unificada de Servicios.
  *
- * Esta ruta servía `PPAView.vue`, una página puente de la fase 1 de la
- * migración — la que decía "desaparece cuando su página real se escriba". Su
- * reemplazo es la pestaña PPA de `/servicios-unificado`, que muestra los tres
- * grupos de servicio con sus filtros y su exportación.
+ * Esta ruta servía una página puente de la fase 1 de la migración — la que
+ * decía "desaparece cuando su página real se escriba". Su reemplazo es la
+ * pestaña PPA de `/servicios-unificado`, que muestra los tres grupos de
+ * servicio con sus filtros y su exportación. El componente que servía
+ * (`PPAView.vue`) se eliminó al quedar sin ninguna ruta que lo montara.
  *
  * Se conserva la ruta en vez de borrarla porque hay enlaces vivos apuntando
  * acá: `AlertasContratosPPAView.vue` manda a `/proyectos/{id}/ppa` desde las
