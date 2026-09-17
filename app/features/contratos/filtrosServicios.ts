@@ -91,14 +91,34 @@ export function filtrarServicios<T extends Fila>(filas: T[], f: FiltrosServicio)
       if (tiene !== (f.proyecto === ConProyecto.CON)) return false
     }
     if (puesto(f.tipoPlanta) && tipoDePlanta(fila) !== f.tipoPlanta) return false
+    // Pertenencia, no igualdad: filtrar por CGM tiene que encontrar también al
+    // contrato que cubre representación Y CGM.
+    if (puesto(f.tipo) && !subserviciosDe(fila).includes(f.tipo as string)) return false
 
     return (
-      coincide(fila, 'servicio_aplica', f.tipo) &&
       coincide(fila, 'estado', f.estado) &&
       coincide(fila, 'inversionista_nombre', f.inversionista) &&
       coincide(fila, 'portafolio', f.portafolio)
     )
   })
+}
+
+/**
+ * Los subservicios que cubre un contrato.
+ *
+ * El backend manda `subservicios` (una lista) desde la agrupación en tres
+ * grupos. Es lista porque un contrato de Representación y CGM cubre LOS DOS, y
+ * `servicio_aplica` —que admite un solo valor— solo puede nombrar uno: el otro
+ * quedaba invisible para el filtro.
+ *
+ * El respaldo a `servicio_aplica` no es decorativo: lo usan las filas que
+ * todavía no traen el campo nuevo.
+ */
+function subserviciosDe(fila: Fila): string[] {
+  const lista = fila.subservicios
+  if (Array.isArray(lista) && lista.length > 0) return lista as string[]
+  const aplica = fila.servicio_aplica
+  return typeof aplica === 'string' && aplica !== '' ? [aplica] : []
 }
 
 /** El tipo de la planta asociada, o `null` si el contrato quedó huérfano. */

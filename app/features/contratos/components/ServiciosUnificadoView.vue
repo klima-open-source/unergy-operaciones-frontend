@@ -580,14 +580,20 @@
             <span v-else style="color:#9b89b5">—</span>
           </template>
         </Column>
+        <!-- Un chip por subservicio: en Representación y CGM un mismo contrato
+             cubre los dos, y pintar solo `servicio_aplica` ocultaba el CGM. -->
         <Column v-if="tiposDelServicio.length > 1" field="servicio_aplica" header="Tipo"
                 sortable style="width:11%">
           <template #body="{ data }">
-            <span class="mini-chip" :style="{
-              color: TIPO_CONTRATO_COLOR[data.servicio_aplica] || '#6b7280',
-              background: (TIPO_CONTRATO_COLOR[data.servicio_aplica] || '#6b7280') + '1f' }">
-              {{ TIPO_CONTRATO_LABELS[data.servicio_aplica] || data.servicio_aplica || '—' }}
+            <span v-for="sub in subserviciosDeFila(data)" :key="sub" class="mini-chip"
+                  :style="{
+                    color: TIPO_CONTRATO_COLOR[sub] || '#6b7280',
+                    background: (TIPO_CONTRATO_COLOR[sub] || '#6b7280') + '1f',
+                    marginRight: '4px' }">
+              {{ TIPO_CONTRATO_LABELS[sub] || sub }}
             </span>
+            <span v-if="!subserviciosDeFila(data).length" class="mini-chip"
+                  style="color:#6b7280;background:#6b72801f">—</span>
           </template>
         </Column>
         <!-- El inversionista es lo que distingue dos contratos de la misma
@@ -761,6 +767,7 @@ import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { ServiciosService } from '~/features/contratos/services/servicios'
 import { formatearNombre } from '~/utils/nombreFormato'
 import { mensajeDeError } from '~/utils/mensajeDeError'
 import { exportarExcel } from '~/utils/exportarExcel'
@@ -785,6 +792,7 @@ const proyectosService = new ProyectosService()
 const portafoliosService = new PortafoliosService()
 const ppaService = new PpaService()
 const contratosServicioService = new ContratosServicioService()
+const serviciosService = new ServiciosService()
 
 // Los formularios y wizards pesan; sólo se descargan cuando alguien crea algo.
 const ClienteForm = defineAsyncComponent(() => import('~/features/clientes/components/ClienteForm.vue'))
@@ -807,7 +815,9 @@ const VISTAS = [
 
 const SERVICIOS = [
   { key: 'ppa',            label: 'PPA',            icon: ZapIcon,      color: '#f59e0b', bg: '#fffbeb' },
-  { key: 'representacion', label: 'Representación', icon: FilePenIcon, color: '#3b82f6', bg: '#eff6ff' },
+  // La clave sigue siendo `representacion` porque viaja en la URL (`?srv=`);
+  // la etiqueta sí nombra los dos subservicios que la pestaña muestra.
+  { key: 'representacion', label: 'Representación y CGM', icon: FilePenIcon, color: '#3b82f6', bg: '#eff6ff' },
   { key: 'operacion',      label: 'Operación',      icon: ChartColumnIcon, color: '#10b981', bg: '#f0fdf4' },
 ]
 
@@ -821,13 +831,23 @@ const TIPOS_POR_SERVICIO = {
   operacion: ['mantenimiento', 'arriendo', 'internet'],
 }
 
+// La pestana y el grupo del backend NO se llaman igual: `srv=representacion`
+// viaja en la URL desde siempre y renombrarla romperia los links compartidos,
+// mientras que el backend nombra al grupo `representacion_cgm` -- a secas seria
+// ambiguo, porque nombraria al grupo Y a uno de sus subservicios.
+const GRUPO_POR_PESTANA = {
+  ppa: 'ppa',
+  representacion: 'representacion_cgm',
+  operacion: 'operacion',
+}
+
 const TIPO_CONTRATO_LABELS = {
   mantenimiento: 'Mantenimiento', arriendo: 'Arriendo', internet: 'Internet',
-  representacion: 'Representación',
+  representacion: 'Representación', cgm: 'CGM',
 }
 const TIPO_CONTRATO_COLOR = {
   mantenimiento: '#f59e0b', arriendo: '#8b5cf6', internet: '#06b6d4',
-  representacion: '#3b82f6',
+  representacion: '#3b82f6', cgm: '#0ea5e9',
 }
 
 const SERVICIOS_BADGES = [
@@ -1326,6 +1346,21 @@ const contratosServicio = ref([])
 const loadingServicio = ref(false)
 const servicioCargado = ref(null)   // el tipo que hay en memoria
 
+// Catálogo de grupos y subservicios, del backend. Se pide una vez al abrir la
+// vista; mientras no llegue, `tiposDelServicio` cae a la lista local. Un fallo
+// acá NO puede romper la pantalla: lo peor que pasa es que Representación y CGM
+// no ofrezca el filtro por subservicio, que es como se veía antes.
+const catalogoServicios = ref(null)
+
+async function cargarCatalogoServicios() {
+  try {
+    catalogoServicios.value = await serviciosService.catalogo()
+  }
+  catch {
+    catalogoServicios.value = null
+  }
+}
+
 // Representación es el único servicio con columnas propias (proyecto e
 // inversionista en lugar de contratante y prestador), así que la bandera se
 // nombra una vez y la usan el template y los filtros.
@@ -1528,8 +1563,22 @@ async function guardarProyectoContrato() {
 // ── Orquestación: cargar sólo lo que se mira, cachear el resto ──────────────
 const servicioInfo = computed(() => SERVICIOS.find(s => s.key === servicio.value))
 
-// Tipos reales de `servicio_aplica` que alimentan la pestana activa.
-const tiposDelServicio = computed(() => TIPOS_POR_SERVICIO[servicio.value] || [servicio.value])
+// Subservicios que ofrece la pestana activa, en el filtro Tipo y en la columna
+// Tipo. NO es lo mismo que TIPOS_POR_SERVICIO, que es lo que se le PIDE al
+// backend: en Representacion y CGM un solo contrato cubre los dos subservicios
+// (91 de 94 al 2026-09-17) y `servicio_aplica` solo puede nombrar uno, asi que
+// pedir ?tipo=cgm devolveria 0 filas -- el mismo error que ya costo
+// ?tipo=operacion. Sale del catalogo del backend para no mantener la lista dos
+// veces; si el catalogo no cargo todavia, cae a los tipos que se piden.
+const tiposDelServicio = computed(() => {
+  const grupo = catalogoServicios.value?.find(g => g.grupo === GRUPO_POR_PESTANA[servicio.value])
+  return grupo?.subservicios || TIPOS_POR_SERVICIO[servicio.value] || [servicio.value]
+})
+
+/** Los subservicios que cubre una fila; respaldo para las que aun no los traen. */
+function subserviciosDeFila(fila) {
+  return fila?.subservicios?.length ? fila.subservicios : [fila?.servicio_aplica].filter(Boolean)
+}
 
 function asegurarDatos() {
   if (vista.value === 'clientes') { if (!clientesCargados.value) cargarClientes(); return }
@@ -1557,7 +1606,10 @@ function seleccionarServicio(key) {
 // Solo se pide lo de la vista elegida. Entrar sin ?vista= no dispara ninguna
 // peticion: la pagina espera en el selector. Los contadores de cada pestana
 // aparecen a medida que se visitan, no de entrada.
-onMounted(asegurarDatos)
+onMounted(() => {
+  cargarCatalogoServicios()
+  asegurarDatos()
+})
 
 function conteoVista(key) {
   if (key === 'clientes')  return clientesCargados.value  ? clientesFiltrados.value.length  : null

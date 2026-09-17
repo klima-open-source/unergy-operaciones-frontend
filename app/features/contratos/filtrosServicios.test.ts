@@ -290,3 +290,60 @@ describe('depurarFiltros', () => {
     expect(depurarFiltros(sucio, {}).estado).toBe('vigente')
   })
 })
+
+describe('filtrarServicios: subservicios como lista', () => {
+  const repYCgm = {
+    id: 47,
+    servicio_aplica: 'representacion',
+    subservicios: ['representacion', 'cgm'],
+    proyecto_id: 7,
+  }
+  const soloMantenimiento = {
+    id: 48,
+    servicio_aplica: 'mantenimiento',
+    subservicios: ['mantenimiento'],
+    proyecto_id: 7,
+  }
+
+  it('filtrar por CGM encuentra el contrato que cubre representación Y CGM', () => {
+    // Es el caso que antes quedaba invisible: `servicio_aplica` dice
+    // "representacion" y la igualdad exacta lo descartaba.
+    const salida = filtrarServicios([repYCgm, soloMantenimiento], {
+      ...FILTROS_SERVICIO_VACIOS,
+      tipo: 'cgm',
+    })
+    expect(salida.map((f) => f.id)).toEqual([47])
+  })
+
+  it('filtrar por representación también lo encuentra', () => {
+    const salida = filtrarServicios([repYCgm, soloMantenimiento], {
+      ...FILTROS_SERVICIO_VACIOS,
+      tipo: 'representacion',
+    })
+    expect(salida.map((f) => f.id)).toEqual([47])
+  })
+
+  it('no lo encuentra al filtrar por un subservicio que no cubre', () => {
+    const salida = filtrarServicios([repYCgm], {
+      ...FILTROS_SERVICIO_VACIOS,
+      tipo: 'arriendo',
+    })
+    expect(salida).toEqual([])
+  })
+
+  it('una fila sin `subservicios` sigue filtrándose por `servicio_aplica`', () => {
+    // Respaldo para las filas que aún no traen el campo nuevo.
+    const vieja = { id: 49, servicio_aplica: 'internet', proyecto_id: 7 }
+    expect(
+      filtrarServicios([vieja], { ...FILTROS_SERVICIO_VACIOS, tipo: 'internet' }),
+    ).toHaveLength(1)
+    expect(
+      filtrarServicios([vieja], { ...FILTROS_SERVICIO_VACIOS, tipo: 'cgm' }),
+    ).toHaveLength(0)
+  })
+
+  it('sin filtro de tipo, pasan todas', () => {
+    const salida = filtrarServicios([repYCgm, soloMantenimiento], FILTROS_SERVICIO_VACIOS)
+    expect(salida).toHaveLength(2)
+  })
+})
