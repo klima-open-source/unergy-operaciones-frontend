@@ -205,104 +205,106 @@ const genHoyWidth = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-    <div class="flex items-center gap-2 text-sm font-extrabold text-foreground">
-      <GripVerticalIcon
-        class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground/50 hover:text-primary active:cursor-grabbing"
-        aria-label="Arrastrar para reorganizar"
-      />
-      <span class="size-2 shrink-0 rounded-full" :class="statusDotClass" />
-      <span class="min-w-0 flex-1 truncate">{{ proyecto.nombre }}</span>
-    </div>
-
-    <div v-if="!detalle" class="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-      <LoaderCircleIcon class="size-3.5 animate-spin" />
-      Cargando datos...
-    </div>
-
-    <template v-else>
-      <div v-if="diffPct !== null" class="flex items-center gap-2 text-[11px]">
-        <span class="text-muted-foreground">Inversores vs medidor</span>
-        <Badge :variant="Math.abs(diffPct) > 5 ? 'destructive' : 'secondary'" class="font-bold">
-          {{ diffPct > 0 ? '+' : '' }}{{ diffPct }}%
-        </Badge>
+  <Card size="sm">
+    <CardContent class="flex flex-col gap-3">
+      <div class="flex items-center gap-2 text-sm font-extrabold text-foreground">
+        <GripVerticalIcon
+          class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground/50 hover:text-primary active:cursor-grabbing"
+          aria-label="Arrastrar para reorganizar"
+        />
+        <span class="size-2 shrink-0 rounded-full" :class="statusDotClass" />
+        <span class="min-w-0 flex-1 truncate">{{ proyecto.nombre }}</span>
       </div>
 
-      <div class="grid grid-cols-1 gap-3 [@media(min-width:520px)]:grid-cols-2">
-        <SolarChartCard
-          title="Inversores"
-          dot-class="bg-primary"
-          :value="fmtKwh(acumuladoInv)"
-          :value-muted="acumuladoInv === null"
-          :hasta="hastaInv"
-          :hace-cuanto="hastaInv ? haceCuanto(hastaInv) : ''"
-          :chart-data="inversorChartData"
-          :chart-options="inversorChartOptions"
-          empty-label="Sin datos"
-        />
-        <SolarChartCard
-          v-if="detalle.medidor"
-          title="Medidores"
-          dot-class="bg-warning"
-          :badge="medidorTipo"
-          :value="fmtKwh(acumuladoMed)"
-          :value-muted="acumuladoMed === null"
-          :hasta="hastaMed"
-          :hace-cuanto="hastaMed ? haceCuanto(hastaMed) : ''"
-          :chart-data="medidorChartData"
-          :chart-options="medidorChartOptions"
-          empty-label="Sin datos"
-        />
-        <div
-          v-else
-          class="flex h-full min-h-30 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground"
-        >
-          Sin medidor
+      <div v-if="!detalle" class="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+        <LoaderCircleIcon class="size-3.5 animate-spin" />
+        Cargando datos...
+      </div>
+
+      <template v-else>
+        <div v-if="diffPct !== null" class="flex items-center gap-2 text-[11px]">
+          <span class="text-muted-foreground">Inversores vs medidor</span>
+          <Badge :variant="Math.abs(diffPct) > 5 ? 'destructive' : 'secondary'">
+            {{ diffPct > 0 ? '+' : '' }}{{ diffPct }}%
+          </Badge>
         </div>
-      </div>
 
-      <div class="flex flex-col gap-1.5 border-t border-border pt-2">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <span
-            class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-primary uppercase"
+        <div class="grid grid-cols-1 gap-3 [@media(min-width:520px)]:grid-cols-2">
+          <SolarChartCard
+            title="Inversores"
+            dot-class="bg-primary"
+            :value="fmtKwh(acumuladoInv)"
+            :value-muted="acumuladoInv === null"
+            :hasta="hastaInv"
+            :hace-cuanto="hastaInv ? haceCuanto(hastaInv) : ''"
+            :chart-data="inversorChartData"
+            :chart-options="inversorChartOptions"
+            empty-label="Sin datos"
+          />
+          <SolarChartCard
+            v-if="detalle.medidor"
+            title="Medidores"
+            dot-class="bg-warning"
+            :badge="medidorTipo"
+            :value="fmtKwh(acumuladoMed)"
+            :value-muted="acumuladoMed === null"
+            :hasta="hastaMed"
+            :hace-cuanto="hastaMed ? haceCuanto(hastaMed) : ''"
+            :chart-data="medidorChartData"
+            :chart-options="medidorChartOptions"
+            empty-label="Sin datos"
+          />
+          <div
+            v-else
+            class="flex h-full min-h-30 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground"
           >
-            <SunIcon class="size-3" />
-            Generación de hoy
-          </span>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-xs font-bold" :class="genHoyColor"
-              >{{ genHoy.real.toLocaleString('es-CO') }} kWh</span
-            >
-            <span class="text-xs text-muted-foreground"
-              >/ {{ genHoy.p90.toLocaleString('es-CO') }} kWh P90</span
-            >
-            <span v-if="genHoy.pct !== null" class="text-xs font-bold" :class="genHoyColor"
-              >{{ genHoy.pct }}%</span
-            >
-            <Badge
-              v-if="genHoy.fuente === 'inversor'"
-              variant="secondary"
-              title="Dato de inversores"
-              >INV</Badge
-            >
-            <Badge
-              v-else-if="genHoy.fuente === 'medidor'"
-              variant="secondary"
-              title="Dato de medidor de frontera"
-            >
-              MED
-            </Badge>
-            <Badge v-else variant="outline" title="Sin dato disponible">S/D</Badge>
+            Sin medidor
           </div>
         </div>
-        <div class="h-1.5 overflow-hidden rounded-full bg-muted">
-          <div
-            class="h-full rounded-full transition-all duration-500"
-            :class="genHoyFillClass"
-            :style="{ width: genHoyWidth }"
-          />
+
+        <div class="flex flex-col gap-1.5 border-t border-border pt-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span
+              class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-primary uppercase"
+            >
+              <SunIcon class="size-3" />
+              Generación de hoy
+            </span>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-xs font-bold" :class="genHoyColor"
+                >{{ genHoy.real.toLocaleString('es-CO') }} kWh</span
+              >
+              <span class="text-xs text-muted-foreground"
+                >/ {{ genHoy.p90.toLocaleString('es-CO') }} kWh P90</span
+              >
+              <span v-if="genHoy.pct !== null" class="text-xs font-bold" :class="genHoyColor"
+                >{{ genHoy.pct }}%</span
+              >
+              <Badge
+                v-if="genHoy.fuente === 'inversor'"
+                variant="secondary"
+                title="Dato de inversores"
+                >INV</Badge
+              >
+              <Badge
+                v-else-if="genHoy.fuente === 'medidor'"
+                variant="secondary"
+                title="Dato de medidor de frontera"
+              >
+                MED
+              </Badge>
+              <Badge v-else variant="outline" title="Sin dato disponible">S/D</Badge>
+            </div>
+          </div>
+          <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :class="genHoyFillClass"
+              :style="{ width: genHoyWidth }"
+            />
+          </div>
         </div>
-      </div>
-    </template>
-  </div>
+      </template>
+    </CardContent>
+  </Card>
 </template>

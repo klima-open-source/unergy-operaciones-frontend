@@ -37,43 +37,33 @@ const crosshairPlugin: Plugin<'line'> = {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
-    <div class="flex items-center justify-between gap-2">
-      <div
-        class="flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
-      >
+  <Card size="sm">
+    <CardContent class="flex flex-col gap-2">
+      <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <span class="size-2 shrink-0 rounded-full" :class="dotClass" />
         {{ title }}
+        <Badge v-if="badge" variant="outline">{{ badge }}</Badge>
+      </div>
+
+      <div class="flex items-baseline gap-2">
         <span
-          v-if="badge"
-          class="rounded bg-background px-1 py-px text-[9px] font-bold text-muted-foreground"
+          class="text-xl font-bold"
+          :class="valueMuted ? 'text-muted-foreground' : 'text-foreground'"
         >
-          {{ badge }}
+          {{ value }}
+        </span>
+        <span v-if="hasta" class="text-xs text-muted-foreground">
+          hasta {{ hasta }}
+          <template v-if="haceCuanto">· {{ haceCuanto }}</template>
         </span>
       </div>
-    </div>
 
-    <div class="flex items-baseline gap-2">
-      <span
-        class="font-mono text-xl font-bold tabular-nums"
-        :class="valueMuted ? 'text-muted-foreground' : 'text-foreground'"
-      >
-        {{ value }}
-      </span>
-      <span v-if="hasta" class="text-[10px] text-muted-foreground">
-        hasta {{ hasta }}
-        <template v-if="haceCuanto">· {{ haceCuanto }}</template>
-      </span>
-    </div>
-
-    <div v-if="chartData?.labels?.length" class="relative h-[180px]">
-      <Line :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
-    </div>
-    <div
-      v-else
-      class="flex h-[180px] items-center justify-center text-sm font-semibold text-muted-foreground/60"
-    >
-      {{ emptyLabel }}
-    </div>
-  </div>
+      <div v-if="chartData?.labels?.length" class="relative h-[180px]">
+        <Line :data="chartData" :options="chartOptions" :plugins="[crosshairPlugin]" />
+      </div>
+      <div v-else class="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
+        {{ emptyLabel }}
+      </div>
+    </CardContent>
+  </Card>
 </template>

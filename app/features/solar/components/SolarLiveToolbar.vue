@@ -41,17 +41,19 @@ function onAutoChange(value: AcceptableValue) {
 
 <template>
   <div class="flex flex-wrap items-center gap-2.5">
-    <InputGroup class="w-[260px]">
-      <InputGroupAddon>
-        <SearchIcon />
-      </InputGroupAddon>
-      <InputGroupInput v-model="filtro" placeholder="Buscar proyecto..." />
-      <InputGroupAddon v-if="filtro" align="inline-end">
-        <InputGroupButton size="icon-xs" aria-label="Limpiar filtro" @click="filtro = ''">
-          <XIcon />
-        </InputGroupButton>
-      </InputGroupAddon>
-    </InputGroup>
+    <div class="w-64">
+      <InputGroup>
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+        <InputGroupInput v-model="filtro" placeholder="Buscar proyecto..." />
+        <InputGroupAddon v-if="filtro" align="inline-end">
+          <InputGroupButton size="icon-xs" aria-label="Limpiar filtro" @click="filtro = ''">
+            <XIcon />
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+    </div>
 
     <ToggleGroup
       type="single"
@@ -64,7 +66,6 @@ function onAutoChange(value: AcceptableValue) {
         :key="c"
         :value="String(c)"
         :aria-label="`${c} columna${c > 1 ? 's' : ''}`"
-        class="w-9"
       >
         {{ c }}
       </ToggleGroupItem>
@@ -78,11 +79,7 @@ function onAutoChange(value: AcceptableValue) {
 
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
-        <Button
-          variant="outline"
-          size="sm"
-          :class="autoInterval ? 'border-primary/40 bg-primary/5 text-primary' : ''"
-        >
+        <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
           <ClockIcon />
           <span v-if="autoInterval">{{ autoLabel }}</span>
           <ChevronDownIcon />
