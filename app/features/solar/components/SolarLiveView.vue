@@ -2,16 +2,16 @@
   <div class="sl-root">
 
     <!-- ══ TAB BAR ══ -->
-    <div class="sl-tabbar">
-      <div class="sl-tabs">
-        <button :class="['sl-tab', tab === 'live' && 'sl-tab--active']" @click="tab = 'live'">
-          <ZapIcon class="size-[1em]" /> Tiempo Real
-        </button>
-        <button :class="['sl-tab', tab === 'hist' && 'sl-tab--active']" @click="tab = 'hist'">
-          <ChartLineIcon class="size-[1em]" /> Histórico
-        </button>
-      </div>
-    </div>
+    <GTabs :model-value="tab" @update:model-value="(v) => (tab = v)">
+      <GTabsList variant="outline">
+        <GTabsTrigger value="live" variant="outline">
+          <ZapIcon class="size-4" /> Tiempo Real
+        </GTabsTrigger>
+        <GTabsTrigger value="hist" variant="outline">
+          <ChartLineIcon class="size-4" /> Histórico
+        </GTabsTrigger>
+      </GTabsList>
+    </GTabs>
 
     <!-- ══ LIVE TAB ══ -->
     <div v-if="tab === 'live'" class="sl-page">
