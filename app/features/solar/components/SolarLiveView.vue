@@ -66,37 +66,21 @@
               <RefreshCwIcon v-else />
               Actualizar
             </Button>
-            <Popover v-model:open="autoMenuOpen">
-              <PopoverTrigger as-child>
-                <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
-                  <ClockIcon />
-                  <span v-if="autoInterval">{{ autoLabel }}</span>
-                  <ChevronDownIcon />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" class="w-44 p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="w-full justify-start"
-                  :class="!autoInterval ? 'bg-muted' : ''"
-                  @click="setAuto(0)"
-                >
-                  Desactivado
-                </Button>
-                <Button
-                  v-for="opt in autoOptions"
-                  :key="opt.ms"
-                  variant="ghost"
-                  size="sm"
-                  class="w-full justify-start"
-                  :class="autoInterval === opt.ms ? 'bg-muted' : ''"
-                  @click="setAuto(opt.ms)"
-                >
+            <Select
+              :model-value="String(autoInterval)"
+              @update:model-value="(v) => setAuto(Number(v))"
+            >
+              <SelectTrigger size="sm" class="w-36">
+                <ClockIcon />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="0">Desactivado</SelectItem>
+                <SelectItem v-for="opt in autoOptions" :key="opt.ms" :value="String(opt.ms)">
                   Cada {{ opt.label }}
-                </Button>
-              </PopoverContent>
-            </Popover>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -432,7 +416,6 @@ import {
 } from '~/features/solar/serieSolar'
 import {
   ChartLineIcon,
-  ChevronDownIcon,
   ClockIcon,
   LoaderCircleIcon,
   MenuIcon,
@@ -536,11 +519,8 @@ const autoOptions = [
   { ms: 1800000, label: '30 min' },
 ]
 const autoInterval = ref(parseInt(localStorage.getItem(AUTO_KEY) || '0'))
-const autoMenuOpen = ref(false)
-const autoLabel = computed(() => autoOptions.find((o) => o.ms === autoInterval.value)?.label ?? '')
 
 function setAuto(ms) {
-  autoMenuOpen.value = false
   autoInterval.value = ms
   localStorage.setItem(AUTO_KEY, String(ms))
   if (refreshTimer) clearInterval(refreshTimer)
