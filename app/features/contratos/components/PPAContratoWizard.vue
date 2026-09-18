@@ -120,27 +120,13 @@
         <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-gray-50">
           <!-- Comprador -->
           <div class="space-y-3">
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Nombre / Razón social</label>
-              <div class="flex gap-2">
-                <AutoComplete
-                  v-model="form.comprador_nombre"
-                  :suggestions="compradoresFiltrados"
-                  @complete="buscarCliente($event, 'comprador')"
-                  @item-select="seleccionarCliente($event, 'comprador')"
-                  @clear="limpiarParte('comprador')"
-                  placeholder="Buscar cliente existente…"
-                  class="flex-1"
-                  inputClass="w-full"
-                />
-                <Button severity="secondary" outlined size="small" v-tooltip="'Crear nuevo cliente'" @click="abrirNuevoCliente('comprador')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
-                </Button>
-              </div>
-              <div v-if="form.comprador_id" class="flex items-center gap-1 text-xs text-green-600">
-                <LinkIcon class="text-xs size-[1em]" /> Cliente vinculado (id {{ form.comprador_id }})
-              </div>
-            </div>
+            <SelectorCliente
+              v-model:id="form.comprador_id"
+              v-model:nombre="form.comprador_nombre"
+              v-model:nit="form.comprador_nit"
+              label="Nombre / Razón social"
+              requerido
+            />
             <div class="flex flex-col gap-1">
               <label class="field-label">NIT</label>
               <InputText v-model="form.comprador_nit" class="w-full" placeholder="Ej: 900123456-7" />
@@ -148,27 +134,13 @@
           </div>
           <!-- Vendedor -->
           <div class="space-y-3">
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Nombre / Razón social</label>
-              <div class="flex gap-2">
-                <AutoComplete
-                  v-model="form.vendedor_nombre"
-                  :suggestions="vendedoresFiltrados"
-                  @complete="buscarCliente($event, 'vendedor')"
-                  @item-select="seleccionarCliente($event, 'vendedor')"
-                  @clear="limpiarParte('vendedor')"
-                  placeholder="Buscar cliente existente…"
-                  class="flex-1"
-                  inputClass="w-full"
-                />
-                <Button severity="secondary" outlined size="small" v-tooltip="'Crear nuevo cliente'" @click="abrirNuevoCliente('vendedor')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
-                </Button>
-              </div>
-              <div v-if="form.vendedor_id" class="flex items-center gap-1 text-xs text-green-600">
-                <LinkIcon class="text-xs size-[1em]" /> Cliente vinculado (id {{ form.vendedor_id }})
-              </div>
-            </div>
+            <SelectorCliente
+              v-model:id="form.vendedor_id"
+              v-model:nombre="form.vendedor_nombre"
+              v-model:nit="form.vendedor_nit"
+              label="Nombre / Razón social"
+              requerido
+            />
             <div class="flex flex-col gap-1">
               <label class="field-label">NIT</label>
               <InputText v-model="form.vendedor_nit" class="w-full" placeholder="Ej: 900123456-7" />
@@ -176,12 +148,6 @@
           </div>
         </div>
       </template>
-
-      <!-- Dialog nuevo cliente -->
-      <NuevoClienteDialog
-        v-model:visible="showNuevoCliente"
-        @creado="onClienteCreado"
-      />
 
       <!-- ── PASO 2: Condiciones comerciales ───────────────────────────── -->
       <template v-if="step === 2">
@@ -387,10 +353,14 @@
       <span v-else />
       <div class="flex gap-2">
         <Button label="Cancelar" severity="secondary" text @click="$emit('cerrar')" />
-        <Button v-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse" @click="avanzar">
+        <Button v-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse"
+          :disabled="step === 1 && partesPendientes.length > 0"
+          v-tooltip="avisoPartes"
+          @click="avanzar">
           <template #icon><ArrowRightIcon class="size-[1em]" /></template>
         </Button>
-        <Button v-else label="Guardar contrato" :loading="guardando" @click="guardar">
+        <Button v-else label="Guardar contrato" :loading="guardando"
+          :disabled="partesPendientes.length > 0" v-tooltip="avisoPartes" @click="guardar">
           <template #icon><CheckIcon class="size-[1em]" /></template>
         </Button>
       </div>
@@ -399,7 +369,7 @@
 </template>
 
 <script setup>
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, DownloadIcon, LinkIcon, PlusIcon, RefreshCwIcon, XIcon } from '@lucide/vue'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, DownloadIcon, PlusIcon, RefreshCwIcon, XIcon } from '@lucide/vue'
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
 import Dialog from 'primevue/dialog'
@@ -409,19 +379,16 @@ import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import MultiSelect from 'primevue/multiselect'
-import AutoComplete from 'primevue/autocomplete'
 import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
-import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ClientesService } from '~/features/clientes/services/clientes'
 
 const ppaService = new PpaService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
 // ver ~/composables/useProyectosCatalogo.
 const catalogoProyectos = useProyectosCatalogo()
-const clientesService = new ClientesService()
 
 const props = defineProps({
   visible: Boolean,
@@ -486,51 +453,6 @@ const proyectosSeleccionados = ref([])
 const errores = reactive({})
 
 // Clientes registrados
-const todosClientes = ref([])
-const compradoresFiltrados = ref([])
-const vendedoresFiltrados = ref([])
-
-// Dialog nuevo cliente
-const showNuevoCliente = ref(false)
-const nuevoClienteRol = ref('comprador') // 'comprador' | 'vendedor'
-
-function buscarCliente(event, rol) {
-  const q = event.query.toLowerCase()
-  const resultado = todosClientes.value
-    .filter(c => c.razon_social_nombre.toLowerCase().includes(q))
-    .map(c => c.razon_social_nombre)
-  if (rol === 'comprador') compradoresFiltrados.value = resultado
-  else vendedoresFiltrados.value = resultado
-}
-
-function seleccionarCliente(event, rol) {
-  const found = todosClientes.value.find(c => c.razon_social_nombre === event.value)
-  if (!found) return
-  if (rol === 'comprador') {
-    form.comprador_id = found.id
-    form.comprador_nombre = found.razon_social_nombre
-    form.comprador_nit = found.nit_cedula || ''
-  } else {
-    form.vendedor_id = found.id
-    form.vendedor_nombre = found.razon_social_nombre
-    form.vendedor_nit = found.nit_cedula || ''
-  }
-}
-
-function limpiarParte(rol) {
-  if (rol === 'comprador') { form.comprador_id = null; form.comprador_nit = '' }
-  else { form.vendedor_id = null; form.vendedor_nit = '' }
-}
-
-function abrirNuevoCliente(rol) {
-  nuevoClienteRol.value = rol
-  showNuevoCliente.value = true
-}
-
-function onClienteCreado(cliente) {
-  todosClientes.value.push(cliente)
-  seleccionarCliente({ value: cliente.razon_social_nombre }, nuevoClienteRol.value)
-}
 
 // Paste state — tarifas
 const tarifasPaste = ref('')
@@ -685,6 +607,26 @@ function avanzar() {
   step.value++
 }
 
+/**
+ * Las partes que quedaron sin cliente vinculado.
+ *
+ * Un PPA con el nombre escrito a mano no aparece en el panel de ese cliente ni
+ * en sus contratos, y Facturación no sabe a quién cobrarle: por eso bloquea el
+ * guardado en vez de solo avisar.
+ */
+const partesPendientes = computed(() => {
+  const faltan = []
+  if (!form.comprador_id) faltan.push('el comprador')
+  if (!form.vendedor_id) faltan.push('el vendedor')
+  return faltan
+})
+
+const avisoPartes = computed(() =>
+  partesPendientes.value.length
+    ? `Falta vincular ${partesPendientes.value.join(' y ')} a un cliente registrado.`
+    : undefined,
+)
+
 // ── Utils ────────────────────────────────────────────────────────────────────
 
 function formatFecha(v) {
@@ -761,12 +703,9 @@ async function guardar() {
 
 onMounted(async () => {
   try {
-    const [proyectos, clientes] = await Promise.all([
-      catalogoProyectos.cargar(),
-      clientesService.listar({ size: 500 }),
-    ])
-    todosProyectos.value = proyectos
-    todosClientes.value = clientes
+    // Los clientes los pide el catálogo compartido, una vez por pantalla:
+    // ver ~/features/clientes/services/catalogoClientes.
+    todosProyectos.value = await catalogoProyectos.cargar()
   } catch { /* silencioso */ }
   // Aparte: el catálogo de responsables es opcional; si falla, el Select queda
   // vacío pero el wizard sigue sirviendo (no debe tumbar proyectos/clientes).

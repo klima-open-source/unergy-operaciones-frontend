@@ -167,27 +167,13 @@
         <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-gray-50">
           <!-- Contratante -->
           <div class="space-y-3">
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Nombre / Razón social</label>
-              <div class="flex gap-2">
-                <AutoComplete
-                  v-model="form.contratante_nombre"
-                  :suggestions="contratantesFiltrados"
-                  @complete="buscarCliente($event, 'contratante')"
-                  @item-select="seleccionarCliente($event, 'contratante')"
-                  @clear="limpiarParte('contratante')"
-                  placeholder="Buscar cliente existente…"
-                  class="flex-1"
-                  inputClass="w-full"
-                />
-                <Button severity="secondary" outlined size="small" v-tooltip="'Crear nuevo cliente'" @click="abrirNuevoCliente('contratante')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
-                </Button>
-              </div>
-              <div v-if="form.contratante_id" class="flex items-center gap-1 text-xs text-green-600">
-                <LinkIcon class="text-xs size-[1em]" /> Cliente vinculado (id {{ form.contratante_id }})
-              </div>
-            </div>
+            <SelectorCliente
+              v-model:id="form.contratante_id"
+              v-model:nombre="form.contratante_nombre"
+              v-model:nit="form.contratante_nit"
+              label="Nombre / Razón social"
+              requerido
+            />
             <div class="flex flex-col gap-1">
               <label class="field-label">NIT</label>
               <InputText v-model="form.contratante_nit" class="w-full" placeholder="Autocompletado" />
@@ -195,39 +181,19 @@
           </div>
           <!-- Prestador -->
           <div class="space-y-3">
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Nombre / Razón social</label>
-              <div class="flex gap-2">
-                <AutoComplete
-                  v-model="form.prestador_nombre"
-                  :suggestions="prestadoresFiltrados"
-                  @complete="buscarCliente($event, 'prestador')"
-                  @item-select="seleccionarCliente($event, 'prestador')"
-                  @clear="limpiarParte('prestador')"
-                  placeholder="Buscar cliente existente…"
-                  class="flex-1"
-                  inputClass="w-full"
-                />
-                <Button severity="secondary" outlined size="small" v-tooltip="'Crear nuevo cliente'" @click="abrirNuevoCliente('prestador')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
-                </Button>
-              </div>
-              <div v-if="form.prestador_id" class="flex items-center gap-1 text-xs text-green-600">
-                <LinkIcon class="text-xs size-[1em]" /> Cliente vinculado (id {{ form.prestador_id }})
-              </div>
-            </div>
+            <SelectorCliente
+              v-model:id="form.prestador_id"
+              v-model:nombre="form.prestador_nombre"
+              v-model:nit="form.prestador_nit"
+              label="Nombre / Razón social"
+              requerido
+            />
             <div class="flex flex-col gap-1">
               <label class="field-label">NIT</label>
               <InputText v-model="form.prestador_nit" class="w-full" placeholder="Autocompletado" />
             </div>
           </div>
         </div>
-
-        <!-- Dialog nuevo cliente (dentro del mismo dialog) -->
-        <NuevoClienteDialog
-          v-model:visible="showNuevoCliente"
-          @creado="onClienteCreado"
-        />
       </template>
 
       <!-- PASO 2: Términos económicos -->
@@ -437,10 +403,14 @@
         </Button>
         <Button v-else-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse"
           :style="`background:${tipoColor}; border-color:${tipoColor}`"
+          :disabled="step === 1 && partesPendientes.length > 0"
+          v-tooltip="avisoPartes"
           @click="step++">
           <template #icon><ArrowRightIcon class="size-[1em]" /></template>
         </Button>
-        <Button v-else label="Crear contrato" :loading="guardando" :style="`background:${tipoColor}; border-color:${tipoColor}`" @click="guardar">
+        <Button v-else label="Crear contrato" :loading="guardando" :disabled="partesPendientes.length > 0"
+          v-tooltip="avisoPartes"
+          :style="`background:${tipoColor}; border-color:${tipoColor}`" @click="guardar">
           <template #icon><CheckIcon class="size-[1em]" /></template>
         </Button>
       </div>
@@ -457,21 +427,18 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
-import AutoComplete from 'primevue/autocomplete'
 import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
-import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
-import { ClientesService } from '~/features/clientes/services/clientes'
 import { formatCOP } from '~/utils/currency'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, LinkIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
 // ver ~/composables/useProyectosCatalogo.
 const catalogoProyectos = useProyectosCatalogo()
-const clientesService = new ClientesService()
 
 const props = defineProps({
   visible: Boolean,
@@ -483,11 +450,6 @@ const emit = defineEmits(['update:visible', 'cerrar', 'creado'])
 const step = ref(0)
 const guardando = ref(false)
 const todosProyectos = ref([])
-const todosClientes = ref([])
-const contratantesFiltrados = ref([])
-const prestadoresFiltrados = ref([])
-const showNuevoCliente = ref(false)
-const nuevoClienteRol = ref('contratante')
 
 const TIPO_CONFIG = {
   representacion: { label: 'Representación', color: '#3b82f6' },
@@ -655,43 +617,28 @@ onBeforeUnmount(() => {
   ubicacionMap = null
 })
 
-function buscarCliente(event, rol) {
-  const q = (event.query ?? '').toLowerCase()
-  const resultado = todosClientes.value
-    .filter(c => c.razon_social_nombre?.toLowerCase().includes(q))
-    .map(c => c.razon_social_nombre)
-  if (rol === 'contratante') contratantesFiltrados.value = resultado
-  else prestadoresFiltrados.value = resultado
-}
+/**
+ * Las partes que quedaron sin cliente vinculado.
+ *
+ * Guardar con un nombre suelto deja un contrato que nombra a alguien que el
+ * sistema no reconoce: no aparece en el panel del cliente, y los cálculos por
+ * cliente lo dejan por fuera. Por eso bloquea, en vez de avisar.
+ *
+ * Internet no tiene paso de partes.
+ */
+const partesPendientes = computed(() => {
+  if (props.tipo === 'internet') return []
+  const faltan = []
+  if (!form.contratante_id) faltan.push('el contratante')
+  if (!form.prestador_id) faltan.push('el prestador')
+  return faltan
+})
 
-function seleccionarCliente(event, rol) {
-  const found = todosClientes.value.find(c => c.razon_social_nombre === event.value)
-  if (!found) return
-  if (rol === 'contratante') {
-    form.contratante_id = found.id
-    form.contratante_nombre = found.razon_social_nombre
-    form.contratante_nit = found.nit_cedula ?? ''
-  } else {
-    form.prestador_id = found.id
-    form.prestador_nombre = found.razon_social_nombre
-    form.prestador_nit = found.nit_cedula ?? ''
-  }
-}
-
-function limpiarParte(rol) {
-  if (rol === 'contratante') { form.contratante_id = null; form.contratante_nit = '' }
-  else { form.prestador_id = null; form.prestador_nit = '' }
-}
-
-function abrirNuevoCliente(rol) {
-  nuevoClienteRol.value = rol
-  showNuevoCliente.value = true
-}
-
-function onClienteCreado(cliente) {
-  todosClientes.value.push(cliente)
-  seleccionarCliente({ value: cliente.razon_social_nombre }, nuevoClienteRol.value)
-}
+const avisoPartes = computed(() =>
+  partesPendientes.value.length
+    ? `Falta vincular ${partesPendientes.value.join(' y ')} a un cliente registrado.`
+    : undefined,
+)
 
 function formatFecha(v) {
   if (!v) return null
@@ -854,12 +801,9 @@ function finalizarArriendo() {
 }
 
 onMounted(async () => {
-  const [proyectos, clientes] = await Promise.all([
-    catalogoProyectos.cargar(),
-    clientesService.listar({ size: 500 }),
-  ])
-  todosProyectos.value = proyectos
-  todosClientes.value = clientes
+  // Los clientes ya no se piden acá: cada SelectorCliente los toma del catálogo
+  // compartido, que hace UNA petición para toda la pantalla.
+  todosProyectos.value = await catalogoProyectos.cargar()
   if (props.proyectoIdDefault) form.proyecto_id = props.proyectoIdDefault
   if (props.tipo === 'internet') {
     await nextTick()

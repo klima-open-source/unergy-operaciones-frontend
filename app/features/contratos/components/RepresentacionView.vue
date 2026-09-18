@@ -148,7 +148,10 @@
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['numero_contrato', 'inversionista_nombre', 'portafolio',
+                <Button label="Guardar" size="small" :loading="guardando"
+                  :disabled="!form.inversionista_id"
+                  v-tooltip="form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.'"
+                  @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
                                    'codigo_sun_factory', 'nombre_proyecto_ref'])">
                   <template #icon><CheckIcon class="size-[1em]" /></template>
                 </Button>
@@ -175,10 +178,12 @@
                 <label class="cd-lbl">Número de contrato</label>
                 <InputText v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" class="w-full" />
               </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Inversionista</label>
-                <InputText v-model="form.inversionista_nombre" class="w-full" />
-              </div>
+              <SelectorCliente
+                v-model:id="form.inversionista_id"
+                v-model:nombre="form.inversionista_nombre"
+                label="Inversionista"
+                requerido
+              />
               <div class="flex flex-col gap-1">
                 <label class="cd-lbl">Portafolio</label>
                 <InputText v-model="form.portafolio" class="w-full" />
@@ -206,8 +211,11 @@
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['contratante_nombre', 'contratante_nit',
-                                   'prestador_nombre', 'prestador_nit'])">
+                <Button label="Guardar" size="small" :loading="guardando"
+                  :disabled="!form.contratante_id || !form.prestador_id"
+                  v-tooltip="(form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
+                  @click="guardar(['contratante_id', 'contratante_nombre', 'contratante_nit',
+                                   'prestador_id', 'prestador_nombre', 'prestador_nit'])">
                   <template #icon><CheckIcon class="size-[1em]" /></template>
                 </Button>
               </template>
@@ -230,10 +238,13 @@
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="cd-parte space-y-3">
                 <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Contratante</p>
-                <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">Nombre / Razón social</label>
-                  <InputText v-model="form.contratante_nombre" class="w-full" />
-                </div>
+                <SelectorCliente
+                  v-model:id="form.contratante_id"
+                  v-model:nombre="form.contratante_nombre"
+                  v-model:nit="form.contratante_nit"
+                  label="Nombre / Razón social"
+                  requerido
+                />
                 <div class="flex flex-col gap-1">
                   <label class="cd-lbl">NIT</label>
                   <InputText v-model="form.contratante_nit" class="w-full" />
@@ -241,10 +252,13 @@
               </div>
               <div class="cd-parte space-y-3">
                 <p class="cd-parte-rol"><BriefcaseIcon class="size-[1em]" style="font-size:9px" />Prestador</p>
-                <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">Nombre / Razón social</label>
-                  <InputText v-model="form.prestador_nombre" class="w-full" />
-                </div>
+                <SelectorCliente
+                  v-model:id="form.prestador_id"
+                  v-model:nombre="form.prestador_nombre"
+                  v-model:nit="form.prestador_nit"
+                  label="Nombre / Razón social"
+                  requerido
+                />
                 <div class="flex flex-col gap-1">
                   <label class="cd-lbl">NIT</label>
                   <InputText v-model="form.prestador_nit" class="w-full" />
@@ -535,6 +549,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import {
   anioDeFila,
   estadoFilaIndexacion,
@@ -759,12 +774,18 @@ function abrir(seccion) {
   if (!x) return
   Object.assign(form, {
     numero_contrato: x.numero_contrato || '',
+    // Los `*_id` son los que de verdad vinculan la parte con el cliente. Un
+    // contrato viejo llega con el nombre y sin id: el selector lo muestra como
+    // pendiente y no deja guardar hasta resolverlo.
+    inversionista_id: x.inversionista_id ?? null,
     inversionista_nombre: x.inversionista_nombre || '',
     portafolio: x.portafolio || '',
     codigo_sun_factory: x.codigo_sun_factory || '',
     nombre_proyecto_ref: x.nombre_proyecto_ref || '',
+    contratante_id: x.contratante_id ?? null,
     contratante_nombre: x.contratante_nombre || '',
     contratante_nit: x.contratante_nit || '',
+    prestador_id: x.prestador_id ?? null,
     prestador_nombre: x.prestador_nombre || '',
     prestador_nit: x.prestador_nit || '',
     estado: x.estado || 'firmado',
