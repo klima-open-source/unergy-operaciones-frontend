@@ -12,7 +12,7 @@
       <CardContent class="flex flex-col gap-3">
         <!-- Tipo de informe -->
         <div class="flex flex-wrap items-center gap-3.5">
-          <div class="flex items-center gap-1">
+          <ButtonGroup>
             <Button
               v-for="t in TIPOS"
               :key="t.key"
@@ -23,7 +23,7 @@
             >
               <component :is="t.icon" class="size-4" /> {{ t.label }}
             </Button>
-          </div>
+          </ButtonGroup>
 
           <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
             <InfoIcon class="size-3.5 shrink-0" />
@@ -57,47 +57,29 @@
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               {{ tipo === 'fmo' ? 'Proyecto con contrato FMO' : 'Proyecto' }}
             </label>
-            <Popover v-model:open="proyectoPickerOpen">
-              <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
+            <Combobox
+              :model-value="proyectoSel"
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (proyectoSel = v ?? '')"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="(v) => opcionesProyecto.find((o) => o.value === v)?.label ?? ''"
                   :disabled="loadingCatalogos"
-                  class="w-full justify-start font-normal"
-                >
-                  <LoaderCircleIcon v-if="loadingCatalogos" class="animate-spin" />
-                  <span v-else-if="!proyectoSelLabel" class="text-muted-foreground"
-                    >Selecciona un proyecto…</span
-                  >
-                  <span v-else class="truncate">{{ proyectoSelLabel }}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-72 p-0" align="start">
-                <div class="border-b border-border p-2">
-                  <Input v-model="proyectoFiltro" placeholder="Buscar…" />
-                </div>
-                <div class="max-h-72 overflow-y-auto p-1">
-                  <button
-                    v-for="o in proyectosFiltrados"
-                    :key="o.value"
-                    type="button"
-                    class="flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
-                    :class="proyectoSel === o.value ? 'bg-muted font-medium' : ''"
-                    @click="
-                      proyectoSel = o.value;
-                      proyectoPickerOpen = false
-                    "
-                  >
-                    {{ o.label }}
-                  </button>
-                  <p
-                    v-if="!proyectosFiltrados.length"
-                    class="px-2 py-3 text-center text-sm text-muted-foreground"
-                  >
-                    Sin resultados.
-                  </p>
-                </div>
-              </PopoverContent>
-            </Popover>
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona un proyecto…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                  {{ o.label }}
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
           </div>
 
           <!-- Ranking vs P90: alcance (portafolio / proyectos) -->
@@ -105,7 +87,7 @@
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               Alcance
             </label>
-            <div class="flex items-center gap-1">
+            <ButtonGroup>
               <Button
                 type="button"
                 :variant="rankingScope === 'portafolio' ? 'secondary' : 'outline'"
@@ -122,7 +104,7 @@
               >
                 Proyectos
               </Button>
-            </div>
+            </ButtonGroup>
           </div>
 
           <!-- Ranking por proyectos: multiselección -->
@@ -154,7 +136,12 @@
               </PopoverTrigger>
               <PopoverContent class="w-72 p-0" align="start">
                 <div class="border-b border-border p-2">
-                  <Input v-model="proyectosMultiFiltro" placeholder="Buscar…" />
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <SearchIcon />
+                    </InputGroupAddon>
+                    <InputGroupInput v-model="proyectosMultiFiltro" placeholder="Buscar…" />
+                  </InputGroup>
                 </div>
                 <div class="max-h-72 overflow-y-auto p-1">
                   <label
@@ -187,50 +174,32 @@
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               Portafolio / Cliente
             </label>
-            <Popover v-model:open="portafolioPickerOpen">
-              <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
+            <Combobox
+              :model-value="portafolioSel"
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (portafolioSel = v ?? '')"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="(v) => opcionesPortafolio.find((o) => o.value === v)?.label ?? ''"
                   :disabled="loadingCatalogos"
-                  class="w-full justify-start font-normal"
-                >
-                  <LoaderCircleIcon v-if="loadingCatalogos" class="animate-spin" />
-                  <span v-else-if="!portafolioSelLabel" class="text-muted-foreground"
-                    >Selecciona un portafolio…</span
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona un portafolio…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesPortafolio" :key="o.value" :value="o.value">
+                  <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground"
+                    >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
                   >
-                  <span v-else class="truncate">{{ portafolioSelLabel }}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-72 p-0" align="start">
-                <div class="border-b border-border p-2">
-                  <Input v-model="portafolioFiltro" placeholder="Buscar…" />
-                </div>
-                <div class="max-h-72 overflow-y-auto p-1">
-                  <button
-                    v-for="o in portafoliosFiltrados"
-                    :key="o.value"
-                    type="button"
-                    class="flex w-full items-center justify-between gap-3 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
-                    :class="portafolioSel === o.value ? 'bg-muted font-medium' : ''"
-                    @click="
-                      portafolioSel = o.value;
-                      portafolioPickerOpen = false
-                    "
-                  >
-                    <span>{{ o.label }}</span>
-                    <span class="shrink-0 text-xs text-muted-foreground"
-                      >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
-                    >
-                  </button>
-                  <p
-                    v-if="!portafoliosFiltrados.length"
-                    class="px-2 py-3 text-center text-sm text-muted-foreground"
-                  >
-                    Sin resultados.
-                  </p>
-                </div>
-              </PopoverContent>
-            </Popover>
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
           </div>
 
           <!-- Modo de período -->
@@ -238,7 +207,7 @@
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               Período
             </label>
-            <div class="flex items-center gap-1">
+            <ButtonGroup>
               <Button
                 type="button"
                 :variant="periodoMode === 'mes' ? 'secondary' : 'outline'"
@@ -256,7 +225,7 @@
               >
                 Rango
               </Button>
-            </div>
+            </ButtonGroup>
           </div>
 
           <!-- Mes -->
@@ -406,7 +375,7 @@ import { MonitoreoLegacyService } from '~/features/operaciones/services/monitore
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
-import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CheckIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const router = useRouter()
 const informesService = new InformesService()
@@ -484,29 +453,7 @@ const opcionesPortafolio = computed(() => {
     .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
 
-// ── Selectores buscables (Popover + filtro), mismo patrón que GeneracionView ──
-const proyectoPickerOpen = ref(false)
-const proyectoFiltro = ref('')
-const proyectoSelLabel = computed(
-  () => opcionesProyecto.value.find((o) => o.value === proyectoSel.value)?.label ?? '',
-)
-const proyectosFiltrados = computed(() => {
-  const q = proyectoFiltro.value.trim().toLowerCase()
-  if (!q) return opcionesProyecto.value
-  return opcionesProyecto.value.filter((o) => o.label.toLowerCase().includes(q))
-})
-
-const portafolioPickerOpen = ref(false)
-const portafolioFiltro = ref('')
-const portafolioSelLabel = computed(
-  () => opcionesPortafolio.value.find((o) => o.value === portafolioSel.value)?.label ?? '',
-)
-const portafoliosFiltrados = computed(() => {
-  const q = portafolioFiltro.value.trim().toLowerCase()
-  if (!q) return opcionesPortafolio.value
-  return opcionesPortafolio.value.filter((o) => o.label.toLowerCase().includes(q))
-})
-
+// ── Selección múltiple buscable (Popover + Checkbox) ──────────────────────
 const proyectosMultiPickerOpen = ref(false)
 const proyectosMultiFiltro = ref('')
 const proyectosMultiFiltrados = computed(() => {

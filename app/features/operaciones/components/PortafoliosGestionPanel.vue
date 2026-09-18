@@ -15,15 +15,17 @@
         automáticamente.
       </p>
       <div class="flex items-center gap-2">
-        <Input
-          v-model="nuevoNombre"
-          placeholder="Nombre del nuevo portafolio…"
-          class="w-56"
-          @keyup.enter="crear"
-        />
-        <Button :disabled="!nuevoNombre.trim() || creando" @click="crear">
-          <PlusIcon /> Crear capa
-        </Button>
+        <ButtonGroup>
+          <Input
+            v-model="nuevoNombre"
+            placeholder="Nombre del nuevo portafolio…"
+            class="w-56"
+            @keyup.enter="crear"
+          />
+          <Button :disabled="!nuevoNombre.trim() || creando" @click="crear">
+            <PlusIcon /> Crear capa
+          </Button>
+        </ButtonGroup>
         <Button
           variant="outline"
           size="icon"
@@ -103,13 +105,15 @@
               @keyup.enter="renombrar(pt)"
               @keyup.esc="editandoId = null"
             />
-            <CardAction class="flex items-center gap-1">
-              <Button variant="ghost" size="icon-sm" title="Guardar" @click="renombrar(pt)">
-                <CheckIcon />
-              </Button>
-              <Button variant="ghost" size="icon-sm" title="Cancelar" @click="editandoId = null">
-                <XIcon />
-              </Button>
+            <CardAction>
+              <ButtonGroup>
+                <Button variant="ghost" size="icon-sm" title="Guardar" @click="renombrar(pt)">
+                  <CheckIcon />
+                </Button>
+                <Button variant="ghost" size="icon-sm" title="Cancelar" @click="editandoId = null">
+                  <XIcon />
+                </Button>
+              </ButtonGroup>
             </CardAction>
           </template>
           <template v-else>
@@ -119,18 +123,20 @@
             </CardTitle>
             <CardAction class="flex items-center gap-1">
               <Badge variant="secondary">{{ pt.proyectos.length }}</Badge>
-              <Button variant="ghost" size="icon-sm" title="Renombrar" @click="empezarEdicion(pt)">
-                <PencilIcon />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                title="Eliminar capa"
-                class="hover:bg-destructive/10 hover:text-destructive"
-                @click="eliminar(pt)"
-              >
-                <Trash2Icon />
-              </Button>
+              <ButtonGroup>
+                <Button variant="ghost" size="icon-sm" title="Renombrar" @click="empezarEdicion(pt)">
+                  <PencilIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Eliminar capa"
+                  class="hover:bg-destructive/10 hover:text-destructive"
+                  @click="eliminar(pt)"
+                >
+                  <Trash2Icon />
+                </Button>
+              </ButtonGroup>
             </CardAction>
           </template>
         </CardHeader>

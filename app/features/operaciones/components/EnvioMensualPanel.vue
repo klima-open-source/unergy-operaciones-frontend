@@ -27,22 +27,18 @@
 
         <!-- Controles -->
         <div class="em-header-controls">
-          <div class="relative w-48">
-            <SearchIcon
-              class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input v-model="busqueda" placeholder="Buscar…" class="h-8 pl-8" />
-            <button
-              v-if="busqueda"
-              type="button"
-              class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Limpiar"
-              @click="busqueda = ''"
-            >
-              <XIcon class="size-3.5" />
-            </button>
-          </div>
-          <div class="flex items-center gap-1">
+          <InputGroup class="h-8 w-48">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput v-model="busqueda" placeholder="Buscar…" />
+            <InputGroupAddon v-if="busqueda" align="inline-end">
+              <InputGroupButton size="icon-xs" aria-label="Limpiar" @click="busqueda = ''">
+                <XIcon />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+          <ButtonGroup>
             <Button variant="ghost" size="icon-sm" title="Mes anterior" @click="cambiarMes(-1)">
               <ChevronLeftIcon />
             </Button>
@@ -56,7 +52,7 @@
             >
               <ChevronRightIcon />
             </Button>
-          </div>
+          </ButtonGroup>
           <Button variant="ghost" size="icon-sm" :disabled="loading" title="Actualizar" @click="cargar">
             <LoaderCircleIcon v-if="loading" class="animate-spin" />
             <RefreshCwIcon v-else />

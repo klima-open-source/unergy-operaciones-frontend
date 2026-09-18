@@ -26,7 +26,7 @@
         <!-- Fila 1: período -->
         <div class="flex flex-wrap items-center gap-2.5">
           <!-- 1) Granularidad -->
-          <div class="flex items-center gap-1">
+          <ButtonGroup>
             <Button
               v-for="g in GRANULARIDADES"
               :key="g.key"
@@ -38,10 +38,10 @@
               <component :is="g.icon" />
               {{ g.label }}
             </Button>
-          </div>
+          </ButtonGroup>
 
           <!-- 2) Modo -->
-          <div class="flex items-center gap-1">
+          <ButtonGroup>
             <Button
               v-for="m in modosActuales"
               :key="m.key"
@@ -52,7 +52,7 @@
             >
               {{ m.label }}
             </Button>
-          </div>
+          </ButtonGroup>
 
           <!-- 3) Selector contextual según granularidad + modo -->
           <Select
@@ -147,7 +147,12 @@
             </PopoverTrigger>
             <PopoverContent class="w-80 p-0" align="start">
               <div class="border-b border-border p-2">
-                <Input v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
+                <InputGroup>
+                  <InputGroupAddon>
+                    <SearchIcon />
+                  </InputGroupAddon>
+                  <InputGroupInput v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
+                </InputGroup>
               </div>
               <div class="max-h-72 overflow-y-auto p-1">
                 <label
@@ -341,25 +346,27 @@
             <ChartLineIcon class="size-4 text-muted-foreground" />
             {{ tituloGrafico }}
           </CardTitle>
-          <CardAction class="flex items-center gap-1">
-            <Button
-              type="button"
-              :variant="tipoGrafico === 'line' ? 'secondary' : 'outline'"
-              size="icon-sm"
-              aria-label="Líneas"
-              @click="tipoGrafico = 'line'"
-            >
-              <ChartLineIcon />
-            </Button>
-            <Button
-              type="button"
-              :variant="tipoGrafico === 'bar' ? 'secondary' : 'outline'"
-              size="icon-sm"
-              aria-label="Barras"
-              @click="tipoGrafico = 'bar'"
-            >
-              <ChartColumnIcon />
-            </Button>
+          <CardAction>
+            <ButtonGroup>
+              <Button
+                type="button"
+                :variant="tipoGrafico === 'line' ? 'secondary' : 'outline'"
+                size="icon-sm"
+                aria-label="Líneas"
+                @click="tipoGrafico = 'line'"
+              >
+                <ChartLineIcon />
+              </Button>
+              <Button
+                type="button"
+                :variant="tipoGrafico === 'bar' ? 'secondary' : 'outline'"
+                size="icon-sm"
+                aria-label="Barras"
+                @click="tipoGrafico = 'bar'"
+              >
+                <ChartColumnIcon />
+              </Button>
+            </ButtonGroup>
           </CardAction>
         </CardHeader>
         <CardContent class="flex flex-col gap-3">

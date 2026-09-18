@@ -32,25 +32,21 @@
         <!-- ── Barra de acciones ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
           <!-- Filtro por proyecto -->
-          <div class="relative w-64">
-            <SearchIcon
-              class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input v-model="filtro" placeholder="Buscar proyecto..." class="pl-8" />
-            <button
-              v-if="filtro"
-              type="button"
-              class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Limpiar filtro"
-              @click="filtro = ''"
-            >
-              <XIcon class="size-4" />
-            </button>
-          </div>
+          <InputGroup class="w-64">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput v-model="filtro" placeholder="Buscar proyecto..." />
+            <InputGroupAddon v-if="filtro" align="inline-end">
+              <InputGroupButton size="icon-xs" aria-label="Limpiar filtro" @click="filtro = ''">
+                <XIcon />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
 
           <div class="flex items-center gap-2.5">
             <!-- Toggle columnas -->
-            <div class="flex items-center gap-1">
+            <ButtonGroup>
               <Button
                 v-for="c in [1, 2, 4]"
                 :key="c"
@@ -62,9 +58,9 @@
               >
                 <component :is="COLUMNAS_ICONS[c]" class="size-4" />
               </Button>
-            </div>
+            </ButtonGroup>
             <!-- Botón actualizar + auto-refresh -->
-            <div class="flex items-center gap-1.5">
+            <ButtonGroup>
               <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
                 <LoaderCircleIcon v-if="loading" class="animate-spin" />
                 <RefreshCwIcon v-else />
@@ -85,7 +81,7 @@
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
+            </ButtonGroup>
           </div>
         </div>
       </div>
