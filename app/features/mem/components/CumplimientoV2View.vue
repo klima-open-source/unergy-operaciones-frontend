@@ -2252,12 +2252,6 @@
             <!-- 4. GESCON -->
             <div>
               <p class="text-xs font-bold uppercase tracking-widest mb-2" style="color: var(--color-unergy-purple);">GESCON — registros ante el ASIC</p>
-              <div v-if="dcGesconResumen.length" class="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-3 px-3 py-2.5 rounded-lg" style="background: rgba(240,192,64,0.08);">
-                <div v-for="f in dcGesconResumen" :key="f.label">
-                  <div class="text-[10px] font-semibold uppercase tracking-wide" style="color: #9a6700;">{{ f.label }}</div>
-                  <div class="text-sm mt-0.5" style="color: var(--color-unergy-deep);" :class="f.mono ? 'font-mono' : ''">{{ f.value }}</div>
-                </div>
-              </div>
               <div v-if="dcGescon.length" class="overflow-auto rounded-lg border" style="max-height: 280px; border-color: rgba(44,32,57,0.10);">
                 <table class="w-full text-sm">
                   <thead class="sticky top-0" style="background: rgba(145,91,216,0.06);">
@@ -2838,18 +2832,6 @@ const dcCamposFormales = computed(() => {
     { label: 'Periodicidad facturación', value: p.periodicidad_facturacion || '—' },
     { label: 'Tiempo de pago',         value: p.tiempo_pago != null ? `${p.tiempo_pago} días` : '—' },
     { label: 'Condiciones de pago',    value: p.condiciones_pago || '—' },
-  ]
-})
-
-// Resumen GESCON del propio contrato PPA (condiciones registradas ante el ASIC)
-const dcGesconResumen = computed(() => {
-  const p = dcPpa.value
-  if (!p || !(p.gescon_codigo || p.gescon_fecha_inicio || p.gescon_precio || p.gescon_cantidades_kwh)) return []
-  return [
-    { label: 'Código GESCON', value: p.gescon_codigo || '—', mono: true },
-    { label: 'Vigencia GESCON', value: `${p.gescon_fecha_inicio || '—'} → ${p.gescon_fecha_fin || '—'}`, mono: true },
-    { label: 'Precio GESCON ($/kWh)', value: fmtQ(p.gescon_precio), mono: true },
-    { label: 'Cantidades GESCON (kWh)', value: fmtQ(p.gescon_cantidades_kwh), mono: true },
   ]
 })
 

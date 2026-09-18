@@ -213,63 +213,6 @@
           </div>
         </section>
 
-        <!-- ── GESCON / SIC ──────────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#6366f118"><BookIcon class="size-[1em]" style="color:#6366f1" /></span>
-            <h3 class="cd-sec-title">GESCON / SIC</h3>
-            <div class="cd-sec-act">
-              <Button v-if="!editandoGescon" label="Editar" size="small" text severity="secondary" @click="editandoGescon = true">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
-              </Button>
-              <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="editandoGescon = false" />
-                <Button label="Guardar" size="small" :loading="guardandoGescon" @click="guardarGescon">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
-                </Button>
-              </template>
-            </div>
-          </header>
-          <div class="cd-sec-body">
-            <!-- Modo lectura -->
-            <div v-if="!editandoGescon" class="cd-grid">
-              <InfoField label="Código SIC" :value="contrato.codigo_sic" />
-              <InfoField label="Código GESCON" :value="contrato.gescon_codigo" />
-              <InfoField label="GESCON inicio" :value="formatFecha(contrato.gescon_fecha_inicio)" />
-              <InfoField label="GESCON fin" :value="formatFecha(contrato.gescon_fecha_fin)" />
-              <InfoField label="Precio GESCON" :value="gesconPrecioFmt" />
-              <InfoField label="Cantidades GESCON (kWh)" :value="gesconCantidadesFmt" />
-            </div>
-            <!-- Modo edición -->
-            <div v-else class="cd-grid">
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Código SIC</label>
-                <InputText v-model="formGescon.codigo_sic" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Código GESCON</label>
-                <InputText v-model="formGescon.gescon_codigo" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Precio GESCON ($/kWh)</label>
-                <InputNumber v-model="formGescon.gescon_precio" :maxFractionDigits="4" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">GESCON inicio</label>
-                <DatePicker v-model="formGescon.gescon_fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">GESCON fin</label>
-                <DatePicker v-model="formGescon.gescon_fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Cantidades GESCON (kWh)</label>
-                <InputNumber v-model="formGescon.gescon_cantidades_kwh" :maxFractionDigits="3" locale="en-US" class="w-full" />
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- ── Documentos y enlaces ──────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
@@ -938,46 +881,6 @@ async function guardarId() {
   }
 }
 
-// Edición inline de GESCON
-const editandoGescon = ref(false)
-const guardandoGescon = ref(false)
-const formGescon = reactive({
-  codigo_sic: null,
-  gescon_codigo: null,
-  gescon_fecha_inicio: null,
-  gescon_fecha_fin: null,
-  gescon_precio: null,
-  gescon_cantidades_kwh: null,
-})
-
-function toISODate(v) {
-  if (!v) return null
-  if (v instanceof Date) return v.toISOString().slice(0, 10)
-  return String(v).slice(0, 10)
-}
-
-async function guardarGescon() {
-  guardandoGescon.value = true
-  try {
-    const payload = {
-      codigo_sic: formGescon.codigo_sic || null,
-      gescon_codigo: formGescon.gescon_codigo || null,
-      gescon_fecha_inicio: toISODate(formGescon.gescon_fecha_inicio),
-      gescon_fecha_fin: toISODate(formGescon.gescon_fecha_fin),
-      gescon_precio: formGescon.gescon_precio,
-      gescon_cantidades_kwh: formGescon.gescon_cantidades_kwh,
-    }
-    await ppaService.actualizar(contrato.value.id, payload)
-    Object.assign(contrato.value, payload)
-    editandoGescon.value = false
-    toast.success('GESCON actualizado', { duration: 2000 })
-  } catch (e) {
-    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
-  } finally {
-    guardandoGescon.value = false
-  }
-}
-
 // Edición inline de partes
 const editandoPartes = ref(false)
 const guardandoPartes = ref(false)
@@ -1059,16 +962,6 @@ const estadoVigencia = computed(() => estadoVigenciaPPA(contrato.value))
 const tarifaBaseFmt = computed(() => {
   const v = contrato.value?.tarifa_base
   return v != null ? `$${Number(v).toLocaleString('es-CO', { maximumFractionDigits: 4 })}` : null
-})
-
-const gesconPrecioFmt = computed(() => {
-  const v = contrato.value?.gescon_precio
-  return v != null ? `$${Number(v).toFixed(4)}` : null
-})
-
-const gesconCantidadesFmt = computed(() => {
-  const v = contrato.value?.gescon_cantidades_kwh
-  return v != null ? Number(v).toLocaleString('es-CO') : null
 })
 
 // Estos cuatro campos son de los contratos de SERVICIO, no de los PPA: el
@@ -1494,15 +1387,7 @@ async function cargar() {
     const data = await ppaService.obtener(route.params.id)
     contrato.value = data
     cargarPlantasInscritas()
-    Object.assign(formGescon, {
-      codigo_sic: data.codigo_sic ?? null,
-      gescon_codigo: data.gescon_codigo ?? null,
-      gescon_fecha_inicio: data.gescon_fecha_inicio ?? null,
-      gescon_fecha_fin: data.gescon_fecha_fin ?? null,
-      gescon_precio: data.gescon_precio ?? null,
-      gescon_cantidades_kwh: data.gescon_cantidades_kwh ?? null,
-    })
-    if (data.numero_codigo_contrato || data.codigo_sic) cargarAsic(data)
+    cargarAsic(data)
   } catch (e) {
     toast.error('Error', { description: e.message, duration: 3000 })
   } finally {
@@ -1510,15 +1395,26 @@ async function cargar() {
   }
 }
 
+/**
+ * Los registros GESCON del contrato, por LLAVE y no por texto.
+ *
+ * Antes filtraba por `contrato_interno`, que empareja el codigo del contrato
+ * como cadena: si alguien edita `numero_codigo_contrato`, los registros dejan de
+ * aparecer y nadie se entera. `contrato_ppa_id` es la FK, y es la fuente de
+ * verdad del vinculo PPA-GESCON.
+ *
+ * El texto se conserva como RESPALDO para los registros historicos que nunca
+ * recibieron la FK -- el mismo criterio que usa el backend en
+ * `validar_fecha_fin_vs_asic`, que busca por llave O por codigo.
+ */
 async function cargarAsic(c) {
   loadingAsic.value = true
   try {
-    // Primero intenta por numero_codigo_contrato (un contrato PPA agrupa varios SIC)
-    // y si tiene codigo_sic lo usa como filtro adicional de respaldo
-    const filtros = c.numero_codigo_contrato
-      ? { contrato_interno: c.numero_codigo_contrato }
-      : { codigo_sic_contrato: c.codigo_sic }
-    asicRows.value = await ppaService.listarAsic(filtros)
+    let filas = await ppaService.listarAsic({ contrato_ppa_id: c.id })
+    if (!filas.length && c.numero_codigo_contrato) {
+      filas = await ppaService.listarAsic({ contrato_interno: c.numero_codigo_contrato })
+    }
+    asicRows.value = filas
   } catch (e) {
     toast.warning('ASIC', { description: 'No se pudieron cargar registros ASIC', duration: 3000 })
   } finally {

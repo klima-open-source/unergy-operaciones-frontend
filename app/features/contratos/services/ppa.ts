@@ -105,12 +105,18 @@ export class PpaService extends BaseService {
 
   // ── Registros GESCON/ASIC ────────────────────────────────────────────────────
 
+  /**
+   * Los registros GESCON. `contrato_ppa_id` filtra por la LLAVE y es lo que usa
+   * el detalle del PPA; `contrato_interno` empareja por texto y es el respaldo
+   * historico para los registros que nunca recibieron la FK.
+   */
   async listarAsic(
     filtros: {
       proyecto_id?: number
       size?: number
       contrato_interno?: string
       codigo_sic_contrato?: string
+      contrato_ppa_id?: number
     } = {},
   ): Promise<RegistroAsic[]> {
     const data = await this.get<ListaODirecto<RegistroAsic>>(RUTAS.asic, { query: filtros })

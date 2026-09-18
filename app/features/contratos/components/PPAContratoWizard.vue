@@ -345,33 +345,7 @@
 
       <!-- ── PASO 5: GESCON + Resumen ───────────────────────────────────── -->
       <template v-if="step === 5">
-        <p class="step-title text-gray-400">Registro GESCON / ASIC <span class="normal-case font-normal">(opcional)</span></p>
-        <div class="grid grid-cols-3 gap-4 mb-5">
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Código SIC</label>
-            <InputText v-model="form.codigo_sic" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Código GESCON</label>
-            <InputText v-model="form.gescon_codigo" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Precio GESCON ($/kWh)</label>
-            <InputNumber v-model="form.gescon_precio" :maxFractionDigits="4" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Fecha inicio GESCON</label>
-            <DatePicker v-model="form.gescon_fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Fecha fin GESCON</label>
-            <DatePicker v-model="form.gescon_fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="field-label">Cantidades GESCON (kWh)</label>
-            <InputNumber v-model="form.gescon_cantidades_kwh" :maxFractionDigits="3" locale="en-US" class="w-full" />
-          </div>
-        </div>
+        <p class="step-title">Resumen</p>
 
         <!-- Resumen -->
         <div class="rounded-lg border border-amber-100 bg-amber-50 p-4">
@@ -458,13 +432,18 @@ const emit = defineEmits(['update:visible', 'cerrar', 'creado', 'editado'])
 
 const PREVIEW_ROWS = 5
 
+// El ultimo paso era "GESCON" y pedia seis campos -- codigo_sic, gescon_codigo,
+// sus dos fechas, precio y cantidades -- que se guardaban en ppa_contratos como
+// copia a mano de lo que ya vive en asic_solicitudes. Ningun servicio del backend
+// los leia, y un escalar no puede representar los muchos registros que tiene un
+// PPA. El registro ante XM se crea en MEM -> GESCON; aqui solo queda el resumen.
 const STEPS = [
   { label: 'Proyectos' },
   { label: 'Partes' },
   { label: 'Condiciones' },
   { label: 'Tarifas' },
   { label: 'Energía' },
-  { label: 'GESCON' },
+  { label: 'Resumen' },
 ]
 
 const TIPOS_CONTRATO = [
@@ -577,13 +556,12 @@ const form = reactive({
   indice_indexacion: null, periodicidad_indexacion: null,
   periodo_indexacion_base: null, valor_indexacion_base: null,
   periodicidad_facturacion: null, tiempo_pago: null, condiciones_pago: null,
-  codigo_sic: null,
-  gescon_codigo: null, gescon_fecha_inicio: null, gescon_fecha_fin: null,
-  gescon_precio: null, gescon_cantidades_kwh: null,
 })
 
-const EXCLUIR_DUPLICADO = ['numero_codigo_contrato', 'fecha_inicio', 'fecha_fin',
-  'gescon_fecha_inicio', 'gescon_fecha_fin', 'gescon_codigo']
+// Al DUPLICAR un contrato, lo que identifica al original no se copia. Los tres
+// campos de GESCON que estaban aqui salieron con el paso 5: ya no viven en el
+// formulario.
+const EXCLUIR_DUPLICADO = ['numero_codigo_contrato', 'fecha_inicio', 'fecha_fin']
 
 watch(() => props.visible, (visible) => {
   if (visible && props.initialData) {
@@ -736,8 +714,7 @@ async function guardar() {
   guardando.value = true
   try {
     const payload = { ...form }
-    for (const k of ['fecha_inicio', 'fecha_fin', 'gescon_fecha_inicio', 'gescon_fecha_fin',
-      'fecha_entrada_comunidad']) {
+    for (const k of ['fecha_inicio', 'fecha_fin', 'fecha_entrada_comunidad']) {
       payload[k] = formatFecha(form[k])
     }
     payload.proyecto_ids = proyectosSeleccionados.value.map(p => p.id)
