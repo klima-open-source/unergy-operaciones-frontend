@@ -558,7 +558,14 @@ const ESTADO_LABELS = {
 const ESTADO_SEVERITY = {
   firmado: 'success', vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning',
 }
-const ESTADOS_OPCIONES = Object.entries(ESTADO_LABELS).map(([value, label]) => ({ value, label }))
+// Las OPCIONES no salen de ESTADO_LABELS: ese diccionario conserva `vigente` y
+// `vencido` para pintar filas viejas, pero la base ya no los acepta -- ofrecerlos
+// hacia que el POST fallara con 400. Solo los tres que una persona decide.
+const ESTADOS_OPCIONES = [
+  { value: 'firmado', label: 'Firmado' },
+  { value: 'en_renovacion', label: 'En renovación' },
+  { value: 'terminado', label: 'Terminado' },
+]
 const SI_NO = [{ value: true, label: 'Sí' }, { value: false, label: 'No' }]
 const PERIODICIDADES = ['mensual', 'bimestral', 'trimestral', 'semestral', 'anual']
   .map(v => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
@@ -760,7 +767,7 @@ function abrir(seccion) {
     contratante_nit: x.contratante_nit || '',
     prestador_nombre: x.prestador_nombre || '',
     prestador_nit: x.prestador_nit || '',
-    estado: x.estado || 'vigente',
+    estado: x.estado || 'firmado',
     fecha_firma_contrato: aFecha(x.fecha_firma_contrato),
     fecha_inicio: aFecha(x.fecha_inicio),
     fecha_fin: aFecha(x.fecha_fin),
@@ -868,7 +875,7 @@ async function nuevoContrato() {
     const data = await contratosServicioService.crear({
       servicio_aplica: 'representacion',
       proyecto_id: Number(route.params.id),
-      estado: 'vigente',
+      estado: 'firmado',
     })
     contratos.value.push(data)
     idSeleccionado.value = data.id

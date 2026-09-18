@@ -244,8 +244,27 @@
               <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <!-- Un contrato de este grupo puede cubrir representación, CGM o las dos:
+               `servicio_aplica` solo admite un valor, así que lo que distingue
+               un caso de otro es CUÁL tarifa se llena. Pedirlas acá evita tener
+               que volver a entrar al contrato para completarlas. -->
+          <div v-if="props.tipo === 'representacion'" class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
+              <label class="field-label">Tarifa representación (COP/kWh)</label>
+              <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="2"
+                :maxFractionDigits="6" class="w-full" />
+              <small class="field-ayuda">Déjala vacía si el contrato no cubre representación.</small>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="field-label">Tarifa CGM (COP/kWh)</label>
+              <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="2"
+                :maxFractionDigits="6" class="w-full" />
+              <small class="field-ayuda">Déjala vacía si el contrato no cubre CGM.</small>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div v-if="props.tipo !== 'representacion'" class="flex flex-col gap-1">
               <label class="field-label">Tarifa base (COP/kWh)</label>
               <InputNumber v-model="form.tarifa_base" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
             </div>
@@ -521,6 +540,8 @@ const form = reactive({
   fecha_inicio: null,
   fecha_fin: null,
   tarifa_base: null,
+  tarifa_representacion: null,
+  tarifa_cgm: null,
   periodicidad_pago: null,
   indice_indexacion: '',
   fecha_firma_contrato: null,
@@ -775,6 +796,8 @@ async function crearContrato() {
       fecha_inicio: formatFecha(form.fecha_inicio),
       fecha_fin: formatFecha(form.fecha_fin),
       tarifa_base: form.tarifa_base ?? null,
+      tarifa_representacion: form.tarifa_representacion ?? null,
+      tarifa_cgm: form.tarifa_cgm ?? null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
       cgm_codigo_sic: form.incluye_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
@@ -852,4 +875,5 @@ onMounted(async () => {
 @reference 'tailwindcss';
 .step-title { @apply text-sm font-semibold text-gray-700 mb-4; }
 .field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
+.field-ayuda { @apply text-[11px] text-gray-400 leading-snug; }
 </style>
