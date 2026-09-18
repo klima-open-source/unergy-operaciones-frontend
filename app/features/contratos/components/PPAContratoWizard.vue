@@ -84,6 +84,35 @@
             <strong>Compra:</strong> Unergy compra energía (ej. a un generador).
           </span>
         </div>
+
+        <!-- La comunidad se define acá, no en la ficha de la planta: es lo que
+             se negocia en este contrato. A las plantas que cubra dejan de
+             prestárseles representación y CGM desde la fecha de entrada. -->
+        <div class="flex flex-col gap-1 mb-4">
+          <label class="field-label">Comunidad energética</label>
+          <div class="flex items-center gap-2">
+            <ToggleSwitch v-model="form.es_comunidad_energetica" inputId="ppa-comunidad" />
+            <span class="text-sm text-gray-500">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
+          </div>
+          <span class="text-xs text-gray-400">
+            A las plantas de este contrato dejan de prestárseles representación y
+            CGM desde la fecha de entrada.
+          </span>
+        </div>
+        <div v-if="form.es_comunidad_energetica" class="grid grid-cols-2 gap-4 mb-4">
+          <div class="flex flex-col gap-1">
+            <label class="field-label">Nombre de la comunidad</label>
+            <InputText v-model="form.nombre_comunidad" class="w-full" placeholder="Opcional" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="field-label">Fecha de entrada a la comunidad</label>
+            <DatePicker v-model="form.fecha_entrada_comunidad" dateFormat="yy-mm-dd"
+              showIcon class="w-full" />
+            <span class="text-xs text-gray-400">
+              Si se deja vacía, la exclusión aplica desde siempre.
+            </span>
+          </div>
+        </div>
         <div class="grid grid-cols-2 gap-1 mb-1 px-1">
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Comprador</span>
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Vendedor</span>
@@ -408,6 +437,7 @@ import SelectButton from 'primevue/selectbutton'
 import MultiSelect from 'primevue/multiselect'
 import AutoComplete from 'primevue/autocomplete'
 import DatePicker from 'primevue/datepicker'
+import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
 import NuevoClienteDialog from '~/features/contratos/components/NuevoClienteDialog.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
@@ -537,6 +567,9 @@ const energiaPreview = computed(() => energiaRows.value.slice(0, PREVIEW_ROWS))
 
 const form = reactive({
   tipo_contrato: 'venta',
+  es_comunidad_energetica: false,
+  nombre_comunidad: '',
+  fecha_entrada_comunidad: null,
   numero_codigo_contrato: null, nombre_interno: null, responsable_id: null,
   comprador_id: null, comprador_nombre: null, comprador_nit: null,
   vendedor_id: null, vendedor_nombre: null, vendedor_nit: null,
@@ -688,7 +721,8 @@ async function guardar() {
   guardando.value = true
   try {
     const payload = { ...form }
-    for (const k of ['fecha_inicio', 'fecha_fin', 'gescon_fecha_inicio', 'gescon_fecha_fin']) {
+    for (const k of ['fecha_inicio', 'fecha_fin', 'gescon_fecha_inicio', 'gescon_fecha_fin',
+      'fecha_entrada_comunidad']) {
       payload[k] = formatFecha(form[k])
     }
     payload.proyecto_ids = proyectosSeleccionados.value.map(p => p.id)

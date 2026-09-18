@@ -59,12 +59,18 @@
             <InfoField label="Fecha de operación (mantenimiento)" :value="proyecto.fecha_operacion_mantenimiento ? fmtFecha(proyecto.fecha_operacion_mantenimiento) : '—'" />
             <InfoField label="Fecha de entrega del proyecto" :value="proyecto.fecha_entrega_proyecto ? fmtFecha(proyecto.fecha_entrega_proyecto) : '—'" />
             <InfoField label="Fecha fin de representación" :value="proyecto.fecha_fin_representacion ? fmtFecha(proyecto.fecha_fin_representacion) : '—'" />
+            <!-- Se muestra pero ya NO se edita acá: la comunidad se negocia en
+                 el PPA y el backend la deriva de ahí. Editarla en la planta era
+                 lo que dejaba los dos datos contradiciéndose. -->
             <div class="flex flex-col gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wide">Comunidad energética</p>
               <div>
                 <GBadge v-if="proyecto.es_comunidad_energetica" color="success">{{ proyecto.nombre_comunidad ? ('🏘 ' + proyecto.nombre_comunidad) : '🏘 Sí' }}</GBadge>
                 <span v-else class="text-gray-400">—</span>
               </div>
+              <p v-if="proyecto.es_comunidad_energetica" class="text-[11px] text-gray-400">
+                Se define en el PPA de comunidad.
+              </p>
             </div>
           </template>
           <template v-else>
@@ -140,17 +146,6 @@
             <div class="flex flex-col gap-1">
               <label class="field-label">Fecha fin de representación</label>
               <DatePicker v-model="editFechaFinRep" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Vigente" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="field-label">Comunidad energética</label>
-              <div class="flex items-center gap-2 h-full">
-                <ToggleSwitch v-model="editForm.es_comunidad_energetica" />
-                <span class="text-sm text-gray-500">{{ editForm.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
-              </div>
-            </div>
-            <div v-if="editForm.es_comunidad_energetica" class="flex flex-col gap-1">
-              <label class="field-label">Nombre de la comunidad</label>
-              <InputText v-model="editForm.nombre_comunidad" class="w-full" placeholder="Opcional" />
             </div>
           </template>
         </div>
@@ -971,8 +966,6 @@ const editForm = reactive({
   codigo_tsf: null,
   topico_liquidaciones: null,
   produccion_especifica_kwh_kwp: null,
-  es_comunidad_energetica: false,
-  nombre_comunidad: '',
 })
 
 const editInfoTecnica = reactive({
@@ -1200,8 +1193,6 @@ async function saveEdit() {
     // Se envía siempre para poder dejarlo vacío: el loop de arriba omite lo
     // vacío, y sin esto no habría forma de quitar un tópico ya puesto.
     payload.topico_liquidaciones = editForm.topico_liquidaciones || null
-    payload.es_comunidad_energetica = !!editForm.es_comunidad_energetica
-    payload.nombre_comunidad = editForm.es_comunidad_energetica ? (editForm.nombre_comunidad || null) : null
 
     await proyectosService.actualizar(route.params.id, payload)
     // Los códigos SIC se guardan en la API de Liquidaciones, no en esta base.
