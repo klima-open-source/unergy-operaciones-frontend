@@ -402,7 +402,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -430,7 +430,6 @@ import {
   inverterSeries,
   meterSeries,
 } from '~/features/solar/serieSolar'
-import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
 import {
   ChartLineIcon,
   ChevronDownIcon,
@@ -443,6 +442,15 @@ import {
   XIcon,
   ZapIcon,
 } from '@lucide/vue'
+
+// Carga perezosa: solo se necesita al entrar a la tab Histórico, y esto evita
+// un ciclo de módulos que en el build de producción rompía con
+// "Cannot access 'cn' before initialization" (una variable interna de la
+// reactividad de Vue que el minificador nombra igual por coincidencia en un
+// chunk compartido, no la `cn` de `~/lib/utils`).
+const GeneracionView = defineAsyncComponent(
+  () => import('~/features/operaciones/components/GeneracionView.vue'),
+)
 
 const generacionSolarService = new GeneracionSolarService()
 
