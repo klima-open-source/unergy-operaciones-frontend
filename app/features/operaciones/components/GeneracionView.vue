@@ -22,168 +22,174 @@
 
     <!-- Filtros -->
     <Card size="sm">
-      <CardContent class="flex flex-wrap items-center gap-2.5">
-        <!-- 1) Granularidad -->
-        <div class="flex items-center gap-1">
-          <Button
-            v-for="g in GRANULARIDADES"
-            :key="g.key"
-            type="button"
-            :variant="granularidad === g.key ? 'secondary' : 'outline'"
-            size="sm"
-            @click="onGranularidadChange(g.key)"
-          >
-            <component :is="g.icon" />
-            {{ g.label }}
-          </Button>
-        </div>
-
-        <!-- 2) Modo -->
-        <div class="flex items-center gap-1">
-          <Button
-            v-for="m in modosActuales"
-            :key="m.key"
-            type="button"
-            :variant="modo === m.key ? 'secondary' : 'outline'"
-            size="sm"
-            @click="onModoChange(m.key)"
-          >
-            {{ m.label }}
-          </Button>
-        </div>
-
-        <!-- 3) Selector contextual según granularidad + modo -->
-        <Select
-          v-if="granularidad === 'mensual' && modo === 'anio'"
-          :model-value="String(anioSel)"
-          @update:model-value="
-            (v) => {
-              anioSel = Number(v)
-              aplicarModo()
-            }
-          "
-        >
-          <SelectTrigger class="w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="a in aniosDisponibles" :key="a.value" :value="String(a.value)">{{
-              a.label
-            }}</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div v-else-if="modo === 'intervalo'" class="flex items-center gap-1.5">
-          <Input
-            v-model="rangoDesdeInput"
-            :type="rangoEsMensual ? 'month' : 'date'"
-            :max="rangoEsMensual ? hoyMes : hoyDia"
-            class="w-auto"
-          />
-          <span class="text-muted-foreground">→</span>
-          <Input
-            v-model="rangoHastaInput"
-            :type="rangoEsMensual ? 'month' : 'date'"
-            :max="rangoEsMensual ? hoyMes : hoyDia"
-            class="w-auto"
-          />
-        </div>
-
-        <Input
-          v-else-if="granularidad === 'diaria' && modo === 'mes'"
-          v-model="mesSelInput"
-          type="month"
-          :max="hoyMes"
-          class="w-auto"
-        />
-
-        <Input
-          v-else-if="granularidad === 'horaria' && modo === 'dia'"
-          v-model="diaSelInput"
-          type="date"
-          :max="hoyDia"
-          class="w-auto"
-        />
-
-        <!-- Etiqueta del rango resuelto -->
-        <Badge variant="secondary">
-          <CalendarClockIcon />
-          {{ rangoLabel }}
-        </Badge>
-
-        <!-- Avisos -->
-        <span
-          v-if="rangoError && rangoError !== 'Selecciona un rango'"
-          class="flex items-center gap-1 text-xs font-medium text-destructive"
-        >
-          <CircleAlertIcon class="size-3.5" /> {{ rangoError }}
-        </span>
-        <span
-          v-else-if="avisoRango"
-          class="flex items-center gap-1 text-xs font-medium text-warning"
-        >
-          <InfoIcon class="size-3.5" /> {{ avisoRango }}
-        </span>
-
-        <!-- Selección de proyectos -->
-        <Popover v-model:open="proyectosPickerOpen">
-          <PopoverTrigger as-child>
-            <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
-              <span v-if="!proyectosSel.length" class="text-muted-foreground"
-                >Selecciona proyectos…</span
-              >
-              <span v-else
-                >{{ proyectosSel.length }} proyecto{{
-                  proyectosSel.length > 1 ? 's' : ''
-                }}
-                seleccionados</span
-              >
+      <CardContent class="flex flex-col gap-2.5">
+        <!-- Fila 1: período -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- 1) Granularidad -->
+          <div class="flex items-center gap-1">
+            <Button
+              v-for="g in GRANULARIDADES"
+              :key="g.key"
+              type="button"
+              :variant="granularidad === g.key ? 'secondary' : 'outline'"
+              size="sm"
+              @click="onGranularidadChange(g.key)"
+            >
+              <component :is="g.icon" />
+              {{ g.label }}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent class="w-80 p-0" align="start">
-            <div class="border-b border-border p-2">
-              <Input v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
-            </div>
-            <div class="max-h-72 overflow-y-auto p-1">
-              <label
-                v-for="p in proyectosFiltrados"
-                :key="p.sub_project"
-                class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
-              >
-                <Checkbox
-                  :model-value="proyectosSel.includes(p.sub_project)"
-                  @update:model-value="() => toggleProyecto(p.sub_project)"
-                />
-                <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
-                <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
-              </label>
-              <p
-                v-if="!proyectosFiltrados.length"
-                class="px-2 py-3 text-center text-sm text-muted-foreground"
-              >
-                Sin resultados.
-              </p>
-            </div>
-          </PopoverContent>
-        </Popover>
+          </div>
 
-        <!-- Consultar -->
-        <Button
-          :variant="pendiente && proyectosSel.length && !rangoError ? 'default' : 'outline'"
-          :disabled="!proyectosSel.length || !!rangoError"
-          :title="
-            !proyectosSel.length
-              ? 'Selecciona al menos un proyecto'
-              : rangoError
-                ? 'Corrige el rango de fechas'
-                : 'Consultar generación'
-          "
-          @click="cargar"
-        >
-          <LoaderCircleIcon v-if="loading" class="animate-spin" />
-          <SearchIcon v-else />
-          Consultar
-        </Button>
+          <!-- 2) Modo -->
+          <div class="flex items-center gap-1">
+            <Button
+              v-for="m in modosActuales"
+              :key="m.key"
+              type="button"
+              :variant="modo === m.key ? 'secondary' : 'outline'"
+              size="sm"
+              @click="onModoChange(m.key)"
+            >
+              {{ m.label }}
+            </Button>
+          </div>
+
+          <!-- 3) Selector contextual según granularidad + modo -->
+          <Select
+            v-if="granularidad === 'mensual' && modo === 'anio'"
+            :model-value="String(anioSel)"
+            @update:model-value="
+              (v) => {
+                anioSel = Number(v)
+                aplicarModo()
+              }
+            "
+          >
+            <SelectTrigger class="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="a in aniosDisponibles" :key="a.value" :value="String(a.value)">{{
+                a.label
+              }}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div v-else-if="modo === 'intervalo'" class="flex items-center gap-1.5">
+            <Input
+              v-model="rangoDesdeInput"
+              :type="rangoEsMensual ? 'month' : 'date'"
+              :max="rangoEsMensual ? hoyMes : hoyDia"
+              class="w-auto"
+            />
+            <span class="text-muted-foreground">→</span>
+            <Input
+              v-model="rangoHastaInput"
+              :type="rangoEsMensual ? 'month' : 'date'"
+              :max="rangoEsMensual ? hoyMes : hoyDia"
+              class="w-auto"
+            />
+          </div>
+
+          <Input
+            v-else-if="granularidad === 'diaria' && modo === 'mes'"
+            v-model="mesSelInput"
+            type="month"
+            :max="hoyMes"
+            class="w-auto"
+          />
+
+          <Input
+            v-else-if="granularidad === 'horaria' && modo === 'dia'"
+            v-model="diaSelInput"
+            type="date"
+            :max="hoyDia"
+            class="w-auto"
+          />
+
+          <!-- Etiqueta del rango resuelto -->
+          <Badge variant="secondary">
+            <CalendarClockIcon />
+            {{ rangoLabel }}
+          </Badge>
+
+          <!-- Avisos -->
+          <span
+            v-if="rangoError && rangoError !== 'Selecciona un rango'"
+            class="flex items-center gap-1 text-xs font-medium text-destructive"
+          >
+            <CircleAlertIcon class="size-3.5" /> {{ rangoError }}
+          </span>
+          <span
+            v-else-if="avisoRango"
+            class="flex items-center gap-1 text-xs font-medium text-warning"
+          >
+            <InfoIcon class="size-3.5" /> {{ avisoRango }}
+          </span>
+        </div>
+
+        <!-- Fila 2: proyectos + acción -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Selección de proyectos -->
+          <Popover v-model:open="proyectosPickerOpen">
+            <PopoverTrigger as-child>
+              <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
+                <span v-if="!proyectosSel.length" class="text-muted-foreground"
+                  >Selecciona proyectos…</span
+                >
+                <span v-else
+                  >{{ proyectosSel.length }} proyecto{{
+                    proyectosSel.length > 1 ? 's' : ''
+                  }}
+                  seleccionados</span
+                >
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-80 p-0" align="start">
+              <div class="border-b border-border p-2">
+                <Input v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
+              </div>
+              <div class="max-h-72 overflow-y-auto p-1">
+                <label
+                  v-for="p in proyectosFiltrados"
+                  :key="p.sub_project"
+                  class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
+                >
+                  <Checkbox
+                    :model-value="proyectosSel.includes(p.sub_project)"
+                    @update:model-value="() => toggleProyecto(p.sub_project)"
+                  />
+                  <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
+                </label>
+                <p
+                  v-if="!proyectosFiltrados.length"
+                  class="px-2 py-3 text-center text-sm text-muted-foreground"
+                >
+                  Sin resultados.
+                </p>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <!-- Consultar -->
+          <Button
+            :variant="pendiente && proyectosSel.length && !rangoError ? 'default' : 'outline'"
+            :disabled="!proyectosSel.length || !!rangoError"
+            :title="
+              !proyectosSel.length
+                ? 'Selecciona al menos un proyecto'
+                : rangoError
+                  ? 'Corrige el rango de fechas'
+                  : 'Consultar generación'
+            "
+            @click="cargar"
+          >
+            <LoaderCircleIcon v-if="loading" class="animate-spin" />
+            <SearchIcon v-else />
+            Consultar
+          </Button>
+        </div>
       </CardContent>
     </Card>
 
