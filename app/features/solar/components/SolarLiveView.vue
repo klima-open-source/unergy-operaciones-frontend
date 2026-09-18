@@ -13,7 +13,7 @@
     </GTabs>
 
     <!-- ══ LIVE TAB ══ -->
-    <div v-if="tab === 'live'" class="flex flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
+    <div v-if="tab === 'live'" class="flex flex-1 flex-col gap-5 overflow-y-auto">
       <!-- ══ HEADER ══ -->
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -394,7 +394,7 @@
     <!-- /live tab -->
 
     <!-- ══ HISTORIC TAB ══ -->
-    <div v-else class="flex-1 overflow-y-auto p-4 sm:p-6">
+    <div v-else class="flex-1 overflow-y-auto">
       <GeneracionView />
     </div>
   </div>
