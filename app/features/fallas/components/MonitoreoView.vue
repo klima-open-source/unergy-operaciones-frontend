@@ -1,5 +1,5 @@
 <template>
-  <div class="gf-page" ref="pageRef">
+  <div ref="pageRef" class="gf-page">
 
     <!-- ══ TAB BAR (sticky, fuera del sticky-header de la tab Fallas) ══════ -->
     <div
@@ -27,7 +27,7 @@
     <template v-if="activeTab === 0">
 
       <!-- ══ STICKY HEADER ════════════════════════════════════════════════ -->
-      <div class="gf-sticky-header" ref="stickyHeaderRef">
+      <div ref="stickyHeaderRef" class="gf-sticky-header">
 
         <!-- ── Topbar ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -288,7 +288,8 @@
         </div><!-- /gf-main -->
 
         <!-- ══ PANEL DETALLE ══════════════════════════════════════════════ -->
-        <aside v-if="drawerVisible && drawerFalla" class="gf-aside"
+        <aside
+v-if="drawerVisible && drawerFalla" class="gf-aside"
           @keydown.left.stop="navegar(-1)" @keydown.right.stop="navegar(1)">
           <!-- Backdrop solo en móvil -->
           <div class="gf-aside-backdrop" @click="drawerVisible = false" />
@@ -365,7 +366,8 @@
                   <div class="flex flex-wrap gap-1.5 mt-2">
                     <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{ drawerFalla.estado?.etiqueta }}</GBadge>
                     <GBadge :color="prioColor(drawerFalla.prioridad?.codigo)">{{ drawerFalla.prioridad?.etiqueta }}</GBadge>
-                    <GBadge v-if="categoriaFalla(drawerFalla).etiqueta"
+                    <GBadge
+v-if="categoriaFalla(drawerFalla).etiqueta"
                       :color="categoriaFalla(drawerFalla).color || '#915BD8'">{{ categoriaFalla(drawerFalla).etiqueta }}</GBadge>
                     <GBadge v-if="drawerFalla.pendiente_reclasificar" color="warning">Pendiente de reclasificar</GBadge>
                   </div>
@@ -480,7 +482,8 @@
                 <!-- Falla sin clasificación estructurada (catálogo anterior) -->
                 <template v-else>
                   <div class="flex flex-wrap items-center gap-2">
-                    <GBadge v-if="categoriaFalla(drawerFalla).etiqueta"
+                    <GBadge
+v-if="categoriaFalla(drawerFalla).etiqueta"
                       :color="categoriaFalla(drawerFalla).color || '#915BD8'">{{ categoriaFalla(drawerFalla).etiqueta }}</GBadge>
                     <span class="gf-clasif-sub">{{ drawerFalla.tipo?.etiqueta || drawerFalla.tipo_libre || 'Sin clasificación' }}</span>
                   </div>
@@ -715,7 +718,7 @@
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-0.5 flex-wrap">
                         <span class="gf-body-text font-semibold">{{ seg.usuario?.nombre || 'Sistema' }}</span>
-                        <span class="text-xs text-gray-500">{{ relativeTime(seg.created_at, true) }}</span>
+                        <span class="text-xs text-gray-500">{{ relativeTime(seg.created_at) }}</span>
                       </div>
                       <p v-if="seg.nota" class="gf-body-text whitespace-pre-line">{{ seg.nota }}</p>
                       <div v-if="seg.estado_nuevo" class="mt-1.5">
@@ -728,7 +731,7 @@
               </section>
 
               <!-- ── ARCHIVOS ADJUNTOS ─────────────────────────────── -->
-              <FallaArchivos v-if="drawerFalla?.id" :fallaId="drawerFalla.id" />
+              <FallaArchivos v-if="drawerFalla?.id" :falla-id="drawerFalla.id" />
 
               <!-- ── ACCIONES PRINCIPALES ───────────────────────────── -->
               <div class="gf-actions-inline">
@@ -769,7 +772,8 @@
               editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
             }}</DialogTitle>
           </DialogHeader>
-          <FallaForm :initial="editingFalla" :catalogos="catalogos"
+          <FallaForm
+:initial="editingFalla" :catalogos="catalogos"
             @save="onSaveForm" @cancel="formDialogVisible = false" />
         </DialogContent>
       </Dialog>
@@ -849,12 +853,6 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import Button from 'primevue/button'
-import Select from 'primevue/select'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
 import FallaForm from './FallaForm.vue'
 import FallaArchivos from './FallaArchivos.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
@@ -957,11 +955,6 @@ const savingForm        = ref(false)
 // ── Computed: lógica de buckets ───────────────────────────────────────────
 function esAlertaSLA(f) {
   return !f.estado?.es_estado_final && (f.sla_cumplido === false || (f.dias_abierta ?? 0) >= 7)
-}
-
-function bucketDeFalla(f) {
-  if (f.estado?.es_estado_final) return 'cerradas'
-  return 'activas'
 }
 
 const counts = computed(() => {
@@ -1500,11 +1493,6 @@ function confirmDelete(falla) {
 // ── Helpers visuales ──────────────────────────────────────────────────────
 function prioColor(codigo) { return colorPrioridad(codigo, '#9ca3af') }
 
-function prioPillStyle(codigo) {
-  const c = prioColor(codigo)
-  return { background: c + '12', color: c }
-}
-
 function initials(nombre) {
   if (!nombre) return '?'
   const parts = nombre.trim().split(/\s+/)
@@ -1615,8 +1603,6 @@ function toDatetimeLocalValue(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// Moneda COP sin decimales.
-
 // Duración legible a partir de horas (min / h / d h).
 function fmtHoras(h) {
   if (h == null) return '—'
@@ -1627,7 +1613,7 @@ function fmtHoras(h) {
   return rest ? `${dias} d ${rest} h` : `${dias} d`
 }
 
-function relativeTime(d, includeAbsolute = false) {
+function relativeTime(d) {
   if (!d) return ''
   const date = typeof d === 'string' && d.length === 10
     ? new Date(d + 'T00:00:00')
@@ -1853,18 +1839,12 @@ watch(bucket, (newBucket) => {
   flex-wrap: nowrap;
   overflow: hidden;
 }
-.gf-drawer-header > :deep(.p-button) { flex-shrink: 0; }
 .gf-drawer-body {
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   flex: 1;
-}
-.gf-drawer-body :deep(.p-tag) {
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 3px 8px;
 }
 
 /* ══ Sections ════════════════════════════════════════════════════════════ */
@@ -2012,16 +1992,6 @@ watch(bucket, (newBucket) => {
   word-break: break-word;
 }
 
-/* ══ Two-col grid ════════════════════════════════════════════════════════ */
-.gf-twocol {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 640px) {
-  .gf-twocol { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
-
 /* ══ Field row ═══════════════════════════════════════════════════════════ */
 .gf-field-row { display: flex; align-items: center; gap: 8px; }
 .gf-field-label {
@@ -2111,15 +2081,6 @@ watch(bucket, (newBucket) => {
   flex-wrap: wrap;
   padding-top: 4px;
 }
-.gf-actions-inline :deep(.p-button) {
-  flex: 1 1 140px;
-  min-width: 0;
-  padding-top: 9px;
-  padding-bottom: 9px;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
 /* ══ Días abierta badge ══════════════════════════════════════════════════ */
 .dias-badge {
   display: inline-block;
@@ -2128,273 +2089,8 @@ watch(bucket, (newBucket) => {
   white-space: nowrap;
 }
 
-/* ══ TAB 1 — GRÁFICOS ════════════════════════════════════════════════════ */
-.mon-tab-view { padding: 24px 24px 40px; background: #f5f4f8; }
+/* ══ TAB 1 — CALENDARIO ══════════════════════════════════════════════════ */
 .mon-tab-calendario { flex: 1; display: flex; flex-direction: column; min-height: 0; background: #f5f4f8; overflow-y: auto; }
-.mon-tab-loading { display:flex; flex-direction:column; align-items:center; gap:14px; padding:80px 20px; color:#a094b8; font-size:13px; }
-.mon-spinner { width:32px; height:32px; border:3px solid #ece8f4; border-top-color:var(--color-unergy-purple); border-radius:50%; animation:spin .75s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.mon-tab-empty { text-align:center; padding:80px 20px; }
-.mon-empty-icon { font-size:40px; opacity:.2; margin-bottom:12px; }
-.mon-empty-title { font-size:15px; font-weight:700; color:#6b7280; margin-bottom:5px; }
-.mon-empty-sub { font-size:12.5px; color:#9ca3af; }
-
-/* Container */
-.charts-container { display:flex; flex-direction:column; gap:16px; }
-
-/* Charts grid */
-.chart-card {
-  background:#fff; border:1px solid #ece8f4; border-radius:12px;
-  padding:16px 18px; box-shadow:0 1px 4px rgba(28,18,50,.05);
-}
-.chart-card--wide { grid-column: 1 / -1; }
-.chart-card-title { font-size:12.5px; font-weight:700; color:var(--color-unergy-deep); margin-bottom:14px; }
-.chart-card-sub { font-size:11px; font-weight:500; color:#a094b8; }
-.chart-canvas-wrap { position:relative; }
-
-@media (max-width:768px) {
-  .mon-tab-view { padding:16px; }
-  .chart-card--wide { grid-column:1; }
-}
-
-/* ══ P90 Section ════════════════════════════════════════════════════════ */
-.p90-section-head {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  background:#fff; border:1px solid #ece8f4; border-radius:12px;
-  padding:14px 18px; box-shadow:0 1px 3px rgba(28,18,50,.04);
-}
-.p90-section-title {
-  display:flex; align-items:center; gap:8px; flex:1; min-width:0;
-  font-size:13px; font-weight:700; color:var(--color-unergy-deep);
-}
-.p90-section-sub { font-size:11.5px; font-weight:500; color:#a094b8; }
-.p90-controls { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-:deep(.p90-dp .p-datepicker-input) {
-  font-size:12px !important; padding:5px 8px !important; width:110px !important;
-}
-.p90-reload-btn {
-  width:30px; height:30px; display:flex; align-items:center; justify-content:center;
-  background:#f4f1fa; border:1px solid #e5e0f0; border-radius:8px;
-  cursor:pointer; color:#6b5a8a; font-size:12px; transition:background .12s;
-}
-.p90-reload-btn:hover:not(:disabled) { background:#e9e0f5; }
-.p90-reload-btn:disabled { opacity:.4; cursor:not-allowed; }
-
-.p90-kpis { display:flex; gap:8px; flex-wrap:wrap; }
-.p90-kpi {
-  display:flex; flex-direction:column; align-items:center;
-  background:#faf9fc; border:1px solid #ece8f4; border-radius:10px;
-  padding:8px 16px; min-width:72px;
-}
-.p90-kpi--green { background:#f0fdf4; border-color:#bbf7d0; }
-.p90-kpi--red   { background:#fef2f2; border-color:#fecaca; }
-.p90-kpi-val { font-size:20px; font-weight:900; line-height:1; }
-.p90-kpi-lbl {
-  font-size:9.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.3px; color:#9b89b5; margin-top:3px;
-}
-
-.p90-state {
-  display:flex; flex-direction:column; align-items:center;
-  gap:8px; padding:40px 20px; font-size:12.5px; color:#9ca3af;
-}
-
-.p90-bar-card { cursor:pointer; }
-.p90-chart-legend {
-  display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;
-}
-.p90-legend-item { display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6b5a8a; }
-.p90-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-.p90-legend-hint { font-size:11px; color:#a094b8; }
-
-.p90-detail-card {
-  background:#fff; border:1px solid #d1fae5; border-radius:12px;
-  padding:14px 18px; box-shadow:0 1px 4px rgba(22,163,74,.08);
-}
-.p90-detail-head {
-  display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;
-}
-.p90-detail-kpis {
-  margin-left:auto; display:flex; align-items:center; gap:10px;
-  font-size:11.5px; font-weight:700;
-}
-.p90-close-btn {
-  width:22px; height:22px; display:flex; align-items:center; justify-content:center;
-  background:#f0eaf8; border:none; border-radius:6px;
-  cursor:pointer; color:#6b5a8a; flex-shrink:0;
-}
-
-.p90-separator {
-  display:flex; align-items:center; gap:8px;
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.5px; color:#a094b8; padding:4px 0;
-}
-.p90-separator::after { content:''; flex:1; height:1px; background:#ece8f4; }
-
-/* ── Gen cards ── */
-
-
-.genproj-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 20px 10px;
-  flex-wrap: wrap;
-}
-.genproj-controls--row2 {
-  padding-top: 0;
-  padding-bottom: 12px;
-}
-.genproj-select {
-  min-width: 220px;
-  flex: 1;
-  max-width: 300px;
-  font-size: 12px;
-}
-.genproj-quick-btns {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.genproj-quick-btn {
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.genproj-quick-btn:hover { border-color: var(--color-unergy-purple); color: var(--color-unergy-purple); }
-.genproj-quick-btn--active {
-  background: var(--color-unergy-purple);
-  border-color: var(--color-unergy-purple);
-  color: #fff;
-}
-.genproj-gran-toggle {
-  display: flex;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  overflow: hidden;
-}
-.genproj-gran-btn {
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f9fafb;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s;
-}
-.genproj-gran-btn + .genproj-gran-btn { border-left: 1px solid #e5e7eb; }
-.genproj-gran-btn--active { background: #7c3aed; color: #fff; }
-.genproj-gran-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.genproj-kpi {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 20px 8px;
-  font-size: 11px;
-  color: #6b7280;
-}
-.genproj-kpi-val { font-size: 15px; font-weight: 700; color: #7c3aed; }
-.genproj-kpi-lbl { color: #9ca3af; }
-.genproj-kpi-sep { color: #d1d5db; }
-
-.genproj-leyenda {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  padding: 6px 20px 0;
-  font-size: 11px;
-  color: #6b7280;
-}
-.genproj-dot {
-  display: inline-block;
-  width: 10px; height: 10px;
-  border-radius: 2px;
-  margin-right: 5px;
-  vertical-align: middle;
-  box-sizing: border-box;
-}
-.genproj-fallas {
-  margin: 14px 20px 4px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.genproj-fallas-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff7f7;
-  padding: 7px 12px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #dc2626;
-  border-bottom: 1px solid #fecaca;
-}
-.genproj-falla-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
-  flex-wrap: wrap;
-}
-.genproj-falla-row:last-child { border-bottom: none; }
-.genproj-codigo {
-  font-family: monospace;
-  font-size: 10.5px;
-  background: #f3f4f6;
-  color: #374151;
-  padding: 1px 5px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.genproj-fecha {
-  color: #6b7280;
-  flex-shrink: 0;
-  min-width: 72px;
-}
-.genproj-estado {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-.genproj-prio {
-  font-size: 10.5px;
-  font-weight: 600;
-  flex-shrink: 0;
-  min-width: 60px;
-}
-.genproj-desc {
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-}
-.genproj-sin-fallas {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 20px 12px;
-  font-size: 11px;
-  color: #16a34a;
-}
 
 /* ══ DIALOG RESOLVER FALLA ══════════════════════════════════════════════════ */
 .resolve-dialog-body {
