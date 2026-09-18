@@ -394,7 +394,7 @@
     <!-- /live tab -->
 
     <!-- ══ HISTORIC TAB ══ -->
-    <div v-else class="flex-1 overflow-y-auto">
+    <div v-else class="flex-1 overflow-y-auto p-4 sm:p-6">
       <GeneracionView />
     </div>
   </div>

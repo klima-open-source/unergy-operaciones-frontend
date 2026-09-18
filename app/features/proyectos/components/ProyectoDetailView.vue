@@ -27,7 +27,7 @@
       <template #default="{ tab }">
       <!-- ══ GENERAL ══ -->
       <div v-if="tab === 'general'">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 text-sm">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <template v-if="!isEditMode">
             <InfoField label="Tipo" :value="proyecto.tipo_proyecto" />
             <InfoField label="Tecnología" :value="proyecto.tipo_tecnologia" />
@@ -158,7 +158,7 @@
 
       <!-- ══ TÉCNICO ══ -->
       <div v-if="tab === 'tecnico'">
-        <div class="p-4 space-y-6 text-sm">
+        <div class="space-y-6 text-sm">
 
           <!-- Vista lectura -->
           <template v-if="!isEditMode">
@@ -419,7 +419,7 @@
 
       <!-- ══ SIMULACIÓN ══ -->
       <div v-if="tab === 'simulacion'">
-        <div class="p-4 space-y-6">
+        <div class="space-y-6">
           <div v-if="!isEditMode && hasSimulacionData" class="flex justify-end">
             <Button label="Descargar Excel" size="small" outlined severity="success" @click="descargarSimulacionExcel">
               <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
@@ -451,7 +451,7 @@
 
       <!-- ══ INVERSIONISTAS ══ -->
       <div v-if="tab === 'inversionistas'">
-        <div class="p-4 space-y-4">
+        <div class="space-y-4">
           <DataTable :value="proyecto.inversionistas" class="text-sm" stripedRows>
             <Column field="cliente_nombre" header="Inversionista" />
             <Column header="Participación (%)">
@@ -582,7 +582,7 @@
 
       <!-- ══ CONTACTOS ══ -->
       <div v-if="tab === 'contactos'">
-        <div class="p-4">
+        <div>
           <ProyectoAreaContactosPanel
             :proyecto-id="proyecto.id"
             :inversionistas="proyecto.inversionistas"
@@ -593,7 +593,7 @@
 
       <!-- ══ SERVICIOS ══ -->
       <div v-if="tab === 'servicios'">
-        <div class="p-6 space-y-4">
+        <div class="space-y-4">
 
           <!-- Cards de servicio -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -701,7 +701,7 @@
 
       <!-- ══ FRONTERAS ══ -->
       <div v-if="tab === 'fronteras'">
-        <div class="p-4">
+        <div>
           <DataTable :value="fronteras" class="text-sm" stripedRows>
             <Column field="codigo_frontera" header="Código">
               <template #body="{ data }">{{ data.codigo_frontera || '—' }}</template>
@@ -722,7 +722,7 @@
 
       <!-- ══ ID LIQUIDACIONES ══ -->
       <div v-if="tab === 'id-liquidaciones'">
-        <div class="p-4 space-y-3 text-sm">
+        <div class="space-y-3 text-sm">
           <p class="text-[11px] text-gray-400">
             <InfoIcon class="mr-1 size-[1em]" />
             Estos códigos viven en la API de Liquidaciones de Unergy, no en esta base.
@@ -767,7 +767,7 @@
 
       <!-- ══ ID QUOIA ══ -->
       <div v-if="tab === 'id-quoia'">
-        <div class="p-4 space-y-4 text-sm">
+        <div class="space-y-4 text-sm">
           <p class="text-[11px] text-gray-400">
             <InfoIcon class="mr-1 size-[1em]" />
             Estos ids viven en la API de Liquidaciones de Unergy, uno por subproyecto -- no en esta base.

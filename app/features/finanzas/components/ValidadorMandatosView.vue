@@ -991,7 +991,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* ── Header (estilo plataforma) ───────────────────────────────────────── */
-.gf-page { padding: 16px; }
 .mon-tab-bar {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; margin-bottom: 16px;

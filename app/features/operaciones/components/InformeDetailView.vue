@@ -316,7 +316,7 @@ onMounted(cargar)
 .inf-detail-wrapper {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 20px 20px 80px;
+  padding: 0 0 80px;
   font-family: 'Sora', sans-serif;
   color: var(--color-unergy-avena);
   position: relative;

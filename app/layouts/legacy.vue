@@ -1,15 +1,16 @@
 <script setup>
 /**
  * Fase 3, ola 1: el shell real del template (`SidebarProvider` + `AppSidebar` +
- * `SiteHeader`), igual que `default.vue` — con una diferencia: `/solar-live`
- * pinta a pantalla completa, sin el padding que trae el contenido normal.
+ * `SiteHeader`), igual que `default.vue` — con una diferencia: las páginas con
+ * `definePageMeta({ fullBleed: true })` pintan a pantalla completa, sin el
+ * padding que trae el contenido normal (ver `app/types/route-meta.d.ts`).
  *
  * Antes envolvía `LegacyAppSidebar.vue`, con su propio overlay móvil y botón de
  * colapso hechos a mano. El `Sidebar` real ya trae eso resuelto (`SidebarTrigger`
  * en `SiteHeader`), así que desaparecieron con el swap.
  */
 const route = useRoute()
-const isSolar = computed(() => route.path === '/solar-live')
+const fullBleed = computed(() => route.meta.fullBleed === true)
 </script>
 
 <template>
@@ -29,7 +30,7 @@ const isSolar = computed(() => route.path === '/solar-live')
         <div
           id="main-content"
           :class="
-            isSolar
+            fullBleed
               ? 'flex min-h-full flex-1 flex-col'
               : 'flex min-h-full flex-1 flex-col px-4 pt-4 pb-8 md:px-8 md:pt-6'
           "

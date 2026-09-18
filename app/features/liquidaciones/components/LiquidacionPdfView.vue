@@ -773,7 +773,7 @@ onBeforeUnmount(() => { if (_styleEl) _styleEl.remove() })
 </script>
 
 <style scoped>
-.liqpdf-wrapper{ padding:14px; background:var(--color-unergy-avena); min-height:100vh; }
+.liqpdf-wrapper{ background:var(--color-unergy-avena); min-height:100%; }
 .liqpdf-toolbar{
   position:sticky; top:0; z-index:20; background:#fff;
   border:1px solid #e8e0f0; border-radius:12px; padding:10px 14px;

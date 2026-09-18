@@ -461,7 +461,7 @@ async function guardar() {
 </script>
 
 <style scoped>
-.pz-page { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.pz-page { display: flex; flex-direction: column; gap: 12px; }
 .pz-header { display: flex; align-items: center; justify-content: space-between; }
 .pz-title { font-size: 15px; font-weight: 600; color: #111827; margin: 0; }
 .pz-badge { background: #0F9D8C1A; color: #0F9D8C; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; }

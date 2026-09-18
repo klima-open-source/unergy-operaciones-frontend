@@ -122,7 +122,6 @@ onMounted(cargar)
 </script>
 
 <style scoped>
-.mf-wrap { padding: 4px 2px; }
 .mf-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .mf-top h1 { font-size: 20px; font-weight: 600; color: var(--color-unergy-deep); margin: 0; }
 .mf-sub { font-size: 12.5px; color: #6b6478; margin-top: 2px; }

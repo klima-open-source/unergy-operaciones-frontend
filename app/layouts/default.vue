@@ -1,3 +1,13 @@
+<script setup>
+/**
+ * Shell real del template, igual que `legacy.vue` — con las páginas
+ * `definePageMeta({ fullBleed: true })` pintando a pantalla completa, sin el
+ * padding que trae el contenido normal (ver `app/types/route-meta.d.ts`).
+ */
+const route = useRoute()
+const fullBleed = computed(() => route.meta.fullBleed === true)
+</script>
+
 <template>
   <SidebarProvider
     class="h-screen"
@@ -14,7 +24,11 @@
       <div class="@container/main flex min-h-0 flex-1 flex-col overflow-auto">
         <div
           id="main-content"
-          class="flex min-h-full flex-1 flex-col px-4 pt-4 pb-8 md:px-8 md:pt-6"
+          :class="
+            fullBleed
+              ? 'flex min-h-full flex-1 flex-col'
+              : 'flex min-h-full flex-1 flex-col px-4 pt-4 pb-8 md:px-8 md:pt-6'
+          "
         >
           <slot />
         </div>

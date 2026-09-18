@@ -1605,12 +1605,18 @@ watch(bucket, (newBucket) => {
 .gf-sticky-header::before {
   content: "";
   position: absolute;
-  left: -24px;
-  right: -24px;
+  left: -16px;
+  right: -16px;
   bottom: 100%;
   height: 28px;
   background: #f8f7fa;
   pointer-events: none;
+}
+@media (min-width: 768px) {
+  .gf-sticky-header::before {
+    left: -32px;
+    right: -32px;
+  }
 }
 
 /* ══ Topbar ══════════════════════════════════════════════════════════════ */

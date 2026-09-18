@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 md:p-6">
+  <div>
     <div class="mb-4">
       <h1 class="text-xl font-bold" style="color: var(--color-unergy-deep);">Proyectos próximos a energizarse</h1>
       <p class="text-sm mt-1" style="color: #7a6e8a;">

@@ -13,7 +13,7 @@
   · Un cliente NO tiene etapa: arriba se resume en qué etapa está cada oferta.
 -->
 <template>
-  <div class="p-4 md:p-6" v-if="op">
+  <div v-if="op">
     <!-- Encabezado -->
     <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
       <div class="flex items-start gap-3">

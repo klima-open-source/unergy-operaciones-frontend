@@ -7,10 +7,10 @@
   que el enlace se pueda pegar en un chat y sobreviva un F5.
 -->
 <template>
-  <!-- Sin `p-4`: el <main> del shell ya paga el padding de pantalla chica
-       (p-4 sm:p-5). Sumarle otro dejaba ~32px de los 390px de un celular en
-       padding anidado. Desde `md` el total queda igual que antes. -->
-  <div class="md:p-6">
+  <!-- Sin padding propio: el <main> del shell ya lo paga en todos los
+       breakpoints (px-4 pt-4 pb-8 md:px-8 md:pt-6). Agregar el propio dejaba
+       padding anidado, más grueso mientras más ancha la pantalla. -->
+  <div>
     <PageHeader class="mb-4" title="Comercial"
                 subtitle="Pipeline de ofertas — la oferta es la unidad del negocio, no el cliente">
       <template #actions>

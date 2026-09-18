@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-3 p-3" style="background:var(--color-unergy-avena); min-height:100vh">
+  <div class="space-y-3" style="background:var(--color-unergy-avena); min-height:100%">
 
     <!-- Header -->
     <div class="flex items-center gap-2 flex-wrap">

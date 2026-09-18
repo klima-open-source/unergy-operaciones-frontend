@@ -1216,19 +1216,26 @@ watch(bucket, (newBucket) => {
   flex-direction: column;
   gap: 0;                      /* topbar + toolbar pegados, sin franja gris entre ellos */
 }
-/* El contenedor de scroll (<main>) tiene padding 24px. Un sticky top:0 queda
-   anclado 24px por debajo del borde visible, dejando una franja superior por la
-   que el contenido (lista compacta / panel detalle) se asomaba al hacer scroll.
-   Este "cap" full-bleed tapa esa franja (arriba y en los bordes laterales). */
+/* El contenedor de scroll (<main>) tiene padding 16px (32px desde md:). Un
+   sticky top:0 queda anclado esa distancia por debajo del borde visible,
+   dejando una franja superior por la que el contenido (lista compacta / panel
+   detalle) se asomaba al hacer scroll. Este "cap" full-bleed tapa esa franja
+   (arriba y en los bordes laterales), con el mismo breakpoint que el layout. */
 .gf-sticky-header::before {
   content: "";
   position: absolute;
-  left: -24px;
-  right: -24px;
+  left: -16px;
+  right: -16px;
   bottom: 100%;
   height: 28px;
   background: #f3f4f6;
   pointer-events: none;
+}
+@media (min-width: 768px) {
+  .gf-sticky-header::before {
+    left: -32px;
+    right: -32px;
+  }
 }
 
 /* ── Top bar (parte superior del card unificado) ───────────────────── */

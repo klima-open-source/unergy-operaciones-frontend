@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-5 min-h-screen" style="background: var(--color-unergy-avena); color: var(--color-unergy-deep);">
+  <div class="space-y-5" style="background: var(--color-unergy-avena); color: var(--color-unergy-deep);">
 
     <!-- Header -->
     <PageHeader title="Cumplimiento PPA" subtitle="Generación vs. compromisos contractuales de energía">
