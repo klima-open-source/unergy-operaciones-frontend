@@ -83,7 +83,8 @@
               <p style="font-size:11px;color:#6B5A8A;margin:0">Sin resultados</p>
             </div>
             <div v-else class="em-compact-list">
-              <button v-for="inf in filtrados" :key="inf.id"
+              <button
+v-for="inf in filtrados" :key="inf.id"
                       class="em-compact-row"
                       :class="{ 'em-compact-row--active': drawerInf?.id === inf.id }"
                       @click="abrirDrawer(inf)">
@@ -98,10 +99,11 @@
                   </div>
                 </div>
                 <div class="em-compact-actions" @click.stop>
-                  <button class="em-icon-btn em-btn-edit"
-                          @click="editar(inf)"
+                  <button
+class="em-icon-btn em-btn-edit"
                           title="Editar informe"
-                          style="width:22px;height:22px;font-size:11px">
+                          style="width:22px;height:22px;font-size:11px"
+                          @click="editar(inf)">
                     <PencilIcon class="size-[1em]" />
                   </button>
                 </div>
@@ -142,7 +144,8 @@
                     <span class="em-group-count">{{ row._count }}</span>
                   </td>
                 </tr>
-                <tr v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
+                <tr
+v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
                     @click="abrirDrawer(row)">
                   <td>
                     <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(row)]" size="sm">
@@ -151,15 +154,15 @@
                   </td>
                   <td class="em-td-proj">
                     <div class="em-proj-nombre">{{ row.proyecto_nombre || row.sub_project }}</div>
-                    <div class="em-proj-sub" v-if="row.tipo === 'port'">{{ (row.miembros || []).length }} proyecto{{ (row.miembros || []).length !== 1 ? 's' : '' }}</div>
-                    <div class="em-proj-sub" v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre">{{ row.sub_project }}</div>
+                    <div v-if="row.tipo === 'port'" class="em-proj-sub">{{ (row.miembros || []).length }} proyecto{{ (row.miembros || []).length !== 1 ? 's' : '' }}</div>
+                    <div v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre" class="em-proj-sub">{{ row.sub_project }}</div>
                   </td>
                   <td>
                     <span class="em-tipo-tag">{{ tipoLabel(row.tipo) }}</span>
                   </td>
                   <td class="em-td-fecha">
                     <div>{{ row.editado_en ? formatFecha(row.editado_en) : '—' }}</div>
-                    <div class="em-fecha-sub" v-if="row.editado_por_nombre">{{ row.editado_por_nombre }}</div>
+                    <div v-if="row.editado_por_nombre" class="em-fecha-sub">{{ row.editado_por_nombre }}</div>
                   </td>
                   <td class="em-td-fecha">
                     <div v-if="row.aprobado_por_nombre">
@@ -170,45 +173,51 @@
                   <td class="em-td-fecha">
                     <div v-if="row.correo_enviado">
                       <span class="em-mail-ok">📧 {{ row.correo_enviado_en ? formatFecha(row.correo_enviado_en) : '✓' }}</span>
-                      <div class="em-fecha-sub" v-if="row.enviado_por_nombre">{{ row.enviado_por_nombre }}</div>
+                      <div v-if="row.enviado_por_nombre" class="em-fecha-sub">{{ row.enviado_por_nombre }}</div>
                     </div>
                     <div v-else class="em-td-empty">—</div>
                   </td>
                   <td class="em-td-acciones" @click.stop>
-                    <button class="em-icon-btn em-btn-edit" @click="editar(row)"
-                            title="Editar informe en pantalla completa">
+                    <button
+class="em-icon-btn em-btn-edit" title="Editar informe en pantalla completa"
+                            @click="editar(row)">
                       <PencilIcon class="size-[1em]" />
                     </button>
-                    <button class="em-icon-btn"
+                    <button
+class="em-icon-btn"
                             :class="{
                               'em-btn-coms-on': comentariosPendientes(row) > 0,
                               'em-btn-coms-resolved': comentariosTotales(row) > 0 && comentariosPendientes(row) === 0,
                               'em-btn-coms-empty': comentariosTotales(row) === 0,
                             }"
-                            @click="abrirDrawer(row, 'comentarios')"
-                            :title="comentariosTooltip(row)">
+                            :title="comentariosTooltip(row)"
+                            @click="abrirDrawer(row, 'comentarios')">
                       <MessagesSquareIcon class="size-[1em]" />
-                      <span v-if="comentariosTotales(row) > 0" class="em-coms-badge"
+                      <span
+v-if="comentariosTotales(row) > 0" class="em-coms-badge"
                             :class="{ 'em-coms-badge--err': comentariosPendientes(row) > 0 }">
                         {{ comentariosPendientes(row) || comentariosTotales(row) }}
                       </span>
                     </button>
-                    <button v-if="puedeVerificar(row)" class="em-icon-btn em-btn-verify"
+                    <button
+v-if="puedeVerificar(row)" class="em-icon-btn em-btn-verify"
                             :disabled="!permisoVerificar"
-                            @click="abrirDrawer(row, 'verificar')"
-                            :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'">
+                            :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'"
+                            @click="abrirDrawer(row, 'verificar')">
                       <CircleCheckIcon class="size-[1em]" />
                     </button>
-                    <button v-if="row.estado === 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-send"
+                    <button
+v-if="row.estado === 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-send"
                             :disabled="!permisoEnviar || enviandoIds.has(row.id)"
-                            @click="enviarUno(row)"
-                            :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'">
+                            :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'"
+                            @click="enviarUno(row)">
                       <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="size-[1em] animate-spin" />
                       <SendIcon v-else class="size-[1em]" />
                     </button>
-                    <button v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-del"
-                            @click="eliminarInforme(row)"
-                            :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'">
+                    <button
+v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-del"
+                            :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'"
+                            @click="eliminarInforme(row)">
                       <Trash2Icon class="size-[1em]" />
                     </button>
                   </td>
@@ -261,25 +270,29 @@
                   </div>
                 </div>
                 <div class="em-drawer-head-actions">
-                  <button class="em-close" @click="cerrarDrawer" title="Cerrar panel">✕</button>
+                  <button class="em-close" title="Cerrar panel" @click="cerrarDrawer">✕</button>
                 </div>
               </header>
 
               <!-- Tabs internas del panel -->
               <div class="em-drawer-tabs">
-                <button class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'preview' }"
+                <button
+class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'preview' }"
                         @click="drawerTab = 'preview'">
                   <EyeIcon class="size-[1em]" /> Previsualización
                 </button>
-                <button class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'comentarios' }"
+                <button
+class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'comentarios' }"
                         @click="drawerTab = 'comentarios'">
                   <MessagesSquareIcon class="size-[1em]" /> Comentarios
-                  <span v-if="comentariosTotales(drawerInf) > 0" class="em-drawer-tab-badge"
+                  <span
+v-if="comentariosTotales(drawerInf) > 0" class="em-drawer-tab-badge"
                         :class="{ 'em-drawer-tab-badge--err': comentariosPendientes(drawerInf) > 0 }">
                     {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
                   </span>
                 </button>
-                <button v-if="puedeVerificar(drawerInf)" class="em-drawer-tab"
+                <button
+v-if="puedeVerificar(drawerInf)" class="em-drawer-tab"
                         :class="{ 'em-drawer-tab--on': drawerTab === 'verificar' }"
                         @click="drawerTab = 'verificar'">
                   <CircleCheckIcon class="size-[1em]" /> Verificar
@@ -315,7 +328,8 @@
                     </div>
                     <!-- Iframe con el informe renderizado -->
                     <div class="em-preview-frame">
-                      <iframe :key="previewKey"
+                      <iframe
+:key="previewKey"
                               ref="previewIframeRef"
                               class="em-preview-iframe"
                               :srcdoc="previewDoc"
@@ -336,7 +350,8 @@
                     </p>
                   </div>
                   <div v-else class="em-coms-list">
-                    <div v-for="c in (drawerInf.comentarios || [])" :key="c.id"
+                    <div
+v-for="c in (drawerInf.comentarios || [])" :key="c.id"
                          class="em-com" :class="{ 'em-com--resuelto': c.resuelto }">
                       <div class="em-com-head">
                         <div class="em-com-autor">
@@ -360,12 +375,14 @@
                         </div>
                       </div>
                       <div v-if="!c.resuelto" class="em-com-actions">
-                        <button class="em-btn-sm em-btn-resolver"
+                        <button
+class="em-btn-sm em-btn-resolver"
                                 :disabled="actuandoComentarioId === c.id"
                                 @click="abrirResolver(c)">
                           <CheckIcon class="size-[1em]" /> Marcar subsanado
                         </button>
-                        <button v-if="puedeBorrarComentario(c)" class="em-btn-sm em-btn-borrar"
+                        <button
+v-if="puedeBorrarComentario(c)" class="em-btn-sm em-btn-borrar"
                                 :disabled="actuandoComentarioId === c.id"
                                 @click="borrarComentario(c)">
                           <Trash2Icon class="size-[1em]" /> Eliminar
@@ -374,11 +391,13 @@
                       <!-- Inline form para subsanar -->
                       <div v-if="resolviendoId === c.id" class="em-resolver-form">
                         <label class="em-resolver-lbl">¿Cómo se subsanó? (opcional)</label>
-                        <Textarea v-model="resolviendoTexto" rows="2"
+                        <Textarea
+v-model="resolviendoTexto" rows="2"
                                   placeholder="Describe brevemente qué se cambió o ajustó…" />
                         <div class="em-resolver-actions">
                           <button class="em-btn-sm em-btn-ghost" @click="resolviendoId = null">Cancelar</button>
-                          <button class="em-btn-sm em-btn-resolver" :disabled="actuandoComentarioId === c.id"
+                          <button
+class="em-btn-sm em-btn-resolver" :disabled="actuandoComentarioId === c.id"
                                   @click="resolverComentario(c)">
                             Confirmar subsanación
                           </button>
@@ -389,7 +408,8 @@
 
                   <!-- Form nuevo comentario -->
                   <div v-if="drawerInf.estado !== 'aprobado'" class="em-com-add">
-                    <Textarea v-model="nuevoComentario" rows="3"
+                    <Textarea
+v-model="nuevoComentario" rows="3"
                               :placeholder="permisoVerificar
                                 ? 'Escribe una observación para que el equipo subsane…'
                                 : 'Sólo el verificador puede agregar observaciones. Tú puedes subsanar los comentarios existentes.'"
@@ -442,14 +462,16 @@
                       </div>
                     </div>
                     <div class="em-verify-actions">
-                      <Button v-if="drawerInf.estado !== 'aprobado'"
+                      <Button
+v-if="drawerInf.estado !== 'aprobado'"
                               :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
                               class="bg-success text-success-foreground hover:bg-success/90"
                               @click="verificarYAprobar">
                         <LoaderCircleIcon v-if="verificando" class="animate-spin" />
                         {{ verificando ? 'Verificando…' : '✅ Verificar y aprobar' }}
                       </Button>
-                      <Button v-else
+                      <Button
+v-else
                               variant="outline" size="sm"
                               class="text-warning hover:bg-warning/10 hover:text-warning"
                               @click="reabrir">
@@ -505,10 +527,11 @@
               </div>
               <div v-else class="em-modal-result">
                 <div class="em-result-big">
-                  <span class="em-result-ok" v-if="resultadoBatch.ok">✅ {{ resultadoBatch.ok }}</span>
-                  <span class="em-result-err" v-if="resultadoBatch.err">⚠️ {{ resultadoBatch.err }}</span>
+                  <span v-if="resultadoBatch.ok" class="em-result-ok">✅ {{ resultadoBatch.ok }}</span>
+                  <span v-if="resultadoBatch.err" class="em-result-err">⚠️ {{ resultadoBatch.err }}</span>
                 </div>
-                <div v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
+                <div
+v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
                      :class="{ 'em-result-row--err': !d.ok }">
                   <span>{{ d.ok ? '✅' : '⚠️' }}</span>
                   <div>
@@ -554,7 +577,7 @@
           <div class="em-editor-bar-left">
             <PencilIcon class="size-[1em]" style="color:var(--color-unergy-purple);font-size:13px" />
             <span class="em-editor-title">{{ editorInf?.proyecto_nombre || editorInf?.sub_project }}</span>
-            <span class="em-tipo-tag" v-if="editorInf">{{ tipoLabel(editorInf.tipo) }}</span>
+            <span v-if="editorInf" class="em-tipo-tag">{{ tipoLabel(editorInf.tipo) }}</span>
             <span v-if="editorInf" class="em-editor-periodo">
               · {{ editorInf.periodo_display || formatPeriodo(editorInf.periodo_desde) }}
             </span>
@@ -575,7 +598,8 @@
         </div>
         <!-- Iframe editable -->
         <div class="em-editor-body">
-          <iframe ref="editorIframeRef"
+          <iframe
+ref="editorIframeRef"
                   class="em-editor-iframe"
                   :srcdoc="editorDoc"
                   sandbox="allow-same-origin"
@@ -840,7 +864,7 @@ async function cargar() {
 async function cargarProyectos() {
   try {
     const data = await monitoreoLegacyService.obtenerProyectos()
-    let list = Array.isArray(data) ? data : (data?.projects || [])
+    const list = Array.isArray(data) ? data : (data?.projects || [])
     todosProyectos.value = list
       .map(p => (typeof p === 'string' ? p : (p.sub_project || p.nombre_comercial || p.name || '')))
       .filter(Boolean)
@@ -1665,22 +1689,6 @@ async function ejecutarEnvioBatch() {
 }
 .em-toast-ok  { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
 .em-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-
-/* ── Búsqueda ─────────────────────────────────────────────────── */
-.em-search-wrap { position: relative; display: inline-flex; align-items: center; }
-.em-search-icon { position: absolute; left: 8px; color: #9CA3AF; font-size: 12px; pointer-events: none; }
-.em-search-input {
-  background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 7px;
-  padding: 4px 28px 4px 26px; font-family: inherit; font-size: 12px; color: var(--color-unergy-deep);
-  outline: none; width: 180px; transition: border-color .15s, width .2s;
-}
-.em-search-input:focus { border-color: var(--color-unergy-purple); width: 220px; }
-.em-search-input::placeholder { color: #A89EC0; }
-.em-search-clear {
-  position: absolute; right: 6px;
-  background: none; border: none; cursor: pointer; color: #9CA3AF; font-size: 10px; padding: 0; line-height: 1;
-}
-.em-search-clear:hover { color: #6D28D9; }
 
 /* ── Faltantes ────────────────────────────────────────────────── */
 .em-faltantes-wrap {
