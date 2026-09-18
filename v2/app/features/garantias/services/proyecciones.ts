@@ -6,6 +6,7 @@
  * query, no como cuerpo — de ahí los `null` en el `post` y el `put`.
  */
 import type {
+  AtribucionGarantia,
   HistorialGarantias,
   PagoGarantia,
   ParametrosProyeccion,
@@ -20,6 +21,7 @@ const RUTAS = {
   snapshot: `${BASE}/snapshot`,
   historial: `${BASE}/historial`,
   pagado: `${BASE}/pagado`,
+  atribucion: `${BASE}/atribucion`,
 } as const
 
 /** Valores por defecto de la simulación, los mismos que traía el legacy. */
@@ -29,8 +31,14 @@ const KWH_PLANTA_NUEVA_POR_DEFECTO = 180
 function aQuery({
   plantasNuevas = PLANTAS_NUEVAS_POR_DEFECTO,
   kwhPlantaNueva = KWH_PLANTA_NUEVA_POR_DEFECTO,
+  corte,
 }: ParametrosProyeccion = {}) {
-  return { plantas_nuevas: plantasNuevas, kwh_planta_nueva: kwhPlantaNueva }
+  // `corte` solo viaja si está: sin él, el backend usa el corte de hoy.
+  return {
+    plantas_nuevas: plantasNuevas,
+    kwh_planta_nueva: kwhPlantaNueva,
+    ...(corte ? { corte } : {}),
+  }
 }
 
 export class ProyeccionesGarantiasService extends LegacyBaseService {
@@ -49,5 +57,15 @@ export class ProyeccionesGarantiasService extends LegacyBaseService {
 
   registrarPago({ anio, mes, valor }: PagoGarantia): Promise<unknown> {
     return this.put<unknown>(RUTAS.pagado, null, { params: { anio, mes, valor } })
+  }
+
+  /**
+   * Reparte la garantía del mes siguiente entre los contratos que la generan
+   * (PLC + duplicados) y la guarda. `corte` replica un corte pasado.
+   */
+  calcularAtribucion(corte?: string): Promise<AtribucionGarantia> {
+    return this.post<AtribucionGarantia>(
+      RUTAS.atribucion, null, { params: corte ? { corte } : {} },
+    )
   }
 }
