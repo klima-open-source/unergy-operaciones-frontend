@@ -1,19 +1,26 @@
 <template>
   <div class="gf-page" ref="pageRef">
 
-    <!-- ══ TAB BAR (fuera del sticky) ═══════════════════════════════════ -->
-    <div class="mon-tab-bar">
-      <ZapIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-      <span class="text-base font-bold text-gray-800 whitespace-nowrap mr-2">Gestión de Fallas</span>
-      <div class="mon-tab-group">
-        <button v-for="(tab, i) in TABS" :key="i"
-          class="mon-tab"
-          :class="{ 'mon-tab--active': activeTab === i }"
-          @click="activeTab = i">
-          <component :is="tab.icon" class="size-[1em]" style="font-size:12px" />
-          {{ tab.label }}
-        </button>
+    <!-- ══ TAB BAR (sticky, fuera del sticky-header de la tab Fallas) ══════ -->
+    <div
+      ref="tabBarRef"
+      class="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-border bg-background px-3.5 py-2"
+    >
+      <div class="flex items-center gap-2 text-sm font-bold text-foreground">
+        <ZapIcon class="size-4 text-primary" />
+        Gestión de Fallas
       </div>
+      <GTabs
+        :model-value="String(activeTab)"
+        @update:model-value="(v) => (activeTab = Number(v))"
+      >
+        <GTabsList variant="outline">
+          <GTabsTrigger v-for="(tab, i) in TABS" :key="i" :value="String(i)" variant="outline">
+            <component :is="tab.icon" class="size-4" />
+            {{ tab.label }}
+          </GTabsTrigger>
+        </GTabsList>
+      </GTabs>
     </div>
 
     <!-- ══ TAB 0 — FALLAS ════════════════════════════════════════════════ -->
@@ -23,52 +30,132 @@
       <div class="gf-sticky-header" ref="stickyHeaderRef">
 
         <!-- ── Topbar ── -->
-        <div class="gf-topbar">
-          <!-- Bucket pills -->
-          <div class="gf-bucket-pills">
-            <button v-for="b in BUCKETS" :key="b.key"
-              class="bucket-pill"
-              :class="{ 'bucket-pill--active': bucket === b.key }"
-              :style="bucketPillStyle(b.color, bucket === b.key)"
-              @click="bucket = b.key">
-              <span class="bucket-pill-dot" :style="{ background: b.color }" />
-              <span class="bucket-pill-label">{{ b.label }}</span>
-              <span class="bucket-pill-count" :style="{ color: b.color }">{{ counts[b.key] }}</span>
-            </button>
-          </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Buckets -->
+          <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v)">
+            <GTabsList variant="outline">
+              <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
+                <component :is="b.icon" class="size-4" />
+                {{ b.label }} · {{ counts[b.key] }}
+              </GTabsTrigger>
+            </GTabsList>
+          </GTabs>
 
-          <div class="gf-topbar-actions">
-            <Button outlined size="small" :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-              <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="sm" :disabled="loading" title="Actualizar" @click="cargar">
+              <LoaderCircleIcon v-if="loading" class="animate-spin" />
+              <RefreshCwIcon v-else />
             </Button>
-            <Button label="Nueva falla" size="small" @click="abrirCrear">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+            <Button size="sm" @click="abrirCrear">
+              <PlusIcon /> Nueva falla
             </Button>
           </div>
         </div>
 
         <!-- ── Toolbar ── -->
-        <div class="gf-toolbar">
-          <IconField class="flex-1 min-w-[200px] max-w-sm">
-            <InputIcon><SearchIcon class="text-xs size-[1em]" /></InputIcon>
-            <InputText ref="searchInputRef" v-model="search"
+        <div class="flex flex-wrap items-center gap-2">
+          <InputGroup class="min-w-50 max-w-sm flex-1">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              ref="searchInputRef"
+              v-model="search"
               placeholder="Buscar por código, descripción, proyecto, tipo..."
-              class="w-full" size="small" />
-          </IconField>
-          <Select v-model="filtroProyecto" :options="proyectos" optionLabel="nombre_comercial"
-            optionValue="id" placeholder="Proyecto" showClear filter class="w-36" size="small" />
-          <Select v-model="filtroPrioridad" :options="catalogos.prioridades"
-            optionLabel="etiqueta" optionValue="codigo" placeholder="Prioridad" showClear class="w-32" size="small" />
-          <Select v-model="filtroEstado" :options="catalogos.estados"
-            optionLabel="etiqueta" optionValue="codigo" placeholder="Estado" showClear class="w-32" size="small" />
-          <DatePicker v-model="filtroFechaDesde" placeholder="Desde" dateFormat="yy-mm-dd"
-            showButtonBar class="w-28" size="small" />
-          <DatePicker v-model="filtroFechaHasta" placeholder="Hasta" dateFormat="yy-mm-dd"
-            showButtonBar class="w-28" size="small" />
-          <Button v-if="hayFiltros" text size="small" severity="secondary" @click="limpiarFiltros" v-tooltip.bottom="'Limpiar filtros'">
-            <template #icon><XIcon class="size-[1em]" /></template>
-          </Button>
-          <span class="ml-auto text-[11px] text-gray-500 whitespace-nowrap" v-if="!loading">
+            />
+          </InputGroup>
+
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontalIcon />
+                Filtros
+                <Badge v-if="filtrosActivosCount" variant="secondary">{{ filtrosActivosCount }}</Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-80" align="start">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Proyecto</Label>
+                  <Combobox
+                    :model-value="filtroProyecto"
+                    open-on-click
+                    open-on-focus
+                    @update:model-value="(v) => (filtroProyecto = v ?? null)"
+                  >
+                    <ComboboxAnchor>
+                      <ComboboxInput
+                        :display-value="
+                          (v) => proyectos.find((p) => p.id === v)?.nombre_comercial ?? ''
+                        "
+                        placeholder="Todos los proyectos"
+                      />
+                    </ComboboxAnchor>
+                    <ComboboxList>
+                      <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                      <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
+                        {{ p.nombre_comercial }}
+                        <ComboboxItemIndicator>
+                          <CheckIcon />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Prioridad</Label>
+                  <Select v-model="filtroPrioridad">
+                    <SelectTrigger class="w-full">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="p in catalogos.prioridades"
+                        :key="p.codigo"
+                        :value="p.codigo"
+                        >{{ p.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Estado</Label>
+                  <Select v-model="filtroEstado">
+                    <SelectTrigger class="w-full">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="e in catalogos.estados"
+                        :key="e.codigo"
+                        :value="e.codigo"
+                        >{{ e.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs text-muted-foreground">Desde</Label>
+                    <Input v-model="filtroFechaDesde" type="date" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs text-muted-foreground">Hasta</Label>
+                    <Input v-model="filtroFechaHasta" type="date" />
+                  </div>
+                </div>
+
+                <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
+                  <XIcon /> Limpiar filtros
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <span v-if="!loading" class="ml-auto text-xs whitespace-nowrap text-muted-foreground">
             {{ filtradas.length }} / {{ porBucket.length }}
           </span>
         </div>
@@ -652,8 +739,6 @@
       />
     </div><!-- /TAB 1 -->
 
-    <!-- ══ TAB 2 — MAPA ══════════════════════════════════════════════════ -->
-
     <!-- ══ BOTÓN FLOTANTE: Diagrama fasorial ══════════════════════════════ -->
     <FasorialButton />
 
@@ -661,31 +746,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import DatePicker from 'primevue/datepicker'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
-import MultiSelect from 'primevue/multiselect'
 import FallaForm from './FallaForm.vue'
 import FallaArchivos from './FallaArchivos.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
 import FasorialButton from '~/features/fallas/components/FasorialButton.vue'
-const FallasMapView = defineAsyncComponent(() => import('./FallasMapView.vue'))
 import { FallasService } from '~/features/fallas/services/fallas'
 import { tituloFalla, categoriaFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { formatCOP as fmtCOP } from '~/utils/currency'
-import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, SlidersHorizontalIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const fallasService = new FallasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -731,8 +811,8 @@ const search           = ref(route.query.q || '')
 const filtroProyecto   = ref(route.query.proyecto ? Number(route.query.proyecto) : null)
 const filtroPrioridad  = ref(route.query.prioridad || null)
 const filtroEstado     = ref(route.query.estado || null)
-const filtroFechaDesde = ref(route.query.desde ? new Date(route.query.desde) : null)
-const filtroFechaHasta = ref(route.query.hasta ? new Date(route.query.hasta) : null)
+const filtroFechaDesde = ref(route.query.desde || null)
+const filtroFechaHasta = ref(route.query.hasta || null)
 
 watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
   ([q, proyecto, prioridad, estado, desde, hasta]) => {
@@ -741,14 +821,20 @@ watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, 
     if (proyecto) query.proyecto = proyecto
     if (prioridad) query.prioridad = prioridad
     if (estado) query.estado = estado
-    if (desde) query.desde = desde.toISOString().split('T')[0]
-    if (hasta) query.hasta = hasta.toISOString().split('T')[0]
+    if (desde) query.desde = desde
+    if (hasta) query.hasta = hasta
     router.replace({ query })
   })
+
+const filtrosActivosCount = computed(() =>
+  [filtroProyecto.value, filtroPrioridad.value, filtroEstado.value, filtroFechaDesde.value, filtroFechaHasta.value]
+    .filter((v) => v != null && v !== '').length,
+)
 
 // ── Refs DOM ─────────────────────────────────────────────────────────────
 const searchInputRef  = ref(null)
 const pageRef         = ref(null)
+const tabBarRef       = ref(null)
 const stickyHeaderRef = ref(null)
 
 // ── Drawer / detalle ──────────────────────────────────────────────────────
@@ -1464,7 +1550,7 @@ function onKeydown(e) {
   if (activeTab.value !== 0) return
   if (e.key === '/') {
     e.preventDefault()
-    nextTick(() => searchInputRef.value?.$el?.querySelector('input')?.focus())
+    nextTick(() => searchInputRef.value?.$el?.focus())
   } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
     abrirCrear()
@@ -1476,11 +1562,19 @@ function onKeydown(e) {
   }
 }
 
-// Medir altura real del sticky-header y exponerla como CSS custom property
+// Medir altura real del tab bar y del sticky-header, y exponerlas como
+// variables CSS -- así el offset del segundo sticky nunca queda desincronizado
+// de lo que el primero realmente mide (antes era un `top: 41px` a mano).
 let _headerRO = null
+let _tabBarRO = null
 function measureHeader() {
-  if (!stickyHeaderRef.value || !pageRef.value) return
-  pageRef.value.style.setProperty('--gf-header-h', `${stickyHeaderRef.value.offsetHeight}px`)
+  if (!pageRef.value) return
+  if (tabBarRef.value) {
+    pageRef.value.style.setProperty('--gf-tabbar-h', `${tabBarRef.value.offsetHeight}px`)
+  }
+  if (stickyHeaderRef.value) {
+    pageRef.value.style.setProperty('--gf-header-h', `${stickyHeaderRef.value.offsetHeight}px`)
+  }
 }
 
 onMounted(() => {
@@ -1490,9 +1584,15 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
     measureHeader()
-    if (window.ResizeObserver && stickyHeaderRef.value) {
-      _headerRO = new ResizeObserver(measureHeader)
-      _headerRO.observe(stickyHeaderRef.value)
+    if (window.ResizeObserver) {
+      if (stickyHeaderRef.value) {
+        _headerRO = new ResizeObserver(measureHeader)
+        _headerRO.observe(stickyHeaderRef.value)
+      }
+      if (tabBarRef.value) {
+        _tabBarRO = new ResizeObserver(measureHeader)
+        _tabBarRO.observe(tabBarRef.value)
+      }
     }
   })
 })
@@ -1500,6 +1600,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   _headerRO?.disconnect()
+  _tabBarRO?.disconnect()
 })
 
 // Limpiar drawer al cerrar
@@ -1593,7 +1694,7 @@ watch(bucket, (newBucket) => {
 /* ══ Sticky header ═══════════════════════════════════════════════════════ */
 .gf-sticky-header {
   position: sticky;
-  top: 41px;
+  top: var(--gf-tabbar-h, 41px);
   z-index: 20;
   background: #f8f7fa;
   padding-top: 4px;
