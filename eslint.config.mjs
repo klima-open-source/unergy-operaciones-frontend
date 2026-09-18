@@ -68,7 +68,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/operaciones/components/InformeOMView.vue',
   'app/features/operaciones/components/InformesListView.vue',
   'app/features/operaciones/components/InformesMensualesPanel.vue',
-  'app/features/operaciones/components/InformesMensualesView.vue',
   'app/features/operaciones/components/ListaEditable.vue',
   'app/features/operaciones/components/PolizasView.vue',
   'app/features/operaciones/components/PortafoliosGestionPanel.vue',

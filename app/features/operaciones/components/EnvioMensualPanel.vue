@@ -5,35 +5,61 @@
       <!-- ══ TOOLBAR compacto (una sola fila) ══════════════════════ -->
       <header class="em-header">
         <!-- Ícono + label mínimo -->
-        <span class="em-header-label"
-              v-tooltip.bottom="'Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío'">
+        <span
+          class="em-header-label"
+          title="Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío"
+        >
           <SendIcon class="size-[1em]" /> Revisión y envío
         </span>
 
         <!-- Envío masivo inline (solo cuando aplica) -->
-        <button v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
-                class="em-batch-inline"
-                :disabled="enviandoBatch"
-                @click="abrirConfirmEnvio"
-                v-tooltip.bottom="'Enviar todos los informes verificados al cliente'">
-          <SendIcon class="size-[1em]" />
+        <Button
+          v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
+          size="sm"
+          :disabled="enviandoBatch"
+          title="Enviar todos los informes verificados al cliente"
+          class="bg-success text-success-foreground hover:bg-success/90"
+          @click="abrirConfirmEnvio"
+        >
+          <SendIcon />
           Enviar {{ puedeEnviarBatch.length }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}
-        </button>
+        </Button>
 
         <!-- Controles -->
         <div class="em-header-controls">
-          <div class="em-search-wrap">
-            <SearchIcon class="em-search-icon size-[1em]" />
-            <input v-model="busqueda" type="text" placeholder="Buscar…" class="em-search-input" />
-            <button v-if="busqueda" class="em-search-clear" @click="busqueda = ''" title="Limpiar">✕</button>
+          <div class="relative w-48">
+            <SearchIcon
+              class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input v-model="busqueda" placeholder="Buscar…" class="h-8 pl-8" />
+            <button
+              v-if="busqueda"
+              type="button"
+              class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpiar"
+              @click="busqueda = ''"
+            >
+              <XIcon class="size-3.5" />
+            </button>
           </div>
-          <div class="em-month-picker">
-            <button class="em-month-nav" @click="cambiarMes(-1)" title="Mes anterior">‹</button>
-            <input type="month" v-model="mesSel" :max="mesMax" class="em-month-input" />
-            <button class="em-month-nav" @click="cambiarMes(1)" :disabled="mesSel === mesMax" title="Mes siguiente">›</button>
+          <div class="flex items-center gap-1">
+            <Button variant="ghost" size="icon-sm" title="Mes anterior" @click="cambiarMes(-1)">
+              <ChevronLeftIcon />
+            </Button>
+            <Input v-model="mesSel" type="month" :max="mesMax" class="h-8 w-auto" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :disabled="mesSel === mesMax"
+              title="Mes siguiente"
+              @click="cambiarMes(1)"
+            >
+              <ChevronRightIcon />
+            </Button>
           </div>
-          <Button text size="small" :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <Button variant="ghost" size="icon-sm" :disabled="loading" title="Actualizar" @click="cargar">
+            <LoaderCircleIcon v-if="loading" class="animate-spin" />
+            <RefreshCwIcon v-else />
           </Button>
         </div>
       </header>
@@ -50,7 +76,7 @@
               <span class="em-compact-count">{{ filtrados.length }} informe{{ filtrados.length !== 1 ? 's' : '' }}</span>
             </div>
             <div v-if="loading" class="em-compact-empty">
-              <ProgressSpinner style="width:24px;height:24px" />
+              <LoaderCircleIcon class="size-6 animate-spin text-primary" />
             </div>
             <div v-else-if="!filtrados.length" class="em-compact-empty">
               <InboxIcon class="size-[1em]" style="font-size:20px;color:#A89EC0;margin-bottom:6px" />
@@ -66,15 +92,15 @@
                   <div class="em-compact-nombre">{{ inf.proyecto_nombre || inf.sub_project }}</div>
                   <div class="em-compact-meta">
                     <span class="em-tipo-tag">{{ tipoLabel(inf.tipo) }}</span>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(inf)}`]" style="font-size:9px;padding:1px 6px">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(inf)]" size="sm">
                       {{ estadoLabel(pipelineEstado(inf)) }}
-                    </span>
+                    </GBadge>
                   </div>
                 </div>
                 <div class="em-compact-actions" @click.stop>
                   <button class="em-icon-btn em-btn-edit"
                           @click="editar(inf)"
-                          v-tooltip.right="'Editar informe'"
+                          title="Editar informe"
                           style="width:22px;height:22px;font-size:11px">
                     <PencilIcon class="size-[1em]" />
                   </button>
@@ -86,7 +112,7 @@
           <!-- TABLA COMPLETA cuando no hay panel abierto -->
           <div v-else class="em-table-wrap">
             <div v-if="loading" class="em-state">
-              <ProgressSpinner style="width:32px;height:32px" />
+              <LoaderCircleIcon class="size-8 animate-spin text-primary" />
               <span>Cargando informes del mes…</span>
             </div>
             <div v-else-if="!filtrados.length" class="em-state em-state-empty">
@@ -119,9 +145,9 @@
                 <tr v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
                     @click="abrirDrawer(row)">
                   <td>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(row)}`]">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(row)]" size="sm">
                       {{ estadoLabel(pipelineEstado(row)) }}
-                    </span>
+                    </GBadge>
                   </td>
                   <td class="em-td-proj">
                     <div class="em-proj-nombre">{{ row.proyecto_nombre || row.sub_project }}</div>
@@ -150,7 +176,7 @@
                   </td>
                   <td class="em-td-acciones" @click.stop>
                     <button class="em-icon-btn em-btn-edit" @click="editar(row)"
-                            v-tooltip.bottom="'Editar informe en pantalla completa'">
+                            title="Editar informe en pantalla completa">
                       <PencilIcon class="size-[1em]" />
                     </button>
                     <button class="em-icon-btn"
@@ -160,7 +186,7 @@
                               'em-btn-coms-empty': comentariosTotales(row) === 0,
                             }"
                             @click="abrirDrawer(row, 'comentarios')"
-                            v-tooltip.bottom="comentariosTooltip(row)">
+                            :title="comentariosTooltip(row)">
                       <MessagesSquareIcon class="size-[1em]" />
                       <span v-if="comentariosTotales(row) > 0" class="em-coms-badge"
                             :class="{ 'em-coms-badge--err': comentariosPendientes(row) > 0 }">
@@ -170,19 +196,19 @@
                     <button v-if="puedeVerificar(row)" class="em-icon-btn em-btn-verify"
                             :disabled="!permisoVerificar"
                             @click="abrirDrawer(row, 'verificar')"
-                            v-tooltip.bottom="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'">
+                            :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'">
                       <CircleCheckIcon class="size-[1em]" />
                     </button>
                     <button v-if="row.estado === 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-send"
                             :disabled="!permisoEnviar || enviandoIds.has(row.id)"
                             @click="enviarUno(row)"
-                            v-tooltip.bottom="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'">
+                            :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'">
                       <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="size-[1em] animate-spin" />
                       <SendIcon v-else class="size-[1em]" />
                     </button>
                     <button v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-del"
                             @click="eliminarInforme(row)"
-                            v-tooltip.bottom="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'">
+                            :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'">
                       <Trash2Icon class="size-[1em]" />
                     </button>
                   </td>
@@ -229,9 +255,9 @@
                     <span>·</span>
                     <span>{{ drawerInf.periodo_display || formatPeriodo(drawerInf.periodo_desde) }}</span>
                     <span>·</span>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(drawerInf)}`]">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(drawerInf)]" size="sm">
                       {{ estadoLabel(pipelineEstado(drawerInf)) }}
-                    </span>
+                    </GBadge>
                   </div>
                 </div>
                 <div class="em-drawer-head-actions">
@@ -265,7 +291,7 @@
                 <!-- ── PREVIEW (iframe) ─────────────────────────────── -->
                 <div v-if="drawerTab === 'preview'" class="em-preview-wrap">
                   <div v-if="loadingDetalle" class="em-state">
-                    <ProgressSpinner style="width:28px;height:28px" />
+                    <LoaderCircleIcon class="size-7 animate-spin text-primary" />
                     <span>Cargando informe…</span>
                   </div>
                   <div v-else-if="!detalleHtml" class="em-state em-state-empty">
@@ -279,11 +305,11 @@
                         🔒 Aprobado — reabre desde Verificar para editar
                       </span>
                       <div class="em-preview-actions">
-                        <Button v-if="drawerInf?.estado !== 'aprobado'" label="Editar" outlined size="small" @click="editar(drawerInf)">
-                          <template #icon><PencilIcon class="size-[1em]" /></template>
+                        <Button v-if="drawerInf?.estado !== 'aprobado'" variant="outline" size="sm" @click="editar(drawerInf)">
+                          <PencilIcon /> Editar
                         </Button>
-                        <Button label="PDF" outlined size="small" severity="warn" @click="imprimirDetalle" v-tooltip.bottom="'Imprimir / exportar PDF'">
-                          <template #icon><PrinterIcon class="size-[1em]" /></template>
+                        <Button variant="outline" size="sm" title="Imprimir / exportar PDF" @click="imprimirDetalle">
+                          <PrinterIcon /> PDF
                         </Button>
                       </div>
                     </div>
@@ -348,9 +374,8 @@
                       <!-- Inline form para subsanar -->
                       <div v-if="resolviendoId === c.id" class="em-resolver-form">
                         <label class="em-resolver-lbl">¿Cómo se subsanó? (opcional)</label>
-                        <textarea v-model="resolviendoTexto" rows="2"
-                                  placeholder="Describe brevemente qué se cambió o ajustó…"
-                                  class="em-textarea" />
+                        <Textarea v-model="resolviendoTexto" rows="2"
+                                  placeholder="Describe brevemente qué se cambió o ajustó…" />
                         <div class="em-resolver-actions">
                           <button class="em-btn-sm em-btn-ghost" @click="resolviendoId = null">Cancelar</button>
                           <button class="em-btn-sm em-btn-resolver" :disabled="actuandoComentarioId === c.id"
@@ -364,15 +389,20 @@
 
                   <!-- Form nuevo comentario -->
                   <div v-if="drawerInf.estado !== 'aprobado'" class="em-com-add">
-                    <textarea v-model="nuevoComentario" rows="3"
+                    <Textarea v-model="nuevoComentario" rows="3"
                               :placeholder="permisoVerificar
                                 ? 'Escribe una observación para que el equipo subsane…'
                                 : 'Sólo el verificador puede agregar observaciones. Tú puedes subsanar los comentarios existentes.'"
-                              class="em-textarea"
                               :disabled="!permisoVerificar" />
                     <div class="em-com-add-actions">
-                      <Button label="Agregar comentario" size="small" :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario" :loading="agregandoComentario" @click="agregarComentario">
-                        <template #icon><PlusIcon class="size-[1em]" /></template>
+                      <Button
+                        size="sm"
+                        :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario"
+                        @click="agregarComentario"
+                      >
+                        <LoaderCircleIcon v-if="agregandoComentario" class="animate-spin" />
+                        <PlusIcon v-else />
+                        Agregar comentario
                       </Button>
                     </div>
                   </div>
@@ -413,13 +443,18 @@
                     </div>
                     <div class="em-verify-actions">
                       <Button v-if="drawerInf.estado !== 'aprobado'"
-                              label="✅ Verificar y aprobar"
                               :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
-                              :loading="verificando"
-                              @click="verificarYAprobar" class="em-btn-verify-big" />
+                              class="bg-success text-success-foreground hover:bg-success/90"
+                              @click="verificarYAprobar">
+                        <LoaderCircleIcon v-if="verificando" class="animate-spin" />
+                        {{ verificando ? 'Verificando…' : '✅ Verificar y aprobar' }}
+                      </Button>
                       <Button v-else
-                              label="↩ Reabrir para corrección" outlined severity="warn" size="small"
-                              @click="reabrir" />
+                              variant="outline" size="sm"
+                              class="text-warning hover:bg-warning/10 hover:text-warning"
+                              @click="reabrir">
+                        ↩ Reabrir para corrección
+                      </Button>
                       <p class="em-verify-hint">
                         {{ drawerInf.estado === 'aprobado'
                           ? 'Si necesitas devolver el informe para corregir algo, reábrelo y agrega comentarios.'
@@ -484,11 +519,18 @@
               </div>
             </div>
             <footer class="em-modal-foot">
-              <Button v-if="!enviandoBatch && !resultadoBatch" label="Cancelar" outlined size="small" @click="cerrarConfirmEnvio" />
-              <Button v-if="!enviandoBatch && !resultadoBatch" :label="`Confirmar envío de ${puedeEnviarBatch.length}`" size="small" @click="ejecutarEnvioBatch" class="em-btn-send">
-                <template #icon><SendIcon class="size-[1em]" /></template>
+              <Button v-if="!enviandoBatch && !resultadoBatch" variant="outline" size="sm" @click="cerrarConfirmEnvio">
+                Cancelar
               </Button>
-              <Button v-if="resultadoBatch" label="Cerrar" size="small" @click="cerrarConfirmEnvio" />
+              <Button
+                v-if="!enviandoBatch && !resultadoBatch"
+                size="sm"
+                class="bg-success text-success-foreground hover:bg-success/90"
+                @click="ejecutarEnvioBatch"
+              >
+                <SendIcon /> Confirmar envío de {{ puedeEnviarBatch.length }}
+              </Button>
+              <Button v-if="resultadoBatch" size="sm" @click="cerrarConfirmEnvio">Cerrar</Button>
             </footer>
           </div>
         </div>
@@ -551,12 +593,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
 
 const { user } = useAuth()
 const informesService = new InformesService()
@@ -654,6 +694,15 @@ const ESTADO_COLORS = {
   enviado:    '#7C3AED',
 }
 function estadoColor(e) { return ESTADO_COLORS[e] || '#9CA3AF' }
+
+// Mismo criterio de severidad que ESTADO_COLORS, en colores semánticos de GBadge.
+const ESTADO_BADGE_COLOR = {
+  pendiente: 'warning',
+  comentado: 'destructive',
+  resuelto: 'information',
+  verificado: 'success',
+  enviado: 'action',
+}
 
 const mesLabel = computed(() => {
   if (!mesSel.value) return ''
@@ -1207,35 +1256,6 @@ async function ejecutarEnvioBatch() {
   display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
   flex-shrink: 0; flex-wrap: wrap;
 }
-/* Envío masivo inline */
-.em-batch-inline {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: #16A34A; color: #fff;
-  border: none; border-radius: 6px;
-  padding: 3px 10px; font-family: inherit; font-size: 11px; font-weight: 700;
-  cursor: pointer; transition: background .14s; white-space: nowrap;
-}
-.em-batch-inline:hover:not(:disabled) { background: #15803D; }
-.em-batch-inline:disabled { opacity: .6; cursor: not-allowed; }
-.em-batch-inline svg { font-size: 10px; }
-
-.em-month-picker {
-  display: inline-flex; align-items: center;
-  background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 7px; overflow: hidden;
-}
-.em-month-nav {
-  background: transparent; border: none; color: #6D28D9;
-  width: 26px; height: 28px; cursor: pointer; font-size: 14px; font-weight: 700;
-  transition: background .15s;
-}
-.em-month-nav:hover:not(:disabled) { background: #E9DEFC; }
-.em-month-nav:disabled { opacity: .35; cursor: not-allowed; }
-.em-month-input {
-  background: transparent; border: none; color: var(--color-unergy-deep);
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  padding: 3px 4px; outline: none; color-scheme: light;
-}
-
 .em-btn-send :deep(.p-button), :deep(.em-btn-send) {
   background: #16A34A !important; border-color: #16A34A !important;
 }
@@ -1368,18 +1388,6 @@ async function ejecutarEnvioBatch() {
 .em-fecha-sub { font-size: 10px; color: #9CA3AF; margin-top: 1px; }
 .em-td-empty  { color: #D1D5DB; }
 .em-mail-ok   { color: #166534; font-size: 11px; font-weight: 700; }
-
-/* Estado pills */
-.em-state-pill {
-  display: inline-block; font-size: 10px; font-weight: 800;
-  padding: 3px 9px; border-radius: 20px; letter-spacing: .4px;
-  white-space: nowrap; text-transform: uppercase;
-}
-.em-pill-pendiente  { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
-.em-pill-comentado  { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-.em-pill-resuelto   { background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE; }
-.em-pill-verificado { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-.em-pill-enviado    { background: #EDE9FE; color: #5B21B6; border: 1px solid #DDD6FE; }
 
 /* Botones de acción por fila */
 .em-td-acciones { white-space: nowrap; text-align: right; }
@@ -1562,13 +1570,6 @@ async function ejecutarEnvioBatch() {
 .em-resolver-lbl { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 4px; }
 .em-resolver-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
 
-.em-textarea {
-  width: 100%; border: 1.5px solid #E5E2EC; border-radius: 8px;
-  padding: 8px 10px; font-family: inherit; font-size: 12px; color: var(--color-unergy-deep);
-  outline: none; resize: vertical; background: #fff;
-}
-.em-textarea:focus    { border-color: var(--color-unergy-purple); }
-.em-textarea:disabled { background: #F4F1FA; color: #9CA3AF; }
 .em-com-add {
   background: #FAF8FE; border: 1px dashed #DAD3EA; border-radius: 10px; padding: 12px;
   flex-shrink: 0;
