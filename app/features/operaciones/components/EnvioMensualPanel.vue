@@ -1595,10 +1595,6 @@ async function ejecutarEnvioBatch() {
 .em-check-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-unergy-deep); }
 .em-check-row--err { color: #991B1B; }
 .em-verify-actions { display: flex; flex-direction: column; gap: 8px; }
-.em-btn-verify-big :deep(.p-button), :deep(.em-btn-verify-big) {
-  background: #16A34A !important; border-color: #16A34A !important; font-weight: 800 !important;
-}
-.em-btn-verify-big :deep(.p-button:hover), :deep(.em-btn-verify-big:hover) { background: #15803D !important; }
 .em-verify-hint { font-size: 11px; color: #6B5A8A; font-style: italic; margin: 0; }
 
 /* ── Modal envío masivo ───────────────────────────────────────── */
