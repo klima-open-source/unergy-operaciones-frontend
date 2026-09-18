@@ -1472,6 +1472,15 @@ function involucraGeneracion(f) {
   return energiaPerdida(f) > 0
 }
 
+// ── Fallas del período (correlación generación ↔ incidencias) ─────────
+const allFallas = ref([])
+const fallasCargando = ref(false)
+// Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
+// con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
+const qDesde = ref(null)
+const qHasta = ref(null)
+const qNombres = ref([]) // nombres_comerciales consultados
+
 // Fallas de los proyectos consultados dentro del rango consultado (snapshot).
 const fallasDelPeriodo = computed(() => {
   if (!qDesde.value || !qHasta.value || !qNombres.value.length) return []
@@ -1702,13 +1711,4 @@ onMounted(async () => {
 watch(chartWrapRef, (el) => {
   if (el && resizeObserver) resizeObserver.observe(el)
 })
-
-// ── Fallas del período (correlación generación ↔ incidencias) ─────────
-const allFallas = ref([])
-const fallasCargando = ref(false)
-// Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
-// con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
-const qDesde = ref(null)
-const qHasta = ref(null)
-const qNombres = ref([]) // nombres_comerciales consultados
 </script>
