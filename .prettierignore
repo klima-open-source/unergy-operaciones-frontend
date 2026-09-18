@@ -24,9 +24,41 @@ app/components/gandalf
 .agents
 
 # MIGRACIÓN — Fase 1/2: el legacy todavía no cumple el formato del template.
-# Mismo criterio que en eslint.config.mjs: el legacy es JavaScript, el template
-# TypeScript. La lista se vacía sola a medida que la fase 3 convierte archivos.
-app/features/*/components
+# Mismo criterio que en eslint.config.mjs (misma lista, un slice por línea): el
+# legacy es JavaScript, el template TypeScript. Se vacía sola a medida que la
+# fase 3 migra cada slice — `dashboard` ya salió de esta lista. `operaciones` y
+# `solar` van archivo por archivo: `GeneracionView.vue` y las piezas de
+# `SolarLiveView.vue` ya cumplen el formato del template, el resto no.
+app/features/admin/components
+app/features/alertas/components
+app/features/auth/components
+app/features/clientes/components
+app/features/comercial/components
+app/features/contratos/components
+app/features/fallas/components
+app/features/finanzas/components
+app/features/fronteras/components
+app/features/garantias/components
+app/features/liquidaciones/components
+app/features/mem/components
+app/features/mobile/components
+app/features/operaciones/components/EnvioMensualPanel.vue
+app/features/operaciones/components/EvidenciaUploader.vue
+app/features/operaciones/components/GestionFallasView.vue
+app/features/operaciones/components/InformeDetailView.vue
+app/features/operaciones/components/InformeOMView.vue
+app/features/operaciones/components/InformesListView.vue
+app/features/operaciones/components/InformesMensualesPanel.vue
+app/features/operaciones/components/InformesMensualesView.vue
+app/features/operaciones/components/ListaEditable.vue
+app/features/operaciones/components/PolizasView.vue
+app/features/operaciones/components/PortafoliosGestionPanel.vue
+app/features/operadores-red/components
+app/features/panel-contable/components
+app/features/proyectos/components
+app/features/registros-cnd/components
+app/features/retos/components
+app/features/solar/components/SolarView.vue
 app/data
 app/assets/*.js
 app/assets/main.css

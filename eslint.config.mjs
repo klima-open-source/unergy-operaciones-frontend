@@ -57,13 +57,29 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/liquidaciones/components/**',
   'app/features/mem/components/**',
   'app/features/mobile/components/**',
-  'app/features/operaciones/components/**',
+  // `GeneracionView.vue` se migró (es el contenido de la tab "Histórico" de
+  // `/solar-live`) — el resto de `operaciones` sigue igual. Archivo por
+  // archivo porque la negación de un glob de carpeta no funciona en
+  // `ignores` de ESLint flat config.
+  'app/features/operaciones/components/EnvioMensualPanel.vue',
+  'app/features/operaciones/components/EvidenciaUploader.vue',
+  'app/features/operaciones/components/GestionFallasView.vue',
+  'app/features/operaciones/components/InformeDetailView.vue',
+  'app/features/operaciones/components/InformeOMView.vue',
+  'app/features/operaciones/components/InformesListView.vue',
+  'app/features/operaciones/components/InformesMensualesPanel.vue',
+  'app/features/operaciones/components/InformesMensualesView.vue',
+  'app/features/operaciones/components/ListaEditable.vue',
+  'app/features/operaciones/components/PolizasView.vue',
+  'app/features/operaciones/components/PortafoliosGestionPanel.vue',
   'app/features/operadores-red/components/**',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',
   'app/features/registros-cnd/components/**',
   'app/features/retos/components/**',
-  'app/features/solar/components/**',
+  // `SolarLiveView.vue` ya se limpió de PrimeVue/CSS propio; `SolarView.vue`
+  // (histórico de generación, otra vista) todavía no.
+  'app/features/solar/components/SolarView.vue',
 ]
 
 export default withNuxt(prettier, {

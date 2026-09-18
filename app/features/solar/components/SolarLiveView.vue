@@ -1,6 +1,5 @@
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-
     <!-- ══ TAB BAR ══ -->
     <GTabs :model-value="tab" @update:model-value="(v) => (tab = v)">
       <GTabsList variant="outline">
@@ -15,294 +14,404 @@
 
     <!-- ══ LIVE TAB ══ -->
     <div v-if="tab === 'live'" class="flex flex-1 flex-col gap-5 overflow-y-auto p-4 sm:p-6">
-
-    <!-- ══ HEADER ══ -->
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 class="text-lg font-extrabold text-foreground">Generación Solar</h1>
-        <p class="mt-0.5 text-xs text-muted-foreground">
-          Potencia en tiempo real por proyecto
-          <!-- Es la hora en que se PREGUNTO, no la del dato. Decirlo evita que
+      <!-- ══ HEADER ══ -->
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-extrabold text-foreground">Generación Solar</h1>
+          <p class="mt-0.5 text-xs text-muted-foreground">
+            Potencia en tiempo real por proyecto
+            <!-- Es la hora en que se PREGUNTO, no la del dato. Decirlo evita que
                se lea como frescura: media flota puede estar horas atrasada y
                este numero seguiria diciendo la hora actual. -->
-          <span v-if="lastUpdated" class="text-muted-foreground/70">· consultado {{ lastUpdated }}</span>
-        </p>
-      </div>
-      <div class="flex items-center gap-2.5">
-        <!-- Filtro por proyecto -->
-        <div class="relative w-64">
-          <SearchIcon class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input v-model="filtro" placeholder="Buscar proyecto..." class="pl-8" />
-          <button
-            v-if="filtro"
-            type="button"
-            class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Limpiar filtro"
-            @click="filtro = ''"
-          >
-            <XIcon class="size-4" />
-          </button>
+            <span v-if="lastUpdated" class="text-muted-foreground/70"
+              >· consultado {{ lastUpdated }}</span
+            >
+          </p>
         </div>
-        <!-- Toggle columnas -->
-        <div class="flex items-center gap-1">
-          <Button
-            v-for="c in [1, 2, 4]"
-            :key="c"
-            type="button"
-            :variant="cols === c ? 'secondary' : 'outline'"
-            size="sm"
-            :title="`${c} columna${c > 1 ? 's' : ''}`"
-            @click="cols = c"
-          >
-            {{ c }}
-          </Button>
-        </div>
-        <!-- Botón actualizar + auto-refresh -->
-        <div class="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
-            <LoaderCircleIcon v-if="loading" class="animate-spin" />
-            <RefreshCwIcon v-else />
-            Actualizar
-          </Button>
-          <Popover v-model:open="autoMenuOpen">
-            <PopoverTrigger as-child>
-              <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
-                <ClockIcon />
-                <span v-if="autoInterval">{{ autoLabel }}</span>
-                <ChevronDownIcon />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" class="w-44 p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                class="w-full justify-start"
-                :class="!autoInterval ? 'bg-muted' : ''"
-                @click="setAuto(0)"
-              >
-                Desactivado
-              </Button>
-              <Button
-                v-for="opt in autoOptions"
-                :key="opt.ms"
-                variant="ghost"
-                size="sm"
-                class="w-full justify-start"
-                :class="autoInterval === opt.ms ? 'bg-muted' : ''"
-                @click="setAuto(opt.ms)"
-              >
-                Cada {{ opt.label }}
-              </Button>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ LOADING inicial ══ -->
-    <div v-if="loading && !proyectos.length" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-      <LoaderCircleIcon class="size-7 animate-spin text-primary" />
-      <span class="text-sm">Cargando proyectos...</span>
-    </div>
-
-    <!-- ══ EMPTY ══ -->
-    <div v-else-if="!loading && !proyectos.length" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-      <SunIcon class="size-8 text-muted-foreground/40" />
-      <p class="text-sm">Sin proyectos disponibles</p>
-    </div>
-
-    <!-- ══ SIN COINCIDENCIAS ══ -->
-    <div v-else-if="sinCoincidencias" class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-      <SearchIcon class="size-8 text-muted-foreground/40" />
-      <p class="text-sm">Ningún proyecto coincide con "{{ filtro }}"</p>
-    </div>
-
-    <!-- ══ PROYECTOS (drag & drop) ══ -->
-    <draggable
-      v-else
-      v-model="proyectos"
-      item-key="proyecto_id"
-      handle=".sl-drag-handle"
-      class="grid gap-4"
-      :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }"
-      :disabled="!!filtro.trim()"
-      @end="saveOrder"
-    >
-      <template #item="{ element: proy }">
-        <div
-          v-show="matchesFiltro(proy)"
-          :ref="el => observarTarjeta(el, proy.proyecto_id)"
-        >
-        <Card size="sm">
-        <CardContent class="flex flex-col gap-3">
-
-          <!-- Nombre + estado -->
-          <div class="flex items-center gap-2 text-sm font-extrabold text-foreground">
-            <MenuIcon class="sl-drag-handle size-4 shrink-0 cursor-grab text-muted-foreground/50 hover:text-primary active:cursor-grabbing" title="Arrastrar para reorganizar" />
-            <span class="size-2 shrink-0 rounded-full" :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }" />
-            <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
+        <div class="flex items-center gap-2.5">
+          <!-- Filtro por proyecto -->
+          <div class="relative w-64">
+            <SearchIcon
+              class="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input v-model="filtro" placeholder="Buscar proyecto..." class="pl-8" />
+            <button
+              v-if="filtro"
+              type="button"
+              class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpiar filtro"
+              @click="filtro = ''"
+            >
+              <XIcon class="size-4" />
+            </button>
           </div>
-
-          <!-- Cargando detalle -->
-          <div v-if="!detailMap[proy.proyecto_id]" class="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-            <LoaderCircleIcon class="size-3.5 animate-spin" />
-            <span>Cargando datos...</span>
+          <!-- Toggle columnas -->
+          <div class="flex items-center gap-1">
+            <Button
+              v-for="c in [1, 2, 4]"
+              :key="c"
+              type="button"
+              :variant="cols === c ? 'secondary' : 'outline'"
+              size="sm"
+              :title="`${c} columna${c > 1 ? 's' : ''}`"
+              @click="cols = c"
+            >
+              {{ c }}
+            </Button>
           </div>
+          <!-- Botón actualizar + auto-refresh -->
+          <div class="flex items-center gap-1.5">
+            <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+              <LoaderCircleIcon v-if="loading" class="animate-spin" />
+              <RefreshCwIcon v-else />
+              Actualizar
+            </Button>
+            <Popover v-model:open="autoMenuOpen">
+              <PopoverTrigger as-child>
+                <Button :variant="autoInterval ? 'secondary' : 'outline'" size="sm">
+                  <ClockIcon />
+                  <span v-if="autoInterval">{{ autoLabel }}</span>
+                  <ChevronDownIcon />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" class="w-44 p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="w-full justify-start"
+                  :class="!autoInterval ? 'bg-muted' : ''"
+                  @click="setAuto(0)"
+                >
+                  Desactivado
+                </Button>
+                <Button
+                  v-for="opt in autoOptions"
+                  :key="opt.ms"
+                  variant="ghost"
+                  size="sm"
+                  class="w-full justify-start"
+                  :class="autoInterval === opt.ms ? 'bg-muted' : ''"
+                  @click="setAuto(opt.ms)"
+                >
+                  Cada {{ opt.label }}
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+      </div>
 
-          <template v-else>
-            <!-- % diferencia inversores vs medidores (mejor nodo) -->
-            <div v-if="getDiffPct(proy.proyecto_id) !== null" class="flex items-center gap-2 text-xs">
-              <span class="text-muted-foreground">Inversores vs medidor</span>
-              <span
-                class="rounded-full px-2 py-0.5 text-xs font-bold"
-                :class="Math.abs(getDiffPct(proy.proyecto_id)) > 5 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'"
-              >
-                {{ getDiffPct(proy.proyecto_id) > 0 ? '+' : '' }}{{ getDiffPct(proy.proyecto_id) }}%
-              </span>
-            </div>
+      <!-- ══ LOADING inicial ══ -->
+      <div
+        v-if="loading && !proyectos.length"
+        class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
+      >
+        <LoaderCircleIcon class="size-7 animate-spin text-primary" />
+        <span class="text-sm">Cargando proyectos...</span>
+      </div>
 
-            <!-- Gráficas -->
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <!-- ══ EMPTY ══ -->
+      <div
+        v-else-if="!loading && !proyectos.length"
+        class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
+      >
+        <SunIcon class="size-8 text-muted-foreground/40" />
+        <p class="text-sm">Sin proyectos disponibles</p>
+      </div>
 
-              <!-- Inversores -->
-              <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
-                <div class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                  <span class="size-2 shrink-0 rounded-full bg-primary" />
-                  Inversores
+      <!-- ══ SIN COINCIDENCIAS ══ -->
+      <div
+        v-else-if="sinCoincidencias"
+        class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
+      >
+        <SearchIcon class="size-8 text-muted-foreground/40" />
+        <p class="text-sm">Ningún proyecto coincide con "{{ filtro }}"</p>
+      </div>
+
+      <!-- ══ PROYECTOS (drag & drop) ══ -->
+      <draggable
+        v-else
+        v-model="proyectos"
+        item-key="proyecto_id"
+        handle=".sl-drag-handle"
+        class="grid gap-4"
+        :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }"
+        :disabled="!!filtro.trim()"
+        @end="saveOrder"
+      >
+        <template #item="{ element: proy }">
+          <div v-show="matchesFiltro(proy)" :ref="(el) => observarTarjeta(el, proy.proyecto_id)">
+            <Card size="sm">
+              <CardContent class="flex flex-col gap-3">
+                <!-- Nombre + estado -->
+                <div class="flex items-center gap-2 text-sm font-extrabold text-foreground">
+                  <MenuIcon
+                    class="sl-drag-handle size-4 shrink-0 cursor-grab text-muted-foreground/50 hover:text-primary active:cursor-grabbing"
+                    title="Arrastrar para reorganizar"
+                  />
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }"
+                  />
+                  <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
                 </div>
-                <!-- Mismo tratamiento que Medidores: el acumulado del dia en
+
+                <!-- Cargando detalle -->
+                <div
+                  v-if="!detailMap[proy.proyecto_id]"
+                  class="flex items-center gap-2 py-2 text-xs text-muted-foreground"
+                >
+                  <LoaderCircleIcon class="size-3.5 animate-spin" />
+                  <span>Cargando datos...</span>
+                </div>
+
+                <template v-else>
+                  <!-- % diferencia inversores vs medidores (mejor nodo) -->
+                  <div
+                    v-if="getDiffPct(proy.proyecto_id) !== null"
+                    class="flex items-center gap-2 text-xs"
+                  >
+                    <span class="text-muted-foreground">Inversores vs medidor</span>
+                    <span
+                      class="rounded-full px-2 py-0.5 text-xs font-bold"
+                      :class="
+                        Math.abs(getDiffPct(proy.proyecto_id)) > 5
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-success/10 text-success'
+                      "
+                    >
+                      {{ getDiffPct(proy.proyecto_id) > 0 ? '+' : ''
+                      }}{{ getDiffPct(proy.proyecto_id) }}%
+                    </span>
+                  </div>
+
+                  <!-- Gráficas -->
+                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <!-- Inversores -->
+                    <div
+                      class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3"
+                    >
+                      <div
+                        class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+                      >
+                        <span class="size-2 shrink-0 rounded-full bg-primary" />
+                        Inversores
+                      </div>
+                      <!-- Mismo tratamiento que Medidores: el acumulado del dia en
                      grande, con hasta que hora cubre. Son horas sumadas, no una
                      lectura del ultimo instante. -->
-                <div class="flex items-baseline gap-2">
-                  <span
-                    class="text-xl font-bold tabular-nums"
-                    :class="acumuladoInversores(detailMap[proy.proyecto_id]) === null ? 'text-muted-foreground' : 'text-foreground'"
-                  >
-                    {{ fmtKwh(acumuladoInversores(detailMap[proy.proyecto_id])) }}
-                  </span>
-                  <span v-if="hastaInversores(detailMap[proy.proyecto_id])" class="text-[10px] text-muted-foreground">
-                    hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
-                    <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
-                      · {{ haceCuanto(hastaInversores(detailMap[proy.proyecto_id])) }}
-                    </template>
-                  </span>
-                </div>
-                <div v-if="getInversorData(proy.proyecto_id).labels.length" class="relative h-45">
-                  <Line :data="getInversorData(proy.proyecto_id)" :options="chartOptionsInv(proy.proyecto_id)"
-                    :plugins="[crosshairPlugin]" :key="'inv-' + proy.proyecto_id" />
-                </div>
-                <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin datos</div>
-              </div>
+                      <div class="flex items-baseline gap-2">
+                        <span
+                          class="text-xl font-bold tabular-nums"
+                          :class="
+                            acumuladoInversores(detailMap[proy.proyecto_id]) === null
+                              ? 'text-muted-foreground'
+                              : 'text-foreground'
+                          "
+                        >
+                          {{ fmtKwh(acumuladoInversores(detailMap[proy.proyecto_id])) }}
+                        </span>
+                        <span
+                          v-if="hastaInversores(detailMap[proy.proyecto_id])"
+                          class="text-[10px] text-muted-foreground"
+                        >
+                          hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
+                          <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
+                            · {{ haceCuanto(hastaInversores(detailMap[proy.proyecto_id])) }}
+                          </template>
+                        </span>
+                      </div>
+                      <div
+                        v-if="getInversorData(proy.proyecto_id).labels.length"
+                        class="relative h-45"
+                      >
+                        <Line
+                          :key="'inv-' + proy.proyecto_id"
+                          :data="getInversorData(proy.proyecto_id)"
+                          :options="chartOptionsInv(proy.proyecto_id)"
+                          :plugins="[crosshairPlugin]"
+                        />
+                      </div>
+                      <div
+                        v-else
+                        class="flex h-45 items-center justify-center text-sm text-muted-foreground"
+                      >
+                        Sin datos
+                      </div>
+                    </div>
 
-              <!-- Medidores -- el backend ya eligio cual mostrar -->
-              <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
-                <template v-if="panelesMedidor[proy.proyecto_id]">
-                  <div class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                    <span class="size-2 shrink-0 rounded-full bg-warning" />
-                    Medidores
-                    <Badge v-if="panelesMedidor[proy.proyecto_id].tipo" variant="outline">{{ panelesMedidor[proy.proyecto_id].tipo }}</Badge>
-                  </div>
-                  <!-- El numero grande es la generacion del dia: es lo que alguien
+                    <!-- Medidores -- el backend ya eligio cual mostrar -->
+                    <div
+                      class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3"
+                    >
+                      <template v-if="panelesMedidor[proy.proyecto_id]">
+                        <div
+                          class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+                        >
+                          <span class="size-2 shrink-0 rounded-full bg-warning" />
+                          Medidores
+                          <Badge v-if="panelesMedidor[proy.proyecto_id].tipo" variant="outline">{{
+                            panelesMedidor[proy.proyecto_id].tipo
+                          }}</Badge>
+                        </div>
+                        <!-- El numero grande es la generacion del dia: es lo que alguien
                        quiere saber de un vistazo, y no se cae a cero de noche como
                        la potencia instantanea. Sale del contador, con su hora. -->
-                  <div class="flex items-baseline gap-2">
-                    <span
-                      class="text-xl font-bold tabular-nums"
-                      :class="panelesMedidor[proy.proyecto_id].energiaKwh === null ? 'text-muted-foreground' : 'text-foreground'"
-                    >
-                      {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
-                    </span>
-                    <span v-if="panelesMedidor[proy.proyecto_id].energiaHasta" class="text-[10px] text-muted-foreground">
-                      hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
-                      <template v-if="haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta)">
-                        · {{ haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta) }}
+                        <div class="flex items-baseline gap-2">
+                          <span
+                            class="text-xl font-bold tabular-nums"
+                            :class="
+                              panelesMedidor[proy.proyecto_id].energiaKwh === null
+                                ? 'text-muted-foreground'
+                                : 'text-foreground'
+                            "
+                          >
+                            {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
+                          </span>
+                          <span
+                            v-if="panelesMedidor[proy.proyecto_id].energiaHasta"
+                            class="text-[10px] text-muted-foreground"
+                          >
+                            hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
+                            <template
+                              v-if="haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta)"
+                            >
+                              · {{ haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta) }}
+                            </template>
+                          </span>
+                        </div>
+                        <div v-if="panelesMedidor[proy.proyecto_id].chart" class="relative h-45">
+                          <Line
+                            :key="'med-' + proy.proyecto_id"
+                            :data="panelesMedidor[proy.proyecto_id].chart"
+                            :options="chartOptionsMed(proy.proyecto_id)"
+                            :plugins="[crosshairPlugin]"
+                          />
+                        </div>
+                        <div
+                          v-else
+                          class="flex h-45 items-center justify-center text-sm text-muted-foreground"
+                        >
+                          Sin datos
+                        </div>
                       </template>
-                    </span>
+                      <div
+                        v-else
+                        class="flex h-45 items-center justify-center text-sm text-muted-foreground"
+                      >
+                        Sin medidor
+                      </div>
+                    </div>
                   </div>
-                  <div v-if="panelesMedidor[proy.proyecto_id].chart" class="relative h-45">
-                    <Line :data="panelesMedidor[proy.proyecto_id].chart" :options="chartOptionsMed(proy.proyecto_id)"
-                      :plugins="[crosshairPlugin]" :key="'med-' + proy.proyecto_id" />
+
+                  <!-- ── Generación de hoy ── -->
+                  <div class="flex flex-col gap-1.5 border-t border-border pt-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <span
+                        class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-warning uppercase"
+                      >
+                        <SunIcon class="size-3" />
+                        Generación de hoy
+                      </span>
+                      <div class="flex flex-wrap items-center gap-1.5">
+                        <span
+                          class="text-xs font-bold"
+                          :class="
+                            getGenHoy(proy.proyecto_id).pct === null
+                              ? 'text-muted-foreground'
+                              : getGenHoy(proy.proyecto_id).pct >= 100
+                                ? 'text-success'
+                                : getGenHoy(proy.proyecto_id).pct >= 75
+                                  ? 'text-warning'
+                                  : 'text-destructive'
+                          "
+                        >
+                          {{ getGenHoy(proy.proyecto_id).real.toLocaleString('es-CO') }} kWh
+                        </span>
+                        <span class="text-xs text-muted-foreground">/</span>
+                        <span class="text-xs text-muted-foreground">
+                          {{ getGenHoy(proy.proyecto_id).p90.toLocaleString('es-CO') }} kWh P90
+                        </span>
+                        <span
+                          v-if="getGenHoy(proy.proyecto_id).pct !== null"
+                          class="text-xs font-bold"
+                          :class="
+                            getGenHoy(proy.proyecto_id).pct >= 100
+                              ? 'text-success'
+                              : getGenHoy(proy.proyecto_id).pct >= 75
+                                ? 'text-warning'
+                                : 'text-destructive'
+                          "
+                        >
+                          {{ getGenHoy(proy.proyecto_id).pct }}%
+                        </span>
+                        <Badge
+                          v-if="getGenHoy(proy.proyecto_id).fuente === 'inversor'"
+                          variant="secondary"
+                          title="Dato de inversores"
+                          >INV</Badge
+                        >
+                        <Badge
+                          v-else-if="getGenHoy(proy.proyecto_id).fuente === 'medidor'"
+                          variant="secondary"
+                          title="Dato de medidor de frontera"
+                          >MED</Badge
+                        >
+                        <Badge v-else variant="outline" title="Sin dato disponible">S/D</Badge>
+                      </div>
+                    </div>
+                    <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :class="
+                          getGenHoy(proy.proyecto_id).pct >= 100
+                            ? 'bg-success'
+                            : getGenHoy(proy.proyecto_id).real > 0
+                              ? 'bg-primary/40'
+                              : 'bg-muted'
+                        "
+                        :style="{
+                          width:
+                            getGenHoy(proy.proyecto_id).p90 > 0
+                              ? Math.min(
+                                  100,
+                                  (getGenHoy(proy.proyecto_id).real /
+                                    getGenHoy(proy.proyecto_id).p90) *
+                                    100,
+                                ) + '%'
+                              : '0%',
+                        }"
+                      />
+                    </div>
                   </div>
-                  <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin datos</div>
                 </template>
-                <div v-else class="flex h-45 items-center justify-center text-sm text-muted-foreground">Sin medidor</div>
-              </div>
-
-            </div>
-
-            <!-- ── Generación de hoy ── -->
-            <div class="flex flex-col gap-1.5 border-t border-border pt-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-warning uppercase">
-                  <SunIcon class="size-3" />
-                  Generación de hoy
-                </span>
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span
-                    class="text-xs font-bold"
-                    :class="getGenHoy(proy.proyecto_id).pct === null ? 'text-muted-foreground'
-                      : getGenHoy(proy.proyecto_id).pct >= 100 ? 'text-success'
-                      : getGenHoy(proy.proyecto_id).pct >= 75 ? 'text-warning'
-                      : 'text-destructive'"
-                  >
-                    {{ getGenHoy(proy.proyecto_id).real.toLocaleString('es-CO') }} kWh
-                  </span>
-                  <span class="text-xs text-muted-foreground">/</span>
-                  <span class="text-xs text-muted-foreground">
-                    {{ getGenHoy(proy.proyecto_id).p90.toLocaleString('es-CO') }} kWh P90
-                  </span>
-                  <span
-                    v-if="getGenHoy(proy.proyecto_id).pct !== null"
-                    class="text-xs font-bold"
-                    :class="getGenHoy(proy.proyecto_id).pct >= 100 ? 'text-success'
-                      : getGenHoy(proy.proyecto_id).pct >= 75 ? 'text-warning'
-                      : 'text-destructive'"
-                  >
-                    {{ getGenHoy(proy.proyecto_id).pct }}%
-                  </span>
-                  <Badge v-if="getGenHoy(proy.proyecto_id).fuente === 'inversor'" variant="secondary" title="Dato de inversores">INV</Badge>
-                  <Badge v-else-if="getGenHoy(proy.proyecto_id).fuente === 'medidor'" variant="secondary" title="Dato de medidor de frontera">MED</Badge>
-                  <Badge v-else variant="outline" title="Sin dato disponible">S/D</Badge>
-                </div>
-              </div>
-              <div class="h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  class="h-full rounded-full transition-all duration-500"
-                  :class="getGenHoy(proy.proyecto_id).pct >= 100 ? 'bg-success'
-                    : getGenHoy(proy.proyecto_id).real > 0 ? 'bg-primary/40'
-                    : 'bg-muted'"
-                  :style="{
-                    width: getGenHoy(proy.proyecto_id).p90 > 0
-                      ? Math.min(100, getGenHoy(proy.proyecto_id).real / getGenHoy(proy.proyecto_id).p90 * 100) + '%'
-                      : '0%'
-                  }"
-                />
-              </div>
-            </div>
-
-          </template>
-        </CardContent>
-        </Card>
-        </div>
-      </template>
-    </draggable>
-
-    </div><!-- /live tab -->
+              </CardContent>
+            </Card>
+          </div>
+        </template>
+      </draggable>
+    </div>
+    <!-- /live tab -->
 
     <!-- ══ HISTORIC TAB ══ -->
     <div v-else class="flex-1 overflow-y-auto">
       <GeneracionView />
     </div>
-
-  </div><!-- /root -->
-
+  </div>
+  <!-- /root -->
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import {
-  Chart as ChartJS, CategoryScale, LinearScale,
-  PointElement, LineElement, Title, Tooltip, Filler,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Filler,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
@@ -322,9 +431,20 @@ import {
   meterSeries,
 } from '~/features/solar/serieSolar'
 import GeneracionView from '~/features/operaciones/components/GeneracionView.vue'
+import {
+  ChartLineIcon,
+  ChevronDownIcon,
+  ClockIcon,
+  LoaderCircleIcon,
+  MenuIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  SunIcon,
+  XIcon,
+  ZapIcon,
+} from '@lucide/vue'
 
 const generacionSolarService = new GeneracionSolarService()
-import { ChartLineIcon, ChevronDownIcon, ClockIcon, LoaderCircleIcon, MenuIcon, RefreshCwIcon, SearchIcon, SunIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
 
@@ -334,12 +454,12 @@ const STORAGE_KEY = 'solar_project_order'
 const tab = ref('live')
 
 // ── Estado ─────────────────────────────────────────────────────────────────
-const loading     = ref(false)
-const proyectos   = ref([])
-const detailMap   = reactive({})
+const loading = ref(false)
+const proyectos = ref([])
+const detailMap = reactive({})
 const lastUpdated = ref('')
-const cols        = ref(1)
-let refreshTimer  = null
+const cols = ref(1)
+let refreshTimer = null
 
 // ── Filtro por proyecto ────────────────────────────────────────────────────
 const filtro = ref('')
@@ -350,8 +470,8 @@ function matchesFiltro(proy) {
   return (proy.nombre || '').toLowerCase().includes(q)
 }
 
-const sinCoincidencias = computed(() =>
-  !!filtro.value.trim() && !proyectos.value.some(matchesFiltro)
+const sinCoincidencias = computed(
+  () => !!filtro.value.trim() && !proyectos.value.some(matchesFiltro),
 )
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
@@ -362,7 +482,7 @@ const sinCoincidencias = computed(() =>
 // /proyectos) para leer un array de 12 numeros de las ~47 plantas que muestra.
 // Era la peticion mas pesada de la pantalla y existia solo para eso.
 function dailyP90(proyectoId) {
-  const p = proyectos.value.find(x => x.proyecto_id === proyectoId)
+  const p = proyectos.value.find((x) => x.proyecto_id === proyectoId)
   return p?.p90_diario_kwh ?? 0
 }
 
@@ -385,26 +505,31 @@ function getGenHoy(id) {
 
   let real = 0
   let fuente = 'sin_dato'
-  if (inv > 0) { real = inv; fuente = 'inversor' }
-  else if (med > 0) { real = med; fuente = 'medidor' }
+  if (inv > 0) {
+    real = inv
+    fuente = 'inversor'
+  } else if (med > 0) {
+    real = med
+    fuente = 'medidor'
+  }
 
   real = +Number(real).toFixed(1)
   const p90 = dailyP90(id)
-  const pct = p90 > 0 ? Math.round(real / p90 * 100) : null
+  const pct = p90 > 0 ? Math.round((real / p90) * 100) : null
   return { real, p90, fuente, pct }
 }
 
 // ── Auto-refresh ───────────────────────────────────────────────────────────
 const AUTO_KEY = 'solar_auto_refresh'
 const autoOptions = [
-  { ms: 60000,  label: '1 min' },
+  { ms: 60000, label: '1 min' },
   { ms: 300000, label: '5 min' },
   { ms: 900000, label: '15 min' },
-  { ms: 1800000,label: '30 min' },
+  { ms: 1800000, label: '30 min' },
 ]
 const autoInterval = ref(parseInt(localStorage.getItem(AUTO_KEY) || '0'))
 const autoMenuOpen = ref(false)
-const autoLabel    = computed(() => autoOptions.find(o => o.ms === autoInterval.value)?.label ?? '')
+const autoLabel = computed(() => autoOptions.find((o) => o.ms === autoInterval.value)?.label ?? '')
 
 function setAuto(ms) {
   autoMenuOpen.value = false
@@ -415,13 +540,16 @@ function setAuto(ms) {
 }
 
 const STATUS_COLORS = {
-  online: '#16a34a', degradado: '#d97706', caido: '#dc2626',
-  sin_comunicacion: '#9ca3af', offline: '#d1d5db',
+  online: '#16a34a',
+  degradado: '#d97706',
+  caido: '#dc2626',
+  sin_comunicacion: '#9ca3af',
+  offline: '#d1d5db',
 }
 
 // ── Orden persistido ───────────────────────────────────────────────────────
 function saveOrder() {
-  const order = proyectos.value.map(p => p.proyecto_id)
+  const order = proyectos.value.map((p) => p.proyecto_id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(order))
 }
 
@@ -429,11 +557,13 @@ function applyOrder(list) {
   try {
     const order = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
     if (!order.length) return list
-    const map = Object.fromEntries(list.map(p => [p.proyecto_id, p]))
-    const sorted = order.map(id => map[id]).filter(Boolean)
-    const rest = list.filter(p => !order.includes(p.proyecto_id))
+    const map = Object.fromEntries(list.map((p) => [p.proyecto_id, p]))
+    const sorted = order.map((id) => map[id]).filter(Boolean)
+    const rest = list.filter((p) => !order.includes(p.proyecto_id))
     return [...sorted, ...rest]
-  } catch { return list }
+  } catch {
+    return list
+  }
 }
 
 // ── Crosshair plugin ───────────────────────────────────────────────────────
@@ -442,7 +572,10 @@ const crosshairPlugin = {
   afterDraw(chart) {
     if (!chart.tooltip?._active?.length) return
     const x = chart.tooltip._active[0].element.x
-    const { ctx, chartArea: { top, bottom } } = chart
+    const {
+      ctx,
+      chartArea: { top, bottom },
+    } = chart
     ctx.save()
     ctx.beginPath()
     ctx.moveTo(x, top)
@@ -465,12 +598,21 @@ function getInversorData(id) {
   if (!data) return { labels: [], datasets: [] }
   return {
     labels: TIME_LABELS,
-    datasets: [{ label: 'Inversores (kW)', data, borderColor: '#915BD8',
-      backgroundColor: 'rgba(145,91,216,0.18)', fill: true, tension: 0.35,
-      pointRadius: 0, borderWidth: 2, spanGaps: true }],
+    datasets: [
+      {
+        label: 'Inversores (kW)',
+        data,
+        borderColor: '#915BD8',
+        backgroundColor: 'rgba(145,91,216,0.18)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 0,
+        borderWidth: 2,
+        spanGaps: true,
+      },
+    ],
   }
 }
-
 
 // ── Selección del mejor snapshot de medidor ───────────────────────────────
 // Todo lo que el panel de Medidores necesita, en un solo lugar. El backend ya
@@ -479,9 +621,11 @@ function getInversorData(id) {
 // nada: se formatea. Antes esto eran seis funciones sueltas y una septima que
 // re-elegia el medidor con un criterio duplicado del backend (2026-09-03).
 // Se calcula una vez por proyecto y no en cada interpolacion del template.
-const panelesMedidor = computed(() => Object.fromEntries(
-  (proyectos.value ?? []).map(p => [p.proyecto_id, medidorPanel(p.proyecto_id)]),
-))
+const panelesMedidor = computed(() =>
+  Object.fromEntries(
+    (proyectos.value ?? []).map((p) => [p.proyecto_id, medidorPanel(p.proyecto_id)]),
+  ),
+)
 
 function medidorPanel(id) {
   const d = detailMap[id]
@@ -495,14 +639,25 @@ function medidorPanel(id) {
     energiaHasta: hastaMedidor(d),
     // Sin relleno: si la telemetria de potencia se cayo, el hueco se ve.
     chart: data
-      ? { labels: TIME_LABELS, datasets: [{ label: 'Medidores (kW)', data, borderColor: '#D4A017',
-          backgroundColor: 'rgba(212,160,23,0.15)', fill: true, tension: 0.35,
-          pointRadius: 0, borderWidth: 2, spanGaps: true }] }
+      ? {
+          labels: TIME_LABELS,
+          datasets: [
+            {
+              label: 'Medidores (kW)',
+              data,
+              borderColor: '#D4A017',
+              backgroundColor: 'rgba(212,160,23,0.15)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 0,
+              borderWidth: 2,
+              spanGaps: true,
+            },
+          ],
+        }
       : null,
   }
 }
-
-
 
 // Potencia de AHORA y su frescura: los dos ya llegaban en la respuesta y la
 // vista los descartaba, en una pestana cuyo proposito es el tiempo real.
@@ -512,7 +667,7 @@ function getDiffPct(id) {
   const inv = acumuladoInversores(detailMap[id])
   const med = medidorPanel(id)?.energiaKwh ?? null
   if (inv == null || med == null || med === 0) return null
-  return +((inv - med) / med * 100).toFixed(1)
+  return +(((inv - med) / med) * 100).toFixed(1)
 }
 
 // ── Chart options ─────────────────────────────────────────────────────────
@@ -524,16 +679,29 @@ function makeOptions(color, maxY) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#ffffff', titleColor: '#374151', bodyColor: '#4b5563',
-        borderColor: '#e5e7eb', borderWidth: 1, padding: 10, displayColors: true,
-        callbacks: { label: ctx => `${ctx.parsed.y != null ? ctx.parsed.y.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} kW` },
+        backgroundColor: '#ffffff',
+        titleColor: '#374151',
+        bodyColor: '#4b5563',
+        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        padding: 10,
+        displayColors: true,
+        callbacks: {
+          label: (ctx) =>
+            `${ctx.parsed.y != null ? ctx.parsed.y.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} kW`,
+        },
       },
     },
     scales: {
-      x: { ticks: { font: { size: 9 }, color: '#9ca3af', maxTicksLimit: 9 }, grid: { color: 'rgba(28,18,50,0.06)' } },
+      x: {
+        ticks: { font: { size: 9 }, color: '#9ca3af', maxTicksLimit: 9 },
+        grid: { color: 'rgba(28,18,50,0.06)' },
+      },
       y: {
-        beginAtZero: true, ticks: { font: { size: 9 }, color: '#9ca3af' },
-        grid: { color: 'rgba(28,18,50,0.06)' }, title: { display: true, text: 'kW', font: { size: 9 }, color: '#9ca3af' },
+        beginAtZero: true,
+        ticks: { font: { size: 9 }, color: '#9ca3af' },
+        grid: { color: 'rgba(28,18,50,0.06)' },
+        title: { display: true, text: 'kW', font: { size: 9 }, color: '#9ca3af' },
         ...(maxY ? { max: maxY } : {}),
       },
     },
@@ -548,7 +716,7 @@ function makeOptions(color, maxY) {
 function getChartMax(id) {
   const invValores = getInversorData(id).datasets?.[0]?.data ?? []
   const medValores = medidorPanel(id)?.chart?.datasets?.[0]?.data ?? []
-  const valores = [...invValores, ...medValores].filter(v => v != null)
+  const valores = [...invValores, ...medValores].filter((v) => v != null)
   if (!valores.length) return undefined
   const max = Math.max(...valores)
   // Redondeado al múltiplo de 50 más cercano, +10% de aire para que el pico
@@ -556,8 +724,12 @@ function getChartMax(id) {
   return Math.ceil((max * 1.1) / 50) * 50
 }
 
-function chartOptionsInv(id) { return makeOptions('#915BD8', getChartMax(id)) }
-function chartOptionsMed(id) { return makeOptions('#D4A017', getChartMax(id)) }
+function chartOptionsInv(id) {
+  return makeOptions('#915BD8', getChartMax(id))
+}
+function chartOptionsMed(id) {
+  return makeOptions('#D4A017', getChartMax(id))
+}
 
 // ── Carga perezosa del detalle ──────────────────────────────────────────────
 //
@@ -592,7 +764,7 @@ function tamanoPrimeraOla() {
 function observarTarjeta(el, id) {
   if (!el) return
   idDeTarjeta.set(el, id)
-  observador?.observe(el)   // observar dos veces el mismo nodo no hace nada
+  observador?.observe(el) // observar dos veces el mismo nodo no hace nada
 }
 
 function alCambiarVisibilidad(entradas) {
@@ -614,7 +786,10 @@ async function cargar() {
   try {
     const res = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = applyOrder(res.projects ?? [])
-    lastUpdated.value = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    lastUpdated.value = new Date().toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
 
     // El boton sigue en "cargando" hasta que lleguen tambien los detalles de lo
     // que se ve. Antes `loading` se apagaba apenas respondia /monitoring, que
@@ -626,16 +801,18 @@ async function cargar() {
     // quedaron arriba o abajo no se vuelven a pedir hasta que se vuelvan a ver:
     // nadie las esta mirando, y volver a pedirlas era el grueso del gasto de un
     // refresco cada minuto.
-    const ids = proyectos.value.map(p => p.proyecto_id)
+    const ids = proyectos.value.map((p) => p.proyecto_id)
     const aCargar = tarjetasVisibles.size
-      ? ids.filter(id => tarjetasVisibles.has(id))
+      ? ids.filter((id) => tarjetasVisibles.has(id))
       : ids.slice(0, tamanoPrimeraOla())
 
     const BATCH = 10
     for (let i = 0; i < aCargar.length; i += BATCH) {
-      await Promise.all(aCargar.slice(i, i + BATCH).map(id => loadDetail(id, true)))
+      await Promise.all(aCargar.slice(i, i + BATCH).map((id) => loadDetail(id, true)))
     }
-  } catch { /* silencioso */ } finally {
+  } catch {
+    /* silencioso */
+  } finally {
     loading.value = false
   }
 }
@@ -661,8 +838,6 @@ async function loadDetail(id, refrescar = false) {
     detalleEnVuelo.delete(id)
   }
 }
-
-
 
 onMounted(() => {
   // Sin IntersectionObserver (navegador viejo) no se rompe nada: `observador`
