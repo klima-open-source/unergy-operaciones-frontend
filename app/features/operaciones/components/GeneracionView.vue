@@ -131,51 +131,36 @@
         <!-- Fila 2: proyectos + acción -->
         <div class="flex flex-wrap items-center gap-2.5">
           <!-- Selección de proyectos -->
-          <Popover v-model:open="proyectosPickerOpen">
-            <PopoverTrigger as-child>
-              <Button variant="outline" class="min-w-56 flex-1 justify-start font-normal">
-                <span v-if="!proyectosSel.length" class="text-muted-foreground"
-                  >Selecciona proyectos…</span
-                >
-                <span v-else
-                  >{{ proyectosSel.length }} proyecto{{
-                    proyectosSel.length > 1 ? 's' : ''
-                  }}
-                  seleccionados</span
-                >
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent class="w-80 p-0" align="start">
-              <div class="border-b border-border p-2">
-                <InputGroup>
-                  <InputGroupAddon>
-                    <SearchIcon />
-                  </InputGroupAddon>
-                  <InputGroupInput v-model="proyectosFiltro" placeholder="Buscar proyecto..." />
-                </InputGroup>
-              </div>
-              <div class="max-h-72 overflow-y-auto p-1">
-                <label
-                  v-for="p in proyectosFiltrados"
-                  :key="p.sub_project"
-                  class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
-                >
-                  <Checkbox
-                    :model-value="proyectosSel.includes(p.sub_project)"
-                    @update:model-value="() => toggleProyecto(p.sub_project)"
-                  />
-                  <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
-                  <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
-                </label>
-                <p
-                  v-if="!proyectosFiltrados.length"
-                  class="px-2 py-3 text-center text-sm text-muted-foreground"
-                >
-                  Sin resultados.
-                </p>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Combobox
+            :model-value="proyectosSel"
+            multiple
+            open-on-click
+            open-on-focus
+            class="min-w-56 flex-1"
+            @update:model-value="onProyectosSelChange"
+          >
+            <ComboboxAnchor>
+              <ComboboxInput
+                :display-value="
+                  (v) =>
+                    Array.isArray(v) && v.length
+                      ? `${v.length} proyecto${v.length > 1 ? 's' : ''} seleccionados`
+                      : ''
+                "
+                placeholder="Selecciona proyectos…"
+              />
+            </ComboboxAnchor>
+            <ComboboxList>
+              <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+              <ComboboxItem v-for="p in proyectos" :key="p.sub_project" :value="p.sub_project">
+                <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
+                <ComboboxItemIndicator>
+                  <CheckIcon />
+                </ComboboxItemIndicator>
+              </ComboboxItem>
+            </ComboboxList>
+          </Combobox>
 
           <!-- Consultar -->
           <Button
@@ -716,6 +701,7 @@ import {
   CalendarIcon,
   ChartColumnIcon,
   ChartLineIcon,
+  CheckIcon,
   CircleAlertIcon,
   CircleCheckIcon,
   ClockIcon,
@@ -802,8 +788,6 @@ const loading = ref(false)
 const error = ref(null)
 const proyectos = ref([])
 const proyectosSel = ref([])
-const proyectosPickerOpen = ref(false)
-const proyectosFiltro = ref('')
 
 const granularidad = ref('diaria')
 const modo = ref('actual')
@@ -859,16 +843,8 @@ const nombrePorSub = computed(() => {
   return m
 })
 
-const proyectosFiltrados = computed(() => {
-  const q = proyectosFiltro.value.trim().toLowerCase()
-  if (!q) return proyectos.value
-  return proyectos.value.filter((p) => (p.nombre_comercial || '').toLowerCase().includes(q))
-})
-
-function toggleProyecto(sub) {
-  proyectosSel.value = proyectosSel.value.includes(sub)
-    ? proyectosSel.value.filter((s) => s !== sub)
-    : [...proyectosSel.value, sub]
+function onProyectosSelChange(v) {
+  proyectosSel.value = v ?? []
   onProyectosChange()
 }
 

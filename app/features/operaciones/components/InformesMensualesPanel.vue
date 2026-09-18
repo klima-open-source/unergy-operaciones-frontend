@@ -115,55 +115,35 @@
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               Proyectos (uno o varios)
             </label>
-            <Popover v-model:open="proyectosMultiPickerOpen">
-              <PopoverTrigger as-child>
-                <Button
-                  variant="outline"
+            <Combobox
+              :model-value="proyectosSel"
+              multiple
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (proyectosSel = v ?? [])"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="
+                    (v) =>
+                      Array.isArray(v) && v.length
+                        ? `${v.length} proyecto${v.length > 1 ? 's' : ''} seleccionados`
+                        : ''
+                  "
                   :disabled="loadingCatalogos"
-                  class="w-full justify-start font-normal"
-                >
-                  <LoaderCircleIcon v-if="loadingCatalogos" class="animate-spin" />
-                  <span v-else-if="!proyectosSel.length" class="text-muted-foreground"
-                    >Selecciona proyectos…</span
-                  >
-                  <span v-else
-                    >{{ proyectosSel.length }} proyecto{{
-                      proyectosSel.length > 1 ? 's' : ''
-                    }}
-                    seleccionados</span
-                  >
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-72 p-0" align="start">
-                <div class="border-b border-border p-2">
-                  <InputGroup>
-                    <InputGroupAddon>
-                      <SearchIcon />
-                    </InputGroupAddon>
-                    <InputGroupInput v-model="proyectosMultiFiltro" placeholder="Buscar…" />
-                  </InputGroup>
-                </div>
-                <div class="max-h-72 overflow-y-auto p-1">
-                  <label
-                    v-for="o in proyectosMultiFiltrados"
-                    :key="o.value"
-                    class="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"
-                  >
-                    <Checkbox
-                      :model-value="proyectosSel.includes(o.value)"
-                      @update:model-value="() => toggleProyectoRanking(o.value)"
-                    />
-                    <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>
-                  </label>
-                  <p
-                    v-if="!proyectosMultiFiltrados.length"
-                    class="px-2 py-3 text-center text-sm text-muted-foreground"
-                  >
-                    Sin resultados.
-                  </p>
-                </div>
-              </PopoverContent>
-            </Popover>
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona proyectos…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                  {{ o.label }}
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
           </div>
 
           <!-- Portafolio (tipo portafolio o ranking por portafolio) -->
@@ -375,7 +355,7 @@ import { MonitoreoLegacyService } from '~/features/operaciones/services/monitore
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
-import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CheckIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CheckIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const router = useRouter()
 const informesService = new InformesService()
@@ -453,19 +433,6 @@ const opcionesPortafolio = computed(() => {
     .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
 
-// ── Selección múltiple buscable (Popover + Checkbox) ──────────────────────
-const proyectosMultiPickerOpen = ref(false)
-const proyectosMultiFiltro = ref('')
-const proyectosMultiFiltrados = computed(() => {
-  const q = proyectosMultiFiltro.value.trim().toLowerCase()
-  if (!q) return opcionesProyecto.value
-  return opcionesProyecto.value.filter((o) => o.label.toLowerCase().includes(q))
-})
-function toggleProyectoRanking(value) {
-  proyectosSel.value = proyectosSel.value.includes(value)
-    ? proyectosSel.value.filter((v) => v !== value)
-    : [...proyectosSel.value, value]
-}
 
 const puedeGenerar = computed(() => {
   if (generando.value || !catalogosListos.value) return false
