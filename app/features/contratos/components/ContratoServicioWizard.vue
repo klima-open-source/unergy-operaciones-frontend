@@ -194,6 +194,28 @@
             </div>
           </div>
         </div>
+
+        <!-- Inversionista: solo en representación/CGM, que es donde la tarifa
+             varía por inversionista. En una minigranja hay un contrato POR
+             inversionista, y sin decir de quién es, el reparto de costos no
+             puede saber qué tarifa cobrarle a cada quien. -->
+        <template v-if="tipo === 'representacion'">
+          <div class="grid grid-cols-1 gap-1 mb-1 mt-4 px-1">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inversionista</span>
+          </div>
+          <div class="p-4 rounded-lg bg-gray-50">
+            <SelectorCliente
+              v-model:id="form.inversionista_id"
+              v-model:nombre="form.inversionista_nombre"
+              label="Nombre / Razón social"
+              requerido
+            />
+            <p class="field-ayuda mt-2">
+              En minigranjas hay un contrato por inversionista, y cada uno puede
+              tener su propia tarifa.
+            </p>
+          </div>
+        </template>
       </template>
 
       <!-- PASO 2: Términos económicos -->
@@ -499,6 +521,10 @@ const form = reactive({
   prestador_id: null,
   prestador_nombre: null,
   prestador_nit: '',
+  // Solo lo pide representación/CGM: es el que decide qué tarifa se le cobra a
+  // cada inversionista de una minigranja.
+  inversionista_id: null,
+  inversionista_nombre: null,
   fecha_inicio: null,
   fecha_fin: null,
   tarifa_base: null,
@@ -631,6 +657,9 @@ const partesPendientes = computed(() => {
   const faltan = []
   if (!form.contratante_id) faltan.push('el contratante')
   if (!form.prestador_id) faltan.push('el prestador')
+  if (props.tipo === 'representacion' && !form.inversionista_id) {
+    faltan.push('el inversionista')
+  }
   return faltan
 })
 
@@ -737,6 +766,8 @@ async function crearContrato() {
       prestador_id: form.prestador_id ?? null,
       prestador_nombre: form.prestador_nombre || null,
       prestador_nit: form.prestador_nit?.trim() || null,
+      inversionista_id: form.inversionista_id ?? null,
+      inversionista_nombre: form.inversionista_nombre || null,
       fecha_firma_contrato: formatFecha(form.fecha_firma_contrato),
       enlace_drive: form.enlace_drive?.trim() || null,
       estado_pago: form.estado_pago ?? null,
