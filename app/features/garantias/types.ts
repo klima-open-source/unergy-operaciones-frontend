@@ -49,11 +49,36 @@ export interface HistorialGarantias {
 
 /**
  * Los dos parámetros simulables de la proyección: cuántas plantas nuevas entran
- * y cuánto genera cada una.
+ * y cuánto genera cada una. `corte` (YYYY-MM-DD) replica un corte pasado; vacío =
+ * el corte de hoy.
  */
 export interface ParametrosProyeccion {
   plantasNuevas?: number
   kwhPlantaNueva?: number
+  corte?: string
+}
+
+/** La parte de la garantía que le toca a un contrato por el déficit que genera. */
+export interface ContratoGarantia {
+  codigo: string
+  contrato: string | null
+  comprador: string | null
+  proyecto_id: number | null
+  deficit_mwh: number
+  pct: number
+  monto: number
+  es_plc: boolean
+  es_duplicado: boolean
+}
+
+/** Reparto de la garantía del mes entre los contratos que la generan. */
+export interface AtribucionGarantia {
+  fecha_corte: string
+  anio: number
+  mes: number
+  total_garantia: number
+  guardadas: number
+  contratos: ContratoGarantia[]
 }
 
 export interface PagoGarantia {
