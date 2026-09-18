@@ -3,9 +3,11 @@ import type { DashboardAlert } from '~/features/dashboard/components/DashboardCr
 import type { ResumenCumplimientoPpa } from '~/features/dashboard/types'
 import type { KpisOperativos } from '~/types/dashboard'
 import {
+  BellIcon,
   BuildingIcon,
   CircleAlertIcon,
   DatabaseIcon,
+  DollarSignIcon,
   FilePenIcon,
   PowerIcon,
   RefreshCwIcon,
@@ -170,7 +172,10 @@ onMounted(loadKpis)
 
 <template>
   <div class="space-y-5">
-    <PageHeader title="Dashboard" subtitle="Resumen operativo de la plataforma" />
+    <div>
+      <h1 class="text-lg font-extrabold text-foreground">Dashboard</h1>
+      <p class="mt-0.5 text-xs text-muted-foreground">Resumen operativo de la plataforma</p>
+    </div>
 
     <AsyncView :query="kpisQuery">
       <template #loading>
@@ -243,160 +248,189 @@ onMounted(loadKpis)
             />
           </div>
 
-          <!-- Flota, mercado y alarmas -->
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Generación flota</CardTitle>
-                <CardAction>
-                  <NuxtLink
-                    to="/generacion-solar"
-                    class="text-xs font-medium text-primary hover:underline"
-                  >
-                    Ver detalle →
-                  </NuxtLink>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <div v-if="fleetPowerDisplay" class="flex items-baseline gap-2">
-                  <span
-                    class="text-3xl font-bold"
-                    :class="
-                      (kpis?.fleet_power_kw ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'
-                    "
-                  >
-                    {{ fleetPowerDisplay.value }}
-                  </span>
-                  <span class="text-sm text-muted-foreground">{{ fleetPowerDisplay.unit }}</span>
-                  <Badge v-if="kpis?.fleet_online != null" variant="secondary" class="ml-2">
-                    {{ kpis.fleet_online }}/{{ kpis.fleet_total || '?' }} online
-                  </Badge>
-                </div>
-                <p v-else class="text-sm text-muted-foreground">Solenium no disponible</p>
-                <div
-                  v-if="kpis?.gen_solenium_last_date"
-                  class="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
-                >
-                  <DatabaseIcon class="size-3 text-success" />
-                  {{ kpis.gen_solenium_projects }} plantas sincronizadas · último dato
-                  {{ kpis.gen_solenium_last_date }}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Precio de bolsa</CardTitle>
-                <CardAction>
-                  <NuxtLink
-                    to="/mem/precio-bolsa"
-                    class="text-xs font-medium text-primary hover:underline"
-                  >
-                    Ver detalle →
-                  </NuxtLink>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <div v-if="kpis?.precio_bolsa_cop_kwh != null" class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-foreground">{{
-                    formatCOP(kpis.precio_bolsa_cop_kwh)
-                  }}</span>
-                  <span class="text-sm text-muted-foreground">/kWh</span>
-                </div>
-                <p v-else class="text-sm text-muted-foreground">Sin datos de precio disponibles</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Alarmas MGS</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="flex items-baseline gap-2">
-                  <span
-                    class="text-3xl font-bold"
-                    :class="(kpis?.alarmas_mgs ?? 0) > 0 ? 'text-destructive' : 'text-success'"
-                  >
-                    {{ kpis?.alarmas_mgs ?? 0 }}
-                  </span>
-                  <span class="text-sm text-muted-foreground">
-                    {{ kpis?.alarmas_mgs === 1 ? 'alarma activa' : 'alarmas activas' }}
-                  </span>
-                </div>
-                <Badge
-                  v-if="(kpis?.alarmas_mgs_criticas ?? 0) > 0"
-                  variant="destructive"
-                  class="mt-2"
-                >
-                  {{ kpis?.alarmas_mgs_criticas }} críticas
-                </Badge>
-              </CardContent>
-            </Card>
-          </div>
-
-          <!-- Fallas por prioridad y cumplimiento PPA -->
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Fallas por prioridad</CardTitle>
-                <CardAction>
-                  <NuxtLink to="/fallas" class="text-xs font-medium text-primary hover:underline">
-                    Ver fallas →
-                  </NuxtLink>
-                </CardAction>
-              </CardHeader>
-              <CardContent>
-                <div v-if="(kpis?.fallas_abiertas ?? 0) > 0" class="space-y-2.5">
-                  <div
-                    v-for="bar in fallasBreakdown"
-                    :key="bar.code"
-                    class="flex items-center gap-3"
-                  >
-                    <span class="w-14 text-right text-xs font-medium" :class="bar.textClass">{{
-                      bar.label
-                    }}</span>
-                    <div class="h-5 flex-1 overflow-hidden rounded-full bg-muted">
-                      <div
-                        class="h-full rounded-full transition-all duration-500"
-                        :class="bar.barClass"
-                        :style="{ width: `${bar.pct}%`, minWidth: bar.count > 0 ? '1.5rem' : '0' }"
-                      />
-                    </div>
-                    <span class="w-8 text-sm font-bold text-foreground">{{ bar.count }}</span>
+          <div class="space-y-3">
+            <h2 class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
+              Flota, mercado y alarmas
+            </h2>
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-1.5">
+                    <PowerIcon class="size-4 text-muted-foreground" />
+                    Generación flota
+                  </CardTitle>
+                  <CardAction>
+                    <NuxtLink
+                      to="/generacion-solar"
+                      class="text-xs font-medium text-primary hover:underline"
+                    >
+                      Ver detalle →
+                    </NuxtLink>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div v-if="fleetPowerDisplay" class="flex items-baseline gap-2">
+                    <span
+                      class="text-3xl font-bold"
+                      :class="
+                        (kpis?.fleet_power_kw ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'
+                      "
+                    >
+                      {{ fleetPowerDisplay.value }}
+                    </span>
+                    <span class="text-sm text-muted-foreground">{{ fleetPowerDisplay.unit }}</span>
+                    <GBadge v-if="kpis?.fleet_online != null" color="success" class="ml-2">
+                      {{ kpis.fleet_online }}/{{ kpis.fleet_total || '?' }} online
+                    </GBadge>
                   </div>
-                </div>
-                <p v-else class="text-sm text-success">Sin fallas activas</p>
-              </CardContent>
-            </Card>
+                  <p v-else class="text-sm text-muted-foreground">Solenium no disponible</p>
+                  <div
+                    v-if="kpis?.gen_solenium_last_date"
+                    class="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
+                  >
+                    <DatabaseIcon class="size-3 text-success" />
+                    {{ kpis.gen_solenium_projects }} plantas sincronizadas · último dato
+                    {{ kpis.gen_solenium_last_date }}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <DashboardCumplimientoCard
-              :status="cumplimientoStatus"
-              :data="cumplimientoQuery.data"
-              :contratos-con-compromisos="kpis?.ppa_con_compromisos ?? 0"
-            />
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-1.5">
+                    <DollarSignIcon class="size-4 text-muted-foreground" />
+                    Precio de bolsa
+                  </CardTitle>
+                  <CardAction>
+                    <NuxtLink
+                      to="/mem/precio-bolsa"
+                      class="text-xs font-medium text-primary hover:underline"
+                    >
+                      Ver detalle →
+                    </NuxtLink>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div v-if="kpis?.precio_bolsa_cop_kwh != null" class="flex items-baseline gap-2">
+                    <span class="text-3xl font-bold text-foreground">{{
+                      formatCOP(kpis.precio_bolsa_cop_kwh)
+                    }}</span>
+                    <span class="text-sm text-muted-foreground">/kWh</span>
+                  </div>
+                  <p v-else class="text-sm text-muted-foreground">
+                    Sin datos de precio disponibles
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-1.5">
+                    <BellIcon class="size-4 text-muted-foreground" />
+                    Alarmas MGS
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="flex items-baseline gap-2">
+                    <span
+                      class="text-3xl font-bold"
+                      :class="(kpis?.alarmas_mgs ?? 0) > 0 ? 'text-destructive' : 'text-success'"
+                    >
+                      {{ kpis?.alarmas_mgs ?? 0 }}
+                    </span>
+                    <span class="text-sm text-muted-foreground">
+                      {{ kpis?.alarmas_mgs === 1 ? 'alarma activa' : 'alarmas activas' }}
+                    </span>
+                  </div>
+                  <GBadge
+                    v-if="(kpis?.alarmas_mgs_criticas ?? 0) > 0"
+                    color="destructive"
+                    class="mt-2"
+                  >
+                    {{ kpis?.alarmas_mgs_criticas }} críticas
+                  </GBadge>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <!-- Accesos rápidos -->
-          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Item
-              v-for="link in QUICK_LINKS"
-              :key="link.to"
-              as-child
-              variant="outline"
-              class="bg-card"
-            >
-              <NuxtLink :to="link.to">
-                <ItemMedia
-                  variant="icon"
-                  :class="[QUICK_LINK_TONE_CLASSES[link.tone], 'size-10 rounded-lg']"
-                >
-                  <component :is="link.icon" />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>{{ link.label }}</ItemTitle>
-                </ItemContent>
-              </NuxtLink>
-            </Item>
+          <div class="space-y-3">
+            <h2 class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
+              Fallas por prioridad y cumplimiento PPA
+            </h2>
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-1.5">
+                    <TriangleAlertIcon class="size-4 text-muted-foreground" />
+                    Fallas por prioridad
+                  </CardTitle>
+                  <CardAction>
+                    <NuxtLink to="/fallas" class="text-xs font-medium text-primary hover:underline">
+                      Ver fallas →
+                    </NuxtLink>
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  <div v-if="(kpis?.fallas_abiertas ?? 0) > 0" class="space-y-2.5">
+                    <div
+                      v-for="bar in fallasBreakdown"
+                      :key="bar.code"
+                      class="flex items-center gap-3"
+                    >
+                      <span class="w-14 text-right text-xs font-medium" :class="bar.textClass">{{
+                        bar.label
+                      }}</span>
+                      <div class="h-5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          class="h-full rounded-full transition-all duration-500"
+                          :class="bar.barClass"
+                          :style="{
+                            width: `${bar.pct}%`,
+                            minWidth: bar.count > 0 ? '1.5rem' : '0',
+                          }"
+                        />
+                      </div>
+                      <span class="w-8 text-sm font-bold text-foreground">{{ bar.count }}</span>
+                    </div>
+                  </div>
+                  <p v-else class="text-sm text-success">Sin fallas activas</p>
+                </CardContent>
+              </Card>
+
+              <DashboardCumplimientoCard
+                :status="cumplimientoStatus"
+                :data="cumplimientoQuery.data"
+                :contratos-con-compromisos="kpis?.ppa_con_compromisos ?? 0"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <h2 class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
+              Accesos rápidos
+            </h2>
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Item
+                v-for="link in QUICK_LINKS"
+                :key="link.to"
+                as-child
+                variant="outline"
+                class="bg-card"
+              >
+                <NuxtLink :to="link.to">
+                  <ItemMedia
+                    variant="icon"
+                    :class="[QUICK_LINK_TONE_CLASSES[link.tone], 'size-10 rounded-lg']"
+                  >
+                    <component :is="link.icon" />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{{ link.label }}</ItemTitle>
+                  </ItemContent>
+                </NuxtLink>
+              </Item>
+            </div>
           </div>
         </div>
       </template>
