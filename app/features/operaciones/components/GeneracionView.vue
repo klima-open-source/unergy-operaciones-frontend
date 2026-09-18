@@ -337,7 +337,10 @@
       <!-- Gráfica -->
       <Card>
         <CardHeader>
-          <CardTitle>{{ tituloGrafico }}</CardTitle>
+          <CardTitle class="flex items-center gap-1.5">
+            <ChartLineIcon class="size-4 text-muted-foreground" />
+            {{ tituloGrafico }}
+          </CardTitle>
           <CardAction class="flex items-center gap-1">
             <Button
               type="button"
