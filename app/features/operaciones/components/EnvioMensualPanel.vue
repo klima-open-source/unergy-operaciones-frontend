@@ -99,13 +99,9 @@ v-for="inf in filtrados" :key="inf.id"
                   </div>
                 </div>
                 <div class="em-compact-actions" @click.stop>
-                  <button
-class="em-icon-btn em-btn-edit"
-                          title="Editar informe"
-                          style="width:22px;height:22px;font-size:11px"
-                          @click="editar(inf)">
-                    <PencilIcon class="size-[1em]" />
-                  </button>
+                  <Button variant="ghost" size="icon-xs" title="Editar informe" @click="editar(inf)">
+                    <PencilIcon />
+                  </Button>
                 </div>
               </button>
             </div>
@@ -178,48 +174,70 @@ v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
                     <div v-else class="em-td-empty">—</div>
                   </td>
                   <td class="em-td-acciones" @click.stop>
-                    <button
-class="em-icon-btn em-btn-edit" title="Editar informe en pantalla completa"
-                            @click="editar(row)">
-                      <PencilIcon class="size-[1em]" />
-                    </button>
-                    <button
-class="em-icon-btn"
-                            :class="{
-                              'em-btn-coms-on': comentariosPendientes(row) > 0,
-                              'em-btn-coms-resolved': comentariosTotales(row) > 0 && comentariosPendientes(row) === 0,
-                              'em-btn-coms-empty': comentariosTotales(row) === 0,
-                            }"
-                            :title="comentariosTooltip(row)"
-                            @click="abrirDrawer(row, 'comentarios')">
-                      <MessagesSquareIcon class="size-[1em]" />
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Editar informe en pantalla completa"
+                      @click="editar(row)"
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      class="relative"
+                      :class="
+                        comentariosPendientes(row) > 0
+                          ? 'text-destructive hover:text-destructive'
+                          : comentariosTotales(row) > 0
+                            ? 'text-primary hover:text-primary'
+                            : ''
+                      "
+                      :title="comentariosTooltip(row)"
+                      @click="abrirDrawer(row, 'comentarios')"
+                    >
+                      <MessagesSquareIcon />
                       <span
-v-if="comentariosTotales(row) > 0" class="em-coms-badge"
-                            :class="{ 'em-coms-badge--err': comentariosPendientes(row) > 0 }">
+                        v-if="comentariosTotales(row) > 0"
+                        class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        :class="comentariosPendientes(row) > 0 ? 'bg-destructive' : 'bg-primary'"
+                      >
                         {{ comentariosPendientes(row) || comentariosTotales(row) }}
                       </span>
-                    </button>
-                    <button
-v-if="puedeVerificar(row)" class="em-icon-btn em-btn-verify"
-                            :disabled="!permisoVerificar"
-                            :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'"
-                            @click="abrirDrawer(row, 'verificar')">
-                      <CircleCheckIcon class="size-[1em]" />
-                    </button>
-                    <button
-v-if="row.estado === 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-send"
-                            :disabled="!permisoEnviar || enviandoIds.has(row.id)"
-                            :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'"
-                            @click="enviarUno(row)">
-                      <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="size-[1em] animate-spin" />
-                      <SendIcon v-else class="size-[1em]" />
-                    </button>
-                    <button
-v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-del"
-                            :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'"
-                            @click="eliminarInforme(row)">
-                      <Trash2Icon class="size-[1em]" />
-                    </button>
+                    </Button>
+                    <Button
+                      v-if="puedeVerificar(row)"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-warning hover:text-warning"
+                      :disabled="!permisoVerificar"
+                      :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'"
+                      @click="abrirDrawer(row, 'verificar')"
+                    >
+                      <CircleCheckIcon />
+                    </Button>
+                    <Button
+                      v-if="row.estado === 'aprobado' && !row.correo_enviado"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-primary hover:text-primary"
+                      :disabled="!permisoEnviar || enviandoIds.has(row.id)"
+                      :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'"
+                      @click="enviarUno(row)"
+                    >
+                      <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="animate-spin" />
+                      <SendIcon v-else />
+                    </Button>
+                    <Button
+                      v-if="row.estado !== 'aprobado' && !row.correo_enviado"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="hover:bg-destructive/10 hover:text-destructive"
+                      :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'"
+                      @click="eliminarInforme(row)"
+                    >
+                      <Trash2Icon />
+                    </Button>
                   </td>
                 </tr>
                 </template>
@@ -228,12 +246,16 @@ v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-bt
 
             <!-- Faltantes -->
             <div v-if="!loading && faltantes.length > 0" class="em-faltantes-wrap">
-              <button class="em-faltantes-toggle" @click="showFaltantes = !showFaltantes">
-                <span class="em-faltantes-badge">{{ faltantes.length }}</span>
+              <Button
+                variant="ghost"
+                class="h-auto w-full justify-start gap-2 rounded-none py-2 text-warning hover:text-warning"
+                @click="showFaltantes = !showFaltantes"
+              >
+                <Badge variant="secondary">{{ faltantes.length }}</Badge>
                 <span>Proyecto{{ faltantes.length !== 1 ? 's' : '' }} sin informe en {{ mesLabel }}</span>
-                <ChevronUpIcon v-if="showFaltantes" class="size-[1em]" style="margin-left:auto;font-size:11px;color:#6B5A8A" />
-                <ChevronDownIcon v-else class="size-[1em]" style="margin-left:auto;font-size:11px;color:#6B5A8A" />
-              </button>
+                <ChevronUpIcon v-if="showFaltantes" class="ml-auto text-muted-foreground" />
+                <ChevronDownIcon v-else class="ml-auto text-muted-foreground" />
+              </Button>
               <transition name="fade">
                 <div v-if="showFaltantes" class="em-faltantes-list">
                   <div v-for="p in faltantes" :key="p" class="em-faltante-row">
@@ -270,34 +292,37 @@ v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-bt
                   </div>
                 </div>
                 <div class="em-drawer-head-actions">
-                  <button class="em-close" title="Cerrar panel" @click="cerrarDrawer">✕</button>
+                  <Button variant="ghost" size="icon-sm" title="Cerrar panel" @click="cerrarDrawer">
+                    <XIcon />
+                  </Button>
                 </div>
               </header>
 
               <!-- Tabs internas del panel -->
-              <div class="em-drawer-tabs">
-                <button
-class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'preview' }"
-                        @click="drawerTab = 'preview'">
-                  <EyeIcon class="size-[1em]" /> Previsualización
-                </button>
-                <button
-class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'comentarios' }"
-                        @click="drawerTab = 'comentarios'">
-                  <MessagesSquareIcon class="size-[1em]" /> Comentarios
-                  <span
-v-if="comentariosTotales(drawerInf) > 0" class="em-drawer-tab-badge"
-                        :class="{ 'em-drawer-tab-badge--err': comentariosPendientes(drawerInf) > 0 }">
-                    {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
-                  </span>
-                </button>
-                <button
-v-if="puedeVerificar(drawerInf)" class="em-drawer-tab"
-                        :class="{ 'em-drawer-tab--on': drawerTab === 'verificar' }"
-                        @click="drawerTab = 'verificar'">
-                  <CircleCheckIcon class="size-[1em]" /> Verificar
-                </button>
-              </div>
+              <GTabs
+                :model-value="drawerTab"
+                class="shrink-0 border-b border-border bg-background px-3.5"
+                @update:model-value="(v) => (drawerTab = v)"
+              >
+                <GTabsList variant="outline">
+                  <GTabsTrigger value="preview" variant="outline">
+                    <EyeIcon class="size-4" /> Previsualización
+                  </GTabsTrigger>
+                  <GTabsTrigger value="comentarios" variant="outline">
+                    <MessagesSquareIcon class="size-4" /> Comentarios
+                    <GBadge
+                      v-if="comentariosTotales(drawerInf) > 0"
+                      :color="comentariosPendientes(drawerInf) > 0 ? 'destructive' : 'action'"
+                      size="sm"
+                    >
+                      {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
+                    </GBadge>
+                  </GTabsTrigger>
+                  <GTabsTrigger v-if="puedeVerificar(drawerInf)" value="verificar" variant="outline">
+                    <CircleCheckIcon class="size-4" /> Verificar
+                  </GTabsTrigger>
+                </GTabsList>
+              </GTabs>
 
               <div class="em-drawer-body">
 
@@ -375,18 +400,24 @@ v-for="c in (drawerInf.comentarios || [])" :key="c.id"
                         </div>
                       </div>
                       <div v-if="!c.resuelto" class="em-com-actions">
-                        <button
-class="em-btn-sm em-btn-resolver"
-                                :disabled="actuandoComentarioId === c.id"
-                                @click="abrirResolver(c)">
-                          <CheckIcon class="size-[1em]" /> Marcar subsanado
-                        </button>
-                        <button
-v-if="puedeBorrarComentario(c)" class="em-btn-sm em-btn-borrar"
-                                :disabled="actuandoComentarioId === c.id"
-                                @click="borrarComentario(c)">
-                          <Trash2Icon class="size-[1em]" /> Eliminar
-                        </button>
+                        <Button
+                          size="sm"
+                          class="bg-success text-success-foreground hover:bg-success/90"
+                          :disabled="actuandoComentarioId === c.id"
+                          @click="abrirResolver(c)"
+                        >
+                          <CheckIcon /> Marcar subsanado
+                        </Button>
+                        <Button
+                          v-if="puedeBorrarComentario(c)"
+                          variant="outline"
+                          size="sm"
+                          class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          :disabled="actuandoComentarioId === c.id"
+                          @click="borrarComentario(c)"
+                        >
+                          <Trash2Icon /> Eliminar
+                        </Button>
                       </div>
                       <!-- Inline form para subsanar -->
                       <div v-if="resolviendoId === c.id" class="em-resolver-form">
@@ -395,12 +426,15 @@ v-if="puedeBorrarComentario(c)" class="em-btn-sm em-btn-borrar"
 v-model="resolviendoTexto" rows="2"
                                   placeholder="Describe brevemente qué se cambió o ajustó…" />
                         <div class="em-resolver-actions">
-                          <button class="em-btn-sm em-btn-ghost" @click="resolviendoId = null">Cancelar</button>
-                          <button
-class="em-btn-sm em-btn-resolver" :disabled="actuandoComentarioId === c.id"
-                                  @click="resolverComentario(c)">
+                          <Button variant="outline" size="sm" @click="resolviendoId = null">Cancelar</Button>
+                          <Button
+                            size="sm"
+                            class="bg-success text-success-foreground hover:bg-success/90"
+                            :disabled="actuandoComentarioId === c.id"
+                            @click="resolverComentario(c)"
+                          >
                             Confirmar subsanación
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -502,7 +536,9 @@ v-else
                 <h3>Enviar {{ puedeEnviarBatch.length }} informe{{ puedeEnviarBatch.length !== 1 ? 's' : '' }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}</h3>
                 <p>Se enviará por correo al cliente operacional registrado de cada proyecto.</p>
               </div>
-              <button class="em-close" :disabled="enviandoBatch" @click="cerrarConfirmEnvio">✕</button>
+              <Button variant="ghost" size="icon-sm" :disabled="enviandoBatch" @click="cerrarConfirmEnvio">
+                <XIcon />
+              </Button>
             </header>
             <div class="em-modal-body">
               <div v-if="!enviandoBatch && !resultadoBatch" class="em-modal-list">
@@ -583,17 +619,33 @@ v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
             </span>
           </div>
           <div class="em-editor-bar-right">
-            <button class="em-btn-sm em-btn-ghost" @click="imprimirEditor">
-              <PrinterIcon class="size-[1em]" /> PDF
-            </button>
-            <button class="em-btn-sm em-btn-ghost" :disabled="guardandoEditor" @click="cerrarEditor">
-              <XIcon class="size-[1em]" /> Cerrar sin guardar
-            </button>
-            <button class="em-btn-sm em-btn-resolver" :disabled="guardandoEditor" @click="guardarEditor">
-              <LoaderCircleIcon v-if="guardandoEditor" class="size-[1em] animate-spin" />
-              <SaveIcon v-else class="size-[1em]" />
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10 hover:text-white"
+              @click="imprimirEditor"
+            >
+              <PrinterIcon /> PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10 hover:text-white"
+              :disabled="guardandoEditor"
+              @click="cerrarEditor"
+            >
+              <XIcon /> Cerrar sin guardar
+            </Button>
+            <Button
+              size="sm"
+              class="bg-success text-success-foreground hover:bg-success/90"
+              :disabled="guardandoEditor"
+              @click="guardarEditor"
+            >
+              <LoaderCircleIcon v-if="guardandoEditor" class="animate-spin" />
+              <SaveIcon v-else />
               {{ guardandoEditor ? 'Guardando…' : 'Guardar versión' }}
-            </button>
+            </Button>
           </div>
         </div>
         <!-- Iframe editable -->
@@ -1280,11 +1332,6 @@ async function ejecutarEnvioBatch() {
   display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
   flex-shrink: 0; flex-wrap: wrap;
 }
-.em-btn-send :deep(.p-button), :deep(.em-btn-send) {
-  background: #16A34A !important; border-color: #16A34A !important;
-}
-.em-btn-send :deep(.p-button:hover), :deep(.em-btn-send:hover) { background: #15803D !important; }
-
 /* ── Layout: full vs split ────────────────────────────────────── */
 .em-content {
   display: block;
@@ -1415,33 +1462,6 @@ async function ejecutarEnvioBatch() {
 
 /* Botones de acción por fila */
 .em-td-acciones { white-space: nowrap; text-align: right; }
-.em-icon-btn {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0; margin-left: 2px;
-  background: transparent; border: 1px solid #E5E2EC; border-radius: 6px;
-  cursor: pointer; font-family: inherit; font-size: 13px; transition: all .14s;
-}
-.em-icon-btn:hover:not(:disabled) { background: #F4F1FA; border-color: #C7A8F0; }
-.em-icon-btn:disabled { opacity: .5; cursor: not-allowed; }
-.em-btn-edit    { color: #6D28D9; }
-.em-btn-verify  { color: #16A34A; border-color: #BBF7D0; }
-.em-btn-verify:hover:not(:disabled) { background: #F0FDF4; }
-.em-btn-send    { color: #2563EB; border-color: #BFDBFE; }
-.em-btn-send:hover:not(:disabled) { background: #EFF6FF; }
-.em-btn-del     { color: #DC2626; border-color: #FECACA; }
-.em-btn-del:hover:not(:disabled) { background: #FEF2F2; }
-.em-btn-coms-on       { color: #DC2626; border-color: #FECACA; background: #FEF2F2; }
-.em-btn-coms-on:hover:not(:disabled) { background: #FEE2E2; }
-.em-btn-coms-resolved { color: #2563EB; border-color: #BFDBFE; }
-.em-btn-coms-empty    { color: #9CA3AF; }
-.em-coms-badge {
-  position: absolute; top: -6px; right: -6px;
-  background: #6D28D9; color: #fff; font-size: 9px; font-weight: 800;
-  width: 16px; height: 16px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  border: 2px solid #fff;
-}
-.em-coms-badge--err { background: #DC2626; }
 
 /* ── Panel detalle (derecha en split) ─────────────────────────── */
 /* En móvil: overlay fixed */
@@ -1488,34 +1508,6 @@ async function ejecutarEnvioBatch() {
   font-size: 10px; color: #6B5A8A; margin-top: 3px;
   display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
 }
-
-.em-close {
-  background: #fff; border: 1px solid #E5E2EC; color: #6B5A8A;
-  cursor: pointer; padding: 0; width: 26px; height: 26px;
-  border-radius: 7px; font-size: 11px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.em-close:hover { background: #F4F1FA; color: var(--color-unergy-deep); }
-
-.em-drawer-tabs {
-  display: flex; gap: 0; border-bottom: 1px solid #ECE7F2;
-  padding: 0 14px; background: #fff; flex-shrink: 0;
-}
-.em-drawer-tab {
-  position: relative; display: inline-flex; align-items: center; gap: 5px;
-  background: transparent; border: none; padding: 9px 12px;
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  color: #6B5A8A; cursor: pointer; border-bottom: 2px solid transparent;
-  transition: color .15s;
-}
-.em-drawer-tab:hover { color: var(--color-unergy-deep); }
-.em-drawer-tab--on   { color: #6D28D9; border-bottom-color: var(--color-unergy-purple); }
-.em-drawer-tab-badge {
-  background: #6D28D9; color: #fff; font-size: 9px; font-weight: 800;
-  padding: 1px 6px; border-radius: 8px; margin-left: 2px;
-}
-.em-drawer-tab-badge--err { background: #DC2626; }
 
 .em-drawer-body { flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0; }
 
@@ -1572,20 +1564,6 @@ async function ejecutarEnvioBatch() {
 .em-com-respuesta-lbl { font-size: 9px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
 .em-com-respuesta-meta { margin-top: 4px; }
 .em-com-actions { display: flex; gap: 6px; margin-top: 8px; }
-
-.em-btn-sm {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: inherit; font-size: 11px; font-weight: 700;
-  border-radius: 6px; padding: 4px 10px; cursor: pointer; border: 1px solid;
-  transition: all .14s;
-}
-.em-btn-sm:disabled { opacity: .5; cursor: not-allowed; }
-.em-btn-resolver { background: #16A34A; color: #fff; border-color: #16A34A; }
-.em-btn-resolver:hover:not(:disabled) { background: #15803D; border-color: #15803D; }
-.em-btn-borrar { background: #fff; color: #DC2626; border-color: #FECACA; }
-.em-btn-borrar:hover:not(:disabled) { background: #FEF2F2; }
-.em-btn-ghost { background: #fff; color: #6B5A8A; border-color: #E5E2EC; }
-.em-btn-ghost:hover:not(:disabled) { background: #F4F1FA; color: var(--color-unergy-deep); }
 
 .em-resolver-form {
   margin-top: 8px; background: rgba(255,255,255,.7);
@@ -1694,16 +1672,6 @@ async function ejecutarEnvioBatch() {
 .em-faltantes-wrap {
   margin: 0 12px 10px; border: 1px solid #FDE68A; border-radius: 10px;
   overflow: hidden; background: #FFFBEB;
-}
-.em-faltantes-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 14px;
-  background: transparent; border: none; cursor: pointer; font-family: inherit;
-  font-size: 12px; font-weight: 700; color: #92400E; text-align: left;
-}
-.em-faltantes-toggle:hover { background: #FEF3C7; }
-.em-faltantes-badge {
-  background: #D97706; color: #fff; font-size: 10px; font-weight: 800;
-  padding: 1px 7px; border-radius: 8px; min-width: 18px; text-align: center;
 }
 .em-faltantes-list { display: flex; flex-direction: column; padding: 4px 14px 10px; gap: 4px; }
 .em-faltante-row {
