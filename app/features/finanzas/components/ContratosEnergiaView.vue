@@ -1,9 +1,21 @@
+<!--
+  OJO con el nombre: estos "contratos de energia" NO son los PPA de la
+  plataforma. Viven en el servicio externo de Liquidaciones
+  (`/liquidaciones-api/contratos-energia`), en otra base y con otro modelo
+  --contract_type, tariff_price_type, energy_price por proyecto--. Los PPA estan
+  en Servicios y se guardan en `ppa_contratos`.
+
+  La pantalla decia "Crear nuevo contrato de energia" a secas, que es
+  indistinguible de crear un PPA. Ver `docs/DIAGNOSTICO_PPA.md` §2 en el backend:
+  la UI dice "contrato" en cuatro sitios y son cuatro objetos distintos.
+-->
 <template>
   <div class="space-y-4">
-    <PageHeader title="Contratos de energía"
-                subtitle="Contratos de energía y sus proyectos vinculados">
+    <PageHeader title="Contratos de energía · Liquidaciones"
+                subtitle="Contratos del servicio de Liquidaciones y sus proyectos vinculados. No son los PPA: esos están en Servicios.">
       <template #actions>
-        <Button label="Crear nuevo contrato de energía" size="small" @click="abrirFormulario">
+        <Button label="Crear contrato de Liquidaciones" size="small" @click="abrirFormulario"
+                v-tooltip.bottom="'Crea un contrato en el servicio externo de Liquidaciones, no un PPA'">
           <template #icon><PlusIcon class="size-[1em]" /></template>
         </Button>
       </template>

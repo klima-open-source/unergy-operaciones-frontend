@@ -360,22 +360,31 @@
                      v-tooltip.bottom="'Filtrar contratos por offtaker (comprador)'" />
 
         <div class="flex-1"></div>
-        <button @click="showNuevoForm = true" class="cv-btn-cta">
-          <PlusIcon class="text-xs size-[1em]" />PPA nuevo
+        <button @click="showNuevoForm = true" class="cv-btn-cta"
+                v-tooltip.bottom="'Agrega un contrato supuesto para simular. No crea nada: se pierde al recargar.'">
+          <PlusIcon class="text-xs size-[1em] " />PPA simulado
         </button>
-        <span class="w-full text-xs" style="color: #9b8fb0;">Arrastra las plantas entre contratos para simular</span>
+        <span class="w-full text-xs" style="color: #9b8fb0;">Arrastra las plantas entre contratos para simular. Nada de esta pantalla se guarda.</span>
       </div>
 
-      <!-- Formulario PPA nuevo -->
+      <!--
+        Formulario del PPA SIMULADO. Ojo: no crea un contrato. `crearNuevo()`
+        arma un objeto en memoria con id de texto `__ficticio_N` y bandera
+        `_ficticio`, y se pierde al recargar. Pide solo nombre, minimo y maximo
+        porque es lo unico que necesita el calculo de cobertura; un PPA de verdad
+        se crea en Servicios. La etiqueta decia "PPA nuevo" y se leia como que
+        aqui se creaban contratos.
+      -->
       <div v-if="showNuevoForm" class="rounded-xl border p-5" style="background: white; border-color: rgba(240,192,64,0.4);">
         <div class="flex items-center gap-2 mb-4">
           <ZapIcon class="size-[1em]" style="color: #F0C040;" />
-          <span class="font-bold text-sm" style="color: var(--color-unergy-deep);">Nuevo PPA nuevo</span>
+          <span class="font-bold text-sm" style="color: var(--color-unergy-deep);">Nuevo PPA simulado</span>
         </div>
         <div class="flex flex-wrap items-end gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold" style="color: #7a6e8a;">Nombre</label>
             <InputText v-model="ficticioNombre" placeholder="Ej: PPA Simulado 1" class="w-48" />
+            <span class="text-[10px]" style="color: #9b8fb0;">No se guarda en la plataforma</span>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold" style="color: #7a6e8a;">Mínimo (MWh)</label>
@@ -443,7 +452,7 @@
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5 flex-wrap">
                       <span class="font-bold text-sm break-words" style="color: var(--color-unergy-deep);">{{ c.nombre }}</span>
-                      <span v-if="c._ficticio" class="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0" style="background: rgba(240,192,64,0.18); color: #9a6700;">Nuevo</span>
+                      <span v-if="c._ficticio" class="text-xs px-1.5 py-0.5 rounded font-medium flex-shrink-0" style="background: rgba(240,192,64,0.18); color: #9a6700;">Simulado</span>
                       <span v-if="simResults[c.id]?.plantasEsp != null"
                         class="text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
                         :style="estadoBadge(simResults[c.id].estadoPlantas)"
