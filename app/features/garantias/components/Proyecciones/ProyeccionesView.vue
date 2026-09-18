@@ -12,6 +12,11 @@
         <InputNumber v-model="kwhPlantaNueva" :min="0" :step="10" suffix=" kWh"
           style="width:11rem" @update:modelValue="cargar" />
       </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-xs font-medium" style="color:#6b5a8a">Fecha de corte (opcional)</label>
+        <input type="date" v-model="corte" @change="cargar"
+          class="rounded-md border px-2 py-1.5 text-sm" style="border-color:rgba(44,32,57,0.2)" />
+      </div>
       <Button label="Recalcular" :loading="cargando" @click="cargar" outlined>
         <template #icon><RefreshCwIcon class="size-[1em]" /></template>
       </Button>
@@ -66,6 +71,11 @@
       </div>
     </div>
 
+    <!-- Reparto de la garantía por contrato -->
+    <div class="mt-6 pt-6 border-t" style="border-color:rgba(44,32,57,0.10)">
+      <PorContrato :corte="corte" />
+    </div>
+
     <!-- Histórico -->
     <div class="mt-6">
       <div class="flex items-center justify-between mb-2">
@@ -108,6 +118,7 @@ import InputNumber from 'primevue/inputnumber'
 import { fmtCOP } from '../AjustesXM/utils/formatters.js'
 import { ProyeccionesGarantiasService } from '~/features/garantias/services/proyecciones'
 import { CalculatorIcon, HistoryIcon, RefreshCwIcon, SaveIcon } from '@lucide/vue'
+import PorContrato from './PorContrato.vue'
 
 const proyeccionesApi = new ProyeccionesGarantiasService()
 
@@ -116,6 +127,7 @@ const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 
 const plantasNuevas = ref(0)
 const kwhPlantaNueva = ref(180)
+const corte = ref('')
 const data = ref(null)
 const historial = ref([])
 const cargando = ref(false)
@@ -138,6 +150,7 @@ async function cargar() {
     data.value = await proyeccionesApi.obtener({
       plantasNuevas: plantasNuevas.value || 0,
       kwhPlantaNueva: kwhPlantaNueva.value || 0,
+      corte: corte.value || undefined,
     })
   } catch (e) {
     toast.error('No se pudo calcular la proyección', {
@@ -184,6 +197,7 @@ async function guardar() {
     await proyeccionesApi.guardarSnapshot({
       plantasNuevas: plantasNuevas.value || 0,
       kwhPlantaNueva: kwhPlantaNueva.value || 0,
+      corte: corte.value || undefined,
     })
     toast.success('Snapshot guardado', { duration: 3000 })
     await cargarHistorial()
