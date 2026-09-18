@@ -13,12 +13,6 @@ declare module 'vue-router' {
   interface RouteMeta {
     /** Pertenece a la app móvil (`/m/*`): otro login y otro layout. */
     mobile?: boolean
-    /**
-     * La página maneja su propio scroll interno (por ejemplo, con varias zonas
-     * que scrollean por separado) y necesita pintar a pantalla completa, sin el
-     * padding que el layout (`default`/`legacy`) le da al contenido normal.
-     */
-    fullBleed?: boolean
   }
 }
 

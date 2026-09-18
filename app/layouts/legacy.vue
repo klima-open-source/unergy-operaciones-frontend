@@ -1,16 +1,12 @@
 <script setup>
 /**
  * Fase 3, ola 1: el shell real del template (`SidebarProvider` + `AppSidebar` +
- * `SiteHeader`), igual que `default.vue` — con una diferencia: las páginas con
- * `definePageMeta({ fullBleed: true })` pintan a pantalla completa, sin el
- * padding que trae el contenido normal (ver `app/types/route-meta.d.ts`).
+ * `SiteHeader`), igual que `default.vue`.
  *
  * Antes envolvía `LegacyAppSidebar.vue`, con su propio overlay móvil y botón de
  * colapso hechos a mano. El `Sidebar` real ya trae eso resuelto (`SidebarTrigger`
  * en `SiteHeader`), así que desaparecieron con el swap.
  */
-const route = useRoute()
-const fullBleed = computed(() => route.meta.fullBleed === true)
 </script>
 
 <template>
@@ -29,11 +25,7 @@ const fullBleed = computed(() => route.meta.fullBleed === true)
       <div class="@container/main flex min-h-0 flex-1 flex-col overflow-auto">
         <div
           id="main-content"
-          :class="
-            fullBleed
-              ? 'flex min-h-full flex-1 flex-col'
-              : 'flex min-h-full flex-1 flex-col px-4 pt-4 pb-8 md:px-8 md:pt-6'
-          "
+          class="flex min-h-full flex-1 flex-col px-4 pt-4 pb-8 md:px-8 md:pt-6"
         >
           <slot />
         </div>

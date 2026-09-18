@@ -7,7 +7,7 @@
  */
 import View from '~/features/solar/components/SolarLiveView.vue'
 
-definePageMeta({ layout: 'legacy', fullBleed: true })
+definePageMeta({ layout: 'legacy' })
 </script>
 
 <template>
