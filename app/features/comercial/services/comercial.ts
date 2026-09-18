@@ -12,7 +12,9 @@ import type {
   PayloadFirmarOferta,
   PayloadGestion,
   PayloadRegistrarOportunidad,
+  PayloadVersionOferta,
   RespuestaFirmarOferta,
+  VersionOferta,
 } from '~/features/comercial/types'
 import { BaseService } from '~/core/service'
 
@@ -24,6 +26,9 @@ const RUTAS = {
   ofertaEstado: (id: Oferta['id']) => `${BASE}/ofertas/${id}/estado`,
   ofertaSeguimiento: (id: Oferta['id']) => `${BASE}/ofertas/${id}/seguimiento`,
   ofertaFirmar: (id: Oferta['id']) => `${BASE}/ofertas/${id}/firmar`,
+  ofertaVersiones: (id: Oferta['id']) => `${BASE}/ofertas/${id}/versiones`,
+  aceptarVersion: (id: Oferta['id'], numero: number) =>
+    `${BASE}/ofertas/${id}/versiones/${numero}/aceptar`,
   config: `${BASE}/config`,
   registrar: `${BASE}/registrar`,
   oportunidad: (id: Oportunidad['id']) => `${BASE}/oportunidades/${id}`,
@@ -59,6 +64,30 @@ export class ComercialService extends BaseService {
 
   firmarOferta(id: Oferta['id'], payload: PayloadFirmarOferta): Promise<RespuestaFirmarOferta> {
     return this.post<RespuestaFirmarOferta>(RUTAS.ofertaFirmar(id), payload)
+  }
+
+  /**
+   * Las propuestas de una oferta, de la mas nueva a la mas vieja.
+   *
+   * Son APPEND-ONLY: no hay editar ni borrar. Reofertar es `agregarVersion`, y
+   * la propuesta anterior queda. Antes la oferta tenia un solo `documento_url`
+   * y un `precio_detalle` de texto que se sobrescribian.
+   */
+  versiones(id: Oferta['id']): Promise<VersionOferta[]> {
+    return this.get<VersionOferta[]>(RUTAS.ofertaVersiones(id))
+  }
+
+  agregarVersion(id: Oferta['id'], payload: PayloadVersionOferta): Promise<VersionOferta> {
+    return this.post<VersionOferta>(RUTAS.ofertaVersiones(id), payload)
+  }
+
+  /** Marca cual propuesta acepto el cliente: es la que se firmara. */
+  aceptarVersion(
+    id: Oferta['id'],
+    numero: number,
+    fecha_aceptacion: string,
+  ): Promise<VersionOferta> {
+    return this.post<VersionOferta>(RUTAS.aceptarVersion(id, numero), { fecha_aceptacion })
   }
 
   crearOferta(oportunidadId: Oportunidad['id'], payload: PayloadCrearOferta): Promise<Oferta> {

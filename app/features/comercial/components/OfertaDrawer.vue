@@ -124,6 +124,15 @@
         <p v-if="ayudaPrecio(f.tipo)" class="ayuda">{{ ayudaPrecio(f.tipo) }}</p>
       </section>
 
+      <!-- ── Propuestas (versiones) ──────────────────────────────────────── -->
+      <!--
+        El campo "Documento de la oferta" de arriba es el de la oferta entera y
+        se sobrescribe al reofertar. Las propuestas son el historial: cada
+        reoferta deja su documento y su tabla de precios, y la ACEPTADA es de la
+        que nacera el contrato al firmar.
+      -->
+      <VersionesOferta v-if="oferta?.id" :ofertaId="oferta.id" />
+
       <!-- ── Plantas ─────────────────────────────────────────────────────── -->
       <section>
         <h3 class="seccion">Plantas de la oferta</h3>
@@ -294,6 +303,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
 import Drawer from 'primevue/drawer'
+import VersionesOferta from '~/features/comercial/components/VersionesOferta.vue'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import InputText from 'primevue/inputtext'

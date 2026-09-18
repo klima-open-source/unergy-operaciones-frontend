@@ -95,3 +95,38 @@ export interface FiltrosCrearProyectoDesdeCRM {
   forzar?: boolean
   oferta_id?: number
 }
+
+/**
+ * Una propuesta concreta de una oferta. APPEND-ONLY: no se editan ni se borran.
+ *
+ * Reofertar agrega una version; la oferta conserva su consecutivo. Antes habia
+ * un solo `documento_url` y un `precio_detalle` de texto que se sobrescribian,
+ * asi que la propuesta anterior desaparecia sin rastro.
+ */
+export interface VersionOferta {
+  id: number
+  numero: number
+  /** Sin fecha de envio la version es un BORRADOR: todavia no salio. */
+  fecha_envio: string | null
+  /** La version que el cliente acepto. Es la que se firmara. Maximo una por oferta. */
+  fecha_aceptacion: string | null
+  documento_url: string | null
+  indice_indexacion: string | null
+  /** Mes base de indexacion, YYYY-MM. En el PDF es la fila "Precio Base". */
+  periodo_indexacion_base: string | null
+  que_cambio: string | null
+  creado_por_usuario_id: number | null
+  created_at: string
+  /** La tabla 2 del PDF: precio por anio del periodo de suministro. */
+  precios: { anio: number; precio: number }[]
+}
+
+/** `POST /comercial/ofertas/:id/versiones`. El `numero` lo asigna el backend. */
+export interface PayloadVersionOferta {
+  fecha_envio?: string | null
+  documento_url?: string | null
+  indice_indexacion?: string | null
+  periodo_indexacion_base?: string | null
+  que_cambio?: string | null
+  precios?: { anio: number; precio: number }[]
+}
