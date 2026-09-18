@@ -171,6 +171,13 @@
         <Button
           :variant="pendiente && proyectosSel.length && !rangoError ? 'default' : 'outline'"
           :disabled="!proyectosSel.length || !!rangoError"
+          :title="
+            !proyectosSel.length
+              ? 'Selecciona al menos un proyecto'
+              : rangoError
+                ? 'Corrige el rango de fechas'
+                : 'Consultar generación'
+          "
           @click="cargar"
         >
           <LoaderCircleIcon v-if="loading" class="animate-spin" />

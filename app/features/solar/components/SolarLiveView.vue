@@ -544,6 +544,7 @@ const STATUS_COLORS = {
   degradado: '#d97706',
   caido: '#dc2626',
   sin_comunicacion: '#9ca3af',
+  sin_datos: '#d1d5db',
   offline: '#d1d5db',
 }
 
