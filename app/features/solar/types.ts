@@ -22,6 +22,24 @@ export interface RespuestaMonitoreoSolar {
   projects: ProyectoMonitoreoSolar[]
 }
 
+/** Un proyecto del que hay lectura eléctrica (`/generacion-solar/medidores`). */
+export interface ProyectoConMedidor {
+  proyecto_id: number
+  nombre?: string
+}
+
+/**
+ * `GET /generacion-solar/medidores`: los proyectos que tienen medidor en Gaia.
+ *
+ * NO es el mismo conjunto que `monitoring`. Ese lista el universo de Generación
+ * Solar —minigranjas con servicio de operación— y este lista de qué proyectos
+ * hay lectura eléctrica, autoconsumos incluidos. Lo usa el selector del
+ * diagrama fasorial, que dibuja un medidor y no una planta.
+ */
+export interface RespuestaProyectosConMedidor {
+  projects: ProyectoConMedidor[]
+}
+
 /** `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma variable por planta. */
 export interface DetalleMonitoreoSolar {
   generation_?: unknown
