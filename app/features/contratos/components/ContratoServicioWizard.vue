@@ -346,10 +346,14 @@
           :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
           style="width: 26rem">
           <div class="flex flex-col gap-3 pt-2">
-            <div>
-              <label class="text-xs font-medium text-gray-600">Nombre <span class="text-red-400">*</span></label>
-              <InputText v-model="arrendadorDialog.form.nombre" class="w-full" placeholder="Nombre o razón social" />
-            </div>
+            <!-- El arrendador FACTURA, así que necesita NIT y razón social: por
+                 eso se vincula a un cliente en vez de escribirse a mano. -->
+            <SelectorCliente
+              v-model:id="arrendadorDialog.form.cliente_id"
+              v-model:nombre="arrendadorDialog.form.nombre"
+              label="Nombre / Razón social"
+              requerido
+            />
             <div>
               <label class="text-xs font-medium text-gray-600">Valor base</label>
               <InputNumber v-model="arrendadorDialog.form.valor_base" class="w-full" mode="currency"
@@ -684,8 +688,9 @@ const arrendadorDialog = reactive({
   editId: null,
   guardando: false,
   form: {
-    nombre: '', valor_base: null, responsable_iva: false, activo: true,
-    anticipo_pagado_desde: null, anticipo_pagado_hasta: null, observaciones: '',
+    nombre: '', cliente_id: null, valor_base: null, responsable_iva: false,
+    activo: true, anticipo_pagado_desde: null, anticipo_pagado_hasta: null,
+    observaciones: '',
   },
 })
 
@@ -702,6 +707,7 @@ function openArrendadorDialog(modo, arrendador = null) {
   arrendadorDialog.modo = modo
   arrendadorDialog.editId = arrendador?.id ?? null
   arrendadorDialog.form.nombre = arrendador?.nombre || ''
+  arrendadorDialog.form.cliente_id = arrendador?.cliente_id ?? null
   arrendadorDialog.form.valor_base = arrendador?.valor_base ?? null
   arrendadorDialog.form.responsable_iva = arrendador?.responsable_iva ?? false
   arrendadorDialog.form.activo = arrendador?.activo ?? true
@@ -713,8 +719,10 @@ function openArrendadorDialog(modo, arrendador = null) {
 
 async function guardarArrendadorWizard() {
   if (!contratoIdCreado.value) return
-  if (!arrendadorDialog.form.nombre?.trim()) {
-    toast.error('El nombre es obligatorio', { duration: 3000 })
+  // El arrendador factura: sin cliente vinculado no hay NIT con que emitir la
+  // factura, y el nombre suelto no basta.
+  if (!arrendadorDialog.form.cliente_id) {
+    toast.error('Vincula el arrendador a un cliente registrado', { duration: 3500 })
     return
   }
   arrendadorDialog.guardando = true
@@ -722,6 +730,7 @@ async function guardarArrendadorWizard() {
     const toISO = d => d instanceof Date ? d.toISOString().slice(0, 10) : (d || null)
     const payload = {
       nombre: arrendadorDialog.form.nombre.trim(),
+      cliente_id: arrendadorDialog.form.cliente_id,
       valor_base: arrendadorDialog.form.valor_base,
       responsable_iva: arrendadorDialog.form.responsable_iva ?? false,
       activo: arrendadorDialog.form.activo ?? true,
