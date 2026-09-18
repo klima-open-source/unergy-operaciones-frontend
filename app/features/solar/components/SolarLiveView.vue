@@ -15,7 +15,7 @@
     <!-- ══ LIVE TAB ══ -->
     <div v-if="tab === 'live'" class="flex flex-1 flex-col gap-5 overflow-y-auto">
       <!-- ══ HEADER ══ -->
-      <div class="flex flex-wrap items-start justify-between gap-3">
+      <div class="flex flex-col gap-3">
         <div>
           <h1 class="text-lg font-extrabold text-foreground">Generación Solar</h1>
           <p class="mt-0.5 text-xs text-muted-foreground">
@@ -28,7 +28,9 @@
             >
           </p>
         </div>
-        <div class="flex items-center gap-2.5">
+
+        <!-- ── Barra de acciones ── -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <!-- Filtro por proyecto -->
           <div class="relative w-64">
             <SearchIcon
@@ -45,44 +47,54 @@
               <XIcon class="size-4" />
             </button>
           </div>
-          <!-- Toggle columnas -->
-          <div class="flex items-center gap-1">
-            <Button
-              v-for="c in [1, 2, 4]"
-              :key="c"
-              type="button"
-              :variant="cols === c ? 'secondary' : 'outline'"
-              size="sm"
-              :title="`${c} columna${c > 1 ? 's' : ''}`"
-              @click="cols = c"
-            >
-              {{ c }}
-            </Button>
-          </div>
-          <!-- Botón actualizar + auto-refresh -->
-          <div class="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
-              <LoaderCircleIcon v-if="loading" class="animate-spin" />
-              <RefreshCwIcon v-else />
-              Actualizar
-            </Button>
-            <Select
-              :model-value="String(autoInterval)"
-              @update:model-value="(v) => setAuto(Number(v))"
-            >
-              <SelectTrigger size="sm" class="w-36">
-                <ClockIcon />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="0">Desactivado</SelectItem>
-                <SelectItem v-for="opt in autoOptions" :key="opt.ms" :value="String(opt.ms)">
-                  Cada {{ opt.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+
+          <div class="flex items-center gap-2.5">
+            <!-- Toggle columnas -->
+            <div class="flex items-center gap-1">
+              <Button
+                v-for="c in [1, 2, 4]"
+                :key="c"
+                type="button"
+                :variant="cols === c ? 'secondary' : 'outline'"
+                size="sm"
+                :title="`${c} columna${c > 1 ? 's' : ''}`"
+                @click="cols = c"
+              >
+                <component :is="COLUMNAS_ICONS[c]" class="size-4" />
+              </Button>
+            </div>
+            <!-- Botón actualizar + auto-refresh -->
+            <div class="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+                <LoaderCircleIcon v-if="loading" class="animate-spin" />
+                <RefreshCwIcon v-else />
+                Actualizar
+              </Button>
+              <Select
+                :model-value="String(autoInterval)"
+                @update:model-value="(v) => setAuto(Number(v))"
+              >
+                <SelectTrigger size="sm" class="w-36">
+                  <ClockIcon />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="0">Desactivado</SelectItem>
+                  <SelectItem v-for="opt in autoOptions" :key="opt.ms" :value="String(opt.ms)">
+                    Cada {{ opt.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- ══ RESUMEN DE ESTADO ══ -->
+      <div v-if="resumenEstados.length" class="flex flex-wrap items-center gap-2">
+        <GBadge v-for="r in resumenEstados" :key="r.key" :color="r.color">
+          {{ r.label }} · {{ r.count }}
+        </GBadge>
       </div>
 
       <!-- ══ LOADING inicial ══ -->
@@ -138,6 +150,11 @@
                     :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }"
                   />
                   <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
+                  <span
+                    class="shrink-0 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    {{ (STATUS_META[proy.status] || STATUS_META.offline).label }}
+                  </span>
                 </div>
 
                 <!-- Cargando detalle -->
@@ -289,7 +306,7 @@
                   </div>
 
                   <!-- ── Generación de hoy ── -->
-                  <div class="flex flex-col gap-1.5 border-t border-border pt-2">
+                  <div class="flex flex-col gap-2 border-t border-border pt-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <span
                         class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-warning uppercase"
@@ -417,6 +434,9 @@ import {
 import {
   ChartLineIcon,
   ClockIcon,
+  Columns2Icon,
+  Columns4Icon,
+  LayoutListIcon,
   LoaderCircleIcon,
   MenuIcon,
   RefreshCwIcon,
@@ -450,6 +470,7 @@ const proyectos = ref([])
 const detailMap = reactive({})
 const lastUpdated = ref('')
 const cols = ref(1)
+const COLUMNAS_ICONS = { 1: LayoutListIcon, 2: Columns2Icon, 4: Columns4Icon }
 let refreshTimer = null
 
 // ── Filtro por proyecto ────────────────────────────────────────────────────
@@ -535,6 +556,31 @@ const STATUS_COLORS = {
   sin_datos: '#d1d5db',
   offline: '#d1d5db',
 }
+
+// ── Resumen de estado ──────────────────────────────────────────────────────
+// Mismo criterio de severidad que STATUS_COLORS (caido es lo unico realmente
+// rojo; sin_comunicacion/sin_datos/offline son variantes de "no hay dato", no
+// una falla confirmada), pero en colores semanticos para la franja de resumen
+// y la etiqueta de cada tarjeta.
+const STATUS_META = {
+  online: { label: 'En línea', color: 'success' },
+  degradado: { label: 'Degradado', color: 'warning' },
+  caido: { label: 'Caído', color: 'destructive' },
+  sin_comunicacion: { label: 'Sin comunicación', color: 'information' },
+  sin_datos: { label: 'Sin datos', color: 'default' },
+  offline: { label: 'Offline', color: 'default' },
+}
+
+const resumenEstados = computed(() => {
+  const counts = {}
+  for (const p of proyectos.value) {
+    const key = p.status in STATUS_META ? p.status : 'offline'
+    counts[key] = (counts[key] || 0) + 1
+  }
+  return Object.keys(STATUS_META)
+    .filter((key) => counts[key])
+    .map((key) => ({ key, count: counts[key], ...STATUS_META[key] }))
+})
 
 // ── Orden persistido ───────────────────────────────────────────────────────
 function saveOrder() {
