@@ -298,6 +298,10 @@ async function declinar() {
     // guarda el "de dónde a dónde", no el por qué.
     await registrarGestion(oferta.oportunidad_id, {
       tipo: 'nota',
+      // La escribimos nosotros al declinar, aunque la decision haya sido del
+      // cliente: la bitacora registra quien puso la entrada, y esto no debe
+      // apagar la alerta de «no nos responden».
+      direccion: 'saliente',
       descripcion: `Oferta declinada: ${motivoDeclinar.value.trim()}`,
       ofertaId: oferta.id,
     })

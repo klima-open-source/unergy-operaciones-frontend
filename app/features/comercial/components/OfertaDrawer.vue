@@ -266,9 +266,11 @@
       <!-- ── Bitácora ────────────────────────────────────────────────────── -->
       <section>
         <h3 class="seccion">Bitácora de esta oferta</h3>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <Select v-model="gestion.tipo" :options="TIPOS_GESTION" optionLabel="label" optionValue="value"
                   class="w-36" />
+          <SelectButton v-model="gestion.direccion" :options="DIRECCIONES"
+                        optionLabel="label" optionValue="value" :allowEmpty="false" />
           <InputText v-model.trim="gestion.descripcion" class="flex-1"
                      placeholder="Qué pasó…" @keyup.enter="registrarGestion" />
           <Button :disabled="!gestion.descripcion" :loading="guardandoGestion" @click="registrarGestion">
@@ -277,7 +279,8 @@
         </div>
         <p class="ayuda">
           Queda colgada de esta oferta y apaga solo su alerta — no la de sus hermanas
-          del mismo cliente.
+          del mismo cliente. <strong>Solo «Nos respondió» apaga la alerta</strong>:
+          insistir no cuenta como respuesta.
         </p>
       </section>
 
@@ -305,6 +308,7 @@ import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
 import Drawer from 'primevue/drawer'
 import VersionesOferta from '~/features/comercial/components/VersionesOferta.vue'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import MultiSelect from 'primevue/multiselect'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -372,7 +376,12 @@ function proyectoCreado(p) {
   if (!f.proyecto_ids?.includes(p.id)) f.proyecto_ids = [...(f.proyecto_ids ?? []), p.id]
 }
 
-const gestion = reactive({ tipo: 'llamada', descripcion: '' })
+const DIRECCIONES = [
+  { label: 'Escribimos', value: 'saliente' },
+  { label: 'Nos respondió', value: 'entrante' },
+]
+
+const gestion = reactive({ tipo: 'llamada', descripcion: '', direccion: 'saliente' })
 
 // Copia editable. Se rearma cada vez que cambia la oferta abierta para que un
 // autosave pendiente nunca escriba los datos de una oferta sobre otra.
@@ -577,7 +586,13 @@ async function registrarGestion() {
   if (!gestion.descripcion) return
   guardandoGestion.value = true
   const r = await props.acciones.registrarGestion(props.oferta.oportunidad_id, {
-    tipo: gestion.tipo, descripcion: gestion.descripcion, ofertaId: props.oferta.id,
+    tipo: gestion.tipo, descripcion: gestion.descripcion,
+    // Quien hablo. Esta nota rapida la escribe el comercial, asi que por defecto
+    // es saliente; el selector deja marcar que fue el cliente quien respondio.
+    // De eso depende que la alerta no se reinicie con nuestras propias
+    // insistencias (DOMINIO_COMERCIAL.md, P-9).
+    direccion: gestion.direccion,
+    ofertaId: props.oferta.id,
   })
   guardandoGestion.value = false
   if (r.ok) {

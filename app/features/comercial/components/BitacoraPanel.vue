@@ -16,11 +16,19 @@
                   placeholder="Tipo *" class="w-44" />
           <Select v-model="nueva.oferta_id" :options="opcionesOferta" optionLabel="label"
                   optionValue="value" class="w-64" />
+          <!--
+            Quien hablo. Es obligatorio y no es burocracia: de este campo depende
+            que la alerta cuente "hace cuanto que no nos responden" y no "hace
+            cuanto que no pasa nada". Sin el, insistirle al cliente reinicia el
+            contador aunque siga mudo.
+          -->
+          <SelectButton v-model="nueva.direccion" :options="DIRECCIONES"
+                        optionLabel="label" optionValue="value" :allowEmpty="false" />
         </div>
         <Textarea v-model.trim="nueva.descripcion" rows="2" autoResize class="w-full"
                   placeholder="Qué se habló / acordó *" />
         <div class="flex items-center gap-2 flex-wrap">
-          <Button label="Registrar" size="small" :loading="guardando" :disabled="!nueva.tipo || !nueva.descripcion" @click="registrar">
+          <Button label="Registrar" size="small" :loading="guardando" :disabled="!nueva.tipo || !nueva.descripcion || !nueva.direccion" @click="registrar">
             <template #icon><SendIcon class="size-[1em]" /></template>
           </Button>
           <small style="color:#9b89b5">
@@ -74,6 +82,7 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
 import { toast } from 'vue-sonner'
@@ -90,7 +99,15 @@ const props = defineProps({
 const emit = defineEmits(['registrada'])
 
 const comercialService = new ComercialService()
-const nueva = reactive({ tipo: null, descripcion: '', oferta_id: null })
+// «Saliente» por defecto: la mayoria de las entradas las escribe el comercial
+// despues de haber escrito el. Lo importante es que la ENTRANTE se marque, que
+// es la que apaga la alerta.
+const DIRECCIONES = [
+  { label: 'Escribimos', value: 'saliente' },
+  { label: 'Nos respondió', value: 'entrante' },
+]
+
+const nueva = reactive({ tipo: null, descripcion: '', oferta_id: null, direccion: 'saliente' })
 const guardando = ref(false)
 
 const opcionesOferta = computed(() => [
@@ -116,11 +133,13 @@ async function registrar() {
     await comercialService.registrarGestion(props.oportunidadId, {
       tipo: nueva.tipo,
       descripcion: nueva.descripcion,
+      direccion: nueva.direccion,
       oferta_id: nueva.oferta_id,
     })
     nueva.tipo = null
     nueva.descripcion = ''
     nueva.oferta_id = null
+    nueva.direccion = 'saliente'
     emit('registrada')
   } catch (err) {
     toast.error('No se pudo registrar', { description: err.data?.detail ?? '', duration: 5000 })
