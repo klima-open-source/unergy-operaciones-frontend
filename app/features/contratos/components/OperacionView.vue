@@ -769,13 +769,21 @@
         <!-- Contratante / Prestador -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Contratante <span class="text-red-400">*</span></label>
-            <InputText v-model="dialogMant.form.contratante_nombre" class="w-full" placeholder="Nombre o razón social" />
+            <SelectorCliente
+              v-model:id="dialogMant.form.contratante_id"
+              v-model:nombre="dialogMant.form.contratante_nombre"
+              label="Contratante"
+              requerido
+            />
             <p v-if="dialogMant.errores.contratante_nombre" class="text-xs text-red-400">{{ dialogMant.errores.contratante_nombre }}</p>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Prestador <span class="text-red-400">*</span></label>
-            <InputText v-model="dialogMant.form.prestador_nombre" class="w-full" placeholder="Nombre o razón social" />
+            <SelectorCliente
+              v-model:id="dialogMant.form.prestador_id"
+              v-model:nombre="dialogMant.form.prestador_nombre"
+              label="Prestador"
+              requerido
+            />
             <p v-if="dialogMant.errores.prestador_nombre" class="text-xs text-red-400">{{ dialogMant.errores.prestador_nombre }}</p>
           </div>
         </div>
@@ -1086,7 +1094,9 @@ const dialogMant = reactive({
   visible: false,
   modo: 'crear',
   form: {
+    contratante_id: null,
     contratante_nombre: '',
+    prestador_id: null,
     prestador_nombre: '',
     fecha_inicio_om: null,
     fecha_firma_contrato: null,
@@ -1358,7 +1368,9 @@ function openMantenimientoDialog(modo) {
   dialogMant.errores = {}
   if (modo === 'editar' && contratos.mantenimiento) {
     const c = contratos.mantenimiento
+    dialogMant.form.contratante_id     = c.contratante_id ?? null
     dialogMant.form.contratante_nombre = c.contratante_nombre || ''
+    dialogMant.form.prestador_id       = c.prestador_id ?? null
     dialogMant.form.prestador_nombre   = c.prestador_nombre   || ''
     dialogMant.form.fecha_inicio_om    = c.fecha_inicio_om ? new Date(c.fecha_inicio_om)
                                         : (c.fecha_inicio ? new Date(c.fecha_inicio) : null)
@@ -1369,7 +1381,9 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.estado             = c.estado || 'firmado'
     dialogMant.form.periodicidad_pago  = c.periodicidad_pago || 'mensual'
   } else {
+    dialogMant.form.contratante_id     = null
     dialogMant.form.contratante_nombre = ''
+    dialogMant.form.prestador_id       = null
     dialogMant.form.prestador_nombre   = ''
     dialogMant.form.fecha_inicio_om    = null
     dialogMant.form.fecha_firma_contrato = null
@@ -1384,8 +1398,10 @@ function openMantenimientoDialog(modo) {
 
 function validarFormMant() {
   const e = {}
-  if (!dialogMant.form.contratante_nombre?.trim()) e.contratante_nombre = 'Campo requerido'
-  if (!dialogMant.form.prestador_nombre?.trim())   e.prestador_nombre   = 'Campo requerido'
+  // El vínculo, no el texto: un nombre escrito sin elegir de la lista deja el
+  // contrato nombrando a alguien que el sistema no reconoce.
+  if (!dialogMant.form.contratante_id) e.contratante_nombre = 'Vincula un cliente registrado'
+  if (!dialogMant.form.prestador_id)   e.prestador_nombre   = 'Vincula un cliente registrado'
   if (!dialogMant.form.fecha_inicio_om)             e.fecha_inicio_om    = 'Campo requerido'
   if (dialogMant.form.tarifa_base == null)          e.tarifa_base        = 'Campo requerido'
   if (!dialogMant.form.estado)                      e.estado             = 'Campo requerido'
@@ -1401,7 +1417,9 @@ async function saveMantenimiento() {
   try {
     const toISO = d => d instanceof Date ? d.toISOString().slice(0, 10) : (d || null)
     const payload = {
+      contratante_id:     dialogMant.form.contratante_id,
       contratante_nombre: dialogMant.form.contratante_nombre.trim(),
+      prestador_id:       dialogMant.form.prestador_id,
       prestador_nombre:   dialogMant.form.prestador_nombre.trim(),
       fecha_inicio_om:    toISO(dialogMant.form.fecha_inicio_om),
       fecha_firma_contrato: toISO(dialogMant.form.fecha_firma_contrato),

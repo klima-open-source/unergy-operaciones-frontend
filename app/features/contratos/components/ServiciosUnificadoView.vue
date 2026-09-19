@@ -722,14 +722,20 @@
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="duplicadoVisible" header="Proyecto parecido ya existe" modal class="w-full max-w-sm">
+    <!-- Un solo diálogo para los dos avisos de nombre parecido: el de proyectos
+         y el de clientes. El de clientes no existía --el 409 salía como un toast
+         de error sin salida-- y quien lo veía cerraba y escribía el nombre a
+         mano, que es justo lo que duplica los clientes. -->
+    <Dialog v-model:visible="duplicadoVisible"
+      :header="duplicadoTipo === 'cliente' ? 'Cliente parecido ya existe' : 'Proyecto parecido ya existe'"
+      modal class="w-full max-w-sm">
       <p class="text-sm text-gray-600">{{ duplicadoInfo?.mensaje }}</p>
       <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium" style="color:var(--color-unergy-deep)">
         {{ duplicadoInfo.candidato_nombre }}
       </p>
       <template #footer>
         <Button label="Cancelar" severity="secondary" text @click="duplicadoVisible = false" />
-        <Button label="Crear igual" :loading="forzando" @click="crearProyectoForzado" />
+        <Button label="Crear igual" :loading="forzando" @click="crearForzado" />
       </template>
     </Dialog>
 
@@ -1725,21 +1731,41 @@ async function descargarExcel() {
 // ── Creación de cliente ──────────────────────────────────────────────────────
 const dialogCliente = ref(false)
 
-async function crearCliente(payload) {
+async function crearCliente(payload, forzar = false) {
   try {
-    const cliente = await clientesService.crear(payload)
+    const cliente = await clientesService.crear(payload, forzar)
     toast.success('Cliente creado', { duration: 3000 })
     dialogCliente.value = false
+    duplicadoVisible.value = false
     router.push(`/clientes/${cliente.id}`)
   } catch (e) {
+    // El aviso de nombre parecido abre el diálogo con "Crear igual". Antes salía
+    // como un toast de error y no había salida: la única forma de seguir era
+    // cerrar y escribir el nombre a mano -- justo lo que duplica los clientes.
+    const aviso = duplicadoDe(e)
+    if (aviso) {
+      duplicadoInfo.value = aviso
+      duplicadoTipo.value = 'cliente'
+      pendingPayload.value = payload
+      duplicadoVisible.value = true
+      return
+    }
     // `mensajeDeError` y no `e.data?.detail`: la validacion por campo de DRF no
     // manda `detail` y la descripcion salia vacia -- un toast que decia "Error"
-    // y nada mas. El aviso de nombre parecido (409) se lee tambien, aunque
-    // "crear de todos modos" solo esta en la pagina de Clientes.
+    // y nada mas.
     toast.error('No se pudo crear el cliente', {
       description: mensajeDeError(e, 'Revisá los datos e intentá de nuevo.'),
       duration: 6000,
     })
+  }
+}
+
+async function crearClienteForzado() {
+  forzando.value = true
+  try {
+    await crearCliente(pendingPayload.value, true)
+  } finally {
+    forzando.value = false
   }
 }
 
@@ -1805,9 +1831,24 @@ function confirmarBorrarContratoServicio(row) {
 const dialogProyecto = ref(false)
 const duplicadoVisible = ref(false)
 const duplicadoInfo = ref(null)
+// 'proyecto' | 'cliente': el mismo aviso sirve para los dos, y el tipo decide a
+// quién se le manda el `forzar=true` al confirmar.
+const duplicadoTipo = ref('proyecto')
 const pendingPayload = ref(null)
 const pendingInfoTecnica = ref(null)
 const forzando = ref(false)
+
+/** El 409 de nombre parecido, si el error es ese. `null` para cualquier otro. */
+function duplicadoDe(e) {
+  const detail = e?.data?.detail ?? e?.response?.data?.detail
+  return e?.status === 409 && detail?.duplicado_nombre ? detail : null
+}
+
+function crearForzado() {
+  return duplicadoTipo.value === 'cliente'
+    ? crearClienteForzado()
+    : crearProyectoForzado()
+}
 
 async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
   if (!infoTecnica) return
@@ -1838,6 +1879,7 @@ async function crearProyecto(payload, infoTecnica) {
     // igual. Distinto de un choque real de columna única (detail es string).
     if (e.status === 409 && detail?.duplicado_nombre) {
       duplicadoInfo.value = detail
+      duplicadoTipo.value = 'proyecto'
       pendingPayload.value = payload
       pendingInfoTecnica.value = infoTecnica
       duplicadoVisible.value = true

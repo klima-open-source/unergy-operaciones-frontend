@@ -68,19 +68,11 @@
         <label class="field-label">Altitud (msnm)</label>
         <InputNumber v-model="f.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" placeholder="35" />
       </div>
-      <!-- Ortogonal al tipo y a la clasificación: cualquier planta puede o no
-           pertenecer a una comunidad energética. -->
-      <div>
-        <label class="field-label">Comunidad energética</label>
-        <div class="flex items-center gap-2 h-[38px]">
-          <ToggleSwitch v-model="f.es_comunidad_energetica" />
-          <span class="text-sm text-gray-500">{{ f.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
-        </div>
-      </div>
-      <div v-if="f.es_comunidad_energetica">
-        <label class="field-label">Nombre de la comunidad</label>
-        <InputText v-model="f.nombre_comunidad" class="w-full" placeholder="Opcional" />
-      </div>
+      <!-- La comunidad energética se marca en el PPA, no acá: se negocia en ese
+           contrato y de ahí deriva a la planta. `proyectos.es_comunidad_energetica`
+           y `nombre_comunidad` se eliminaron del modelo (migración proyectos/0008),
+           asi que este toggle ya no guardaba nada -- quien lo activaba creía
+           haber marcado la planta y no pasaba nada. -->
       <div>
         <label class="field-label">Carpeta Drive (código)</label>
         <InputText v-model="f.carpeta_drive_codigo" class="w-full" />
@@ -169,7 +161,6 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
-import ToggleSwitch from 'primevue/toggleswitch'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import divipola from '~/data/colombia-divipola.json'
 
@@ -217,8 +208,6 @@ const f = reactive({
   carpeta_drive_codigo: null,
   sub_project: null,
   codigo_tsf: null,
-  es_comunidad_energetica: false,
-  nombre_comunidad: null,
 })
 
 // Departamento/municipio -- select en vez de texto libre (DIVIPOLA), para
@@ -313,11 +302,9 @@ function submit() {
   payload.fecha_fin_representacion = formatFecha(fechaFinRep.value)
   // potencia_ac_kw NO se manda: el dual-write se quitó en d68837e
   // porque ahora lo sincroniza el backend desde info-tecnica.
-  // Comunidad energética: el flag viaja siempre (el bucle de arriba lo dejaría
-  // fuera cuando es false) y el nombre solo si el flag está prendido, para que
-  // apagarlo no deje colgado el nombre de una comunidad a la que ya no pertenece.
-  payload.es_comunidad_energetica = !!f.es_comunidad_energetica
-  payload.nombre_comunidad = f.es_comunidad_energetica ? (f.nombre_comunidad || null) : null
+  // La comunidad energética ya no viaja acá: se marca en el PPA y de ahí deriva
+  // a la planta. Las dos columnas se eliminaron del modelo en proyectos/0008, y
+  // seguir mandándolas era escribir en el vacío.
 
   const infoTecnica = {}
   if (potenciaAcKw.value !== null) infoTecnica.potencia_ac_kw = potenciaAcKw.value
