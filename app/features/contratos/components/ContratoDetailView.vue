@@ -115,7 +115,10 @@
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="cancelarEdicionPartes" />
-                <Button label="Guardar" size="small" :loading="guardandoPartes" @click="guardarPartes">
+                <Button label="Guardar" size="small" :loading="guardandoPartes"
+                  :disabled="!formPartes.comprador_id || !formPartes.vendedor_id"
+                  v-tooltip="(formPartes.comprador_id && formPartes.vendedor_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
+                  @click="guardarPartes">
                   <template #icon><CheckIcon class="size-[1em]" /></template>
                 </Button>
               </template>
@@ -140,10 +143,13 @@
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="cd-parte space-y-3">
                 <p class="cd-parte-rol"><SunIcon class="size-[1em]" style="font-size:9px" />Vendedor</p>
-                <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">Nombre / Razón social</label>
-                  <InputText v-model="formPartes.vendedor_nombre" class="w-full" />
-                </div>
+                <SelectorCliente
+                  v-model:id="formPartes.vendedor_id"
+                  v-model:nombre="formPartes.vendedor_nombre"
+                  v-model:nit="formPartes.vendedor_nit"
+                  label="Nombre / Razón social"
+                  requerido
+                />
                 <div class="flex flex-col gap-1">
                   <label class="cd-lbl">NIT</label>
                   <InputText v-model="formPartes.vendedor_nit" class="w-full" />
@@ -151,10 +157,13 @@
               </div>
               <div class="cd-parte space-y-3">
                 <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Comprador</p>
-                <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">Nombre / Razón social</label>
-                  <InputText v-model="formPartes.comprador_nombre" class="w-full" />
-                </div>
+                <SelectorCliente
+                  v-model:id="formPartes.comprador_id"
+                  v-model:nombre="formPartes.comprador_nombre"
+                  v-model:nit="formPartes.comprador_nit"
+                  label="Nombre / Razón social"
+                  requerido
+                />
                 <div class="flex flex-col gap-1">
                   <label class="cd-lbl">NIT</label>
                   <InputText v-model="formPartes.comprador_nit" class="w-full" />
@@ -819,6 +828,7 @@ import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { idsConPlantaAgregada, yaEstaVinculada } from '~/features/contratos/plantasDelContrato'
 import { PpaService } from '~/features/contratos/services/ppa'
@@ -884,11 +894,19 @@ async function guardarId() {
 // Edición inline de partes
 const editandoPartes = ref(false)
 const guardandoPartes = ref(false)
-const formPartes = reactive({ comprador_nombre: null, comprador_nit: null, vendedor_nombre: null, vendedor_nit: null })
+// Los `*_id` son los que de verdad vinculan la parte con el cliente. Un contrato
+// viejo llega con el nombre y sin id: el selector lo muestra como pendiente y no
+// deja guardar hasta resolverlo.
+const formPartes = reactive({
+  comprador_id: null, comprador_nombre: null, comprador_nit: null,
+  vendedor_id: null, vendedor_nombre: null, vendedor_nit: null,
+})
 
 function iniciarEdicionPartes() {
+  formPartes.comprador_id = contrato.value.comprador_id ?? null
   formPartes.comprador_nombre = contrato.value.comprador_nombre
   formPartes.comprador_nit = contrato.value.comprador_nit
+  formPartes.vendedor_id = contrato.value.vendedor_id ?? null
   formPartes.vendedor_nombre = contrato.value.vendedor_nombre
   formPartes.vendedor_nit = contrato.value.vendedor_nit
   editandoPartes.value = true
