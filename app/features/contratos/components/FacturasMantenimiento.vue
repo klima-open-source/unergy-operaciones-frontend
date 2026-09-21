@@ -265,7 +265,10 @@
                     <span class="font-mono text-[13px]" style="color:var(--color-unergy-deep)">{{ fac.fecha }}</span>
                   </td>
                   <td class="px-4 py-2.5">
-                    <span class="text-sm" style="color:#374151">{{ fac.inversionista || '—' }}</span>
+                    <!-- `inversionista_nombre`: la API mandaba `inversionista_id`
+                         (que ni existía) y nunca el nombre, así que esta columna
+                         mostraba "—" aunque el dato estuviera guardado. -->
+                    <span class="text-sm" style="color:#374151">{{ fac.inversionista_nombre || '—' }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-2">
@@ -359,11 +362,14 @@
           </div>
         </div>
         <!-- Inversionista (solo para sección inversionistas) -->
-        <div v-if="modal.tipo === 'inversionistas'" class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Inversionista</label>
-          <InputText v-model="modal.form.inversionista"
-            placeholder="Nombre del inversionista" class="w-full" />
-        </div>
+        <!-- La factura se le emite a alguien: sin cliente vinculado no hay NIT
+             ni razón social con que emitirla. -->
+        <SelectorCliente v-if="modal.tipo === 'inversionistas'"
+          v-model:id="modal.form.inversionista_id"
+          v-model:nombre="modal.form.inversionista_nombre"
+          label="Inversionista"
+          requerido
+        />
         <!-- Monto -->
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-gray-600">
@@ -407,6 +413,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import { toast } from 'vue-sonner'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
 import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, FilterIcon, LoaderCircleIcon, ReceiptIcon, Trash2Icon, UsersIcon, XIcon } from '@lucide/vue'
@@ -492,7 +499,10 @@ watch(() => props.contratoId, (id) => { if (id) load() })
 // ── Modal ──────────────────────────────────────────────────────────────────────
 function abrirModal(tipo) {
   modal.tipo    = tipo
-  modal.form    = { fecha: '', inversionista: '', numero_factura: '', monto: null, enlace_soporte: '' }
+  modal.form    = {
+    fecha: '', inversionista_id: null, inversionista_nombre: '',
+    numero_factura: '', monto: null, enlace_soporte: '',
+  }
   modal.errores = {}
   modal.visible = true
 }
@@ -511,6 +521,10 @@ function validarModal() {
   if (modal.form.monto == null || modal.form.monto === '') {
     e.monto = 'Campo requerido'
   }
+  // La factura se le emite a alguien: sin cliente no hay NIT con que emitirla.
+  if (modal.tipo === 'inversionistas' && !modal.form.inversionista_id) {
+    e.inversionista = 'Vincula el inversionista a un cliente registrado'
+  }
   const link = modal.form.enlace_soporte?.trim()
   if (link && !link.startsWith('http')) {
     e.enlace_soporte = 'Debe ser una URL válida (debe comenzar con http)'
@@ -526,7 +540,8 @@ async function guardarFactura() {
     const payload = {
       tipo:           modal.tipo === 'solenium' ? 'solenium' : 'inversionista',
       fecha:          modal.form.fecha.trim(),
-      inversionista:  modal.form.inversionista?.trim() || null,
+      inversionista_id: modal.form.inversionista_id ?? null,
+      inversionista_nombre: modal.form.inversionista_nombre?.trim() || null,
       numero_factura: modal.form.numero_factura?.trim() || null,
       monto:          modal.form.monto ?? null,
       enlace_soporte: modal.form.enlace_soporte?.trim() || null,
