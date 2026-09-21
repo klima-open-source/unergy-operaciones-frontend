@@ -453,7 +453,7 @@
                         <template v-else-if="ln.soporte">
                           <a class="sop-link" :href="ln.soporte.archivo_url" target="_blank" rel="noopener"
                              :title="ln.soporte.archivo_nombre || 'Ver soporte'">📎 ver</a>
-                          <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
+                          <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="ml-1 text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
                         </template>
                         <Button v-else variant="outline" size="xs" class="border-dashed border-unergy-purple/30 text-unergy-purple hover:bg-unergy-purple/10"
                                 :disabled="subiendoSoporte === sopKey(ln)"
@@ -519,7 +519,7 @@
                                 <div v-if="sec.key === 'ingresos'" class="fuente-row">
                                   <input class="fuente-et" :value="ln.concepto"
                                          @change="renombrarFuente(p, ln, $event.target.value)" />
-                                  <Button variant="ghost" size="icon-xs" title="Quitar fuente" class="text-muted-foreground hover:text-destructive" @click="quitarFuente(p, ln)">✕</Button>
+                                  <Button variant="ghost" size="icon-xs" title="Quitar fuente" class="ml-1.5 text-muted-foreground hover:text-destructive" @click="quitarFuente(p, ln)">✕</Button>
                                 </div>
                                 <div v-else class="cpt">{{ ln.concepto }}<span v-if="ln.derivada" class="imp-tag">impuesto</span><span v-if="ln.fuente" class="fuente-tag" :title="fuenteTitle(ln.fuente)">{{ fuenteLabel(ln.fuente) }}</span></div>
                                 <!-- Valor de módulo (O&M / Arriendos): no viene de una celda del ER, así que
@@ -545,7 +545,7 @@
                                 <template v-else-if="ln.soporte">
                                   <a class="sop-link" :href="ln.soporte.archivo_url" target="_blank" rel="noopener"
                                      :title="ln.soporte.archivo_nombre || 'Ver soporte'">📎 ver</a>
-                                  <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
+                                  <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="ml-1 text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
                                 </template>
                                 <Button v-else variant="outline" size="xs" class="border-dashed border-unergy-purple/30 text-unergy-purple hover:bg-unergy-purple/10"
                                         :disabled="subiendoSoporte === sopKey(ln)"
@@ -1676,8 +1676,7 @@ onMounted(cargarPaneles)
   text-transform:uppercase; padding:6px 14px !important; text-align:left !important; }
 .blk-tot td { background:#fbfaff; font-weight:500; }
 .blk-res td { background:var(--sec); font-weight:600; color:var(--p1); border-top:2px solid var(--p2); }
-.expand-inv { display:inline-flex; align-items:center; gap:7px; margin:12px 0 4px; background:none; border:none;
-  color:var(--p2); font-size:12px; font-weight:500; cursor:pointer; padding:4px 0; }
+.expand-inv { margin:12px 0 4px; }
 .expand-inv .chev { font-size:9px; color:var(--txt3); transition:transform .12s; }
 .expand-inv .chev.op { transform:rotate(90deg); }
 
@@ -1763,14 +1762,8 @@ tr.tot td { background:var(--sec); font-weight:600; }
 .val-in:hover { border-color:var(--line2); }
 .val-in:focus { outline:none; background:var(--info); border-color:var(--p2); }
 .comp-in { width:100px; font-size:11px; padding:3px 6px; border:1px solid var(--line2); border-radius:5px; text-align:left; }
-.sop-up { background:transparent; border:1px dashed #ddd6e8; color:var(--color-unergy-purple); font-size:11px;
-  padding:3px 8px; border-radius:6px; cursor:pointer; white-space:nowrap; }
-.sop-up:hover { background:#f5f2fa; }
-.sop-up:disabled { opacity:.5; cursor:default; }
 .sop-link { color:#2C7a3f; font-size:11px; font-weight:600; text-decoration:none; white-space:nowrap; }
 .sop-link:hover { text-decoration:underline; }
-.sop-x { background:none; border:none; color:#9a93a8; font-size:11px; cursor:pointer; margin-left:4px; }
-.sop-x:hover { color:#c0392b; }
 tr.derivada { background:#faf8fe; }
 tr.derivada .cpt, tr.derivada td { color:#8a7fa6; font-style:italic; }
 .val-ro { font-size:11px; font-variant-numeric:tabular-nums; color:#8a7fa6; }
@@ -1793,12 +1786,6 @@ tr.derivada .cpt, tr.derivada td { color:#8a7fa6; font-style:italic; }
   padding:2px 5px; border:1px solid transparent; border-radius:5px; background:transparent; }
 .fuente-et:hover { border-color:#ddd6e8; }
 .fuente-et:focus { outline:none; border-color:var(--color-unergy-purple); background:#fff; }
-.fuente-x { background:none; border:none; color:#9a93a8; font-size:11px; cursor:pointer;
-  margin-left:6px; padding:0 4px; line-height:1; }
-.fuente-x:hover { color:#c0392b; }
-.fuente-add { background:transparent; border:1px dashed #ddd6e8; color:var(--color-unergy-purple); font-size:12px;
-  padding:4px 10px; border-radius:6px; cursor:pointer; }
-.fuente-add:hover { background:#f5f2fa; }
 .proj-foot { display:flex; align-items:center; gap:12px; padding:12px 16px; }
 .saved { font-size:12px; color:var(--green); }
 
@@ -1848,10 +1835,6 @@ tr.derivada .cpt, tr.derivada td { color:#8a7fa6; font-style:italic; }
   padding:14px 18px; border-top:1px solid var(--line); background:#faf8fd; }
 .pill-api { background: #EAF7EF; color: #1D6F42; }
 .pill-er  { background: #F3F0F8; color: #6B6280; }
-.btn-er { background: none; border: 1px solid #E4DCF2; border-radius: 7px; cursor: pointer;
-  color: #6E3FB8; font-size: 10.5px; font-weight: 700; padding: 2px 8px; margin-left: 8px; }
-.btn-er:hover { background: #F6F1FC; }
-
 /* ── Armar desde API y contrastar ─────────────────────────────────────────── */
 .solo-neu { font-size: 9px; background: #EEE9F6; color: #6E3FB8; padding: 1px 5px;
   border-radius: 6px; margin-left: 5px; font-weight: 700; letter-spacing: .02em; }
@@ -1860,9 +1843,6 @@ tr.derivada .cpt, tr.derivada td { color:#8a7fa6; font-style:italic; }
   padding: 12px 14px; margin: 0 0 14px; font-size: 12.5px; color: #3B3050; }
 .pc-aviso--ok { border-color: #CDEBD8; background: #F5FCF8; }
 .pc-aviso-cab { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.pc-aviso-x { margin-left: auto; background: none; border: none; cursor: pointer;
-  color: #9B8FB0; padding: 2px 4px; }
-.pc-aviso-x:hover { color: #3B3050; }
 .pc-aviso-linea { margin-top: 8px; line-height: 1.7; }
 .pc-aviso-linea--warn { color: #7A5C00; }
 .pc-aviso-detalle { font-size: 11.5px; margin-left: 10px; opacity: .9; }
