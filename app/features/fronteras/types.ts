@@ -310,4 +310,14 @@ export interface ResumenHistoricoReporteEnergia {
       tasa: number
     }[]
   }
+  /**
+   * La frontera a la que está recortada la vista, o `null` si las trae todas.
+   *
+   * Recorta los CONTEOS, nunca los días excluidos: las tres reglas que sacan un
+   * día de la tasa describen la corrida completa, no una frontera. Sin eso,
+   * `clasificacion_fallida` (nadie usó CGM ese día) leería un día normal de una
+   * sola frontera como un fallo del programa y lo borraría de la tasa, que
+   * daría casi 100% siempre.
+   */
+  frontera_id: number | null
 }

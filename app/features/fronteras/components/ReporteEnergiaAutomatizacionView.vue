@@ -154,6 +154,20 @@
             <label class="block text-xs font-semibold mb-1" style="color:#6b5a8a;">Hasta</label>
             <Calendar v-model="resumenHasta" dateFormat="yy-mm-dd" class="w-40" :minDate="resumenDesde" :maxDate="maxFecha" showIcon />
           </div>
+          <div>
+            <label class="block text-xs font-semibold mb-1" style="color:#6b5a8a;">Frontera</label>
+            <Select
+              v-model="fronteraResumen"
+              :options="fronterasDelResumen"
+              optionLabel="nombre_proyecto"
+              optionValue="frontera_id"
+              placeholder="Todas"
+              class="w-64"
+              filter
+              showClear
+              :disabled="!fronterasDelResumen.length"
+            />
+          </div>
           <Button label="Buscar" :loading="loadingResumenHistorico" @click="cargarResumenHistorico" />
         </div>
 
@@ -303,6 +317,7 @@ import { toast } from 'vue-sonner'
 import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
 import Button from 'primevue/button'
 import Calendar from 'primevue/calendar'
+import Select from 'primevue/select'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import DataTable from 'primevue/datatable'
@@ -391,6 +406,32 @@ const resumenDesde = ref((() => {
 })())
 const resumenHistorico = ref(null)
 const loadingResumenHistorico = ref(false)
+const fronteraResumen = ref(null)
+
+// Opciones del selector. Salen de la última consulta SIN filtro: la respuesta
+// ya trae todas las fronteras del rango con su nombre, así que no hace falta
+// pedir el catálogo aparte. Con el filtro puesto la respuesta trae una sola,
+// por eso la lista se conserva en vez de recalcularse en cada carga.
+//
+// Se arma con los detalles de fuente y no con `por_frontera`, que solo cuenta
+// los días que entran en la tasa: una frontera cuyos días quedaron todos
+// excluidos no aparece ahí, y es justo una que se querría poder mirar sola.
+const fronterasDelResumen = ref([])
+
+function fronterasDe(resumen) {
+  const porId = new Map()
+  for (const d of [...(resumen?.detalle_fuente_generacion || []),
+                   ...(resumen?.detalle_fuente_consumo || [])]) {
+    if (!porId.has(d.frontera_id)) {
+      porId.set(d.frontera_id, {
+        frontera_id: d.frontera_id, nombre_proyecto: d.nombre_proyecto || '',
+      })
+    }
+  }
+  return [...porId.values()].sort(
+    (a, b) => a.nombre_proyecto.localeCompare(b.nombre_proyecto),
+  )
+}
 
 const resumenDesdeISO = computed(() => resumenDesde.value.toISOString().slice(0, 10))
 const resumenHastaISO = computed(() => resumenHasta.value.toISOString().slice(0, 10))
@@ -401,8 +442,11 @@ async function cargarResumenHistorico() {
   grupoSeleccionadoCon.value = null
   try {
     resumenHistorico.value = await reporteEnergiaService.obtenerResumenHistorico(
-      resumenDesdeISO.value, resumenHastaISO.value,
+      resumenDesdeISO.value, resumenHastaISO.value, fronteraResumen.value,
     )
+    if (!fronteraResumen.value) {
+      fronterasDelResumen.value = fronterasDe(resumenHistorico.value)
+    }
   } catch (e) {
     toast.error('Error', {
       description: e.data?.detail || 'No se pudo cargar el resumen histórico.',

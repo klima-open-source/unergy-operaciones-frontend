@@ -49,9 +49,14 @@ export class ReporteEnergiaService extends BaseService {
     return this.get<ResumenReporteEnergiaDia>(RUTAS.resumen, { query: { fecha } })
   }
 
-  obtenerResumenHistorico(desde: string, hasta: string): Promise<ResumenHistoricoReporteEnergia> {
+  /** `fronteraId` recorta la vista a una sola frontera; omitirlo las trae todas. */
+  obtenerResumenHistorico(
+    desde: string,
+    hasta: string,
+    fronteraId?: number | null,
+  ): Promise<ResumenHistoricoReporteEnergia> {
     return this.get<ResumenHistoricoReporteEnergia>(RUTAS.resumenHistorico, {
-      query: { desde, hasta },
+      query: fronteraId ? { desde, hasta, frontera_id: fronteraId } : { desde, hasta },
     })
   }
 
