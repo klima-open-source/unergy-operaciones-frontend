@@ -142,6 +142,30 @@
       </div>
     </div>
 
+    <!-- Inversionista inicial, opcional. Antes la planta nacía suelta y había
+         que ir a su detalle a vincular el cliente, que es un paso que se olvida.
+         Acá cabe el caso común --un inversionista al 100%--; los demás se
+         agregan en el detalle, que admite fechas y patrimonio autónomo. -->
+    <div class="border-t border-gray-100 pt-4 mt-2">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+        Inversionista <span class="normal-case font-normal">(opcional)</span>
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SelectorCliente
+          v-model:id="inversionistaInicial.cliente_id"
+          v-model:nombre="inversionistaInicial.nombre"
+          label="Cliente"
+          placeholder="Buscar o crear el cliente…"
+        />
+        <div>
+          <label class="field-label">Participación (%)</label>
+          <InputNumber v-model="inversionistaInicial.porcentaje_pct" :min="0" :max="100"
+            :minFractionDigits="2" :maxFractionDigits="7" suffix="%" locale="en-US"
+            class="w-full" placeholder="100" />
+        </div>
+      </div>
+    </div>
+
     <div class="flex justify-end gap-2 pt-2">
       <Button type="button" label="Cancelar" severity="secondary" :disabled="guardando"
         @click="$emit('cancel')" />
@@ -161,10 +185,18 @@ import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import divipola from '~/data/colombia-divipola.json'
 
 const operadoresRedService = new OperadoresRedService()
+
+/** El inversionista que se vincula junto con la planta. Ver el bloque del form. */
+const inversionistaInicial = reactive({
+  cliente_id: null,
+  nombre: null,
+  porcentaje_pct: null,
+})
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -311,7 +343,17 @@ function submit() {
   if (capacidadInstaladaKwp.value !== null) infoTecnica.capacidad_instalada_kwp = capacidadInstaladaKwp.value
   if (cantidadTotalPaneles.value !== null) infoTecnica.cantidad_total_paneles = cantidadTotalPaneles.value
 
-  emit('save', payload, infoTecnica)
+  // El inversionista no va en el payload del proyecto: es otra tabla, y se
+  // agrega después de crear la planta (necesita su id). Viaja aparte, como
+  // `infoTecnica`.
+  const inversionista = inversionistaInicial.cliente_id
+    ? {
+        cliente_id: inversionistaInicial.cliente_id,
+        porcentaje_participacion: (inversionistaInicial.porcentaje_pct ?? 100) / 100,
+      }
+    : null
+
+  emit('save', payload, infoTecnica, inversionista)
 }
 </script>
 

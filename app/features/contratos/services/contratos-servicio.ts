@@ -40,8 +40,15 @@ export class ContratosServicioService extends BaseService {
     return this.get<ContratoServicio[]>(RUTAS.contratos, { query: filtros })
   }
 
-  crear(payload: PayloadContratoServicio): Promise<ContratoServicio> {
-    return this.post<ContratoServicio>(RUTAS.contratos, payload)
+  /**
+   * `forzar`: el backend responde 409 con `duplicado_contrato` cuando la planta
+   * ya tiene un contrato vigente de ese servicio (mismo patrón que clientes,
+   * proyectos y fronteras). Es un aviso y no un bloqueo --hay razones reales
+   * para dos contratos parecidos-- y sin este parámetro no habría forma de
+   * salir de él.
+   */
+  crear(payload: PayloadContratoServicio, forzar = false): Promise<ContratoServicio> {
+    return this.post<ContratoServicio>(RUTAS.contratos, payload, { query: { forzar } })
   }
 
   actualizar(

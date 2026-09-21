@@ -442,6 +442,22 @@
       </div>
     </div>
 
+    <!-- Ya hay un contrato vigente de este servicio en esta planta. Avisa y deja
+         seguir: la renovación mientras el anterior sigue vigente es un caso
+         legítimo, pero enterarse evita otro MGS Naos 2 (tres filas, un solo
+         contrato). -->
+    <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
+      header="Ya existe un contrato para este servicio" modal class="w-full max-w-sm">
+      <p class="text-sm text-gray-600">{{ duplicadoContrato?.mensaje }}</p>
+      <p class="text-xs text-gray-400 mt-2">
+        Si es una renovación o un contrato distinto, podés crearlo igual.
+      </p>
+      <template #footer>
+        <Button label="Cancelar" severity="secondary" text @click="duplicadoContrato = null" />
+        <Button label="Crear igual" :loading="guardando" @click="crearDeTodosModos" />
+      </template>
+    </Dialog>
+
   </Dialog>
 </template>
 
@@ -804,7 +820,23 @@ async function crearContrato() {
       ubicacion_lat: props.tipo === 'internet' ? (form.ubicacion_lat ?? null) : null,
       ubicacion_lng: props.tipo === 'internet' ? (form.ubicacion_lng ?? null) : null,
     }
-  return contratosServicioService.crear(payload)
+  return contratosServicioService.crear(payload, forzarDuplicado.value)
+}
+
+/**
+ * El aviso de "esta planta ya tiene un contrato vigente de este servicio".
+ *
+ * No bloquea: hay razones reales para dos contratos parecidos --una renovación
+ * mientras el anterior sigue vigente, por ejemplo--. Lo que no puede pasar es
+ * que nadie se entere, que es como MGS Naos 2 terminó con tres filas siendo un
+ * solo contrato.
+ */
+const duplicadoContrato = ref(null)
+const forzarDuplicado = ref(false)
+
+function duplicadoDe(e) {
+  const detail = e?.data?.detail ?? e?.response?.data?.detail
+  return e?.status === 409 && detail?.duplicado_contrato ? detail : null
 }
 
 async function guardar() {
@@ -815,9 +847,24 @@ async function guardar() {
     emit('creado', data)
     emit('cerrar')
   } catch (e) {
+    const aviso = duplicadoDe(e)
+    if (aviso) {
+      duplicadoContrato.value = aviso
+      return
+    }
     toast.error('Error', { description: e.data?.detail ?? e.message, duration: 4000 })
   } finally {
     guardando.value = false
+  }
+}
+
+async function crearDeTodosModos() {
+  forzarDuplicado.value = true
+  duplicadoContrato.value = null
+  try {
+    await guardar()
+  } finally {
+    forzarDuplicado.value = false
   }
 }
 

@@ -1836,6 +1836,7 @@ const duplicadoInfo = ref(null)
 const duplicadoTipo = ref('proyecto')
 const pendingPayload = ref(null)
 const pendingInfoTecnica = ref(null)
+const pendingInversionista = ref(null)
 const forzando = ref(false)
 
 /** El 409 de nombre parecido, si el error es ese. `null` para cualquier otro. */
@@ -1866,10 +1867,29 @@ async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
   }
 }
 
-async function crearProyecto(payload, infoTecnica) {
+/**
+ * Vincula el inversionista que se eligió junto con la planta.
+ *
+ * Va DESPUÉS de crear el proyecto porque necesita su id, y no tumba la creación
+ * si falla: la planta ya existe, y el vínculo se puede agregar desde su detalle.
+ */
+async function vincularInversionistaSiAplica(proyectoId, inversionista) {
+  if (!inversionista?.cliente_id) return
+  try {
+    await proyectosService.agregarInversionista(proyectoId, inversionista)
+  } catch (e) {
+    toast.warning('Proyecto creado, pero el inversionista no se pudo vincular', {
+      description: e.data?.detail,
+      duration: 5000,
+    })
+  }
+}
+
+async function crearProyecto(payload, infoTecnica, inversionista) {
   try {
     const proyecto = await proyectosService.crear(payload)
     await guardarInfoTecnicaSiAplica(proyecto.id, infoTecnica)
+    await vincularInversionistaSiAplica(proyecto.id, inversionista)
     toast.success('Proyecto creado', { duration: 3000 })
     dialogProyecto.value = false
     cargarProyectos()
@@ -1882,6 +1902,7 @@ async function crearProyecto(payload, infoTecnica) {
       duplicadoTipo.value = 'proyecto'
       pendingPayload.value = payload
       pendingInfoTecnica.value = infoTecnica
+      pendingInversionista.value = inversionista
       duplicadoVisible.value = true
       return
     }
@@ -1897,6 +1918,7 @@ async function crearProyectoForzado() {
   try {
     const proyecto = await proyectosService.crear(pendingPayload.value, true)
     await guardarInfoTecnicaSiAplica(proyecto.id, pendingInfoTecnica.value)
+    await vincularInversionistaSiAplica(proyecto.id, pendingInversionista.value)
     toast.success('Proyecto creado', { duration: 3000 })
     duplicadoVisible.value = false
     dialogProyecto.value = false

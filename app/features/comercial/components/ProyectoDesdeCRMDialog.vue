@@ -77,12 +77,16 @@ function mensajeError(err) {
 }
 
 /**
- * ProyectoForm emite (payload, infoTecnica). La info técnica necesita un
- * proyecto ya creado, así que va en un PUT posterior — igual que en /proyectos.
- * Si ese PUT falla no se deshace la planta: existe y está vinculada, que es lo
- * que importa; se avisa y se completa desde el proyecto.
+ * ProyectoForm emite (payload, infoTecnica, inversionista). Las dos últimas
+ * necesitan un proyecto ya creado, así que van en llamadas posteriores — igual
+ * que en /proyectos. Si alguna falla no se deshace la planta: existe y está
+ * vinculada, que es lo que importa; se avisa y se completa desde el proyecto.
+ *
+ * `forzar` va al FINAL y ya no en la tercera posición: ahí llega ahora el
+ * inversionista, y un objeto en ese lugar se habría leído como `forzar=true`,
+ * saltándose el aviso de posible duplicado sin que nadie lo notara.
  */
-async function crear(payload, infoTecnica, forzar = false) {
+async function crear(payload, infoTecnica, inversionista = null, forzar = false) {
   guardando.value = true
   error.value = ''
   try {
@@ -96,6 +100,17 @@ async function crear(payload, infoTecnica, forzar = false) {
       } catch {
         toast.warning('La planta se creó, pero la ficha técnica no', {
           description: 'Completá potencia AC y paneles desde el proyecto.',
+          duration: 6000,
+        })
+      }
+    }
+
+    if (inversionista?.cliente_id) {
+      try {
+        await proyectosService.agregarInversionista(data.id, inversionista)
+      } catch {
+        toast.warning('La planta se creó, pero el inversionista no se vinculó', {
+          description: 'Agregalo desde el proyecto.',
           duration: 6000,
         })
       }
@@ -115,7 +130,7 @@ async function crear(payload, infoTecnica, forzar = false) {
         description: `${det.mensaje}. ¿Crear de todos modos?`,
         confirmLabel: 'Crear igual',
         cancelLabel: 'Cancelar',
-        onConfirm: () => crear(payload, infoTecnica, true),
+        onConfirm: () => crear(payload, infoTecnica, inversionista, true),
       })
     } else {
       error.value = mensajeError(err)
