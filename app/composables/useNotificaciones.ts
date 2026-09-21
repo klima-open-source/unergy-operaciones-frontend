@@ -13,17 +13,27 @@
 import type { Notificacion } from '~/features/notificaciones/types'
 import { logger } from '~/core/logger'
 import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
+import { toast } from 'vue-sonner'
 
 interface NotificacionesState {
   items: Notificacion[]
   unreadCount: number
+  conteoErrorMostrado: boolean
 }
 
 function useNotificacionesState() {
-  return useState<NotificacionesState>('notificaciones', () => ({ items: [], unreadCount: 0 }))
+  return useState<NotificacionesState>('notificaciones', () => ({
+    items: [],
+    unreadCount: 0,
+    conteoErrorMostrado: false,
+  }))
 }
 
 const POLL_INTERVAL_MS = 60_000
+
+function avisarError(titulo: string, mensaje: string): void {
+  toast.error(titulo, { description: mensaje, duration: 4000 })
+}
 
 export function useNotificaciones() {
   const state = useNotificacionesState()
@@ -31,8 +41,15 @@ export function useNotificaciones() {
   async function refrescarConteo(): Promise<void> {
     try {
       state.value.unreadCount = await new NotificacionesService().contarNoLeidas()
+      state.value.conteoErrorMostrado = false
     } catch (err) {
-      logger.error('notificaciones', err)
+      const mensaje = logger.error('notificaciones', err)
+      // Este sondeo corre cada 60s: sin esta bandera, una caída sostenida del
+      // backend repetiría el toast indefinidamente en vez de avisar una vez.
+      if (!state.value.conteoErrorMostrado) {
+        state.value.conteoErrorMostrado = true
+        avisarError('No se pudo actualizar notificaciones', mensaje)
+      }
     }
   }
 
@@ -40,7 +57,7 @@ export function useNotificaciones() {
     try {
       state.value.items = await new NotificacionesService().listar()
     } catch (err) {
-      logger.error('notificaciones', err)
+      avisarError('No se pudieron cargar las notificaciones', logger.error('notificaciones', err))
       state.value.items = []
     }
   }
@@ -52,7 +69,7 @@ export function useNotificaciones() {
       notificacion.leida = true
       if (state.value.unreadCount > 0) state.value.unreadCount--
     } catch (err) {
-      logger.error('notificaciones', err)
+      avisarError('No se pudo marcar como leída', logger.error('notificaciones', err))
     }
   }
 
@@ -64,7 +81,7 @@ export function useNotificaciones() {
       })
       state.value.unreadCount = 0
     } catch (err) {
-      logger.error('notificaciones', err)
+      avisarError('No se pudieron marcar todas como leídas', logger.error('notificaciones', err))
     }
   }
 
