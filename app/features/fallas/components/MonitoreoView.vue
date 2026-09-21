@@ -1,74 +1,161 @@
 <template>
-  <div class="gf-page" ref="pageRef">
+  <div ref="pageRef" class="gf-page">
 
-    <!-- ══ TAB BAR (fuera del sticky) ═══════════════════════════════════ -->
-    <div class="mon-tab-bar">
-      <ZapIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-      <span class="text-base font-bold text-gray-800 whitespace-nowrap mr-2">Gestión de Fallas</span>
-      <div class="mon-tab-group">
-        <button v-for="(tab, i) in TABS" :key="i"
-          class="mon-tab"
-          :class="{ 'mon-tab--active': activeTab === i }"
-          @click="activeTab = i">
-          <component :is="tab.icon" class="size-[1em]" style="font-size:12px" />
-          {{ tab.label }}
-        </button>
+    <!-- ══ TAB BAR (sticky, fuera del sticky-header de la tab Fallas) ══════ -->
+    <div
+      ref="tabBarRef"
+      class="sticky top-0 z-30 flex flex-wrap items-center gap-3 border-b border-border bg-background px-3.5 py-2"
+    >
+      <div class="flex items-center gap-2 text-sm font-bold text-foreground">
+        <ZapIcon class="size-4 text-primary" />
+        Gestión de Fallas
       </div>
+      <GTabs
+        :model-value="String(activeTab)"
+        @update:model-value="(v) => (activeTab = Number(v))"
+      >
+        <GTabsList variant="outline">
+          <GTabsTrigger v-for="(tab, i) in TABS" :key="i" :value="String(i)" variant="outline">
+            <component :is="tab.icon" class="size-4" />
+            {{ tab.label }}
+          </GTabsTrigger>
+        </GTabsList>
+      </GTabs>
     </div>
 
     <!-- ══ TAB 0 — FALLAS ════════════════════════════════════════════════ -->
     <template v-if="activeTab === 0">
 
       <!-- ══ STICKY HEADER ════════════════════════════════════════════════ -->
-      <div class="gf-sticky-header" ref="stickyHeaderRef">
+      <div ref="stickyHeaderRef" class="gf-sticky-header">
 
         <!-- ── Topbar ── -->
-        <div class="gf-topbar">
-          <!-- Bucket pills -->
-          <div class="gf-bucket-pills">
-            <button v-for="b in BUCKETS" :key="b.key"
-              class="bucket-pill"
-              :class="{ 'bucket-pill--active': bucket === b.key }"
-              :style="bucketPillStyle(b.color, bucket === b.key)"
-              @click="bucket = b.key">
-              <span class="bucket-pill-dot" :style="{ background: b.color }" />
-              <span class="bucket-pill-label">{{ b.label }}</span>
-              <span class="bucket-pill-count" :style="{ color: b.color }">{{ counts[b.key] }}</span>
-            </button>
-          </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <!-- Buckets -->
+          <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v)">
+            <GTabsList variant="outline">
+              <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
+                <component :is="b.icon" class="size-4" />
+                {{ b.label }} · {{ counts[b.key] }}
+              </GTabsTrigger>
+            </GTabsList>
+          </GTabs>
 
-          <div class="gf-topbar-actions">
-            <Button outlined size="small" :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-              <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <div class="flex items-center gap-2">
+            <Button variant="outline" size="sm" :disabled="loading" title="Actualizar" @click="cargar">
+              <LoaderCircleIcon v-if="loading" class="animate-spin" />
+              <RefreshCwIcon v-else />
             </Button>
-            <Button label="Nueva falla" size="small" @click="abrirCrear">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+            <Button size="sm" @click="abrirCrear">
+              <PlusIcon /> Nueva falla
             </Button>
           </div>
         </div>
 
         <!-- ── Toolbar ── -->
-        <div class="gf-toolbar">
-          <IconField class="flex-1 min-w-[200px] max-w-sm">
-            <InputIcon><SearchIcon class="text-xs size-[1em]" /></InputIcon>
-            <InputText ref="searchInputRef" v-model="search"
+        <div class="flex flex-wrap items-center gap-2">
+          <InputGroup class="min-w-50 max-w-sm flex-1">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              ref="searchInputRef"
+              v-model="search"
               placeholder="Buscar por código, descripción, proyecto, tipo..."
-              class="w-full" size="small" />
-          </IconField>
-          <Select v-model="filtroProyecto" :options="proyectos" optionLabel="nombre_comercial"
-            optionValue="id" placeholder="Proyecto" showClear filter class="w-36" size="small" />
-          <Select v-model="filtroPrioridad" :options="catalogos.prioridades"
-            optionLabel="etiqueta" optionValue="codigo" placeholder="Prioridad" showClear class="w-32" size="small" />
-          <Select v-model="filtroEstado" :options="catalogos.estados"
-            optionLabel="etiqueta" optionValue="codigo" placeholder="Estado" showClear class="w-32" size="small" />
-          <DatePicker v-model="filtroFechaDesde" placeholder="Desde" dateFormat="yy-mm-dd"
-            showButtonBar class="w-28" size="small" />
-          <DatePicker v-model="filtroFechaHasta" placeholder="Hasta" dateFormat="yy-mm-dd"
-            showButtonBar class="w-28" size="small" />
-          <Button v-if="hayFiltros" text size="small" severity="secondary" @click="limpiarFiltros" v-tooltip.bottom="'Limpiar filtros'">
-            <template #icon><XIcon class="size-[1em]" /></template>
-          </Button>
-          <span class="ml-auto text-[11px] text-gray-500 whitespace-nowrap" v-if="!loading">
+            />
+          </InputGroup>
+
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button variant="outline" size="sm">
+                <SlidersHorizontalIcon />
+                Filtros
+                <Badge v-if="filtrosActivosCount" variant="secondary">{{ filtrosActivosCount }}</Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-80" align="start">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Proyecto</Label>
+                  <Combobox
+                    :model-value="filtroProyecto"
+                    open-on-click
+                    open-on-focus
+                    @update:model-value="(v) => (filtroProyecto = v ?? null)"
+                  >
+                    <ComboboxAnchor>
+                      <ComboboxInput
+                        :display-value="
+                          (v) => proyectos.find((p) => p.id === v)?.nombre_comercial ?? ''
+                        "
+                        placeholder="Todos los proyectos"
+                      />
+                    </ComboboxAnchor>
+                    <ComboboxList>
+                      <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                      <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
+                        {{ p.nombre_comercial }}
+                        <ComboboxItemIndicator>
+                          <CheckIcon />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Prioridad</Label>
+                  <Select v-model="filtroPrioridad">
+                    <SelectTrigger class="w-full">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="p in catalogos.prioridades"
+                        :key="p.codigo"
+                        :value="p.codigo"
+                        >{{ p.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                  <Label class="text-xs text-muted-foreground">Estado</Label>
+                  <Select v-model="filtroEstado">
+                    <SelectTrigger class="w-full">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="e in catalogos.estados"
+                        :key="e.codigo"
+                        :value="e.codigo"
+                        >{{ e.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs text-muted-foreground">Desde</Label>
+                    <Input v-model="filtroFechaDesde" type="date" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <Label class="text-xs text-muted-foreground">Hasta</Label>
+                    <Input v-model="filtroFechaHasta" type="date" />
+                  </div>
+                </div>
+
+                <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
+                  <XIcon /> Limpiar filtros
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <span v-if="!loading" class="ml-auto text-xs whitespace-nowrap text-muted-foreground">
             {{ filtradas.length }} / {{ porBucket.length }}
           </span>
         </div>
@@ -77,171 +164,132 @@
 
       <div :class="['gf-layout', drawerVisible && 'gf-layout--split']">
 
-        <div class="gf-main space-y-4 min-w-0">
+        <div class="gf-main min-w-0">
 
-          <!-- ══ COMPACT LIST (lg+ con panel abierto) ═══════════════════ -->
-          <div v-if="drawerVisible" class="gf-compact hidden lg:flex">
-            <div class="gf-compact-header">
-              <span class="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                {{ filtradas.length }} falla{{ filtradas.length !== 1 ? 's' : '' }}
-              </span>
+          <!-- ══ COLA DE TRIAGE (ordenada por urgencia de SLA) ═══════════ -->
+          <div class="flex flex-col rounded-lg border border-border bg-card">
+            <div
+              class="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <span>{{ filtradas.length }} falla{{ filtradas.length !== 1 ? 's' : '' }}</span>
+              <LoaderCircleIcon v-if="loading" class="size-3.5 animate-spin normal-case" />
             </div>
-            <div v-if="!filtradas.length" class="gf-compact-empty">
-              <InboxIcon class="text-2xl mb-2 size-[1em]" />
-              <p class="text-xs">Sin resultados</p>
-            </div>
-            <div v-else class="gf-compact-list">
-              <button v-for="f in filtradas" :key="f.id"
-                class="gf-compact-row"
-                :class="{ 'gf-compact-row--active': drawerFalla?.id === f.id }"
-                @click="abrirDrawer(f)">
-                <span class="gf-compact-stripe" :style="{ background: prioColor(f.prioridad?.codigo) }" />
-                <div class="gf-compact-content">
-                  <div class="gf-compact-line1">
-                    <code class="gf-compact-code">{{ f.codigo_interno }}</code>
-                    <span v-if="f.estado?.codigo"
-                      class="gf-compact-dot"
-                      :style="{ background: colorEstado(f.estado?.codigo, 'var(--color-unergy-purple)') }"
-                      v-tooltip.right="f.estado?.etiqueta" />
-                  </div>
-                  <div class="gf-compact-line2">{{ f.tipo?.etiqueta || f.tipo_libre || f.descripcion || 'Sin descripción' }}</div>
-                </div>
-              </button>
-            </div>
-          </div>
 
-          <!-- ══ TABLA (oculta cuando hay panel en lg+) ════════════════ -->
-          <div :class="['gf-table-wrap', drawerVisible && 'lg:!hidden']">
-            <div v-if="error" class="p-6 flex items-center gap-3 text-red-600">
-              <CircleAlertIcon class="text-xl size-[1em]" />
+            <div v-if="error" class="flex items-center gap-3 p-6 text-destructive">
+              <CircleAlertIcon class="size-5 shrink-0" />
               <div class="flex-1">
                 <div class="font-semibold">Error al cargar</div>
-                <div class="text-sm text-gray-500">{{ error }}</div>
+                <div class="text-sm text-muted-foreground">{{ error }}</div>
               </div>
-              <Button label="Reintentar" outlined size="small" @click="cargar">
-                <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+              <Button variant="outline" size="sm" @click="cargar">
+                <RefreshCwIcon /> Reintentar
               </Button>
             </div>
-            <DataTable v-else :value="filtradas" :loading="loading" rowHover stripedRows
-              size="small" class="gf-table text-xs" :rows="25" paginator
-              :rowsPerPageOptions="[15, 25, 50, 100]" :alwaysShowPaginator="false"
-              @row-click="(e) => abrirDrawer(e.data)" selectionMode="single"
-              :rowClass="rowClass" scrollable>
-              <template #empty>
-                <div class="flex flex-col items-center py-14 gap-2 text-gray-400">
-                  <component :is="bucketActual.icon" class="text-4xl size-[1em]" :style="{ color: bucketActual.color }" />
-                  <p class="text-sm font-semibold text-gray-700">{{ emptyTitulo }}</p>
-                  <p class="text-xs">{{ emptySubtitulo }}</p>
-                  <Button v-if="bucket === 'activas' && !hayFiltros" label="Registrar primera falla" outlined size="small" class="mt-2" @click="abrirCrear">
-                    <template #icon><PlusIcon class="size-[1em]" /></template>
+
+            <div
+              v-else-if="!filtradas.length"
+              class="flex flex-col items-center gap-2 py-14 text-muted-foreground"
+            >
+              <component :is="bucketActual.icon" class="size-8" :style="{ color: bucketActual.color }" />
+              <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
+              <p class="text-xs">{{ emptySubtitulo }}</p>
+              <Button
+                v-if="bucket === 'activas' && !hayFiltros"
+                variant="outline"
+                size="sm"
+                class="mt-2"
+                @click="abrirCrear"
+              >
+                <PlusIcon /> Registrar primera falla
+              </Button>
+              <Button v-else-if="hayFiltros" variant="ghost" size="sm" class="mt-2" @click="limpiarFiltros">
+                <XIcon /> Limpiar filtros
+              </Button>
+            </div>
+
+            <div v-else class="flex flex-col divide-y divide-border">
+              <button
+                v-for="f in filtradas"
+                :key="f.id"
+                type="button"
+                class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+                :class="drawerFalla?.id === f.id ? 'bg-muted' : ''"
+                @click="abrirDrawer(f)"
+              >
+                <span
+                  class="h-8 w-1 shrink-0 rounded-full"
+                  :style="{ background: prioColor(f.prioridad?.codigo) }"
+                  :title="f.prioridad?.etiqueta"
+                />
+                <span
+                  class="mt-0.5 hidden size-2 shrink-0 rounded-full sm:block"
+                  :style="{ background: categoriaFalla(f).color }"
+                  :title="categoriaFalla(f).etiqueta"
+                />
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <code class="font-mono text-[10px] text-muted-foreground">{{ f.codigo_interno }}</code>
+                    <span class="truncate text-sm font-medium text-foreground">{{ tituloFalla(f) }}</span>
+                    <Badge
+                      v-if="recurrencias(f) > 1"
+                      variant="outline"
+                      class="shrink-0 text-warning"
+                      :title="`${recurrencias(f)}× mismo tipo en este proyecto`"
+                    >
+                      <RotateCcwIcon /> {{ recurrencias(f) }}×
+                    </Badge>
+                  </div>
+                  <p v-if="!drawerVisible" class="truncate text-xs text-muted-foreground">
+                    {{ f.proyecto?.nombre_comercial }}<span v-if="f.descripcion"> · {{ f.descripcion }}</span>
+                  </p>
+                </div>
+
+                <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-1.5 md:flex">
+                  <span
+                    class="size-1.5 rounded-full"
+                    :style="{ background: colorEstado(f.estado?.codigo, '#9ca3af') }"
+                  />
+                  <span class="text-xs text-muted-foreground">{{ f.estado?.etiqueta || '—' }}</span>
+                </div>
+
+                <div v-if="!drawerVisible" class="hidden shrink-0 text-right text-xs lg:block">
+                  <div class="text-foreground">{{ fmtFecha(f.fecha_identificacion) }}</div>
+                  <div class="text-muted-foreground">{{ relativeTime(f.fecha_identificacion) }}</div>
+                </div>
+
+                <span v-if="f.dias_abierta != null" class="shrink-0 text-xs font-bold" :class="diasClass(f)">
+                  {{ f.dias_abierta }}d
+                </span>
+
+                <GBadge :color="slaSeverity(f)" size="sm" class="shrink-0">{{ slaText(f) }}</GBadge>
+
+                <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-0.5 xl:flex" @click.stop>
+                  <Button
+                    v-if="!f.estado?.es_estado_final"
+                    variant="ghost"
+                    size="icon-sm"
+                    class="text-success hover:text-success"
+                    title="Marcar resuelta"
+                    @click="quickResolve(f)"
+                  >
+                    <CircleCheckIcon />
                   </Button>
-                  <Button v-else-if="hayFiltros" label="Limpiar filtros" text size="small" class="mt-2" @click="limpiarFiltros">
-                    <template #icon><XIcon class="size-[1em]" /></template>
+                  <Button variant="ghost" size="icon-sm" title="Editar" @click="abrirEditar(f)">
+                    <PencilIcon />
                   </Button>
                 </div>
-              </template>
 
-              <!-- Stripe prioridad -->
-              <Column header="" style="width:6px;padding:0" :pt="{ headerCell: { style: 'padding:0; border:none' } }">
-                <template #body="{ data }">
-                  <div class="prio-stripe" :style="{ background: prioColor(data.prioridad?.codigo) }" />
-                </template>
-              </Column>
-
-              <!-- Código -->
-              <Column field="codigo_interno" header="Código" style="width:100px" sortable>
-                <template #body="{ data }">
-                  <span class="font-mono text-[10px] text-gray-400">{{ data.codigo_interno }}</span>
-                </template>
-              </Column>
-
-              <!-- Falla -->
-              <Column header="Falla" style="min-width:280px">
-                <template #body="{ data }">
-                  <div class="flex items-start gap-2">
-                    <span class="cat-dot mt-1.5 flex-shrink-0"
-                      :style="{ background: categoriaFalla(data).color }"
-                      v-tooltip.top="categoriaFalla(data).etiqueta" />
-                    <div class="min-w-0 flex-1">
-                      <div class="text-xs font-medium text-gray-700 flex items-center gap-1.5 flex-wrap">
-                        <span class="truncate">{{ tituloFalla(data) }}</span>
-                        <span v-if="recurrencias(data) > 1"
-                          class="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                          style="background: rgba(234,88,12,0.12); color: #ea580c;"
-                          v-tooltip.top="`${recurrencias(data)}× mismo tipo en este proyecto`">
-                          <RotateCcwIcon class="size-[1em]" style="font-size:9px" />{{ recurrencias(data) }}×
-                        </span>
-                      </div>
-                      <div class="text-xs text-gray-500 line-clamp-1">{{ data.descripcion }}</div>
-                    </div>
-                  </div>
-                </template>
-              </Column>
-
-              <!-- Proyecto -->
-              <Column header="Proyecto" style="min-width:130px">
-                <template #body="{ data }">
-                  <span class="text-xs text-gray-600">{{ data.proyecto?.nombre_comercial || '—' }}</span>
-                </template>
-              </Column>
-
-              <!-- Estado -->
-              <Column header="Estado" style="width:130px">
-                <template #body="{ data }">
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full shrink-0"
-                      :style="{ background: colorEstado(data.estado?.codigo, '#9ca3af') }"></span>
-                    <span class="text-[11px] text-gray-600">{{ data.estado?.etiqueta || '—' }}</span>
-                  </div>
-                </template>
-              </Column>
-
-              <!-- Fecha + relativeTime -->
-              <Column header="Fecha" style="width:110px" field="fecha_identificacion" sortable>
-                <template #body="{ data }">
-                  <div class="text-xs">
-                    <div class="text-gray-700">{{ fmtFecha(data.fecha_identificacion) }}</div>
-                    <div class="text-gray-400">{{ relativeTime(data.fecha_identificacion) }}</div>
-                  </div>
-                </template>
-              </Column>
-
-              <!-- Días abierta -->
-              <Column header="Días" style="width:70px">
-                <template #body="{ data }">
-                  <span v-if="data.dias_abierta != null"
-                    class="dias-badge"
-                    :class="diasClass(data)">
-                    {{ data.dias_abierta }}d
-                  </span>
-                  <span v-else class="text-gray-400 text-xs">—</span>
-                </template>
-              </Column>
-
-
-              <!-- Acciones -->
-              <Column header="" style="width:120px">
-                <template #body="{ data }">
-                  <div class="row-actions" @click.stop>
-                    <Button v-if="!data.estado?.es_estado_final" text rounded size="small" severity="success" @click="quickResolve(data)" v-tooltip.left="'Marcar resuelta'">
-                      <template #icon><CircleCheckIcon class="size-[1em]" /></template>
-                    </Button>
-                    <Button text rounded size="small" severity="info" @click="abrirEditar(data)" v-tooltip.left="'Editar'">
-                      <template #icon><PencilIcon class="size-[1em]" /></template>
-                    </Button>
-                    <Button text rounded size="small" severity="secondary" @click="abrirDrawer(data)" v-tooltip.left="'Ver detalle'">
-                      <template #icon><ArrowRightIcon class="size-[1em]" /></template>
-                    </Button>
-                  </div>
-                </template>
-              </Column>
-            </DataTable>
+                <ChevronRightIcon class="hidden size-4 shrink-0 text-muted-foreground lg:block" />
+              </button>
+            </div>
           </div>
 
         </div><!-- /gf-main -->
 
         <!-- ══ PANEL DETALLE ══════════════════════════════════════════════ -->
-        <aside v-if="drawerVisible && drawerFalla" class="gf-aside"
+        <aside
+v-if="drawerVisible && drawerFalla" class="gf-aside"
           @keydown.left.stop="navegar(-1)" @keydown.right.stop="navegar(1)">
           <!-- Backdrop solo en móvil -->
           <div class="gf-aside-backdrop" @click="drawerVisible = false" />
@@ -249,30 +297,62 @@
 
             <!-- Header panel -->
             <div class="gf-drawer-header">
-              <Button text rounded size="small" @click="drawerVisible = false" v-tooltip.bottom="'Cerrar (Esc)'">
-                <template #icon><XIcon class="size-[1em]" /></template>
+              <Button variant="ghost" size="icon-sm" title="Cerrar (Esc)" @click="drawerVisible = false">
+                <XIcon />
               </Button>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <code class="font-mono text-sm text-purple-700 bg-purple-50 px-2 py-0.5 rounded">{{ drawerFalla.codigo_interno }}</code>
-                  <span class="text-xs text-gray-400">·</span>
-                  <span class="text-sm font-medium text-gray-700 truncate">{{ tituloFalla(drawerFalla) }}</span>
-                  <span v-if="navIndex >= 0" class="text-[10px] text-gray-400 ml-auto whitespace-nowrap hidden sm:inline-block">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <code class="rounded bg-primary/10 px-2 py-0.5 font-mono text-sm text-primary">{{
+                    drawerFalla.codigo_interno
+                  }}</code>
+                  <span class="text-xs text-muted-foreground">·</span>
+                  <span class="truncate text-sm font-medium text-foreground">{{
+                    tituloFalla(drawerFalla)
+                  }}</span>
+                  <span
+                    v-if="navIndex >= 0"
+                    class="ml-auto hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline-block"
+                  >
                     {{ navIndex + 1 }} / {{ filtradas.length }}
                   </span>
                 </div>
               </div>
-              <Button text rounded size="small" severity="secondary" :disabled="navIndex <= 0" @click="navegar(-1)" v-tooltip.bottom="'Anterior (←)'">
-                <template #icon><ChevronLeftIcon class="size-[1em]" /></template>
+              <ButtonGroup>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Anterior (←)"
+                  :disabled="navIndex <= 0"
+                  @click="navegar(-1)"
+                >
+                  <ChevronLeftIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Siguiente (→)"
+                  :disabled="navIndex < 0 || navIndex >= filtradas.length - 1"
+                  @click="navegar(1)"
+                >
+                  <ChevronRightIcon />
+                </Button>
+              </ButtonGroup>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Abrir página completa"
+                @click="router.push(`/fallas/${drawerFalla.id}`)"
+              >
+                <ExternalLinkIcon />
               </Button>
-              <Button text rounded size="small" severity="secondary" :disabled="navIndex < 0 || navIndex >= filtradas.length - 1" @click="navegar(1)" v-tooltip.bottom="'Siguiente (→)'">
-                <template #icon><ChevronRightIcon class="size-[1em]" /></template>
-              </Button>
-              <Button text rounded size="small" severity="secondary" @click="router.push(`/fallas/${drawerFalla.id}`)" v-tooltip.bottom="'Abrir página completa'">
-                <template #icon><ExternalLinkIcon class="size-[1em]" /></template>
-              </Button>
-              <Button text rounded size="small" severity="danger" @click="confirmDelete(drawerFalla)" v-tooltip.bottom="'Eliminar'">
-                <template #icon><Trash2Icon class="size-[1em]" /></template>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                class="text-destructive hover:text-destructive"
+                title="Eliminar"
+                @click="confirmDelete(drawerFalla)"
+              >
+                <Trash2Icon />
               </Button>
             </div>
 
@@ -285,15 +365,65 @@
                   <p class="gf-hero-title">{{ tituloFalla(drawerFalla) }}</p>
                   <div class="flex flex-wrap gap-1.5 mt-2">
                     <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{ drawerFalla.estado?.etiqueta }}</GBadge>
-                    <span class="prio-pill" :style="prioPillStyle(drawerFalla.prioridad?.codigo)">
-                      {{ drawerFalla.prioridad?.etiqueta }}
-                    </span>
-                    <GBadge v-if="categoriaFalla(drawerFalla).etiqueta"
+                    <GBadge :color="prioColor(drawerFalla.prioridad?.codigo)">{{ drawerFalla.prioridad?.etiqueta }}</GBadge>
+                    <GBadge
+v-if="categoriaFalla(drawerFalla).etiqueta"
                       :color="categoriaFalla(drawerFalla).color || '#915BD8'">{{ categoriaFalla(drawerFalla).etiqueta }}</GBadge>
                     <GBadge v-if="drawerFalla.pendiente_reclasificar" color="warning">Pendiente de reclasificar</GBadge>
                   </div>
                 </div>
                 <p v-if="drawerFalla.descripcion" class="gf-hero-desc">{{ drawerFalla.descripcion }}</p>
+              </section>
+
+              <!-- ── SLA: franja de estado propia, arriba del todo ────── -->
+              <section class="gf-section gf-section--filled">
+                <header class="gf-section-head">
+                  <ClockIcon class="gf-section-icon size-[1em]" />
+                  <h3 class="gf-section-title">SLA</h3>
+                  <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
+                </header>
+                <div class="gf-sla-stat">
+                  <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
+                  <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas_efectivo }}h</span>
+                </div>
+                <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
+                  <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
+                </div>
+
+                <div class="gf-sla-override">
+                  <div class="gf-sla-override-row">
+                    <span class="gf-sla-override-label">Límite personalizado</span>
+                    <span v-if="!quickEdit.sla_limite_horas" class="gf-sla-override-ref">
+                      Por defecto: <strong>{{ drawerFalla.sla_limite_horas_efectivo }}h</strong>
+                    </span>
+                  </div>
+                  <div class="gf-sla-override-input">
+                    <Input
+                      v-model.number="quickEdit.sla_limite_horas"
+                      type="number"
+                      placeholder="Sin personalizar"
+                      min="1"
+                      max="999"
+                      class="flex-1"
+                      @change="autosaveQuick()"
+                    />
+                    <Button
+                      v-if="quickEdit.sla_limite_horas"
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Quitar personalización"
+                      @click="
+                        quickEdit.sla_limite_horas = null;
+                        autosaveQuick()
+                      "
+                    >
+                      <XIcon />
+                    </Button>
+                  </div>
+                  <p class="gf-sla-override-hint">
+                    Opcional. Solo para casos puntuales que necesitan más o menos tiempo que el default de su prioridad.
+                  </p>
+                </div>
               </section>
 
               <!-- ── EQUIPO QUE FALLÓ / CLASIFICACIÓN ──────────────────── -->
@@ -352,7 +482,8 @@
                 <!-- Falla sin clasificación estructurada (catálogo anterior) -->
                 <template v-else>
                   <div class="flex flex-wrap items-center gap-2">
-                    <GBadge v-if="categoriaFalla(drawerFalla).etiqueta"
+                    <GBadge
+v-if="categoriaFalla(drawerFalla).etiqueta"
                       :color="categoriaFalla(drawerFalla).color || '#915BD8'">{{ categoriaFalla(drawerFalla).etiqueta }}</GBadge>
                     <span class="gf-clasif-sub">{{ drawerFalla.tipo?.etiqueta || drawerFalla.tipo_libre || 'Sin clasificación' }}</span>
                   </div>
@@ -448,73 +579,63 @@
                 </dl>
               </section>
 
-              <!-- ── EDICIÓN RÁPIDA + SLA ──────────────────────────── -->
-              <div class="gf-twocol">
-                <!-- Quick edit con autosave -->
-                <section class="gf-section gf-section--filled">
-                  <header class="gf-section-head">
-                    <ZapIcon class="gf-section-icon size-[1em]" />
-                    <h3 class="gf-section-title">Edición rápida</h3>
-                    <span v-if="savingQuick" class="gf-save-flag">
-                      <LoaderCircleIcon class="size-[1em] animate-spin" /> Guardando…
-                    </span>
-                    <span v-else-if="savedFlash" class="gf-save-flag gf-save-flag--ok">
-                      <CheckIcon class="size-[1em]" /> Guardado
-                    </span>
-                  </header>
-                  <div class="space-y-2">
-                    <div class="gf-field-row">
-                      <label class="gf-field-label">Estado</label>
-                      <Select v-model="quickEdit.estado_id" :options="catalogos.estados"
-                        optionLabel="etiqueta" optionValue="id" class="flex-1"
-                        @change="autosaveQuick()" />
-                    </div>
-                    <div class="gf-field-row">
-                      <label class="gf-field-label">Prioridad</label>
-                      <Select v-model="quickEdit.prioridad_id" :options="catalogos.prioridades"
-                        optionLabel="etiqueta" optionValue="id" class="flex-1"
-                        @change="autosaveQuick()" />
-                    </div>
+              <!-- ── EDICIÓN RÁPIDA ─────────────────────────────────── -->
+              <section class="gf-section gf-section--filled">
+                <header class="gf-section-head">
+                  <ZapIcon class="gf-section-icon size-[1em]" />
+                  <h3 class="gf-section-title">Edición rápida</h3>
+                  <span v-if="savingQuick" class="gf-save-flag">
+                    <LoaderCircleIcon class="size-[1em] animate-spin" /> Guardando…
+                  </span>
+                  <span v-else-if="savedFlash" class="gf-save-flag gf-save-flag--ok">
+                    <CheckIcon class="size-[1em]" /> Guardado
+                  </span>
+                </header>
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div class="gf-field-row">
+                    <label class="gf-field-label">Estado</label>
+                    <Select
+                      :model-value="quickEdit.estado_id ? String(quickEdit.estado_id) : undefined"
+                      @update:model-value="
+                        (v) => {
+                          quickEdit.estado_id = Number(v);
+                          autosaveQuick();
+                        }
+                      "
+                    >
+                      <SelectTrigger class="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="e in catalogos.estados" :key="e.id" :value="String(e.id)">{{
+                          e.etiqueta
+                        }}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </section>
-
-                <!-- SLA -->
-                <section class="gf-section gf-section--filled">
-                  <header class="gf-section-head">
-                    <ClockIcon class="gf-section-icon size-[1em]" />
-                    <h3 class="gf-section-title">SLA</h3>
-                    <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
-                  </header>
-                  <div class="gf-sla-stat">
-                    <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
-                    <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas_efectivo }}h</span>
+                  <div class="gf-field-row">
+                    <label class="gf-field-label">Prioridad</label>
+                    <Select
+                      :model-value="quickEdit.prioridad_id ? String(quickEdit.prioridad_id) : undefined"
+                      @update:model-value="
+                        (v) => {
+                          quickEdit.prioridad_id = Number(v);
+                          autosaveQuick();
+                        }
+                      "
+                    >
+                      <SelectTrigger class="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem v-for="p in catalogos.prioridades" :key="p.id" :value="String(p.id)">{{
+                          p.etiqueta
+                        }}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
-                    <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
-                  </div>
-
-                  <div class="gf-sla-override">
-                    <div class="gf-sla-override-row">
-                      <span class="gf-sla-override-label">Límite personalizado</span>
-                      <span v-if="!quickEdit.sla_limite_horas" class="gf-sla-override-ref">
-                        Por defecto: <strong>{{ drawerFalla.sla_limite_horas_efectivo }}h</strong>
-                      </span>
-                    </div>
-                    <div class="gf-sla-override-input">
-                      <InputNumber v-model="quickEdit.sla_limite_horas" placeholder="Sin personalizar"
-                        :min="1" :max="999" showButtons buttonLayout="horizontal" class="flex-1"
-                        @update:modelValue="autosaveQuick()" />
-                      <button v-if="quickEdit.sla_limite_horas" type="button" class="gf-sla-override-clear"
-                        title="Quitar personalización" @click="quickEdit.sla_limite_horas = null; autosaveQuick()">
-                        <XIcon class="size-[1em]" />
-                      </button>
-                    </div>
-                    <p class="gf-sla-override-hint">
-                      Opcional. Solo para casos puntuales que necesitan más o menos tiempo que el default de su prioridad.
-                    </p>
-                  </div>
-                </section>
-              </div>
+                </div>
+              </section>
 
               <!-- ── ACCIÓN SUGERIDA ────────────────────────────────── -->
               <aside v-if="drawerFalla.tipo?.accion_sugerida" class="gf-suggestion">
@@ -553,14 +674,37 @@
 
                 <!-- Agregar nota -->
                 <div class="gf-add-note">
-                  <Textarea v-model="nuevaNota.nota" rows="2" autoResize
-                    placeholder="Agregar nota o actualización…" class="w-full" />
+                  <Textarea
+                    v-model="nuevaNota.nota"
+                    rows="2"
+                    placeholder="Agregar nota o actualización…"
+                    class="w-full"
+                  />
                   <div class="flex items-center gap-2 mt-2">
-                    <Select v-model="nuevaNota.estado_id" :options="catalogos.estados"
-                      optionLabel="etiqueta" optionValue="id" placeholder="Cambiar estado (opcional)"
-                      showClear class="flex-1" />
-                    <Button label="Agregar" size="small" :disabled="!nuevaNota.nota.trim() && !nuevaNota.estado_id" :loading="addingSeg" @click="agregarSeguimiento">
-                      <template #icon><SendIcon class="size-[1em]" /></template>
+                    <Select
+                      :model-value="nuevaNota.estado_id ? String(nuevaNota.estado_id) : undefined"
+                      @update:model-value="
+                        (v) => (nuevaNota.estado_id = v && v !== '__sin_cambio__' ? Number(v) : null)
+                      "
+                    >
+                      <SelectTrigger class="flex-1">
+                        <SelectValue placeholder="Cambiar estado (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__sin_cambio__">Sin cambio de estado</SelectItem>
+                        <SelectItem v-for="e in catalogos.estados" :key="e.id" :value="String(e.id)">{{
+                          e.etiqueta
+                        }}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      :disabled="(!nuevaNota.nota.trim() && !nuevaNota.estado_id) || addingSeg"
+                      @click="agregarSeguimiento"
+                    >
+                      <LoaderCircleIcon v-if="addingSeg" class="size-[1em] animate-spin" />
+                      <SendIcon v-else class="size-[1em]" />
+                      Agregar
                     </Button>
                   </div>
                 </div>
@@ -574,7 +718,7 @@
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-0.5 flex-wrap">
                         <span class="gf-body-text font-semibold">{{ seg.usuario?.nombre || 'Sistema' }}</span>
-                        <span class="text-xs text-gray-500">{{ relativeTime(seg.created_at, true) }}</span>
+                        <span class="text-xs text-gray-500">{{ relativeTime(seg.created_at) }}</span>
                       </div>
                       <p v-if="seg.nota" class="gf-body-text whitespace-pre-line">{{ seg.nota }}</p>
                       <div v-if="seg.estado_nuevo" class="mt-1.5">
@@ -587,18 +731,25 @@
               </section>
 
               <!-- ── ARCHIVOS ADJUNTOS ─────────────────────────────── -->
-              <FallaArchivos v-if="drawerFalla?.id" :fallaId="drawerFalla.id" />
+              <FallaArchivos v-if="drawerFalla?.id" :falla-id="drawerFalla.id" />
 
               <!-- ── ACCIONES PRINCIPALES ───────────────────────────── -->
               <div class="gf-actions-inline">
-                <Button label="Editar completa" outlined class="flex-1" @click="editarDesdeDrawer">
-                  <template #icon><PencilIcon class="size-[1em]" /></template>
+                <Button variant="outline" class="flex-1" @click="editarDesdeDrawer">
+                  <PencilIcon class="size-[1em]" /> Editar completa
                 </Button>
-                <Button v-if="!drawerFalla.estado?.es_estado_final" label="Marcar resuelta" severity="success" class="flex-1" :loading="resolvingFalla" @click="quickResolve(drawerFalla)">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                <Button
+                  v-if="!drawerFalla.estado?.es_estado_final"
+                  class="flex-1 bg-success text-success-foreground hover:bg-success/90"
+                  :disabled="resolvingFalla"
+                  @click="quickResolve(drawerFalla)"
+                >
+                  <LoaderCircleIcon v-if="resolvingFalla" class="size-[1em] animate-spin" />
+                  <CheckIcon v-else class="size-[1em]" />
+                  Marcar resuelta
                 </Button>
-                <Button v-else label="Reabrir" severity="warn" outlined class="flex-1" @click="reabrirFalla">
-                  <template #icon><RotateCcwIcon class="size-[1em]" /></template>
+                <Button v-else variant="outline" class="flex-1 text-warning hover:text-warning" @click="reabrirFalla">
+                  <RotateCcwIcon class="size-[1em]" /> Reabrir
                 </Button>
               </div>
 
@@ -609,36 +760,76 @@
       </div><!-- /gf-layout -->
 
       <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
-      <Dialog v-model:visible="formDialogVisible" modal class="w-full max-w-2xl"
-        :header="editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'"
-        :closable="!savingForm">
-        <FallaForm :initial="editingFalla" :catalogos="catalogos"
-          @save="onSaveForm" @cancel="formDialogVisible = false" />
+      <Dialog v-model:open="formDialogVisible">
+        <DialogContent
+          class="max-w-2xl"
+          :show-close-button="!savingForm"
+          @escape-key-down="(e) => savingForm && e.preventDefault()"
+          @pointer-down-outside="(e) => savingForm && e.preventDefault()"
+        >
+          <DialogHeader>
+            <DialogTitle>{{
+              editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
+            }}</DialogTitle>
+          </DialogHeader>
+          <FallaForm
+:initial="editingFalla" :catalogos="catalogos"
+            @save="onSaveForm" @cancel="formDialogVisible = false" />
+        </DialogContent>
       </Dialog>
 
       <!-- ══ DIALOG RESOLVER FALLA ══════════════════════════════════════════ -->
-      <Dialog v-model:visible="resolveDialogVisible" modal class="w-full max-w-sm"
-        header="Resolver falla" :closable="!resolvingFalla">
-        <div v-if="resolveFallaTarget" class="resolve-dialog-body">
-          <p class="resolve-dialog-code">{{ resolveFallaTarget.codigo_interno }} — {{ resolveFallaTarget.proyecto?.nombre_comercial }}</p>
-          <div class="resolve-dialog-field">
-            <label class="resolve-dialog-label">Fecha y hora de solución *</label>
-            <DatePicker v-model="resolveFecha" showTime hourFormat="24"
-              dateFormat="yy-mm-dd" class="w-full" showIcon />
+      <Dialog v-model:open="resolveDialogVisible">
+        <DialogContent
+          class="max-w-sm"
+          :show-close-button="!resolvingFalla"
+          @escape-key-down="(e) => resolvingFalla && e.preventDefault()"
+          @pointer-down-outside="(e) => resolvingFalla && e.preventDefault()"
+        >
+          <DialogHeader>
+            <DialogTitle>Resolver falla</DialogTitle>
+          </DialogHeader>
+          <div v-if="resolveFallaTarget" class="resolve-dialog-body">
+            <p class="resolve-dialog-code">{{ resolveFallaTarget.codigo_interno }} — {{ resolveFallaTarget.proyecto?.nombre_comercial }}</p>
+            <div class="resolve-dialog-field">
+              <label class="resolve-dialog-label">Fecha y hora de solución *</label>
+              <Input
+                type="datetime-local"
+                :model-value="toDatetimeLocalValue(resolveFecha)"
+                class="w-full"
+                @update:model-value="(v) => (resolveFecha = v ? new Date(v) : new Date())"
+              />
+            </div>
+            <div class="resolve-dialog-field">
+              <label class="resolve-dialog-label">Tipo de solución</label>
+              <Select
+                :model-value="resolveResolucionId ? String(resolveResolucionId) : undefined"
+                @update:model-value="(v) => (resolveResolucionId = v ? Number(v) : null)"
+              >
+                <SelectTrigger class="w-full">
+                  <SelectValue placeholder="Seleccionar (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="r in catalogos.resoluciones" :key="r.id" :value="String(r.id)">{{
+                    r.etiqueta
+                  }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div class="resolve-dialog-field">
-            <label class="resolve-dialog-label">Tipo de solución</label>
-            <Select v-model="resolveResolucionId" :options="catalogos.resoluciones"
-              optionLabel="etiqueta" optionValue="id"
-              placeholder="Seleccionar (opcional)" showClear class="w-full" />
-          </div>
-        </div>
-        <template #footer>
-          <Button label="Cancelar" severity="secondary" outlined @click="resolveDialogVisible = false" :disabled="resolvingFalla" />
-          <Button label="Marcar resuelta" severity="success" :loading="resolvingFalla" @click="confirmarResolve">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
-          </Button>
-        </template>
+          <DialogFooter>
+            <Button variant="outline" :disabled="resolvingFalla" @click="resolveDialogVisible = false">Cancelar</Button>
+            <Button
+              class="bg-success text-success-foreground hover:bg-success/90"
+              :disabled="resolvingFalla"
+              @click="confirmarResolve"
+            >
+              <LoaderCircleIcon v-if="resolvingFalla" class="size-[1em] animate-spin" />
+              <CheckIcon v-else class="size-[1em]" />
+              Marcar resuelta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
     </template><!-- /TAB 0 -->
@@ -652,8 +843,6 @@
       />
     </div><!-- /TAB 1 -->
 
-    <!-- ══ TAB 2 — MAPA ══════════════════════════════════════════════════ -->
-
     <!-- ══ BOTÓN FLOTANTE: Diagrama fasorial ══════════════════════════════ -->
     <FasorialButton />
 
@@ -661,31 +850,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import DatePicker from 'primevue/datepicker'
-import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
-import MultiSelect from 'primevue/multiselect'
 import FallaForm from './FallaForm.vue'
 import FallaArchivos from './FallaArchivos.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
 import FasorialButton from '~/features/fallas/components/FasorialButton.vue'
-const FallasMapView = defineAsyncComponent(() => import('./FallasMapView.vue'))
 import { FallasService } from '~/features/fallas/services/fallas'
 import { tituloFalla, categoriaFalla, clasificacionDetalle } from '~/features/fallas/utils/fallaTitulo'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { formatCOP as fmtCOP } from '~/utils/currency'
-import { ArrowRightIcon, BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InboxIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { BellIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, CalendarPlusIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, HourglassIcon, InfoIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, ServerIcon, SlidersHorizontalIcon, TimerIcon, Trash2Icon, UserPenIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const fallasService = new FallasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -731,8 +907,8 @@ const search           = ref(route.query.q || '')
 const filtroProyecto   = ref(route.query.proyecto ? Number(route.query.proyecto) : null)
 const filtroPrioridad  = ref(route.query.prioridad || null)
 const filtroEstado     = ref(route.query.estado || null)
-const filtroFechaDesde = ref(route.query.desde ? new Date(route.query.desde) : null)
-const filtroFechaHasta = ref(route.query.hasta ? new Date(route.query.hasta) : null)
+const filtroFechaDesde = ref(route.query.desde || null)
+const filtroFechaHasta = ref(route.query.hasta || null)
 
 watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
   ([q, proyecto, prioridad, estado, desde, hasta]) => {
@@ -741,14 +917,20 @@ watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, 
     if (proyecto) query.proyecto = proyecto
     if (prioridad) query.prioridad = prioridad
     if (estado) query.estado = estado
-    if (desde) query.desde = desde.toISOString().split('T')[0]
-    if (hasta) query.hasta = hasta.toISOString().split('T')[0]
+    if (desde) query.desde = desde
+    if (hasta) query.hasta = hasta
     router.replace({ query })
   })
+
+const filtrosActivosCount = computed(() =>
+  [filtroProyecto.value, filtroPrioridad.value, filtroEstado.value, filtroFechaDesde.value, filtroFechaHasta.value]
+    .filter((v) => v != null && v !== '').length,
+)
 
 // ── Refs DOM ─────────────────────────────────────────────────────────────
 const searchInputRef  = ref(null)
 const pageRef         = ref(null)
+const tabBarRef       = ref(null)
 const stickyHeaderRef = ref(null)
 
 // ── Drawer / detalle ──────────────────────────────────────────────────────
@@ -773,11 +955,6 @@ const savingForm        = ref(false)
 // ── Computed: lógica de buckets ───────────────────────────────────────────
 function esAlertaSLA(f) {
   return !f.estado?.es_estado_final && (f.sla_cumplido === false || (f.dias_abierta ?? 0) >= 7)
-}
-
-function bucketDeFalla(f) {
-  if (f.estado?.es_estado_final) return 'cerradas'
-  return 'activas'
 }
 
 const counts = computed(() => {
@@ -824,7 +1001,13 @@ const filtradas = computed(() => {
     const hasta = startOfDay(filtroFechaHasta.value); hasta.setHours(23, 59, 59, 999)
     arr = arr.filter(f => f.fecha_identificacion && new Date(f.fecha_identificacion + 'T00:00:00') <= hasta)
   }
-  return arr
+  // Cola de triage: primero lo más urgente por SLA (vencido > en alerta > ok),
+  // y dentro de la misma severidad, lo que lleva más días abierta.
+  return [...arr].sort((a, b) => {
+    const diff = slaSeverityRank(a) - slaSeverityRank(b)
+    if (diff !== 0) return diff
+    return (b.dias_abierta ?? 0) - (a.dias_abierta ?? 0)
+  })
 })
 
 const hayFiltros = computed(() =>
@@ -1310,20 +1493,6 @@ function confirmDelete(falla) {
 // ── Helpers visuales ──────────────────────────────────────────────────────
 function prioColor(codigo) { return colorPrioridad(codigo, '#9ca3af') }
 
-function prioPillStyle(codigo) {
-  const c = prioColor(codigo)
-  return { background: c + '12', color: c }
-}
-
-function bucketPillStyle(color, active) {
-  if (!active) return {}
-  return { color }
-}
-
-function rowClass(data) {
-  return drawerFalla.value?.id === data.id ? 'gf-row-active' : ''
-}
-
 function initials(nombre) {
   if (!nombre) return '?'
   const parts = nombre.trim().split(/\s+/)
@@ -1344,11 +1513,11 @@ function hashCode(str) {
 }
 
 function diasClass(f) {
-  if (f.estado?.es_estado_final) return 'dias-cerrada'
+  if (f.estado?.es_estado_final) return 'text-muted-foreground'
   const d = f.dias_abierta ?? 0
-  if (d >= 7) return 'dias-red'
-  if (d >= 3) return 'dias-yellow'
-  return 'dias-green'
+  if (d >= 7) return 'text-destructive'
+  if (d >= 3) return 'text-warning'
+  return 'text-success'
 }
 
 // El reloj del SLA lo calcula el backend: `sla_horas_transcurridas` y `sla_pct`
@@ -1406,6 +1575,13 @@ function slaSeverity(falla) {
   return 'default'
 }
 
+// Orden de urgencia para la cola de triage: vencido primero, luego alerta,
+// luego sin dato de SLA, y al final lo que ya cumple/está resuelto.
+const SLA_SEVERITY_RANK = { destructive: 0, warning: 1, default: 2, success: 3 }
+function slaSeverityRank(falla) {
+  return SLA_SEVERITY_RANK[slaSeverity(falla)] ?? 2
+}
+
 function fmtFecha(d) {
   if (!d) return '—'
   return new Date(d + 'T00:00:00').toLocaleDateString('es-CO',
@@ -1421,7 +1597,11 @@ function fmtFechaHora(dt) {
     { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-// Moneda COP sin decimales.
+// Formato local para <input type="datetime-local">: YYYY-MM-DDTHH:mm en hora del navegador.
+function toDatetimeLocalValue(d) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 // Duración legible a partir de horas (min / h / d h).
 function fmtHoras(h) {
@@ -1433,7 +1613,7 @@ function fmtHoras(h) {
   return rest ? `${dias} d ${rest} h` : `${dias} d`
 }
 
-function relativeTime(d, includeAbsolute = false) {
+function relativeTime(d) {
   if (!d) return ''
   const date = typeof d === 'string' && d.length === 10
     ? new Date(d + 'T00:00:00')
@@ -1464,7 +1644,7 @@ function onKeydown(e) {
   if (activeTab.value !== 0) return
   if (e.key === '/') {
     e.preventDefault()
-    nextTick(() => searchInputRef.value?.$el?.querySelector('input')?.focus())
+    nextTick(() => searchInputRef.value?.$el?.focus())
   } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
     abrirCrear()
@@ -1476,11 +1656,19 @@ function onKeydown(e) {
   }
 }
 
-// Medir altura real del sticky-header y exponerla como CSS custom property
+// Medir altura real del tab bar y del sticky-header, y exponerlas como
+// variables CSS -- así el offset del segundo sticky nunca queda desincronizado
+// de lo que el primero realmente mide (antes era un `top: 41px` a mano).
 let _headerRO = null
+let _tabBarRO = null
 function measureHeader() {
-  if (!stickyHeaderRef.value || !pageRef.value) return
-  pageRef.value.style.setProperty('--gf-header-h', `${stickyHeaderRef.value.offsetHeight}px`)
+  if (!pageRef.value) return
+  if (tabBarRef.value) {
+    pageRef.value.style.setProperty('--gf-tabbar-h', `${tabBarRef.value.offsetHeight}px`)
+  }
+  if (stickyHeaderRef.value) {
+    pageRef.value.style.setProperty('--gf-header-h', `${stickyHeaderRef.value.offsetHeight}px`)
+  }
 }
 
 onMounted(() => {
@@ -1490,9 +1678,15 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
     measureHeader()
-    if (window.ResizeObserver && stickyHeaderRef.value) {
-      _headerRO = new ResizeObserver(measureHeader)
-      _headerRO.observe(stickyHeaderRef.value)
+    if (window.ResizeObserver) {
+      if (stickyHeaderRef.value) {
+        _headerRO = new ResizeObserver(measureHeader)
+        _headerRO.observe(stickyHeaderRef.value)
+      }
+      if (tabBarRef.value) {
+        _tabBarRO = new ResizeObserver(measureHeader)
+        _tabBarRO.observe(tabBarRef.value)
+      }
     }
   })
 })
@@ -1500,6 +1694,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   _headerRO?.disconnect()
+  _tabBarRO?.disconnect()
 })
 
 // Limpiar drawer al cerrar
@@ -1532,54 +1727,6 @@ watch(bucket, (newBucket) => {
 </script>
 
 <style scoped>
-/* ══ TAB BAR ══════════════════════════════════════════════════════════════ */
-.mon-tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: #fff;
-  border-bottom: 1px solid #ECE7F2;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 25;
-}
-.mon-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: none;
-  padding: 5px 12px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6B5A8A;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.mon-tab svg { font-size: 12px; }
-.mon-tab:hover:not(.mon-tab--active) { color: var(--color-unergy-deep); background: rgba(145,91,216,.08); }
-.mon-tab--active {
-  background: var(--color-unergy-purple);
-  color: var(--color-unergy-avena);
-  box-shadow: 0 1px 4px rgba(145,91,216,.3);
-}
-.mon-tab--active:hover { color: var(--color-unergy-avena); }
-.mon-tab-group {
-  display: inline-flex;
-  background: #F4F1FA;
-  border: 1px solid #E5E2EC;
-  border-radius: 8px;
-  padding: 2px;
-  gap: 0;
-}
-
 /* ══ Página ══════════════════════════════════════════════════════════════ */
 .gf-page {
   display: flex;
@@ -1593,7 +1740,7 @@ watch(bucket, (newBucket) => {
 /* ══ Sticky header ═══════════════════════════════════════════════════════ */
 .gf-sticky-header {
   position: sticky;
-  top: 41px;
+  top: var(--gf-tabbar-h, 41px);
   z-index: 20;
   background: #f8f7fa;
   padding-top: 4px;
@@ -1617,126 +1764,6 @@ watch(bucket, (newBucket) => {
     left: -32px;
     right: -32px;
   }
-}
-
-/* ══ Topbar ══════════════════════════════════════════════════════════════ */
-.gf-topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 6px 10px;
-  background: #fff;
-  border-radius: 10px 10px 0 0;
-  border: 1px solid #ece8f4;
-  border-bottom: none;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  min-height: 42px;
-}
-.gf-topbar-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.gf-topbar-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* ══ Bucket pills ════════════════════════════════════════════════════════ */
-.gf-bucket-pills {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: center;
-  min-width: 0;
-}
-.bucket-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px 5px 8px;
-  background: transparent;
-  border: 1.5px solid transparent;
-  border-radius: 999px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  color: #7c6a9a;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.bucket-pill:hover {
-  background: #f5f4f8;
-  border-color: #e0d9ef;
-  color: #4b3a6e;
-}
-.bucket-pill--active {
-  background: #f0eaf8;
-  border-color: #c4aee8;
-  color: var(--color-unergy-deep);
-  font-weight: 600;
-}
-.bucket-pill--active .bucket-pill-count {
-  color: #4b3a6e;
-}
-.bucket-pill-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.bucket-pill--active .bucket-pill-dot {
-  box-shadow: none;
-}
-.bucket-pill-label { color: inherit; }
-.bucket-pill-count {
-  font-weight: 700;
-  font-size: 11px;
-}
-
-/* ══ Toolbar ═════════════════════════════════════════════════════════════ */
-.gf-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: #fff;
-  border-radius: 0 0 10px 10px;
-  border: 1px solid #ece8f4;
-  border-top: 1px solid #ece8f4;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
-.gf-toolbar :deep(.p-inputtext),
-.gf-toolbar :deep(.p-select),
-.gf-toolbar :deep(.p-datepicker-input) {
-  font-size: 12px !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-}
-.gf-toolbar :deep(.p-select-label) {
-  font-size: 12px !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-}
-
-/* Selects con valor activo → borde y texto morado */
-.gf-toolbar :deep(.p-select:not(.p-select-empty)) {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 1px #7c3aed22;
-}
-.gf-toolbar :deep(.p-select:not(.p-select-empty) .p-select-label) {
-  color: #7c3aed;
-  font-weight: 600;
-}
-.gf-toolbar :deep(.p-select:not(.p-select-empty) .p-select-dropdown) {
-  color: #7c3aed;
 }
 
 /* ══ Layout ══════════════════════════════════════════════════════════════ */
@@ -1812,18 +1839,12 @@ watch(bucket, (newBucket) => {
   flex-wrap: nowrap;
   overflow: hidden;
 }
-.gf-drawer-header > :deep(.p-button) { flex-shrink: 0; }
 .gf-drawer-body {
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   flex: 1;
-}
-.gf-drawer-body :deep(.p-tag) {
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 3px 8px;
 }
 
 /* ══ Sections ════════════════════════════════════════════════════════════ */
@@ -1971,16 +1992,6 @@ watch(bucket, (newBucket) => {
   word-break: break-word;
 }
 
-/* ══ Two-col grid ════════════════════════════════════════════════════════ */
-.gf-twocol {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 640px) {
-  .gf-twocol { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
-
 /* ══ Field row ═══════════════════════════════════════════════════════════ */
 .gf-field-row { display: flex; align-items: center; gap: 8px; }
 .gf-field-label {
@@ -2070,75 +2081,6 @@ watch(bucket, (newBucket) => {
   flex-wrap: wrap;
   padding-top: 4px;
 }
-.gf-actions-inline :deep(.p-button) {
-  flex: 1 1 140px;
-  min-width: 0;
-  padding-top: 9px;
-  padding-bottom: 9px;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-/* ══ Table wrap ══════════════════════════════════════════════════════════ */
-.gf-table-wrap {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 4px 14px rgba(28, 18, 50, 0.08);
-  overflow: hidden;
-}
-@media (min-width: 1024px) {
-  .gf-layout--split .gf-table-wrap {
-    max-height: calc(100vh - var(--gf-header-h, 6.5rem) - 1rem);
-    display: flex;
-    flex-direction: column;
-  }
-  .gf-layout--split .gf-table-wrap :deep(.p-datatable) {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .gf-layout--split .gf-table-wrap :deep(.p-datatable-wrapper) {
-    flex: 1;
-    overflow: auto;
-  }
-}
-
-/* ══ DataTable tweaks ════════════════════════════════════════════════════ */
-:deep(.gf-table .p-datatable-tbody > tr) { cursor: pointer; transition: background 0.12s; }
-:deep(.gf-table .p-datatable-tbody > tr > td) {
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-:deep(.gf-table .p-datatable-thead > tr > th) {
-  background: #faf9fc;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #6b5a8a;
-  padding: 10px 12px;
-}
-:deep(.gf-table .p-datatable-tbody > tr.gf-row-active) {
-  background: #faf5ff !important;
-  box-shadow: inset 3px 0 0 var(--color-unergy-purple);
-}
-:deep(.gf-table .p-datatable-tbody > tr.gf-row-active > td) {
-  border-color: #e9ddff;
-}
-:deep(.gf-table .p-datatable-wrapper) { overflow-x: auto; }
-
-/* ══ Prio stripe + pill + cat-dot ════════════════════════════════════════ */
-.prio-stripe {
-  width: 4px; height: 32px; border-radius: 2px; margin: 0 auto;
-}
-.cat-dot {
-  display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%;
-  box-shadow: 0 0 0 2px #fff;
-}
-
 /* ══ Días abierta badge ══════════════════════════════════════════════════ */
 .dias-badge {
   display: inline-block;
@@ -2146,374 +2088,9 @@ watch(bucket, (newBucket) => {
   font-weight: 400;
   white-space: nowrap;
 }
-.dias-green   { color: #16a34a; }
-.dias-yellow  { color: #a16207; }
-.dias-red     { color: #dc2626; }
-.dias-cerrada { color: #9ca3af; }
 
-/* ══ Row actions ══════════════════════════════════════════════════════════ */
-.row-actions {
-  display: flex; gap: 2px; opacity: 0.4; transition: opacity 0.15s;
-}
-:deep(tr:hover) .row-actions { opacity: 1; }
-
-:deep(.p-datatable-tbody > tr > td) { padding: 6px 10px; }
-:deep(.p-datatable-thead > tr > th) { padding: 6px 10px; }
-
-/* ══ Line clamp ══════════════════════════════════════════════════════════ */
-.line-clamp-1 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-
-/* ══ Compact list ════════════════════════════════════════════════════════ */
-.gf-compact {
-  flex-direction: column;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 4px 14px rgba(28, 18, 50, 0.08);
-  overflow: hidden;
-}
-@media (min-width: 1024px) {
-  .gf-compact {
-    position: sticky;
-    top: var(--gf-header-h, 6.25rem);
-    max-height: calc(100vh - var(--gf-header-h, 6.25rem) - 1.25rem);
-    z-index: 1;
-  }
-}
-.gf-compact-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid #ece8f4;
-  background: #faf9fc;
-  flex-shrink: 0;
-}
-.gf-compact-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  padding: 24px;
-}
-.gf-compact-list { overflow-y: auto; flex: 1; min-height: 0; }
-.gf-compact-row {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  padding: 10px 14px 10px 10px;
-  border: none;
-  background: #fff;
-  border-bottom: 1px solid #f3f1f8;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  transition: background 0.12s;
-}
-.gf-compact-row:hover { background: #faf9fc; }
-.gf-compact-row--active { background: #faf5ff; }
-.gf-compact-row--active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--color-unergy-purple);
-}
-.gf-compact-stripe { width: 3px; border-radius: 2px; flex-shrink: 0; }
-.gf-compact-content {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.gf-compact-line1 { display: flex; align-items: center; gap: 6px; }
-.gf-compact-code {
-  font-family: 'Courier New', monospace;
-  font-size: 10.5px; font-weight: 700; color: #6b5a8a;
-  background: #f3f1f8; padding: 1px 6px; border-radius: 4px; letter-spacing: 0.2px;
-}
-.gf-compact-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  flex-shrink: 0; margin-left: auto;
-}
-.gf-compact-line2 {
-  font-size: 13px; font-weight: 500; color: var(--color-unergy-deep); line-height: 1.3;
-  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical; word-break: break-word;
-}
-.gf-compact-row--active .gf-compact-line2 { color: #4a3b6b; font-weight: 600; }
-
-/* ══ TAB 1 — GRÁFICOS ════════════════════════════════════════════════════ */
-.mon-tab-view { padding: 24px 24px 40px; background: #f5f4f8; }
+/* ══ TAB 1 — CALENDARIO ══════════════════════════════════════════════════ */
 .mon-tab-calendario { flex: 1; display: flex; flex-direction: column; min-height: 0; background: #f5f4f8; overflow-y: auto; }
-.mon-tab-loading { display:flex; flex-direction:column; align-items:center; gap:14px; padding:80px 20px; color:#a094b8; font-size:13px; }
-.mon-spinner { width:32px; height:32px; border:3px solid #ece8f4; border-top-color:var(--color-unergy-purple); border-radius:50%; animation:spin .75s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.mon-tab-empty { text-align:center; padding:80px 20px; }
-.mon-empty-icon { font-size:40px; opacity:.2; margin-bottom:12px; }
-.mon-empty-title { font-size:15px; font-weight:700; color:#6b7280; margin-bottom:5px; }
-.mon-empty-sub { font-size:12.5px; color:#9ca3af; }
-
-/* Container */
-.charts-container { display:flex; flex-direction:column; gap:16px; }
-
-/* Charts grid */
-.chart-card {
-  background:#fff; border:1px solid #ece8f4; border-radius:12px;
-  padding:16px 18px; box-shadow:0 1px 4px rgba(28,18,50,.05);
-}
-.chart-card--wide { grid-column: 1 / -1; }
-.chart-card-title { font-size:12.5px; font-weight:700; color:var(--color-unergy-deep); margin-bottom:14px; }
-.chart-card-sub { font-size:11px; font-weight:500; color:#a094b8; }
-.chart-canvas-wrap { position:relative; }
-
-@media (max-width:768px) {
-  .mon-tab-view { padding:16px; }
-  .chart-card--wide { grid-column:1; }
-}
-
-/* ══ P90 Section ════════════════════════════════════════════════════════ */
-.p90-section-head {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  background:#fff; border:1px solid #ece8f4; border-radius:12px;
-  padding:14px 18px; box-shadow:0 1px 3px rgba(28,18,50,.04);
-}
-.p90-section-title {
-  display:flex; align-items:center; gap:8px; flex:1; min-width:0;
-  font-size:13px; font-weight:700; color:var(--color-unergy-deep);
-}
-.p90-section-sub { font-size:11.5px; font-weight:500; color:#a094b8; }
-.p90-controls { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-:deep(.p90-dp .p-datepicker-input) {
-  font-size:12px !important; padding:5px 8px !important; width:110px !important;
-}
-.p90-reload-btn {
-  width:30px; height:30px; display:flex; align-items:center; justify-content:center;
-  background:#f4f1fa; border:1px solid #e5e0f0; border-radius:8px;
-  cursor:pointer; color:#6b5a8a; font-size:12px; transition:background .12s;
-}
-.p90-reload-btn:hover:not(:disabled) { background:#e9e0f5; }
-.p90-reload-btn:disabled { opacity:.4; cursor:not-allowed; }
-
-.p90-kpis { display:flex; gap:8px; flex-wrap:wrap; }
-.p90-kpi {
-  display:flex; flex-direction:column; align-items:center;
-  background:#faf9fc; border:1px solid #ece8f4; border-radius:10px;
-  padding:8px 16px; min-width:72px;
-}
-.p90-kpi--green { background:#f0fdf4; border-color:#bbf7d0; }
-.p90-kpi--red   { background:#fef2f2; border-color:#fecaca; }
-.p90-kpi-val { font-size:20px; font-weight:900; line-height:1; }
-.p90-kpi-lbl {
-  font-size:9.5px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.3px; color:#9b89b5; margin-top:3px;
-}
-
-.p90-state {
-  display:flex; flex-direction:column; align-items:center;
-  gap:8px; padding:40px 20px; font-size:12.5px; color:#9ca3af;
-}
-
-.p90-bar-card { cursor:pointer; }
-.p90-chart-legend {
-  display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;
-}
-.p90-legend-item { display:flex; align-items:center; gap:5px; font-size:11.5px; color:#6b5a8a; }
-.p90-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-.p90-legend-hint { font-size:11px; color:#a094b8; }
-
-.p90-detail-card {
-  background:#fff; border:1px solid #d1fae5; border-radius:12px;
-  padding:14px 18px; box-shadow:0 1px 4px rgba(22,163,74,.08);
-}
-.p90-detail-head {
-  display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap;
-}
-.p90-detail-kpis {
-  margin-left:auto; display:flex; align-items:center; gap:10px;
-  font-size:11.5px; font-weight:700;
-}
-.p90-close-btn {
-  width:22px; height:22px; display:flex; align-items:center; justify-content:center;
-  background:#f0eaf8; border:none; border-radius:6px;
-  cursor:pointer; color:#6b5a8a; flex-shrink:0;
-}
-
-.p90-separator {
-  display:flex; align-items:center; gap:8px;
-  font-size:11px; font-weight:700; text-transform:uppercase;
-  letter-spacing:.5px; color:#a094b8; padding:4px 0;
-}
-.p90-separator::after { content:''; flex:1; height:1px; background:#ece8f4; }
-
-/* ── Gen cards ── */
-
-
-.genproj-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 20px 10px;
-  flex-wrap: wrap;
-}
-.genproj-controls--row2 {
-  padding-top: 0;
-  padding-bottom: 12px;
-}
-.genproj-select {
-  min-width: 220px;
-  flex: 1;
-  max-width: 300px;
-  font-size: 12px;
-}
-.genproj-quick-btns {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.genproj-quick-btn {
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 500;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.genproj-quick-btn:hover { border-color: var(--color-unergy-purple); color: var(--color-unergy-purple); }
-.genproj-quick-btn--active {
-  background: var(--color-unergy-purple);
-  border-color: var(--color-unergy-purple);
-  color: #fff;
-}
-.genproj-gran-toggle {
-  display: flex;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  overflow: hidden;
-}
-.genproj-gran-btn {
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f9fafb;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s;
-}
-.genproj-gran-btn + .genproj-gran-btn { border-left: 1px solid #e5e7eb; }
-.genproj-gran-btn--active { background: #7c3aed; color: #fff; }
-.genproj-gran-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.genproj-kpi {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 20px 8px;
-  font-size: 11px;
-  color: #6b7280;
-}
-.genproj-kpi-val { font-size: 15px; font-weight: 700; color: #7c3aed; }
-.genproj-kpi-lbl { color: #9ca3af; }
-.genproj-kpi-sep { color: #d1d5db; }
-
-.genproj-leyenda {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  padding: 6px 20px 0;
-  font-size: 11px;
-  color: #6b7280;
-}
-.genproj-dot {
-  display: inline-block;
-  width: 10px; height: 10px;
-  border-radius: 2px;
-  margin-right: 5px;
-  vertical-align: middle;
-  box-sizing: border-box;
-}
-.genproj-fallas {
-  margin: 14px 20px 4px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.genproj-fallas-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff7f7;
-  padding: 7px 12px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #dc2626;
-  border-bottom: 1px solid #fecaca;
-}
-.genproj-falla-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
-  flex-wrap: wrap;
-}
-.genproj-falla-row:last-child { border-bottom: none; }
-.genproj-codigo {
-  font-family: monospace;
-  font-size: 10.5px;
-  background: #f3f4f6;
-  color: #374151;
-  padding: 1px 5px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.genproj-fecha {
-  color: #6b7280;
-  flex-shrink: 0;
-  min-width: 72px;
-}
-.genproj-estado {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-.genproj-prio {
-  font-size: 10.5px;
-  font-weight: 600;
-  flex-shrink: 0;
-  min-width: 60px;
-}
-.genproj-desc {
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-}
-.genproj-sin-fallas {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 20px 12px;
-  font-size: 11px;
-  color: #16a34a;
-}
 
 /* ══ DIALOG RESOLVER FALLA ══════════════════════════════════════════════════ */
 .resolve-dialog-body {

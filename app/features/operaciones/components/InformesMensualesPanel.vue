@@ -1,6 +1,5 @@
 <template>
-  <div class="im-wrap">
-
+  <div class="flex flex-col gap-4">
     <!-- Toast -->
     <transition name="fade">
       <div v-if="toastMsg" :class="['im-toast', toastErr ? 'im-toast-err' : 'im-toast-ok']">
@@ -9,168 +8,335 @@
     </transition>
 
     <!-- ══ Toolbar de configuración ═══════════════════════════════════ -->
-    <section class="im-toolbar im-no-print">
-      <!-- Tipo de informe -->
-      <div class="im-row im-row-top">
-        <div class="im-segmented im-segmented-lg">
-          <button v-for="t in TIPOS" :key="t.key" class="im-seg-btn"
-                  :class="{ 'im-seg-btn--active': tipo === t.key }"
-                  @click="cambiarTipo(t.key)">
-            <component :is="t.icon" class="size-[1em]" /> {{ t.label }}
-          </button>
+    <Card size="sm" class="im-no-print">
+      <CardContent class="flex flex-col gap-3">
+        <!-- Tipo de informe -->
+        <div class="flex flex-wrap items-center gap-3.5">
+          <ButtonGroup>
+            <Button
+              v-for="t in TIPOS"
+              :key="t.key"
+              type="button"
+              :variant="tipo === t.key ? 'secondary' : 'outline'"
+              size="sm"
+              @click="cambiarTipo(t.key)"
+            >
+              <component :is="t.icon" class="size-4" /> {{ t.label }}
+            </Button>
+          </ButtonGroup>
+
+          <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <InfoIcon class="size-3.5 shrink-0" />
+            {{ TIPOS.find((t) => t.key === tipo)?.tip }}
+          </p>
         </div>
 
-        <div class="im-tip">
-          <InfoIcon class="size-[1em]" />
-          <span>{{ TIPOS.find(t => t.key === tipo)?.tip }}</span>
-        </div>
-      </div>
-
-      <!-- Banner: días para entrega FMO -->
-      <div v-if="tipo === 'fmo'" :class="['im-deadline', deadlineCls]">
-        <div class="im-deadline-left">
-          <CalendarClockIcon class="size-[1em]" />
-          <span>Entrega informe FMO — primeros <b>5 días</b> del mes</span>
-        </div>
-        <div class="im-deadline-right">{{ deadlineLabel }}</div>
-      </div>
-
-      <!-- Selectores -->
-      <div class="im-row">
-        <!-- Proyecto (operacional individual y FMO) -->
-        <div v-if="tipo === 'proyecto' || tipo === 'fmo'" class="im-field">
-          <label class="im-label">{{ tipo === 'fmo' ? 'Proyecto con contrato FMO' : 'Proyecto' }}</label>
-          <Select v-model="proyectoSel" :options="opcionesProyecto" optionLabel="label" optionValue="value"
-                  :filter="true" filterPlaceholder="Buscar…" placeholder="Selecciona un proyecto…"
-                  class="im-select" :loading="loadingCatalogos" />
-        </div>
-
-        <!-- Ranking vs P90: alcance (portafolio / proyectos) -->
-        <div v-if="tipo === 'ranking'" class="im-field im-field-narrow">
-          <label class="im-label">Alcance</label>
-          <div class="im-segmented">
-            <button class="im-seg-btn" :class="{ 'im-seg-btn--active': rankingScope === 'portafolio' }"
-                    @click="rankingScope = 'portafolio'">Portafolio</button>
-            <button class="im-seg-btn" :class="{ 'im-seg-btn--active': rankingScope === 'proyectos' }"
-                    @click="rankingScope = 'proyectos'">Proyectos</button>
+        <!-- Banner: días para entrega FMO -->
+        <div
+          v-if="tipo === 'fmo'"
+          class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5 text-sm"
+          :class="
+            deadlineTone === 'red'
+              ? 'border-destructive/30 bg-destructive/10 text-destructive'
+              : deadlineTone === 'yellow'
+                ? 'border-warning/30 bg-warning/10 text-warning'
+                : 'border-success/30 bg-success/10 text-success'
+          "
+        >
+          <div class="flex items-center gap-2 font-medium">
+            <CalendarClockIcon class="size-4" />
+            <span>Entrega informe FMO — primeros <b>5 días</b> del mes</span>
           </div>
+          <div class="font-bold">{{ deadlineLabel }}</div>
         </div>
 
-        <!-- Ranking por proyectos: multiselección -->
-        <div v-if="tipo === 'ranking' && rankingScope === 'proyectos'" class="im-field">
-          <label class="im-label">Proyectos (uno o varios)</label>
-          <MultiSelect v-model="proyectosSel" :options="opcionesProyecto" optionLabel="label" optionValue="value"
-                       :filter="true" filterPlaceholder="Buscar…" placeholder="Selecciona proyectos…"
-                       display="chip" class="im-select" :loading="loadingCatalogos" />
-        </div>
-
-        <!-- Portafolio (tipo portafolio o ranking por portafolio) -->
-        <div v-if="tipo === 'portafolio' || (tipo === 'ranking' && rankingScope === 'portafolio')" class="im-field">
-          <label class="im-label">Portafolio / Cliente</label>
-          <Select v-model="portafolioSel" :options="opcionesPortafolio" optionLabel="label" optionValue="value"
-                  :filter="true" filterPlaceholder="Buscar…" placeholder="Selecciona un portafolio…"
-                  class="im-select" :loading="loadingCatalogos">
-            <template #option="{ option }">
-              <div class="flex items-center justify-between gap-3 w-full">
-                <span>{{ option.label }}</span>
-                <span class="text-[10px] text-gray-400">{{ option.count }} proyecto{{ option.count !== 1 ? 's' : '' }}</span>
-              </div>
-            </template>
-          </Select>
-        </div>
-
-        <!-- Modo de período -->
-        <div class="im-field im-field-narrow">
-          <label class="im-label">Período</label>
-          <div class="im-segmented">
-            <button class="im-seg-btn" :class="{ 'im-seg-btn--active': periodoMode === 'mes' }"
-                    @click="periodoMode = 'mes'">Mensual</button>
-            <button v-if="tipo !== 'fmo'" class="im-seg-btn"
-                    :class="{ 'im-seg-btn--active': periodoMode === 'custom' }"
-                    @click="periodoMode = 'custom'">Rango</button>
+        <!-- Selectores -->
+        <div class="flex flex-wrap items-end gap-2.5">
+          <!-- Proyecto (operacional individual y FMO) -->
+          <div v-if="tipo === 'proyecto' || tipo === 'fmo'" class="flex min-w-50 flex-1 flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              {{ tipo === 'fmo' ? 'Proyecto con contrato FMO' : 'Proyecto' }}
+            </label>
+            <Combobox
+              :model-value="proyectoSel"
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (proyectoSel = v ?? '')"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="(v) => opcionesProyecto.find((o) => o.value === v)?.label ?? ''"
+                  :disabled="loadingCatalogos"
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona un proyecto…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                  {{ o.label }}
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
           </div>
-        </div>
 
-        <!-- Mes -->
-        <div v-if="periodoMode === 'mes'" class="im-field im-field-narrow">
-          <label class="im-label">Mes</label>
-          <input type="month" v-model="mesSel" :max="mesMax" class="im-input" />
-        </div>
+          <!-- Ranking vs P90: alcance (portafolio / proyectos) -->
+          <div v-if="tipo === 'ranking'" class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Alcance
+            </label>
+            <ButtonGroup>
+              <Button
+                type="button"
+                :variant="rankingScope === 'portafolio' ? 'secondary' : 'outline'"
+                size="sm"
+                @click="rankingScope = 'portafolio'"
+              >
+                Portafolio
+              </Button>
+              <Button
+                type="button"
+                :variant="rankingScope === 'proyectos' ? 'secondary' : 'outline'"
+                size="sm"
+                @click="rankingScope = 'proyectos'"
+              >
+                Proyectos
+              </Button>
+            </ButtonGroup>
+          </div>
 
-        <!-- Rango custom (no FMO) -->
-        <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="im-field im-field-narrow">
-          <label class="im-label">Desde</label>
-          <input type="date" v-model="customDesde" :max="hoyISO" class="im-input" />
-        </div>
-        <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="im-field im-field-narrow">
-          <label class="im-label">Hasta</label>
-          <input type="date" v-model="customHasta" :max="hoyISO" class="im-input" />
-        </div>
+          <!-- Ranking por proyectos: multiselección -->
+          <div
+            v-if="tipo === 'ranking' && rankingScope === 'proyectos'"
+            class="flex min-w-50 flex-1 flex-col gap-1"
+          >
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Proyectos (uno o varios)
+            </label>
+            <Combobox
+              :model-value="proyectosSel"
+              multiple
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (proyectosSel = v ?? [])"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="
+                    (v) =>
+                      Array.isArray(v) && v.length
+                        ? `${v.length} proyecto${v.length > 1 ? 's' : ''} seleccionados`
+                        : ''
+                  "
+                  :disabled="loadingCatalogos"
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona proyectos…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                  {{ o.label }}
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
+          </div>
 
-        <!-- Acción principal -->
-        <div class="im-field im-field-actions">
-          <Button label="Generar" size="small" :loading="generando" :disabled="!puedeGenerar" @click="generar" class="im-btn-primary">
-            <template #icon><SettingsIcon class="size-[1em]" /></template>
+          <!-- Portafolio (tipo portafolio o ranking por portafolio) -->
+          <div
+            v-if="tipo === 'portafolio' || (tipo === 'ranking' && rankingScope === 'portafolio')"
+            class="flex min-w-50 flex-1 flex-col gap-1"
+          >
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Portafolio / Cliente
+            </label>
+            <Combobox
+              :model-value="portafolioSel"
+              open-on-click
+              open-on-focus
+              @update:model-value="(v) => (portafolioSel = v ?? '')"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="(v) => opcionesPortafolio.find((o) => o.value === v)?.label ?? ''"
+                  :disabled="loadingCatalogos"
+                  :placeholder="loadingCatalogos ? 'Cargando…' : 'Selecciona un portafolio…'"
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxItem v-for="o in opcionesPortafolio" :key="o.value" :value="o.value">
+                  <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>
+                  <span class="shrink-0 text-xs text-muted-foreground"
+                    >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
+                  >
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxList>
+            </Combobox>
+          </div>
+
+          <!-- Modo de período -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Período
+            </label>
+            <ButtonGroup>
+              <Button
+                type="button"
+                :variant="periodoMode === 'mes' ? 'secondary' : 'outline'"
+                size="sm"
+                @click="periodoMode = 'mes'"
+              >
+                Mensual
+              </Button>
+              <Button
+                v-if="tipo !== 'fmo'"
+                type="button"
+                :variant="periodoMode === 'custom' ? 'secondary' : 'outline'"
+                size="sm"
+                @click="periodoMode = 'custom'"
+              >
+                Rango
+              </Button>
+            </ButtonGroup>
+          </div>
+
+          <!-- Mes -->
+          <div v-if="periodoMode === 'mes'" class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Mes
+            </label>
+            <Input v-model="mesSel" type="month" :max="mesMax" class="w-auto" />
+          </div>
+
+          <!-- Rango custom (no FMO) -->
+          <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Desde
+            </label>
+            <Input v-model="customDesde" type="date" :max="hoyISO" class="w-auto" />
+          </div>
+          <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="flex flex-col gap-1">
+            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+              Hasta
+            </label>
+            <Input v-model="customHasta" type="date" :max="hoyISO" class="w-auto" />
+          </div>
+
+          <!-- Acción principal -->
+          <Button :disabled="!puedeGenerar" @click="generar">
+            <LoaderCircleIcon v-if="generando" class="animate-spin" />
+            <SettingsIcon v-else />
+            Generar
           </Button>
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
 
     <!-- ══ Estados ════════════════════════════════════════════════════ -->
-    <div v-if="loadingCatalogos && !catalogosListos" class="im-empty im-no-print">
-      <ProgressSpinner style="width:36px;height:36px" />
-      <p class="im-empty-title">Cargando catálogos…</p>
-      <p class="im-empty-sub">Consultando proyectos, portafolios y contratos.</p>
-    </div>
+    <Card v-if="loadingCatalogos && !catalogosListos" class="im-no-print">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <LoaderCircleIcon class="size-8 animate-spin text-primary" />
+        <p class="text-base font-semibold text-foreground">Cargando catálogos...</p>
+        <p class="text-sm text-muted-foreground">Consultando proyectos, portafolios y contratos.</p>
+      </CardContent>
+    </Card>
 
-    <div v-else-if="generando" class="im-empty im-no-print">
-      <ProgressSpinner style="width:36px;height:36px" />
-      <p class="im-empty-title">{{ loadingMsg }}</p>
-      <p class="im-empty-sub">{{ loadingSub }}</p>
-    </div>
+    <Card v-else-if="generando" class="im-no-print">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <LoaderCircleIcon class="size-8 animate-spin text-primary" />
+        <p class="text-base font-semibold text-foreground">{{ loadingMsg }}</p>
+        <p class="text-sm text-muted-foreground">{{ loadingSub }}</p>
+      </CardContent>
+    </Card>
 
-    <div v-else-if="error" class="im-error im-no-print">
-      <CircleAlertIcon class="text-2xl text-red-500 size-[1em]" />
-      <div class="flex-1">
-        <p class="font-semibold text-red-700">{{ error.title || 'No se pudo generar el informe' }}</p>
-        <p class="text-sm text-gray-600 mt-0.5">{{ error.detail || error.message || '' }}</p>
-      </div>
-      <Button label="Reintentar" outlined size="small" @click="generar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
+    <Card v-else-if="error" class="im-no-print">
+      <CardContent class="flex items-start gap-3">
+        <CircleAlertIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
+        <div class="flex-1">
+          <p class="font-semibold text-destructive">
+            {{ error.title || 'No se pudo generar el informe' }}
+          </p>
+          <p class="mt-0.5 text-sm text-muted-foreground">{{ error.detail || error.message || '' }}</p>
+        </div>
+        <Button variant="outline" size="sm" @click="generar">
+          <RefreshCwIcon /> Reintentar
+        </Button>
+      </CardContent>
+    </Card>
 
-    <div v-else-if="!htmlContent" class="im-empty im-no-print">
-      <FilePenIcon class="text-4xl size-[1em]" style="color:var(--color-unergy-purple)" />
-      <p class="im-empty-title">Listo para generar</p>
-      <p class="im-empty-sub">Selecciona el tipo de informe, proyecto/portafolio y período, luego presiona <b>Generar informe</b>.</p>
-    </div>
+    <Card v-else-if="!htmlContent" class="im-no-print">
+      <CardContent class="flex flex-col items-center gap-1 py-12 text-center">
+        <FilePenIcon class="mb-2 size-8 text-primary" />
+        <p class="text-base font-semibold text-foreground">Listo para generar</p>
+        <p class="text-sm text-muted-foreground">
+          Selecciona el tipo de informe, proyecto/portafolio y período, luego presiona
+          <strong>Generar</strong>.
+        </p>
+      </CardContent>
+    </Card>
 
     <!-- ══ Resultado + acciones ════════════════════════════════════════ -->
     <template v-else>
-      <section class="im-result-bar im-no-print">
-        <div class="im-result-meta">
-          <span class="im-result-pill" :class="`im-pill-${tipo}`">
-            {{ tipo === 'fmo' ? 'FMO' : tipo === 'portafolio' ? 'Portafolio' : tipo === 'ranking' ? 'Ranking vs P90' : 'Operacional' }}
-          </span>
-          <span class="im-result-title">{{ resultTitle }}</span>
-          <span class="im-result-sub">· {{ rangeLabel }}</span>
-        </div>
-        <div class="im-result-actions">
-          <Button outlined severity="secondary" size="small" :disabled="guardando" @click="descartar" v-tooltip.bottom="'Descartar y volver al wizard'">
-            <template #icon><XIcon class="size-[1em]" /></template>
-          </Button>
-          <Button label="PDF" outlined size="small" severity="warn" @click="imprimir" v-tooltip.bottom="'Imprimir o exportar a PDF'">
-            <template #icon><PrinterIcon class="size-[1em]" /></template>
-          </Button>
-          <Button :label="guardando ? 'Guardando…' : (informeIdGuardado ? 'Actualizar' : 'Guardar')" :loading="guardando" size="small" class="im-btn-primary" @click="guardar" v-tooltip.bottom="'Guardar como borrador para revisión/aprobación'">
-            <template #icon><SaveIcon class="size-[1em]" /></template>
-          </Button>
-          <Button v-if="informeIdGuardado" outlined size="small" @click="abrirEditor" v-tooltip.bottom="'Abrir en el editor (flujo de aprobación)'">
-            <template #icon><ArrowRightIcon class="size-[1em]" /></template>
-          </Button>
-        </div>
-      </section>
+      <Card size="sm" class="im-no-print">
+        <CardContent class="flex flex-wrap items-center justify-between gap-2.5">
+          <div class="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">
+              {{
+                tipo === 'fmo'
+                  ? 'FMO'
+                  : tipo === 'portafolio'
+                    ? 'Portafolio'
+                    : tipo === 'ranking'
+                      ? 'Ranking vs P90'
+                      : 'Operacional'
+              }}
+            </Badge>
+            <span class="text-sm font-bold text-foreground">{{ resultTitle }}</span>
+            <span class="text-xs text-muted-foreground">· {{ rangeLabel }}</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              :disabled="guardando"
+              title="Descartar y volver al wizard"
+              @click="descartar"
+            >
+              <XIcon />
+            </Button>
+            <Button variant="outline" size="sm" title="Imprimir o exportar a PDF" @click="imprimir">
+              <PrinterIcon /> PDF
+            </Button>
+            <Button
+              size="sm"
+              :disabled="guardando"
+              title="Guardar como borrador para revisión/aprobación"
+              @click="guardar"
+            >
+              <LoaderCircleIcon v-if="guardando" class="animate-spin" />
+              <SaveIcon v-else />
+              {{ guardando ? 'Guardando…' : informeIdGuardado ? 'Actualizar' : 'Guardar' }}
+            </Button>
+            <Button
+              v-if="informeIdGuardado"
+              variant="outline"
+              size="sm"
+              title="Abrir en el editor (flujo de aprobación)"
+              @click="abrirEditor"
+            >
+              <ArrowRightIcon />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Reporte HTML embebido -->
       <div class="im-report-frame">
@@ -183,17 +349,13 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
-import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
 import { logger } from '~/core/logger'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
-import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CheckIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const router = useRouter()
 const informesService = new InformesService()
@@ -271,6 +433,7 @@ const opcionesPortafolio = computed(() => {
     .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
 
+
 const puedeGenerar = computed(() => {
   if (generando.value || !catalogosListos.value) return false
   if (tipo.value === 'proyecto' || tipo.value === 'fmo') {
@@ -300,16 +463,16 @@ const deadlineLabel = computed(() => {
   if (diff <= 7) return `🟡 Quedan ${diff} días`
   return `✅ Quedan ${diff} días`
 })
-const deadlineCls = computed(() => {
+const deadlineTone = computed(() => {
   const now = new Date()
   const day = now.getDate()
   const deadline = day <= 5
     ? new Date(now.getFullYear(), now.getMonth(), 5)
     : new Date(now.getFullYear(), now.getMonth() + 1, 5)
   const diff = Math.ceil((deadline - now) / 86400000)
-  if (diff < 0 || diff <= 3) return 'im-deadline--red'
-  if (diff <= 7) return 'im-deadline--yellow'
-  return 'im-deadline--green'
+  if (diff < 0 || diff <= 3) return 'red'
+  if (diff <= 7) return 'yellow'
+  return 'green'
 })
 
 // ── Acciones ───────────────────────────────────────────────────────────
@@ -1638,10 +1801,6 @@ watch(tipo, (t) => {
 </script>
 
 <style scoped>
-.im-wrap {
-  font-family: 'Sora', system-ui, sans-serif;
-}
-
 /* Toast */
 .im-toast {
   position: fixed; top: 80px; right: 24px;
@@ -1652,122 +1811,6 @@ watch(tipo, (t) => {
 .im-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-
-/* Toolbar compacto */
-.im-toolbar {
-  background: #fff;
-  border-radius: 10px;
-  padding: 10px 14px 12px;
-  margin: 12px 16px 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
-  border: 1px solid #ECE7F2;
-}
-.im-row {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
-}
-.im-row-top { align-items: center; margin-bottom: 10px; gap: 14px; }
-
-.im-segmented {
-  display: inline-flex; background: #F4F1FA; border-radius: 7px; padding: 2px; border: 1px solid #E5E2EC;
-}
-.im-segmented-lg .im-seg-btn { padding: 6px 11px; font-size: 12px; }
-.im-seg-btn {
-  border: none; background: transparent; color: #6B5A8A;
-  padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
-  cursor: pointer; transition: all .15s; font-family: inherit;
-  display: inline-flex; align-items: center; gap: 5px;
-}
-.im-seg-btn:hover { color: var(--color-unergy-deep); }
-.im-seg-btn--active {
-  background: var(--color-unergy-purple); color: var(--color-unergy-avena);
-  box-shadow: 0 2px 6px rgba(145,91,216,.25);
-}
-.im-seg-btn--active:hover { color: #fff; }
-
-.im-tip {
-  font-size: 11px; color: #6B5A8A;
-  display: inline-flex; align-items: center; gap: 5px;
-}
-.im-tip svg { color: var(--color-unergy-purple); font-size: 11px; }
-
-.im-field { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 200px; }
-.im-field-narrow { flex: 0 0 auto; min-width: 120px; }
-.im-field-actions { flex: 0 0 auto; }
-.im-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .4px; color: #9CA3AF;
-}
-.im-select :deep(.p-select) { width: 100%; }
-.im-select :deep(.p-select-label) { padding: 5px 10px; font-size: 12px; }
-.im-input {
-  border: 1.5px solid #E5E2EC; border-radius: 6px; padding: 5px 10px;
-  font-size: 12px; color: var(--color-unergy-deep); outline: none; font-family: inherit;
-  background: #fff;
-  transition: border-color .15s;
-  color-scheme: light;
-  height: 30px;
-}
-.im-input:focus { border-color: var(--color-unergy-purple); }
-:deep(.im-btn-primary) {
-  background: var(--color-unergy-purple) !important; border-color: var(--color-unergy-purple) !important; color: var(--color-unergy-avena) !important;
-}
-:deep(.im-btn-primary:hover) {
-  background: #7C3AED !important; border-color: #7C3AED !important;
-}
-:deep(.im-btn-primary.p-button:focus) {
-  box-shadow: 0 0 0 2px rgba(145,91,216,.25) !important;
-}
-
-/* Deadline banner (compacto) */
-.im-deadline {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap; padding: 6px 12px; border-radius: 8px;
-  margin: 0 0 10px; border: 1px solid;
-  font-size: 12px;
-}
-.im-deadline-left { display: inline-flex; align-items: center; gap: 6px; color: #4B3A6E; }
-.im-deadline-right { font-weight: 800; font-size: 12px; }
-.im-deadline--green  { background: #F0FDF4; border-color: #BBF7D0; }
-.im-deadline--green  .im-deadline-right { color: #16A34A; }
-.im-deadline--yellow { background: #FEFCE8; border-color: #FDE68A; }
-.im-deadline--yellow .im-deadline-right { color: #B45309; }
-.im-deadline--red    { background: #FEF2F2; border-color: #FECACA; }
-.im-deadline--red    .im-deadline-right { color: #DC2626; }
-
-/* Estados (loading/error/empty) — más compactos */
-.im-empty, .im-error {
-  margin: 16px;
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 10px;
-  padding: 40px 24px; text-align: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-}
-.im-error { flex-direction: row; text-align: left; padding: 14px 18px; align-items: center; }
-.im-empty-title { font-size: 14px; font-weight: 800; color: var(--color-unergy-deep); }
-.im-empty-sub { font-size: 12px; color: #6B5A8A; max-width: 460px; }
-
-/* Result bar (sticky-friendly y compacto) */
-.im-result-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap;
-  margin: 10px 16px 0;
-  padding: 7px 14px;
-  background: #fff; border-radius: 10px;
-  border: 1px solid #ECE7F2;
-  box-shadow: 0 1px 3px rgba(0,0,0,.04);
-  position: sticky; top: 0; z-index: 8;
-}
-.im-result-meta { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.im-result-pill {
-  font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 20px;
-  letter-spacing: .4px; text-transform: uppercase;
-}
-.im-pill-proyecto   { background: #F3F0FF; color: #6D28D9; border: 1px solid #E9D5FF; }
-.im-pill-portafolio { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
-.im-pill-fmo        { background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE; }
-.im-result-title { font-weight: 700; color: #1A1025; font-size: 13px; }
-.im-result-sub { color: #6B5A8A; font-size: 11px; }
-.im-result-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 
 /* Report frame */
 .im-report-frame {

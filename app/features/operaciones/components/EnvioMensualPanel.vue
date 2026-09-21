@@ -5,35 +5,57 @@
       <!-- ══ TOOLBAR compacto (una sola fila) ══════════════════════ -->
       <header class="em-header">
         <!-- Ícono + label mínimo -->
-        <span class="em-header-label"
-              v-tooltip.bottom="'Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío'">
+        <span
+          class="em-header-label"
+          title="Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío"
+        >
           <SendIcon class="size-[1em]" /> Revisión y envío
         </span>
 
         <!-- Envío masivo inline (solo cuando aplica) -->
-        <button v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
-                class="em-batch-inline"
-                :disabled="enviandoBatch"
-                @click="abrirConfirmEnvio"
-                v-tooltip.bottom="'Enviar todos los informes verificados al cliente'">
-          <SendIcon class="size-[1em]" />
+        <Button
+          v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
+          size="sm"
+          :disabled="enviandoBatch"
+          title="Enviar todos los informes verificados al cliente"
+          class="bg-success text-success-foreground hover:bg-success/90"
+          @click="abrirConfirmEnvio"
+        >
+          <SendIcon />
           Enviar {{ puedeEnviarBatch.length }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}
-        </button>
+        </Button>
 
         <!-- Controles -->
         <div class="em-header-controls">
-          <div class="em-search-wrap">
-            <SearchIcon class="em-search-icon size-[1em]" />
-            <input v-model="busqueda" type="text" placeholder="Buscar…" class="em-search-input" />
-            <button v-if="busqueda" class="em-search-clear" @click="busqueda = ''" title="Limpiar">✕</button>
-          </div>
-          <div class="em-month-picker">
-            <button class="em-month-nav" @click="cambiarMes(-1)" title="Mes anterior">‹</button>
-            <input type="month" v-model="mesSel" :max="mesMax" class="em-month-input" />
-            <button class="em-month-nav" @click="cambiarMes(1)" :disabled="mesSel === mesMax" title="Mes siguiente">›</button>
-          </div>
-          <Button text size="small" :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <InputGroup class="h-8 w-48">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput v-model="busqueda" placeholder="Buscar…" />
+            <InputGroupAddon v-if="busqueda" align="inline-end">
+              <InputGroupButton size="icon-xs" aria-label="Limpiar" @click="busqueda = ''">
+                <XIcon />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+          <ButtonGroup>
+            <Button variant="ghost" size="icon-sm" title="Mes anterior" @click="cambiarMes(-1)">
+              <ChevronLeftIcon />
+            </Button>
+            <Input v-model="mesSel" type="month" :max="mesMax" class="h-8 w-auto" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :disabled="mesSel === mesMax"
+              title="Mes siguiente"
+              @click="cambiarMes(1)"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </ButtonGroup>
+          <Button variant="ghost" size="icon-sm" :disabled="loading" title="Actualizar" @click="cargar">
+            <LoaderCircleIcon v-if="loading" class="animate-spin" />
+            <RefreshCwIcon v-else />
           </Button>
         </div>
       </header>
@@ -50,14 +72,15 @@
               <span class="em-compact-count">{{ filtrados.length }} informe{{ filtrados.length !== 1 ? 's' : '' }}</span>
             </div>
             <div v-if="loading" class="em-compact-empty">
-              <ProgressSpinner style="width:24px;height:24px" />
+              <LoaderCircleIcon class="size-6 animate-spin text-primary" />
             </div>
             <div v-else-if="!filtrados.length" class="em-compact-empty">
               <InboxIcon class="size-[1em]" style="font-size:20px;color:#A89EC0;margin-bottom:6px" />
               <p style="font-size:11px;color:#6B5A8A;margin:0">Sin resultados</p>
             </div>
             <div v-else class="em-compact-list">
-              <button v-for="inf in filtrados" :key="inf.id"
+              <button
+v-for="inf in filtrados" :key="inf.id"
                       class="em-compact-row"
                       :class="{ 'em-compact-row--active': drawerInf?.id === inf.id }"
                       @click="abrirDrawer(inf)">
@@ -66,18 +89,15 @@
                   <div class="em-compact-nombre">{{ inf.proyecto_nombre || inf.sub_project }}</div>
                   <div class="em-compact-meta">
                     <span class="em-tipo-tag">{{ tipoLabel(inf.tipo) }}</span>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(inf)}`]" style="font-size:9px;padding:1px 6px">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(inf)]" size="sm">
                       {{ estadoLabel(pipelineEstado(inf)) }}
-                    </span>
+                    </GBadge>
                   </div>
                 </div>
                 <div class="em-compact-actions" @click.stop>
-                  <button class="em-icon-btn em-btn-edit"
-                          @click="editar(inf)"
-                          v-tooltip.right="'Editar informe'"
-                          style="width:22px;height:22px;font-size:11px">
-                    <PencilIcon class="size-[1em]" />
-                  </button>
+                  <Button variant="ghost" size="icon-xs" title="Editar informe" @click="editar(inf)">
+                    <PencilIcon />
+                  </Button>
                 </div>
               </button>
             </div>
@@ -86,7 +106,7 @@
           <!-- TABLA COMPLETA cuando no hay panel abierto -->
           <div v-else class="em-table-wrap">
             <div v-if="loading" class="em-state">
-              <ProgressSpinner style="width:32px;height:32px" />
+              <LoaderCircleIcon class="size-8 animate-spin text-primary" />
               <span>Cargando informes del mes…</span>
             </div>
             <div v-else-if="!filtrados.length" class="em-state em-state-empty">
@@ -116,24 +136,25 @@
                     <span class="em-group-count">{{ row._count }}</span>
                   </td>
                 </tr>
-                <tr v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
+                <tr
+v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
                     @click="abrirDrawer(row)">
                   <td>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(row)}`]">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(row)]" size="sm">
                       {{ estadoLabel(pipelineEstado(row)) }}
-                    </span>
+                    </GBadge>
                   </td>
                   <td class="em-td-proj">
                     <div class="em-proj-nombre">{{ row.proyecto_nombre || row.sub_project }}</div>
-                    <div class="em-proj-sub" v-if="row.tipo === 'port'">{{ (row.miembros || []).length }} proyecto{{ (row.miembros || []).length !== 1 ? 's' : '' }}</div>
-                    <div class="em-proj-sub" v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre">{{ row.sub_project }}</div>
+                    <div v-if="row.tipo === 'port'" class="em-proj-sub">{{ (row.miembros || []).length }} proyecto{{ (row.miembros || []).length !== 1 ? 's' : '' }}</div>
+                    <div v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre" class="em-proj-sub">{{ row.sub_project }}</div>
                   </td>
                   <td>
                     <span class="em-tipo-tag">{{ tipoLabel(row.tipo) }}</span>
                   </td>
                   <td class="em-td-fecha">
                     <div>{{ row.editado_en ? formatFecha(row.editado_en) : '—' }}</div>
-                    <div class="em-fecha-sub" v-if="row.editado_por_nombre">{{ row.editado_por_nombre }}</div>
+                    <div v-if="row.editado_por_nombre" class="em-fecha-sub">{{ row.editado_por_nombre }}</div>
                   </td>
                   <td class="em-td-fecha">
                     <div v-if="row.aprobado_por_nombre">
@@ -144,47 +165,75 @@
                   <td class="em-td-fecha">
                     <div v-if="row.correo_enviado">
                       <span class="em-mail-ok">📧 {{ row.correo_enviado_en ? formatFecha(row.correo_enviado_en) : '✓' }}</span>
-                      <div class="em-fecha-sub" v-if="row.enviado_por_nombre">{{ row.enviado_por_nombre }}</div>
+                      <div v-if="row.enviado_por_nombre" class="em-fecha-sub">{{ row.enviado_por_nombre }}</div>
                     </div>
                     <div v-else class="em-td-empty">—</div>
                   </td>
                   <td class="em-td-acciones" @click.stop>
-                    <button class="em-icon-btn em-btn-edit" @click="editar(row)"
-                            v-tooltip.bottom="'Editar informe en pantalla completa'">
-                      <PencilIcon class="size-[1em]" />
-                    </button>
-                    <button class="em-icon-btn"
-                            :class="{
-                              'em-btn-coms-on': comentariosPendientes(row) > 0,
-                              'em-btn-coms-resolved': comentariosTotales(row) > 0 && comentariosPendientes(row) === 0,
-                              'em-btn-coms-empty': comentariosTotales(row) === 0,
-                            }"
-                            @click="abrirDrawer(row, 'comentarios')"
-                            v-tooltip.bottom="comentariosTooltip(row)">
-                      <MessagesSquareIcon class="size-[1em]" />
-                      <span v-if="comentariosTotales(row) > 0" class="em-coms-badge"
-                            :class="{ 'em-coms-badge--err': comentariosPendientes(row) > 0 }">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Editar informe en pantalla completa"
+                      @click="editar(row)"
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      class="relative"
+                      :class="
+                        comentariosPendientes(row) > 0
+                          ? 'text-destructive hover:text-destructive'
+                          : comentariosTotales(row) > 0
+                            ? 'text-primary hover:text-primary'
+                            : ''
+                      "
+                      :title="comentariosTooltip(row)"
+                      @click="abrirDrawer(row, 'comentarios')"
+                    >
+                      <MessagesSquareIcon />
+                      <span
+                        v-if="comentariosTotales(row) > 0"
+                        class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        :class="comentariosPendientes(row) > 0 ? 'bg-destructive' : 'bg-primary'"
+                      >
                         {{ comentariosPendientes(row) || comentariosTotales(row) }}
                       </span>
-                    </button>
-                    <button v-if="puedeVerificar(row)" class="em-icon-btn em-btn-verify"
-                            :disabled="!permisoVerificar"
-                            @click="abrirDrawer(row, 'verificar')"
-                            v-tooltip.bottom="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'">
-                      <CircleCheckIcon class="size-[1em]" />
-                    </button>
-                    <button v-if="row.estado === 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-send"
-                            :disabled="!permisoEnviar || enviandoIds.has(row.id)"
-                            @click="enviarUno(row)"
-                            v-tooltip.bottom="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'">
-                      <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="size-[1em] animate-spin" />
-                      <SendIcon v-else class="size-[1em]" />
-                    </button>
-                    <button v-if="row.estado !== 'aprobado' && !row.correo_enviado" class="em-icon-btn em-btn-del"
-                            @click="eliminarInforme(row)"
-                            v-tooltip.bottom="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'">
-                      <Trash2Icon class="size-[1em]" />
-                    </button>
+                    </Button>
+                    <Button
+                      v-if="puedeVerificar(row)"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-warning hover:text-warning"
+                      :disabled="!permisoVerificar"
+                      :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'"
+                      @click="abrirDrawer(row, 'verificar')"
+                    >
+                      <CircleCheckIcon />
+                    </Button>
+                    <Button
+                      v-if="row.estado === 'aprobado' && !row.correo_enviado"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="text-primary hover:text-primary"
+                      :disabled="!permisoEnviar || enviandoIds.has(row.id)"
+                      :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'"
+                      @click="enviarUno(row)"
+                    >
+                      <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="animate-spin" />
+                      <SendIcon v-else />
+                    </Button>
+                    <Button
+                      v-if="row.estado !== 'aprobado' && !row.correo_enviado"
+                      variant="ghost"
+                      size="icon-sm"
+                      class="hover:bg-destructive/10 hover:text-destructive"
+                      :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'"
+                      @click="eliminarInforme(row)"
+                    >
+                      <Trash2Icon />
+                    </Button>
                   </td>
                 </tr>
                 </template>
@@ -193,12 +242,16 @@
 
             <!-- Faltantes -->
             <div v-if="!loading && faltantes.length > 0" class="em-faltantes-wrap">
-              <button class="em-faltantes-toggle" @click="showFaltantes = !showFaltantes">
-                <span class="em-faltantes-badge">{{ faltantes.length }}</span>
+              <Button
+                variant="ghost"
+                class="h-auto w-full justify-start gap-2 rounded-none py-2 text-warning hover:text-warning"
+                @click="showFaltantes = !showFaltantes"
+              >
+                <Badge variant="secondary">{{ faltantes.length }}</Badge>
                 <span>Proyecto{{ faltantes.length !== 1 ? 's' : '' }} sin informe en {{ mesLabel }}</span>
-                <ChevronUpIcon v-if="showFaltantes" class="size-[1em]" style="margin-left:auto;font-size:11px;color:#6B5A8A" />
-                <ChevronDownIcon v-else class="size-[1em]" style="margin-left:auto;font-size:11px;color:#6B5A8A" />
-              </button>
+                <ChevronUpIcon v-if="showFaltantes" class="ml-auto text-muted-foreground" />
+                <ChevronDownIcon v-else class="ml-auto text-muted-foreground" />
+              </Button>
               <transition name="fade">
                 <div v-if="showFaltantes" class="em-faltantes-list">
                   <div v-for="p in faltantes" :key="p" class="em-faltante-row">
@@ -229,43 +282,50 @@
                     <span>·</span>
                     <span>{{ drawerInf.periodo_display || formatPeriodo(drawerInf.periodo_desde) }}</span>
                     <span>·</span>
-                    <span :class="['em-state-pill', `em-pill-${pipelineEstado(drawerInf)}`]">
+                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(drawerInf)]" size="sm">
                       {{ estadoLabel(pipelineEstado(drawerInf)) }}
-                    </span>
+                    </GBadge>
                   </div>
                 </div>
                 <div class="em-drawer-head-actions">
-                  <button class="em-close" @click="cerrarDrawer" title="Cerrar panel">✕</button>
+                  <Button variant="ghost" size="icon-sm" title="Cerrar panel" @click="cerrarDrawer">
+                    <XIcon />
+                  </Button>
                 </div>
               </header>
 
               <!-- Tabs internas del panel -->
-              <div class="em-drawer-tabs">
-                <button class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'preview' }"
-                        @click="drawerTab = 'preview'">
-                  <EyeIcon class="size-[1em]" /> Previsualización
-                </button>
-                <button class="em-drawer-tab" :class="{ 'em-drawer-tab--on': drawerTab === 'comentarios' }"
-                        @click="drawerTab = 'comentarios'">
-                  <MessagesSquareIcon class="size-[1em]" /> Comentarios
-                  <span v-if="comentariosTotales(drawerInf) > 0" class="em-drawer-tab-badge"
-                        :class="{ 'em-drawer-tab-badge--err': comentariosPendientes(drawerInf) > 0 }">
-                    {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
-                  </span>
-                </button>
-                <button v-if="puedeVerificar(drawerInf)" class="em-drawer-tab"
-                        :class="{ 'em-drawer-tab--on': drawerTab === 'verificar' }"
-                        @click="drawerTab = 'verificar'">
-                  <CircleCheckIcon class="size-[1em]" /> Verificar
-                </button>
-              </div>
+              <GTabs
+                :model-value="drawerTab"
+                class="shrink-0 border-b border-border bg-background px-3.5"
+                @update:model-value="(v) => (drawerTab = v)"
+              >
+                <GTabsList variant="outline">
+                  <GTabsTrigger value="preview" variant="outline">
+                    <EyeIcon class="size-4" /> Previsualización
+                  </GTabsTrigger>
+                  <GTabsTrigger value="comentarios" variant="outline">
+                    <MessagesSquareIcon class="size-4" /> Comentarios
+                    <GBadge
+                      v-if="comentariosTotales(drawerInf) > 0"
+                      :color="comentariosPendientes(drawerInf) > 0 ? 'destructive' : 'action'"
+                      size="sm"
+                    >
+                      {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
+                    </GBadge>
+                  </GTabsTrigger>
+                  <GTabsTrigger v-if="puedeVerificar(drawerInf)" value="verificar" variant="outline">
+                    <CircleCheckIcon class="size-4" /> Verificar
+                  </GTabsTrigger>
+                </GTabsList>
+              </GTabs>
 
               <div class="em-drawer-body">
 
                 <!-- ── PREVIEW (iframe) ─────────────────────────────── -->
                 <div v-if="drawerTab === 'preview'" class="em-preview-wrap">
                   <div v-if="loadingDetalle" class="em-state">
-                    <ProgressSpinner style="width:28px;height:28px" />
+                    <LoaderCircleIcon class="size-7 animate-spin text-primary" />
                     <span>Cargando informe…</span>
                   </div>
                   <div v-else-if="!detalleHtml" class="em-state em-state-empty">
@@ -279,17 +339,18 @@
                         🔒 Aprobado — reabre desde Verificar para editar
                       </span>
                       <div class="em-preview-actions">
-                        <Button v-if="drawerInf?.estado !== 'aprobado'" label="Editar" outlined size="small" @click="editar(drawerInf)">
-                          <template #icon><PencilIcon class="size-[1em]" /></template>
+                        <Button v-if="drawerInf?.estado !== 'aprobado'" variant="outline" size="sm" @click="editar(drawerInf)">
+                          <PencilIcon /> Editar
                         </Button>
-                        <Button label="PDF" outlined size="small" severity="warn" @click="imprimirDetalle" v-tooltip.bottom="'Imprimir / exportar PDF'">
-                          <template #icon><PrinterIcon class="size-[1em]" /></template>
+                        <Button variant="outline" size="sm" title="Imprimir / exportar PDF" @click="imprimirDetalle">
+                          <PrinterIcon /> PDF
                         </Button>
                       </div>
                     </div>
                     <!-- Iframe con el informe renderizado -->
                     <div class="em-preview-frame">
-                      <iframe :key="previewKey"
+                      <iframe
+:key="previewKey"
                               ref="previewIframeRef"
                               class="em-preview-iframe"
                               :srcdoc="previewDoc"
@@ -310,7 +371,8 @@
                     </p>
                   </div>
                   <div v-else class="em-coms-list">
-                    <div v-for="c in (drawerInf.comentarios || [])" :key="c.id"
+                    <div
+v-for="c in (drawerInf.comentarios || [])" :key="c.id"
                          class="em-com" :class="{ 'em-com--resuelto': c.resuelto }">
                       <div class="em-com-head">
                         <div class="em-com-autor">
@@ -334,29 +396,41 @@
                         </div>
                       </div>
                       <div v-if="!c.resuelto" class="em-com-actions">
-                        <button class="em-btn-sm em-btn-resolver"
-                                :disabled="actuandoComentarioId === c.id"
-                                @click="abrirResolver(c)">
-                          <CheckIcon class="size-[1em]" /> Marcar subsanado
-                        </button>
-                        <button v-if="puedeBorrarComentario(c)" class="em-btn-sm em-btn-borrar"
-                                :disabled="actuandoComentarioId === c.id"
-                                @click="borrarComentario(c)">
-                          <Trash2Icon class="size-[1em]" /> Eliminar
-                        </button>
+                        <Button
+                          size="sm"
+                          class="bg-success text-success-foreground hover:bg-success/90"
+                          :disabled="actuandoComentarioId === c.id"
+                          @click="abrirResolver(c)"
+                        >
+                          <CheckIcon /> Marcar subsanado
+                        </Button>
+                        <Button
+                          v-if="puedeBorrarComentario(c)"
+                          variant="outline"
+                          size="sm"
+                          class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          :disabled="actuandoComentarioId === c.id"
+                          @click="borrarComentario(c)"
+                        >
+                          <Trash2Icon /> Eliminar
+                        </Button>
                       </div>
                       <!-- Inline form para subsanar -->
                       <div v-if="resolviendoId === c.id" class="em-resolver-form">
                         <label class="em-resolver-lbl">¿Cómo se subsanó? (opcional)</label>
-                        <textarea v-model="resolviendoTexto" rows="2"
-                                  placeholder="Describe brevemente qué se cambió o ajustó…"
-                                  class="em-textarea" />
+                        <Textarea
+v-model="resolviendoTexto" rows="2"
+                                  placeholder="Describe brevemente qué se cambió o ajustó…" />
                         <div class="em-resolver-actions">
-                          <button class="em-btn-sm em-btn-ghost" @click="resolviendoId = null">Cancelar</button>
-                          <button class="em-btn-sm em-btn-resolver" :disabled="actuandoComentarioId === c.id"
-                                  @click="resolverComentario(c)">
+                          <Button variant="outline" size="sm" @click="resolviendoId = null">Cancelar</Button>
+                          <Button
+                            size="sm"
+                            class="bg-success text-success-foreground hover:bg-success/90"
+                            :disabled="actuandoComentarioId === c.id"
+                            @click="resolverComentario(c)"
+                          >
                             Confirmar subsanación
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -364,15 +438,21 @@
 
                   <!-- Form nuevo comentario -->
                   <div v-if="drawerInf.estado !== 'aprobado'" class="em-com-add">
-                    <textarea v-model="nuevoComentario" rows="3"
+                    <Textarea
+v-model="nuevoComentario" rows="3"
                               :placeholder="permisoVerificar
                                 ? 'Escribe una observación para que el equipo subsane…'
                                 : 'Sólo el verificador puede agregar observaciones. Tú puedes subsanar los comentarios existentes.'"
-                              class="em-textarea"
                               :disabled="!permisoVerificar" />
                     <div class="em-com-add-actions">
-                      <Button label="Agregar comentario" size="small" :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario" :loading="agregandoComentario" @click="agregarComentario">
-                        <template #icon><PlusIcon class="size-[1em]" /></template>
+                      <Button
+                        size="sm"
+                        :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario"
+                        @click="agregarComentario"
+                      >
+                        <LoaderCircleIcon v-if="agregandoComentario" class="animate-spin" />
+                        <PlusIcon v-else />
+                        Agregar comentario
                       </Button>
                     </div>
                   </div>
@@ -412,14 +492,21 @@
                       </div>
                     </div>
                     <div class="em-verify-actions">
-                      <Button v-if="drawerInf.estado !== 'aprobado'"
-                              label="✅ Verificar y aprobar"
+                      <Button
+v-if="drawerInf.estado !== 'aprobado'"
                               :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
-                              :loading="verificando"
-                              @click="verificarYAprobar" class="em-btn-verify-big" />
-                      <Button v-else
-                              label="↩ Reabrir para corrección" outlined severity="warn" size="small"
-                              @click="reabrir" />
+                              class="bg-success text-success-foreground hover:bg-success/90"
+                              @click="verificarYAprobar">
+                        <LoaderCircleIcon v-if="verificando" class="animate-spin" />
+                        {{ verificando ? 'Verificando…' : '✅ Verificar y aprobar' }}
+                      </Button>
+                      <Button
+v-else
+                              variant="outline" size="sm"
+                              class="text-warning hover:bg-warning/10 hover:text-warning"
+                              @click="reabrir">
+                        ↩ Reabrir para corrección
+                      </Button>
                       <p class="em-verify-hint">
                         {{ drawerInf.estado === 'aprobado'
                           ? 'Si necesitas devolver el informe para corregir algo, reábrelo y agrega comentarios.'
@@ -445,7 +532,9 @@
                 <h3>Enviar {{ puedeEnviarBatch.length }} informe{{ puedeEnviarBatch.length !== 1 ? 's' : '' }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}</h3>
                 <p>Se enviará por correo al cliente operacional registrado de cada proyecto.</p>
               </div>
-              <button class="em-close" :disabled="enviandoBatch" @click="cerrarConfirmEnvio">✕</button>
+              <Button variant="ghost" size="icon-sm" :disabled="enviandoBatch" @click="cerrarConfirmEnvio">
+                <XIcon />
+              </Button>
             </header>
             <div class="em-modal-body">
               <div v-if="!enviandoBatch && !resultadoBatch" class="em-modal-list">
@@ -470,10 +559,11 @@
               </div>
               <div v-else class="em-modal-result">
                 <div class="em-result-big">
-                  <span class="em-result-ok" v-if="resultadoBatch.ok">✅ {{ resultadoBatch.ok }}</span>
-                  <span class="em-result-err" v-if="resultadoBatch.err">⚠️ {{ resultadoBatch.err }}</span>
+                  <span v-if="resultadoBatch.ok" class="em-result-ok">✅ {{ resultadoBatch.ok }}</span>
+                  <span v-if="resultadoBatch.err" class="em-result-err">⚠️ {{ resultadoBatch.err }}</span>
                 </div>
-                <div v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
+                <div
+v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
                      :class="{ 'em-result-row--err': !d.ok }">
                   <span>{{ d.ok ? '✅' : '⚠️' }}</span>
                   <div>
@@ -484,11 +574,18 @@
               </div>
             </div>
             <footer class="em-modal-foot">
-              <Button v-if="!enviandoBatch && !resultadoBatch" label="Cancelar" outlined size="small" @click="cerrarConfirmEnvio" />
-              <Button v-if="!enviandoBatch && !resultadoBatch" :label="`Confirmar envío de ${puedeEnviarBatch.length}`" size="small" @click="ejecutarEnvioBatch" class="em-btn-send">
-                <template #icon><SendIcon class="size-[1em]" /></template>
+              <Button v-if="!enviandoBatch && !resultadoBatch" variant="outline" size="sm" @click="cerrarConfirmEnvio">
+                Cancelar
               </Button>
-              <Button v-if="resultadoBatch" label="Cerrar" size="small" @click="cerrarConfirmEnvio" />
+              <Button
+                v-if="!enviandoBatch && !resultadoBatch"
+                size="sm"
+                class="bg-success text-success-foreground hover:bg-success/90"
+                @click="ejecutarEnvioBatch"
+              >
+                <SendIcon /> Confirmar envío de {{ puedeEnviarBatch.length }}
+              </Button>
+              <Button v-if="resultadoBatch" size="sm" @click="cerrarConfirmEnvio">Cerrar</Button>
             </footer>
           </div>
         </div>
@@ -512,28 +609,45 @@
           <div class="em-editor-bar-left">
             <PencilIcon class="size-[1em]" style="color:var(--color-unergy-purple);font-size:13px" />
             <span class="em-editor-title">{{ editorInf?.proyecto_nombre || editorInf?.sub_project }}</span>
-            <span class="em-tipo-tag" v-if="editorInf">{{ tipoLabel(editorInf.tipo) }}</span>
+            <span v-if="editorInf" class="em-tipo-tag">{{ tipoLabel(editorInf.tipo) }}</span>
             <span v-if="editorInf" class="em-editor-periodo">
               · {{ editorInf.periodo_display || formatPeriodo(editorInf.periodo_desde) }}
             </span>
           </div>
           <div class="em-editor-bar-right">
-            <button class="em-btn-sm em-btn-ghost" @click="imprimirEditor">
-              <PrinterIcon class="size-[1em]" /> PDF
-            </button>
-            <button class="em-btn-sm em-btn-ghost" :disabled="guardandoEditor" @click="cerrarEditor">
-              <XIcon class="size-[1em]" /> Cerrar sin guardar
-            </button>
-            <button class="em-btn-sm em-btn-resolver" :disabled="guardandoEditor" @click="guardarEditor">
-              <LoaderCircleIcon v-if="guardandoEditor" class="size-[1em] animate-spin" />
-              <SaveIcon v-else class="size-[1em]" />
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10 hover:text-white"
+              @click="imprimirEditor"
+            >
+              <PrinterIcon /> PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-white hover:bg-white/10 hover:text-white"
+              :disabled="guardandoEditor"
+              @click="cerrarEditor"
+            >
+              <XIcon /> Cerrar sin guardar
+            </Button>
+            <Button
+              size="sm"
+              class="bg-success text-success-foreground hover:bg-success/90"
+              :disabled="guardandoEditor"
+              @click="guardarEditor"
+            >
+              <LoaderCircleIcon v-if="guardandoEditor" class="animate-spin" />
+              <SaveIcon v-else />
               {{ guardandoEditor ? 'Guardando…' : 'Guardar versión' }}
-            </button>
+            </Button>
           </div>
         </div>
         <!-- Iframe editable -->
         <div class="em-editor-body">
-          <iframe ref="editorIframeRef"
+          <iframe
+ref="editorIframeRef"
                   class="em-editor-iframe"
                   :srcdoc="editorDoc"
                   sandbox="allow-same-origin"
@@ -551,12 +665,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
-import { CheckIcon, ChevronDownIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
 
 const { user } = useAuth()
 const informesService = new InformesService()
@@ -654,6 +766,15 @@ const ESTADO_COLORS = {
   enviado:    '#7C3AED',
 }
 function estadoColor(e) { return ESTADO_COLORS[e] || '#9CA3AF' }
+
+// Mismo criterio de severidad que ESTADO_COLORS, en colores semánticos de GBadge.
+const ESTADO_BADGE_COLOR = {
+  pendiente: 'warning',
+  comentado: 'destructive',
+  resuelto: 'information',
+  verificado: 'success',
+  enviado: 'action',
+}
 
 const mesLabel = computed(() => {
   if (!mesSel.value) return ''
@@ -791,7 +912,7 @@ async function cargar() {
 async function cargarProyectos() {
   try {
     const data = await monitoreoLegacyService.obtenerProyectos()
-    let list = Array.isArray(data) ? data : (data?.projects || [])
+    const list = Array.isArray(data) ? data : (data?.projects || [])
     todosProyectos.value = list
       .map(p => (typeof p === 'string' ? p : (p.sub_project || p.nombre_comercial || p.name || '')))
       .filter(Boolean)
@@ -1207,40 +1328,6 @@ async function ejecutarEnvioBatch() {
   display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
   flex-shrink: 0; flex-wrap: wrap;
 }
-/* Envío masivo inline */
-.em-batch-inline {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: #16A34A; color: #fff;
-  border: none; border-radius: 6px;
-  padding: 3px 10px; font-family: inherit; font-size: 11px; font-weight: 700;
-  cursor: pointer; transition: background .14s; white-space: nowrap;
-}
-.em-batch-inline:hover:not(:disabled) { background: #15803D; }
-.em-batch-inline:disabled { opacity: .6; cursor: not-allowed; }
-.em-batch-inline svg { font-size: 10px; }
-
-.em-month-picker {
-  display: inline-flex; align-items: center;
-  background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 7px; overflow: hidden;
-}
-.em-month-nav {
-  background: transparent; border: none; color: #6D28D9;
-  width: 26px; height: 28px; cursor: pointer; font-size: 14px; font-weight: 700;
-  transition: background .15s;
-}
-.em-month-nav:hover:not(:disabled) { background: #E9DEFC; }
-.em-month-nav:disabled { opacity: .35; cursor: not-allowed; }
-.em-month-input {
-  background: transparent; border: none; color: var(--color-unergy-deep);
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  padding: 3px 4px; outline: none; color-scheme: light;
-}
-
-.em-btn-send :deep(.p-button), :deep(.em-btn-send) {
-  background: #16A34A !important; border-color: #16A34A !important;
-}
-.em-btn-send :deep(.p-button:hover), :deep(.em-btn-send:hover) { background: #15803D !important; }
-
 /* ── Layout: full vs split ────────────────────────────────────── */
 .em-content {
   display: block;
@@ -1369,47 +1456,8 @@ async function ejecutarEnvioBatch() {
 .em-td-empty  { color: #D1D5DB; }
 .em-mail-ok   { color: #166534; font-size: 11px; font-weight: 700; }
 
-/* Estado pills */
-.em-state-pill {
-  display: inline-block; font-size: 10px; font-weight: 800;
-  padding: 3px 9px; border-radius: 20px; letter-spacing: .4px;
-  white-space: nowrap; text-transform: uppercase;
-}
-.em-pill-pendiente  { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
-.em-pill-comentado  { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-.em-pill-resuelto   { background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE; }
-.em-pill-verificado { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-.em-pill-enviado    { background: #EDE9FE; color: #5B21B6; border: 1px solid #DDD6FE; }
-
 /* Botones de acción por fila */
 .em-td-acciones { white-space: nowrap; text-align: right; }
-.em-icon-btn {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; padding: 0; margin-left: 2px;
-  background: transparent; border: 1px solid #E5E2EC; border-radius: 6px;
-  cursor: pointer; font-family: inherit; font-size: 13px; transition: all .14s;
-}
-.em-icon-btn:hover:not(:disabled) { background: #F4F1FA; border-color: #C7A8F0; }
-.em-icon-btn:disabled { opacity: .5; cursor: not-allowed; }
-.em-btn-edit    { color: #6D28D9; }
-.em-btn-verify  { color: #16A34A; border-color: #BBF7D0; }
-.em-btn-verify:hover:not(:disabled) { background: #F0FDF4; }
-.em-btn-send    { color: #2563EB; border-color: #BFDBFE; }
-.em-btn-send:hover:not(:disabled) { background: #EFF6FF; }
-.em-btn-del     { color: #DC2626; border-color: #FECACA; }
-.em-btn-del:hover:not(:disabled) { background: #FEF2F2; }
-.em-btn-coms-on       { color: #DC2626; border-color: #FECACA; background: #FEF2F2; }
-.em-btn-coms-on:hover:not(:disabled) { background: #FEE2E2; }
-.em-btn-coms-resolved { color: #2563EB; border-color: #BFDBFE; }
-.em-btn-coms-empty    { color: #9CA3AF; }
-.em-coms-badge {
-  position: absolute; top: -6px; right: -6px;
-  background: #6D28D9; color: #fff; font-size: 9px; font-weight: 800;
-  width: 16px; height: 16px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  border: 2px solid #fff;
-}
-.em-coms-badge--err { background: #DC2626; }
 
 /* ── Panel detalle (derecha en split) ─────────────────────────── */
 /* En móvil: overlay fixed */
@@ -1456,34 +1504,6 @@ async function ejecutarEnvioBatch() {
   font-size: 10px; color: #6B5A8A; margin-top: 3px;
   display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
 }
-
-.em-close {
-  background: #fff; border: 1px solid #E5E2EC; color: #6B5A8A;
-  cursor: pointer; padding: 0; width: 26px; height: 26px;
-  border-radius: 7px; font-size: 11px;
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.em-close:hover { background: #F4F1FA; color: var(--color-unergy-deep); }
-
-.em-drawer-tabs {
-  display: flex; gap: 0; border-bottom: 1px solid #ECE7F2;
-  padding: 0 14px; background: #fff; flex-shrink: 0;
-}
-.em-drawer-tab {
-  position: relative; display: inline-flex; align-items: center; gap: 5px;
-  background: transparent; border: none; padding: 9px 12px;
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  color: #6B5A8A; cursor: pointer; border-bottom: 2px solid transparent;
-  transition: color .15s;
-}
-.em-drawer-tab:hover { color: var(--color-unergy-deep); }
-.em-drawer-tab--on   { color: #6D28D9; border-bottom-color: var(--color-unergy-purple); }
-.em-drawer-tab-badge {
-  background: #6D28D9; color: #fff; font-size: 9px; font-weight: 800;
-  padding: 1px 6px; border-radius: 8px; margin-left: 2px;
-}
-.em-drawer-tab-badge--err { background: #DC2626; }
 
 .em-drawer-body { flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0; }
 
@@ -1541,20 +1561,6 @@ async function ejecutarEnvioBatch() {
 .em-com-respuesta-meta { margin-top: 4px; }
 .em-com-actions { display: flex; gap: 6px; margin-top: 8px; }
 
-.em-btn-sm {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-family: inherit; font-size: 11px; font-weight: 700;
-  border-radius: 6px; padding: 4px 10px; cursor: pointer; border: 1px solid;
-  transition: all .14s;
-}
-.em-btn-sm:disabled { opacity: .5; cursor: not-allowed; }
-.em-btn-resolver { background: #16A34A; color: #fff; border-color: #16A34A; }
-.em-btn-resolver:hover:not(:disabled) { background: #15803D; border-color: #15803D; }
-.em-btn-borrar { background: #fff; color: #DC2626; border-color: #FECACA; }
-.em-btn-borrar:hover:not(:disabled) { background: #FEF2F2; }
-.em-btn-ghost { background: #fff; color: #6B5A8A; border-color: #E5E2EC; }
-.em-btn-ghost:hover:not(:disabled) { background: #F4F1FA; color: var(--color-unergy-deep); }
-
 .em-resolver-form {
   margin-top: 8px; background: rgba(255,255,255,.7);
   border-radius: 8px; padding: 10px;
@@ -1562,13 +1568,6 @@ async function ejecutarEnvioBatch() {
 .em-resolver-lbl { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 4px; }
 .em-resolver-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
 
-.em-textarea {
-  width: 100%; border: 1.5px solid #E5E2EC; border-radius: 8px;
-  padding: 8px 10px; font-family: inherit; font-size: 12px; color: var(--color-unergy-deep);
-  outline: none; resize: vertical; background: #fff;
-}
-.em-textarea:focus    { border-color: var(--color-unergy-purple); }
-.em-textarea:disabled { background: #F4F1FA; color: #9CA3AF; }
 .em-com-add {
   background: #FAF8FE; border: 1px dashed #DAD3EA; border-radius: 10px; padding: 12px;
   flex-shrink: 0;
@@ -1594,10 +1593,6 @@ async function ejecutarEnvioBatch() {
 .em-check-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-unergy-deep); }
 .em-check-row--err { color: #991B1B; }
 .em-verify-actions { display: flex; flex-direction: column; gap: 8px; }
-.em-btn-verify-big :deep(.p-button), :deep(.em-btn-verify-big) {
-  background: #16A34A !important; border-color: #16A34A !important; font-weight: 800 !important;
-}
-.em-btn-verify-big :deep(.p-button:hover), :deep(.em-btn-verify-big:hover) { background: #15803D !important; }
 .em-verify-hint { font-size: 11px; color: #6B5A8A; font-style: italic; margin: 0; }
 
 /* ── Modal envío masivo ───────────────────────────────────────── */
@@ -1669,36 +1664,10 @@ async function ejecutarEnvioBatch() {
 .em-toast-ok  { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
 .em-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
-/* ── Búsqueda ─────────────────────────────────────────────────── */
-.em-search-wrap { position: relative; display: inline-flex; align-items: center; }
-.em-search-icon { position: absolute; left: 8px; color: #9CA3AF; font-size: 12px; pointer-events: none; }
-.em-search-input {
-  background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 7px;
-  padding: 4px 28px 4px 26px; font-family: inherit; font-size: 12px; color: var(--color-unergy-deep);
-  outline: none; width: 180px; transition: border-color .15s, width .2s;
-}
-.em-search-input:focus { border-color: var(--color-unergy-purple); width: 220px; }
-.em-search-input::placeholder { color: #A89EC0; }
-.em-search-clear {
-  position: absolute; right: 6px;
-  background: none; border: none; cursor: pointer; color: #9CA3AF; font-size: 10px; padding: 0; line-height: 1;
-}
-.em-search-clear:hover { color: #6D28D9; }
-
 /* ── Faltantes ────────────────────────────────────────────────── */
 .em-faltantes-wrap {
   margin: 0 12px 10px; border: 1px solid #FDE68A; border-radius: 10px;
   overflow: hidden; background: #FFFBEB;
-}
-.em-faltantes-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 14px;
-  background: transparent; border: none; cursor: pointer; font-family: inherit;
-  font-size: 12px; font-weight: 700; color: #92400E; text-align: left;
-}
-.em-faltantes-toggle:hover { background: #FEF3C7; }
-.em-faltantes-badge {
-  background: #D97706; color: #fff; font-size: 10px; font-weight: 800;
-  padding: 1px 7px; border-radius: 8px; min-width: 18px; text-align: center;
 }
 .em-faltantes-list { display: flex; flex-direction: column; padding: 4px 14px 10px; gap: 4px; }
 .em-faltante-row {
