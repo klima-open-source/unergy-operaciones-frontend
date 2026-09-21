@@ -47,8 +47,14 @@ export class PpaService extends BaseService {
     return this.get<ContratoPpa>(RUTAS.contrato(id))
   }
 
-  crear(payload: PayloadPpa): Promise<ContratoPpa> {
-    return this.post<ContratoPpa>(RUTAS.contratos, payload)
+  /**
+   * `forzar`: el backend responde 409 con `duplicado_contrato` cuando ya hay un
+   * PPA vigente con ese número, o con la misma contraparte sobre una de esas
+   * plantas. Mismo patrón que contratos de servicio, clientes y proyectos: es un
+   * aviso, y sin este parámetro no habría forma de salir de él.
+   */
+  crear(payload: PayloadPpa, forzar = false): Promise<ContratoPpa> {
+    return this.post<ContratoPpa>(RUTAS.contratos, payload, { query: { forzar } })
   }
 
   actualizar(id: ContratoPpa['id'], payload: PayloadPpa): Promise<ContratoPpa> {

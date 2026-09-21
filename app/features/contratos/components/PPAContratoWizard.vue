@@ -365,6 +365,21 @@
         </Button>
       </div>
     </div>
+
+    <!-- Ya hay un PPA vigente que cubre esto. Avisa y deja seguir: una
+         renovación, o un contrato de compra junto a uno de venta, son casos
+         reales. Mismo diálogo que en el wizard de servicios. -->
+    <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
+      header="Ya existe un contrato PPA para esto" modal class="w-full max-w-sm">
+      <p class="text-sm text-gray-600">{{ duplicadoContrato?.mensaje }}</p>
+      <p class="text-xs text-gray-400 mt-2">
+        Si es una renovación o un contrato distinto, podés crearlo igual.
+      </p>
+      <template #footer>
+        <Button label="Cancelar" severity="secondary" text @click="duplicadoContrato = null" />
+        <Button label="Crear igual" :loading="guardando" @click="crearDeTodosModos" />
+      </template>
+    </Dialog>
   </Dialog>
 </template>
 
@@ -608,6 +623,30 @@ function avanzar() {
 }
 
 /**
+ * El aviso de "ya existe un PPA vigente que cubre esto".
+ *
+ * Mismo tratamiento que en el wizard de servicios: avisa y deja seguir. Una
+ * renovación, o un contrato de compra junto a uno de venta, son casos reales.
+ */
+const duplicadoContrato = ref(null)
+const forzarDuplicado = ref(false)
+
+function duplicadoDe(e) {
+  const detail = e?.data?.detail ?? e?.response?.data?.detail
+  return e?.status === 409 && detail?.duplicado_contrato ? detail : null
+}
+
+async function crearDeTodosModos() {
+  forzarDuplicado.value = true
+  duplicadoContrato.value = null
+  try {
+    await guardar()
+  } finally {
+    forzarDuplicado.value = false
+  }
+}
+
+/**
  * Las partes que quedaron sin cliente vinculado.
  *
  * Un PPA con el nombre escrito a mano no aparece en el panel de ese cliente ni
@@ -677,7 +716,7 @@ async function guardar() {
         ...payload,
         tarifas: tarifasRows.value,
         compromisos: energiaRows.value,
-      })
+      }, forzarDuplicado.value)
       const msg = [
         `Contrato "${contrato.nombre_interno || contrato.numero_codigo_contrato}" creado`,
         tarifasRows.value.length ? `${tarifasRows.value.length} tarifas` : null,
@@ -695,6 +734,11 @@ async function guardar() {
     }
     emit('cerrar')
   } catch (e) {
+    const aviso = duplicadoDe(e)
+    if (aviso) {
+      duplicadoContrato.value = aviso
+      return
+    }
     toast.error('Error al guardar', { description: e.data?.detail || e.message, duration: 5000 })
   } finally {
     guardando.value = false
