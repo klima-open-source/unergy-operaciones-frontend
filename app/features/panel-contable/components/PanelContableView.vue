@@ -289,7 +289,7 @@
 
           <div v-if="cargaError" class="empty sm">
             No se pudieron cargar los paneles de {{ periodoLabel }} (error de conexión).
-            <button class="mini" style="margin-left:8px" @click="cargarPaneles">Reintentar</button>
+            <Button variant="outline" size="sm" class="ml-2" @click="cargarPaneles">Reintentar</Button>
           </div>
 
           <div v-else-if="!paneles.length" class="empty sm">
@@ -332,7 +332,7 @@
               <input type="number" v-model.number="consIngIni" @change="reasignarTodo" />
               <span v-if="consInfo && consInfo.ingresos.usados.includes(consIngIni)" class="cons-warn">
                 ⚠ {{ consIngIni }} ya está usado —
-                <button class="mini" @click="usarSiguiente('ing')">usar {{ consInfo.ingresos.siguiente }}</button>
+                <Button variant="outline" size="xs" @click="usarSiguiente('ing')">usar {{ consInfo.ingresos.siguiente }}</Button>
               </span>
             </div>
             <div class="fld">
@@ -340,7 +340,7 @@
               <input type="number" v-model.number="consCosIni" @change="reasignarTodo" />
               <span v-if="consInfo && consInfo.costos.usados.includes(consCosIni)" class="cons-warn">
                 ⚠ {{ consCosIni }} ya está usado —
-                <button class="mini" @click="usarSiguiente('cos')">usar {{ consInfo.costos.siguiente }}</button>
+                <Button variant="outline" size="xs" @click="usarSiguiente('cos')">usar {{ consInfo.costos.siguiente }}</Button>
               </span>
             </div>
             <div class="hint">
@@ -413,10 +413,14 @@
             <div class="pcons">
               <span>Ing: <b>{{ tab === 'oficial' ? (p.consecutivo_ingresos ?? '—') : '—' }}</b></span>
               <span>Cost: <b>{{ tab === 'oficial' ? (p.consecutivo_costos ?? '—') : '—' }}</b></span>
-              <button class="btn-er" @click.stop="descargarEr(p)"
-                      v-tooltip.left="'Descargar el Estado de Resultados de este proyecto'">
-                <DownloadIcon class="size-[1em]" /> ER
-              </button>
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button variant="outline" size="xs" class="ml-2 border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple" @click.stop="descargarEr(p)">
+                    <DownloadIcon class="size-[1em]" /> ER
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">Descargar el Estado de Resultados de este proyecto</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
