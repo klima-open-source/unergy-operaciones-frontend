@@ -1,4 +1,5 @@
 <template>
+  <TooltipProvider :delay-duration="200">
   <div class="pc-wrap">
     <!-- Top -->
     <div class="pc-top">
@@ -607,9 +608,9 @@
           <h3>Clasificación de liquidación · {{ periodoLabel || 'sin período' }}</h3>
           <div class="pool-actions">
             <input v-model="clasSearch" class="search-in" placeholder="Buscar proyecto…" />
-            <button class="btn" :disabled="!periodo || clasSaving || !clasDirty" @click="guardarClasificacion">
+            <Button class="bg-unergy-purple text-white hover:bg-unergy-purple/90" :disabled="!periodo || clasSaving || !clasDirty" @click="guardarClasificacion">
               <SaveIcon class="size-[1em]" /> Guardar clasificación
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -738,6 +739,7 @@
       </template>
     </template>
   </div>
+  </TooltipProvider>
 </template>
 
 <script setup>
@@ -1602,19 +1604,7 @@ onMounted(cargarPaneles)
 .top-actions { display:flex; gap:10px; align-items:flex-end; }
 .req { color:var(--p2); }
 .pc-period { display:inline-flex; align-items:center; gap:6px; }
-.pc-period-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid #ddd6e8; background:#fff; color:var(--color-unergy-purple); cursor:pointer; transition:background .12s; }
-.pc-period-btn:hover:not(:disabled) { background:#f5f2fa; }
-.pc-period-btn:disabled { opacity:.4; cursor:not-allowed; }
 .pc-period-label { font-size:13px; font-weight:700; color:var(--p1); min-width:104px; text-align:center; }
-/* Colores de marca en hex literal: estos botones también se usan dentro del
-   Dialog de PrimeVue, que se teletransporta a <body> fuera de .pc-wrap donde
-   las variables --p2/--line2/--sec no existen (por eso salían en blanco). */
-.btn { background:var(--color-unergy-purple); color:#fff; border:none; padding:9px 16px; border-radius:9px; font-size:13px; cursor:pointer; font-weight:500; }
-.btn:hover:not(:disabled) { filter:brightness(1.07); }
-.btn:disabled { opacity:.5; cursor:default; background:var(--color-unergy-purple); color:#fff; }
-.btn-o { background:#fff; color:var(--color-unergy-purple); border:1px solid #ddd6e8; padding:9px 16px; border-radius:9px; font-size:13px; cursor:pointer; font-weight:500; }
-.btn-o:hover:not(:disabled) { background:#f5f2fa; }
-.btn-o:disabled { opacity:.5; cursor:default; background:#fff; color:var(--color-unergy-purple); }
 
 .tabs { display:flex; gap:4px; margin-bottom:18px; border-bottom:1px solid var(--line2); }
 .tab { padding:9px 18px; font-size:13px; cursor:pointer; color:var(--txt2); border-bottom:2px solid transparent; margin-bottom:-1px; }
@@ -1635,8 +1625,6 @@ onMounted(cargarPaneles)
 .card-h { padding:13px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
 .card-h h3 { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--p2); font-weight:600; }
 .pool-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.mini { font-size:12px; padding:5px 11px; border-radius:7px; border:1px solid #ddd6e8; background:#fff; color:#6b6478; cursor:pointer; }
-.mini:hover { background:#f5f2fa; }
 
 .empty { padding:30px; text-align:center; color:var(--txt3); font-size:13px; }
 .empty.sm { padding:18px; }
@@ -1662,7 +1650,6 @@ onMounted(cargarPaneles)
 .fld label { font-size:11px; color:var(--txt2); display:block; margin-bottom:4px; }
 .fld input { font-size:13px; padding:6px 9px; border:1px solid var(--line2); border-radius:7px; width:130px; }
 .cons-warn { display:block; font-size:11px; color:#D64455; margin-top:4px; }
-.cons-warn .mini { padding:2px 7px; font-size:11px; margin-left:4px; }
 .hint { font-size:12px; color:var(--txt3); max-width:320px; align-self:center; }
 .summary { font-size:12px; color:var(--txt2); align-self:center; margin-left:auto; }
 .summary b { color:var(--p1); }
