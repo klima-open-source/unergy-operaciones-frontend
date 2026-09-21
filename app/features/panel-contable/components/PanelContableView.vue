@@ -404,12 +404,16 @@
             <span v-if="!esActivo(p)" class="pill pill-off">no liquida</span>
             <!-- Con qué se armó el panel. Los ingresos no tienen columna `fuente`,
                  así que sin esto no habría forma de saberlo. -->
-            <span class="pill" :class="p.origen === 'api' ? 'pill-api' : 'pill-er'"
-                  v-tooltip.top="p.origen === 'api'
-                    ? 'Armado desde la API de Liquidaciones'
-                    : 'Armado desde el Excel del Estado de Resultados'">
-              {{ p.origen === 'api' ? 'API' : 'Excel' }}
-            </span>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <span class="pill" :class="p.origen === 'api' ? 'pill-api' : 'pill-er'">
+                  {{ p.origen === 'api' ? 'API' : 'Excel' }}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {{ p.origen === 'api' ? 'Armado desde la API de Liquidaciones' : 'Armado desde el Excel del Estado de Resultados' }}
+              </TooltipContent>
+            </Tooltip>
             <div class="pcons">
               <span>Ing: <b>{{ tab === 'oficial' ? (p.consecutivo_ingresos ?? '—') : '—' }}</b></span>
               <span>Cost: <b>{{ tab === 'oficial' ? (p.consecutivo_costos ?? '—') : '—' }}</b></span>
@@ -448,12 +452,13 @@
                         <template v-else-if="ln.soporte">
                           <a class="sop-link" :href="ln.soporte.archivo_url" target="_blank" rel="noopener"
                              :title="ln.soporte.archivo_nombre || 'Ver soporte'">📎 ver</a>
-                          <button class="sop-x" title="Quitar soporte" @click="eliminarSoporte(p, ln)">✕</button>
+                          <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
                         </template>
-                        <button v-else class="sop-up" :disabled="subiendoSoporte === sopKey(ln)"
+                        <Button v-else variant="outline" size="xs" class="border-dashed border-unergy-purple/30 text-unergy-purple hover:bg-unergy-purple/10"
+                                :disabled="subiendoSoporte === sopKey(ln)"
                                 title="Subir soporte" @click="pickSoporte(p, ln)">
                           {{ subiendoSoporte === sopKey(ln) ? '…' : '📎 subir' }}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                     <tr class="blk-tot">
@@ -472,10 +477,10 @@
             </div>
 
             <!-- Desglose por inversionista (expandible; aquí se editan valores/comprobante) -->
-            <button class="expand-inv" @click="toggleInv(p.id)">
+            <Button variant="ghost" size="sm" class="expand-inv text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple" @click="toggleInv(p.id)">
               <span class="chev" :class="{ op: invOpen[p.id] }">▶</span>
               {{ invOpen[p.id] ? 'Ocultar' : 'Ver' }} desglose por inversionista ({{ p.inversionistas.length }})
-            </button>
+            </Button>
 
             <template v-if="invOpen[p.id]">
               <div v-for="inv in p.inversionistas" :key="invKeyOf(inv)" class="inv-block">
@@ -513,7 +518,7 @@
                                 <div v-if="sec.key === 'ingresos'" class="fuente-row">
                                   <input class="fuente-et" :value="ln.concepto"
                                          @change="renombrarFuente(p, ln, $event.target.value)" />
-                                  <button class="fuente-x" title="Quitar fuente" @click="quitarFuente(p, ln)">✕</button>
+                                  <Button variant="ghost" size="icon-xs" title="Quitar fuente" class="text-muted-foreground hover:text-destructive" @click="quitarFuente(p, ln)">✕</Button>
                                 </div>
                                 <div v-else class="cpt">{{ ln.concepto }}<span v-if="ln.derivada" class="imp-tag">impuesto</span><span v-if="ln.fuente" class="fuente-tag" :title="fuenteTitle(ln.fuente)">{{ fuenteLabel(ln.fuente) }}</span></div>
                                 <!-- Valor de módulo (O&M / Arriendos): no viene de una celda del ER, así que
@@ -539,17 +544,18 @@
                                 <template v-else-if="ln.soporte">
                                   <a class="sop-link" :href="ln.soporte.archivo_url" target="_blank" rel="noopener"
                                      :title="ln.soporte.archivo_nombre || 'Ver soporte'">📎 ver</a>
-                                  <button class="sop-x" title="Quitar soporte" @click="eliminarSoporte(p, ln)">✕</button>
+                                  <Button variant="ghost" size="icon-xs" title="Quitar soporte" class="text-muted-foreground hover:text-destructive" @click="eliminarSoporte(p, ln)">✕</Button>
                                 </template>
-                                <button v-else class="sop-up" :disabled="subiendoSoporte === sopKey(ln)"
+                                <Button v-else variant="outline" size="xs" class="border-dashed border-unergy-purple/30 text-unergy-purple hover:bg-unergy-purple/10"
+                                        :disabled="subiendoSoporte === sopKey(ln)"
                                         title="Subir soporte" @click="pickSoporte(p, ln)">
                                   {{ subiendoSoporte === sopKey(ln) ? '…' : '📎 subir' }}
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                             <tr v-if="sec.key === 'ingresos'">
                               <td colspan="4">
-                                <button class="fuente-add" @click="agregarFuente(p)">+ Agregar fuente de ingreso</button>
+                                <Button variant="outline" size="xs" class="border-dashed border-unergy-purple/30 text-unergy-purple hover:bg-unergy-purple/10" @click="agregarFuente(p)">+ Agregar fuente de ingreso</Button>
                               </td>
                             </tr>
                           </tbody>
@@ -583,9 +589,9 @@
             </template>
 
             <div class="proj-foot">
-              <button class="btn" :disabled="!dirty[p.id]" @click="guardar(p)">
+              <Button class="bg-unergy-purple text-white hover:bg-unergy-purple/90" :disabled="!dirty[p.id]" @click="guardar(p)">
                 <SaveIcon class="size-[1em]" /> Guardar cambios
-              </button>
+              </Button>
               <span v-if="savedAt[p.id]" class="saved">✓ guardado</span>
             </div>
           </div>
