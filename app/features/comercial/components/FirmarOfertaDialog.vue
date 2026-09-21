@@ -259,6 +259,15 @@ async function firmar() {
       : 'Sin plantas: Cumplimiento no podrá medirlo hasta que vincules el proyecto.',
     duration: 6000,
   })
+
+  // El backend ya mandaba `avisos` y esta pantalla los tiraba. Ahí viaja, entre
+  // otras cosas, el «ya existe un PPA que cubre esto»: el CRM no puede rechazar
+  // la firma --no tiene dónde confirmar "crear igual"-- pero sí tiene que
+  // decirlo.
+  for (const aviso of r.avisos ?? []) {
+    toast.warning('Revisa el contrato', { description: aviso, duration: 8000 })
+  }
+
   emit('firmada', r)
   emit('update:visible', false)
 }
