@@ -333,7 +333,7 @@
               <input type="number" v-model.number="consIngIni" @change="reasignarTodo" />
               <span v-if="consInfo && consInfo.ingresos.usados.includes(consIngIni)" class="cons-warn">
                 ⚠ {{ consIngIni }} ya está usado —
-                <Button variant="outline" size="xs" @click="usarSiguiente('ing')">usar {{ consInfo.ingresos.siguiente }}</Button>
+                <Button variant="outline" size="xs" class="ml-1" @click="usarSiguiente('ing')">usar {{ consInfo.ingresos.siguiente }}</Button>
               </span>
             </div>
             <div class="fld">
@@ -341,7 +341,7 @@
               <input type="number" v-model.number="consCosIni" @change="reasignarTodo" />
               <span v-if="consInfo && consInfo.costos.usados.includes(consCosIni)" class="cons-warn">
                 ⚠ {{ consCosIni }} ya está usado —
-                <Button variant="outline" size="xs" @click="usarSiguiente('cos')">usar {{ consInfo.costos.siguiente }}</Button>
+                <Button variant="outline" size="xs" class="ml-1" @click="usarSiguiente('cos')">usar {{ consInfo.costos.siguiente }}</Button>
               </span>
             </div>
             <div class="hint">
