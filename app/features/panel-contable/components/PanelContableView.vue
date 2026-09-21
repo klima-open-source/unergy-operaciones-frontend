@@ -13,35 +13,60 @@
         <div class="fld">
           <label>Ver período</label>
           <div class="pc-period">
-            <button class="pc-period-btn" @click="stepMes(-1)" v-tooltip.bottom="'Mes anterior'">
-              <ChevronLeftIcon class="size-[1em]" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="outline" size="icon-sm" class="rounded-lg border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple" @click="stepMes(-1)">
+                  <ChevronLeftIcon class="size-[1em]" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Mes anterior</TooltipContent>
+            </Tooltip>
             <span class="pc-period-label">{{ periodoLabel || '—' }}</span>
-            <button class="pc-period-btn" :disabled="esMesActual" @click="stepMes(1)" v-tooltip.bottom="'Mes siguiente'">
-              <ChevronRightIcon class="size-[1em]" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button variant="outline" size="icon-sm" class="rounded-lg border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple" :disabled="esMesActual" @click="stepMes(1)">
+                  <ChevronRightIcon class="size-[1em]" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Mes siguiente</TooltipContent>
+            </Tooltip>
           </div>
         </div>
-        <button v-if="tab === 'preliquidacion' || tab === 'oficial'" class="btn-o" :disabled="loading || !paneles.length" @click="exportarExcel">
+        <Button v-if="tab === 'preliquidacion' || tab === 'oficial'" variant="outline"
+                class="border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple"
+                :disabled="loading || !paneles.length" @click="exportarExcel">
           <FileSpreadsheetIcon class="size-[1em]" /> Exportar Excel
-        </button>
-        <button v-if="tab !== 'diferencia' && tab !== 'clasificacion'" class="btn-o"
-                :disabled="loading || contrastando" @click="verContraste"
-                v-tooltip.bottom="'Compara lo que daría la API contra lo que hay hoy. No guarda nada.'">
-          <LoaderCircleIcon v-if="contrastando" class="size-[1em] animate-spin" />
-          <SearchIcon v-else class="size-[1em]" /> Contrastar
-        </button>
-        <button v-if="tab !== 'diferencia' && tab !== 'clasificacion'" class="btn"
-                :disabled="loading || armando" @click="armarPeriodo"
-                v-tooltip.bottom="'Arma los paneles del período desde la API. NEU y Nitro siguen con su Excel.'">
-          <LoaderCircleIcon v-if="armando" class="size-[1em] animate-spin" />
-          <ZapIcon v-else class="size-[1em]" /> Armar desde API
-        </button>
+        </Button>
+        <Tooltip v-if="tab !== 'diferencia' && tab !== 'clasificacion'">
+          <TooltipTrigger as-child>
+            <Button variant="outline" class="border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple"
+                    :disabled="loading || contrastando" @click="verContraste">
+              <LoaderCircleIcon v-if="contrastando" class="size-[1em] animate-spin" />
+              <SearchIcon v-else class="size-[1em]" /> Contrastar
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Compara lo que daría la API contra lo que hay hoy. No guarda nada.</TooltipContent>
+        </Tooltip>
+        <Tooltip v-if="tab !== 'diferencia' && tab !== 'clasificacion'">
+          <TooltipTrigger as-child>
+            <Button class="bg-unergy-purple text-white hover:bg-unergy-purple/90"
+                    :disabled="loading || armando" @click="armarPeriodo">
+              <LoaderCircleIcon v-if="armando" class="size-[1em] animate-spin" />
+              <ZapIcon v-else class="size-[1em]" /> Armar desde API
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Arma los paneles del período desde la API. NEU y Nitro siguen con su Excel.</TooltipContent>
+        </Tooltip>
         <!-- El Excel quedó SOLO para NEU y Nitro: su dato en la API está malo. -->
-        <button v-if="tab !== 'diferencia' && tab !== 'clasificacion'" class="btn-o" :disabled="loading" @click="abrirDialogoPeriodo"
-                v-tooltip.bottom="'Solo para NEU y Nitro. El resto se arma desde la API.'">
-          <UploadIcon class="size-[1em]" /> Cargar ER <span class="solo-neu">NEU/Nitro</span>
-        </button>
+        <Tooltip v-if="tab !== 'diferencia' && tab !== 'clasificacion'">
+          <TooltipTrigger as-child>
+            <Button variant="outline" class="border-unergy-purple/20 text-unergy-purple hover:bg-unergy-purple/10 hover:text-unergy-purple"
+                    :disabled="loading" @click="abrirDialogoPeriodo">
+              <UploadIcon class="size-[1em]" /> Cargar ER <span class="solo-neu">NEU/Nitro</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Solo para NEU y Nitro. El resto se arma desde la API.</TooltipContent>
+        </Tooltip>
         <input ref="erInput" type="file" accept=".xlsx,.xls" multiple class="hidden" @change="onErSelected" />
       </div>
     </div>
@@ -52,7 +77,7 @@
       <div class="pc-aviso-cab">
         <CircleCheckIcon class="size-[1em]" />
         <b>{{ resultado.armados }}</b> paneles armados desde la API
-        <button class="pc-aviso-x" @click="resultado = null"><XIcon class="size-[1em]" /></button>
+        <Button variant="ghost" size="icon-xs" class="ml-auto text-muted-foreground hover:text-foreground" @click="resultado = null"><XIcon class="size-[1em]" /></Button>
       </div>
       <div v-if="resultado.omitidos.length" class="pc-aviso-linea">
         <b>{{ resultado.omitidos.length }} omitidos</b> — siguen cargando su Excel:
@@ -78,7 +103,7 @@
         <SearchIcon class="size-[1em]" />
         Contraste de {{ contraste.periodo }}:
         <b>{{ contraste.cuadran_exacto }}</b> de {{ contraste.paneles }} cuadran exacto
-        <button class="pc-aviso-x" @click="contraste = null"><XIcon class="size-[1em]" /></button>
+        <Button variant="ghost" size="icon-xs" class="ml-auto text-muted-foreground hover:text-foreground" @click="contraste = null"><XIcon class="size-[1em]" /></Button>
       </div>
       <div v-for="(p, i) in contraste.proyectos.filter(x => x.diferencias && x.diferencias.length)"
            :key="i" class="pc-contraste-proy">
