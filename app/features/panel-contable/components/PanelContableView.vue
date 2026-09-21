@@ -186,10 +186,10 @@
         </div>
       </div>
       <template #footer>
-        <button class="mini" @click="showPeriodoDialog = false">Cancelar</button>
-        <button class="btn" :disabled="!dlgMes || !dlgAnio || !dlgTipo || !dlgTipoCarga" @click="confirmarPeriodo">
+        <Button variant="outline" size="sm" @click="showPeriodoDialog = false">Cancelar</Button>
+        <Button size="sm" class="bg-unergy-purple text-white hover:bg-unergy-purple/90" :disabled="!dlgMes || !dlgAnio || !dlgTipo || !dlgTipoCarga" @click="confirmarPeriodo">
           Continuar <ArrowRightIcon class="size-[1em]" style="font-size:11px;" />
-        </button>
+        </Button>
       </template>
     </Dialog>
 
@@ -260,7 +260,7 @@
             <option value="factura">Factura (Repr/CGM/Admin)</option>
           </select>
           <span class="filtro-count">{{ panelesFiltrados.length }} / {{ paneles.length }}</span>
-          <button v-if="hayFiltro" class="mini" @click="limpiarFiltros">Limpiar</button>
+          <Button v-if="hayFiltro" variant="outline" size="sm" @click="limpiarFiltros">Limpiar</Button>
         </div>
 
         <!-- Selección + consecutivos (solo pestaña Selección) -->
@@ -280,10 +280,10 @@
           <div class="card-h" style="border-top:1px solid var(--line); padding-top:10px;">
             <span class="hint" style="padding:0">Marca qué liquidar; el detalle contable está en las pestañas Preliquidación / Oficial.</span>
             <div class="pool-actions">
-              <button class="mini" @click="selAll('liquidar_ingresos', true)">Liq. ingresos todos</button>
-              <button class="mini" @click="selAll('liquidar_costos', true)">Liq. costos todos</button>
-              <button class="mini" @click="selNinguno">Ninguno</button>
-              <button class="mini" @click="selAll('generar_mandatos', true)">Generar todos</button>
+              <Button variant="outline" size="sm" @click="selAll('liquidar_ingresos', true)">Liq. ingresos todos</Button>
+              <Button variant="outline" size="sm" @click="selAll('liquidar_costos', true)">Liq. costos todos</Button>
+              <Button variant="outline" size="sm" @click="selNinguno">Ninguno</Button>
+              <Button variant="outline" size="sm" @click="selAll('generar_mandatos', true)">Generar todos</Button>
             </div>
           </div>
 
