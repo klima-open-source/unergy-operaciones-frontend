@@ -53,6 +53,7 @@ const RUTAS = {
   ipp: `${BASE}/ipp`,
   ippSincronizar: `${BASE}/ipp/sincronizar`,
   cicloDiagnostico: `${BASE}/ciclo/diagnostico`,
+  cicloReliquidar: `${BASE}/ciclo/reliquidar`,
   proyectos: `${BASE}/proyectos`,
   proyecto: (id: number) => `${BASE}/proyectos/${id}`,
   subproyecto: (topic: string) => `${BASE}/subproyectos/${encodeURIComponent(topic)}`,
@@ -277,6 +278,25 @@ export class LiquidacionesApiService extends BaseService {
     total_en_base: number
   }> {
     return this.post(RUTAS.ippSincronizar, {})
+  }
+
+  /**
+   * Copia las facturas de XM de una versión a otra: el paso que habilita
+   * reliquidar el mes (§4.9 de la guía).
+   *
+   * Sin esto, correr el ciclo en una versión nueva parece funcionar --FTP y
+   * Liquidar aceptan la versión-- pero Repartir responde 400, porque las
+   * facturas siguen existiendo solo en la versión vieja.
+   *
+   * Es SÍNCRONO: devuelve las facturas creadas, no un `task_id`.
+   */
+  reliquidar(payload: {
+    month: number
+    year: number
+    last_version?: VersionCiclo | null
+    new_version: VersionCiclo
+  }): Promise<{ invoice_ids?: number[], count?: number, [k: string]: unknown }> {
+    return this.post(RUTAS.cicloReliquidar, payload)
   }
 
   /** Lanza una acción asíncrona del ciclo y espera a que termine. */

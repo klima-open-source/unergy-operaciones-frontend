@@ -73,6 +73,13 @@
           <Select v-model="ac.version" :options="VERSIONES" class="w-full" />
         </div>
         <div>
+          <!-- Solo en reliquidaciones: le dice a la API de qué versión viene el
+               reparto anterior. En la primera corrida del mes va vacío. -->
+          <label class="field-label">Versión anterior <span class="text-gray-400">(solo al reliquidar)</span></label>
+          <Select v-model="ac.last_version" :options="VERSIONES" class="w-full" showClear
+                  placeholder="Ninguna" />
+        </div>
+        <div>
           <label class="field-label">AC Power total del período (kW)</label>
           <InputNumber v-model="ac.total_ac_power" :maxFractionDigits="4" :useGrouping="false"
                        class="w-full" placeholder="ej: 12345.6789" />
@@ -367,7 +374,8 @@ const acVisible = ref(false)
 const repartiendo = ref(false)
 const progresoReparto = ref('')
 const ac = reactive({
-  month: null, year: null, version: VERSION_INICIAL, total_ac_power: null, override: true,
+  month: null, year: null, version: VERSION_INICIAL, last_version: null,
+  total_ac_power: null, override: true,
 })
 
 function abrirAcPower() {
@@ -375,6 +383,9 @@ function abrirAcPower() {
     month: anterior.getMonth() + 1,
     year: anterior.getFullYear(),
     version: VERSION_INICIAL,
+    // Se limpia al abrir: arrastrar la versión anterior de un reparto pasado
+    // haría que la API lo tratara como reliquidación sin que nadie lo pidiera.
+    last_version: null,
     total_ac_power: null,
     override: true,
   })
