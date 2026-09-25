@@ -27,8 +27,6 @@
         <Button label="Consultar FTP" size="small" outlined :loading="accion === 'ftp'" @click="abrir('ftp')">
           <template #icon><DownloadIcon class="size-[1em]" /></template>
         </Button>
-        <Button label="Reliquidar" size="small" outlined severity="secondary"
-                :loading="accion === 'reliquidar'" @click="abrir('reliquidar')" />
         <Button label="Liquidar" size="small" :loading="accion === 'liquidar'" @click="abrir('liquidar')">
           <template #icon><ZapIcon class="size-[1em]" /></template>
         </Button>
@@ -52,16 +50,6 @@
         <div v-if="cfg.version">
           <label class="field-label">Versión</label>
           <Select v-model="c.version" :options="VERSIONES" class="w-full" />
-        </div>
-        <div v-if="cfg.dosVersiones" class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="field-label">Desde (versión actual)</label>
-            <Select v-model="c.version" :options="VERSIONES" class="w-full" />
-          </div>
-          <div>
-            <label class="field-label">Hacia (versión nueva)</label>
-            <Select v-model="c.versionNueva" :options="VERSIONES" class="w-full" />
-          </div>
         </div>
 
         <p v-if="progreso" class="text-[11px] text-gray-500 flex items-center gap-2">
@@ -285,13 +273,6 @@ const MODOS = {
     header: 'Liquidar', submit: 'Liquidar', version: true,
     ayuda: 'Liquida los contratos del período. Requiere el FTP ya descargado y va antes de repartir los costos de XM.',
   },
-  // Reliquidar NO es "liquidar otra vez con otra versión". Antes hay que copiar
-  // las facturas de XM a la versión nueva: sin ese paso, Repartir responde 400
-  // porque las facturas siguen viviendo solo en la versión vieja.
-  reliquidar: {
-    header: 'Reliquidar', submit: 'Duplicar facturas', version: false, dosVersiones: true,
-    ayuda: 'Copia las facturas de XM de una versión a otra, que es lo que habilita reliquidar el mes. Después hay que volver a correr FTP, Liquidar y Repartir con la versión nueva.',
-  },
 }
 
 // ── Estado ───────────────────────────────────────────────────────────────────
@@ -411,26 +392,18 @@ async function cargar() {
 const dialogVisible = ref(false)
 const modo = ref('ipp')
 const cfg = computed(() => MODOS[modo.value])
-const c = reactive({ mes: null, anio: null, version: VERSION_INICIAL, versionNueva: null })
+const c = reactive({ mes: null, anio: null, version: VERSION_INICIAL })
 const accion = ref(null)      // acción en curso, para el spinner del botón
 const progreso = ref('')
 
 function abrir(m) {
   modo.value = m
-  Object.assign(c, { mes: filtros.month, anio: filtros.year, version: filtros.version,
-                     versionNueva: null })
+  Object.assign(c, { mes: filtros.month, anio: filtros.year, version: filtros.version })
   progreso.value = ''
   dialogVisible.value = true
 }
 
 async function ejecutar() {
-  if (cfg.value.dosVersiones && (!c.version || !c.versionNueva)) {
-    toast.warning('Faltan las versiones', {
-      description: 'Elige desde qué versión y hacia cuál se copian las facturas.',
-      duration: 4000,
-    })
-    return
-  }
   if (c.mes == null || c.anio == null || (cfg.value.version && !c.version)) {
     toast.warning('Faltan campos', {
       description: 'Completa mes, año' + (cfg.value.version ? ' y versión.' : '.'),
@@ -443,20 +416,7 @@ async function ejecutar() {
   progreso.value = ''
   const periodo = { month: c.mes, year: c.anio, version: c.version }
   try {
-    if (modo.value === 'reliquidar') {
-      const res = await liquidacionesApi.reliquidar({
-        month: c.mes, year: c.anio,
-        last_version: c.version, new_version: c.versionNueva,
-      })
-      const cuantas = res.invoice_ids?.length ?? res.count ?? null
-      toast.success(`Facturas copiadas a ${c.versionNueva}`, {
-        description: (cuantas != null ? `${cuantas} factura(s). ` : '')
-          + 'Ahora corre FTP, Liquidar y Repartir con esa versión.',
-        duration: 9000,
-      })
-      filtros.version = c.versionNueva
-      await cargar()
-    } else if (modo.value === 'ipp') {
+    if (modo.value === 'ipp') {
       const ipp = await liquidacionesApi.consultarIpp(periodo)
       toast.success(`IPP de ${nombreMes(c.mes)} ${c.anio}`, {
         description: `${ipp} · queda guardado y se ve en la cabecera`,

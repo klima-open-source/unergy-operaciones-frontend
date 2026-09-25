@@ -3,6 +3,10 @@
     <PageHeader title="Facturas de XM"
                 subtitle="Facturas del período y su estado de alistamiento para repartir">
       <template #actions>
+        <Button label="Reliquidar" size="small" outlined severity="secondary"
+                :loading="reliquidando" @click="abrirReliquidar">
+          <template #icon><CopyIcon class="size-[1em]" /></template>
+        </Button>
         <Button label="Subir facturas" size="small" @click="abrirSubida">
           <template #icon><UploadIcon class="size-[1em]" /></template>
         </Button>
@@ -77,6 +81,42 @@
           <Button label="Subir" size="small" :disabled="!archivos.length" :loading="subiendo" @click="subir">
             <template #icon><UploadIcon class="size-[1em]" /></template>
           </Button>
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- Dialog: Reliquidar (copiar las facturas a otra versión) -->
+    <Dialog v-model:visible="reliqVisible" header="Reliquidar el período" modal class="w-full max-w-lg">
+      <div class="space-y-4 pt-1">
+        <p class="text-xs text-gray-500">
+          Copia las facturas de XM de una versión a otra. Es lo que habilita reliquidar:
+          sin este paso, Liquidar y Repartir fallan en la versión nueva porque no hay
+          facturas en ella. Después hay que volver a correr FTP, Liquidar y Repartir.
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Mes</label>
+            <Select v-model="rl.month" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
+          </div>
+          <div>
+            <label class="field-label">Año</label>
+            <InputNumber v-model="rl.year" :useGrouping="false" class="w-full" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Desde (versión actual)</label>
+            <Select v-model="rl.last_version" :options="VERSIONES" class="w-full" />
+          </div>
+          <div>
+            <label class="field-label">Hacia (versión nueva)</label>
+            <Select v-model="rl.new_version" :options="VERSIONES" class="w-full" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <Button label="Cancelar" severity="secondary" size="small" :disabled="reliquidando"
+                  @click="reliqVisible = false" />
+          <Button label="Duplicar facturas" size="small" :loading="reliquidando" @click="reliquidar" />
         </div>
       </div>
     </Dialog>
@@ -205,7 +245,7 @@ import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, MAX_FACTURAS_POR_LOTE, MAX_MB_POR_FACTURA } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatCOP as fmtCOP } from '~/utils/currency'
-import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
+import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, CopyIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
 
@@ -287,6 +327,53 @@ async function cargar() {
     readiness.value = readinessVacia()
   } finally {
     loading.value = false
+  }
+}
+
+// ── Reliquidar ───────────────────────────────────────────────────────────────
+// Va en esta vista y no en Despachos porque lo que duplica son las FACTURAS.
+const reliqVisible = ref(false)
+const reliquidando = ref(false)
+const rl = reactive({ month: null, year: null, last_version: VERSION_INICIAL, new_version: null })
+
+function abrirReliquidar() {
+  Object.assign(rl, {
+    month: filtros.month, year: filtros.year,
+    last_version: filtros.version || VERSION_INICIAL,
+    // Sin valor por defecto a propósito: a dónde se copia es una decisión, no
+    // algo que deba quedar preseleccionado.
+    new_version: null,
+  })
+  reliqVisible.value = true
+}
+
+async function reliquidar() {
+  if (rl.month == null || rl.year == null || !rl.last_version || !rl.new_version) {
+    toast.warning('Faltan campos', {
+      description: 'Completa mes, año y las dos versiones.',
+      duration: 4000,
+    })
+    return
+  }
+  reliquidando.value = true
+  try {
+    const res = await liquidacionesApi.reliquidar({ ...rl })
+    const cuantas = res.invoice_ids?.length ?? res.count ?? null
+    toast.success(`Facturas copiadas a ${rl.new_version}`, {
+      description: (cuantas != null ? `${cuantas} factura(s). ` : '')
+        + 'Ahora corre FTP, Liquidar y Repartir con esa versión.',
+      duration: 9000,
+    })
+    filtros.version = rl.new_version
+    reliqVisible.value = false
+    await cargar()
+  } catch (e) {
+    toast.error('No se pudo reliquidar', {
+      description: e.data?.detail || e.message,
+      duration: 9000,
+    })
+  } finally {
+    reliquidando.value = false
   }
 }
 
