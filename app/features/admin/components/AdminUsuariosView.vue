@@ -1,84 +1,14 @@
-<template>
-  <div class="space-y-4">
-    <PageHeader title="Gestión de Usuarios">
-      <template #actions>
-        <Button label="Nuevo usuario" size="small" @click="openNew">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </PageHeader>
-
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div class="p-4 border-b border-gray-100">
-        <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
-          <InputText v-model="q" placeholder="Buscar por nombre o correo..." class="w-72" @input="onSearch" />
-        </IconField>
-      </div>
-
-      <DataTable :value="filtered" :loading="loading" :rows="20" paginator rowHover class="text-sm"
-        :globalFilterFields="['nombre', 'email']">
-        <Column field="nombre" header="Nombre" sortable />
-        <Column field="email" header="Correo" sortable />
-        <Column field="rol" header="Rol" sortable style="width: 140px">
-          <template #body="{ data }">
-            <GBadge :color="ROL_SEVERITY[data.rol] || 'default'">{{ ROL_LABELS[data.rol] || data.rol }}</GBadge>
-          </template>
-        </Column>
-        <Column field="activo" header="Estado" style="width: 100px">
-          <template #body="{ data }">
-            <GBadge :color="data.activo ? 'success' : 'destructive'">{{ data.activo ? 'Activo' : 'Inactivo' }}</GBadge>
-          </template>
-        </Column>
-        <Column header="Acciones" style="width: 140px">
-          <template #body="{ data }">
-            <Button text rounded size="small" v-tooltip.top="'API Keys'" @click="openApiKeys(data)">
-              <template #icon><KeyIcon class="size-[1em]" /></template>
-            </Button>
-            <Button text rounded size="small" v-tooltip.top="'Editar'" @click="openEdit(data)">
-              <template #icon><PencilIcon class="size-[1em]" /></template>
-            </Button>
-          </template>
-        </Column>
-      </DataTable>
-    </div>
-
-    <Dialog v-model:visible="dialogVisible" :header="editingId ? 'Editar usuario' : 'Nuevo usuario'"
-      modal class="w-full max-w-lg">
-      <UsuarioForm :initial="form" @save="onSave" @cancel="dialogVisible = false" />
-    </Dialog>
-
-    <ApiKeysDialog v-model:visible="apiKeysVisible" :usuario="apiKeysUser" />
-  </div>
-</template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import { toast } from 'vue-sonner'
-import { UsuariosService } from '~/features/admin/services/usuarios'
-import UsuarioForm from './UsuarioForm.vue'
-import ApiKeysDialog from './ApiKeysDialog.vue'
+<script setup lang="ts">
+import type { DataTableColumn, DataTableSort } from '~/components/blocks/DataTable.vue'
+import type { PayloadUsuario, Usuario } from '~/features/admin/types'
 import { KeyIcon, PencilIcon, PlusIcon, SearchIcon } from '@lucide/vue'
+import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
+import { UsuariosService } from '~/features/admin/services/usuarios'
+import ApiKeysDialog from './ApiKeysDialog.vue'
+import UsuarioForm from './UsuarioForm.vue'
 
-const usuariosService = new UsuariosService()
-
-const items = ref([])
-const loading = ref(false)
-const q = ref('')
-const dialogVisible = ref(false)
-const editingId = ref(null)
-const form = ref({})
-const apiKeysVisible = ref(false)
-const apiKeysUser = ref(null)
-
-const ROL_LABELS = {
+const ROL_LABELS: Record<Usuario['rol'], string> = {
   admin: 'Admin',
   operaciones: 'Operaciones',
   monitoreo: 'Monitoreo',
@@ -88,7 +18,10 @@ const ROL_LABELS = {
   comercial: 'Comercial',
 }
 
-const ROL_SEVERITY = {
+const ROL_COLOR: Record<
+  Usuario['rol'],
+  'destructive' | 'information' | 'warning' | 'success' | 'default'
+> = {
   admin: 'destructive',
   operaciones: 'information',
   monitoreo: 'warning',
@@ -98,61 +31,181 @@ const ROL_SEVERITY = {
   comercial: 'information',
 }
 
+const columns: DataTableColumn[] = [
+  { key: 'nombre', header: 'Nombre', sortable: true },
+  { key: 'email', header: 'Correo', sortable: true },
+  { key: 'rol', header: 'Rol', sortable: true },
+  { key: 'activo', header: 'Estado' },
+  { key: 'acciones', header: 'Acciones' },
+]
+
+const usuariosService = new UsuariosService()
+const usuariosQuery = useQuery<Usuario[]>()
+
+const q = ref('')
+const sort = ref<DataTableSort | null>(null)
+const pagination = usePagination(20)
+
+const dialogOpen = ref(false)
+const editingUser = ref<Usuario | null>(null)
+const saving = ref(false)
+const apiKeysOpen = ref(false)
+const apiKeysUser = ref<Usuario | null>(null)
+
 const filtered = computed(() => {
-  if (!q.value) return items.value
-  const term = q.value.toLowerCase()
-  return items.value.filter(u =>
-    u.nombre.toLowerCase().includes(term) || u.email.toLowerCase().includes(term)
+  const usuarios = usuariosQuery.data ?? []
+  if (!q.value.trim()) return usuarios
+  const term = q.value.trim().toLowerCase()
+  return usuarios.filter(
+    (u) => u.nombre.toLowerCase().includes(term) || u.email.toLowerCase().includes(term),
   )
 })
 
+const sorted = computed(() => {
+  if (!sort.value) return filtered.value
+  const { key, direction } = sort.value
+  const factor = direction === 'asc' ? 1 : -1
+  return [...filtered.value].sort((a, b) => {
+    const left = String(a[key as keyof Usuario] ?? '')
+    const right = String(b[key as keyof Usuario] ?? '')
+    return left.localeCompare(right) * factor
+  })
+})
+
+const pagedUsuarios = computed(() =>
+  sorted.value.slice(pagination.offset.value, pagination.offset.value + pagination.pageSize.value),
+)
+
+watch(sorted, (rows) => {
+  pagination.total.value = rows.length
+})
+
+watch(q, () => pagination.reset())
+
 async function load() {
-  loading.value = true
-  try {
-    items.value = await usuariosService.listar()
-  } finally {
-    loading.value = false
-  }
+  await usuariosQuery.run(() => usuariosService.listar())
 }
 
 onMounted(load)
 
-let searchTimer
-function onSearch() {
-  clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {}, 350)
-}
-
 function openNew() {
-  editingId.value = null
-  form.value = {}
-  dialogVisible.value = true
+  editingUser.value = null
+  dialogOpen.value = true
 }
 
-function openEdit(row) {
-  editingId.value = row.id
-  form.value = { ...row }
-  dialogVisible.value = true
+function openEdit(usuario: Usuario) {
+  editingUser.value = usuario
+  dialogOpen.value = true
 }
 
-function openApiKeys(row) {
-  apiKeysUser.value = row
-  apiKeysVisible.value = true
+function openApiKeys(usuario: Usuario) {
+  apiKeysUser.value = usuario
+  apiKeysOpen.value = true
 }
 
-async function onSave(payload) {
+async function onSave(payload: PayloadUsuario) {
+  saving.value = true
   try {
-    if (editingId.value) {
-      await usuariosService.actualizar(editingId.value, payload)
-      toast.success('Usuario actualizado', { duration: 3000 })
+    if (editingUser.value) {
+      await usuariosService.actualizar(editingUser.value.id, payload)
+      toast.success('Usuario actualizado')
     } else {
       await usuariosService.crear(payload)
-      toast.success('Usuario creado', { duration: 3000 })
+      toast.success('Usuario creado')
     }
-    dialogVisible.value = false
-    load()
-  } catch (e) {
-    toast.error('Error', { description: e.data?.detail || 'Error al guardar', duration: 4000 })
+    dialogOpen.value = false
+    await load()
+  } catch (err) {
+    toast.error('Error al guardar', { description: normalizeError(err).message })
+  } finally {
+    saving.value = false
   }
 }
 </script>
+
+<template>
+  <div class="space-y-4">
+    <PageHeader title="Gestión de Usuarios">
+      <template #actions>
+        <Button size="sm" @click="openNew">
+          <PlusIcon class="size-4" />
+          Nuevo usuario
+        </Button>
+      </template>
+    </PageHeader>
+
+    <AsyncView :query="usuariosQuery">
+      <template #default>
+        <Card>
+          <CardContent class="space-y-4">
+            <InputGroup class="max-w-sm">
+              <InputGroupAddon>
+                <SearchIcon class="size-4" />
+              </InputGroupAddon>
+              <InputGroupInput v-model="q" placeholder="Buscar por nombre o correo..." />
+            </InputGroup>
+
+            <DataTable
+              :columns="columns"
+              :rows="pagedUsuarios"
+              :row-key="(row: Usuario) => row.id"
+              :sort="sort"
+              :page="pagination.page.value"
+              :page-size="pagination.pageSize.value"
+              :total="pagination.total.value"
+              empty-message="No hay usuarios que coincidan con la búsqueda."
+              @update:sort="sort = $event"
+              @update:page="pagination.goTo($event)"
+            >
+              <template #cell="{ row, column }">
+                <GBadge v-if="column.key === 'rol'" :color="ROL_COLOR[row.rol]">
+                  {{ ROL_LABELS[row.rol] }}
+                </GBadge>
+                <GBadge
+                  v-else-if="column.key === 'activo'"
+                  :color="row.activo ? 'success' : 'destructive'"
+                >
+                  {{ row.activo ? 'Activo' : 'Inactivo' }}
+                </GBadge>
+                <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1">
+                  <GTooltip>
+                    <GTooltipTrigger as-child>
+                      <Button variant="ghost" size="icon-sm" @click.stop="openApiKeys(row)">
+                        <KeyIcon class="size-4" />
+                      </Button>
+                    </GTooltipTrigger>
+                    <GTooltipContent>API Keys</GTooltipContent>
+                  </GTooltip>
+                  <GTooltip>
+                    <GTooltipTrigger as-child>
+                      <Button variant="ghost" size="icon-sm" @click.stop="openEdit(row)">
+                        <PencilIcon class="size-4" />
+                      </Button>
+                    </GTooltipTrigger>
+                    <GTooltipContent>Editar</GTooltipContent>
+                  </GTooltip>
+                </div>
+              </template>
+            </DataTable>
+          </CardContent>
+        </Card>
+      </template>
+    </AsyncView>
+
+    <Dialog v-model:open="dialogOpen">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{{ editingUser ? 'Editar usuario' : 'Nuevo usuario' }}</DialogTitle>
+        </DialogHeader>
+        <UsuarioForm
+          :initial="editingUser"
+          :saving="saving"
+          @save="onSave"
+          @cancel="dialogOpen = false"
+        />
+      </DialogContent>
+    </Dialog>
+
+    <ApiKeysDialog v-model:open="apiKeysOpen" :usuario="apiKeysUser" />
+  </div>
+</template>
