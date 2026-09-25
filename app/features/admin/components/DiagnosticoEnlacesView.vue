@@ -1,184 +1,52 @@
-<template>
-  <div class="space-y-5">
-    <PageHeader title="Diagnóstico de Enlaces" subtitle="Mapeo Contrato → GESCON → Planta → sub_project (API Unergy)">
-      <template #lead>
-        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background: rgba(145,91,216,0.12);">
-          <LinkIcon class="text-lg size-[1em]" style="color: var(--color-unergy-purple);" />
-        </div>
-      </template>
-      <template #actions>
-        <Button severity="secondary" text :loading="loading" @click="load">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-        </Button>
-        <Button label="Auto-Fix Enlaces" severity="warn" size="small" :loading="fixing" @click="fixEnlaces">
-          <template #icon><WrenchIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </PageHeader>
-
-    <!-- Fix results -->
-    <div v-if="fixResult" class="bg-white rounded-xl shadow-sm p-4" style="border: 1px solid #e8e0f0;">
-      <h2 class="text-sm font-bold mb-3" style="color: var(--color-unergy-deep);">Resultado del Fix</h2>
-      <div v-for="(a, i) in fixResult.actions" :key="i" class="text-xs py-1 border-b" style="border-color: #f0e8f8;">
-        <GBadge :color="actionSev(a.action)" class="text-xs mr-2">{{ a.action }}</GBadge>
-        <b>{{ a.contrato }}</b>
-        <span v-if="a.planta"> → {{ a.planta }}</span>
-        <span v-if="a.sub_project" class="font-mono ml-1" style="color: #059669;">({{ a.sub_project }})</span>
-        <span v-if="a.reason" class="ml-1" style="color: #dc2626;">{{ a.reason }}</span>
-        <span v-if="a.asic_id" class="ml-1 opacity-50">id={{ a.asic_id }}</span>
-      </div>
-    </div>
-
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <LoaderCircleIcon class="text-3xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
-    </div>
-
-    <template v-if="data && !loading">
-      <!-- Projects with sub_project -->
-      <div class="bg-white rounded-xl shadow-sm p-4" style="border: 1px solid #e8e0f0;">
-        <h2 class="text-sm font-bold mb-3" style="color: var(--color-unergy-deep);">
-          Proyectos con sub_project ({{ data.proyectos_con_sub_project?.length || 0 }})
-        </h2>
-        <div class="flex flex-wrap gap-2">
-          <span v-for="p in data.proyectos_con_sub_project" :key="p.id"
-                class="text-xs px-2 py-1 rounded-full font-mono"
-                :style="p.estado === 'en_operacion'
-                  ? 'background: rgba(16,185,129,0.1); color: #059669;'
-                  : 'background: rgba(107,90,138,0.1); color: #6b5a8a;'">
-            {{ p.nombre }} → <b>{{ p.sub_project }}</b>
-          </span>
-        </div>
-      </div>
-
-      <!-- Contracts -->
-      <div v-for="c in data.contratos" :key="c.contrato_id"
-           class="bg-white rounded-xl shadow-sm overflow-hidden"
-           :style="'border: 1px solid ' + (c.n_plantas_activas === 0 ? '#fca5a5' : '#e8e0f0')">
-
-        <div class="px-4 py-3 flex items-center gap-3 flex-wrap"
-             :style="'border-bottom: 1px solid #e8e0f0; background: ' + (c.n_plantas_activas === 0 ? '#fef2f2' : '#f8f5fc')">
-          <span class="font-bold text-sm" style="color: var(--color-unergy-deep);">{{ c.nombre_interno || '(sin nombre)' }}</span>
-          <span class="text-xs font-mono px-2 py-0.5 rounded" style="background: rgba(145,91,216,0.1); color: var(--color-unergy-purple);">
-            {{ c.numero_codigo_contrato || '(sin código)' }}
-          </span>
-          <span class="text-xs" style="color: #6b5a8a;">{{ c.comprador }}</span>
-          <GBadge :color="c.tipo === 'compra' ? 'information' : 'default'" class="text-xs">{{ c.tipo }}</GBadge>
-          <span class="ml-auto text-xs font-bold"
-                :style="'color: ' + (c.n_plantas_activas > 0 ? '#059669' : '#dc2626')">
-            {{ c.n_plantas_activas }} planta(s) activa(s)
-          </span>
-        </div>
-
-        <!-- Raw GESCON records -->
-        <div v-if="c.gescon_raw?.length" class="px-4 py-3">
-          <p class="text-xs font-bold uppercase tracking-wide mb-2" style="color: #6b5a8a;">
-            Registros GESCON ({{ c.gescon_raw.length }})
-          </p>
-          <div class="overflow-x-auto">
-            <table class="w-full text-xs" style="border-collapse: collapse;">
-              <thead>
-                <tr style="background: #f8f5fc;">
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">ID</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Tipo</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Estado</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">SIC</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Planta</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">sub_project</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">%Desp</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Dup</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Reemp</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Inicio</th>
-                  <th class="px-2 py-1 text-left" style="border: 1px solid #e8e0f0;">Fin</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="r in c.gescon_raw" :key="r.id"
-                    :style="r.estado !== 'publicado' ? 'opacity: 0.4;' : ''">
-                  <td class="px-2 py-1 font-mono" style="border: 1px solid #e8e0f0;">{{ r.id }}</td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">
-                    <GBadge :color="tipoSev(r.tipo)" class="text-xs">{{ r.tipo }}</GBadge>
-                  </td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.estado }}</td>
-                  <td class="px-2 py-1 font-mono" style="border: 1px solid #e8e0f0;">{{ r.codigo_sic }}</td>
-                  <td class="px-2 py-1 font-semibold" style="border: 1px solid #e8e0f0; color: var(--color-unergy-deep);">{{ r.planta || '—' }}</td>
-                  <td class="px-2 py-1 font-mono" style="border: 1px solid #e8e0f0;"
-                      :style="r.sub_project ? 'color: #059669;' : 'color: #dc2626; font-weight: bold;'">
-                    {{ r.sub_project || 'NULL' }}
-                  </td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.pct_despacho != null ? (r.pct_despacho * 100).toFixed(0) + '%' : '—' }}</td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.es_duplicado ? 'SÍ' : '' }}</td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.reemplaza_anterior ? 'SÍ' : '' }}</td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.fecha_inicio || '—' }}</td>
-                  <td class="px-2 py-1" style="border: 1px solid #e8e0f0;">{{ r.fecha_fin || '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Resolved plants -->
-        <div v-if="c.gescon_resolved?.length" class="px-4 py-3" style="border-top: 1px solid #e8e0f0;">
-          <p class="text-xs font-bold uppercase tracking-wide mb-2" style="color: #059669;">
-            Plantas resueltas para este mes
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="p in c.gescon_resolved" :key="p.asic_id"
-                  class="text-xs px-3 py-1.5 rounded-lg font-medium"
-                  :style="p.es_duplicado
-                    ? 'background: rgba(234,179,8,0.15); color: #a16207; border: 1px solid rgba(234,179,8,0.3);'
-                    : 'background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.2);'">
-              {{ p.planta }}
-              <span class="font-mono opacity-70 ml-1">({{ p.sub_project || 'SIN API ID' }})</span>
-              <span v-if="p.pct_despacho != null" class="opacity-60 ml-1">{{ (p.pct_despacho * 100).toFixed(0) }}%</span>
-              <span v-if="p.es_duplicado" class="ml-1 font-bold">DUP</span>
-            </span>
-          </div>
-        </div>
-
-        <!-- No plants warning -->
-        <div v-if="!c.gescon_raw?.length && !c.gescon_resolved?.length" class="px-4 py-6 text-center">
-          <TriangleAlertIcon class="text-2xl mb-2 block size-[1em]" style="color: #dc2626;" />
-          <p class="text-xs font-semibold" style="color: #dc2626;">
-            Sin registros GESCON — {{ !c.numero_codigo_contrato ? 'no tiene código de contrato' : 'no hay AsicSolicitud con contrato_interno = ' + c.numero_codigo_contrato }}
-          </p>
-        </div>
-      </div>
-    </template>
-  </div>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import type {
+  ContratoDiagnosticoEnlaces,
+  DiagnosticoEnlaces,
+  ResultadoFixEnlaces,
+} from '~/features/admin/types'
+import { LinkIcon, RefreshCwIcon, TriangleAlertIcon, WrenchIcon } from '@lucide/vue'
+import { normalizeError } from '~/core/errors'
 import { DiagnosticoEnlacesService } from '~/features/admin/services/diagnostico-enlaces'
-import { logger } from '~/core/logger'
-import Button from 'primevue/button'
-import { LinkIcon, LoaderCircleIcon, RefreshCwIcon, TriangleAlertIcon, WrenchIcon } from '@lucide/vue'
+
+type BadgeColor = 'default' | 'action' | 'information' | 'success' | 'warning' | 'destructive'
+
+const TIPO_COLOR: Record<string, BadgeColor> = {
+  registro: 'success',
+  modificacion: 'information',
+  terminacion: 'destructive',
+  desistimiento: 'default',
+}
+
+const ACTION_COLOR: Record<string, BadgeColor> = {
+  created: 'success',
+  exists: 'information',
+  skip: 'warning',
+  delete_duplicate: 'destructive',
+  unflag_duplicate: 'success',
+}
+
+function tipoColor(tipo?: string): BadgeColor {
+  return (tipo && TIPO_COLOR[tipo]) || 'default'
+}
+
+function actionColor(action: string): BadgeColor {
+  return ACTION_COLOR[action] || 'default'
+}
+
+function contratoClass(c: ContratoDiagnosticoEnlaces) {
+  return c.n_plantas_activas === 0 ? 'border-destructive/40' : ''
+}
 
 const diagnosticoEnlacesService = new DiagnosticoEnlacesService()
-
-const data = ref(null)
-const loading = ref(false)
+const diagnosticoQuery = useQuery<DiagnosticoEnlaces>()
 const fixing = ref(false)
-const fixResult = ref(null)
-
-function tipoSev(tipo) {
-  return { registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'default' }[tipo] || 'default'
-}
-
-function actionSev(action) {
-  return { created: 'success', exists: 'information', skip: 'warning', delete_duplicate: 'destructive', unflag_duplicate: 'success' }[action] || 'default'
-}
+const fixResult = ref<ResultadoFixEnlaces | null>(null)
 
 async function load() {
-  loading.value = true
-  try {
-    data.value = await diagnosticoEnlacesService.obtener()
-  } catch (e) {
-    logger.error('admin.diagnostico-enlaces', e)
-  } finally {
-    loading.value = false
-  }
+  await diagnosticoQuery.run(() => diagnosticoEnlacesService.obtener())
 }
+
+onMounted(load)
 
 async function fixEnlaces() {
   fixing.value = true
@@ -186,13 +54,196 @@ async function fixEnlaces() {
   try {
     fixResult.value = await diagnosticoEnlacesService.fixEnlaces()
     await load()
-  } catch (e) {
-    logger.error('admin.diagnostico-enlaces', e)
-    fixResult.value = { actions: [{ action: 'error', reason: e.data?.detail || e.message, contrato: '—' }] }
+  } catch (err) {
+    fixResult.value = {
+      actions: [{ action: 'error', reason: normalizeError(err).message, contrato: '—' }],
+    }
   } finally {
     fixing.value = false
   }
 }
-
-onMounted(load)
 </script>
+
+<template>
+  <div class="space-y-5">
+    <PageHeader
+      title="Diagnóstico de Enlaces"
+      subtitle="Mapeo Contrato → GESCON → Planta → sub_project (API Unergy)"
+    >
+      <template #lead>
+        <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+          <LinkIcon class="size-4 text-primary" />
+        </div>
+      </template>
+      <template #actions>
+        <GTooltip>
+          <GTooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              :disabled="diagnosticoQuery.isLoading"
+              @click="load"
+            >
+              <RefreshCwIcon
+                class="size-4"
+                :class="{ 'animate-spin': diagnosticoQuery.isLoading }"
+              />
+            </Button>
+          </GTooltipTrigger>
+          <GTooltipContent>Recargar</GTooltipContent>
+        </GTooltip>
+        <Button variant="outline" size="sm" :disabled="fixing" @click="fixEnlaces">
+          <WrenchIcon class="size-4" />
+          Auto-Fix Enlaces
+        </Button>
+      </template>
+    </PageHeader>
+
+    <Card v-if="fixResult">
+      <CardHeader>
+        <CardTitle>Resultado del Fix</CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-1">
+        <div
+          v-for="(a, i) in fixResult.actions"
+          :key="i"
+          class="flex flex-wrap items-center gap-1.5 border-b py-1 text-xs last:border-b-0"
+        >
+          <GBadge :color="actionColor(a.action)">{{ a.action }}</GBadge>
+          <b>{{ a.contrato }}</b>
+          <span v-if="a.planta">→ {{ a.planta }}</span>
+          <span v-if="a.sub_project" class="font-mono text-success">({{ a.sub_project }})</span>
+          <span v-if="a.reason" class="text-destructive">{{ a.reason }}</span>
+          <span v-if="a.asic_id" class="opacity-50">id={{ a.asic_id }}</span>
+        </div>
+      </CardContent>
+    </Card>
+
+    <AsyncView :query="diagnosticoQuery">
+      <template #default="{ data }">
+        <div class="space-y-5">
+          <Card v-if="data.proyectos_con_sub_project?.length">
+            <CardHeader>
+              <CardTitle>
+                Proyectos con sub_project ({{ data.proyectos_con_sub_project.length }})
+              </CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-wrap gap-2">
+              <GBadge
+                v-for="p in data.proyectos_con_sub_project"
+                :key="p.id"
+                :color="p.estado === 'en_operacion' ? 'success' : 'default'"
+              >
+                {{ p.nombre }} → <b>{{ p.sub_project }}</b>
+              </GBadge>
+            </CardContent>
+          </Card>
+
+          <Card v-for="c in data.contratos" :key="c.contrato_id" :class="contratoClass(c)">
+            <CardHeader class="flex flex-row flex-wrap items-center gap-3">
+              <CardTitle>{{ c.nombre_interno || '(sin nombre)' }}</CardTitle>
+              <GBadge>{{ c.numero_codigo_contrato || '(sin código)' }}</GBadge>
+              <span class="text-xs text-muted-foreground">{{ c.comprador }}</span>
+              <GBadge :color="c.tipo === 'compra' ? 'information' : 'default'">{{ c.tipo }}</GBadge>
+              <span
+                class="ml-auto text-xs font-bold"
+                :class="c.n_plantas_activas > 0 ? 'text-success' : 'text-destructive'"
+              >
+                {{ c.n_plantas_activas }} planta(s) activa(s)
+              </span>
+            </CardHeader>
+
+            <CardContent class="space-y-4">
+              <div v-if="c.gescon_raw?.length" class="space-y-2">
+                <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Registros GESCON ({{ c.gescon_raw.length }})
+                </p>
+                <GTable>
+                  <GTableHeader>
+                    <GTableRow>
+                      <GTableHead>ID</GTableHead>
+                      <GTableHead>Tipo</GTableHead>
+                      <GTableHead>Estado</GTableHead>
+                      <GTableHead>SIC</GTableHead>
+                      <GTableHead>Planta</GTableHead>
+                      <GTableHead>sub_project</GTableHead>
+                      <GTableHead>%Desp</GTableHead>
+                      <GTableHead>Dup</GTableHead>
+                      <GTableHead>Reemp</GTableHead>
+                      <GTableHead>Inicio</GTableHead>
+                      <GTableHead>Fin</GTableHead>
+                    </GTableRow>
+                  </GTableHeader>
+                  <GTableBody>
+                    <GTableRow
+                      v-for="r in c.gescon_raw"
+                      :key="r.id"
+                      :class="r.estado !== 'publicado' ? 'opacity-40' : ''"
+                    >
+                      <GTableCell class="font-mono">{{ r.id }}</GTableCell>
+                      <GTableCell
+                        ><GBadge :color="tipoColor(r.tipo)">{{ r.tipo }}</GBadge></GTableCell
+                      >
+                      <GTableCell>{{ r.estado }}</GTableCell>
+                      <GTableCell class="font-mono">{{ r.codigo_sic }}</GTableCell>
+                      <GTableCell class="font-semibold">{{ r.planta || '—' }}</GTableCell>
+                      <GTableCell
+                        class="font-mono"
+                        :class="r.sub_project ? 'text-success' : 'font-bold text-destructive'"
+                      >
+                        {{ r.sub_project || 'NULL' }}
+                      </GTableCell>
+                      <GTableCell>{{
+                        r.pct_despacho != null ? `${(r.pct_despacho * 100).toFixed(0)}%` : '—'
+                      }}</GTableCell>
+                      <GTableCell>{{ r.es_duplicado ? 'SÍ' : '' }}</GTableCell>
+                      <GTableCell>{{ r.reemplaza_anterior ? 'SÍ' : '' }}</GTableCell>
+                      <GTableCell>{{ r.fecha_inicio || '—' }}</GTableCell>
+                      <GTableCell>{{ r.fecha_fin || '—' }}</GTableCell>
+                    </GTableRow>
+                  </GTableBody>
+                </GTable>
+              </div>
+
+              <div v-if="c.gescon_resolved?.length" class="space-y-2">
+                <p class="text-xs font-semibold tracking-wide text-success uppercase">
+                  Plantas resueltas para este mes
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <GBadge
+                    v-for="p in c.gescon_resolved"
+                    :key="p.asic_id"
+                    :color="p.es_duplicado ? 'warning' : 'success'"
+                  >
+                    {{ p.planta }}
+                    <span class="opacity-70">({{ p.sub_project || 'SIN API ID' }})</span>
+                    <span v-if="p.pct_despacho != null" class="opacity-70">
+                      {{ (p.pct_despacho * 100).toFixed(0) }}%
+                    </span>
+                    <span v-if="p.es_duplicado" class="font-bold">DUP</span>
+                  </GBadge>
+                </div>
+              </div>
+
+              <Empty v-if="!c.gescon_raw?.length && !c.gescon_resolved?.length" class="py-6">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon" class="bg-destructive/10 text-destructive">
+                    <TriangleAlertIcon />
+                  </EmptyMedia>
+                  <EmptyTitle class="text-destructive">Sin registros GESCON</EmptyTitle>
+                  <EmptyDescription>
+                    {{
+                      !c.numero_codigo_contrato
+                        ? 'No tiene código de contrato'
+                        : `No hay AsicSolicitud con contrato_interno = ${c.numero_codigo_contrato}`
+                    }}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </CardContent>
+          </Card>
+        </div>
+      </template>
+    </AsyncView>
+  </div>
+</template>
