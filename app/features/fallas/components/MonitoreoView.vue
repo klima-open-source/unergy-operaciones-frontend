@@ -762,7 +762,7 @@ v-if="categoriaFalla(drawerFalla).etiqueta"
       <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
       <Dialog v-model:open="formDialogVisible">
         <DialogContent
-          class="max-w-2xl"
+          class="max-h-[90dvh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]"
           :show-close-button="!savingForm"
           @escape-key-down="(e) => savingForm && e.preventDefault()"
           @pointer-down-outside="(e) => savingForm && e.preventDefault()"
@@ -772,9 +772,11 @@ v-if="categoriaFalla(drawerFalla).etiqueta"
               editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
             }}</DialogTitle>
           </DialogHeader>
-          <FallaForm
+          <div class="-mx-6 min-h-0 overflow-y-auto px-6">
+            <FallaForm
 :initial="editingFalla" :catalogos="catalogos"
-            @save="onSaveForm" @cancel="formDialogVisible = false" />
+              @save="onSaveForm" @cancel="formDialogVisible = false" />
+          </div>
         </DialogContent>
       </Dialog>
 
