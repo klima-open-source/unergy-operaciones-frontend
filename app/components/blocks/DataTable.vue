@@ -16,7 +16,8 @@ export interface DataTableSort {
 const props = defineProps<{
   columns: DataTableColumn[]
   rows: T[]
-  rowKey: (row: T) => string | number
+  /** Nombre de la propiedad que identifica cada fila (p. ej. `'id'`). Sin ella, se usa el índice. */
+  rowKey?: keyof T
   sort?: DataTableSort | null
   /** Cuando se pasan `page`/`pageSize`/`total`, el paginador aparece; ordenar y paginar quedan a cargo de quien use el componente (cliente o refetch al servidor). */
   page?: number
@@ -81,8 +82,8 @@ function sortIcon(column: DataTableColumn) {
         </template>
         <template v-else>
           <GTableRow
-            v-for="row in rows"
-            :key="rowKey(row)"
+            v-for="(row, index) in rows"
+            :key="rowKey ? String(row[rowKey]) : index"
             class="cursor-pointer"
             @click="emit('row-click', row)"
           >

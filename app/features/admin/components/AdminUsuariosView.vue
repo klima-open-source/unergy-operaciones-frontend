@@ -148,7 +148,7 @@ async function onSave(payload: PayloadUsuario) {
             <DataTable
               :columns="columns"
               :rows="pagedUsuarios"
-              :row-key="(row: Usuario) => row.id"
+              row-key="id"
               :sort="sort"
               :page="pagination.page.value"
               :page-size="pagination.pageSize.value"
