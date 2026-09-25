@@ -29,7 +29,6 @@ app/components/gandalf
 # fase 3 migra cada slice — `dashboard` ya salió de esta lista. `operaciones` y
 # `solar` van archivo por archivo: `GeneracionView.vue` y las piezas de
 # `SolarLiveView.vue` ya cumplen el formato del template, el resto no.
-app/features/admin/components
 app/features/alertas/components
 app/features/auth/components
 app/features/clientes/components
