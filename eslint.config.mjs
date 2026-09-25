@@ -42,7 +42,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   //
   // `auth` va archivo por archivo porque su carpeta está mezclada: el
   // `LoginForm.vue` es del template y sí cumple las reglas.
-  'app/features/admin/components/**',
   'app/features/alertas/components/**',
   'app/features/auth/components/ForgotPasswordView.vue',
   'app/features/auth/components/LoginView.vue',
