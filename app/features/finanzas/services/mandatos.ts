@@ -61,6 +61,6 @@ export class MandatosService extends BaseService {
   }
 
   descargarPdf(id: MandatoOperaciones['id']): Promise<Blob> {
-    return this.get<Blob>(RUTAS.pdf(id), { responseType: 'blob' })
+    return this.get(RUTAS.pdf(id), { responseType: 'blob' })
   }
 }

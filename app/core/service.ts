@@ -68,7 +68,7 @@ export class BaseService {
     body?: unknown,
     options?: ApiOptions<R>,
   ): Promise<MappedResponseType<R, T>> {
-    return this.enviar<T, R>('POST', url, body, options)
+    return this.pedirConCuerpo<T, R>('POST', url, body, options)
   }
 
   protected put<T, R extends ResponseType = 'json'>(
@@ -76,7 +76,7 @@ export class BaseService {
     body?: unknown,
     options?: ApiOptions<R>,
   ): Promise<MappedResponseType<R, T>> {
-    return this.enviar<T, R>('PUT', url, body, options)
+    return this.pedirConCuerpo<T, R>('PUT', url, body, options)
   }
 
   protected patch<T, R extends ResponseType = 'json'>(
@@ -84,14 +84,16 @@ export class BaseService {
     body?: unknown,
     options?: ApiOptions<R>,
   ): Promise<MappedResponseType<R, T>> {
-    return this.enviar<T, R>('PATCH', url, body, options)
+    return this.pedirConCuerpo<T, R>('PATCH', url, body, options)
   }
 
+  /** `DELETE` admite cuerpo (lo usa `PanelContableService.quitarFuenteIngreso`). */
   protected delete<T, R extends ResponseType = 'json'>(
     url: string,
-    options?: ApiOptions<R>,
+    options: ApiOptions<R> & { body?: unknown } = {},
   ): Promise<MappedResponseType<R, T>> {
-    return this.api<T, R>(url, { ...options, method: 'DELETE' })
+    const { body, ...resto } = options
+    return this.pedirConCuerpo<T, R>('DELETE', url, body, resto)
   }
 
   /**
@@ -101,7 +103,7 @@ export class BaseService {
    * índice. La conversión la hace `ofetch` igual — JSON para un objeto plano,
    * crudo para un `FormData` o un `URLSearchParams`.
    */
-  private enviar<T, R extends ResponseType>(
+  private pedirConCuerpo<T, R extends ResponseType>(
     metodo: string,
     url: string,
     body: unknown,

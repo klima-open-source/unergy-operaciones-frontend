@@ -36,7 +36,7 @@ export class StarlinkService extends BaseService {
   }
 
   descargarExcel(payload: { items?: unknown[]; agrupado?: unknown[] }): Promise<Blob> {
-    return this.post<Blob>(RUTAS.excel, payload, { responseType: 'blob' })
+    return this.post(RUTAS.excel, payload, { responseType: 'blob' })
   }
 
   actualizarMapeo(payload: PayloadMapeoStarlink): Promise<unknown> {

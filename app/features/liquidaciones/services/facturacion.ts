@@ -97,7 +97,7 @@ export class FacturacionService extends BaseService {
 
   /** Excel formulado del valor a indemnizar (3 hojas), generado en el backend. */
   descargarCumplimientoExport(periodo: string): Promise<Blob> {
-    return this.get<Blob>(RUTAS.cumplimientoExport, { query: { periodo }, responseType: 'blob' })
+    return this.get(RUTAS.cumplimientoExport, { query: { periodo }, responseType: 'blob' })
   }
 
   // ── IPP mensual (PPA) ─────────────────────────────────────────────────────────

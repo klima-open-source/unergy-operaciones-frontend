@@ -150,7 +150,7 @@ export class ReporteEnergiaService extends BaseService {
   }
 
   descargarExcel(fecha: string): Promise<Blob> {
-    return this.get<Blob>(RUTAS.excel, { query: { fecha }, responseType: 'blob' })
+    return this.get(RUTAS.excel, { query: { fecha }, responseType: 'blob' })
   }
 
   /** El envío a Quoia puede tardar varios minutos con muchas fronteras. */

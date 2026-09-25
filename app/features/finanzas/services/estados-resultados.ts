@@ -22,10 +22,10 @@ export class EstadosResultadosService extends BaseService {
   }
 
   descargarArchivo(id: ArchivoEstadoResultados['id']): Promise<Blob> {
-    return this.get<Blob>(RUTAS.descargar(id), { responseType: 'blob' })
+    return this.get(RUTAS.descargar(id), { responseType: 'blob' })
   }
 
   descargarZip(filtros: FiltrosArchivosEstadoResultados): Promise<Blob> {
-    return this.get<Blob>(RUTAS.archivosZip, { query: { ...filtros }, responseType: 'blob' })
+    return this.get(RUTAS.archivosZip, { query: { ...filtros }, responseType: 'blob' })
   }
 }

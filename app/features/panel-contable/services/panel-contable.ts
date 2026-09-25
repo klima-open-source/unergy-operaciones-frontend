@@ -47,7 +47,7 @@ export class PanelContableService extends BaseService {
   }
 
   descargarEstadoResultados(id: number, inversionista?: string | null): Promise<Blob> {
-    return this.get<Blob>(RUTAS.estadoResultados(id), {
+    return this.get(RUTAS.estadoResultados(id), {
       query: inversionista ? { inversionista } : undefined,
       responseType: 'blob',
     })
