@@ -143,14 +143,25 @@
             <InputNumber v-model="er.anio" :useGrouping="false" class="w-full" placeholder="ej: 2026" />
           </div>
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Desde (versión de las facturas)</label>
+            <Select v-model="er.last_version" :options="VERSIONES" class="w-full" />
+          </div>
+          <div>
+            <label class="field-label">Hacia (versión nueva)</label>
+            <Select v-model="er.new_version" :options="VERSIONES" class="w-full" />
+          </div>
+        </div>
         <div>
-          <label class="field-label">Versión</label>
-          <Select v-model="er.version" :options="VERSIONES" class="w-full" />
+          <label class="field-label">Proyecto <span class="text-gray-400">(opcional)</span></label>
+          <InputText v-model="er.project" class="w-full" placeholder="Tópico, ej: bayunca — vacío = todos" />
         </div>
         <p class="text-[11px] text-gray-500">
           <InfoIcon class="mr-1 size-[1em]" />
-          Genera el archivo para todos los proyectos del período y lo deja en Drive.
-          Puede tardar varios minutos.
+          Este paso pide DOS versiones: de cuál de las facturas saca los datos y hacia
+          cuál los lleva. Sin proyecto genera todos los del período. Lo deja en Drive y
+          puede tardar varios minutos.
         </p>
         <p v-if="progresoEr" class="text-[11px] text-gray-500 flex items-center gap-2">
           <LoaderCircleIcon class="size-[1em] animate-spin" /> {{ progresoEr }}
@@ -376,6 +387,17 @@ function periodoPorDefecto() {
   return { mes: mesAnterior.getMonth() + 1, anio: mesAnterior.getFullYear(), version: VERSION_INICIAL }
 }
 
+/** El ER no se pide con UNA versión: la API quiere `last_version` y `new_version`. */
+function periodoErPorDefecto() {
+  return {
+    mes: mesAnterior.getMonth() + 1,
+    anio: mesAnterior.getFullYear(),
+    last_version: VERSION_INICIAL,
+    new_version: VERSION_INICIAL,
+    project: '',
+  }
+}
+
 function faltanCampos(p) {
   if (p.mes != null && p.anio != null && p.version) return false
   toast.warning('Faltan campos', { description: 'Completa mes, año y versión.', duration: 4000 })
@@ -411,19 +433,48 @@ async function generarArchivo({ accion, periodo, titulo, enCurso, progreso, cerr
 const estadoVisible = ref(false)
 const generandoEr = ref(false)
 const progresoEr = ref('')
-const er = reactive(periodoPorDefecto())
+const er = reactive(periodoErPorDefecto())
 
 function abrirEstado() {
-  Object.assign(er, periodoPorDefecto())
+  Object.assign(er, periodoErPorDefecto())
   progresoEr.value = ''
   estadoVisible.value = true
 }
-function generarEstado() {
-  return generarArchivo({
-    accion: AccionCiclo.ESTADO_RESULTADOS, periodo: er, titulo: 'Estado de resultados',
-    enCurso: generandoEr, progreso: progresoEr,
-    cerrar: () => { estadoVisible.value = false },
-  })
+async function generarEstado() {
+  if (er.mes == null || er.anio == null || !er.last_version || !er.new_version) {
+    toast.warning('Faltan campos', {
+      description: 'Completa mes, año y las dos versiones.',
+      duration: 4000,
+    })
+    return
+  }
+  generandoEr.value = true
+  progresoEr.value = ''
+  try {
+    const res = await liquidacionesApi.ejecutarAccionCiclo(
+      AccionCiclo.ESTADO_RESULTADOS,
+      {
+        month: er.mes, year: er.anio,
+        last_version: er.last_version, new_version: er.new_version,
+        project: er.project?.trim() || undefined,
+      },
+      { onEstado: (t) => { progresoEr.value = t.mensaje } },
+    )
+    toast.success('Estado de resultados', {
+      description: res.file_name ? `Generado: ${res.file_name}` : (res.message || 'Terminó correctamente.'),
+      duration: 8000,
+    })
+    estadoVisible.value = false
+    await cargar(true)
+  } catch (e) {
+    toast.error('Estado de resultados falló', {
+      description: e.data?.detail || e.message,
+      duration: 10000,
+    })
+  } finally {
+    generandoEr.value = false
+    progresoEr.value = ''
+  }
 }
 
 // Cruce de facturas
