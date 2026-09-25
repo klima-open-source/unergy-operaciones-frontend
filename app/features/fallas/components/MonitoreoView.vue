@@ -762,7 +762,7 @@ v-if="categoriaFalla(drawerFalla).etiqueta"
       <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
       <Dialog v-model:open="formDialogVisible">
         <DialogContent
-          class="max-h-[90dvh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]"
+          class="max-h-[90dvh] max-w-3xl grid-rows-[auto_minmax(0,1fr)]"
           :show-close-button="!savingForm"
           @escape-key-down="(e) => savingForm && e.preventDefault()"
           @pointer-down-outside="(e) => savingForm && e.preventDefault()"
