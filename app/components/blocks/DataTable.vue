@@ -31,6 +31,11 @@ const emit = defineEmits<{
   'update:page': [page: number]
 }>()
 
+defineSlots<{
+  cell?: (props: { row: T; column: DataTableColumn }) => unknown
+  empty?: () => unknown
+}>()
+
 const showPagination = computed(
   () =>
     props.page !== undefined && props.pageSize !== undefined && (props.total ?? 0) > props.pageSize,
@@ -82,7 +87,7 @@ function sortIcon(column: DataTableColumn) {
             @click="emit('row-click', row)"
           >
             <GTableCell v-for="column in columns" :key="column.key" :class="column.class">
-              <slot :name="`cell-${column.key}`" :row="row">{{ row[column.key] }}</slot>
+              <slot name="cell" :row="row" :column="column">{{ row[column.key] }}</slot>
             </GTableCell>
           </GTableRow>
         </template>
