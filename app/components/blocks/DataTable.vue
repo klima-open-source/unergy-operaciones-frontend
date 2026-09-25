@@ -1,5 +1,7 @@
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts">
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from '@lucide/vue'
+
+export type DataTableRow = Record<string, unknown>
 
 export interface DataTableColumn {
   key: string
@@ -15,9 +17,9 @@ export interface DataTableSort {
 
 const props = defineProps<{
   columns: DataTableColumn[]
-  rows: T[]
+  rows: DataTableRow[]
   /** Nombre de la propiedad que identifica cada fila (p. ej. `'id'`). Sin ella, se usa el índice. */
-  rowKey?: keyof T
+  rowKey?: string
   sort?: DataTableSort | null
   /** Cuando se pasan `page`/`pageSize`/`total`, el paginador aparece; ordenar y paginar quedan a cargo de quien use el componente (cliente o refetch al servidor). */
   page?: number
@@ -27,13 +29,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'row-click': [row: T]
+  'row-click': [row: DataTableRow]
   'update:sort': [sort: DataTableSort]
   'update:page': [page: number]
 }>()
 
 defineSlots<{
-  cell?: (props: { row: T; column: DataTableColumn }) => unknown
+  cell?: (props: { row: DataTableRow; column: DataTableColumn }) => unknown
   empty?: () => unknown
 }>()
 

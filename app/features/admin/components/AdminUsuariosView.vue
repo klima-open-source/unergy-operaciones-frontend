@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import type { DataTableColumn, DataTableSort } from '~/components/blocks/DataTable.vue'
 import type { PayloadUsuario, Usuario } from '~/features/admin/types'
 import { KeyIcon, PencilIcon, PlusIcon, SearchIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+// Import explícito (no el auto-import de `blocks/`): con auto-import, Nuxt
+// sintetiza mal los tipos de props/slots de este componente y `typecheck`
+// falla con errores que no tienen que ver con el código real.
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+  type DataTableSort,
+} from '~/components/blocks/DataTable.vue'
 import { normalizeError } from '~/core/errors'
 import { UsuariosService } from '~/features/admin/services/usuarios'
 import ApiKeysDialog from './ApiKeysDialog.vue'
@@ -103,6 +110,10 @@ function openApiKeys(usuario: Usuario) {
   apiKeysOpen.value = true
 }
 
+function asUsuario(row: DataTableRow): Usuario {
+  return row as Usuario
+}
+
 async function onSave(payload: PayloadUsuario) {
   saving.value = true
   try {
@@ -158,19 +169,23 @@ async function onSave(payload: PayloadUsuario) {
               @update:page="pagination.goTo($event)"
             >
               <template #cell="{ row, column }">
-                <GBadge v-if="column.key === 'rol'" :color="ROL_COLOR[row.rol]">
-                  {{ ROL_LABELS[row.rol] }}
+                <GBadge v-if="column.key === 'rol'" :color="ROL_COLOR[asUsuario(row).rol]">
+                  {{ ROL_LABELS[asUsuario(row).rol] }}
                 </GBadge>
                 <GBadge
                   v-else-if="column.key === 'activo'"
-                  :color="row.activo ? 'success' : 'destructive'"
+                  :color="asUsuario(row).activo ? 'success' : 'destructive'"
                 >
-                  {{ row.activo ? 'Activo' : 'Inactivo' }}
+                  {{ asUsuario(row).activo ? 'Activo' : 'Inactivo' }}
                 </GBadge>
                 <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1">
                   <GTooltip>
                     <GTooltipTrigger as-child>
-                      <Button variant="ghost" size="icon-sm" @click.stop="openApiKeys(row)">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        @click.stop="openApiKeys(asUsuario(row))"
+                      >
                         <KeyIcon class="size-4" />
                       </Button>
                     </GTooltipTrigger>
@@ -178,7 +193,7 @@ async function onSave(payload: PayloadUsuario) {
                   </GTooltip>
                   <GTooltip>
                     <GTooltipTrigger as-child>
-                      <Button variant="ghost" size="icon-sm" @click.stop="openEdit(row)">
+                      <Button variant="ghost" size="icon-sm" @click.stop="openEdit(asUsuario(row))">
                         <PencilIcon class="size-4" />
                       </Button>
                     </GTooltipTrigger>
