@@ -1,15 +1,9 @@
-<script setup>
-/**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
- */
-import View from '~/features/admin/components/AdminUsuariosView.vue'
+<script setup lang="ts">
+import AdminUsuariosView from '~/features/admin/components/AdminUsuariosView.vue'
 
-definePageMeta({ layout: 'legacy' })
+definePageMeta({ layout: 'default' })
 </script>
 
 <template>
-  <View />
+  <AdminUsuariosView />
 </template>
