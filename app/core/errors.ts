@@ -7,7 +7,7 @@
  * useful in a log — the failed request, the backend payload, the original
  * stack — hangs off `context` and `cause`, never off the message.
  */
-import { isAirError, type AirError } from '@korastd/air'
+import { FetchError } from 'ofetch'
 
 /** Extend as your API grows. Every code needs a default message below. */
 export type ErrorCode =
@@ -70,16 +70,25 @@ export class AppError extends Error {
 /** Converts anything thrown into an `AppError`. The only entry point. */
 export function normalizeError(err: unknown): AppError {
   if (err instanceof AppError) return err
-  if (isAirError(err)) return fromAirError(err)
+  if (isFetchError(err)) return fromFetchError(err)
   if (isStatusError(err)) return fromStatusError(err)
   if (err instanceof Error) return new AppError('UNKNOWN', err.message, { cause: err })
   return new AppError('UNKNOWN', String(err))
 }
 
-// ─── air → AppError ──────────────────────────────────────────────────────────
-// `air` throws `AirError` for network failures and non-2xx responses alike.
+// ─── ofetch → AppError ───────────────────────────────────────────────────────
+// `ofetch` throws `FetchError` for network failures and non-2xx responses alike.
 
-function fromAirError(err: AirError): AppError {
+/**
+ * Narrows to the error `ofetch` throws, with the response body typed. Exported
+ * because a handful of views read `status` and `data` by hand, and `FetchError`
+ * types `data` as `any` — the whole point of narrowing it here.
+ */
+export function isFetchError<T = unknown>(err: unknown): err is FetchError<T> {
+  return err instanceof FetchError
+}
+
+function fromFetchError(err: FetchError<unknown>): AppError {
   const body = readErrorBody(err.data)
   const httpStatus = err.status ?? 0
 
@@ -89,13 +98,19 @@ function fromAirError(err: AirError): AppError {
   return new AppError(code, body.message, {
     cause: err,
     context: {
-      method: err.request.method.toUpperCase(),
-      url: err.request.url,
+      method: (err.options?.method ?? 'GET').toUpperCase(),
+      url: requestUrl(err.request),
       httpStatus,
       status: body.status,
       payload: body.payload,
     },
   })
+}
+
+/** `ofetch` keeps the request it was given: the resolved URL for every call we make. */
+function requestUrl(request: FetchError['request']): string {
+  if (typeof request === 'string') return request
+  return request?.url ?? ''
 }
 
 /**

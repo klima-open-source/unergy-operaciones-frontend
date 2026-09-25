@@ -6,16 +6,16 @@
  * servidor recorta toda lista a 100 filas por respuesta y `completarPaginas`
  * (`~/core/paginacion.ts`) esta puesto justo para completarla, pero este
  * service armaba el querystring a mano y lo pegaba a la URL. La red solo sabe
- * leer `options.query` -- una query que no puede inspeccionar la deja pasar
- * intacta, a proposito -- asi que esta llamada quedaba fuera y nadie se
- * enteraba: el recorte viene con un 200.
+ * leer la `query` de las opciones -- lo que va pegado a la URL no lo puede
+ * inspeccionar -- asi que esta llamada quedaba fuera y nadie se enteraba: el
+ * recorte viene con un 200.
  *
  * Por eso lo que se fija aca no es "que traiga 188 filas" sino la propiedad de
  * la que eso depende: que los parametros viajen por `query`, donde la red los
  * ve. Y que los filtros sigan intactos en la pagina 2, que es lo que se rompe
  * si alguien vuelve a armar la URL a mano.
  */
-import air, { type AirClient } from '@korastd/air'
+import { ofetch, type $Fetch } from 'ofetch'
 import { describe, expect, it } from 'vitest'
 
 import { TOPE_FILAS_SERVIDOR } from '~/core/paginacion'
@@ -29,8 +29,8 @@ const BASE = 'http://api.test'
  */
 function servidor(totalFilas: number) {
   const urls: URL[] = []
-  const fetchFalso = async (url: string): Promise<Response> => {
-    const u = new URL(url)
+  const fetchFalso: typeof globalThis.fetch = async (input) => {
+    const u = new URL(String(input))
     urls.push(u)
     const size = Math.min(Number(u.searchParams.get('size') ?? 20), TOPE_FILAS_SERVIDOR)
     const desde = (Number(u.searchParams.get('page') ?? 1) - 1) * size
@@ -41,7 +41,7 @@ function servidor(totalFilas: number) {
       headers: { 'content-type': 'application/json' },
     })
   }
-  const cliente: AirClient = air.create({ baseURL: BASE, fetch: fetchFalso })
+  const cliente: $Fetch = ofetch.create({ baseURL: BASE, retry: false }, { fetch: fetchFalso })
   return { servicio: new ProyectosService(cliente), urls }
 }
 

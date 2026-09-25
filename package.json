@@ -25,7 +25,6 @@
     ]
   },
   "dependencies": {
-    "@korastd/air": "^1.0.0",
     "@lucide/vue": "^1.35.0",
     "@nuxt/eslint": "1.17.0",
     "@nuxtjs/color-mode": "^3.5.2",
@@ -45,6 +44,7 @@
     "jszip": "^3.10.1",
     "maplibre-gl": "^5.24.0",
     "nuxt": "^4.5.2",
+    "ofetch": "^1.5.1",
     "pdfjs-dist": "^6.0.227",
     "primevue": "^4.0.5",
     "reka-ui": "^2.10.4",

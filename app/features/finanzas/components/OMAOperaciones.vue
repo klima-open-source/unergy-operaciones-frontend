@@ -850,7 +850,7 @@ async function cargarFacturaProveedor() {
   } catch { facturaProveedor.value = { nombre_archivo: null, enlace_pdf: null, tiene_archivo: false, subido_en: null } }
 }
 
-// Usa OmService (inyecta el Bearer token vía el cliente air compartido) en vez de un
+// Usa OmService (inyecta el Bearer token vía el cliente compartido) en vez de un
 // <a href> directo — VITE_API_URL no está definida en el build de producción, y aunque
 // lo estuviera, el endpoint exige Authorization: Bearer, que un <a> no puede enviar.
 async function descargarFacturaProveedor() {

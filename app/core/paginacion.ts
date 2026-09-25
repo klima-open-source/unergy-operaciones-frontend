@@ -36,8 +36,6 @@
  * filtrando en el servidor. Por eso hay un tope de paginas que avisa en vez de
  * dispararse en silencio.
  */
-import type { AirOptions } from '@korastd/air'
-
 import { logger } from '~/core/logger'
 
 /** Lo que el servidor devuelve como maximo por respuesta. */
@@ -55,16 +53,9 @@ export const MAX_PAGINAS = 20
 
 type Cuerpo = Record<string, unknown>
 
-/** El tipo que `air` acepta como query. Puede ser un objeto, un
- *  `URLSearchParams` o pares clave/valor -- solo el objeto se puede inspeccionar. */
-type QueryAir = NonNullable<AirOptions['query']>
-type QueryPlana = QueryAir & Record<string, unknown>
-
-/** Una query que se puede leer por clave. Un `URLSearchParams` o una lista de
- *  tuplas no se inspeccionan: esas peticiones pasan de largo sin tocarse. */
-function esQueryPlana(q: QueryAir | undefined): q is QueryPlana {
-  return typeof q === 'object' && q !== null && !Array.isArray(q) && !(q instanceof URLSearchParams)
-}
+/** La query de una peticion, tal como la recibe `ofetch`: un objeto plano que
+ *  se puede leer por clave. */
+type Consulta = Record<string, unknown>
 
 /** Las claves con que la API envuelve una lista. `items` es el contrato de
  *  FastAPI que DRF conserva (ver api/pagination.py); `results` lo usan los
@@ -152,16 +143,15 @@ function mismasFilas(a: unknown[], b: unknown[]): boolean {
  * filas repetidas se ve igual de bien que una correcta.
  */
 export async function completarPaginas<T>(
-  pedir: (options: AirOptions) => Promise<T>,
-  options: AirOptions | undefined,
+  pedir: (query: Consulta | undefined) => Promise<T>,
+  query: Consulta | undefined,
 ): Promise<T> {
-  const opciones: AirOptions = options ?? {}
-  const query = options?.query
-  if (!esQueryPlana(query)) return pedir(opciones)
+  // Sin query no hay `limit` ni `size` que leer: nada que completar.
+  if (!query) return pedir(query)
 
   const pedidas = comoEntero(query.limit) ?? comoEntero(query.size)
   // Nadie pidio mas de lo que cabe en una respuesta: no hay nada que completar.
-  if (pedidas === null || pedidas <= TOPE_FILAS_SERVIDOR) return pedir(opciones)
+  if (pedidas === null || pedidas <= TOPE_FILAS_SERVIDOR) return pedir(query)
 
   // `skip`/`limit` lo usan los listados que paginan a mano; `page`/`size`, los
   // que pasan por DRF. Se conserva el estilo con que llamo quien llama.
@@ -173,18 +163,15 @@ export async function completarPaginas<T>(
   // Las paginas siguientes van de a `TOPE_FILAS_SERVIDOR`, que es lo que la
   // primera respuesta demostro que el servidor entrega -- y por eso el
   // desplazamiento se cuenta en filas RECIBIDAS, no en las pedidas.
-  const pagina = (indice: number): AirOptions => ({
-    ...opciones,
-    query: {
-      ...query,
-      [claveTamano]: TOPE_FILAS_SERVIDOR,
-      [clavePagina]: porSalto ? saltoInicial + indice * TOPE_FILAS_SERVIDOR : saltoInicial + indice,
-    } as QueryPlana,
+  const pagina = (indice: number): Consulta => ({
+    ...query,
+    [claveTamano]: TOPE_FILAS_SERVIDOR,
+    [clavePagina]: porSalto ? saltoInicial + indice * TOPE_FILAS_SERVIDOR : saltoInicial + indice,
   })
 
   // La primera llamada va TAL COMO la pidio quien llama: si el endpoint puede
   // servir las 500 de una, las sirve y aca no se gasta ni una llamada mas.
-  const primera = await pedir(opciones)
+  const primera = await pedir(query)
   const filas = filasDe(primera)
   // No es una lista (un detalle, un resumen): se devuelve tal cual.
   if (filas === null) return primera

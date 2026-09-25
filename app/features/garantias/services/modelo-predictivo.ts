@@ -18,8 +18,8 @@ const RUTAS = {
 
 export class ModeloPredictivoService extends BaseService {
   getPlan(parametros: ParametrosPlanModeloPredictivo): Promise<PlanModeloPredictivo> {
-    // Objeto fresco, no el valor tipado tal cual: una `interface` no tiene firma de
-    // índice y `Query` (de `air`) la exige — ver la nota del propio README de `air`.
+    // Objeto fresco, no el valor tipado tal cual: una `interface` no tiene firma
+    // de índice y el `Record<string, any>` que `ofetch` pide para la query la exige.
     return this.get<PlanModeloPredictivo>(RUTAS.plan, { query: { ...parametros } })
   }
 

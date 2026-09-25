@@ -2431,7 +2431,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
-import { isAirError } from '@korastd/air'
+import { isFetchError } from '~/core/errors'
 import { logger } from '~/core/logger'
 import { CumplimientoService } from '~/features/mem/services/cumplimiento'
 import { PpaService } from '~/features/contratos/services/ppa'
@@ -3101,8 +3101,8 @@ async function loadEnergiaTransada() {
     updateCacheSize()
     prefetchEtHistory()
   } catch (e) {
-    const status = isAirError(e) ? e.status : undefined
-    etError.value = (isAirError(e) ? e.data?.detail : undefined)
+    const status = isFetchError(e) ? e.status : undefined
+    etError.value = (isFetchError(e) ? e.data?.detail : undefined)
       || (status === 401 ? 'Sesión expirada — inicia sesión de nuevo.'
          : e.name === 'TimeoutError' ? 'Tiempo de espera agotado — el servidor tardó demasiado.'
          : 'Error al consultar la energía transada.')
@@ -4796,12 +4796,12 @@ async function loadSimulator(retry = true) {
     initAssignments(data)
     updateCacheSize()
   } catch (e) {
-    if (retry && (!isAirError(e) || e.status >= 500)) {
+    if (retry && (!isFetchError(e) || e.status >= 500)) {
       logger.error('mem', e)
       return loadSimulator(false)
     }
-    const detail = isAirError(e) ? e.data?.detail : undefined
-    const status = isAirError(e) ? e.status : undefined
+    const detail = isFetchError(e) ? e.data?.detail : undefined
+    const status = isFetchError(e) ? e.status : undefined
     simError.value = detail
       || (status === 401 ? 'Sesión expirada — inicia sesión de nuevo.'
          : status === 503 ? 'API de generación no disponible temporalmente. Intenta en unos minutos.'

@@ -112,7 +112,7 @@ export class ReporteEnergiaService extends BaseService {
   recuperarMedidor(id: number, fecha: string): Promise<DetalleReporteEnergia> {
     return this.post<DetalleReporteEnergia>(RUTAS.recuperarMedidor(id), undefined, {
       query: { fecha },
-      signal: () => AbortSignal.timeout(120_000),
+      timeout: 120_000,
     })
   }
 
@@ -150,14 +150,14 @@ export class ReporteEnergiaService extends BaseService {
   }
 
   descargarExcel(fecha: string): Promise<Blob> {
-    return this.get<Blob>(RUTAS.excel, { query: { fecha }, parse: 'blob' })
+    return this.get<Blob>(RUTAS.excel, { query: { fecha }, responseType: 'blob' })
   }
 
   /** El envío a Quoia puede tardar varios minutos con muchas fronteras. */
   enviarReporte(fecha: string): Promise<ResultadoEnvioReporteEnergia> {
     return this.post<ResultadoEnvioReporteEnergia>(RUTAS.enviar, undefined, {
       query: { fecha },
-      signal: () => AbortSignal.timeout(300_000),
+      timeout: 300_000,
     })
   }
 
@@ -169,7 +169,7 @@ export class ReporteEnergiaService extends BaseService {
   revisarEstadoQuoia(fecha: string): Promise<EstadoQuoiaReporte> {
     return this.post<EstadoQuoiaReporte>(RUTAS.estadoQuoia, undefined, {
       query: { fecha },
-      signal: () => AbortSignal.timeout(180_000),
+      timeout: 180_000,
     })
   }
 }

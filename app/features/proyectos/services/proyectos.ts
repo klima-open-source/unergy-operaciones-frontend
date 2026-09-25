@@ -93,9 +93,9 @@ export class ProyectosService extends BaseService {
    * paginacion intacta al lado.
    *
    * `ppa_id` viaja repetido (`ppa_id=12&ppa_id=45`, lo que espera el backend
-   * para `list[int]`) y `air` lo hace solo: `buildURL` recorre el valor y hace
-   * un `append` por elemento. Un array vacío no agrega nada y un `undefined`
-   * tampoco, así que los filtros opcionales se pasan tal cual.
+   * para `list[int]`) y `ofetch` lo hace solo: `withQuery` recorre el valor y
+   * hace un `append` por elemento. Un array vacío no agrega nada y un
+   * `undefined` tampoco, así que los filtros opcionales se pasan tal cual.
    */
   listarPaginado({
     page = 1,
@@ -118,7 +118,7 @@ export class ProyectosService extends BaseService {
       query: {
         page,
         size,
-        // `|| undefined` y no el valor tal cual: `air` omite un `undefined`,
+        // `|| undefined` y no el valor tal cual: `ofetch` omite un `undefined`,
         // pero un string vacío SÍ viajaría (`estado=`), y para el backend eso
         // es un filtro por el estado "" -- cero resultados en vez de "todos".
         estado: estado || undefined,

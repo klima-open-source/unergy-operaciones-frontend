@@ -2,27 +2,38 @@
  * BaseService — la base que extiende todo service del cliente.
  *
  * Por defecto usa la instancia compartida de la plataforma (`~/core/client.ts`),
- * que lleva el interceptor de sesión: un 401 limpia la sesión y redirige al
+ * que lleva el contrato de sesión: un 401 limpia la sesión y redirige al
  * login, un 403 avisa con un toast. Eso es lo correcto para casi todo — la
  * excepción es una llamada donde un 401/403 es una respuesta normal y no un
  * síntoma de sesión rota (un intento de login: ver
  * `OperacionesAuthService`), o un destino que no debe llevar el token de la
  * plataforma en absoluto (el agente local de XM: ver `XmAgenteLocalService`).
- * Para esos casos, pásale al constructor una instancia de `air` propia.
+ * Para esos casos, pásale al constructor una instancia de `ofetch` propia.
  *
  * @example
  * class ProyeccionesService extends BaseService {
  *   listar() { return this.get<Proyeccion[]>('/garantias/proyecciones') }
  * }
  */
-import type { AirClient, AirOptions, Fetch } from '@korastd/air'
-import { airClient } from '~/core/client'
+import type { $Fetch, FetchOptions, MappedResponseType, ResponseType } from 'ofetch'
+import { apiClient } from '~/core/client'
 import { completarPaginas } from '~/core/paginacion'
 
-export class BaseService {
-  protected api: AirClient
+/**
+ * Lo que un service puede pasarle a una llamada: las opciones de `ofetch` menos
+ * lo que fija el propio método. `R` es el modo de lectura de la respuesta
+ * (`responseType`), y por eso una descarga se escribe
+ * `this.get<Blob>(url, { responseType: 'blob' })` y sigue devolviendo un `Blob`.
+ */
+export type ApiOptions<R extends ResponseType = 'json'> = Omit<FetchOptions<R>, 'method' | 'body'>
 
-  constructor(instancia: AirClient = airClient) {
+/** Un valor que puede viajar en el querystring. */
+export type ValorQuery = string | number | boolean | null | undefined
+
+export class BaseService {
+  protected api: $Fetch
+
+  constructor(instancia: $Fetch = apiClient) {
     this.api = instancia
   }
 
@@ -42,24 +53,65 @@ export class BaseService {
    * Una petición que no pide más de 100, o cuya respuesta no es una lista,
    * pasa de largo sin una sola llamada extra.
    */
-  protected get<T>(url: string, options?: AirOptions): Promise<T> {
-    return completarPaginas<T>((opts) => this.api.get<T>(url, opts), options)
+  protected get<T, R extends ResponseType = 'json'>(
+    url: string,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return completarPaginas(
+      (query) => this.api<T, R>(url, { ...options, method: 'GET', query }),
+      options?.query,
+    )
   }
 
-  protected post<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
-    return this.api.post<T>(url, { ...options, body })
+  protected post<T, R extends ResponseType = 'json'>(
+    url: string,
+    body?: unknown,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return this.enviar<T, R>('POST', url, body, options)
   }
 
-  protected put<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
-    return this.api.put<T>(url, { ...options, body })
+  protected put<T, R extends ResponseType = 'json'>(
+    url: string,
+    body?: unknown,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return this.enviar<T, R>('PUT', url, body, options)
   }
 
-  protected patch<T>(url: string, body?: unknown, options?: AirOptions): Promise<T> {
-    return this.api.patch<T>(url, { ...options, body })
+  protected patch<T, R extends ResponseType = 'json'>(
+    url: string,
+    body?: unknown,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return this.enviar<T, R>('PATCH', url, body, options)
   }
 
-  protected delete<T>(url: string, options?: AirOptions): Promise<T> {
-    return this.api.delete<T>(url, options)
+  protected delete<T, R extends ResponseType = 'json'>(
+    url: string,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return this.api<T, R>(url, { ...options, method: 'DELETE' })
+  }
+
+  /**
+   * El cuerpo se le entrega a `ofetch` tal cual. Acá se declara `unknown` y no
+   * el tipo de `ofetch` porque los payloads del dominio son `interface`s, y una
+   * `interface` no satisface un `Record<string, any>`: no tiene firma de
+   * índice. La conversión la hace `ofetch` igual — JSON para un objeto plano,
+   * crudo para un `FormData` o un `URLSearchParams`.
+   */
+  private enviar<T, R extends ResponseType>(
+    metodo: string,
+    url: string,
+    body: unknown,
+    options?: ApiOptions<R>,
+  ): Promise<MappedResponseType<R, T>> {
+    return this.api<T, R>(url, {
+      ...options,
+      method: metodo,
+      body: body as FetchOptions['body'],
+    })
   }
 
   /**
@@ -67,11 +119,12 @@ export class BaseService {
    * facturas y de Excel son lo bastante lentas como para que el porcentaje no
    * sea un adorno.
    *
-   * `air` no ofrece progreso de subida sin transmitir el cuerpo como stream, y
-   * un `FormData` no se puede recodificar a mano sin perder el boundary del
+   * `ofetch` no ofrece progreso de subida sin transmitir el cuerpo como stream,
+   * y un `FormData` no se puede recodificar a mano sin perder el boundary del
    * multipart que pone el navegador (ver `subidaConProgreso`). XHR sí lo expone
-   * de fábrica, así que solo cuando hay `onProgreso` se le pasa a `air` un
-   * `fetch` a medida que envuelve uno.
+   * de fábrica, así que solo cuando hay `onProgreso` se deriva un cliente con
+   * ese transporte: `create` conserva los defaults del original (baseURL y el
+   * contrato de sesión) y solo cambia el `fetch`.
    */
   protected postFormData<T>(
     url: string,
@@ -79,15 +132,21 @@ export class BaseService {
     onProgreso?: (porcentaje: number) => void,
   ): Promise<T> {
     if (!onProgreso) return this.post<T>(url, form)
-    return this.api.post<T>(url, { body: form, fetch: subidaConProgreso(onProgreso) })
+
+    const conProgreso = this.api.create({}, { fetch: subidaConProgreso(onProgreso) })
+    return conProgreso<T>(url, { method: 'POST', body: form })
   }
 }
 
-function subidaConProgreso(onProgreso: (porcentaje: number) => void): Fetch {
-  return (url, init) =>
+/**
+ * Un `fetch` que sube por XHR para poder informar del avance. Solo lo usa
+ * `postFormData`, que siempre pasa la URL ya resuelta como string.
+ */
+function subidaConProgreso(onProgreso: (porcentaje: number) => void): typeof globalThis.fetch {
+  return (input, init = {}) =>
     new Promise<Response>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
-      xhr.open(init.method ?? 'POST', url)
+      xhr.open(init.method ?? 'POST', input instanceof Request ? input.url : String(input))
 
       new Headers(init.headers).forEach((valor, clave) => xhr.setRequestHeader(clave, valor))
 
@@ -111,7 +170,7 @@ function subidaConProgreso(onProgreso: (porcentaje: number) => void): Fetch {
     })
 }
 
-/** `XMLHttpRequest.getAllResponseHeaders()` devuelve texto crudo, `air` espera un `Headers`. */
+/** `XMLHttpRequest.getAllResponseHeaders()` devuelve texto crudo, `ofetch` espera un `Headers`. */
 function parsearCabecerasXhr(crudo: string): Headers {
   const cabeceras = new Headers()
   for (const linea of crudo.trim().split(/\r?\n/)) {

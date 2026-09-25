@@ -1,5 +1,5 @@
 import type { SessionResponse, SignInRequest } from '~/features/auth/types'
-import air from '@korastd/air'
+import { ofetch } from 'ofetch'
 import { BaseService } from '~/core/service'
 
 /**
@@ -11,13 +11,13 @@ import { BaseService } from '~/core/service'
  * The server's half — the code that actually calls the auth API — is
  * `server/utils/auth-api.ts`.
  *
- * Bare `air` client, not the platform's shared one: `getMe()` answers 401 when
+ * Bare `ofetch` client, not the platform's shared one: `getMe()` answers 401 when
  * there is simply no session yet, which is a normal outcome here, not a
  * broken session the platform's interceptor should react to.
  */
 export class AuthService extends BaseService {
   constructor() {
-    super(air.create({ baseURL: '' }))
+    super(ofetch.create({ retry: false }))
   }
 
   login(data: SignInRequest): Promise<SessionResponse> {

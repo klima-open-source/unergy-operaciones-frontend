@@ -28,8 +28,7 @@ import type {
   TotalesAcPower,
   VersionCiclo,
 } from '~/features/liquidaciones/types'
-import type { QueryValue } from '@korastd/air'
-import { BaseService } from '~/core/service'
+import { BaseService, type ValorQuery } from '~/core/service'
 import {
   EstadoTarea,
   TareaFallida,
@@ -152,7 +151,7 @@ export class LiquidacionesApiService extends BaseService {
   // ── Facturas de XM ─────────────────────────────────────────────────────────
 
   /** Facturas de XM del período, con su bloque de alistamiento. */
-  listarFacturasXm(filtros: Record<string, QueryValue> = {}): Promise<RespuestaFacturasXm> {
+  listarFacturasXm(filtros: Record<string, ValorQuery> = {}): Promise<RespuestaFacturasXm> {
     return this.get<RespuestaFacturasXm>(RUTAS.facturasXm, { query: filtros })
   }
 
@@ -167,7 +166,10 @@ export class LiquidacionesApiService extends BaseService {
   subirFacturasXm(
     archivos: File[],
     version: VersionCiclo = VERSION_INICIAL,
-    { onProgreso, apiKey }: {
+    {
+      onProgreso,
+      apiKey,
+    }: {
       onProgreso?: (porcentaje: number) => void
       apiKey?: string
     } = {},
@@ -214,7 +216,7 @@ export class LiquidacionesApiService extends BaseService {
 
   // ── Costos e ingresos fijos ────────────────────────────────────────────────
 
-  listarCostos(filtros: Record<string, QueryValue> = {}): Promise<RespuestaCostos> {
+  listarCostos(filtros: Record<string, ValorQuery> = {}): Promise<RespuestaCostos> {
     return this.get<RespuestaCostos>(RUTAS.costos, { query: filtros })
   }
 
@@ -274,7 +276,7 @@ export class LiquidacionesApiService extends BaseService {
     actualizados: number
     sin_cambio: number
     periodos_creados: string[]
-    cambios: { periodo: string, antes: number, ahora: number }[]
+    cambios: { periodo: string; antes: number; ahora: number }[]
     total_en_base: number
   }> {
     return this.post(RUTAS.ippSincronizar, {})
@@ -295,7 +297,7 @@ export class LiquidacionesApiService extends BaseService {
     year: number
     last_version?: VersionCiclo | null
     new_version: VersionCiclo
-  }): Promise<{ invoice_ids?: number[], count?: number, [k: string]: unknown }> {
+  }): Promise<{ invoice_ids?: number[]; count?: number; [k: string]: unknown }> {
     return this.post(RUTAS.cicloReliquidar, payload)
   }
 

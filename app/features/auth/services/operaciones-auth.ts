@@ -1,9 +1,9 @@
 /**
  * `OperacionesAuthService`: el login contra el backend de operaciones.
  *
- * Usa una instancia de `air` **propia, sin el interceptor de sesión** de
+ * Usa una instancia de `ofetch` **propia, sin el contrato de sesión** de
  * `~/core/client.ts`, y por un motivo concreto: unas credenciales equivocadas
- * responden 401, y ese interceptor reacciona a un 401 borrando la sesión y
+ * responden 401, y ese contrato reacciona a un 401 borrando la sesión y
  * redirigiendo al login. En la pantalla de login eso es ruido; en la app móvil
  * es un salto de página en medio del intento. El login es la única llamada de
  * la app para la que un 401 es una respuesta normal.
@@ -17,8 +17,8 @@
  * `POST /api/auth/login` de Nitro (`~/features/auth/services/auth.ts`), que
  * asume ese endpoint para resolver la sesión en cada request.
  */
-import air, { isAirError, type AirError } from '@korastd/air'
-import { AppError, codeFromHttpStatus } from '~/core/errors'
+import { ofetch } from 'ofetch'
+import { AppError, codeFromHttpStatus, isFetchError } from '~/core/errors'
 import { BaseService } from '~/core/service'
 
 /** Vacío = mismo origen, que es lo normal: el proxy resuelve el resto. */
@@ -41,19 +41,17 @@ interface DetalleError {
   detail?: string
 }
 
-/** Traduce el error de `air` a `AppError`, para que `normalizeError` lo deje pasar tal cual. */
+/** Traduce el error de `ofetch` a `AppError`, para que `normalizeError` lo deje pasar tal cual. */
 function comoAppError(err: unknown): AppError {
-  if (!isAirError(err))
+  if (!isFetchError<DetalleError>(err))
     return new AppError('UNKNOWN', err instanceof Error ? err.message : String(err))
 
-  const error = err as AirError<DetalleError>
-  const status = error.status ?? 0
-  return new AppError(codeFromHttpStatus(status), error.data?.detail, { cause: err })
+  return new AppError(codeFromHttpStatus(err.status ?? 0), err.data?.detail, { cause: err })
 }
 
 export class OperacionesAuthService extends BaseService {
   constructor() {
-    super(air.create({ baseURL: BASE_URL }))
+    super(ofetch.create({ baseURL: BASE_URL, retry: false }))
   }
 
   private async solicitarToken(

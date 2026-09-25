@@ -26,7 +26,7 @@ export class DashboardService extends BaseService {
   }): Promise<ResumenCumplimientoPpa> {
     return this.get<ResumenCumplimientoPpa>(RUTAS.cumplimientoPpaResumen, {
       query: { year, month },
-      signal: () => AbortSignal.timeout(15_000),
+      timeout: 15_000,
     })
   }
 }

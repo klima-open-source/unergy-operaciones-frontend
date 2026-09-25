@@ -78,7 +78,7 @@ export class CumplimientoService extends BaseService {
   ): Promise<BalanceEnergiaCumplimiento> {
     return this.get<BalanceEnergiaCumplimiento>(RUTAS.balanceEnergia, {
       query: { ...filtros },
-      signal: () => AbortSignal.timeout(timeoutMs),
+      timeout: timeoutMs,
     })
   }
 
@@ -89,7 +89,7 @@ export class CumplimientoService extends BaseService {
   }): Promise<EnergiaTransadaCumplimiento> {
     return this.get<EnergiaTransadaCumplimiento>(RUTAS.energiaTransada, {
       query: { ...filtros },
-      signal: () => AbortSignal.timeout(180_000),
+      timeout: 180_000,
     })
   }
 
@@ -108,7 +108,7 @@ export class CumplimientoService extends BaseService {
   ): Promise<DetalleAnualMatrizContrato> {
     return this.get<DetalleAnualMatrizContrato>(RUTAS.anualMatrizContrato(id), {
       query: { ...filtros },
-      signal: () => AbortSignal.timeout(90_000),
+      timeout: 90_000,
     })
   }
 

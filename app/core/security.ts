@@ -3,7 +3,7 @@
 //
 // Centraliza el almacenamiento del token de acceso y del usuario, además de la
 // decodificación del JWT, de modo que la estrategia de almacenamiento se pueda
-// cambiar en un solo lugar (el store de auth, el cliente `air` de `~/core/client.ts`
+// cambiar en un solo lugar (el store de auth, el cliente de `~/core/client.ts`
 // y las vistas consumen estas funciones).
 //
 // SEGURIDAD — léase antes de modificar:

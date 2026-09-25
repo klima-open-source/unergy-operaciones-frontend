@@ -26,7 +26,7 @@ export class ReporteCgmService extends BaseService {
 
   enviar(payload: PayloadEnvioCgm): Promise<RespuestaEnvioCgm> {
     return this.post<RespuestaEnvioCgm>(RUTAS.enviar, payload, {
-      signal: () => AbortSignal.timeout(TIMEOUT_ENVIO_MS),
+      timeout: TIMEOUT_ENVIO_MS,
     })
   }
 

@@ -1,17 +1,22 @@
-import { AirError } from '@korastd/air'
+import { createFetchError, type IFetchError } from 'ofetch'
 import { describe, expect, it } from 'vitest'
 import { AppError, normalizeError, readDetail } from './errors'
 
-/** An AirError as `air` builds it: `response` is absent when the call never landed. */
-function airError(body: unknown, httpStatus?: number): AirError {
-  const request = {
-    url: 'https://api.test/users/1',
-    method: 'GET',
-    headers: new Headers(),
-    options: {},
-  }
-  const response = httpStatus !== undefined ? new Response(null, { status: httpStatus }) : undefined
-  return new AirError('Request failed', request, { response, data: body })
+/**
+ * A `FetchError` as `ofetch` builds it: no `response` when the call never
+ * landed, and the parsed body hanging off `response._data`.
+ */
+function fetchError(body: unknown, httpStatus?: number): IFetchError {
+  const response =
+    httpStatus === undefined
+      ? undefined
+      : Object.assign(new Response(null, { status: httpStatus }), { _data: body })
+
+  return createFetchError({
+    request: 'https://api.test/users/1',
+    options: { method: 'GET', headers: new Headers() },
+    response,
+  })
 }
 
 describe('appError', () => {
@@ -53,19 +58,19 @@ describe('normalizeError', () => {
   })
 })
 
-describe('normalizeError (air responses)', () => {
+describe('normalizeError (ofetch responses)', () => {
   it('maps the backend status string when it names a code', () => {
-    const err = normalizeError(airError({ status: 'CONFLICT', message: 'Taken' }, 400))
+    const err = normalizeError(fetchError({ status: 'CONFLICT', message: 'Taken' }, 400))
 
     expect(err.code).toBe('CONFLICT')
     expect(err.message).toBe('Taken')
   })
 
   it('maps backend statuses that are not codes through the alias table', () => {
-    expect(normalizeError(airError({ status: 'UNPROCESSABLE_ENTITY' }, 500)).code).toBe(
+    expect(normalizeError(fetchError({ status: 'UNPROCESSABLE_ENTITY' }, 500)).code).toBe(
       'BAD_REQUEST',
     )
-    expect(normalizeError(airError({ status: 'INTERNAL_SERVER_ERROR' }, 400)).code).toBe(
+    expect(normalizeError(fetchError({ status: 'INTERNAL_SERVER_ERROR' }, 400)).code).toBe(
       'SERVER_ERROR',
     )
   })
@@ -81,29 +86,29 @@ describe('normalizeError (air responses)', () => {
     [500, 'SERVER_ERROR'],
     [503, 'SERVER_ERROR'],
   ])('falls back to the HTTP status: %i → %s', (httpStatus, code) => {
-    expect(normalizeError(airError(undefined, httpStatus)).code).toBe(code)
+    expect(normalizeError(fetchError(undefined, httpStatus)).code).toBe(code)
   })
 
   it('ignores an unrecognized status string and falls back to HTTP', () => {
-    expect(normalizeError(airError({ status: 'TEAPOT' }, 404)).code).toBe('NOT_FOUND')
+    expect(normalizeError(fetchError({ status: 'TEAPOT' }, 404)).code).toBe('NOT_FOUND')
   })
 
   it('reports a response that never arrived as NETWORK', () => {
-    const err = normalizeError(airError(undefined))
+    const err = normalizeError(fetchError(undefined))
 
     expect(err.code).toBe('NETWORK')
     expect(err.context?.httpStatus).toBe(0)
   })
 
   it('uses the default message when the body carries none', () => {
-    expect(normalizeError(airError({ status: 'FORBIDDEN' }, 403)).message).toBe(
+    expect(normalizeError(fetchError({ status: 'FORBIDDEN' }, 403)).message).toBe(
       'You do not have permission for this action.',
     )
   })
 
   it('keeps the payload and the failed call, but never the request headers', () => {
     const err = normalizeError(
-      airError({ status: 'BAD_REQUEST', payload: { email: 'required' } }, 400),
+      fetchError({ status: 'BAD_REQUEST', payload: { email: 'required' } }, 400),
     )
 
     expect(err.context).toEqual({
@@ -116,7 +121,7 @@ describe('normalizeError (air responses)', () => {
   })
 
   it('keeps a status it cannot map, which is where it matters most', () => {
-    const err = normalizeError(airError({ status: 'INSUFFICIENT_FUNDS' }, 402))
+    const err = normalizeError(fetchError({ status: 'INSUFFICIENT_FUNDS' }, 402))
 
     // The code says nothing useful, so the raw status is all that names what
     // actually happened.
@@ -126,7 +131,7 @@ describe('normalizeError (air responses)', () => {
 
   it('drops body fields that do not follow the convention', () => {
     const err = normalizeError(
-      airError({ status: 42, message: { nested: true }, payload: 'x' }, 400),
+      fetchError({ status: 42, message: { nested: true }, payload: 'x' }, 400),
     )
 
     expect(err.code).toBe('BAD_REQUEST')
@@ -137,7 +142,7 @@ describe('normalizeError (air responses)', () => {
   it('unwraps the envelope h3 puts around a thrown error', () => {
     // What a Nitro handler's `createError({ data })` looks like from the browser.
     const err = normalizeError(
-      airError(
+      fetchError(
         {
           statusCode: 409,
           statusMessage: 'Conflict',
@@ -177,14 +182,14 @@ describe('readDetail (the legacy API answers with `detail`, not `message`)', () 
   })
 
   it('surfaces the detail through normalizeError, which used to drop it', () => {
-    const err = normalizeError(airError({ detail: 'El trimestre ya no existe' }, 404))
+    const err = normalizeError(fetchError({ detail: 'El trimestre ya no existe' }, 404))
 
     expect(err.code).toBe('NOT_FOUND')
     expect(err.message).toBe('El trimestre ya no existe')
   })
 
   it('still prefers `message`, the convention our own endpoints follow', () => {
-    expect(normalizeError(airError({ message: 'Propio', detail: 'Legacy' }, 400)).message).toBe(
+    expect(normalizeError(fetchError({ message: 'Propio', detail: 'Legacy' }, 400)).message).toBe(
       'Propio',
     )
   })

@@ -30,9 +30,9 @@ export class SolarService extends BaseService {
     return this.get<ProyectoSolarResumen[]>(RUTAS.proyectos)
   }
 
-  // `{ ...filtros }`: una `interface` no tiene firma de índice y `Query` (de
-  // `air`) la exige — un objeto fresco sí la satisface. Ver la nota del propio
-  // README de `air`.
+  // `{ ...filtros }`: una `interface` no tiene firma de índice y el
+  // `Record<string, any>` que `ofetch` pide para la query la exige — un objeto
+  // fresco sí la satisface.
   obtenerGeneracion(filtros: FiltrosGeneracionSolar): Promise<RespuestaGeneracionSolar> {
     return this.get<RespuestaGeneracionSolar>(RUTAS.generacion, { query: { ...filtros } })
   }

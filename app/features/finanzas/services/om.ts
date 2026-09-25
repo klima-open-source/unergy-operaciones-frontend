@@ -65,7 +65,7 @@ export class OmService extends BaseService {
   }
 
   descargarFacturaArchivo(periodo: string): Promise<Blob> {
-    return this.get<Blob>(RUTAS.facturaArchivo(periodo), { parse: 'blob' })
+    return this.get<Blob>(RUTAS.facturaArchivo(periodo), { responseType: 'blob' })
   }
 
   subirFactura(periodo: string, archivo: File): Promise<RespuestaSubidaFacturaOm> {
@@ -90,6 +90,6 @@ export class OmService extends BaseService {
   }
 
   descargarDocumento(periodo: string, contratoId: FilaCalculoOm['contrato_id']): Promise<Blob> {
-    return this.get<Blob>(RUTAS.documento(periodo, contratoId), { parse: 'blob' })
+    return this.get<Blob>(RUTAS.documento(periodo, contratoId), { responseType: 'blob' })
   }
 }

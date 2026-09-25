@@ -6,12 +6,13 @@
  * usuaria corre en su propio computador (ver
  * `unergy-operaciones-backend/local_agent/README.md`).
  *
- * De ahí que use una instancia de `air` propia: sin la baseURL de la plataforma
- * y sin el interceptor de sesión de `~/core/client.ts`. El agente no pide
- * token — solo acepta conexiones desde localhost.
+ * De ahí que use una instancia de `ofetch` propia: sin la baseURL de la
+ * plataforma y sin el contrato de sesión de `~/core/client.ts`. El agente no
+ * pide token — solo acepta conexiones desde localhost.
  */
 import type { EstadoDescargaXm, TrabajoDescargaXm } from '~/features/finanzas/types'
-import air, { isAirError } from '@korastd/air'
+import { ofetch } from 'ofetch'
+import { isFetchError } from '~/core/errors'
 import { BaseService } from '~/core/service'
 
 const AGENTE_LOCAL_URL = 'http://127.0.0.1:8420'
@@ -24,7 +25,7 @@ const RUTAS = {
 
 export class XmAgenteLocalService extends BaseService {
   constructor() {
-    super(air.create({ baseURL: AGENTE_LOCAL_URL, signal: () => AbortSignal.timeout(TIMEOUT_MS) }))
+    super(ofetch.create({ baseURL: AGENTE_LOCAL_URL, timeout: TIMEOUT_MS, retry: false }))
   }
 
   iniciarDescarga(payload: Record<string, unknown>): Promise<TrabajoDescargaXm> {
@@ -41,6 +42,6 @@ export class XmAgenteLocalService extends BaseService {
    * caso que la vista tiene que explicar al usuario.
    */
   static noDisponible(error: unknown): boolean {
-    return !(isAirError(error) && error.response)
+    return !(isFetchError(error) && error.response)
   }
 }
