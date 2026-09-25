@@ -1,78 +1,120 @@
-<template>
-  <form @submit.prevent="submit" class="space-y-4 pt-2">
-    <div class="grid grid-cols-2 gap-4">
-      <div class="col-span-2">
-        <label class="field-label">Nombre completo *</label>
-        <InputText v-model="f.nombre" class="w-full" required />
-      </div>
-      <div class="col-span-2">
-        <label class="field-label">Correo electrónico *</label>
-        <InputText v-model="f.email" type="email" class="w-full" required :disabled="!!props.initial?.id" />
-      </div>
-      <div>
-        <label class="field-label">Rol *</label>
-        <Select v-model="f.rol" :options="ROLES" optionLabel="label" optionValue="value" class="w-full" placeholder="Seleccionar" required />
-      </div>
-      <div>
-        <label class="field-label">Estado</label>
-        <div class="flex items-center gap-2 mt-2">
-          <ToggleSwitch v-model="f.activo" />
-          <span class="text-sm" :style="{ color: f.activo ? '#2e7d32' : '#D64455' }">
-            {{ f.activo ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-      </div>
-      <div class="col-span-2">
-        <label class="field-label">{{ props.initial?.id ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña *' }}</label>
-        <Password v-model="f.password" class="w-full" :feedback="false" toggleMask :required="!props.initial?.id" />
-      </div>
-    </div>
+<script setup lang="ts">
+import type { PayloadUsuario, RolUsuarioAdmin, Usuario } from '~/features/admin/types'
+import { EyeIcon, EyeOffIcon } from '@lucide/vue'
 
-    <div class="flex justify-end gap-2 pt-2">
-      <Button type="button" label="Cancelar" severity="secondary" @click="$emit('cancel')" />
-      <Button type="submit" label="Guardar" :loading="saving" />
-    </div>
-  </form>
-</template>
+const props = defineProps<{ initial?: Usuario | null; saving?: boolean }>()
+const emit = defineEmits<{ save: [payload: PayloadUsuario]; cancel: [] }>()
 
-<script setup>
-import { reactive, ref, watch } from 'vue'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import Password from 'primevue/password'
-import ToggleSwitch from 'primevue/toggleswitch'
-
-const props = defineProps({ initial: Object })
-const emit = defineEmits(['save', 'cancel'])
-
-const ROLES = [
+// El backend de `/usuarios` solo acepta estos 7 roles (`RolUsuarioAdmin` en
+// `types.ts`) — 'coordinador' y 'tecnico' existen en `UserRole` (roles de
+// autenticación) pero no en la API de administración de usuarios.
+const ROLES: { label: string; value: RolUsuarioAdmin }[] = [
   { label: 'Admin', value: 'admin' },
   { label: 'Operaciones', value: 'operaciones' },
   { label: 'Monitoreo', value: 'monitoreo' },
   { label: 'Liquidaciones', value: 'liquidaciones' },
   { label: 'CGM', value: 'cgm' },
   { label: 'Solo lectura', value: 'solo_lectura' },
-  { label: 'Coordinador', value: 'coordinador' },
-  { label: 'Técnico', value: 'tecnico' },
   { label: 'Comercial', value: 'comercial' },
 ]
 
-const saving = ref(false)
-const f = reactive({ nombre: '', email: '', rol: 'operaciones', activo: true, password: '', ...props.initial })
-watch(() => props.initial, (v) => Object.assign(f, { nombre: '', email: '', rol: 'operaciones', activo: true, password: '', ...v }), { deep: true })
+function blankForm() {
+  return {
+    nombre: '',
+    email: '',
+    rol: 'operaciones' as RolUsuarioAdmin,
+    activo: true,
+    password: '',
+  }
+}
+
+const form = reactive(blankForm())
+const showPassword = ref(false)
+
+watch(
+  () => props.initial,
+  (usuario) => {
+    Object.assign(form, blankForm())
+    if (usuario) {
+      Object.assign(form, {
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        activo: usuario.activo,
+      })
+    }
+  },
+  { immediate: true },
+)
 
 function submit() {
-  const payload = { nombre: f.nombre, email: f.email, rol: f.rol, activo: f.activo }
-  if (f.password) payload.password = f.password
+  const payload: PayloadUsuario = {
+    nombre: form.nombre,
+    email: form.email,
+    rol: form.rol,
+    activo: form.activo,
+  }
+  if (form.password) payload.password = form.password
   emit('save', payload)
 }
 </script>
 
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-</style>
+<template>
+  <form class="space-y-4 pt-2" @submit.prevent="submit">
+    <div class="grid grid-cols-2 gap-4">
+      <div class="col-span-2 space-y-1.5">
+        <GLabel required>Nombre completo</GLabel>
+        <Input v-model="form.nombre" required />
+      </div>
+      <div class="col-span-2 space-y-1.5">
+        <GLabel required>Correo electrónico</GLabel>
+        <Input v-model="form.email" type="email" required :disabled="!!initial?.id" />
+      </div>
+      <div class="space-y-1.5">
+        <GLabel required>Rol</GLabel>
+        <Select v-model="form.rol">
+          <SelectTrigger class="w-full">
+            <SelectValue placeholder="Seleccionar" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="rol in ROLES" :key="rol.value" :value="rol.value">
+              {{ rol.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div class="space-y-1.5">
+        <GLabel>Estado</GLabel>
+        <div class="flex items-center gap-2 pt-1.5">
+          <GSwitch v-model="form.activo" />
+          <span class="text-sm" :class="form.activo ? 'text-success' : 'text-destructive'">
+            {{ form.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+      <div class="col-span-2 space-y-1.5">
+        <GLabel :required="!initial?.id">
+          {{ initial?.id ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}
+        </GLabel>
+        <InputGroup>
+          <InputGroupInput
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="new-password"
+            :required="!initial?.id"
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton type="button" size="icon-xs" @click="showPassword = !showPassword">
+              <component :is="showPassword ? EyeOffIcon : EyeIcon" class="size-4" />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <Button type="button" variant="secondary" @click="emit('cancel')">Cancelar</Button>
+      <Button type="submit" :disabled="saving">Guardar</Button>
+    </div>
+  </form>
+</template>
