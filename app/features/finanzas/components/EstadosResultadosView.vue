@@ -86,8 +86,7 @@
             <tr class="bg-gray-50 border-b border-gray-100">
               <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Documento</th>
               <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:110px">Período</th>
-              <th v-if="tipo === 'cruce_facturas'"
-                  class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:90px">Versión</th>
+              <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:90px">Versión</th>
               <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:120px">Modificado</th>
               <th class="px-4 py-2.5 text-right font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:90px">Tamaño</th>
               <th class="px-4 py-2.5" style="width:70px"></th>
@@ -103,7 +102,14 @@
                       style="background:#F1EAF9; color:var(--color-unergy-purple-dark)" title="Duplicado creado en Drive">copia</span>
               </td>
               <td class="px-4 py-2 text-xs text-gray-500">{{ fmtPeriodo(a.mes, a.anio) }}</td>
-              <td v-if="tipo === 'cruce_facturas'" class="px-4 py-2 text-xs font-mono uppercase">{{ a.version || '—' }}</td>
+              <!-- Hoy la API solo escribe la versión en el nombre del cruce; en el del
+                   estado de resultados no la pone. Se muestra igual, y cuando falta se
+                   dice POR QUÉ falta: un guion suelto se lee como "es txf". -->
+              <td class="px-4 py-2 text-xs font-mono uppercase">
+                <span v-if="a.version">{{ a.version }}</span>
+                <span v-else class="text-gray-400 normal-case font-sans"
+                      title="El nombre del archivo no indica la versión. La API solo la escribe en el cruce de facturas.">sin indicar</span>
+              </td>
               <td class="px-4 py-2 text-xs text-gray-500">{{ fmtFecha(a.modificado) }}</td>
               <td class="px-4 py-2 text-right text-xs font-mono text-gray-500">{{ fmtTamano(a.tamano) }}</td>
               <td class="px-4 py-2">
