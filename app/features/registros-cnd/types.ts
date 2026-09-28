@@ -46,6 +46,8 @@ export interface EtapaRegistroCnd {
 }
 
 export interface AlertaRegistroCnd {
+  tipo?: string
+  mensaje?: string
   [clave: string]: unknown
 }
 
@@ -102,6 +104,9 @@ export interface ParametrosCreg93 {
 }
 
 export interface ResultadoValidacionCreg93 {
+  regla?: string
+  severidad?: string
+  mensaje?: string
   [clave: string]: unknown
 }
 
@@ -128,6 +133,7 @@ export interface DocumentoRegistroCnd {
   radicado?: string
   estado: string
   firmado_por?: string
+  url_drive?: string
   [clave: string]: unknown
 }
 
@@ -138,7 +144,10 @@ export interface RespuestaRecomputarAlertas {
 
 /** Respuesta de `POST /registros-cnd/:id/correos/:tipo`: el borrador generado. */
 export interface CorreoGenerado {
+  para?: string[]
+  cc?: string[]
   asunto?: string
   cuerpo: string
+  adjuntos?: string[]
   [clave: string]: unknown
 }

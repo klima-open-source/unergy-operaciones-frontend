@@ -67,7 +67,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/operaciones/components/InformesMensualesPanel.vue',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',
-  'app/features/registros-cnd/components/**',
 ]
 
 export default withNuxt(prettier, {
