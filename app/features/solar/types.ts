@@ -1,8 +1,13 @@
 /**
- * Forma verificada contra `SolarLiveView.vue`, `SolarView.vue` y
- * `MobileResumenView.vue` (mobile). Dos aggregates:
- * `/generacion-solar/*` (monitoreo en vivo, datos de Solenium) y `/solar/*`
- * (estadísticas históricas).
+ * Forma verificada contra `SolarLiveView.vue` y `MobileResumenView.vue`
+ * (mobile). Un solo aggregate: `/generacion-solar/*` (monitoreo en vivo,
+ * datos de Solenium).
+ *
+ * Hasta acá también vivían los tipos de `/solar/*` (estadísticas históricas),
+ * que solo consumía `SolarView.vue` — 1282 líneas sin ninguna página que la
+ * montara (ni `/m/solar`, que es `MobileSolarView.vue`, ni ninguna otra ruta).
+ * Se borró junto con su service (`services/solar.ts`) al migrar el slice:
+ * "borrar es borrar" (`AGENTS.md`), no se migra código sin consumidor.
  */
 
 // ── Monitoreo en vivo (`/generacion-solar/*`) ─────────────────────────────────
@@ -72,47 +77,4 @@ export interface RespuestaGeneracionHoy {
 export interface HistorialGeneracionProyecto {
   puntos: unknown[]
   total_kwh: number
-}
-
-// ── Estadísticas históricas (`/solar/*`) ──────────────────────────────────────
-
-/** `GET /solar/filtros`: catálogos para armar los selectores. */
-export interface FiltrosSolar {
-  estados: string[]
-  [clave: string]: unknown
-}
-
-export interface FiltrosGeneracionSolar {
-  fechaIni?: string
-  fechaFin?: string
-  municipio?: string
-  departamento?: string
-  estado?: string
-}
-
-export interface ProyectoSolarResumen {
-  id: number
-  nombre_comercial?: string
-  [clave: string]: unknown
-}
-
-/** `GET /solar/generacion`: la forma la decide el backend según agrupación/rango. */
-export interface RespuestaGeneracionSolar {
-  [clave: string]: unknown
-}
-
-/** `GET /solar/ranking`. */
-export interface RespuestaRankingSolar {
-  [clave: string]: unknown
-}
-
-/** `GET /solar/comparacion`. */
-export interface RespuestaComparacionSolar {
-  [clave: string]: unknown
-}
-
-export interface RespuestaReloadCacheSolar {
-  proyectos: number
-  registros_generacion: number
-  [clave: string]: unknown
 }

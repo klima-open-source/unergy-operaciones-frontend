@@ -26,9 +26,9 @@ app/components/gandalf
 # MIGRACIÓN — Fase 1/2: el legacy todavía no cumple el formato del template.
 # Mismo criterio que en eslint.config.mjs (misma lista, un slice por línea): el
 # legacy es JavaScript, el template TypeScript. Se vacía sola a medida que la
-# fase 3 migra cada slice — `dashboard` ya salió de esta lista. `operaciones` y
-# `solar` van archivo por archivo: `GeneracionView.vue` y las piezas de
-# `SolarLiveView.vue` ya cumplen el formato del template, el resto no.
+# fase 3 migra cada slice — `dashboard` y `solar` ya salieron de esta lista.
+# `operaciones` va archivo por archivo: `GeneracionView.vue` ya cumple el
+# formato del template, el resto no.
 app/features/auth/components
 app/features/clientes/components/clientesUi.js
 app/features/comercial/components
@@ -52,7 +52,6 @@ app/features/operaciones/components/PortafoliosGestionPanel.vue
 app/features/panel-contable/components
 app/features/proyectos/components
 app/features/registros-cnd/components
-app/features/solar/components/SolarView.vue
 app/data
 app/assets/*.js
 app/assets/main.css
