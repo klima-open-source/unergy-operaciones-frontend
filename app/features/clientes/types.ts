@@ -1,5 +1,5 @@
 /** Forma verificada contra `ClientesListView.vue`, `ClienteDetailView.vue` y `ClienteResumen.vue`. */
-import type { Vigencia } from '~/types/cliente'
+import type { Cliente, Vigencia } from '~/types/cliente'
 
 // ── Listado (vista comercial) ─────────────────────────────────────────────────
 
@@ -50,11 +50,8 @@ export interface PayloadDocumentoCliente {
 }
 
 /** `GET /clientes/:id`: `Cliente` (`~/types/cliente.ts`) más sus documentos comerciales. */
-export interface ClienteDetalle {
-  id: number
-  razon_social_nombre: string
+export interface ClienteDetalle extends Cliente {
   documentos_comerciales?: DocumentoCliente[]
-  [clave: string]: unknown
 }
 
 // ── Tasas de servicio (excepciones tributarias) ───────────────────────────────
@@ -148,6 +145,8 @@ export interface ProyectoClienteResumen {
   departamento?: string | null
   potencia_ac_kw?: number | null
   estado?: string
+  /** Por qué esta planta aparece en la ficha: participación, contrato de servicio o PPA. */
+  roles?: string[]
 }
 
 /** Fila de `GET /clientes/:id/fronteras`. */

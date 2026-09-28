@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PayloadContactoCliente, TipoContactoCliente } from '~/features/clientes/types'
+import type { TipoContactoCliente } from '~/features/clientes/types'
 import type { Cliente, ClienteEditable } from '~/types/cliente'
 import { PlusIcon, Trash2Icon } from '@lucide/vue'
 import divipolaRaw from '~/data/colombia-divipola.json'
@@ -34,12 +34,53 @@ const emit = defineEmits<{ save: [payload: Record<string, unknown>]; cancel: [] 
 // existentes con forma distinta a la de creación).
 const esNuevo = computed(() => !props.initial?.id)
 
-const f = reactive<Partial<ClienteEditable> & { contactos: PayloadContactoCliente[] }>({
-  origen_tipo: null,
-  origen_detalle: '',
-  ...props.initial,
-  contactos: [],
-})
+interface ContactoDraft {
+  nombre: string
+  telefono: string
+  email: string
+  tipo: TipoContactoCliente
+}
+
+// `ui/input` no acepta `null` en su `modelValue` — los campos de texto se
+// guardan siempre como string ('' cuando el backend manda null) y el payload
+// solo incluye los que quedaron con contenido real (ver `submit`).
+interface FormState {
+  razon_social_nombre: string
+  nit_cedula: string
+  tipo_persona: ClienteEditable['tipo_persona']
+  representante_legal: string
+  departamento: string | null
+  ciudad: string | null
+  direccion: string
+  origen_tipo: string | null
+  origen_detalle: string
+  iva_pct: number | null
+  retencion_pct: number | null
+  reteiva_pct: number | null
+  reteica_pct: number | null
+  contactos: ContactoDraft[]
+}
+
+function estadoDesde(initial?: Partial<Cliente> | null): FormState {
+  return {
+    razon_social_nombre: initial?.razon_social_nombre ?? '',
+    nit_cedula: initial?.nit_cedula ?? '',
+    tipo_persona: initial?.tipo_persona ?? null,
+    representante_legal: initial?.representante_legal ?? '',
+    departamento: initial?.departamento ?? null,
+    ciudad: initial?.ciudad ?? null,
+    direccion: initial?.direccion ?? '',
+    origen_tipo: initial?.origen_tipo ?? null,
+    origen_detalle: initial?.origen_detalle ?? '',
+    iva_pct: initial?.iva_pct ?? null,
+    retencion_pct: initial?.retencion_pct ?? null,
+    reteiva_pct: initial?.reteiva_pct ?? null,
+    reteica_pct: initial?.reteica_pct ?? null,
+    contactos: [],
+  }
+}
+
+const f = reactive(estadoDesde(props.initial))
 
 // Departamento/ciudad — select en vez de texto libre (DIVIPOLA), mismo patrón
 // que ProyectoForm, para evitar variantes de escritura.
@@ -60,7 +101,7 @@ watch(
 )
 watch(
   () => props.initial,
-  (v) => Object.assign(f, v),
+  (v) => Object.assign(f, estadoDesde(v)),
   { deep: true },
 )
 
@@ -119,7 +160,11 @@ function submit() {
       </div>
       <div class="space-y-1.5">
         <GLabel>Departamento</GLabel>
-        <ComboBox v-model="f.departamento" :options="departamentoOptions" placeholder="Seleccionar" />
+        <ComboBox
+          v-model="f.departamento"
+          :options="departamentoOptions"
+          placeholder="Seleccionar"
+        />
       </div>
       <div class="space-y-1.5">
         <GLabel>Ciudad</GLabel>
@@ -172,7 +217,9 @@ function submit() {
       <div v-if="esNuevo" class="col-span-2">
         <div class="mt-1 border-t pt-4">
           <div class="mb-3 flex items-center justify-between">
-            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Contactos</p>
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Contactos
+            </p>
             <Button type="button" size="sm" variant="outline" @click="agregarContacto">
               <PlusIcon class="size-4" />
               Agregar

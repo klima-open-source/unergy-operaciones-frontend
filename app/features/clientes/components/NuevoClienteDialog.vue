@@ -27,7 +27,10 @@ const props = withDefaults(
   }>(),
   { nombreInicial: '' },
 )
-const emit = defineEmits<{ 'update:visible': [visible: boolean]; creado: [cliente: ClienteDetalle] }>()
+const emit = defineEmits<{
+  'update:visible': [visible: boolean]
+  creado: [cliente: ClienteDetalle]
+}>()
 
 const guardando = ref(false)
 const vinculando = ref(false)
@@ -73,7 +76,23 @@ async function usarCandidato() {
     const cliente = await clientesService.obtener(candidato_id)
     emit('creado', cliente)
   } catch {
-    emit('creado', { id: candidato_id, razon_social_nombre: candidato_nombre })
+    // El backend no responde: se vincula igual con lo poco que trae el 409.
+    emit('creado', {
+      id: candidato_id,
+      razon_social_nombre: candidato_nombre,
+      tipo_persona: null,
+      nit_cedula: null,
+      representante_legal: null,
+      departamento: null,
+      ciudad: null,
+      direccion: null,
+      iva_pct: null,
+      retencion_pct: null,
+      reteica_pct: null,
+      reteiva_pct: null,
+      origen_tipo: null,
+      origen_detalle: '',
+    })
   } finally {
     vinculando.value = false
     emit('update:visible', false)
@@ -99,7 +118,11 @@ async function guardar(forzar: boolean) {
     const docs = [
       { tipo: 'rut' as const, url: rutUrl.value.trim(), nombre: 'RUT' },
       { tipo: 'camara_comercio' as const, url: ccUrl.value.trim(), nombre: 'Cámara de comercio' },
-      { tipo: 'certificado_bancario' as const, url: certUrl.value.trim(), nombre: 'Certificación bancaria' },
+      {
+        tipo: 'certificado_bancario' as const,
+        url: certUrl.value.trim(),
+        nombre: 'Certificación bancaria',
+      },
     ].filter((d) => d.url)
 
     for (const d of docs) {
@@ -148,8 +171,8 @@ async function guardar(forzar: boolean) {
           <AlertDescription class="space-y-3">
             <p>
               <strong>{{ duplicado.candidato_nombre }}</strong> (ID {{ duplicado.candidato_id }}).
-              Si es el mismo, vincúlalo en vez de crear otro: dos fichas de la misma empresa
-              parten sus contratos y sus cobros en dos.
+              Si es el mismo, vincúlalo en vez de crear otro: dos fichas de la misma empresa parten
+              sus contratos y sus cobros en dos.
             </p>
             <div class="flex gap-2">
               <Button size="sm" :disabled="vinculando" @click="usarCandidato">

@@ -21,10 +21,18 @@ const coords = computed(() => {
     y: HEIGHT - PADDING - (((p.porcentaje as number) - min) / rango) * (HEIGHT - 2 * PADDING),
   }))
 })
+
+const ultimoPunto = computed(() => coords.value.at(-1) ?? { x: 0, y: 0 })
 </script>
 
 <template>
-  <svg v-if="coords.length >= 2" :width="WIDTH" :height="HEIGHT" class="shrink-0 text-primary" aria-hidden="true">
+  <svg
+    v-if="coords.length >= 2"
+    :width="WIDTH"
+    :height="HEIGHT"
+    class="shrink-0 text-primary"
+    aria-hidden="true"
+  >
     <polyline
       :points="coords.map((c) => `${c.x},${c.y}`).join(' ')"
       fill="none"
@@ -33,7 +41,7 @@ const coords = computed(() => {
       stroke-linejoin="round"
       stroke-linecap="round"
     />
-    <circle :cx="coords[coords.length - 1].x" :cy="coords[coords.length - 1].y" r="2.5" fill="currentColor" />
+    <circle :cx="ultimoPunto.x" :cy="ultimoPunto.y" r="2.5" fill="currentColor" />
   </svg>
   <span v-else class="text-xs text-muted-foreground">—</span>
 </template>

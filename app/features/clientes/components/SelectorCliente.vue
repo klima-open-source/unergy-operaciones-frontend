@@ -137,7 +137,10 @@ watch(
           align="start"
           @open-auto-focus.prevent
         >
-          <p v-if="sugerencias.length === 0" class="px-2 py-4 text-center text-sm text-muted-foreground">
+          <p
+            v-if="sugerencias.length === 0"
+            class="px-2 py-4 text-center text-sm text-muted-foreground"
+          >
             Sin resultados
           </p>
           <button
@@ -148,7 +151,9 @@ watch(
             @click="alCambiar(c)"
           >
             <span>{{ c.razon_social_nombre }}</span>
-            <span v-if="c.nit_cedula" class="text-xs text-muted-foreground">NIT {{ c.nit_cedula }}</span>
+            <span v-if="c.nit_cedula" class="text-xs text-muted-foreground"
+              >NIT {{ c.nit_cedula }}</span
+            >
           </button>
         </PopoverContent>
       </Popover>
@@ -168,9 +173,16 @@ watch(
     <!-- Sin vínculo pero con texto: el caso que venía pasando en silencio. Un
          contrato guardado así nombra a alguien que el sistema no reconoce, y
          todo lo que se calcula por cliente lo deja por fuera. -->
-    <div v-else-if="textoSuelto" class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-warning">
+    <div
+      v-else-if="textoSuelto"
+      class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-warning"
+    >
       <span>«{{ textoSuelto }}» no está registrado como cliente.</span>
-      <button type="button" class="font-medium underline hover:text-warning/80" @click="abrirCreacion">
+      <button
+        type="button"
+        class="font-medium underline hover:text-warning/80"
+        @click="abrirCreacion"
+      >
         Crear este cliente
       </button>
     </div>
