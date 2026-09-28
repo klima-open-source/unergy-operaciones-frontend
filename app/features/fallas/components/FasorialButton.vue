@@ -146,21 +146,29 @@ async function abrir() {
   if (!proyectos.value.length) await cargarProyectos()
 }
 
-// Sólo proyectos con monitoreo solar (los que tienen medidor Gaia)
+const porNombre = (a, b) => (a.nombre || '').localeCompare(b.nombre || '')
+
+// Sólo proyectos con medidor en Gaia — que NO son los de Generación Solar.
+// Ese universo son las minigranjas con servicio de operación, y el fasorial
+// dibuja un medidor, no una planta: el autoconsumo de Nestlé (proyecto 59,
+// medidor 88865813 → nodo Gaia 1670) tiene lectura eléctrica y no es
+// minigranja, así que pidiendo la flota no había forma de elegirlo.
 async function cargarProyectos() {
   loadingProyectos.value = true
   try {
-    const data = await generacionSolarService.obtenerMonitoreo()
+    const data = await generacionSolarService.obtenerProyectosConMedidor()
     proyectos.value = (data?.projects ?? [])
       .map((p) => ({ proyecto_id: p.proyecto_id, nombre: p.nombre }))
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+      .sort(porNombre)
   } catch {
-    // Fallback: lista general de proyectos
+    // Fallback: lista general de proyectos. Sale de más (proyectos sin
+    // medidor, que al generar dirán que no reportan datos), pero deja el
+    // botón utilizable si el endpoint no responde.
     try {
       const lista = await catalogoProyectos.cargar()
       proyectos.value = lista
         .map((p) => ({ proyecto_id: p.id, nombre: p.nombre_comercial }))
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+        .sort(porNombre)
     } catch {
       proyectos.value = []
     }

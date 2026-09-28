@@ -6,6 +6,7 @@ import type {
   PotenciaInversores,
   RespuestaGeneracionHoy,
   RespuestaMonitoreoSolar,
+  RespuestaProyectosConMedidor,
   RespuestaResumenGeneracionDia,
 } from '~/features/solar/types'
 import { BaseService } from '~/core/service'
@@ -14,6 +15,7 @@ const BASE = '/generacion-solar'
 
 const RUTAS = {
   monitoring: `${BASE}/monitoring`,
+  medidores: `${BASE}/medidores`,
   monitoringDetalle: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}`,
   invertersPower: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/inverters-power`,
   generacionHoy: `${BASE}/generacion-hoy`,
@@ -24,6 +26,14 @@ const RUTAS = {
 export class GeneracionSolarService extends BaseService {
   obtenerMonitoreo(): Promise<RespuestaMonitoreoSolar> {
     return this.get<RespuestaMonitoreoSolar>(RUTAS.monitoring)
+  }
+
+  /**
+   * Los proyectos que tienen medidor en Gaia — no los mismos que
+   * `obtenerMonitoreo`. Ver `RespuestaProyectosConMedidor`.
+   */
+  obtenerProyectosConMedidor(): Promise<RespuestaProyectosConMedidor> {
+    return this.get<RespuestaProyectosConMedidor>(RUTAS.medidores)
   }
 
   /**
