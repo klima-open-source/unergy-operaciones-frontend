@@ -64,7 +64,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // `/solar-live`) — el resto de `operaciones` sigue igual. Archivo por
   // archivo porque la negación de un glob de carpeta no funciona en
   // `ignores` de ESLint flat config.
-  'app/features/operaciones/components/EnvioMensualPanel.vue',
   'app/features/operaciones/components/InformesMensualesPanel.vue',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',

@@ -41,7 +41,6 @@ app/features/garantias/components
 app/features/liquidaciones/components
 app/features/mem/components
 app/features/mobile/components
-app/features/operaciones/components/EnvioMensualPanel.vue
 app/features/operaciones/components/InformesMensualesPanel.vue
 app/features/panel-contable/components
 app/features/proyectos/components

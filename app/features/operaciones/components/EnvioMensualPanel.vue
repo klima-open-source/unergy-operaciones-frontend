@@ -1,624 +1,746 @@
 <template>
   <!-- Panel inline (no overlay) — vive dentro de /operaciones/informes-mensuales -->
-  <div class="em-panel">
+  <div class="flex w-full flex-col gap-3">
+    <!-- ══ TOOLBAR (una sola fila) ═══════════════════════════════════════ -->
+    <header class="flex flex-wrap items-center gap-2.5 rounded-t-xl border bg-card px-3.5 py-2">
+      <span
+        class="flex shrink-0 items-center gap-1.5 text-xs font-bold whitespace-nowrap text-muted-foreground"
+        title="Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío"
+      >
+        <SendIcon class="size-3.5 text-primary" /> Revisión y envío
+      </span>
 
-      <!-- ══ TOOLBAR compacto (una sola fila) ══════════════════════ -->
-      <header class="em-header">
-        <!-- Ícono + label mínimo -->
-        <span
-          class="em-header-label"
-          title="Pipeline: Edición → Revisión → Comentarios → Aprobación → Envío"
-        >
-          <SendIcon class="size-[1em]" /> Revisión y envío
-        </span>
+      <Button
+        v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
+        size="sm"
+        :disabled="enviandoBatch"
+        title="Enviar todos los informes verificados al cliente"
+        class="text-success-foreground bg-success hover:bg-success/90"
+        @click="abrirConfirmEnvio"
+      >
+        <SendIcon />
+        Enviar {{ puedeEnviarBatch.length }} verificado{{
+          puedeEnviarBatch.length !== 1 ? 's' : ''
+        }}
+      </Button>
 
-        <!-- Envío masivo inline (solo cuando aplica) -->
-        <Button
-          v-if="puedeEnviarBatch.length > 0 && permisoEnviar"
-          size="sm"
-          :disabled="enviandoBatch"
-          title="Enviar todos los informes verificados al cliente"
-          class="bg-success text-success-foreground hover:bg-success/90"
-          @click="abrirConfirmEnvio"
-        >
-          <SendIcon />
-          Enviar {{ puedeEnviarBatch.length }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}
-        </Button>
-
-        <!-- Controles -->
-        <div class="em-header-controls">
-          <InputGroup class="h-8 w-48">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput v-model="busqueda" placeholder="Buscar…" />
-            <InputGroupAddon v-if="busqueda" align="inline-end">
-              <InputGroupButton size="icon-xs" aria-label="Limpiar" @click="busqueda = ''">
-                <XIcon />
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
-          <ButtonGroup>
-            <Button variant="ghost" size="icon-sm" title="Mes anterior" @click="cambiarMes(-1)">
-              <ChevronLeftIcon />
-            </Button>
-            <Input v-model="mesSel" type="month" :max="mesMax" class="h-8 w-auto" />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              :disabled="mesSel === mesMax"
-              title="Mes siguiente"
-              @click="cambiarMes(1)"
-            >
-              <ChevronRightIcon />
-            </Button>
-          </ButtonGroup>
-          <Button variant="ghost" size="icon-sm" :disabled="loading" title="Actualizar" @click="cargar">
-            <LoaderCircleIcon v-if="loading" class="animate-spin" />
-            <RefreshCwIcon v-else />
+      <div class="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+        <InputGroup class="h-8 w-48">
+          <InputGroupAddon><SearchIcon /></InputGroupAddon>
+          <InputGroupInput v-model="busqueda" placeholder="Buscar…" />
+          <InputGroupAddon v-if="busqueda" align="inline-end">
+            <InputGroupButton size="icon-xs" aria-label="Limpiar" @click="busqueda = ''">
+              <XIcon />
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
+        <ButtonGroup>
+          <Button variant="ghost" size="icon-sm" title="Mes anterior" @click="cambiarMes(-1)">
+            <ChevronLeftIcon />
           </Button>
-        </div>
-      </header>
+          <Input v-model="mesSel" type="month" :max="mesMax" class="h-8 w-auto" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            :disabled="mesSel === mesMax"
+            title="Mes siguiente"
+            @click="cambiarMes(1)"
+          >
+            <ChevronRightIcon />
+          </Button>
+        </ButtonGroup>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          :disabled="loading"
+          title="Actualizar"
+          @click="cargar"
+        >
+          <LoaderCircleIcon v-if="loading" class="animate-spin" />
+          <RefreshCwIcon v-else />
+        </Button>
+      </div>
+    </header>
 
-      <!-- ══ Contenido (layout split o full) ══════════════════ -->
-      <div class="em-content" :class="{ 'em-content--split': !!drawerInf }">
+    <!-- ══ TABLA ═══════════════════════════════════════════════════════ -->
+    <div class="rounded-b-xl border border-t-0 bg-card px-3 py-3">
+      <div v-if="loading" class="flex flex-col items-center gap-2 py-14 text-muted-foreground">
+        <LoaderCircleIcon class="size-8 animate-spin text-primary" />
+        <span class="text-sm">Cargando informes del mes…</span>
+      </div>
+      <div
+        v-else-if="!filtrados.length"
+        class="flex flex-col items-center gap-1.5 py-16 text-center text-muted-foreground"
+      >
+        <InboxIcon class="size-8 text-muted-foreground/50" />
+        <p class="text-sm font-bold text-foreground">
+          {{ filtro ? 'Sin informes en este estado' : 'No hay informes guardados para este mes' }}
+        </p>
+        <p class="max-w-sm text-xs">
+          {{
+            filtro
+              ? 'Quita el filtro para ver todos.'
+              : 'Genera informes desde el wizard de arriba y aparecerán aquí.'
+          }}
+        </p>
+      </div>
 
-        <!-- ── IZQUIERDA: lista compacta (split) o tabla completa ─────── -->
-        <div class="em-main">
-
-          <!-- LISTA COMPACTA cuando el panel derecho está abierto -->
-          <div v-if="drawerInf" class="em-compact">
-            <div class="em-compact-header">
-              <span class="em-compact-count">{{ filtrados.length }} informe{{ filtrados.length !== 1 ? 's' : '' }}</span>
-            </div>
-            <div v-if="loading" class="em-compact-empty">
-              <LoaderCircleIcon class="size-6 animate-spin text-primary" />
-            </div>
-            <div v-else-if="!filtrados.length" class="em-compact-empty">
-              <InboxIcon class="size-[1em]" style="font-size:20px;color:#A89EC0;margin-bottom:6px" />
-              <p style="font-size:11px;color:#6B5A8A;margin:0">Sin resultados</p>
-            </div>
-            <div v-else class="em-compact-list">
-              <button
-v-for="inf in filtrados" :key="inf.id"
-                      class="em-compact-row"
-                      :class="{ 'em-compact-row--active': drawerInf?.id === inf.id }"
-                      @click="abrirDrawer(inf)">
-                <span class="em-compact-dot" :style="{ background: estadoColor(pipelineEstado(inf)) }" />
-                <div class="em-compact-info">
-                  <div class="em-compact-nombre">{{ inf.proyecto_nombre || inf.sub_project }}</div>
-                  <div class="em-compact-meta">
-                    <span class="em-tipo-tag">{{ tipoLabel(inf.tipo) }}</span>
-                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(inf)]" size="sm">
-                      {{ estadoLabel(pipelineEstado(inf)) }}
-                    </GBadge>
-                  </div>
-                </div>
-                <div class="em-compact-actions" @click.stop>
-                  <Button variant="ghost" size="icon-xs" title="Editar informe" @click="editar(inf)">
-                    <PencilIcon />
-                  </Button>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <!-- TABLA COMPLETA cuando no hay panel abierto -->
-          <div v-else class="em-table-wrap">
-            <div v-if="loading" class="em-state">
-              <LoaderCircleIcon class="size-8 animate-spin text-primary" />
-              <span>Cargando informes del mes…</span>
-            </div>
-            <div v-else-if="!filtrados.length" class="em-state em-state-empty">
-              <InboxIcon class="text-3xl size-[1em]" style="color:#A89EC0" />
-              <p class="em-state-title">{{ filtro ? 'Sin informes en este estado' : 'No hay informes guardados para este mes' }}</p>
-              <p class="em-state-sub">
-                {{ filtro ? 'Quita el filtro para ver todos.' : 'Genera informes desde el wizard de arriba y aparecerán aquí.' }}
-              </p>
-            </div>
-            <table v-else class="em-table">
-              <thead>
-                <tr>
-                  <th class="em-col-estado">Estado</th>
-                  <th>Proyecto</th>
-                  <th>Tipo</th>
-                  <th>Editado</th>
-                  <th>Verificado por</th>
-                  <th>Enviado</th>
-                  <th class="em-col-acciones">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="row in filasAgrupadas" :key="row._group || row.id">
-                <tr v-if="row._group" class="em-group-row">
-                  <td colspan="7">
-                    <component :is="row._icon" class="size-[1em]" /> {{ row._group }}
-                    <span class="em-group-count">{{ row._count }}</span>
-                  </td>
-                </tr>
-                <tr
-v-else :class="['em-row', { 'em-row--active': drawerInf?.id === row.id }]"
-                    @click="abrirDrawer(row)">
-                  <td>
-                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(row)]" size="sm">
-                      {{ estadoLabel(pipelineEstado(row)) }}
-                    </GBadge>
-                  </td>
-                  <td class="em-td-proj">
-                    <div class="em-proj-nombre">{{ row.proyecto_nombre || row.sub_project }}</div>
-                    <div v-if="row.tipo === 'port'" class="em-proj-sub">{{ (row.miembros || []).length }} proyecto{{ (row.miembros || []).length !== 1 ? 's' : '' }}</div>
-                    <div v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre" class="em-proj-sub">{{ row.sub_project }}</div>
-                  </td>
-                  <td>
-                    <span class="em-tipo-tag">{{ tipoLabel(row.tipo) }}</span>
-                  </td>
-                  <td class="em-td-fecha">
-                    <div>{{ row.editado_en ? formatFecha(row.editado_en) : '—' }}</div>
-                    <div v-if="row.editado_por_nombre" class="em-fecha-sub">{{ row.editado_por_nombre }}</div>
-                  </td>
-                  <td class="em-td-fecha">
-                    <div v-if="row.aprobado_por_nombre">
-                      <span class="em-fecha-sub">{{ row.aprobado_por_nombre }}</span>
-                    </div>
-                    <div v-else class="em-td-empty">—</div>
-                  </td>
-                  <td class="em-td-fecha">
-                    <div v-if="row.correo_enviado">
-                      <span class="em-mail-ok">📧 {{ row.correo_enviado_en ? formatFecha(row.correo_enviado_en) : '✓' }}</span>
-                      <div v-if="row.enviado_por_nombre" class="em-fecha-sub">{{ row.enviado_por_nombre }}</div>
-                    </div>
-                    <div v-else class="em-td-empty">—</div>
-                  </td>
-                  <td class="em-td-acciones" @click.stop>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      title="Editar informe en pantalla completa"
-                      @click="editar(row)"
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      class="relative"
-                      :class="
-                        comentariosPendientes(row) > 0
-                          ? 'text-destructive hover:text-destructive'
-                          : comentariosTotales(row) > 0
-                            ? 'text-primary hover:text-primary'
-                            : ''
-                      "
-                      :title="comentariosTooltip(row)"
-                      @click="abrirDrawer(row, 'comentarios')"
-                    >
-                      <MessagesSquareIcon />
-                      <span
-                        v-if="comentariosTotales(row) > 0"
-                        class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                        :class="comentariosPendientes(row) > 0 ? 'bg-destructive' : 'bg-primary'"
-                      >
-                        {{ comentariosPendientes(row) || comentariosTotales(row) }}
-                      </span>
-                    </Button>
-                    <Button
-                      v-if="puedeVerificar(row)"
-                      variant="ghost"
-                      size="icon-sm"
-                      class="text-warning hover:text-warning"
-                      :disabled="!permisoVerificar"
-                      :title="permisoVerificar ? 'Revisar y verificar (aprobar)' : 'Sólo Juan José puede verificar'"
-                      @click="abrirDrawer(row, 'verificar')"
-                    >
-                      <CircleCheckIcon />
-                    </Button>
-                    <Button
-                      v-if="row.estado === 'aprobado' && !row.correo_enviado"
-                      variant="ghost"
-                      size="icon-sm"
-                      class="text-primary hover:text-primary"
-                      :disabled="!permisoEnviar || enviandoIds.has(row.id)"
-                      :title="permisoEnviar ? 'Enviar al correo del cliente' : 'Sólo Laura H. (o admin) puede enviar'"
-                      @click="enviarUno(row)"
-                    >
-                      <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="animate-spin" />
-                      <SendIcon v-else />
-                    </Button>
-                    <Button
-                      v-if="row.estado !== 'aprobado' && !row.correo_enviado"
-                      variant="ghost"
-                      size="icon-sm"
-                      class="hover:bg-destructive/10 hover:text-destructive"
-                      :title="row.tipo === 'op' ? 'Eliminar (no afecta a los portafolios que lo incluyen)' : 'Eliminar informe'"
-                      @click="eliminarInforme(row)"
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </td>
-                </tr>
-                </template>
-              </tbody>
-            </table>
-
-            <!-- Faltantes -->
-            <div v-if="!loading && faltantes.length > 0" class="em-faltantes-wrap">
-              <Button
-                variant="ghost"
-                class="h-auto w-full justify-start gap-2 rounded-none py-2 text-warning hover:text-warning"
-                @click="showFaltantes = !showFaltantes"
+      <GTable v-else>
+        <GTableHeader>
+          <GTableRow>
+            <GTableHead class="w-32">Estado</GTableHead>
+            <GTableHead>Proyecto</GTableHead>
+            <GTableHead>Tipo</GTableHead>
+            <GTableHead>Editado</GTableHead>
+            <GTableHead>Verificado por</GTableHead>
+            <GTableHead>Enviado</GTableHead>
+            <GTableHead class="w-36 text-right">Acciones</GTableHead>
+          </GTableRow>
+        </GTableHeader>
+        <GTableBody>
+          <template v-for="row in filasAgrupadas" :key="esGrupo(row) ? row._group : row.id">
+            <GTableRow v-if="esGrupo(row)" class="bg-primary/5 hover:bg-primary/5">
+              <GTableCell
+                colspan="7"
+                class="text-xs font-extrabold tracking-wide text-primary uppercase"
               >
-                <Badge variant="secondary">{{ faltantes.length }}</Badge>
-                <span>Proyecto{{ faltantes.length !== 1 ? 's' : '' }} sin informe en {{ mesLabel }}</span>
-                <ChevronUpIcon v-if="showFaltantes" class="ml-auto text-muted-foreground" />
-                <ChevronDownIcon v-else class="ml-auto text-muted-foreground" />
-              </Button>
-              <transition name="fade">
-                <div v-if="showFaltantes" class="em-faltantes-list">
-                  <div v-for="p in faltantes" :key="p" class="em-faltante-row">
-                    <span class="em-faltante-dot" />
-                    <span class="em-faltante-nombre">{{ p }}</span>
-                    <span class="em-faltante-hint">Sin informe operacional</span>
-                  </div>
+                <component :is="row._icon" class="mr-1 inline size-3.5" /> {{ row._group }}
+                <Badge variant="secondary" class="ml-1.5">{{ row._count }}</Badge>
+              </GTableCell>
+            </GTableRow>
+            <GTableRow
+              v-else
+              class="cursor-pointer"
+              :class="drawerInf?.id === row.id ? 'bg-primary/10 hover:bg-primary/10' : ''"
+              @click="abrirDrawer(row)"
+            >
+              <GTableCell>
+                <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(row)]" size="sm">
+                  {{ estadoLabel(pipelineEstado(row)) }}
+                </GBadge>
+              </GTableCell>
+              <GTableCell>
+                <div class="font-semibold text-foreground">
+                  {{ row.proyecto_nombre || row.sub_project }}
                 </div>
-              </transition>
-            </div>
-
-          </div>
-        </div><!-- /em-main -->
-
-        <!-- ── DERECHA: panel detalle ──────────────────────────────────── -->
-        <transition name="slide-right">
-          <aside v-if="drawerInf" class="em-detail">
-            <!-- Backdrop solo en móvil -->
-            <div class="em-detail-backdrop" @click="cerrarDrawer" />
-
-            <div class="em-detail-panel">
-              <!-- Header del panel -->
-              <header class="em-drawer-head">
-                <div class="em-drawer-head-info">
-                  <div class="em-drawer-title">{{ drawerInf.proyecto_nombre || drawerInf.sub_project }}</div>
-                  <div class="em-drawer-sub">
-                    <span class="em-tipo-tag">{{ tipoLabel(drawerInf.tipo) }}</span>
-                    <span>·</span>
-                    <span>{{ drawerInf.periodo_display || formatPeriodo(drawerInf.periodo_desde) }}</span>
-                    <span>·</span>
-                    <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(drawerInf)]" size="sm">
-                      {{ estadoLabel(pipelineEstado(drawerInf)) }}
-                    </GBadge>
-                  </div>
-                </div>
-                <div class="em-drawer-head-actions">
-                  <Button variant="ghost" size="icon-sm" title="Cerrar panel" @click="cerrarDrawer">
-                    <XIcon />
-                  </Button>
-                </div>
-              </header>
-
-              <!-- Tabs internas del panel -->
-              <GTabs
-                :model-value="drawerTab"
-                class="shrink-0 border-b border-border bg-background px-3.5"
-                @update:model-value="(v) => (drawerTab = v)"
-              >
-                <GTabsList variant="outline">
-                  <GTabsTrigger value="preview" variant="outline">
-                    <EyeIcon class="size-4" /> Previsualización
-                  </GTabsTrigger>
-                  <GTabsTrigger value="comentarios" variant="outline">
-                    <MessagesSquareIcon class="size-4" /> Comentarios
-                    <GBadge
-                      v-if="comentariosTotales(drawerInf) > 0"
-                      :color="comentariosPendientes(drawerInf) > 0 ? 'destructive' : 'action'"
-                      size="sm"
-                    >
-                      {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
-                    </GBadge>
-                  </GTabsTrigger>
-                  <GTabsTrigger v-if="puedeVerificar(drawerInf)" value="verificar" variant="outline">
-                    <CircleCheckIcon class="size-4" /> Verificar
-                  </GTabsTrigger>
-                </GTabsList>
-              </GTabs>
-
-              <div class="em-drawer-body">
-
-                <!-- ── PREVIEW (iframe) ─────────────────────────────── -->
-                <div v-if="drawerTab === 'preview'" class="em-preview-wrap">
-                  <div v-if="loadingDetalle" class="em-state">
-                    <LoaderCircleIcon class="size-7 animate-spin text-primary" />
-                    <span>Cargando informe…</span>
-                  </div>
-                  <div v-else-if="!detalleHtml" class="em-state em-state-empty">
-                    <FileIcon class="size-[1em]" />
-                    <p>Sin contenido del informe</p>
-                  </div>
-                  <template v-else>
-                    <!-- Toolbar de acciones -->
-                    <div class="em-preview-toolbar">
-                      <span v-if="drawerInf?.estado === 'aprobado'" class="em-edit-locked">
-                        🔒 Aprobado — reabre desde Verificar para editar
-                      </span>
-                      <div class="em-preview-actions">
-                        <Button v-if="drawerInf?.estado !== 'aprobado'" variant="outline" size="sm" @click="editar(drawerInf)">
-                          <PencilIcon /> Editar
-                        </Button>
-                        <Button variant="outline" size="sm" title="Imprimir / exportar PDF" @click="imprimirDetalle">
-                          <PrinterIcon /> PDF
-                        </Button>
-                      </div>
-                    </div>
-                    <!-- Iframe con el informe renderizado -->
-                    <div class="em-preview-frame">
-                      <iframe
-:key="previewKey"
-                              ref="previewIframeRef"
-                              class="em-preview-iframe"
-                              :srcdoc="previewDoc"
-                              sandbox="allow-same-origin" />
-                    </div>
-                  </template>
-                </div>
-
-                <!-- ── COMENTARIOS ──────────────────────────────────── -->
-                <div v-else-if="drawerTab === 'comentarios'" class="em-coms-wrap">
-                  <div v-if="!drawerInf.comentarios?.length" class="em-state em-state-empty em-state-coms-empty">
-                    <MessagesSquareIcon class="text-3xl size-[1em]" style="color:#A89EC0" />
-                    <p class="em-state-title">Sin comentarios todavía</p>
-                    <p class="em-state-sub">
-                      {{ permisoVerificar
-                        ? 'Agrega observaciones que el equipo deba subsanar antes de enviar.'
-                        : 'Cuando el verificador deje observaciones, aparecerán aquí.' }}
-                    </p>
-                  </div>
-                  <div v-else class="em-coms-list">
-                    <div
-v-for="c in (drawerInf.comentarios || [])" :key="c.id"
-                         class="em-com" :class="{ 'em-com--resuelto': c.resuelto }">
-                      <div class="em-com-head">
-                        <div class="em-com-autor">
-                          <div class="em-com-avatar" :style="{ background: avatarColor(c.autor_email) }">
-                            {{ (c.autor_nombre || c.autor_email || '?').charAt(0).toUpperCase() }}
-                          </div>
-                          <div>
-                            <div class="em-com-autor-nombre">{{ c.autor_nombre || c.autor_email }}</div>
-                            <div class="em-com-fecha">{{ formatFechaCorta(c.created_at) }}</div>
-                          </div>
-                        </div>
-                        <span v-if="c.resuelto" class="em-com-estado-ok">✅ Subsanado</span>
-                        <span v-else class="em-com-estado-pend">⚠️ Pendiente</span>
-                      </div>
-                      <div class="em-com-msg">{{ c.mensaje }}</div>
-                      <div v-if="c.resuelto && c.respuesta" class="em-com-respuesta">
-                        <div class="em-com-respuesta-lbl">Respuesta de quien subsanó:</div>
-                        <div>{{ c.respuesta }}</div>
-                        <div class="em-com-fecha em-com-respuesta-meta">
-                          {{ c.resuelto_por_nombre || c.resuelto_por_email }} · {{ formatFechaCorta(c.resuelto_en) }}
-                        </div>
-                      </div>
-                      <div v-if="!c.resuelto" class="em-com-actions">
-                        <Button
-                          size="sm"
-                          class="bg-success text-success-foreground hover:bg-success/90"
-                          :disabled="actuandoComentarioId === c.id"
-                          @click="abrirResolver(c)"
-                        >
-                          <CheckIcon /> Marcar subsanado
-                        </Button>
-                        <Button
-                          v-if="puedeBorrarComentario(c)"
-                          variant="outline"
-                          size="sm"
-                          class="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          :disabled="actuandoComentarioId === c.id"
-                          @click="borrarComentario(c)"
-                        >
-                          <Trash2Icon /> Eliminar
-                        </Button>
-                      </div>
-                      <!-- Inline form para subsanar -->
-                      <div v-if="resolviendoId === c.id" class="em-resolver-form">
-                        <label class="em-resolver-lbl">¿Cómo se subsanó? (opcional)</label>
-                        <Textarea
-v-model="resolviendoTexto" rows="2"
-                                  placeholder="Describe brevemente qué se cambió o ajustó…" />
-                        <div class="em-resolver-actions">
-                          <Button variant="outline" size="sm" @click="resolviendoId = null">Cancelar</Button>
-                          <Button
-                            size="sm"
-                            class="bg-success text-success-foreground hover:bg-success/90"
-                            :disabled="actuandoComentarioId === c.id"
-                            @click="resolverComentario(c)"
-                          >
-                            Confirmar subsanación
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Form nuevo comentario -->
-                  <div v-if="drawerInf.estado !== 'aprobado'" class="em-com-add">
-                    <Textarea
-v-model="nuevoComentario" rows="3"
-                              :placeholder="permisoVerificar
-                                ? 'Escribe una observación para que el equipo subsane…'
-                                : 'Sólo el verificador puede agregar observaciones. Tú puedes subsanar los comentarios existentes.'"
-                              :disabled="!permisoVerificar" />
-                    <div class="em-com-add-actions">
-                      <Button
-                        size="sm"
-                        :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario"
-                        @click="agregarComentario"
-                      >
-                        <LoaderCircleIcon v-if="agregandoComentario" class="animate-spin" />
-                        <PlusIcon v-else />
-                        Agregar comentario
-                      </Button>
-                    </div>
-                  </div>
-                  <div v-else class="em-aprobado-msg">
-                    ✅ Informe aprobado/verificado · ya no se aceptan más observaciones
-                  </div>
-                </div>
-
-                <!-- ── VERIFICAR ─────────────────────────────────────── -->
-                <div v-else-if="drawerTab === 'verificar'" class="em-verify-wrap">
-                  <div v-if="!permisoVerificar" class="em-verify-blocked">
-                    <LockIcon class="text-3xl size-[1em]" style="color:#D97706" />
-                    <p class="em-state-title">Verificación restringida</p>
-                    <p class="em-state-sub">
-                      Sólo <b>Juan José Pacheco</b> ({{ EMAIL_VERIFICADOR }}) o un administrador pueden verificar informes.
-                    </p>
-                  </div>
-                  <template v-else>
-                    <div class="em-verify-check">
-                      <div class="em-check-row" :class="{ 'em-check-row--err': comentariosPendientes(drawerInf) > 0 }">
-                        <span>{{ comentariosPendientes(drawerInf) > 0 ? '⚠️' : '✅' }}</span>
-                        <span>
-                          <b>{{ comentariosPendientes(drawerInf) }}</b>
-                          comentario{{ comentariosPendientes(drawerInf) !== 1 ? 's' : '' }} sin subsanar
-                          {{ comentariosPendientes(drawerInf) > 0 ? '— se debe subsanar antes de aprobar' : '' }}
-                        </span>
-                      </div>
-                      <div class="em-check-row">
-                        <span>{{ drawerInf.editado_por_nombre ? '✅' : '—' }}</span>
-                        <span>Última edición: <b>{{ drawerInf.editado_por_nombre || 'sin registro' }}</b>
-                          {{ drawerInf.editado_en ? ' · ' + formatFecha(drawerInf.editado_en) : '' }}
-                        </span>
-                      </div>
-                      <div class="em-check-row">
-                        <span>{{ drawerInf.estado === 'aprobado' ? '✅' : '🕒' }}</span>
-                        <span>Estado actual: <b>{{ estadoLabel(pipelineEstado(drawerInf)) }}</b></span>
-                      </div>
-                    </div>
-                    <div class="em-verify-actions">
-                      <Button
-v-if="drawerInf.estado !== 'aprobado'"
-                              :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
-                              class="bg-success text-success-foreground hover:bg-success/90"
-                              @click="verificarYAprobar">
-                        <LoaderCircleIcon v-if="verificando" class="animate-spin" />
-                        {{ verificando ? 'Verificando…' : '✅ Verificar y aprobar' }}
-                      </Button>
-                      <Button
-v-else
-                              variant="outline" size="sm"
-                              class="text-warning hover:bg-warning/10 hover:text-warning"
-                              @click="reabrir">
-                        ↩ Reabrir para corrección
-                      </Button>
-                      <p class="em-verify-hint">
-                        {{ drawerInf.estado === 'aprobado'
-                          ? 'Si necesitas devolver el informe para corregir algo, reábrelo y agrega comentarios.'
-                          : 'Aprueba sólo si el contenido es correcto y todas las observaciones están subsanadas.' }}
-                      </p>
-                    </div>
-                  </template>
-                </div>
-
-              </div><!-- /em-drawer-body -->
-            </div><!-- /em-detail-panel -->
-          </aside>
-        </transition>
-
-      </div><!-- /em-content -->
-
-      <!-- ══ Modal confirmación envío masivo ═════════════════════════ -->
-      <transition name="fade">
-        <div v-if="confirmEnvio" class="em-modal-bd" @click.self="cerrarConfirmEnvio">
-          <div class="em-modal">
-            <header class="em-modal-head">
-              <div>
-                <h3>Enviar {{ puedeEnviarBatch.length }} informe{{ puedeEnviarBatch.length !== 1 ? 's' : '' }} verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}</h3>
-                <p>Se enviará por correo al cliente operacional registrado de cada proyecto.</p>
-              </div>
-              <Button variant="ghost" size="icon-sm" :disabled="enviandoBatch" @click="cerrarConfirmEnvio">
-                <XIcon />
-              </Button>
-            </header>
-            <div class="em-modal-body">
-              <div v-if="!enviandoBatch && !resultadoBatch" class="em-modal-list">
-                <div v-for="(inf, i) in puedeEnviarBatch" :key="inf.id" class="em-modal-row">
-                  <span class="em-modal-num">{{ i + 1 }}</span>
-                  <div class="em-modal-info">
-                    <div class="em-modal-info-nombre">{{ inf.proyecto_nombre || inf.sub_project }}</div>
-                    <div class="em-modal-info-meta">
-                      <span class="em-tipo-tag">{{ tipoLabel(inf.tipo) }}</span> ·
-                      {{ inf.periodo_display || formatPeriodo(inf.periodo_desde) }}
-                    </div>
-                  </div>
-                  <span class="em-mail-ico">📧</span>
-                </div>
-              </div>
-              <div v-else-if="enviandoBatch" class="em-modal-progress">
-                <div class="em-bar-wrap"><div class="em-bar" :style="{ width: `${(progBatch.hechos / progBatch.total) * 100}%` }" /></div>
-                <div class="em-prog-row">
-                  <span class="em-prog-num">{{ progBatch.hechos }} / {{ progBatch.total }}</span>
-                  <span class="em-prog-msg">{{ progBatch.actual }}</span>
-                </div>
-              </div>
-              <div v-else class="em-modal-result">
-                <div class="em-result-big">
-                  <span v-if="resultadoBatch.ok" class="em-result-ok">✅ {{ resultadoBatch.ok }}</span>
-                  <span v-if="resultadoBatch.err" class="em-result-err">⚠️ {{ resultadoBatch.err }}</span>
+                <div v-if="row.tipo === 'port'" class="text-xs text-muted-foreground">
+                  {{ (row.miembros || []).length }} proyecto{{
+                    (row.miembros || []).length !== 1 ? 's' : ''
+                  }}
                 </div>
                 <div
-v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
-                     :class="{ 'em-result-row--err': !d.ok }">
-                  <span>{{ d.ok ? '✅' : '⚠️' }}</span>
-                  <div>
-                    <div class="em-result-nombre">{{ d.nombre }}</div>
-                    <div class="em-result-msg">{{ d.msg }}</div>
+                  v-else-if="row.proyecto_nombre && row.sub_project !== row.proyecto_nombre"
+                  class="text-xs text-muted-foreground"
+                >
+                  {{ row.sub_project }}
+                </div>
+              </GTableCell>
+              <GTableCell>
+                <Badge variant="outline" class="text-[10px]">{{ tipoLabel(row.tipo) }}</Badge>
+              </GTableCell>
+              <GTableCell class="text-xs">
+                <div>{{ row.editado_en ? formatFecha(row.editado_en) : '—' }}</div>
+                <div v-if="row.editado_por_nombre" class="text-muted-foreground">
+                  {{ row.editado_por_nombre }}
+                </div>
+              </GTableCell>
+              <GTableCell class="text-xs">
+                <span v-if="row.aprobado_por_nombre" class="text-muted-foreground">{{
+                  row.aprobado_por_nombre
+                }}</span>
+                <span v-else class="text-muted-foreground/50">—</span>
+              </GTableCell>
+              <GTableCell class="text-xs">
+                <template v-if="row.correo_enviado">
+                  <span class="font-semibold text-success">
+                    <MailIcon class="inline size-3" />
+                    {{ row.correo_enviado_en ? formatFecha(row.correo_enviado_en) : '✓' }}
+                  </span>
+                  <div v-if="row.enviado_por_nombre" class="text-muted-foreground">
+                    {{ row.enviado_por_nombre }}
+                  </div>
+                </template>
+                <span v-else class="text-muted-foreground/50">—</span>
+              </GTableCell>
+              <GTableCell class="text-right whitespace-nowrap" @click.stop>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Editar informe en pantalla completa"
+                  @click="editar(row)"
+                >
+                  <PencilIcon />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="relative"
+                  :class="
+                    comentariosPendientes(row) > 0
+                      ? 'text-destructive hover:text-destructive'
+                      : comentariosTotales(row) > 0
+                        ? 'text-primary hover:text-primary'
+                        : ''
+                  "
+                  :title="comentariosTooltip(row)"
+                  @click="abrirDrawer(row, 'comentarios')"
+                >
+                  <MessagesSquareIcon />
+                  <span
+                    v-if="comentariosTotales(row) > 0"
+                    class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    :class="comentariosPendientes(row) > 0 ? 'bg-destructive' : 'bg-primary'"
+                  >
+                    {{ comentariosPendientes(row) || comentariosTotales(row) }}
+                  </span>
+                </Button>
+                <Button
+                  v-if="puedeVerificar(row)"
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-warning hover:text-warning"
+                  :disabled="!permisoVerificar"
+                  :title="
+                    permisoVerificar
+                      ? 'Revisar y verificar (aprobar)'
+                      : 'Sólo Juan José puede verificar'
+                  "
+                  @click="abrirDrawer(row, 'verificar')"
+                >
+                  <CircleCheckIcon />
+                </Button>
+                <Button
+                  v-if="row.estado === 'aprobado' && !row.correo_enviado"
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-primary hover:text-primary"
+                  :disabled="!permisoEnviar || enviandoIds.has(row.id)"
+                  :title="
+                    permisoEnviar
+                      ? 'Enviar al correo del cliente'
+                      : 'Sólo Laura H. (o admin) puede enviar'
+                  "
+                  @click="enviarUno(row)"
+                >
+                  <LoaderCircleIcon v-if="enviandoIds.has(row.id)" class="animate-spin" />
+                  <SendIcon v-else />
+                </Button>
+                <Button
+                  v-if="row.estado !== 'aprobado' && !row.correo_enviado"
+                  variant="ghost"
+                  size="icon-sm"
+                  class="hover:bg-destructive/10 hover:text-destructive"
+                  :title="
+                    row.tipo === 'op'
+                      ? 'Eliminar (no afecta a los portafolios que lo incluyen)'
+                      : 'Eliminar informe'
+                  "
+                  @click="eliminarInforme(row)"
+                >
+                  <Trash2Icon />
+                </Button>
+              </GTableCell>
+            </GTableRow>
+          </template>
+        </GTableBody>
+      </GTable>
+
+      <!-- Faltantes -->
+      <Collapsible
+        v-if="!loading && faltantes.length > 0"
+        v-model:open="showFaltantes"
+        class="mt-3 rounded-lg border border-warning/30 bg-warning/10"
+      >
+        <CollapsibleTrigger as-child>
+          <Button
+            variant="ghost"
+            class="h-auto w-full justify-start gap-2 rounded-none py-2 text-warning hover:text-warning"
+          >
+            <Badge variant="secondary">{{ faltantes.length }}</Badge>
+            <span
+              >Proyecto{{ faltantes.length !== 1 ? 's' : '' }} sin informe en {{ mesLabel }}</span
+            >
+            <ChevronUpIcon v-if="showFaltantes" class="ml-auto text-muted-foreground" />
+            <ChevronDownIcon v-else class="ml-auto text-muted-foreground" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent class="flex flex-col gap-1 px-3.5 pb-2.5">
+          <div
+            v-for="p in faltantes"
+            :key="p"
+            class="flex items-center gap-2 rounded-md bg-warning/10 px-1.5 py-1"
+          >
+            <span class="size-1.5 shrink-0 rounded-full bg-warning" />
+            <span class="flex-1 text-sm font-semibold text-warning">{{ p }}</span>
+            <span class="text-xs text-warning/80 italic">Sin informe operacional</span>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+
+    <!-- ══ PANEL DETALLE (overlay) ═══════════════════════════════════════ -->
+    <div v-if="drawerInf" class="fixed inset-0 z-30 flex justify-end">
+      <div class="absolute inset-0 bg-black/35 backdrop-blur-[2px]" @click="cerrarDrawer" />
+      <div
+        class="relative flex h-full w-full max-w-xl flex-col overflow-hidden bg-background shadow-2xl"
+      >
+        <!-- Header -->
+        <header
+          class="flex shrink-0 items-start justify-between gap-2 border-b bg-muted/40 px-4 py-3"
+        >
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-sm font-extrabold text-foreground">
+              {{ drawerInf.proyecto_nombre || drawerInf.sub_project }}
+            </div>
+            <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <Badge variant="outline" class="text-[10px]">{{ tipoLabel(drawerInf.tipo) }}</Badge>
+              <span>·</span>
+              <span>{{ drawerInf.periodo_display || formatPeriodo(drawerInf.periodo_desde) }}</span>
+              <span>·</span>
+              <GBadge :color="ESTADO_BADGE_COLOR[pipelineEstado(drawerInf)]" size="sm">
+                {{ estadoLabel(pipelineEstado(drawerInf)) }}
+              </GBadge>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon-sm" title="Cerrar panel" @click="cerrarDrawer">
+            <XIcon />
+          </Button>
+        </header>
+
+        <!-- Tabs -->
+        <GTabs
+          :model-value="drawerTab"
+          class="shrink-0 border-b bg-background px-3.5"
+          @update:model-value="(v) => (drawerTab = v as DrawerTab)"
+        >
+          <GTabsList variant="outline">
+            <GTabsTrigger value="preview" variant="outline">
+              <EyeIcon class="size-4" /> Previsualización
+            </GTabsTrigger>
+            <GTabsTrigger value="comentarios" variant="outline">
+              <MessagesSquareIcon class="size-4" /> Comentarios
+              <GBadge
+                v-if="comentariosTotales(drawerInf) > 0"
+                :color="comentariosPendientes(drawerInf) > 0 ? 'destructive' : 'action'"
+                size="sm"
+              >
+                {{ comentariosPendientes(drawerInf) || comentariosTotales(drawerInf) }}
+              </GBadge>
+            </GTabsTrigger>
+            <GTabsTrigger v-if="puedeVerificar(drawerInf)" value="verificar" variant="outline">
+              <CircleCheckIcon class="size-4" /> Verificar
+            </GTabsTrigger>
+          </GTabsList>
+        </GTabs>
+
+        <div class="flex flex-1 flex-col gap-3 overflow-y-auto p-3.5">
+          <!-- ── PREVIEW ── -->
+          <div v-if="drawerTab === 'preview'" class="flex h-full flex-col gap-2">
+            <div
+              v-if="loadingDetalle"
+              class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+            >
+              <LoaderCircleIcon class="size-7 animate-spin text-primary" />
+              <span class="text-sm">Cargando informe…</span>
+            </div>
+            <div
+              v-else-if="!detalleHtml"
+              class="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+            >
+              <FileIcon class="size-6" />
+              <p class="text-sm">Sin contenido del informe</p>
+            </div>
+            <template v-else>
+              <div
+                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-3 py-1.5"
+              >
+                <span v-if="drawerInf.estado === 'aprobado'" class="text-xs text-warning italic">
+                  🔒 Aprobado — reabre desde Verificar para editar
+                </span>
+                <div class="ml-auto flex items-center gap-1.5">
+                  <Button
+                    v-if="drawerInf.estado !== 'aprobado'"
+                    variant="outline"
+                    size="sm"
+                    @click="editar(drawerInf)"
+                  >
+                    <PencilIcon /> Editar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    title="Imprimir / exportar PDF"
+                    @click="imprimirDetalle"
+                  >
+                    <PrinterIcon /> PDF
+                  </Button>
+                </div>
+              </div>
+              <div class="min-h-[420px] flex-1 overflow-hidden rounded-lg border bg-muted">
+                <iframe
+                  :key="previewKey"
+                  class="size-full min-h-[420px] border-0"
+                  :srcdoc="previewDoc"
+                  sandbox="allow-same-origin"
+                />
+              </div>
+            </template>
+          </div>
+
+          <!-- ── COMENTARIOS ── -->
+          <div v-else-if="drawerTab === 'comentarios'" class="flex h-full flex-col gap-3">
+            <div
+              v-if="!drawerInf.comentarios?.length"
+              class="flex flex-1 flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 py-8 text-center text-muted-foreground"
+            >
+              <MessagesSquareIcon class="size-6" />
+              <p class="text-sm font-bold text-foreground">Sin comentarios todavía</p>
+              <p class="max-w-sm text-xs">
+                {{
+                  permisoVerificar
+                    ? 'Agrega observaciones que el equipo deba subsanar antes de enviar.'
+                    : 'Cuando el verificador deje observaciones, aparecerán aquí.'
+                }}
+              </p>
+            </div>
+            <div v-else class="flex flex-1 flex-col gap-2.5 overflow-y-auto pr-0.5">
+              <div
+                v-for="c in drawerInf.comentarios || []"
+                :key="c.id"
+                class="rounded-lg border p-2.5"
+                :class="
+                  c.resuelto
+                    ? 'border-success/30 bg-success/10'
+                    : 'border-destructive/30 bg-destructive/10'
+                "
+              >
+                <div class="mb-1.5 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="flex size-6.5 items-center justify-center rounded-full text-[11px] font-extrabold text-white"
+                      :style="{ background: avatarColor(c.autor_email) }"
+                    >
+                      {{ (c.autor_nombre || c.autor_email || '?').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <div class="text-xs font-bold text-foreground">
+                        {{ c.autor_nombre || c.autor_email }}
+                      </div>
+                      <div class="text-[10px] text-muted-foreground">
+                        {{ formatFechaCorta(c.created_at) }}
+                      </div>
+                    </div>
+                  </div>
+                  <span v-if="c.resuelto" class="text-[10px] font-bold text-success"
+                    >✅ Subsanado</span
+                  >
+                  <span v-else class="text-[10px] font-bold text-destructive">⚠️ Pendiente</span>
+                </div>
+                <div class="mb-1.5 text-sm whitespace-pre-wrap text-foreground">
+                  {{ c.mensaje }}
+                </div>
+                <div
+                  v-if="c.resuelto && c.respuesta"
+                  class="mt-1.5 rounded-r-lg border-l-3 border-success bg-background/60 px-2.5 py-2"
+                >
+                  <div class="mb-0.5 text-[9px] font-bold tracking-wide text-success uppercase">
+                    Respuesta de quien subsanó:
+                  </div>
+                  <div class="text-sm text-foreground">{{ c.respuesta }}</div>
+                  <div class="mt-1 text-[10px] text-muted-foreground">
+                    {{ c.resuelto_por_nombre || c.resuelto_por_email }} ·
+                    {{ formatFechaCorta(c.resuelto_en) }}
+                  </div>
+                </div>
+                <div v-if="!c.resuelto" class="mt-2 flex gap-1.5">
+                  <Button
+                    size="sm"
+                    class="text-success-foreground bg-success hover:bg-success/90"
+                    :disabled="actuandoComentarioId === c.id"
+                    @click="abrirResolver(c)"
+                  >
+                    <CheckIcon /> Marcar subsanado
+                  </Button>
+                  <Button
+                    v-if="puedeBorrarComentario(c)"
+                    variant="outline"
+                    size="sm"
+                    class="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    :disabled="actuandoComentarioId === c.id"
+                    @click="borrarComentario(c)"
+                  >
+                    <Trash2Icon /> Eliminar
+                  </Button>
+                </div>
+                <!-- Inline form para subsanar -->
+                <div v-if="resolviendoId === c.id" class="mt-2 rounded-lg bg-background/70 p-2.5">
+                  <label
+                    class="mb-1 block text-[10px] font-bold tracking-wide text-success uppercase"
+                  >
+                    ¿Cómo se subsanó? (opcional)
+                  </label>
+                  <Textarea
+                    v-model="resolviendoTexto"
+                    rows="2"
+                    placeholder="Describe brevemente qué se cambió o ajustó…"
+                  />
+                  <div class="mt-1.5 flex justify-end gap-1.5">
+                    <Button variant="outline" size="sm" @click="resolviendoId = null"
+                      >Cancelar</Button
+                    >
+                    <Button
+                      size="sm"
+                      class="text-success-foreground bg-success hover:bg-success/90"
+                      :disabled="actuandoComentarioId === c.id"
+                      @click="resolverComentario(c)"
+                    >
+                      Confirmar subsanación
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
-            <footer class="em-modal-foot">
-              <Button v-if="!enviandoBatch && !resultadoBatch" variant="outline" size="sm" @click="cerrarConfirmEnvio">
-                Cancelar
-              </Button>
-              <Button
-                v-if="!enviandoBatch && !resultadoBatch"
-                size="sm"
-                class="bg-success text-success-foreground hover:bg-success/90"
-                @click="ejecutarEnvioBatch"
-              >
-                <SendIcon /> Confirmar envío de {{ puedeEnviarBatch.length }}
-              </Button>
-              <Button v-if="resultadoBatch" size="sm" @click="cerrarConfirmEnvio">Cerrar</Button>
-            </footer>
+
+            <div
+              v-if="drawerInf.estado !== 'aprobado'"
+              class="shrink-0 rounded-lg border border-dashed p-3"
+            >
+              <Textarea
+                v-model="nuevoComentario"
+                rows="3"
+                :placeholder="
+                  permisoVerificar
+                    ? 'Escribe una observación para que el equipo subsane…'
+                    : 'Sólo el verificador puede agregar observaciones. Tú puedes subsanar los comentarios existentes.'
+                "
+                :disabled="!permisoVerificar"
+              />
+              <div class="mt-2 flex justify-end">
+                <Button
+                  size="sm"
+                  :disabled="!permisoVerificar || !nuevoComentario.trim() || agregandoComentario"
+                  @click="agregarComentario"
+                >
+                  <LoaderCircleIcon v-if="agregandoComentario" class="animate-spin" />
+                  <PlusIcon v-else />
+                  Agregar comentario
+                </Button>
+              </div>
+            </div>
+            <p
+              v-else
+              class="shrink-0 rounded-lg border border-success/30 bg-success/10 px-3 py-2.5 text-sm text-success"
+            >
+              ✅ Informe aprobado/verificado · ya no se aceptan más observaciones
+            </p>
+          </div>
+
+          <!-- ── VERIFICAR ── -->
+          <div v-else-if="drawerTab === 'verificar'" class="flex flex-col gap-3.5">
+            <div
+              v-if="!permisoVerificar"
+              class="flex flex-col items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 py-10 text-center"
+            >
+              <LockIcon class="size-6 text-warning" />
+              <p class="text-sm font-bold text-foreground">Verificación restringida</p>
+              <p class="max-w-sm text-xs text-muted-foreground">
+                Sólo <b>Juan José Pacheco</b> ({{ EMAIL_VERIFICADOR }}) o un administrador pueden
+                verificar informes.
+              </p>
+            </div>
+            <template v-else>
+              <div class="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3">
+                <div
+                  class="flex items-center gap-2.5 text-sm text-foreground"
+                  :class="comentariosPendientes(drawerInf) > 0 ? 'text-destructive' : ''"
+                >
+                  <span>{{ comentariosPendientes(drawerInf) > 0 ? '⚠️' : '✅' }}</span>
+                  <span>
+                    <b>{{ comentariosPendientes(drawerInf) }}</b>
+                    comentario{{ comentariosPendientes(drawerInf) !== 1 ? 's' : '' }} sin subsanar
+                    {{
+                      comentariosPendientes(drawerInf) > 0
+                        ? '— se debe subsanar antes de aprobar'
+                        : ''
+                    }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm text-foreground">
+                  <span>{{ drawerInf.editado_por_nombre ? '✅' : '—' }}</span>
+                  <span>
+                    Última edición: <b>{{ drawerInf.editado_por_nombre || 'sin registro' }}</b>
+                    {{ drawerInf.editado_en ? ' · ' + formatFecha(drawerInf.editado_en) : '' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2.5 text-sm text-foreground">
+                  <span>{{ drawerInf.estado === 'aprobado' ? '✅' : '🕒' }}</span>
+                  <span
+                    >Estado actual: <b>{{ estadoLabel(pipelineEstado(drawerInf)) }}</b></span
+                  >
+                </div>
+              </div>
+              <div class="flex flex-col gap-2">
+                <Button
+                  v-if="drawerInf.estado !== 'aprobado'"
+                  :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
+                  class="text-success-foreground bg-success hover:bg-success/90"
+                  @click="verificarYAprobar"
+                >
+                  <LoaderCircleIcon v-if="verificando" class="animate-spin" />
+                  {{ verificando ? 'Verificando…' : '✅ Verificar y aprobar' }}
+                </Button>
+                <Button
+                  v-else
+                  variant="outline"
+                  size="sm"
+                  class="text-warning hover:bg-warning/10 hover:text-warning"
+                  @click="reabrir"
+                >
+                  ↩ Reabrir para corrección
+                </Button>
+                <p class="text-xs text-muted-foreground italic">
+                  {{
+                    drawerInf.estado === 'aprobado'
+                      ? 'Si necesitas devolver el informe para corregir algo, reábrelo y agrega comentarios.'
+                      : 'Aprueba sólo si el contenido es correcto y todas las observaciones están subsanadas.'
+                  }}
+                </p>
+              </div>
+            </template>
           </div>
         </div>
-      </transition>
+      </div>
+    </div>
 
-      <!-- Toast simple -->
-      <transition name="fade">
-        <div v-if="toastMsg" :class="['em-toast', toastErr ? 'em-toast-err' : 'em-toast-ok']">
-          {{ toastMsg }}
+    <!-- ══ DIALOG: CONFIRMAR ENVÍO MASIVO ═══════════════════════════════ -->
+    <Dialog v-model:open="confirmEnvio">
+      <DialogContent
+        class="max-h-[85dvh] max-w-lg grid-rows-[auto_minmax(0,1fr)_auto]"
+        :show-close-button="!enviandoBatch"
+        @escape-key-down="(e) => enviandoBatch && e.preventDefault()"
+        @pointer-down-outside="(e) => enviandoBatch && e.preventDefault()"
+      >
+        <DialogHeader>
+          <DialogTitle>
+            Enviar {{ puedeEnviarBatch.length }} informe{{
+              puedeEnviarBatch.length !== 1 ? 's' : ''
+            }}
+            verificado{{ puedeEnviarBatch.length !== 1 ? 's' : '' }}
+          </DialogTitle>
+          <DialogDescription>
+            Se enviará por correo al cliente operacional registrado de cada proyecto.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="min-h-0 overflow-y-auto">
+          <div v-if="!enviandoBatch && !resultadoBatch" class="flex flex-col gap-2">
+            <div
+              v-for="(inf, i) in puedeEnviarBatch"
+              :key="inf.id"
+              class="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-2.5 py-2"
+            >
+              <span
+                class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-extrabold text-primary-foreground"
+              >
+                {{ i + 1 }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-xs font-bold text-foreground">
+                  {{ inf.proyecto_nombre || inf.sub_project }}
+                </div>
+                <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <Badge variant="outline" class="text-[9px]">{{ tipoLabel(inf.tipo) }}</Badge>
+                  {{ inf.periodo_display || formatPeriodo(inf.periodo_desde) }}
+                </div>
+              </div>
+              <MailIcon class="size-4 shrink-0 text-muted-foreground" />
+            </div>
+          </div>
+
+          <div v-else-if="enviandoBatch" class="py-2">
+            <div class="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                class="h-full rounded-full bg-success transition-all"
+                :style="{ width: `${(progBatch.hechos / progBatch.total) * 100}%` }"
+              />
+            </div>
+            <div class="flex justify-between gap-2">
+              <span class="text-sm font-extrabold text-success"
+                >{{ progBatch.hechos }} / {{ progBatch.total }}</span
+              >
+              <span class="truncate text-xs text-muted-foreground">{{ progBatch.actual }}</span>
+            </div>
+          </div>
+
+          <div v-else-if="resultadoBatch" class="flex flex-col gap-2">
+            <div class="mb-1 flex justify-center gap-3 border-b pb-2.5 text-xl font-black">
+              <span v-if="resultadoBatch.ok" class="text-success">✅ {{ resultadoBatch.ok }}</span>
+              <span v-if="resultadoBatch.err" class="text-destructive"
+                >⚠️ {{ resultadoBatch.err }}</span
+              >
+            </div>
+            <div
+              v-for="d in resultadoBatch.detalles"
+              :key="d.id"
+              class="flex items-start gap-2.5 rounded-lg border px-2.5 py-1.5"
+              :class="
+                d.ok ? 'border-success/30 bg-success/10' : 'border-destructive/30 bg-destructive/10'
+              "
+            >
+              <span>{{ d.ok ? '✅' : '⚠️' }}</span>
+              <div>
+                <div class="text-xs font-bold text-foreground">{{ d.nombre }}</div>
+                <div class="text-[10px] text-muted-foreground">{{ d.msg }}</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </transition>
 
-  </div><!-- /em-panel -->
+        <DialogFooter>
+          <Button
+            v-if="!enviandoBatch && !resultadoBatch"
+            variant="outline"
+            size="sm"
+            @click="cerrarConfirmEnvio"
+          >
+            Cancelar
+          </Button>
+          <Button
+            v-if="!enviandoBatch && !resultadoBatch"
+            size="sm"
+            class="text-success-foreground bg-success hover:bg-success/90"
+            @click="ejecutarEnvioBatch"
+          >
+            <SendIcon /> Confirmar envío de {{ puedeEnviarBatch.length }}
+          </Button>
+          <Button v-if="resultadoBatch" size="sm" @click="cerrarConfirmEnvio">Cerrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-  <!-- ══ EDITOR PANTALLA COMPLETA (teleport al body para cubrir TODO) ══ -->
-  <Teleport to="body">
-    <transition name="fade">
-      <div v-if="editandoFullscreen" class="em-editor-overlay">
-        <!-- Toolbar fija -->
-        <div class="em-editor-bar">
-          <div class="em-editor-bar-left">
-            <PencilIcon class="size-[1em]" style="color:var(--color-unergy-purple);font-size:13px" />
-            <span class="em-editor-title">{{ editorInf?.proyecto_nombre || editorInf?.sub_project }}</span>
-            <span v-if="editorInf" class="em-tipo-tag">{{ tipoLabel(editorInf.tipo) }}</span>
-            <span v-if="editorInf" class="em-editor-periodo">
+    <!-- ══ EDITOR PANTALLA COMPLETA (teleport al body para cubrir TODO) ══ -->
+    <Teleport to="body">
+      <div v-if="editandoFullscreen" class="fixed inset-0 z-100 flex flex-col bg-background">
+        <div
+          class="flex shrink-0 flex-wrap items-center justify-between gap-3 bg-foreground px-5 py-2.5 shadow-lg"
+        >
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <PencilIcon class="size-3.5 text-primary" />
+            <span class="truncate text-sm font-extrabold text-background">
+              {{ editorInf?.proyecto_nombre || editorInf?.sub_project }}
+            </span>
+            <Badge v-if="editorInf" variant="outline" class="text-[10px] text-background">
+              {{ tipoLabel(editorInf.tipo) }}
+            </Badge>
+            <span v-if="editorInf" class="text-xs text-background/60">
               · {{ editorInf.periodo_display || formatPeriodo(editorInf.periodo_desde) }}
             </span>
           </div>
-          <div class="em-editor-bar-right">
+          <div class="flex shrink-0 items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              class="text-white hover:bg-white/10 hover:text-white"
+              class="text-background hover:bg-background/10 hover:text-background"
               @click="imprimirEditor"
             >
               <PrinterIcon /> PDF
@@ -626,7 +748,7 @@ v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
             <Button
               variant="ghost"
               size="sm"
-              class="text-white hover:bg-white/10 hover:text-white"
+              class="text-background hover:bg-background/10 hover:text-background"
               :disabled="guardandoEditor"
               @click="cerrarEditor"
             >
@@ -634,7 +756,7 @@ v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
             </Button>
             <Button
               size="sm"
-              class="bg-success text-success-foreground hover:bg-success/90"
+              class="text-success-foreground bg-success hover:bg-success/90"
               :disabled="guardandoEditor"
               @click="guardarEditor"
             >
@@ -644,131 +766,154 @@ v-for="d in resultadoBatch.detalles" :key="d.id" class="em-result-row"
             </Button>
           </div>
         </div>
-        <!-- Iframe editable -->
-        <div class="em-editor-body">
+        <div class="relative flex-1 overflow-hidden bg-muted">
           <iframe
-ref="editorIframeRef"
-                  class="em-editor-iframe"
-                  :srcdoc="editorDoc"
-                  sandbox="allow-same-origin"
-                  title="Editor de informe" />
+            ref="editorIframeRef"
+            class="size-full border-0"
+            :srcdoc="editorDoc"
+            sandbox="allow-same-origin"
+            title="Editor de informe"
+          />
         </div>
-        <!-- Hint edición -->
-        <div class="em-editor-hint">
-          <InfoIcon class="size-[1em]" />
-          Haz clic en cualquier texto para editarlo directamente · Los cambios no se guardan hasta presionar "Guardar versión"
+        <div
+          class="flex shrink-0 items-center gap-1.5 bg-foreground px-4 py-1.5 text-[11px] text-background/55"
+        >
+          <InfoIcon class="size-3.5 text-primary" />
+          Haz clic en cualquier texto para editarlo directamente · Los cambios no se guardan hasta
+          presionar "Guardar versión"
         </div>
       </div>
-    </transition>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+<script setup lang="ts">
+import type { Component } from 'vue'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  CircleCheckIcon,
+  EyeIcon,
+  FileIcon,
+  FolderIcon,
+  InboxIcon,
+  InfoIcon,
+  LoaderCircleIcon,
+  LockIcon,
+  MailIcon,
+  MessagesSquareIcon,
+  PencilIcon,
+  PlusIcon,
+  PrinterIcon,
+  RefreshCwIcon,
+  SaveIcon,
+  SearchIcon,
+  SendIcon,
+  Trash2Icon,
+  XIcon,
+} from '@lucide/vue'
+import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
+import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
-import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon, CircleCheckIcon, EyeIcon, FileIcon, FolderIcon, InboxIcon, InfoIcon, LoaderCircleIcon, LockIcon, MessagesSquareIcon, PencilIcon, PlusIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SearchIcon, SendIcon, Trash2Icon, XIcon } from '@lucide/vue'
+import type { ComentarioInforme, Informe, TipoInforme } from '~/features/operaciones/types'
 
 const { user } = useAuth()
+const confirm = useConfirm()
 const informesService = new InformesService()
 const monitoreoLegacyService = new MonitoreoLegacyService()
 
-const EMAIL_VERIFICADOR     = 'juan.jose@unergy.io'
+const EMAIL_VERIFICADOR = 'juan.jose@unergy.io'
 const EMAIL_VERIFICADOR_ALT = 'juanjose@unergy.io'
-const EMAIL_REMITENTE       = 'laura.h@unergy.io'
-const LS_MES_KEY            = 'em_pipeline_mes'
+const EMAIL_REMITENTE = 'laura.h@unergy.io'
+const LS_MES_KEY = 'em_pipeline_mes'
 
 const userEmail = computed(() => (user.value?.email || '').toLowerCase())
-const userRol   = computed(() => user.value?.role || '')
-const permisoVerificar = computed(() =>
-  userRol.value === 'admin' || [EMAIL_VERIFICADOR, EMAIL_VERIFICADOR_ALT].includes(userEmail.value)
+const userRol = computed(() => user.value?.role || '')
+const permisoVerificar = computed(
+  () =>
+    userRol.value === 'admin' ||
+    [EMAIL_VERIFICADOR, EMAIL_VERIFICADOR_ALT].includes(userEmail.value),
 )
-const permisoEnviar = computed(() =>
-  permisoVerificar.value || userEmail.value === EMAIL_REMITENTE
-)
+const permisoEnviar = computed(() => permisoVerificar.value || userEmail.value === EMAIL_REMITENTE)
 
-// ── Estado ─────────────────────────────────────────────────────
-const today  = new Date()
+// ── Estado ───────────────────────────────────────────────────────────────
+const today = new Date()
 const mesMax = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
-const _prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
-const mesPrevio = `${_prevDate.getFullYear()}-${String(_prevDate.getMonth() + 1).padStart(2, '0')}`
-const _savedMes = localStorage.getItem(LS_MES_KEY)
-const mesSel = ref((_savedMes && _savedMes <= mesMax) ? _savedMes : mesPrevio)
+const prevDate = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+const mesPrevio = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+const mesGuardado = import.meta.client ? localStorage.getItem(LS_MES_KEY) : null
+const mesSel = ref(mesGuardado && mesGuardado <= mesMax ? mesGuardado : mesPrevio)
 
-const informes   = ref([])
-const loading    = ref(false)
-const filtro     = ref('')
-const busqueda   = ref('')
+const informes = ref<Informe[]>([])
+const loading = ref(false)
+const filtro = ref('')
+const busqueda = ref('')
 
-const todosProyectos  = ref([])
-const showFaltantes   = ref(false)
+const todosProyectos = ref<string[]>([])
+const showFaltantes = ref(false)
 
 // Drawer / panel detalle
-const drawerInf      = ref(null)
-const drawerTab      = ref('preview')
-const detalleHtml    = ref('')
+type DrawerTab = 'preview' | 'comentarios' | 'verificar'
+const drawerInf = ref<Informe | null>(null)
+const drawerTab = ref<DrawerTab>('preview')
+const detalleHtml = ref('')
 const loadingDetalle = ref(false)
-const previewKey     = ref(0)          // ← fuerza reload del iframe
-const previewIframeRef = ref(null)     // ref al iframe de previsualización
+const previewKey = ref(0) // ← fuerza reload del iframe
 
 // Editor pantalla completa
 const editandoFullscreen = ref(false)
-const editorInf          = ref(null)
-const editorHtml         = ref('')
-const editorIframeRef    = ref(null)
-const guardandoEditor    = ref(false)
+const editorInf = ref<Informe | null>(null)
+const editorHtml = ref('')
+const editorIframeRef = ref<HTMLIFrameElement | null>(null)
+const guardandoEditor = ref(false)
 
 // Comentarios
-const nuevoComentario      = ref('')
-const agregandoComentario  = ref(false)
-const resolviendoId        = ref(null)
-const resolviendoTexto     = ref('')
-const actuandoComentarioId = ref(null)
+const nuevoComentario = ref('')
+const agregandoComentario = ref(false)
+const resolviendoId = ref<number | null>(null)
+const resolviendoTexto = ref('')
+const actuandoComentarioId = ref<number | null>(null)
 
 // Verificación
 const verificando = ref(false)
 
 // Envío masivo
-const confirmEnvio   = ref(false)
-const enviandoBatch  = ref(false)
-const progBatch      = ref({ hechos: 0, total: 0, actual: '' })
-const resultadoBatch = ref(null)
-const enviandoIds    = ref(new Set())
-
-// Toast
-const toastMsg = ref('')
-const toastErr = ref(false)
-let _toastTimer = null
-function toast(msg, err = false) {
-  toastMsg.value = msg; toastErr.value = err
-  if (_toastTimer) clearTimeout(_toastTimer)
-  _toastTimer = setTimeout(() => { toastMsg.value = '' }, 4000)
+const confirmEnvio = ref(false)
+const enviandoBatch = ref(false)
+const progBatch = ref({ hechos: 0, total: 0, actual: '' })
+interface ResultadoBatchDetalle {
+  id: number
+  nombre: string
+  ok: boolean
+  msg?: string
 }
+const resultadoBatch = ref<{ ok: number; err: number; detalles: ResultadoBatchDetalle[] } | null>(
+  null,
+)
+const enviandoIds = ref<Set<number>>(new Set())
 
-// ── Computed ───────────────────────────────────────────────────
-function pipelineEstado(inf) {
-  if (inf.correo_enviado)        return 'enviado'
+// ── Estados del pipeline ─────────────────────────────────────────────────
+type PipelineEstado = 'pendiente' | 'comentado' | 'resuelto' | 'verificado' | 'enviado'
+
+function pipelineEstado(inf: Informe): PipelineEstado {
+  if (inf.correo_enviado) return 'enviado'
   if (inf.estado === 'aprobado') return 'verificado'
   const total = (inf.comentarios || []).length
-  const pend  = (inf.comentarios || []).filter(c => !c.resuelto).length
-  if (pend  > 0) return 'comentado'
+  const pend = (inf.comentarios || []).filter((c) => !c.resuelto).length
+  if (pend > 0) return 'comentado'
   if (total > 0) return 'resuelto'
   if (inf.estado === 'revisado') return 'resuelto'
   return 'pendiente'
 }
 
-const ESTADO_COLORS = {
-  pendiente:  '#D97706',
-  comentado:  '#DC2626',
-  resuelto:   '#2563EB',
-  verificado: '#16A34A',
-  enviado:    '#7C3AED',
-}
-function estadoColor(e) { return ESTADO_COLORS[e] || '#9CA3AF' }
-
-// Mismo criterio de severidad que ESTADO_COLORS, en colores semánticos de GBadge.
-const ESTADO_BADGE_COLOR = {
+// Mismo criterio de severidad en colores semánticos de GBadge.
+const ESTADO_BADGE_COLOR: Record<PipelineEstado, GandalfBadgeColor> = {
   pendiente: 'warning',
   comentado: 'destructive',
   resuelto: 'information',
@@ -779,58 +924,85 @@ const ESTADO_BADGE_COLOR = {
 const mesLabel = computed(() => {
   if (!mesSel.value) return ''
   const [y, m] = mesSel.value.split('-')
-  const n = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
-             'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][+m]
+  const n = [
+    '',
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
+  ][Number(m)]
   return `${n} ${y}`
 })
 
-const proyectosConInforme = computed(() =>
-  new Set(informes.value.filter(i => i.tipo === 'op').map(i => i.sub_project))
+const proyectosConInforme = computed(
+  () => new Set(informes.value.filter((i) => i.tipo === 'op').map((i) => i.sub_project)),
 )
 const faltantes = computed(() =>
-  todosProyectos.value.filter(p => !proyectosConInforme.value.has(p))
+  todosProyectos.value.filter((p) => !proyectosConInforme.value.has(p)),
 )
 const filtrados = computed(() => {
   let list = informes.value
-  if (filtro.value) list = list.filter(i => pipelineEstado(i) === filtro.value)
+  if (filtro.value) list = list.filter((i) => pipelineEstado(i) === filtro.value)
   if (busqueda.value.trim()) {
     const q = busqueda.value.trim().toLowerCase()
-    list = list.filter(i =>
-      (i.proyecto_nombre || '').toLowerCase().includes(q) ||
-      (i.sub_project || '').toLowerCase().includes(q)
+    list = list.filter(
+      (i) =>
+        (i.proyecto_nombre || '').toLowerCase().includes(q) ||
+        (i.sub_project || '').toLowerCase().includes(q),
     )
   }
   return list
 })
 // Separar portafolio vs individuales (op/fmo) y aplanar con marcadores de grupo
-const filtradosPort  = computed(() => filtrados.value.filter(i => i.tipo === 'port'))
-const filtradosIndiv = computed(() => filtrados.value.filter(i => i.tipo !== 'port'))
-const filasAgrupadas = computed(() => {
-  const out = []
+interface GrupoFila {
+  _group: string
+  _icon: Component
+  _count: number
+}
+type FilaTabla = Informe | GrupoFila
+function esGrupo(row: FilaTabla): row is GrupoFila {
+  return '_group' in row
+}
+
+const filtradosPort = computed(() => filtrados.value.filter((i) => i.tipo === 'port'))
+const filtradosIndiv = computed(() => filtrados.value.filter((i) => i.tipo !== 'port'))
+const filasAgrupadas = computed<FilaTabla[]>(() => {
+  const out: FilaTabla[] = []
   if (filtradosPort.value.length) {
-    out.push({ _group: 'Informes de portafolio', _icon: FolderIcon, _count: filtradosPort.value.length })
-    filtradosPort.value.forEach(i => out.push(i))
+    out.push({
+      _group: 'Informes de portafolio',
+      _icon: FolderIcon,
+      _count: filtradosPort.value.length,
+    })
+    out.push(...filtradosPort.value)
   }
   if (filtradosIndiv.value.length) {
-    out.push({ _group: 'Informes individuales', _icon: FileIcon, _count: filtradosIndiv.value.length })
-    filtradosIndiv.value.forEach(i => out.push(i))
+    out.push({
+      _group: 'Informes individuales',
+      _icon: FileIcon,
+      _count: filtradosIndiv.value.length,
+    })
+    out.push(...filtradosIndiv.value)
   }
   return out
 })
-const resumen = computed(() => {
-  const r = { total: informes.value.length, pendiente: 0, comentado: 0, resuelto: 0, verificado: 0, enviado: 0 }
-  informes.value.forEach(i => { r[pipelineEstado(i)] = (r[pipelineEstado(i)] || 0) + 1 })
-  return r
-})
 const puedeEnviarBatch = computed(() =>
-  informes.value.filter(i => i.estado === 'aprobado' && !i.correo_enviado)
+  informes.value.filter((i) => i.estado === 'aprobado' && !i.correo_enviado),
 )
 
 // Iframe preview doc (computado de detalleHtml)
 const previewDoc = computed(() => {
   if (!detalleHtml.value) return '<html><body></body></html>'
   return buildReportHtmlDoc(detalleHtml.value, {
-    title:  drawerInf.value?.proyecto_nombre || 'Informe',
+    title: drawerInf.value?.proyecto_nombre || 'Informe',
     bgGray: true,
   })
 })
@@ -839,71 +1011,105 @@ const previewDoc = computed(() => {
 const editorDoc = computed(() => {
   if (!editorHtml.value) return '<html><body></body></html>'
   return buildReportHtmlDoc(editorHtml.value, {
-    title:    editorInf.value?.proyecto_nombre || 'Editor',
-    bgGray:   false,
+    title: editorInf.value?.proyecto_nombre || 'Editor',
+    bgGray: false,
     editable: true,
   })
 })
 
-// ── Helpers ────────────────────────────────────────────────────
-function comentariosTotales(inf)    { return (inf.comentarios || []).length }
-function comentariosPendientes(inf) { return (inf.comentarios || []).filter(c => !c.resuelto).length }
-function comentariosTooltip(inf) {
-  const t = comentariosTotales(inf), p = comentariosPendientes(inf)
+// ── Helpers ──────────────────────────────────────────────────────────────
+function comentariosTotales(inf: Informe): number {
+  return (inf.comentarios || []).length
+}
+function comentariosPendientes(inf: Informe): number {
+  return (inf.comentarios || []).filter((c) => !c.resuelto).length
+}
+function comentariosTooltip(inf: Informe): string {
+  const t = comentariosTotales(inf)
+  const p = comentariosPendientes(inf)
   if (t === 0) return 'Sin comentarios'
   if (p === 0) return `${t} comentario(s) — todos subsanados`
   return `${p} de ${t} comentarios sin subsanar`
 }
-function puedeVerificar(inf)  { return inf.estado !== 'aprobado' }
-function puedeBorrarComentario(c) {
+function puedeVerificar(inf: Informe): boolean {
+  return inf.estado !== 'aprobado'
+}
+function puedeBorrarComentario(c: ComentarioInforme): boolean {
   return (c.autor_email || '').toLowerCase() === userEmail.value || userRol.value === 'admin'
 }
-function tipoLabel(t) {
-  return { op: 'Operacional', fmo: 'FMO', port: 'Portafolio' }[t] || (t || '—').toUpperCase()
+const TIPO_LABELS: Record<string, string> = { op: 'Operacional', fmo: 'FMO', port: 'Portafolio' }
+function tipoLabel(t: TipoInforme): string {
+  return TIPO_LABELS[t] || (t || '—').toUpperCase()
 }
-function estadoLabel(e) {
-  return {
-    pendiente: 'Pendiente', comentado: 'Con comentarios', resuelto: 'Comentarios resueltos',
-    verificado: 'Verificado', enviado: 'Enviado'
-  }[e] || e
+const ESTADO_LABELS: Record<PipelineEstado, string> = {
+  pendiente: 'Pendiente',
+  comentado: 'Con comentarios',
+  resuelto: 'Comentarios resueltos',
+  verificado: 'Verificado',
+  enviado: 'Enviado',
 }
-function formatFecha(iso) {
+function estadoLabel(e: PipelineEstado): string {
+  return ESTADO_LABELS[e] || e
+}
+function formatFecha(iso?: string): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
 }
-function formatFechaCorta(iso) {
+function formatFechaCorta(iso?: string): string {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return new Date(iso).toLocaleString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
-function formatPeriodo(iso) {
+function formatPeriodo(iso?: string): string {
   if (!iso) return '—'
   const [y, m] = iso.split('-')
-  const mes = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][+m] || m
+  const mes =
+    ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][
+      Number(m)
+    ] || m
   return `${mes} ${y}`
 }
-function avatarColor(email) {
-  const colors = ['#915BD8','#F97316','#16A34A','#2563EB','#DC2626','#D97706','#9333EA','#0891B2']
+function avatarColor(email?: string): string {
+  const colors = [
+    '#915BD8',
+    '#F97316',
+    '#16A34A',
+    '#2563EB',
+    '#DC2626',
+    '#D97706',
+    '#9333EA',
+    '#0891B2',
+  ]
   let h = 0
-  for (const c of (email || '')) h = ((h << 5) - h) + c.charCodeAt(0) | 0
-  return colors[Math.abs(h) % colors.length]
+  for (const c of email || '') h = ((h << 5) - h + c.charCodeAt(0)) | 0
+  return colors[Math.abs(h) % colors.length]!
 }
 
-// ── Cargar informes ─────────────────────────────────────────────
+// ── Cargar informes ──────────────────────────────────────────────────────
 async function cargar() {
   if (!mesSel.value) return
   loading.value = true
-  localStorage.setItem(LS_MES_KEY, mesSel.value)
+  if (import.meta.client) localStorage.setItem(LS_MES_KEY, mesSel.value)
   try {
-    const [y, m] = mesSel.value.split('-').map(Number)
-    const desde   = `${y}-${String(m).padStart(2,'0')}-01`
+    const [y, m] = mesSel.value.split('-').map(Number) as [number, number]
+    const desde = `${y}-${String(m).padStart(2, '0')}-01`
     const lastDay = new Date(y, m, 0).getDate()
-    const hasta   = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
-    const data = await informesService.listar({
-      periodo_desde_gte: desde, periodo_desde_lte: hasta, limit: 500,
+    const hasta = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    informes.value = await informesService.listar({
+      periodo_desde_gte: desde,
+      periodo_desde_lte: hasta,
+      limit: 500,
     })
-    informes.value = data || []
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     loading.value = false
   }
@@ -912,34 +1118,42 @@ async function cargar() {
 async function cargarProyectos() {
   try {
     const data = await monitoreoLegacyService.obtenerProyectos()
-    const list = Array.isArray(data) ? data : (data?.projects || [])
-    todosProyectos.value = list
-      .map(p => (typeof p === 'string' ? p : (p.sub_project || p.nombre_comercial || p.name || '')))
+    todosProyectos.value = (data.projects || [])
+      .map((p) => p.sub_project || p.nombre_comercial || p.name || '')
       .filter(Boolean)
-  } catch { /* no crítico */ }
+  } catch {
+    /* no crítico */
+  }
 }
 
-function cambiarMes(delta) {
+function cambiarMes(delta: number) {
   if (!mesSel.value) return
-  const [y, m] = mesSel.value.split('-').map(Number)
+  const [y, m] = mesSel.value.split('-').map(Number) as [number, number]
   const d = new Date(y, m - 1 + delta, 1)
   const nuevo = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   if (nuevo > mesMax) return
   mesSel.value = nuevo
 }
-watch(mesSel, () => { filtro.value = ''; busqueda.value = ''; cargar() })
-onMounted(() => { cargar(); cargarProyectos() })
+watch(mesSel, () => {
+  filtro.value = ''
+  busqueda.value = ''
+  cargar()
+})
+onMounted(() => {
+  cargar()
+  cargarProyectos()
+})
 
-// ── Panel detalle (derecha en split) ───────────────────────────
-async function abrirDrawer(inf, tab = 'preview') {
+// ── Panel detalle ────────────────────────────────────────────────────────
+async function abrirDrawer(inf: Informe, tab: DrawerTab = 'preview') {
   drawerInf.value = inf
   drawerTab.value = tab
   detalleHtml.value = ''
   loadingDetalle.value = true
   try {
     const data = await informesService.obtener(inf.id)
-    const idx = informes.value.findIndex(i => i.id === inf.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
+    const idx = informes.value.findIndex((i) => i.id === inf.id)
+    if (idx >= 0) Object.assign(informes.value[idx]!, data)
     drawerInf.value = informes.value[idx] || data
     if (data.tipo === 'port') {
       // Portafolio: previsualizar el documento COMPUESTO (consolidada + secciones vivas)
@@ -948,8 +1162,8 @@ async function abrirDrawer(inf, tab = 'preview') {
     } else {
       detalleHtml.value = data.html_content || ''
     }
-  } catch (e) {
-    toast('⚠️ Error al cargar el informe', true)
+  } catch {
+    toast.error('Error al cargar el informe')
   } finally {
     loadingDetalle.value = false
   }
@@ -961,13 +1175,16 @@ function cerrarDrawer() {
   nuevoComentario.value = ''
 }
 
-// ── Imprimir desde el panel detalle (FIX: ventana limpia con CSS) ──
+// ── Imprimir desde el panel detalle ──────────────────────────────────────
 function imprimirDetalle() {
   if (!detalleHtml.value) return
   const w = window.open('', '_blank', 'width=900,height=700')
-  if (!w) return toast('⚠️ No se pudo abrir ventana de impresión (popup bloqueado)', true)
+  if (!w) {
+    toast.error('No se pudo abrir ventana de impresión (popup bloqueado)')
+    return
+  }
   const doc = buildReportHtmlDoc(detalleHtml.value, {
-    title:  drawerInf.value?.proyecto_nombre || 'Informe Operacional',
+    title: drawerInf.value?.proyecto_nombre || 'Informe Operacional',
     bgGray: false,
   })
   w.document.open()
@@ -978,8 +1195,8 @@ function imprimirDetalle() {
   setTimeout(() => w.print(), 600)
 }
 
-// ── Editor pantalla completa ────────────────────────────────────
-async function editar(inf) {
+// ── Editor pantalla completa ─────────────────────────────────────────────
+async function editar(inf: Informe) {
   // Si no tenemos el HTML todavía (informe no cargado en drawer), lo buscamos
   let htmlToEdit = ''
   if (drawerInf.value?.id === inf.id && detalleHtml.value) {
@@ -995,22 +1212,22 @@ async function editar(inf) {
         htmlToEdit = data.html_content || ''
       }
       // Actualizar el cache local también
-      const idx = informes.value.findIndex(i => i.id === inf.id)
-      if (idx >= 0) Object.assign(informes.value[idx], data)
+      const idx = informes.value.findIndex((i) => i.id === inf.id)
+      if (idx >= 0) Object.assign(informes.value[idx]!, data)
       if (drawerInf.value?.id === inf.id) {
         drawerInf.value = informes.value[idx] || data
         detalleHtml.value = htmlToEdit
       }
-    } catch (e) {
-      toast('⚠️ No se pudo cargar el informe para editar', true)
+    } catch {
+      toast.error('No se pudo cargar el informe para editar')
       return
     }
   }
   if (!htmlToEdit) {
-    toast('⚠️ El informe no tiene contenido para editar', true)
+    toast.error('El informe no tiene contenido para editar')
     return
   }
-  editorInf.value  = inf
+  editorInf.value = inf
   editorHtml.value = htmlToEdit
   editandoFullscreen.value = true
 }
@@ -1018,7 +1235,7 @@ async function editar(inf) {
 function cerrarEditor() {
   if (guardandoEditor.value) return
   editandoFullscreen.value = false
-  editorInf.value  = null
+  editorInf.value = null
   editorHtml.value = ''
 }
 
@@ -1037,62 +1254,70 @@ async function guardarEditor() {
       //  - cada sección de proyecto → write-back al individual vinculado (si editable)
       //    o al html_inline del miembro, vía PATCH /seccion.
       const pages = [...body.querySelectorAll('.rpt-page')]
-      const consolidada = pages.length ? pages[0].outerHTML : newHtml
+      const consolidada = pages.length ? pages[0]!.outerHTML : newHtml
       const secciones = pages.slice(1)
       const data = await informesService.guardar({
-        tipo: 'port', sub_project: inf.sub_project,
-        periodo_desde: inf.periodo_desde, periodo_hasta: inf.periodo_hasta,
-        periodo_display: inf.periodo_display, proyecto_nombre: inf.proyecto_nombre,
+        tipo: 'port',
+        sub_project: inf.sub_project || '',
+        periodo_desde: inf.periodo_desde || '',
+        periodo_hasta: inf.periodo_hasta || '',
+        periodo_display: inf.periodo_display || '',
+        proyecto_nombre: inf.proyecto_nombre || '',
         html_content: consolidada,
       })
-      const bloqueadas = []
+      const bloqueadas: string[] = []
       for (const el of secciones) {
         const sp = el.getAttribute('data-sub-project')
         if (!sp) continue
         try {
-          await informesService.guardarSeccion(inf.id, { sub_project: sp, html_content: el.outerHTML })
-        } catch (e) {
-          const d = e.data?.detail
-          bloqueadas.push(typeof d === 'string' ? d : sp)
+          await informesService.guardarSeccion(inf.id, {
+            sub_project: sp,
+            html_content: el.outerHTML,
+          })
+        } catch (err) {
+          bloqueadas.push(normalizeError(err).message || sp)
         }
       }
-      const idx = informes.value.findIndex(i => i.id === inf.id)
-      if (idx >= 0) Object.assign(informes.value[idx], data)
+      const idx = informes.value.findIndex((i) => i.id === inf.id)
+      if (idx >= 0) Object.assign(informes.value[idx]!, data)
       if (drawerInf.value?.id === inf.id) {
         drawerInf.value = informes.value[idx] || data
         detalleHtml.value = newHtml
         previewKey.value++
       }
-      if (bloqueadas.length) toast('⚠️ Guardado parcial — secciones bloqueadas: ' + bloqueadas.join(' | '), true)
-      else toast('💾 Cambios guardados (portafolio + individuales)')
+      if (bloqueadas.length) {
+        toast.error('Guardado parcial', {
+          description: 'Secciones bloqueadas: ' + bloqueadas.join(' | '),
+        })
+      } else {
+        toast.success('Cambios guardados (portafolio + individuales)')
+      }
       cerrarEditor()
       return
     }
 
-    const payload = {
-      tipo:            inf.tipo,
-      sub_project:     inf.sub_project,
-      periodo_desde:   inf.periodo_desde,
-      periodo_hasta:   inf.periodo_hasta,
-      periodo_display: inf.periodo_display,
-      proyecto_nombre: inf.proyecto_nombre,
-      html_content:    newHtml,
-    }
-    const data = await informesService.guardar(payload)
+    const data = await informesService.guardar({
+      tipo: inf.tipo,
+      sub_project: inf.sub_project || '',
+      periodo_desde: inf.periodo_desde || '',
+      periodo_hasta: inf.periodo_hasta || '',
+      periodo_display: inf.periodo_display || '',
+      proyecto_nombre: inf.proyecto_nombre || '',
+      html_content: newHtml,
+    })
     // Actualizar cache local
-    const idx = informes.value.findIndex(i => i.id === inf.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
+    const idx = informes.value.findIndex((i) => i.id === inf.id)
+    if (idx >= 0) Object.assign(informes.value[idx]!, data)
     // Actualizar el drawer si está abierto con este mismo informe
     if (drawerInf.value?.id === inf.id) {
       drawerInf.value = informes.value[idx] || data
       detalleHtml.value = newHtml
       previewKey.value++ // fuerza refresh del iframe de previsualización
     }
-    toast('💾 Cambios guardados correctamente')
+    toast.success('Cambios guardados correctamente')
     cerrarEditor()
-  } catch (e) {
-    const detail = e.data?.detail
-    toast('⚠️ ' + (Array.isArray(detail) ? detail[0]?.msg : (detail || e.message)), true)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     guardandoEditor.value = false
   }
@@ -1104,9 +1329,12 @@ function imprimirEditor() {
   if (!body) return
   const currentHtml = body.innerHTML
   const w = window.open('', '_blank', 'width=900,height=700')
-  if (!w) return toast('⚠️ No se pudo abrir ventana de impresión (popup bloqueado)', true)
+  if (!w) {
+    toast.error('No se pudo abrir ventana de impresión (popup bloqueado)')
+    return
+  }
   const doc = buildReportHtmlDoc(currentHtml, {
-    title:  editorInf.value?.proyecto_nombre || 'Informe Operacional',
+    title: editorInf.value?.proyecto_nombre || 'Informe Operacional',
     bgGray: false,
   })
   w.document.open()
@@ -1116,137 +1344,181 @@ function imprimirEditor() {
   setTimeout(() => w.print(), 600)
 }
 
-// ── Eliminar informe ───────────────────────────────────────────
-async function eliminarInforme(inf) {
+// ── Eliminar informe ─────────────────────────────────────────────────────
+function eliminarInforme(inf: Informe) {
   const esPort = inf.tipo === 'port'
-  const aviso = inf.tipo === 'op'
-    ? ' Su sección quedará conservada en los portafolios que lo incluyen (no se verán afectados).'
-    : ''
-  if (!confirm(`¿Eliminar el ${esPort ? 'portafolio' : 'informe'} de "${inf.proyecto_nombre || inf.sub_project}"?${aviso}`)) return
-  try {
-    await informesService.eliminar(inf.id)
-    informes.value = informes.value.filter(i => i.id !== inf.id)
-    if (drawerInf.value?.id === inf.id) cerrarDrawer()
-    toast('🗑️ Informe eliminado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
-  }
+  const aviso =
+    inf.tipo === 'op'
+      ? ' Su sección quedará conservada en los portafolios que lo incluyen (no se verán afectados).'
+      : ''
+  confirm({
+    title: `Eliminar ${esPort ? 'portafolio' : 'informe'}`,
+    description: `¿Eliminar el ${esPort ? 'portafolio' : 'informe'} de "${inf.proyecto_nombre || inf.sub_project}"?${aviso}`,
+    confirmLabel: 'Eliminar',
+    cancelLabel: 'Cancelar',
+    variant: 'destructive',
+    onConfirm: async () => {
+      try {
+        await informesService.eliminar(inf.id)
+        informes.value = informes.value.filter((i) => i.id !== inf.id)
+        if (drawerInf.value?.id === inf.id) cerrarDrawer()
+        toast.success('Informe eliminado')
+      } catch (err) {
+        toast.error('Error', { description: normalizeError(err).message })
+      }
+    },
+  })
 }
 
-// ── Comentarios ────────────────────────────────────────────────
+// ── Comentarios ──────────────────────────────────────────────────────────
 async function agregarComentario() {
   if (!nuevoComentario.value.trim() || !drawerInf.value) return
   agregandoComentario.value = true
   try {
-    const data = await informesService.agregarComentario(drawerInf.value.id, nuevoComentario.value.trim())
-    const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
-    drawerInf.value = informes.value[idx]
+    const data = await informesService.agregarComentario(
+      drawerInf.value.id,
+      nuevoComentario.value.trim(),
+    )
+    const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+    if (idx >= 0) Object.assign(informes.value[idx]!, data)
+    drawerInf.value = informes.value[idx]!
     nuevoComentario.value = ''
-    toast('💬 Comentario agregado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    toast.success('Comentario agregado')
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     agregandoComentario.value = false
   }
 }
-function abrirResolver(c) { resolviendoId.value = c.id; resolviendoTexto.value = '' }
-async function resolverComentario(c) {
+function abrirResolver(c: ComentarioInforme) {
+  resolviendoId.value = c.id
+  resolviendoTexto.value = ''
+}
+async function resolverComentario(c: ComentarioInforme) {
   if (!drawerInf.value) return
   actuandoComentarioId.value = c.id
   try {
-    const data = await informesService.resolverComentario(drawerInf.value.id, c.id, resolviendoTexto.value || null)
-    const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
-    drawerInf.value = informes.value[idx]
-    resolviendoId.value   = null
+    const data = await informesService.resolverComentario(
+      drawerInf.value.id,
+      c.id,
+      resolviendoTexto.value || null,
+    )
+    const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+    if (idx >= 0) Object.assign(informes.value[idx]!, data)
+    drawerInf.value = informes.value[idx]!
+    resolviendoId.value = null
     resolviendoTexto.value = ''
-    toast('✅ Comentario subsanado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    toast.success('Comentario subsanado')
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     actuandoComentarioId.value = null
   }
 }
-async function borrarComentario(c) {
-  if (!drawerInf.value || !confirm('¿Eliminar este comentario?')) return
-  actuandoComentarioId.value = c.id
-  try {
-    const data = await informesService.eliminarComentario(drawerInf.value.id, c.id)
-    const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
-    drawerInf.value = informes.value[idx]
-    toast('🗑️ Comentario eliminado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
-  } finally {
-    actuandoComentarioId.value = null
-  }
+function borrarComentario(c: ComentarioInforme) {
+  if (!drawerInf.value) return
+  confirm({
+    title: 'Eliminar comentario',
+    description: '¿Eliminar este comentario? Esta acción no se puede deshacer.',
+    confirmLabel: 'Eliminar',
+    cancelLabel: 'Cancelar',
+    variant: 'destructive',
+    onConfirm: async () => {
+      if (!drawerInf.value) return
+      actuandoComentarioId.value = c.id
+      try {
+        const data = await informesService.eliminarComentario(drawerInf.value.id, c.id)
+        const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+        if (idx >= 0) Object.assign(informes.value[idx]!, data)
+        drawerInf.value = informes.value[idx]!
+        toast.success('Comentario eliminado')
+      } catch (err) {
+        toast.error('Error', { description: normalizeError(err).message })
+      } finally {
+        actuandoComentarioId.value = null
+      }
+    },
+  })
 }
 
-// ── Verificar ──────────────────────────────────────────────────
+// ── Verificar ────────────────────────────────────────────────────────────
 async function verificarYAprobar() {
   if (!drawerInf.value) return
   if (comentariosPendientes(drawerInf.value) > 0) {
-    toast('⚠️ Resuelve todos los comentarios pendientes antes de aprobar', true)
+    toast.error('Resuelve todos los comentarios pendientes antes de aprobar')
     return
   }
   verificando.value = true
   try {
     if (drawerInf.value.estado === 'borrador') {
       const data = await informesService.cambiarEstado(drawerInf.value.id, 'revisado')
-      const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-      if (idx >= 0) Object.assign(informes.value[idx], data)
-      drawerInf.value = informes.value[idx]
+      const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+      if (idx >= 0) Object.assign(informes.value[idx]!, data)
+      drawerInf.value = informes.value[idx]!
     }
     const d2 = await informesService.cambiarEstado(drawerInf.value.id, 'aprobado')
-    const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-    if (idx >= 0) Object.assign(informes.value[idx], d2)
-    drawerInf.value = informes.value[idx]
+    const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+    if (idx >= 0) Object.assign(informes.value[idx]!, d2)
+    drawerInf.value = informes.value[idx]!
     drawerTab.value = 'preview'
-    toast('✅ Informe verificado y aprobado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    toast.success('Informe verificado y aprobado')
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     verificando.value = false
   }
 }
-async function reabrir() {
+function reabrir() {
   if (!drawerInf.value) return
-  if (!confirm('¿Reabrir este informe? Volverá a borrador y se podrán agregar nuevos comentarios.')) return
-  try {
-    const data = await informesService.cambiarEstado(drawerInf.value.id, 'borrador')
-    const idx = informes.value.findIndex(i => i.id === drawerInf.value.id)
-    if (idx >= 0) Object.assign(informes.value[idx], data)
-    drawerInf.value = informes.value[idx]
-    toast('↩ Informe reabierto para corrección')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message) + ' — usa "Devolver a borrador" en el editor.', true)
-  }
+  confirm({
+    title: 'Reabrir informe',
+    description:
+      '¿Reabrir este informe? Volverá a borrador y se podrán agregar nuevos comentarios.',
+    confirmLabel: 'Reabrir',
+    cancelLabel: 'Cancelar',
+    onConfirm: async () => {
+      if (!drawerInf.value) return
+      try {
+        const data = await informesService.cambiarEstado(drawerInf.value.id, 'borrador')
+        const idx = informes.value.findIndex((i) => i.id === drawerInf.value!.id)
+        if (idx >= 0) Object.assign(informes.value[idx]!, data)
+        drawerInf.value = informes.value[idx]!
+        toast.success('Informe reabierto para corrección')
+      } catch (err) {
+        toast.error('Error', {
+          description: normalizeError(err).message + ' — usa "Devolver a borrador" en el editor.',
+        })
+      }
+    },
+  })
 }
 
-// ── Envío individual ───────────────────────────────────────────
-async function enviarUno(inf) {
+// ── Envío individual ─────────────────────────────────────────────────────
+async function enviarUno(inf: Informe) {
   if (!permisoEnviar.value || enviandoIds.value.has(inf.id)) return
-  const newSet = new Set(enviandoIds.value); newSet.add(inf.id); enviandoIds.value = newSet
+  const newSet = new Set(enviandoIds.value)
+  newSet.add(inf.id)
+  enviandoIds.value = newSet
   try {
     const data = await informesService.enviar(inf.id)
-    const idx = informes.value.findIndex(i => i.id === inf.id)
+    const idx = informes.value.findIndex((i) => i.id === inf.id)
     if (idx >= 0) {
-      informes.value[idx].correo_enviado    = true
-      informes.value[idx].correo_enviado_en = new Date().toISOString()
-      informes.value[idx].enviado_por_nombre = user.value?.name || ''
+      informes.value[idx]!.correo_enviado = true
+      informes.value[idx]!.correo_enviado_en = new Date().toISOString()
+      informes.value[idx]!.enviado_por_nombre = user.value?.name || ''
     }
-    if (drawerInf.value?.id === inf.id) drawerInf.value = informes.value[idx]
-    toast(`✉️ Enviado a ${data.enviado_a}`)
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    if (drawerInf.value?.id === inf.id) drawerInf.value = informes.value[idx]!
+    toast.success(`Enviado a ${data.enviado_a}`)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
-    const ns = new Set(enviandoIds.value); ns.delete(inf.id); enviandoIds.value = ns
+    const ns = new Set(enviandoIds.value)
+    ns.delete(inf.id)
+    enviandoIds.value = ns
   }
 }
 
-// ── Envío masivo ───────────────────────────────────────────────
+// ── Envío masivo ─────────────────────────────────────────────────────────
 function abrirConfirmEnvio() {
   resultadoBatch.value = null
   progBatch.value = { hechos: 0, total: 0, actual: '' }
@@ -1262,26 +1534,26 @@ async function ejecutarEnvioBatch() {
   if (!items.length) return
   enviandoBatch.value = true
   progBatch.value = { hechos: 0, total: items.length, actual: '' }
-  const detalles = []
+  const detalles: ResultadoBatchDetalle[] = []
   const CONC = 3
   let idx = 0
   async function worker() {
     while (idx < items.length) {
       const my = idx++
-      const inf = items[my]
-      progBatch.value = { ...progBatch.value, actual: inf.proyecto_nombre || inf.sub_project }
+      const inf = items[my]!
+      progBatch.value = { ...progBatch.value, actual: inf.proyecto_nombre || inf.sub_project || '' }
       const nombre = `${inf.proyecto_nombre || inf.sub_project} · ${inf.periodo_display || inf.periodo_desde}`
       try {
         const data = await informesService.enviar(inf.id)
-        const ix = informes.value.findIndex(i => i.id === inf.id)
+        const ix = informes.value.findIndex((i) => i.id === inf.id)
         if (ix >= 0) {
-          informes.value[ix].correo_enviado    = true
-          informes.value[ix].correo_enviado_en = new Date().toISOString()
-          informes.value[ix].enviado_por_nombre = user.value?.name || ''
+          informes.value[ix]!.correo_enviado = true
+          informes.value[ix]!.correo_enviado_en = new Date().toISOString()
+          informes.value[ix]!.enviado_por_nombre = user.value?.name || ''
         }
         detalles.push({ id: inf.id, nombre, ok: true, msg: `Enviado a ${data.enviado_a}` })
-      } catch (e) {
-        detalles.push({ id: inf.id, nombre, ok: false, msg: e.data?.detail || e.message })
+      } catch (err) {
+        detalles.push({ id: inf.id, nombre, ok: false, msg: normalizeError(err).message })
       } finally {
         progBatch.value = { ...progBatch.value, hechos: progBatch.value.hechos + 1 }
       }
@@ -1289,440 +1561,10 @@ async function ejecutarEnvioBatch() {
   }
   await Promise.all(Array.from({ length: Math.min(CONC, items.length) }, worker))
   resultadoBatch.value = {
-    ok: detalles.filter(d => d.ok).length,
-    err: detalles.filter(d => !d.ok).length,
+    ok: detalles.filter((d) => d.ok).length,
+    err: detalles.filter((d) => !d.ok).length,
     detalles: detalles.sort((a, b) => Number(a.ok) - Number(b.ok)),
   }
   enviandoBatch.value = false
 }
 </script>
-
-<style scoped>
-/* ── Panel principal ──────────────────────────────────────────── */
-.em-panel {
-  background: transparent;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  font-family: 'Sora', system-ui, sans-serif;
-}
-
-/* ── Header (una sola fila compacta) ──────────────────────────── */
-.em-header {
-  display: flex; align-items: center; gap: 10px;
-  background: #fff; padding: 5px 14px;
-  border-bottom: 1px solid #ECE7F2;
-  box-shadow: 0 1px 3px rgba(28,18,50,.04);
-  min-height: 36px;
-  flex-wrap: wrap;
-}
-.em-header-label {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11px; font-weight: 700; color: #6B5A8A;
-  white-space: nowrap; cursor: default;
-  flex-shrink: 0;
-}
-.em-header-label svg { color: var(--color-unergy-purple); font-size: 11px; }
-.em-header-controls {
-  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
-  flex-shrink: 0; flex-wrap: wrap;
-}
-/* ── Layout: full vs split ────────────────────────────────────── */
-.em-content {
-  display: block;
-  min-height: calc(100vh - 270px);
-}
-/* En pantallas anchas + panel abierto: grid split */
-@media (min-width: 1024px) {
-  .em-content--split {
-    display: grid;
-    grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
-    /* La columna izquierda se estira para que el sticky funcione */
-    align-items: start;
-    height: calc(100vh - 200px);
-    overflow: hidden;
-  }
-  .em-content--split .em-main {
-    height: 100%;
-    overflow-y: auto;
-    border-right: 1px solid #ECE7F2;
-  }
-}
-
-/* ── Lista compacta (columna izquierda en split) ──────────────── */
-.em-compact {
-  display: flex; flex-direction: column;
-  height: 100%; min-height: 0;
-}
-.em-compact-header {
-  padding: 8px 14px;
-  background: #FAF8FE;
-  border-bottom: 1px solid #ECE7F2;
-  flex-shrink: 0;
-}
-.em-compact-count {
-  font-size: 10px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: .5px; color: #6B5A8A;
-}
-.em-compact-empty {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; padding: 24px;
-}
-.em-compact-list {
-  flex: 1; overflow-y: auto; min-height: 0;
-}
-.em-compact-row {
-  position: relative; width: 100%;
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 12px;
-  background: transparent; border: none;
-  border-bottom: 1px solid #F3F0F9;
-  cursor: pointer; font-family: inherit;
-  text-align: left;
-  transition: background .12s;
-}
-.em-compact-row:hover { background: #FAF8FE; }
-.em-compact-row--active {
-  background: #F3E8FF;
-}
-.em-compact-row--active::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-  width: 3px; background: var(--color-unergy-purple);
-}
-.em-compact-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-}
-.em-compact-info { flex: 1; min-width: 0; }
-.em-compact-nombre {
-  font-size: 12px; font-weight: 700; color: #1A1025;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.em-compact-meta {
-  display: flex; align-items: center; gap: 4px; margin-top: 2px; flex-wrap: wrap;
-}
-.em-compact-actions { flex-shrink: 0; }
-
-/* ── Tabla completa (columna única sin split) ─────────────────── */
-.em-table-wrap { flex: 1; min-width: 0; padding: 10px 12px 30px; }
-.em-main { min-width: 0; }
-
-.em-state {
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 50px 24px; background: #fff; border-radius: 10px;
-  border: 1px solid #ECE7F2; color: #6B5A8A; font-size: 13px;
-}
-.em-state-empty { padding: 60px 24px; }
-.em-state-title { font-size: 14px; font-weight: 800; color: var(--color-unergy-deep); margin: 4px 0 0; }
-.em-state-sub   { font-size: 12px; color: #6B5A8A; max-width: 380px; text-align: center; }
-
-.em-table {
-  width: 100%; border-collapse: collapse;
-  background: #fff; border-radius: 10px; overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
-}
-.em-table thead tr { background: #F7F4FD; border-bottom: 2px solid #ECE7F2; }
-.em-table thead th {
-  padding: 9px 12px; text-align: left; font-size: 10px;
-  font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: #6B5A8A; white-space: nowrap;
-}
-.em-col-estado   { width: 130px; }
-.em-col-acciones { width: 140px; text-align: right; }
-.em-group-row td {
-  padding: 8px 12px 4px; font-size: 10px; font-weight: 800; letter-spacing: .6px;
-  text-transform: uppercase; color: #6D28D9; background: #FAF8FE;
-  border-bottom: 1px solid #ECE7F2;
-}
-.em-group-row td svg { font-size: 10px; margin-right: 4px; }
-.em-group-count {
-  display: inline-block; margin-left: 6px; background: #EDE9FE; color: #6D28D9;
-  border-radius: 9px; padding: 0 7px; font-size: 10px; font-weight: 800;
-}
-.em-row { border-bottom: 1px solid #F3F0F9; cursor: pointer; transition: background .12s; }
-.em-row:last-child { border-bottom: none; }
-.em-row:hover { background: #FAF8FE; }
-.em-row--active { background: #F3E8FF !important; }
-.em-row td { padding: 9px 12px; vertical-align: middle; font-size: 12px; color: var(--color-unergy-deep); }
-.em-td-proj   { min-width: 180px; }
-.em-proj-nombre { font-weight: 700; font-size: 13px; }
-.em-proj-sub    { font-size: 10px; color: #9CA3AF; margin-top: 1px; }
-.em-tipo-tag {
-  font-size: 9px; font-weight: 700;
-  background: #F3F0FF; color: #7C3AED; border: 1px solid #E9D5FF;
-  border-radius: 4px; padding: 1px 6px;
-}
-.em-td-fecha { min-width: 110px; font-size: 11px; }
-.em-fecha-sub { font-size: 10px; color: #9CA3AF; margin-top: 1px; }
-.em-td-empty  { color: #D1D5DB; }
-.em-mail-ok   { color: #166534; font-size: 11px; font-weight: 700; }
-
-/* Botones de acción por fila */
-.em-td-acciones { white-space: nowrap; text-align: right; }
-
-/* ── Panel detalle (derecha en split) ─────────────────────────── */
-/* En móvil: overlay fixed */
-.em-detail {
-  position: fixed; inset: 0;
-  display: flex; align-items: stretch; justify-content: flex-end;
-  z-index: 30;
-}
-.em-detail-backdrop {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,.35); backdrop-filter: blur(2px);
-}
-.em-detail-panel {
-  position: relative; width: 100%; max-width: 540px;
-  background: #fff;
-  display: flex; flex-direction: column;
-  box-shadow: -8px 0 32px rgba(0,0,0,.18);
-  overflow: hidden;
-}
-/* En desktop con split: el aside es in-flow (no overlay) */
-@media (min-width: 1024px) {
-  .em-content--split .em-detail {
-    position: static; z-index: auto;
-    display: block; height: 100%;
-  }
-  .em-content--split .em-detail-backdrop { display: none; }
-  .em-content--split .em-detail-panel {
-    max-width: none; width: 100%; height: 100%;
-    box-shadow: none;
-  }
-}
-
-.em-drawer-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid #ECE7F2;
-  background: #FAF8FE;
-  flex-shrink: 0;
-}
-.em-drawer-head-info { flex: 1; min-width: 0; }
-.em-drawer-head-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 8px; }
-.em-drawer-title { font-size: 13px; font-weight: 800; color: #1A1025; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.em-drawer-sub {
-  font-size: 10px; color: #6B5A8A; margin-top: 3px;
-  display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
-}
-
-.em-drawer-body { flex: 1; overflow-y: auto; padding: 12px 14px; min-height: 0; }
-
-/* ── Preview con iframe ───────────────────────────────────────── */
-.em-preview-wrap { display: flex; flex-direction: column; gap: 8px; height: 100%; }
-.em-preview-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap;
-  background: #FAF8FE; border: 1px solid #ECE7F2; border-radius: 8px;
-  padding: 7px 12px; flex-shrink: 0;
-}
-.em-preview-actions { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.em-edit-locked { font-size: 10px; color: #92400E; font-style: italic; }
-
-.em-preview-frame {
-  background: #ECE9F2; border-radius: 10px; padding: 0;
-  border: 1px solid #DAD3EA; overflow: hidden;
-  flex: 1; min-height: 400px;
-}
-.em-preview-iframe {
-  width: 100%; height: 100%; border: none; display: block;
-  min-height: 500px;
-}
-@media (min-width: 1024px) {
-  .em-preview-frame { min-height: 0; }
-  .em-preview-iframe { height: 100%; min-height: calc(100vh - 320px); }
-}
-
-/* ── Comentarios ──────────────────────────────────────────────── */
-.em-coms-wrap  { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; }
-/* Solo la lista hace scroll; el form inferior queda fijo y siempre visible */
-.em-coms-list  { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; overflow-y: auto; min-height: 0; padding-right: 2px; }
-.em-com {
-  background: #FEF2F2; border: 1px solid #FECACA; border-radius: 10px;
-  padding: 10px 12px; position: relative;
-}
-.em-com--resuelto { background: #F0FDF4; border-color: #BBF7D0; }
-.em-com-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.em-com-autor { display: inline-flex; align-items: center; gap: 8px; }
-.em-com-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 11px; font-weight: 800;
-}
-.em-com-autor-nombre { font-size: 12px; font-weight: 700; color: #1A1025; }
-.em-com-fecha        { font-size: 10px; color: #6B5A8A; }
-.em-com-estado-ok    { font-size: 10px; font-weight: 700; color: #166534; }
-.em-com-estado-pend  { font-size: 10px; font-weight: 700; color: #DC2626; }
-.em-com-msg { font-size: 13px; color: var(--color-unergy-deep); line-height: 1.55; margin: 4px 0 6px; white-space: pre-wrap; }
-.em-com-respuesta {
-  background: rgba(255,255,255,.6); border-left: 3px solid #16A34A;
-  border-radius: 0 8px 8px 0; padding: 8px 10px; margin-top: 6px;
-}
-.em-com-respuesta-lbl { font-size: 9px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 2px; }
-.em-com-respuesta-meta { margin-top: 4px; }
-.em-com-actions { display: flex; gap: 6px; margin-top: 8px; }
-
-.em-resolver-form {
-  margin-top: 8px; background: rgba(255,255,255,.7);
-  border-radius: 8px; padding: 10px;
-}
-.em-resolver-lbl { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 4px; }
-.em-resolver-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; }
-
-.em-com-add {
-  background: #FAF8FE; border: 1px dashed #DAD3EA; border-radius: 10px; padding: 12px;
-  flex-shrink: 0;
-}
-.em-com-add-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
-.em-aprobado-msg {
-  background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;
-  padding: 10px 12px; font-size: 12px; color: #166534;
-  flex-shrink: 0;
-}
-.em-state-coms-empty { background: #FAF8FE; border-color: #ECE7F2; padding: 30px 20px; flex: 1 1 auto; min-height: 0; justify-content: center; }
-
-/* ── Verificar ────────────────────────────────────────────────── */
-.em-verify-wrap { display: flex; flex-direction: column; gap: 14px; }
-.em-verify-blocked {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 40px 20px; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px;
-}
-.em-verify-check {
-  background: #FAF8FE; border: 1px solid #ECE7F2; border-radius: 10px;
-  padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
-}
-.em-check-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--color-unergy-deep); }
-.em-check-row--err { color: #991B1B; }
-.em-verify-actions { display: flex; flex-direction: column; gap: 8px; }
-.em-verify-hint { font-size: 11px; color: #6B5A8A; font-style: italic; margin: 0; }
-
-/* ── Modal envío masivo ───────────────────────────────────────── */
-.em-modal-bd {
-  position: fixed; inset: 0;
-  background: rgba(26,16,37,.55);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 60; padding: 20px;
-}
-.em-modal {
-  background: #fff; border-radius: 14px; width: 100%; max-width: 580px; max-height: 88vh;
-  overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,.3);
-}
-.em-modal-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid #ECE7F2;
-}
-.em-modal-head h3 { font-size: 15px; font-weight: 800; color: #1A1025; margin: 0 0 3px; }
-.em-modal-head p  { font-size: 11px; color: #6B5A8A; margin: 0; }
-.em-modal-body { padding: 14px 20px; overflow-y: auto; flex: 1; }
-.em-modal-foot {
-  padding: 12px 20px; border-top: 1px solid #ECE7F2;
-  display: flex; gap: 8px; justify-content: flex-end; background: #FAF8FE;
-}
-.em-modal-list { display: flex; flex-direction: column; gap: 8px; }
-.em-modal-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; background: #FAF8FE; border: 1px solid #ECE7F2; border-radius: 8px;
-}
-.em-modal-num {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--color-unergy-purple); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;
-}
-.em-modal-info { flex: 1; min-width: 0; }
-.em-modal-info-nombre { font-size: 12px; font-weight: 700; color: #1A1025; }
-.em-modal-info-meta { font-size: 10px; color: #6B5A8A; display: inline-flex; gap: 6px; align-items: center; margin-top: 1px; }
-.em-mail-ico { font-size: 13px; }
-.em-modal-progress { padding: 8px 0; }
-.em-bar-wrap { background: #ECE7F2; border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 8px; }
-.em-bar { height: 100%; background: linear-gradient(90deg, #16A34A, #15803D); border-radius: 99px; transition: width .25s ease; }
-.em-prog-row { display: flex; justify-content: space-between; }
-.em-prog-num { font-size: 14px; font-weight: 800; color: #166534; }
-.em-prog-msg { font-size: 11px; color: #6B5A8A; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.em-modal-result { padding: 4px 0; }
-.em-result-big {
-  display: flex; gap: 12px; justify-content: center;
-  font-size: 22px; font-weight: 900; margin-bottom: 10px;
-  padding-bottom: 10px; border-bottom: 1px solid #ECE7F2;
-}
-.em-result-ok  { color: #16A34A; }
-.em-result-err { color: #DC2626; }
-.em-result-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 7px 10px; margin-bottom: 4px;
-  background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px;
-}
-.em-result-row--err { background: #FEF2F2; border-color: #FECACA; }
-.em-result-nombre { font-size: 11px; font-weight: 700; color: #1A1025; }
-.em-result-msg    { font-size: 10px; color: #6B5A8A; }
-
-/* ── Toast ────────────────────────────────────────────────────── */
-.em-toast {
-  position: fixed; bottom: 24px; right: 24px;
-  padding: 10px 16px; border-radius: 9px; font-size: 12px; font-weight: 700;
-  z-index: 70; box-shadow: 0 4px 18px rgba(0,0,0,.16);
-}
-.em-toast-ok  { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-.em-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-
-/* ── Faltantes ────────────────────────────────────────────────── */
-.em-faltantes-wrap {
-  margin: 0 12px 10px; border: 1px solid #FDE68A; border-radius: 10px;
-  overflow: hidden; background: #FFFBEB;
-}
-.em-faltantes-list { display: flex; flex-direction: column; padding: 4px 14px 10px; gap: 4px; }
-.em-faltante-row {
-  display: flex; align-items: center; gap: 8px; padding: 4px 6px;
-  border-radius: 6px; background: rgba(254,243,199,.5);
-}
-.em-faltante-dot    { width: 6px; height: 6px; border-radius: 50%; background: #D97706; flex-shrink: 0; }
-.em-faltante-nombre { font-size: 12px; font-weight: 700; color: #78350F; flex: 1; }
-.em-faltante-hint   { font-size: 10px; color: #92400E; font-style: italic; }
-
-/* ── Editor pantalla completa ─────────────────────────────────── */
-.em-editor-overlay {
-  position: fixed; inset: 0;
-  background: #fff;
-  display: flex; flex-direction: column;
-  z-index: 100;
-}
-.em-editor-bar {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 10px 20px;
-  background: #1A1025;
-  color: var(--color-unergy-avena);
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
-}
-.em-editor-bar-left {
-  display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
-  flex-wrap: wrap;
-}
-.em-editor-bar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.em-editor-title {
-  font-size: 14px; font-weight: 800; color: var(--color-unergy-avena);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.em-editor-periodo { font-size: 11px; color: rgba(253,250,247,.6); }
-.em-editor-body {
-  flex: 1; overflow: hidden; background: #ECE9F2; position: relative;
-}
-.em-editor-iframe {
-  width: 100%; height: 100%; border: none; display: block;
-}
-.em-editor-hint {
-  padding: 5px 16px;
-  background: var(--color-unergy-deep);
-  color: rgba(253,250,247,.55);
-  font-size: 10px;
-  display: flex; align-items: center; gap: 6px;
-  flex-shrink: 0;
-}
-.em-editor-hint svg { color: var(--color-unergy-purple); }
-
-/* ── Transiciones ─────────────────────────────────────────────── */
-.slide-right-enter-active, .slide-right-leave-active { transition: all .25s ease; }
-.slide-right-enter-from, .slide-right-leave-to { transform: translateX(100%); opacity: 0; }
-.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-</style>

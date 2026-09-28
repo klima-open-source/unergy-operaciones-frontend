@@ -16,6 +16,8 @@ export interface ProyectoMonitoreoLegacy {
   nombre_comercial?: string
   nombre_display?: string
   nombre_clientes?: string
+  /** Respaldo legacy — `EnvioMensualPanel.vue`/`InformesMensualesPanel.vue` lo usan si no hay `sub_project`/`nombre_comercial`. */
+  name?: string
   [clave: string]: unknown
 }
 
@@ -308,6 +310,10 @@ export type EstadoInforme = 'borrador' | 'revisado' | 'aprobado' | string
 export interface ComentarioInforme {
   id: number
   mensaje: string
+  /** Quién dejó el comentario — `EnvioMensualPanel.vue` lo usa para el avatar y para permitir borrarlo. */
+  autor_nombre?: string
+  autor_email?: string
+  created_at?: string
   resuelto?: boolean
   respuesta?: string | null
   resuelto_por_nombre?: string
@@ -334,6 +340,10 @@ export interface Informe {
   editado_por_nombre?: string
   /** Quién lo aprobó — solo presente cuando `estado === 'aprobado'`. */
   aprobado_por_nombre?: string
+  correo_enviado_en?: string
+  enviado_por_nombre?: string
+  /** Solo `tipo === 'port'`: los proyectos que agrupa. */
+  miembros?: { sub_project?: string; [clave: string]: unknown }[]
   [clave: string]: unknown
 }
 
@@ -356,6 +366,7 @@ export interface FiltrosListaInformes {
 }
 
 export interface RespuestaCompuestoInforme {
+  html_content?: string
   [clave: string]: unknown
 }
 
