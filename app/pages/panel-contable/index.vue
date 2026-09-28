@@ -1,15 +1,9 @@
-<script setup>
-/**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
- */
-import View from '~/features/panel-contable/components/PanelContableView.vue'
+<script setup lang="ts">
+import PanelContableView from '~/features/panel-contable/components/PanelContableView.vue'
 
-definePageMeta({ layout: 'legacy' })
+definePageMeta({ layout: 'default' })
 </script>
 
 <template>
-  <View />
+  <PanelContableView />
 </template>

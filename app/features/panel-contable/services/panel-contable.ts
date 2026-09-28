@@ -1,6 +1,7 @@
 /** Panel contable: armado del estado de resultados por período y proyecto. */
 import type {
   FiltrosPanel,
+  GrupoLinea,
   PanelContable,
   PayloadClasificacion,
   RespuestaArmarPeriodo,
@@ -11,6 +12,7 @@ import type {
   RespuestaDiferencia,
   RespuestaPaneles,
   RespuestaReasignarConsecutivos,
+  TipoPanel,
 } from '~/features/panel-contable/types'
 import { BaseService } from '~/core/service'
 
@@ -59,7 +61,7 @@ export class PanelContableService extends BaseService {
 
   subirSoporte(
     id: number,
-    payload: { archivo: File; grupo: string; concepto: string },
+    payload: { archivo: File; grupo: GrupoLinea; concepto: string },
   ): Promise<{ archivo_url?: string; archivo_nombre?: string }> {
     const form = new FormData()
     form.append('archivo', payload.archivo)
@@ -68,7 +70,7 @@ export class PanelContableService extends BaseService {
     return this.post<{ archivo_url?: string; archivo_nombre?: string }>(RUTAS.soporte(id), form)
   }
 
-  eliminarSoporte(id: number, grupo: string, concepto: string): Promise<unknown> {
+  eliminarSoporte(id: number, grupo: GrupoLinea, concepto: string): Promise<unknown> {
     return this.delete<unknown>(RUTAS.soporte(id), { query: { grupo, concepto } })
   }
 
@@ -94,7 +96,7 @@ export class PanelContableService extends BaseService {
 
   reasignarConsecutivos(payload: {
     periodo: string
-    tipo: string
+    tipo: TipoPanel
     consecutivo_ingresos_inicial: number
     consecutivo_costos_inicial: number
     solo_faltantes: boolean
@@ -105,7 +107,7 @@ export class PanelContableService extends BaseService {
   mapearCelda(payload: {
     proyecto_id: number
     periodo: string
-    tipo: string
+    tipo: TipoPanel
     concepto: string
     hoja: string
     celda: string
@@ -116,7 +118,7 @@ export class PanelContableService extends BaseService {
   renombrarFuente(payload: {
     proyecto_id: number
     periodo: string
-    tipo: string
+    tipo: TipoPanel
     columna_origen: string
     etiqueta: string
   }): Promise<PanelContable> {
@@ -126,7 +128,7 @@ export class PanelContableService extends BaseService {
   agregarFuenteIngreso(payload: {
     proyecto_id: number
     periodo: string
-    tipo: string
+    tipo: TipoPanel
     etiqueta: string
     hoja: string
     celda: string
@@ -137,7 +139,7 @@ export class PanelContableService extends BaseService {
   quitarFuenteIngreso(payload: {
     proyecto_id: number
     periodo: string
-    tipo: string
+    tipo: TipoPanel
     columna_origen: string
   }): Promise<PanelContable> {
     return this.delete<PanelContable>(RUTAS.fuenteIngreso, { body: payload })

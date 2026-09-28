@@ -46,7 +46,6 @@ app/features/mem/components/cumplimientoMatrizExcel.js
 app/features/mem/components/cumplimientoRevision.js
 app/features/mobile/components
 app/features/operaciones/components/InformesMensualesPanel.vue
-app/features/panel-contable/components
 app/features/proyectos/components
 app/data
 app/assets/*.js
