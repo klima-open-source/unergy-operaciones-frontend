@@ -8,6 +8,12 @@ import {
   TIPOS_INGRESO_BRUTO, TIPOS_COMERCIALIZACION,
 } from '~/features/liquidaciones/constants'
 
+/** Borra una clave dinámica sin que `@typescript-eslint/no-dynamic-delete` se queje. */
+export function borrarClave<T extends Record<string | number, unknown>>(obj: T, key: keyof T): void {
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  delete obj[key]
+}
+
 // ── Formato ────────────────────────────────────────────────────────────────
 
 const _cop = new Intl.NumberFormat('es-CO', {

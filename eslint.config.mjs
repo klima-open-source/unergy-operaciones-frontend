@@ -56,7 +56,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/fallas/components/MonitoreoView.vue',
   'app/features/finanzas/components/**',
   'app/features/fronteras/components/**',
-  'app/features/liquidaciones/components/**',
   // `mem` migró Balance/Clima/Descubrimientos/PrecioBolsa/Gescon — queda
   // `CumplimientoV2View.vue` (5.447 líneas, sub-proyecto con plan propio,
   // roadmap §3.4) y sus 3 utils JS exclusivos, que solo ella consume.

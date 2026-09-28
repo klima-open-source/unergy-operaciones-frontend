@@ -1,158 +1,29 @@
-<template>
-  <div class="space-y-4" :class="{ 'p-4 sm:p-5': embedded }">
-    <PageHeader v-if="!embedded" title="Liquidaciones">
-      <template #actions>
-        <Button label="Nueva liquidación" size="small" @click="dialogNueva = true">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </PageHeader>
-
-    <!-- Barra: filtro por tipo (vía ?tipo=), búsqueda, aviso de espejo, acción -->
-    <div class="flex items-center gap-3 flex-wrap">
-      <span v-if="tipoLabel" class="text-sm font-semibold" style="color:var(--color-unergy-purple);">{{ tipoLabel }}</span>
-      <RouterLink v-if="tipoLabel" to="/liquidaciones?tab=proyectos"
-        class="text-xs hover:underline" style="color:#9b8fb0;">Ver todos</RouterLink>
-      <IconField>
-        <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
-        <InputText v-model="q" placeholder="Buscar proyecto…" class="w-56" />
-      </IconField>
-      <Select v-model="estadoFiltro" :options="ESTADO_OPCIONES" optionLabel="label" optionValue="value"
-        showClear placeholder="Estado" class="w-40" />
-      <span class="text-[11px] ml-auto" style="color:#9b8fb0">
-        Espejo del Panel Contable · edición en Panel Contable
-      </span>
-      <Button label="Nueva liquidación" size="small" @click="dialogNueva = true">
-        <template #icon><PlusIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <ProgressSpinner v-if="loading" class="block mx-auto my-10" />
-
-    <div v-else class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color:#e8e0f0">
-      <div class="px-4 py-2.5 flex items-center gap-2 border-b" style="border-color:#f0ebf6">
-        <h3 class="text-sm font-bold" style="color:var(--color-unergy-deep)">Proyectos · {{ formatPeriodo(periodo) }}</h3>
-        <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold"
-          style="background:#F1EAF9; color:var(--color-unergy-purple-dark)">{{ proyectosFiltrados.length }}</span>
-      </div>
-      <DataTable :value="proyectosFiltrados" v-model:expandedRows="expandedRows" dataKey="panel_id"
-        rowHover class="text-sm" :rows="25" paginator :alwaysShowPaginator="false">
-        <template #empty>
-          <div class="text-center py-8 text-sm text-gray-400">
-            Sin paneles para este período/tipo. Cárgalos en Panel Contable.
-          </div>
-        </template>
-        <Column expander style="width:3rem" />
-        <Column field="proyecto" header="Proyecto" sortable />
-        <Column header="Estado" style="width:110px">
-          <template #body="{ data }">
-            <GBadge :color="estadoFlujoPanel(data, tipo).sev" class="text-[10px]">{{ estadoFlujoPanel(data, tipo).label }}</GBadge>
-          </template>
-        </Column>
-        <Column v-if="tipo === 'oficial'" header="Consec. Ing." style="width:100px">
-          <template #body="{ data }"><span class="font-mono text-xs">{{ data.consecutivo_ingresos ?? '—' }}</span></template>
-        </Column>
-        <Column v-if="tipo === 'oficial'" header="Consec. Cos." style="width:100px">
-          <template #body="{ data }"><span class="font-mono text-xs">{{ data.consecutivo_costos ?? '—' }}</span></template>
-        </Column>
-        <Column header="Ingresos" style="width:120px">
-          <template #body="{ data }"><span class="font-mono text-xs">{{ fmtCompact(data.ingresos_cop) }}</span></template>
-        </Column>
-        <Column header="Costos" style="width:110px">
-          <template #body="{ data }"><span class="font-mono text-xs text-red-600">{{ fmtCompact(data.costos_cop) }}</span></template>
-        </Column>
-        <Column header="Valor a pagar" style="width:130px">
-          <template #body="{ data }"><span class="font-mono text-xs font-semibold" style="color:var(--color-unergy-purple)">{{ fmtCompact(data.valor_a_pagar_total) }}</span></template>
-        </Column>
-        <Column header="" style="width:56px">
-          <template #body="{ data }">
-            <Button v-if="data.liquidacion_id" text rounded size="small" v-tooltip.left="'Ver detalle operativo'" @click="router.push(`/liquidaciones/${data.liquidacion_id}`)">
-              <template #icon><EyeIcon class="size-[1em]" /></template>
-            </Button>
-            <Button v-else text rounded size="small" v-tooltip.left="'Crear detalle operativo'" :loading="creandoDesde === data.proyecto_id" @click="crearDesdeProyecto(data)">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
-            </Button>
-          </template>
-        </Column>
-        <template #expansion="{ data }">
-          <div class="px-4 py-3" style="background:#FAF8FD">
-            <p class="text-[11px] font-semibold mb-2" style="color:#6b5a8a">Por inversionista</p>
-            <table class="w-full text-xs">
-              <thead>
-                <tr class="text-left" style="color:#9b8fb0">
-                  <th class="pb-1 font-medium">Inversionista</th>
-                  <th class="pb-1 font-medium">%</th>
-                  <th class="pb-1 font-medium text-right">Valor a pagar</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="inv in data.inversionistas" :key="inv.proyecto_inversionista_id || inv.nombre"
-                  class="border-t" style="border-color:#f0ebf6">
-                  <td class="py-1.5" style="color:var(--color-unergy-deep)">{{ inv.cliente_nombre || inv.nombre || '—' }}</td>
-                  <td class="py-1.5 font-mono" style="color:#6b5a8a">{{ inv.porcentaje != null ? inv.porcentaje.toFixed(2) + '%' : '—' }}</td>
-                  <td class="py-1.5 font-mono text-right font-semibold" style="color:var(--color-unergy-purple)">{{ fmtCompact(inv.valor_a_pagar) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <p v-if="!data.inversionistas?.length" class="text-[11px] text-center py-2" style="color:#9b8fb0">Sin inversionistas en este panel.</p>
-          </div>
-        </template>
-      </DataTable>
-    </div>
-
-    <!-- Dialog nueva liquidación (detalle operativo) -->
-    <Dialog v-model:visible="dialogNueva" header="Nueva liquidación (detalle operativo)" modal class="w-full max-w-md">
-      <div class="space-y-3 py-2">
-        <p class="text-xs" style="color:#9b8fb0">
-          Crea el registro operativo (mandatos/facturas/XM). Los valores contables viven en el Panel Contable.
-        </p>
-        <div>
-          <label class="field-label">Proyecto</label>
-          <Select v-model="nueva.proyecto_id" :options="proyectosOpcionesFiltradas"
-            optionLabel="nombre_comercial" optionValue="id"
-            placeholder="Seleccionar proyecto" filter class="w-full" />
-        </div>
-        <div>
-          <label class="field-label">Período</label>
-          <DatePicker v-model="nueva.periodo" view="month" dateFormat="yy-mm-dd" class="w-full" />
-        </div>
-        <div>
-          <label class="field-label">Tipo venta</label>
-          <Select v-model="nueva.tipo_venta" :options="tiposVentaOpciones" class="w-full" />
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <Button label="Cancelar" severity="secondary" size="small" @click="dialogNueva = false" />
-          <Button label="Crear" size="small" :loading="creando" @click="crearLiquidacion" />
-        </div>
-      </div>
-    </Dialog>
-  </div>
-</template>
-
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
-import DatePicker from 'primevue/datepicker'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import InputText from 'primevue/inputtext'
-import ProgressSpinner from 'primevue/progressspinner'
+<script setup lang="ts">
+import { ChevronDownIcon, ChevronRightIcon, EyeIcon, PlusIcon, SearchIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
+import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import { TIPOS_VENTA } from '~/features/liquidaciones/constants'
+import type { ProyectoResumenPanel, TipoVentaLiquidacion } from '~/features/liquidaciones/types'
 import { LiquidacionesService } from '~/features/liquidaciones/services/liquidaciones'
+import {
+  estadoFlujoPanel,
+  fmtCompact,
+  formatPeriodo,
+} from '~/features/liquidaciones/utils/liquidaciones'
 import { proyectoActivoEnMes } from '~/utils/proyectoActivo'
-import { fmtCompact, formatPeriodo, estadoFlujoPanel } from '~/features/liquidaciones/utils/liquidaciones'
-import { EyeIcon, PlusIcon, SearchIcon } from '@lucide/vue'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de `DatePicker`.
+import DatePicker from '~/components/blocks/DatePicker.vue'
 
-const props = defineProps({
-  embedded: { type: Boolean, default: false },
-  periodo: { type: String, default: null },   // "YYYY-MM-01" (del contenedor)
-  tipo: { type: String, default: 'preliquidacion' },
-})
+const props = withDefaults(
+  defineProps<{
+    embedded?: boolean
+    /** "YYYY-MM-01" (del contenedor). */
+    periodo?: string | null
+    tipo?: string
+  }>(),
+  { embedded: false, periodo: null, tipo: 'preliquidacion' },
+)
 
 const router = useRouter()
 const route = useRoute()
@@ -164,19 +35,21 @@ const catalogoProyectos = useProyectosCatalogo()
 // Filtro por tipo de proyecto vía query ?tipo= (minigranja | autoconsumo | null)
 const tipoFilter = computed(() => {
   const t = route.query.tipo
-  return (t === 'minigranja' || t === 'autoconsumo') ? t : null
+  return t === 'minigranja' || t === 'autoconsumo' ? t : null
 })
-const tipoLabel = computed(() =>
-  ({ minigranja: 'Minigranjas', autoconsumo: 'Autoconsumo' }[tipoFilter.value] || '')
-)
+const TIPO_PROYECTO_LABEL: Record<string, string> = {
+  minigranja: 'Minigranjas',
+  autoconsumo: 'Autoconsumo',
+}
+const tipoLabel = computed(() => TIPO_PROYECTO_LABEL[tipoFilter.value ?? ''] || '')
 
 const periodoYYYYMM = computed(() => (props.periodo || '').slice(0, 7))
 
 const loading = ref(false)
-const proyectos = ref([])
-const expandedRows = ref({})
+const proyectos = ref<ProyectoResumenPanel[]>([])
+const expandidos = reactive(new Set<number>())
 const q = ref('')
-const estadoFiltro = ref(null)
+const estadoFiltro = ref<string>('')
 const ESTADO_OPCIONES = [
   { label: 'Firmado', value: 'firmado' },
   { label: 'Pendiente', value: 'pendiente' },
@@ -186,19 +59,27 @@ const proyectosFiltrados = computed(() => {
   const term = q.value.toLowerCase().trim()
   const tf = tipoFilter.value
   const ef = estadoFiltro.value
-  return proyectos.value.filter(p =>
-    (!term || (p.proyecto || '').toLowerCase().includes(term)) &&
-    (!tf || p.tipo_proyecto === tf) &&
-    (!ef || p.estado === ef)
+  return proyectos.value.filter(
+    (p) =>
+      (!term || (p.proyecto || '').toLowerCase().includes(term)) &&
+      (!tf || p.tipo_proyecto === tf) &&
+      (!ef || p.estado === ef),
   )
 })
+
+function toggleExpand(panelId: number | undefined) {
+  if (panelId == null) return
+  if (expandidos.has(panelId)) expandidos.delete(panelId)
+  else expandidos.add(panelId)
+}
 
 async function load() {
   if (!periodoYYYYMM.value) return
   loading.value = true
   try {
     const data = await liquidacionesService.obtenerResumenPanel({
-      periodo: periodoYYYYMM.value, tipo: props.tipo,
+      periodo: periodoYYYYMM.value,
+      tipo: props.tipo ?? 'preliquidacion',
     })
     proyectos.value = data.proyectos || []
   } catch {
@@ -213,23 +94,19 @@ watch([() => props.periodo, () => props.tipo], load)
 // ─── Nueva liquidación (detalle operativo) ────────────────────────────────────
 const dialogNueva = ref(false)
 const creando = ref(false)
-const nueva = ref({ proyecto_id: null, periodo: null, tipo_venta: 'bolsa' })
-const proyectosOpciones = ref([])
-const creandoDesde = ref(null)
-
-const tiposVentaOpciones = ['bolsa', 'ppa', 'interno', 'autoconsumo']
+const nuevoProyectoId = ref<number | null>(null)
+const nuevoPeriodo = ref<string | null>(null)
+const nuevoTipoVenta = ref<TipoVentaLiquidacion>('bolsa')
+const proyectosOpciones = ref<ProyectoConDetalle[]>([])
+const creandoDesde = ref<number | null>(null)
 
 const proyectosOpcionesFiltradas = computed(() => {
-  if (!nueva.value.periodo) return proyectosOpciones.value
-  const d = new Date(nueva.value.periodo)
-  return proyectosOpciones.value.filter(p => proyectoActivoEnMes(p, d.getFullYear(), d.getMonth() + 1))
+  if (!nuevoPeriodo.value) return proyectosOpciones.value
+  const d = new Date(nuevoPeriodo.value)
+  return proyectosOpciones.value.filter((p) =>
+    proyectoActivoEnMes(p, d.getFullYear(), d.getMonth() + 1),
+  )
 })
-
-function toISOMonth(d) {
-  if (!d) return null
-  const dt = new Date(d)
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-01`
-}
 
 async function loadProyectosOpciones() {
   try {
@@ -240,26 +117,26 @@ async function loadProyectosOpciones() {
 }
 
 async function crearLiquidacion() {
-  if (!nueva.value.proyecto_id || !nueva.value.periodo) return
+  if (!nuevoProyectoId.value || !nuevoPeriodo.value) return
   creando.value = true
   try {
     const data = await liquidacionesService.crear({
-      proyecto_id: nueva.value.proyecto_id,
-      periodo: toISOMonth(nueva.value.periodo),
-      tipo_venta: nueva.value.tipo_venta,
+      proyecto_id: nuevoProyectoId.value,
+      periodo: nuevoPeriodo.value.slice(0, 7) + '-01',
+      tipo_venta: nuevoTipoVenta.value,
     })
     dialogNueva.value = false
     toast.success('Creada', { duration: 2000 })
     router.push(`/liquidaciones/${data.id}`)
-  } catch {
-    toast.error('Error', { description: 'No se pudo crear', duration: 3000 })
+  } catch (e) {
+    toast.error('Error', { description: normalizeError(e).message, duration: 3000 })
   } finally {
     creando.value = false
   }
 }
 
 // Crear el detalle operativo directamente desde una fila del Panel
-async function crearDesdeProyecto(row) {
+async function crearDesdeProyecto(row: ProyectoResumenPanel) {
   if (!props.periodo) return
   creandoDesde.value = row.proyecto_id
   try {
@@ -270,11 +147,15 @@ async function crearDesdeProyecto(row) {
     })
     router.push(`/liquidaciones/${data.id}`)
   } catch (e) {
-    // 409 = ya existe: recargar para traer el liquidacion_id y navegar
-    const existente = e?.status === 409
-    if (existente) toast.info('Ya existe', { description: 'Recargando…', duration: 2500 })
-    else toast.error('Error', { description: 'No se pudo crear el detalle', duration: 2500 })
-    if (existente) await load()
+    // Conflicto = ya existe: recargar para traer el liquidacion_id y navegar
+    const err = normalizeError(e)
+    const existente = err.code === 'CONFLICT'
+    if (existente) {
+      toast.info('Ya existe', { description: 'Recargando…', duration: 2500 })
+      await load()
+    } else {
+      toast.error('Error', { description: 'No se pudo crear el detalle', duration: 2500 })
+    }
   } finally {
     creandoDesde.value = null
   }
@@ -286,10 +167,233 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-</style>
+<template>
+  <div class="space-y-4" :class="{ 'p-4 sm:p-5': embedded }">
+    <PageHeader v-if="!embedded" title="Liquidaciones">
+      <template #actions>
+        <Button size="sm" @click="dialogNueva = true">
+          <PlusIcon class="size-4" />
+          Nueva liquidación
+        </Button>
+      </template>
+    </PageHeader>
+
+    <!-- Barra: filtro por tipo (vía ?tipo=), búsqueda, aviso de espejo, acción -->
+    <div class="flex flex-wrap items-center gap-3">
+      <span v-if="tipoLabel" class="text-sm font-semibold text-primary">{{ tipoLabel }}</span>
+      <NuxtLink
+        v-if="tipoLabel"
+        to="/liquidaciones?tab=proyectos"
+        class="text-xs text-muted-foreground hover:underline"
+        >Ver todos</NuxtLink
+      >
+      <InputGroup class="w-56">
+        <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+        <InputGroupInput v-model="q" placeholder="Buscar proyecto…" />
+      </InputGroup>
+      <Select v-model="estadoFiltro">
+        <SelectTrigger class="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Estado: todos</SelectItem>
+          <SelectItem v-for="op in ESTADO_OPCIONES" :key="op.value" :value="op.value">{{
+            op.label
+          }}</SelectItem>
+        </SelectContent>
+      </Select>
+      <span class="ml-auto text-[11px] text-muted-foreground">
+        Espejo del Panel Contable · edición en Panel Contable
+      </span>
+      <Button size="sm" @click="dialogNueva = true">
+        <PlusIcon class="size-4" />
+        Nueva liquidación
+      </Button>
+    </div>
+
+    <Spinner v-if="loading" class="mx-auto my-10 block size-6 text-muted-foreground" />
+
+    <div v-else class="overflow-hidden rounded-xl border bg-card">
+      <div class="flex items-center gap-2 border-b px-4 py-2.5">
+        <h3 class="text-sm font-bold text-foreground">Proyectos · {{ formatPeriodo(periodo) }}</h3>
+        <span
+          class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
+          >{{ proyectosFiltrados.length }}</span
+        >
+      </div>
+
+      <div v-if="!proyectosFiltrados.length" class="py-8 text-center text-sm text-muted-foreground">
+        Sin paneles para este período/tipo. Cárgalos en Panel Contable.
+      </div>
+
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b bg-muted/30 text-left text-xs text-muted-foreground">
+              <th class="w-12 px-3 py-2" />
+              <th class="px-3 py-2 font-medium">Proyecto</th>
+              <th class="px-3 py-2 font-medium">Estado</th>
+              <th v-if="tipo === 'oficial'" class="px-3 py-2 text-right font-medium">
+                Consec. Ing.
+              </th>
+              <th v-if="tipo === 'oficial'" class="px-3 py-2 text-right font-medium">
+                Consec. Cos.
+              </th>
+              <th class="px-3 py-2 text-right font-medium">Ingresos</th>
+              <th class="px-3 py-2 text-right font-medium">Costos</th>
+              <th class="px-3 py-2 text-right font-medium">Valor a pagar</th>
+              <th class="w-14 px-3 py-2" />
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="p in proyectosFiltrados" :key="p.panel_id">
+              <tr class="border-b hover:bg-muted/20">
+                <td class="px-3 py-2">
+                  <button
+                    class="text-muted-foreground hover:text-foreground"
+                    @click="toggleExpand(p.panel_id)"
+                  >
+                    <ChevronDownIcon v-if="expandidos.has(p.panel_id ?? -1)" class="size-3.5" />
+                    <ChevronRightIcon v-else class="size-3.5" />
+                  </button>
+                </td>
+                <td class="px-3 py-2 font-medium text-foreground">{{ p.proyecto }}</td>
+                <td class="px-3 py-2">
+                  <GBadge :color="estadoFlujoPanel(p, tipo).sev" class="text-[10px]">{{
+                    estadoFlujoPanel(p, tipo).label
+                  }}</GBadge>
+                </td>
+                <td v-if="tipo === 'oficial'" class="px-3 py-2 text-right font-mono text-xs">
+                  {{ p.consecutivo_ingresos ?? '—' }}
+                </td>
+                <td v-if="tipo === 'oficial'" class="px-3 py-2 text-right font-mono text-xs">
+                  {{ p.consecutivo_costos ?? '—' }}
+                </td>
+                <td class="px-3 py-2 text-right font-mono text-xs">
+                  {{ fmtCompact(p.ingresos_cop) }}
+                </td>
+                <td class="px-3 py-2 text-right font-mono text-xs text-destructive">
+                  {{ fmtCompact(p.costos_cop) }}
+                </td>
+                <td class="px-3 py-2 text-right font-mono text-xs font-semibold text-primary">
+                  {{ fmtCompact(p.valor_a_pagar_total) }}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  <Button
+                    v-if="p.liquidacion_id"
+                    variant="ghost"
+                    size="icon"
+                    class="size-7"
+                    title="Ver detalle operativo"
+                    @click="router.push(`/liquidaciones/${p.liquidacion_id}`)"
+                  >
+                    <EyeIcon class="size-3.5" />
+                  </Button>
+                  <Button
+                    v-else
+                    variant="ghost"
+                    size="icon"
+                    class="size-7"
+                    title="Crear detalle operativo"
+                    :disabled="creandoDesde === p.proyecto_id"
+                    @click="crearDesdeProyecto(p)"
+                  >
+                    <PlusIcon class="size-3.5" />
+                  </Button>
+                </td>
+              </tr>
+              <tr v-if="expandidos.has(p.panel_id ?? -1)" class="border-b bg-muted/10">
+                <td :colspan="tipo === 'oficial' ? 9 : 7" class="px-4 py-3">
+                  <p class="mb-2 text-[11px] font-semibold text-muted-foreground">
+                    Por inversionista
+                  </p>
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="text-left text-muted-foreground">
+                        <th class="pb-1 font-medium">Inversionista</th>
+                        <th class="pb-1 font-medium">%</th>
+                        <th class="pb-1 text-right font-medium">Valor a pagar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="inv in p.inversionistas"
+                        :key="inv.proyecto_inversionista_id ?? inv.nombre ?? undefined"
+                        class="border-t"
+                      >
+                        <td class="py-1.5 text-foreground">
+                          {{ inv.cliente_nombre || inv.nombre || '—' }}
+                        </td>
+                        <td class="py-1.5 font-mono text-muted-foreground">
+                          {{ inv.porcentaje != null ? inv.porcentaje.toFixed(2) + '%' : '—' }}
+                        </td>
+                        <td class="py-1.5 text-right font-mono font-semibold text-primary">
+                          {{ fmtCompact(inv.valor_a_pagar) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p
+                    v-if="!p.inversionistas?.length"
+                    class="py-2 text-center text-[11px] text-muted-foreground"
+                  >
+                    Sin inversionistas en este panel.
+                  </p>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dialog nueva liquidación (detalle operativo) -->
+    <Dialog v-model:open="dialogNueva">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nueva liquidación (detalle operativo)</DialogTitle>
+          <DialogDescription>
+            Crea el registro operativo (mandatos/facturas/XM). Los valores contables viven en el
+            Panel Contable.
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-3">
+          <Field>
+            <FieldLabel>Proyecto</FieldLabel>
+            <Select
+              :model-value="nuevoProyectoId ? String(nuevoProyectoId) : ''"
+              @update:model-value="(v) => (nuevoProyectoId = v ? Number(v) : null)"
+            >
+              <SelectTrigger class="w-full"
+                ><SelectValue placeholder="Seleccionar proyecto"
+              /></SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="p in proyectosOpcionesFiltradas"
+                  :key="p.id"
+                  :value="String(p.id)"
+                  >{{ p.nombre_comercial }}</SelectItem
+                >
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel>Período</FieldLabel>
+            <DatePicker v-model="nuevoPeriodo" />
+          </Field>
+          <Field>
+            <FieldLabel>Tipo venta</FieldLabel>
+            <Select v-model="nuevoTipoVenta">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in TIPOS_VENTA" :key="t" :value="t">{{ t }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="dialogNueva = false">Cancelar</Button>
+          <Button :disabled="creando" @click="crearLiquidacion">Crear</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

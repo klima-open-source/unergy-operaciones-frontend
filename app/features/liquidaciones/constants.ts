@@ -19,7 +19,7 @@ import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
 
 // ── Estados del workflow ─────────────────────────────────────────────────────
 
-/** Los ocho estados, en el orden del pipeline. **Sin consumidor hoy.** */
+/** Los ocho estados, en el orden del pipeline — selector de `LiquidacionDetailView.vue`. */
 export const ESTADOS_LIQUIDACION = [
   'iniciada',
   'costos_registrados',
@@ -76,7 +76,7 @@ export const ESTADO_COLOR: Record<EstadoLiquidacion, string> = {
 
 // ── Clasificación de proyecto ────────────────────────────────────────────────
 
-/** **Sin consumidor hoy.** */
+/** Opciones del selector "Tipo venta" al crear una liquidación — ver `LiquidacionesListView.vue`. */
 export const TIPOS_VENTA = ['bolsa', 'ppa', 'interno', 'autoconsumo'] as const
 
 /** Pestañas Todos / Minigranjas / Autoconsumo. **Sin consumidor hoy.** */

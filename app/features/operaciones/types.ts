@@ -29,7 +29,11 @@ export interface RespuestaProyectosLegacy {
 /** `getGeneration`: la serie diaria y, si el backend simuló, el P90 mensual. */
 export interface RespuestaGeneracionLegacy {
   ok?: boolean
-  data: { fecha?: string; kwh: number; [clave: string]: unknown }[]
+  // MIGRACIÓN (slice `liquidaciones`) — el campo real que trae cada punto es
+  // `date` (así lo consume `GeneracionView.vue`, sin migrar todavía); `fecha`
+  // quedaba declarado sin que nada lo usara. Se agrega `date` en vez de
+  // reemplazarlo por si algún consumidor futuro sí recibe `fecha`.
+  data: { fecha?: string; date?: string; kwh: number; [clave: string]: unknown }[]
   simulation?: { p90_monthly?: number | null; [clave: string]: unknown }
   /**
    * De dónde salió la curva. `verified_by_operator` es un campo de la API de

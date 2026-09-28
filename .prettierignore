@@ -37,7 +37,6 @@ app/features/contratos/components
 app/features/fallas/components/MonitoreoView.vue
 app/features/finanzas/components
 app/features/fronteras/components
-app/features/liquidaciones/components
 # `mem` ya migró todo salvo `CumplimientoV2View.vue` y sus 3 utils JS
 # exclusivos (ver eslint.config.mjs).
 app/features/mem/components/CumplimientoV2View.vue

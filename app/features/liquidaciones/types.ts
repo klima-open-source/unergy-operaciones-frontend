@@ -225,6 +225,15 @@ export interface Liquidacion {
   periodo: string
   estado?: string
   tipo_venta?: TipoVentaLiquidacion
+  /** Enlace externo (Google Sheets/Drive) al Estado de Resultados publicado. */
+  estado_resultados_url?: string | null
+  comprobante_contable_ref?: string | null
+  consecutivo_inicial_ingresos?: number | null
+  consecutivo_inicial_costos?: number | null
+  tasa_cambio?: number | null
+  observaciones_resultados?: string | null
+  fecha_inicio_proceso?: string | null
+  fecha_firma?: string | null
   [clave: string]: unknown
 }
 
@@ -237,28 +246,76 @@ export interface PayloadCrearLiquidacion {
 /** Un `PATCH` parcial: estado, o cualquier campo del formulario de resumen. */
 export type PayloadActualizarLiquidacion = Record<string, unknown>
 
+/**
+ * Un concepto individual (Ingresos/Comercialización/Costos/Facturas) dentro de
+ * `inversionistas[].conceptos` — origen y comprobante son metadatos de
+ * trazabilidad hacia el Excel/comprobante contable de donde salió la cifra.
+ */
+export interface ConceptoResumenPanel {
+  grupo: string
+  concepto: string
+  valor_cop?: number | null
+  /** Celda de origen en el ER, `"hoja!celda"`. */
+  origen?: string | null
+  comprobante_contable?: string | null
+}
+
+/** Un inversionista dentro de una fila de `resumen-panel` — espejo del Panel Contable. */
+export interface InversionistaResumenPanel {
+  proyecto_inversionista_id?: number | null
+  cliente_id?: number | null
+  cliente_nombre?: string | null
+  nombre?: string | null
+  porcentaje?: number | null
+  valor_a_pagar?: number | null
+  grupos_totales?: Record<string, number>
+  conceptos?: ConceptoResumenPanel[]
+  [clave: string]: unknown
+}
+
 /** Una fila de proyecto dentro de `resumen-panel` / `resumen-panel-rango` — espejo del Panel Contable. */
 export interface ProyectoResumenPanel {
   proyecto_id: number
+  /** Nombre del proyecto — así lo trae este endpoint (no `proyecto_nombre`). */
+  proyecto?: string
+  tipo_proyecto?: string | null
+  estado?: string
+  /** Presente solo si ya existe el detalle operativo (`Liquidacion`) para este proyecto+período. */
+  liquidacion_id?: number | null
+  panel_id?: number
+  consecutivo_ingresos?: number | string | null
+  consecutivo_costos?: number | string | null
+  fecha_firma?: string | null
   ingresos_cop?: number
   costos_cop?: number
   valor_a_pagar_total?: number
   utilidad_estimada?: number
   utilidad_real?: number
   diferencia?: number
-  inversionistas?: { grupos_totales?: Record<string, number>; [clave: string]: unknown }[]
+  inversionistas?: InversionistaResumenPanel[]
+  [clave: string]: unknown
+}
+
+/** Totales agregados de un período del Panel Contable. */
+export interface ResumenPanelTotales {
+  ingresos_total_cop?: number
+  costos_total_cop?: number
+  valor_a_pagar_total?: number
+  num_proyectos?: number
   [clave: string]: unknown
 }
 
 /** `GET /liquidaciones/resumen-panel`. */
 export interface RespuestaResumenPanel {
   proyectos: ProyectoResumenPanel[]
-  sin_panel?: unknown[]
+  /** Proyectos en operación sin panel cargado este período — nombre del proyecto. */
+  sin_panel?: string[]
+  resumen?: ResumenPanelTotales
 }
 
 /** `GET /liquidaciones/resumen-panel-rango`: una entrada por período dentro del rango. */
 export interface RespuestaResumenPanelRango {
-  periodos: { periodo: string; proyectos: ProyectoResumenPanel[] }[]
+  periodos: { periodo: string; proyectos: ProyectoResumenPanel[]; resumen: ResumenPanelTotales }[]
 }
 
 /** `GET/PUT /liquidaciones/:id/informe`: el HTML del informe guardado en BD. */
@@ -272,6 +329,19 @@ export interface InformeLiquidacion {
 //
 // Forma verificada contra `panels/FacturacionPanel.vue`.
 
+/** Un contrato dentro de `LineaFacturacion.proyectos` — nivel proyecto/contrato de una factura agrupada. */
+export interface ProyectoFacturacion {
+  proyecto?: string | null
+  contrato?: string | null
+  tarifa_indexada?: number | null
+  kwh?: number
+  facturacion?: number
+  /** El contrato se movió aquí desde otra factura (agrupación manual). */
+  asignada?: boolean
+  /** Solo una parte del contrato se movió; el resto queda en la factura original. */
+  porcentaje?: number | null
+}
+
 export interface LineaFacturacion {
   factura: string
   emitida?: boolean
@@ -281,16 +351,20 @@ export interface LineaFacturacion {
   tarifa_indexada?: number | null
   tarifa_mixta?: boolean
   sin_ppa?: boolean
+  /** Contrato PPA de la factura, cuando no es una división personalizada. */
+  ppa?: string | null
+  /** La factura es una agrupación manual de contratos (ver `guardarAgrupaciones`). */
+  personalizada?: boolean
+  contrato?: string | null
+  /** Motivo por el que un contrato no es facturable — ver `MOTIVOS` en `FacturacionPanel.vue`. */
+  estado?: string
+  proyecto?: string | null
+  comprador?: string | null
+  contratos?: number
   kwh?: number
   facturacion?: number
   mensaje?: string
-  proyectos?: {
-    proyecto?: string
-    contrato?: string
-    tarifa_indexada?: number
-    kwh?: number
-    facturacion?: number
-  }[]
+  proyectos?: ProyectoFacturacion[]
   [clave: string]: unknown
 }
 
@@ -300,16 +374,33 @@ export interface RespuestaFacturacion {
     kwh_total?: number
     facturacion_total?: number
     emitidas?: number
+    /** Contratos sin PPA marco asociado (no se facturan por esta vía). */
+    sin_ppa?: number
+    /** Ingreso total (PPA + bolsa), cuando difiere de `facturacion_total`. */
+    ingreso_total?: number
+    ingreso_bolsa?: number
+    facturas?: number
     [clave: string]: unknown
   }
-  lineas?: unknown[]
-  por_codigo_sic?: unknown[]
+  lineas?: LineaFacturacion[]
+  por_codigo_sic?: { comprador: string; contratos: number; kwh: number; facturacion: number }[]
   por_factura?: LineaFacturacion[]
+}
+
+/** Un contrato dentro de `RespuestaFacturacionDespacho.contratos`. */
+export interface ContratoDespacho {
+  contrato?: string | null
+  vendedor?: string | null
+  comprador?: string | null
+  kwh?: number
 }
 
 /** `GET /facturacion/despacho`. */
 export interface RespuestaFacturacionDespacho {
-  contratos: unknown[]
+  contratos: ContratoDespacho[]
+  kwh_total?: number
+  /** Nombre del Excel cargado ese mes. */
+  archivo?: string | null
 }
 
 /** `POST /facturacion/despacho`: resultado de la carga del Excel de despacho. */
@@ -321,7 +412,7 @@ export interface RespuestaCargaDespacho {
 
 /** `GET /facturacion/despacho/dias`. */
 export interface RespuestaDespachoDias {
-  dias: unknown[]
+  dias: { fecha?: string; kwh?: number }[]
 }
 
 /** `GET/PUT /facturacion/bolsa`. */
@@ -331,10 +422,40 @@ export interface RespuestaBolsaFacturacion {
   vigente?: number | null
 }
 
+/** Una fila de `RespuestaCumplimientoFacturacion.filas`: compromiso (mínimo PPA) vs despacho real. */
+export interface FilaCumplimientoFacturacion {
+  ppa?: string | null
+  numero_contrato?: string | null
+  comprador?: string | null
+  proyecto?: string | null
+  minimo_mwh?: number | null
+  maximo_mwh?: number | null
+  despachado_mwh?: number | null
+  pct?: number | null
+  faltante_kwh?: number | null
+  tarifa_ppa_cop_kwh?: number | null
+  precio_bolsa_cop_kwh?: number | null
+  valor_indemnizar_cop?: number | null
+  /** Antes de aplicar el piso en 0 (la bolsa puede salir más barata que el PPA). */
+  valor_indemnizar_bruto_cop?: number | null
+  estado?: string
+  /** La escala mínimo vs despacho no cuadra — probable mezcla kWh/MWh en el dato de origen. */
+  unidad_sospechosa?: boolean
+}
+
 /** `GET /facturacion/cumplimiento`. */
 export interface RespuestaCumplimientoFacturacion {
-  resumen: Record<string, unknown>
-  filas: unknown[]
+  resumen: {
+    cumplen?: number
+    ppas?: number
+    bajo_minimo?: number
+    faltante_kwh?: number
+    faltante_mwh?: number
+    valor_indemnizar_total_cop?: number
+    precio_bolsa_cop_kwh?: number | null
+    [clave: string]: unknown
+  }
+  filas: FilaCumplimientoFacturacion[]
 }
 
 export interface AgrupacionFacturacion {
