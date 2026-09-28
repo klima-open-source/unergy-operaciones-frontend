@@ -22,6 +22,8 @@ export interface ContratoAsic {
   proyecto_id?: number | string | null
   estado_solicitud?: string
   codigo_sic_contrato?: string | null
+  /** Solo para mostrar el conflicto en la UI (`GesconView.vue`) -- no entra en el cálculo. */
+  contrato_interno?: string | null
   fecha_inicio?: FechaValor
   fecha_fin?: FechaValor
   fecha_fin_efectiva?: FechaValor

@@ -187,10 +187,52 @@ export interface RespuestaAsicOperacion {
   [clave: string]: unknown
 }
 
+/** Fila resuelta de `POST /asic/backfill-nombre-interno` (`GesconView.vue`): el nombre que se le aplicaría. */
+export interface BackfillNombreResuelto {
+  id: number
+  contrato_interno?: string | null
+  nombre_propuesto: string
+}
+
+/** Fila resuelta de `POST /asic/backfill-terminaciones`: los datos que se completarían en esa fecha. */
+export interface BackfillTerminacionResuelta {
+  id: number
+  codigo_sic_contrato?: string | null
+  fecha_fin?: string | null
+  /** `{ campo: valor legible }` — lo que cambia en ese registro. */
+  cambios: Record<string, string>
+}
+
+/** Fila sin resolver de cualquiera de los dos backfills: no se pudo determinar el dato. */
+export interface BackfillNoResuelto {
+  id: number
+  contrato_interno?: string | null
+  codigo_sic_contrato?: string | null
+  motivo: string
+}
+
+/** Terminación publicada que no alcanzó a recortar los registros de su SIC. */
+export interface BackfillTerminacionSinRecortar {
+  id: number
+  codigo_sic_contrato: string
+  requerimiento_asic?: string | null
+  termina?: string | null
+  registros: { planta?: string | null; fecha_fin_actual?: string | null }[]
+}
+
 /** `POST /asic/backfill-nombre-interno` y `/asic/backfill-terminaciones` (con `dry_run`). */
 export interface RespuestaBackfillAsic {
   a_actualizar?: number
   a_recortar?: number
+  sin_resolver?: number
+  /** Solo en el backfill de nombres. */
+  total_sin_nombre?: number
+  /** Solo en el backfill de terminaciones. */
+  total_terminaciones?: number
+  resueltos?: (BackfillNombreResuelto | BackfillTerminacionResuelta)[]
+  no_resueltos?: BackfillNoResuelto[]
+  /** Solo en el backfill de terminaciones: las que no alcanzaron a estampar su fecha. */
+  sin_recortar?: BackfillTerminacionSinRecortar[]
   [clave: string]: unknown
 }
 
