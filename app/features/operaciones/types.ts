@@ -62,59 +62,232 @@ export interface RespuestaContratosLegacy {
 
 // ── `/informe-om/*` — informe de puesta en marcha ─────────────────────────────
 
+/** Estado global de un proyecto/checklist frente al sistema de monitoreo. */
+export type EstadoGlobalOm = 'atencion' | 'operativo'
+/** Estado de aprobación de un ítem de checklist — `null` es "sin revisar todavía". */
+export type EstadoChecklistOm = 'aprobado' | 'pendiente' | null
+
 export interface ProyectoInformeOm {
   id: number
   nombre_comercial?: string
+  municipio?: string
+  departamento?: string
+  potencia_ac_kw?: number | null
+  /** `false` cuando el proyecto todavía no tiene ficha creada — la lista lo muestra como "Sin iniciar". */
+  tiene_ficha?: boolean
+  estado_global?: EstadoGlobalOm
   [clave: string]: unknown
 }
 
+export interface ChecklistItemOm {
+  estado: EstadoChecklistOm
+  nota: string
+}
+
+export interface ChecklistItemConEvidenciaOm extends ChecklistItemOm {
+  evidencia: ArchivoEvidencia[]
+}
+
+export interface InversorFichaFusionSolarOm {
+  id: number
+  nombre?: string
+  limitado: boolean
+  motivo_limitacion: string
+}
+
+export interface EquipoOm {
+  descripcion: string
+  marca: string
+  cantidad: number
+  ubicacion: string
+  numero_serie: string
+}
+
+export interface VariableMonitoreadaOm {
+  variable: string
+  unidad: string
+  fuente: string
+  registro: string
+  plataforma: string
+}
+
+export interface NotificacionMonitoreoOm {
+  rol: string
+  nombre: string
+  canal: string
+  alcance: string
+}
+
+export interface UmbralAlarmaOm {
+  evento: string
+  condicion: string
+  notificacion: string
+  destinatarios: string
+}
+
+export type ResultadoPruebaOm = 'conforme' | 'no_conforme' | 'na' | ''
+
+export interface PruebaOm {
+  codigo: string
+  prueba: string
+  criterio_aceptacion: string
+  resultado: ResultadoPruebaOm
+  observacion: string
+}
+
+export type EstadoEventoOperativoOm = 'abierta' | 'en_gestion' | 'cerrada' | ''
+
+export interface EventoOperativoOm {
+  codigo: string
+  descripcion: string
+  causa_raiz: string
+  accion_correctiva: string
+  estado: EstadoEventoOperativoOm
+}
+
+export type EstadoPendienteOm = 'abierto' | 'en_gestion' | 'cerrado' | ''
+
+export interface PendienteOm {
+  descripcion: string
+  responsable: string
+  /** `''` = sin fecha — `Input` de shadcn no acepta `null` en su `v-model`. */
+  fecha_compromiso: string
+  clasificacion?: string
+  estado: EstadoPendienteOm
+  observaciones?: string
+}
+
+export interface FirmanteOm {
+  nombre: string
+  cargo: string
+  /** `''` = sin fecha — `Input` de shadcn no acepta `null` en su `v-model`. */
+  fecha: string
+}
+
+export type EstadoFichaOm = 'borrador' | 'en_revision' | 'aprobado'
+
 /**
  * El formulario del informe O&M: decenas de campos anidados por sección
- * (objetivo/alcance, datos generales, checklists por sistema…). No se modela
- * campo a campo — la vista arma y desarma el objeto completo contra esta forma
- * libre; lo único que se afirma es la forma de nivel superior.
+ * (objetivo/alcance, datos generales, checklists por sistema…). Modelado campo
+ * a campo — es lo que arma/edita `InformeOMView.vue` — con todo opcional
+ * porque un proyecto sin ficha todavía devuelve `{}` desde el backend.
  */
 export interface FichaInformeOm {
-  objetivo_alcance?: Record<string, unknown>
-  datos_generales?: Record<string, unknown>
-  arquitectura_comunicacion?: Record<string, unknown>
-  configuracion_monitoreo?: {
-    notificaciones?: unknown[]
-    umbrales_alarma?: unknown[]
-    politicas_datos?: unknown[]
-    [clave: string]: unknown
-  }
-  observaciones?: Record<string, unknown>
+  version?: string
+  elaborado_por?: string
+  actividad?: string
+  estado?: EstadoFichaOm
+  empresa_contratista?: string
+  fecha_energizacion?: string
+  fecha_inicio_operacion?: string
+  pendientes?: PendienteOm[]
   checklist_fusion_solar?: {
-    starlink?: Record<string, unknown>
-    datos_coherentes?: Record<string, unknown>
-    inversores?: { id: number; nombre?: string; limitado?: boolean; motivo_limitacion?: string }[]
-    [clave: string]: unknown
+    starlink?: ChecklistItemConEvidenciaOm
+    datos_coherentes?: ChecklistItemOm
+    evidencia?: ArchivoEvidencia[]
+    nota?: string
+    inversores?: InversorFichaFusionSolarOm[]
   }
   checklist_frontera?: {
-    principal?: Record<string, unknown>
-    respaldo?: Record<string, unknown>
-    [clave: string]: unknown
+    principal?: ChecklistItemConEvidenciaOm
+    respaldo?: ChecklistItemConEvidenciaOm
   }
-  checklist_estacion_meteo?: Record<string, unknown>
+  checklist_estacion_meteo?: {
+    instalacion?: ChecklistItemOm
+    en_plataforma?: ChecklistItemOm
+    reporta_datos?: ChecklistItemConEvidenciaOm
+    poa?: ChecklistItemOm
+    temperatura_ambiente?: ChecklistItemOm
+    velocidad_viento?: ChecklistItemOm
+    direccion_viento?: ChecklistItemOm
+  }
   checklist_reconectador?: {
-    en_plataforma?: Record<string, unknown>
-    calidad_datos?: Record<string, unknown>
-    [clave: string]: unknown
+    tiene?: boolean | null
+    en_plataforma?: ChecklistItemOm
+    calidad_datos?: ChecklistItemOm
+    evidencia?: ArchivoEvidencia[]
+    nota?: string
   }
+  objetivo_alcance?: { objetivo?: string; alcance_items?: string[] }
+  datos_generales?: {
+    seguidores_marca?: string
+    medida_comercial_marca?: string
+    medida_comercial_modelo?: string
+    plataformas_monitoreo?: string[]
+    responsable_nombre?: string
+    responsable_email?: string
+  }
+  arquitectura_comunicacion?: {
+    enlace_principal?: string
+    enlaces_celulares?: string
+    concentrador_datos?: string
+    destino_datos?: string
+    sincronizacion_horaria?: string
+  }
+  equipos?: EquipoOm[]
+  variables_monitoreadas?: VariableMonitoreadaOm[]
+  configuracion_monitoreo?: {
+    notificaciones?: NotificacionMonitoreoOm[]
+    umbrales_alarma?: UmbralAlarmaOm[]
+    politicas_datos?: string[]
+  }
+  protocolo_pruebas?: PruebaOm[]
+  eventos_operativos?: EventoOperativoOm[]
+  observaciones?: { generales?: string; factor_pendiente?: string }
+  recomendaciones?: string[]
+  conclusion?: string
+  firmas?: FirmanteOm[]
+  evidencia_arquitectura?: ArchivoEvidencia[]
   [clave: string]: unknown
 }
 
 export interface InversorInformeOm {
   id: number
   nombre?: string
+  potencia_nominal_kw?: number | null
+  state?: string | null
   [clave: string]: unknown
+}
+
+export interface EvidenciaRelacionadaOm {
+  seccion: string
+  nombre: string
+  url: string
+}
+
+export interface ProyectoDetalleInformeOm {
+  nombre_comercial?: string
+  nombre_clientes?: string
+  municipio?: string
+  departamento?: string
+  direccion_vereda?: string
+  potencia_ac_kw?: number | null
+  [clave: string]: unknown
+}
+
+export interface KpisInformeOm {
+  pruebas_ejecutadas: number
+  pruebas_conformes: number
+  pruebas_no_conformes: number
+  eventos_total: number
+  eventos_cerrados: number
+  eventos_en_gestion: number
+  checklist_aprobados: number
+  checklist_total: number
+  estado_global: EstadoGlobalOm
 }
 
 /** `GET /informe-om/:id`. */
 export interface DetalleInformeOm {
+  proyecto: ProyectoDetalleInformeOm
   ficha: FichaInformeOm
-  inversores?: InversorInformeOm[]
+  kpis: KpisInformeOm
+  inversores: InversorInformeOm[]
+  evidencia_relacionada: EvidenciaRelacionadaOm[]
+  fusion_solar_estado?: EstadoChecklistOm
+  frontera_estado?: EstadoChecklistOm
+  estacion_meteo_estado?: EstadoChecklistOm
+  reconectador_estado?: EstadoChecklistOm
   [clave: string]: unknown
 }
 

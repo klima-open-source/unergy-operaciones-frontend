@@ -66,7 +66,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // `ignores` de ESLint flat config.
   'app/features/operaciones/components/EnvioMensualPanel.vue',
   'app/features/operaciones/components/GestionFallasView.vue',
-  'app/features/operaciones/components/InformeOMView.vue',
   'app/features/operaciones/components/InformesMensualesPanel.vue',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',
