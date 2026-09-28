@@ -31,7 +31,7 @@ app/components/gandalf
 # `SolarLiveView.vue` ya cumplen el formato del template, el resto no.
 app/features/alertas/components
 app/features/auth/components
-app/features/clientes/components
+app/features/clientes/components/clientesUi.js
 app/features/comercial/components
 app/features/contratos/components
 app/features/fallas/components

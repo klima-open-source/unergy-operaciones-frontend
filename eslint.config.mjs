@@ -46,7 +46,10 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/auth/components/ForgotPasswordView.vue',
   'app/features/auth/components/LoginView.vue',
   'app/features/auth/components/ResetPasswordView.vue',
-  'app/features/clientes/components/**',
+  // `clientes` va archivo por archivo: `clientesUi.js` sigue en JS porque lo
+  // importa `ServiciosUnificadoView.vue` (fuera de alcance de esta migración,
+  // sigue en `contratos`) — cambiarle la forma lo rompería.
+  'app/features/clientes/components/clientesUi.js',
   'app/features/comercial/components/**',
   'app/features/contratos/components/**',
   'app/features/fallas/components/**',
