@@ -287,6 +287,14 @@ export interface FiltrosListaFallas {
    */
   solo_activas?: boolean
   /**
+   * Solo las fallas que estaban abiertas EN esa fecha puntual (`YYYY-MM-DD`) --
+   * distinto de `solo_activas`, que mira el estado actual. Lo usa
+   * `ReporteEnergiaDetalleTab.vue` para mostrar el contexto de fallas tal
+   * como estaba el día que se está revisando, no el de hoy. Faltaba en este
+   * tipo aunque el llamado ya existía (verificado contra ese archivo).
+   */
+  activa_en_fecha?: string
+  /**
    * Rango sobre CUÁNDO SE IDENTIFICÓ la falla (`YYYY-MM-DD`), que es la fecha
    * por la que se mira un período hacia atrás.
    *

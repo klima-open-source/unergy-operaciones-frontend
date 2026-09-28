@@ -99,6 +99,15 @@ export interface PayloadFrontera {
   canal_comunicacion_resp?: string | null
 }
 
+/** 409 estructurado de `POST /fronteras` y `.../quoia/pendientes/:frt/confirmar`: nombre parecido a una frontera existente. */
+export interface DuplicadoFrontera {
+  duplicado_nombre: true
+  candidato_id: number
+  candidato_nombre: string
+  /** Solo en el flujo de confirmar pendiente de Quoia. */
+  mensaje?: string
+}
+
 /** Frontera detectada en Quoia (el CGM) que todavía no tiene fila propia aquí. */
 export interface FronteraPendienteQuoia {
   frt_code: string
@@ -152,6 +161,8 @@ export interface DetalleReporteEnergia {
   curva_solenium?: (number | null)[]
   curva_reconectador?: (number | null)[]
   curva_respaldo_reportada?: (number | null)[]
+  /** Curva en vivo de Quoia (no persistida) — solo para ofrecerla en "Reportar con otra fuente". */
+  curva_cgm?: (number | null)[] | null
   horas_rellenadas_medidor_cruzado?: number[]
   horas_rellenadas_reconectador?: number[]
   horas_rellenadas_solenium?: number[]

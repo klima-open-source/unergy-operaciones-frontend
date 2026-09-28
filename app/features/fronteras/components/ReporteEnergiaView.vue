@@ -2,39 +2,32 @@
   <div class="space-y-5">
     <PageHeader title="Reporte de Energía" />
 
-    <div class="ret-tabs">
-      <button :class="['ret-tab', tab === 'automatizacion' && 'ret-tab--on']" @click="tab = 'automatizacion'">
-        <SettingsIcon class="size-[1em]" /> Reporte ASIC
-      </button>
-      <button :class="['ret-tab', tab === 'cgm' && 'ret-tab--on']" @click="tab = 'cgm'">
-        <MailIcon class="size-[1em]" /> Reporte CGM
-      </button>
-    </div>
+    <GTabs :model-value="tab" @update:model-value="(v) => (tab = v as Tab)">
+      <GTabsList>
+        <GTabsTrigger value="automatizacion">
+          <SettingsIcon class="size-4" /> Reporte ASIC
+        </GTabsTrigger>
+        <GTabsTrigger value="cgm">
+          <MailIcon class="size-4" /> Reporte CGM
+        </GTabsTrigger>
+      </GTabsList>
+    </GTabs>
 
-    <div class="ret-body">
+    <!-- v-show, no GTabsContent/v-if: las dos vistas cargan sus propios datos al
+         montar -- cambiar de pestaña no debe perder el estado ni repetir la carga. -->
+    <div class="pt-1">
       <ReporteEnergiaAutomatizacionView v-show="tab === 'automatizacion'" />
       <ReporteCGMView v-show="tab === 'cgm'" />
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { MailIcon, SettingsIcon } from '@lucide/vue'
 import ReporteEnergiaAutomatizacionView from '~/features/fronteras/components/ReporteEnergiaAutomatizacionView.vue'
 import ReporteCGMView from '~/features/operadores-red/components/ReporteCGMView.vue'
-import { MailIcon, SettingsIcon } from '@lucide/vue'
 
-const tab = ref('automatizacion')
+type Tab = 'automatizacion' | 'cgm'
+
+const tab = ref<Tab>('automatizacion')
 </script>
-
-<style scoped>
-.ret-tabs { display: flex; gap: 6px; border-bottom: 1px solid #eceaf2; padding: 0 2px; }
-.ret-tab {
-  display: flex; align-items: center; gap: 7px; border: none; background: none;
-  font-size: 14px; font-weight: 700; color: #9b8db5; padding: 12px 16px; cursor: pointer;
-  border-bottom: 2.5px solid transparent; margin-bottom: -1px;
-}
-.ret-tab svg { font-size: 14px; }
-.ret-tab--on { color: var(--color-unergy-purple-dark); border-bottom-color: var(--color-unergy-purple); }
-.ret-body { padding-top: 4px; }
-</style>

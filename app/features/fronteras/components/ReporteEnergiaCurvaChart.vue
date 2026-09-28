@@ -71,29 +71,50 @@
   </div>
 </template>
 
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
+type Curva = (number | null)[]
 
-const props = defineProps({
-  final: { type: Array, default: () => Array(24).fill(null) },
-  medidor: { type: Array, default: null },
-  // Cuál medidor viene en la prop `medidor` -- el padre resuelve principal
-  // con fallback a respaldo, así que la etiqueta no puede ser fija (pedido
-  // 2026-08-20: "Medidor" sin más era ambiguo).
-  medidorLabel: { type: String, default: 'Medidor' },
-  solenium: { type: Array, default: null },
-  reconectador: { type: Array, default: null },
-  horasReconectador: { type: Array, default: () => [] },
-  horasSolenium: { type: Array, default: () => [] },
-  horasHistorico: { type: Array, default: () => [] },
-  horasMedidorCruzado: { type: Array, default: () => [] },
-  // Capacidad efectiva de la frontera (MW) -- viene en MW, pero el chart
-  // grafica en kWh por hora, así que se convierte (1 MW sostenida 1h = 1.000 kWh).
-  capacidadMw: { type: Number, default: null },
-  // Ver finalVacia -- una curva en 0 puede ser el placeholder de Caso 1/CGM
-  // (ocultar) o una corrección manual real con 'Matriz de ceros' (mostrar).
-  editadoManualmente: { type: Boolean, default: false },
-})
+const props = withDefaults(
+  defineProps<{
+    final?: Curva
+    medidor?: Curva | null
+    /**
+     * Cuál medidor viene en la prop `medidor` -- el padre resuelve principal
+     * con fallback a respaldo, así que la etiqueta no puede ser fija (pedido
+     * 2026-08-20: "Medidor" sin más era ambiguo).
+     */
+    medidorLabel?: string
+    solenium?: Curva | null
+    reconectador?: Curva | null
+    horasReconectador?: number[]
+    horasSolenium?: number[]
+    horasHistorico?: number[]
+    horasMedidorCruzado?: number[]
+    /**
+     * Capacidad efectiva de la frontera (MW) -- viene en MW, pero el chart
+     * grafica en kWh por hora, así que se convierte (1 MW sostenida 1h = 1.000 kWh).
+     */
+    capacidadMw?: number | null
+    /**
+     * Ver finalVacia -- una curva en 0 puede ser el placeholder de Caso 1/CGM
+     * (ocultar) o una corrección manual real con 'Matriz de ceros' (mostrar).
+     */
+    editadoManualmente?: boolean
+  }>(),
+  {
+    final: () => Array(24).fill(null),
+    medidor: null,
+    medidorLabel: 'Medidor',
+    solenium: null,
+    reconectador: null,
+    horasReconectador: () => [],
+    horasSolenium: () => [],
+    horasHistorico: () => [],
+    horasMedidorCruzado: () => [],
+    capacidadMw: null,
+    editadoManualmente: false,
+  },
+)
 
 const W = 700, H = 210, padL = 30, padR = 10, padT = 10, padB = 20
 const plotW = W - padL - padR, plotH = H - padT - padB
@@ -122,14 +143,14 @@ const finalVacia = computed(() =>
   && finalCurve.value.every(v => v === null || v === undefined || Number(v) === 0)
 )
 
-function val(arr, h) {
+function val(arr: Curva | null | undefined, h: number): number {
   const v = arr?.[h]
   return v === null || v === undefined ? 0 : Number(v)
 }
 // Triángulo pequeño centrado en (cx, cy) -- marcador propio de Solenium,
 // distinto del cuadrado de Medidor y el círculo de Final, para que la
 // diferencia no dependa solo del color.
-function trianguloPoints(cx, cy) {
+function trianguloPoints(cx: number, cy: number): string {
   const r = 4
   return `${cx},${cy - r} ${cx - r},${cy + r} ${cx + r},${cy + r}`
 }
@@ -148,10 +169,10 @@ const maxV = computed(() => {
   return Math.max(1, ...all) * 1.15
 })
 
-function x(h) { return padL + (h / 23) * plotW }
-function y(v) { return padT + plotH - (v / maxV.value) * plotH }
+function x(h: number): number { return padL + (h / 23) * plotW }
+function y(v: number): number { return padT + plotH - (v / maxV.value) * plotH }
 
-function pathDe(arr) {
+function pathDe(arr: Curva | null): string | null {
   if (!arr) return null
   let d = ''
   let tramo = false
@@ -169,7 +190,7 @@ function pathDe(arr) {
 // aunque eso signifique que "sin dato" y "generó/consumió 0 de verdad" se
 // vean igual en el chart (esa distinción vive en 'Detalle de la
 // clasificación'/'Horas rellenadas', no hace falta repetirla acá).
-function conCeros(arr) {
+function conCeros(arr: Curva | null | undefined): Curva | null {
   if (!arr) return null
   return arr.map((v) => (v === null || v === undefined ? 0 : v))
 }

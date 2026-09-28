@@ -1,24 +1,21 @@
 <template>
   <div class="list-pane bg-white rounded-xl shadow-sm overflow-hidden flex flex-col" style="border: 1px solid #e8e0f0;">
     <div class="p-3 space-y-2" style="border-bottom: 1px solid #f1ecf7;">
-      <span class="p-input-icon-left w-full">
-        <SearchIcon class="size-[1em]" />
-        <InputText v-model="search" placeholder="Buscar proyecto..." class="w-full" />
-      </span>
+      <InputGroup>
+        <InputGroupAddon><SearchIcon /></InputGroupAddon>
+        <InputGroupInput v-model="search" placeholder="Buscar proyecto..." />
+      </InputGroup>
       <div class="flex gap-2">
         <button class="filter-pill" :class="{ on: genOn }" @click="genOn = !genOn">Generación</button>
         <button class="filter-pill" :class="{ on: conOn }" @click="conOn = !conOn">Consumo</button>
       </div>
-      <Select
-        v-model="filtroFuente"
-        :options="opcionesFuente"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Todas las fuentes"
-        showClear
-        class="w-full"
-        size="small"
-      />
+      <Select :model-value="filtroFuente ?? ''" @update:model-value="(v) => (filtroFuente = (v as string) || null)">
+        <SelectTrigger size="sm" class="w-full"><SelectValue placeholder="Todas las fuentes" /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Todas las fuentes</SelectItem>
+          <SelectItem v-for="op in opcionesFuente" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
     <ul class="list-scroll flex-1 overflow-y-auto" style="list-style: none; margin: 0; padding: 0;">
       <li v-for="f in filtradas" :key="f.frontera_id">
@@ -50,22 +47,23 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
+<script setup lang="ts">
+import type { FilaReporteEnergia } from '~/features/fronteras/types'
 import { SearchIcon } from '@lucide/vue'
 
-const props = defineProps({
-  filas: { type: Array, default: () => [] },
-  seleccionada: { type: Number, default: null },
-})
-defineEmits(['seleccionar'])
+const props = withDefaults(
+  defineProps<{
+    filas?: FilaReporteEnergia[]
+    seleccionada?: number | null
+  }>(),
+  { filas: () => [], seleccionada: null },
+)
+defineEmits<{ seleccionar: [fila: FilaReporteEnergia] }>()
 
 const search = ref('')
 const genOn = ref(true)
 const conOn = ref(true)
-const filtroFuente = ref(null)
+const filtroFuente = ref<string | null>(null)
 
 // Solo las fuentes que de verdad aparecen ese día, con su conteo: el catálogo
 // completo (ETIQUETAS_FUENTE) tiene ~20 entradas y la mayoría no aplica en un
@@ -78,7 +76,7 @@ const filtroFuente = ref(null)
 // ver ETIQUETAS_FUENTE). Agrupando por clave salían opciones repetidas con el
 // mismo nombre y conteos partidos, que es justo lo que no sirve para filtrar.
 const opcionesFuente = computed(() => {
-  const conteo = new Map()
+  const conteo = new Map<string, number>()
   for (const f of props.filas) {
     const etiqueta = etiquetaFuente(f)
     conteo.set(etiqueta, (conteo.get(etiqueta) || 0) + 1)
@@ -105,17 +103,19 @@ const filtradas = computed(() => {
   return list
 })
 
-function semaforo(f) {
+type Semaforo = 'critical' | 'warning' | 'success'
+
+function semaforo(f: FilaReporteEnergia): Semaforo {
   if (f.revisar_manualmente) return 'critical'
   if (['1', 'CGM'].includes(String(f.caso))) return 'success'
   return 'warning'
 }
-function semaforoColor(f) {
-  const map = { critical: '#D64455', warning: '#F0C040', success: '#10B981' }
+function semaforoColor(f: FilaReporteEnergia): string {
+  const map: Record<Semaforo, string> = { critical: '#D64455', warning: '#F0C040', success: '#10B981' }
   return map[semaforo(f)]
 }
 
-const ETIQUETAS_FUENTE = {
+const ETIQUETAS_FUENTE: Record<string, string> = {
   cgm: 'CGM', principal: 'Medidor principal', respaldo: 'Medidor respaldo',
   inversores: 'Inversores × FP', crudos: 'Datos crudos', crudos_parcial: 'Datos crudos (parcial)',
   reconectador: 'Reconectador', solenium_power: 'Solenium (power)', ninguno: 'Apagado',
@@ -126,10 +126,11 @@ const ETIQUETAS_FUENTE = {
   principal_sin_cgm: 'Medidor principal', respaldo_sin_cgm: 'Medidor respaldo',
   excluida: 'Excluida', excel_terceros: 'Excel de terceros', editado_manualmente: 'Editado manualmente',
 }
-function etiquetaFuente(f) {
-  return ETIQUETAS_FUENTE[f.medidor_usado] || f.medidor_usado || '—'
+function etiquetaFuente(f: FilaReporteEnergia): string {
+  const clave = typeof f.medidor_usado === 'string' ? f.medidor_usado : null
+  return (clave && ETIQUETAS_FUENTE[clave]) || clave || '—'
 }
-function fmtKwh(v) {
+function fmtKwh(v: unknown): string {
   if (v === null || v === undefined) return '—'
   return Number(v).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh'
 }

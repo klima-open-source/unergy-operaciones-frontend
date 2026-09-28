@@ -6,10 +6,22 @@ import { getLocalTimeZone, parseDate } from '@internationalized/date'
 // `ui/calendar` (mismo problema que `blocks/DataTable`) y `typecheck` falla.
 import { Calendar } from '~/components/ui/calendar'
 
-withDefaults(defineProps<{ placeholder?: string; clearable?: boolean }>(), {
-  placeholder: 'Seleccionar fecha',
-  clearable: false,
-})
+const props = withDefaults(
+  defineProps<{
+    placeholder?: string
+    clearable?: boolean
+    /** Fecha mínima seleccionable, en `'yyyy-mm-dd'`. */
+    minValue?: string | null
+    /** Fecha máxima seleccionable, en `'yyyy-mm-dd'`. */
+    maxValue?: string | null
+  }>(),
+  {
+    placeholder: 'Seleccionar fecha',
+    clearable: false,
+    minValue: null,
+    maxValue: null,
+  },
+)
 
 /** El valor de afuera es siempre `'yyyy-mm-dd'` — nunca un `Date` ni un `DateValue`. */
 const modelValue = defineModel<string | null>({ default: null })
@@ -23,6 +35,13 @@ const internal = computed<DateValue | undefined>({
     open.value = false
   },
 })
+
+const internalMin = computed<DateValue | undefined>(() =>
+  props.minValue ? parseDate(props.minValue) : undefined,
+)
+const internalMax = computed<DateValue | undefined>(() =>
+  props.maxValue ? parseDate(props.maxValue) : undefined,
+)
 
 const label = computed(() =>
   internal.value
@@ -45,7 +64,7 @@ const label = computed(() =>
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-auto p-0" align="start">
-        <Calendar v-model="internal" />
+        <Calendar v-model="internal" :min-value="internalMin" :max-value="internalMax" />
       </PopoverContent>
     </Popover>
     <Button v-if="clearable && modelValue" variant="outline" @click="modelValue = null">

@@ -1,385 +1,503 @@
 <template>
   <div class="space-y-5">
     <!-- Header -->
-    <PageHeader title="Fronteras Comerciales" :subtitle="errorCarga ? 'No se pudo cargar' : `${filteredFronteras.length} fronteras registradas`">
+    <PageHeader
+      title="Fronteras Comerciales"
+      :subtitle="errorCarga ? 'No se pudo cargar' : `${filteredFronteras.length} fronteras registradas`"
+    >
       <template #actions>
-        <Button label="Descargar Excel" size="small" severity="secondary" outlined @click="descargarExcel">
-          <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+        <Button variant="outline" size="sm" @click="descargarExcel">
+          <FileSpreadsheetIcon class="size-4" />
+          Descargar Excel
         </Button>
-        <Button label="Nueva Frontera" size="small" @click="abrirCrear">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+        <Button size="sm" @click="abrirCrear">
+          <PlusIcon class="size-4" />
+          Nueva Frontera
         </Button>
       </template>
     </PageHeader>
 
     <!-- Filtros -->
-    <!-- flex-nowrap + overflow-x-auto en vez de flex-wrap: si no caben los 5
-         grupos en el ancho disponible, se desplaza horizontal en vez de
-         partirse en dos líneas o truncar el texto de los dropdowns. -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-nowrap gap-3 items-end border overflow-x-auto" style="border-color:#ECE7F2">
+    <div class="flex flex-nowrap items-end gap-3 overflow-x-auto rounded-xl border bg-card p-3">
       <div class="flex-shrink-0">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Buscar</label>
-        <span class="p-input-icon-left">
-          <SearchIcon class="size-[1em]" />
-          <InputText v-model="search" placeholder="Buscar frontera..." class="w-48" />
-        </span>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
+        <InputGroup class="w-48">
+          <InputGroupAddon><SearchIcon /></InputGroupAddon>
+          <InputGroupInput v-model="search" placeholder="Buscar frontera..." />
+        </InputGroup>
       </div>
       <div class="flex-shrink-0">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Estado</label>
-        <Dropdown v-model="estadoFilter" :options="estadoOptions" optionLabel="label" optionValue="value"
-                  class="w-40" placeholder="Todos" showClear />
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Estado</label>
+        <Select :model-value="estadoFilter ?? ''" @update:model-value="(v) => (estadoFilter = (v as string) || null)">
+          <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos</SelectItem>
+            <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div class="flex-shrink-0">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Proyecto</label>
-        <Dropdown v-model="proyectoFilter" :options="proyectoOptions" optionLabel="label" optionValue="value"
-                  class="w-48" placeholder="Todos" showClear filter />
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
+        <ComboBox v-model="proyectoFilterStr" :options="proyectoOpciones" placeholder="Todos" class="w-48" />
       </div>
       <div class="flex-shrink-0">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Operador</label>
-        <Dropdown v-model="operadorFilter" :options="operadorOptions" optionLabel="label" optionValue="value"
-                  class="w-40" placeholder="Todos" showClear />
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Operador</label>
+        <Select :model-value="operadorFilter ?? ''" @update:model-value="(v) => (operadorFilter = (v as string) || null)">
+          <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos</SelectItem>
+            <SelectItem v-for="op in operadorOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div class="flex-shrink-0">
-        <label class="block text-xs font-medium text-gray-600 mb-1">Registro ASIC</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Registro ASIC</label>
         <div class="flex gap-2">
-          <Dropdown v-model="mesFilter" :options="mesOptions" optionLabel="label" optionValue="value"
-                    class="w-44" placeholder="Mes" showClear />
-          <Dropdown v-model="anioFilter" :options="anioOptions" optionLabel="label" optionValue="value"
-                    class="w-32" placeholder="Año" showClear />
+          <Select :model-value="mesFilter != null ? String(mesFilter) : ''" @update:model-value="(v) => (mesFilter = v ? Number(v) : null)">
+            <SelectTrigger class="w-44"><SelectValue placeholder="Mes" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Mes</SelectItem>
+              <SelectItem v-for="op in mesOptions" :key="op.value" :value="String(op.value)">{{ op.label }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select :model-value="anioFilter != null ? String(anioFilter) : ''" @update:model-value="(v) => (anioFilter = v ? Number(v) : null)">
+            <SelectTrigger class="w-32"><SelectValue placeholder="Año" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Año</SelectItem>
+              <SelectItem v-for="op in anioOptions" :key="op.value" :value="String(op.value)">{{ op.label }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
 
     <!-- Resumen Card -->
     <div class="flex flex-wrap gap-4">
-      <div v-for="stat in stats" :key="stat.label"
-           class="bg-white rounded-xl shadow-sm p-4 h-20 flex-1 min-w-[9rem] flex flex-col justify-center"
-           :class="{ 'cursor-pointer select-none': stat.clave }"
-           :style="{
-             border: stat.clave && soloGenerando ? '1.5px solid #3B82F6' : '1px solid #e8e0f0',
-             background: stat.clave && soloGenerando ? 'rgba(59,130,246,0.06)' : '#fff',
-           }"
-           v-tooltip.top="stat.clave ? 'Clic para filtrar' : undefined"
-           @click="stat.clave === 'generando' && (soloGenerando = !soloGenerando)">
-        <p class="text-xs uppercase tracking-wide font-semibold" style="color: #6b5a8a;">{{ stat.label }}</p>
-        <p class="text-2xl font-bold mt-1" :style="{ color: stat.color }">{{ stat.value }}</p>
+      <div
+        v-for="stat in stats"
+        :key="stat.label"
+        class="flex h-20 min-w-[9rem] flex-1 flex-col justify-center rounded-xl border bg-card p-4"
+        :class="stat.clave ? 'cursor-pointer select-none' : ''"
+        :style="stat.clave && soloGenerando ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.06)' } : {}"
+        :title="stat.clave ? 'Clic para filtrar' : undefined"
+        @click="stat.clave === 'generando' && (soloGenerando = !soloGenerando)"
+      >
+        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{{ stat.label }}</p>
+        <p class="mt-1 text-2xl font-bold" :style="{ color: stat.color }">{{ stat.value }}</p>
       </div>
     </div>
 
     <!-- Aviso: fronteras nuevas detectadas en Quoia -->
-    <div v-if="pendientesQuoia.length" class="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-         style="background: rgba(214,68,85,0.06); border: 1.5px solid rgba(214,68,85,0.25);">
-      <span class="text-sm font-medium" style="color: #D64455;">
-        <TriangleAlertIcon class="text-xs mr-1.5 size-[1em]" />
+    <div
+      v-if="pendientesQuoia.length"
+      class="flex items-center justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3"
+    >
+      <span class="text-sm font-medium text-destructive">
+        <TriangleAlertIcon class="mr-1.5 size-[1em] text-xs" />
         {{ pendientesQuoia.length }} {{ pendientesQuoia.length === 1 ? 'frontera nueva detectada' : 'fronteras nuevas detectadas' }} en Quoia, sin registrar aquí
       </span>
-      <Button label="Revisar" size="small" text style="color: #D64455;" @click="abrirPendientes" />
+      <Button variant="ghost" size="sm" class="text-destructive" @click="abrirPendientes">Revisar</Button>
     </div>
 
     <!-- Loading -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <LoaderCircleIcon class="text-3xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
+      <LoaderCircleIcon class="size-8 animate-spin text-primary" />
     </div>
 
     <!-- Fallo de carga: explicito, para no confundirlo con "no hay fronteras" -->
-    <div v-else-if="errorCarga" class="bg-white rounded-xl shadow-sm p-8 text-center" style="border: 1px solid #f0d0d0;">
-      <p class="font-semibold" style="color: #b42318;">No se pudo cargar el listado</p>
-      <p class="text-sm mt-1" style="color: #6b7280;">{{ errorCarga }}</p>
-      <Button label="Reintentar" size="small" class="mt-4" @click="loadData" />
+    <div v-else-if="errorCarga" class="rounded-xl border border-destructive/30 bg-card p-8 text-center">
+      <p class="font-semibold text-destructive">No se pudo cargar el listado</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ errorCarga }}</p>
+      <Button size="sm" class="mt-4" @click="loadData">Reintentar</Button>
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden" style="border: 1px solid #e8e0f0;">
-      <DataTable :value="filteredFronteras" :paginator="true" :rows="20"
-                 :rowsPerPageOptions="[10, 20, 50]" responsiveLayout="scroll"
-                 stripedRows class="p-datatable-sm">
-        <Column field="codigo_frontera" header="Código" sortable style="min-width: 140px">
-          <template #body="{ data }">
-            <span class="font-mono text-sm font-semibold" style="color: var(--color-unergy-purple);">{{ data.codigo_frontera || '—' }}</span>
-          </template>
-        </Column>
-        <Column field="nombre_frontera" header="Nombre" sortable style="min-width: 200px">
-          <template #body="{ data }">
-            {{ formatearNombre(data.nombre_frontera) }}
-          </template>
-        </Column>
-        <Column field="proyecto_nombre" header="Proyecto" sortable style="min-width: 180px">
-          <template #body="{ data }">
-            <RouterLink v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`"
-                        class="text-sm underline" style="color: var(--color-unergy-purple);">
-              {{ data.proyecto_nombre || `#${data.proyecto_id}` }}
+    <div v-else class="overflow-hidden rounded-xl border bg-card">
+      <DataTable :columns="columns" :rows="filteredFronteras as unknown as DataTableRow[]" row-key="id">
+        <template #cell="{ row: rawRow, column }">
+          <span v-if="column.key === 'codigo_frontera'" class="font-mono text-sm font-semibold text-primary">
+            {{ asFrontera(rawRow).codigo_frontera || '—' }}
+          </span>
+          <span v-else-if="column.key === 'nombre_frontera'">{{ formatearNombre(asFrontera(rawRow).nombre_frontera) }}</span>
+          <template v-else-if="column.key === 'proyecto_nombre'">
+            <RouterLink
+              v-if="asFrontera(rawRow).proyecto_id"
+              :to="`/proyectos/${asFrontera(rawRow).proyecto_id}`"
+              class="text-sm text-primary underline"
+              @click.stop
+            >
+              {{ asFrontera(rawRow).proyecto_nombre || `#${asFrontera(rawRow).proyecto_id}` }}
             </RouterLink>
-            <span v-else class="text-sm" style="color: #999;">—</span>
+            <span v-else class="text-sm text-muted-foreground">—</span>
           </template>
-        </Column>
-        <Column field="tipo_frontera" header="Tipo" sortable style="min-width: 130px">
-          <template #body="{ data }">
-            <GBadge :color="tipoSeverity(data.tipo_frontera)">{{ tipoLabel(data.tipo_frontera) }}</GBadge>
+          <GBadge v-else-if="column.key === 'tipo_frontera'" :color="tipoSeverity(asFrontera(rawRow).tipo_frontera)">
+            {{ tipoLabel(asFrontera(rawRow).tipo_frontera) }}
+          </GBadge>
+          <GBadge v-else-if="column.key === 'estado'" :color="estadoSeverity(asFrontera(rawRow).estado)">
+            {{ asFrontera(rawRow).estado }}
+          </GBadge>
+          <template v-else-if="column.key === 'fecha_registro_asic'">
+            <span v-if="asFrontera(rawRow).fecha_registro_asic" class="text-sm text-muted-foreground">{{ asFrontera(rawRow).fecha_registro_asic }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="estado" header="Estado" sortable style="min-width: 120px">
-          <template #body="{ data }">
-            <GBadge :color="estadoSeverity(data.estado)">{{ data.estado }}</GBadge>
+          <template v-else-if="column.key === 'nro_serie_med_ppal'">
+            <span v-if="asFrontera(rawRow).nro_serie_med_ppal" class="font-mono text-xs text-muted-foreground">{{ asFrontera(rawRow).nro_serie_med_ppal }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="fecha_registro_asic" header="Fecha Registro ASIC" sortable style="min-width: 150px">
-          <template #body="{ data }">
-            <span v-if="data.fecha_registro_asic" class="text-sm" style="color: #6b5a8a;">{{ data.fecha_registro_asic }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
+          <template v-else-if="column.key === 'nro_serie_med_resp'">
+            <span v-if="asFrontera(rawRow).nro_serie_med_resp" class="font-mono text-xs text-muted-foreground">{{ asFrontera(rawRow).nro_serie_med_resp }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="nro_serie_med_ppal" header="Serial Medidor Principal" style="min-width: 170px">
-          <template #body="{ data }">
-            <span v-if="data.nro_serie_med_ppal" class="font-mono text-xs" style="color: #6b5a8a;">{{ data.nro_serie_med_ppal }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
+          <span v-else-if="column.key === 'operador_comercial'">
+            {{ asFrontera(rawRow).operador_comercial || asFrontera(rawRow).operador_red || '—' }}
+          </span>
+          <template v-else-if="column.key === 'cap_mw'">
+            <span v-if="capacidadMw(asFrontera(rawRow)) !== null">{{ capacidadMw(asFrontera(rawRow))!.toFixed(3) }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="nro_serie_med_resp" header="Serial Medidor Respaldo" style="min-width: 170px">
-          <template #body="{ data }">
-            <span v-if="data.nro_serie_med_resp" class="font-mono text-xs" style="color: #6b5a8a;">{{ data.nro_serie_med_resp }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
+          <template v-else-if="column.key === 'proyecto_municipio'">
+            <span v-if="asFrontera(rawRow).proyecto_municipio">{{ asFrontera(rawRow).proyecto_municipio }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="operador_comercial" header="Operador" sortable style="min-width: 120px">
-          <template #body="{ data }">
-            {{ data.operador_comercial || data.operador_red || '—' }}
+          <template v-else-if="column.key === 'proyecto_departamento'">
+            <span v-if="asFrontera(rawRow).proyecto_departamento">{{ asFrontera(rawRow).proyecto_departamento }}</span>
+            <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
-        </Column>
-        <Column field="proyecto_potencia_instalada_mw" header="Cap. MW" sortable style="min-width: 100px">
-          <template #body="{ data }">
-            <span v-if="capacidadMw(data) !== null">{{ capacidadMw(data).toFixed(3) }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
-          </template>
-        </Column>
-        <Column field="proyecto_municipio" header="Municipio" sortable style="min-width: 130px">
-          <template #body="{ data }">
-            <span v-if="data.proyecto_municipio">{{ data.proyecto_municipio }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
-          </template>
-        </Column>
-        <Column field="proyecto_departamento" header="Departamento" sortable style="min-width: 130px">
-          <template #body="{ data }">
-            <span v-if="data.proyecto_departamento">{{ data.proyecto_departamento }}</span>
-            <span v-else class="text-xs" style="color: #c4b8d4;">—</span>
-          </template>
-        </Column>
-        <Column header="" style="width: 90px">
-          <template #body="{ data }">
-            <Button text rounded size="small" severity="secondary" @click="editFrontera(data)" v-tooltip="'Editar'">
-              <template #icon><PencilIcon class="size-[1em]" /></template>
-            </Button>
-            <Button text rounded size="small" severity="danger" :loading="borrandoId === data.id"
-                    :disabled="borrandoId !== null" @click="deleteFrontera(data)" v-tooltip="'Eliminar'">
-              <template #icon><Trash2Icon class="size-[1em]" /></template>
-            </Button>
-          </template>
-        </Column>
+          <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1">
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click.stop="editFrontera(asFrontera(rawRow))">
+                  <PencilIcon class="size-4" />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Editar</GTooltipContent>
+            </GTooltip>
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-destructive"
+                  :disabled="borrandoId !== null"
+                  @click.stop="deleteFrontera(asFrontera(rawRow))"
+                >
+                  <LoaderCircleIcon v-if="borrandoId === asFrontera(rawRow).id" class="animate-spin" />
+                  <Trash2Icon v-else class="size-4" />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Eliminar</GTooltipContent>
+            </GTooltip>
+          </div>
+        </template>
       </DataTable>
     </div>
 
     <!-- Edit Dialog -->
-    <Dialog v-model:visible="showEdit" :header="editingFrontera ? 'Editar Frontera' : 'Frontera'"
-      modal class="w-full max-w-2xl">
-      <div v-if="editForm" class="space-y-4 pt-2">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Código frontera</label>
-            <InputText v-model="editForm.codigo_frontera" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Nombre</label>
-            <InputText v-model="editForm.nombre_frontera" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Estado</label>
-            <Dropdown v-model="editForm.estado" :options="estadoOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Operador red</label>
-            <Dropdown v-model="editForm.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
-              optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
-          </div>
-          <div class="col-span-2">
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Proyecto</label>
-            <Dropdown v-model="editForm.proyecto_id" :options="proyectosAll" optionLabel="nombre_comercial"
-              optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
-          </div>
-        </div>
-
-        <!-- Ficha técnica medidor/módem (2026-08-14) -- antes solo vivía la
-             marca a nivel de proyecto (un valor para las 4 combinaciones
-             posibles ppal/resp x generación/consumo), acá sí se distingue
-             cada medidor/módem real de esta frontera. -->
-        <div class="pt-2" style="border-top: 1px solid #e8e0f0;">
-          <p class="text-xs font-semibold uppercase mb-2" style="color: #6b5a8a;">Medidor principal</p>
+    <Dialog v-model:open="showEdit">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{{ editingFrontera ? 'Editar Frontera' : 'Frontera' }}</DialogTitle>
+        </DialogHeader>
+        <div v-if="editForm" class="space-y-4 pt-2">
           <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Tipo de extracción</label>
-              <InputText v-model="editForm.tipo_extraccion_ppal" class="w-full" placeholder="Ej. DLMS" />
+            <div class="space-y-1.5">
+              <GLabel>Código frontera</GLabel>
+              <Input :model-value="editForm.codigo_frontera ?? ''" @update:model-value="(v) => (editForm!.codigo_frontera = (v as string) || null)" />
             </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Contraseña del medidor</label>
-              <InputText v-model="editForm.password_medidor_ppal" class="w-full" />
+            <div class="space-y-1.5">
+              <GLabel>Nombre</GLabel>
+              <Input :model-value="editForm.nombre_frontera ?? ''" @update:model-value="(v) => (editForm!.nombre_frontera = (v as string) || null)" />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Estado</GLabel>
+              <Select v-model="editForm.estado">
+                <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Operador red</GLabel>
+              <ComboBox
+                :model-value="editForm.operador_red_id != null ? String(editForm.operador_red_id) : null"
+                :options="operadoresRedOptions"
+                placeholder="Seleccionar"
+                @update:model-value="(v) => (editForm!.operador_red_id = v ? Number(v) : null)"
+              />
+            </div>
+            <div class="col-span-2 space-y-1.5">
+              <GLabel>Proyecto</GLabel>
+              <ComboBox
+                :model-value="editForm.proyecto_id != null ? String(editForm.proyecto_id) : null"
+                :options="proyectosAllOptions"
+                placeholder="Seleccionar"
+                @update:model-value="(v) => (editForm!.proyecto_id = v ? Number(v) : null)"
+              />
             </div>
           </div>
-          <p class="text-xs font-semibold uppercase mt-3 mb-2" style="color: #6b5a8a;">Módem asociado</p>
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Dirección IP</label>
-              <InputText v-model="editForm.ip_modem_ppal" class="w-full" placeholder="10.10.10.1" />
-            </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Puerto</label>
-              <InputNumber v-model="editForm.puerto_modem_ppal" class="w-full" :useGrouping="false" />
-            </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Canal de comunicación</label>
-              <InputText v-model="editForm.canal_comunicacion_ppal" class="w-full" placeholder="Ej. IPsec" />
-            </div>
-          </div>
-        </div>
 
-        <div class="pt-2" style="border-top: 1px solid #e8e0f0;">
-          <p class="text-xs font-semibold uppercase mb-2" style="color: #6b5a8a;">Medidor respaldo</p>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Tipo de extracción</label>
-              <InputText v-model="editForm.tipo_extraccion_resp" class="w-full" placeholder="Ej. DLMS" />
+          <!-- Ficha técnica medidor/módem (2026-08-14) -- antes solo vivía la
+               marca a nivel de proyecto (un valor para las 4 combinaciones
+               posibles ppal/resp x generación/consumo), acá sí se distingue
+               cada medidor/módem real de esta frontera. -->
+          <div class="space-y-3 border-t pt-3">
+            <p class="text-xs font-semibold text-muted-foreground uppercase">Medidor principal</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Tipo de extracción</GLabel>
+                <Input :model-value="editForm.tipo_extraccion_ppal ?? ''" @update:model-value="(v) => (editForm!.tipo_extraccion_ppal = (v as string) || null)" placeholder="Ej. DLMS" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Contraseña del medidor</GLabel>
+                <Input :model-value="editForm.password_medidor_ppal ?? ''" @update:model-value="(v) => (editForm!.password_medidor_ppal = (v as string) || null)" />
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Contraseña del medidor</label>
-              <InputText v-model="editForm.password_medidor_resp" class="w-full" />
+            <p class="text-xs font-semibold text-muted-foreground uppercase">Módem asociado</p>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Dirección IP</GLabel>
+                <Input :model-value="editForm.ip_modem_ppal ?? ''" @update:model-value="(v) => (editForm!.ip_modem_ppal = (v as string) || null)" placeholder="10.10.10.1" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Puerto</GLabel>
+                <NumberField v-model="editForm.puerto_modem_ppal" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent>
+                    <NumberFieldInput />
+                  </NumberFieldContent>
+                </NumberField>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Canal de comunicación</GLabel>
+                <Input :model-value="editForm.canal_comunicacion_ppal ?? ''" @update:model-value="(v) => (editForm!.canal_comunicacion_ppal = (v as string) || null)" placeholder="Ej. IPsec" />
+              </div>
             </div>
           </div>
-          <p class="text-xs font-semibold uppercase mt-3 mb-2" style="color: #6b5a8a;">Módem asociado</p>
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Dirección IP</label>
-              <InputText v-model="editForm.ip_modem_resp" class="w-full" placeholder="10.10.10.1" />
+
+          <div class="space-y-3 border-t pt-3">
+            <p class="text-xs font-semibold text-muted-foreground uppercase">Medidor respaldo</p>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Tipo de extracción</GLabel>
+                <Input :model-value="editForm.tipo_extraccion_resp ?? ''" @update:model-value="(v) => (editForm!.tipo_extraccion_resp = (v as string) || null)" placeholder="Ej. DLMS" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Contraseña del medidor</GLabel>
+                <Input :model-value="editForm.password_medidor_resp ?? ''" @update:model-value="(v) => (editForm!.password_medidor_resp = (v as string) || null)" />
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Puerto</label>
-              <InputNumber v-model="editForm.puerto_modem_resp" class="w-full" :useGrouping="false" />
-            </div>
-            <div>
-              <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Canal de comunicación</label>
-              <InputText v-model="editForm.canal_comunicacion_resp" class="w-full" placeholder="Ej. IPsec" />
+            <p class="text-xs font-semibold text-muted-foreground uppercase">Módem asociado</p>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Dirección IP</GLabel>
+                <Input :model-value="editForm.ip_modem_resp ?? ''" @update:model-value="(v) => (editForm!.ip_modem_resp = (v as string) || null)" placeholder="10.10.10.1" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Puerto</GLabel>
+                <NumberField v-model="editForm.puerto_modem_resp" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent>
+                    <NumberFieldInput />
+                  </NumberFieldContent>
+                </NumberField>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Canal de comunicación</GLabel>
+                <Input :model-value="editForm.canal_comunicacion_resp ?? ''" @update:model-value="(v) => (editForm!.canal_comunicacion_resp = (v as string) || null)" placeholder="Ej. IPsec" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="showEdit = false" />
-        <Button label="Guardar" :loading="saving" @click="saveFrontera" />
-      </template>
+        <DialogFooter>
+          <Button variant="secondary" @click="showEdit = false">Cancelar</Button>
+          <Button :disabled="saving" @click="saveFrontera">
+            <LoaderCircleIcon v-if="saving" class="animate-spin" />
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- Create Dialog -->
-    <Dialog v-model:visible="showCreate" header="Nueva Frontera" modal class="w-full max-w-lg">
-      <div class="space-y-4 pt-2">
-        <div class="grid grid-cols-2 gap-4">
-          <div class="col-span-2">
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Proyecto</label>
-            <Dropdown v-model="createForm.proyecto_id" :options="proyectosAll" optionLabel="nombre_comercial"
-              optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Código frontera</label>
-            <InputText v-model="createForm.codigo_frontera" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Nombre *</label>
-            <InputText v-model="createForm.nombre_frontera" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Tipo *</label>
-            <Dropdown v-model="createForm.tipo_frontera" :options="tipoOptions" optionLabel="label"
-              optionValue="value" class="w-full" placeholder="Seleccionar" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Estado</label>
-            <Dropdown v-model="createForm.estado" :options="estadoOptions" optionLabel="label" optionValue="value" class="w-full" />
-          </div>
-          <div>
-            <label class="text-xs font-semibold uppercase block mb-1" style="color: #6b5a8a;">Operador red</label>
-            <Dropdown v-model="createForm.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
-              optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
+    <Dialog v-model:open="showCreate">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nueva Frontera</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-4 pt-2">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2 space-y-1.5">
+              <GLabel>Proyecto</GLabel>
+              <ComboBox
+                :model-value="createForm.proyecto_id != null ? String(createForm.proyecto_id) : null"
+                :options="proyectosAllOptions"
+                placeholder="Seleccionar"
+                @update:model-value="(v) => (createForm.proyecto_id = v ? Number(v) : null)"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Código frontera</GLabel>
+              <Input :model-value="createForm.codigo_frontera ?? ''" @update:model-value="(v) => (createForm.codigo_frontera = (v as string) || null)" />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel required>Nombre</GLabel>
+              <Input :model-value="createForm.nombre_frontera ?? ''" @update:model-value="(v) => (createForm.nombre_frontera = (v as string) || null)" />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel required>Tipo</GLabel>
+              <Select :model-value="createForm.tipo_frontera ?? undefined" @update:model-value="(v) => (createForm.tipo_frontera = v as string)">
+                <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="op in tipoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Estado</GLabel>
+              <Select v-model="createForm.estado">
+                <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Operador red</GLabel>
+              <ComboBox
+                :model-value="createForm.operador_red_id != null ? String(createForm.operador_red_id) : null"
+                :options="operadoresRedOptions"
+                placeholder="Seleccionar"
+                @update:model-value="(v) => (createForm.operador_red_id = v ? Number(v) : null)"
+              />
+            </div>
           </div>
         </div>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="showCreate = false" />
-        <Button label="Crear" :loading="creating" :disabled="!createForm.nombre_frontera || !createForm.tipo_frontera"
-          @click="crearFrontera" />
-      </template>
+        <DialogFooter>
+          <Button variant="secondary" @click="showCreate = false">Cancelar</Button>
+          <Button
+            :disabled="creating || !createForm.nombre_frontera || !createForm.tipo_frontera"
+            @click="crearFrontera"
+          >
+            <LoaderCircleIcon v-if="creating" class="animate-spin" />
+            Crear
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- Dialog: nombre parecido a una frontera existente -->
-    <Dialog v-model:visible="duplicadoVisible" header="Frontera parecida ya existe" modal class="w-full max-w-sm">
-      <p class="text-sm mb-4" style="color: #6b5a8a;">
-        Ya existe una frontera con un nombre muy parecido:
-        <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
-        (ID {{ duplicadoInfo?.candidato_id }}).
-        Si de verdad es una frontera distinta, puedes {{ pendingConfirmar ? 'agregarla' : 'crearla' }} igual.
-      </p>
-      <div class="flex justify-end gap-2">
-        <Button label="Cancelar" severity="secondary" text
-          @click="duplicadoVisible = false; pendingConfirmar = null" />
-        <Button :label="pendingConfirmar ? 'Agregar de todos modos' : 'Crear de todos modos'"
-          :loading="forzando" @click="forzarDuplicado" />
-      </div>
+    <Dialog v-model:open="duplicadoVisible">
+      <DialogContent class="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Frontera parecida ya existe</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">
+          Ya existe una frontera con un nombre muy parecido:
+          <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
+          (ID {{ duplicadoInfo?.candidato_id }}).
+          Si de verdad es una frontera distinta, puedes {{ pendingConfirmar ? 'agregarla' : 'crearla' }} igual.
+        </p>
+        <DialogFooter>
+          <Button variant="secondary" @click="duplicadoVisible = false; pendingConfirmar = null">Cancelar</Button>
+          <Button :disabled="forzando" @click="forzarDuplicado">
+            <LoaderCircleIcon v-if="forzando" class="animate-spin" />
+            {{ pendingConfirmar ? 'Agregar de todos modos' : 'Crear de todos modos' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- Pendientes de Quoia Dialog -->
-    <Dialog v-model:visible="showPendientesDialog" header="Fronteras nuevas en Quoia" modal class="w-full max-w-3xl">
-      <p class="text-sm mb-4" style="color: #6b5a8a;">
-        Estas fronteras existen en Quoia pero todavía no tienen fila aquí. Asígnales un proyecto para agregarlas,
-        o ignóralas si no aplican.
-      </p>
-      <div v-if="loadingPendientes" class="flex items-center justify-center py-8">
-        <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
-      </div>
-      <div v-else-if="!pendientesQuoia.length" class="text-center py-8 text-sm" style="color: #9b89b5;">
-        No hay fronteras pendientes por revisar.
-      </div>
-      <div v-else class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-        <div v-for="p in pendientesQuoia" :key="p.frt_code"
-          class="rounded-xl p-3 flex items-center gap-3" style="border: 1.5px solid #e8e0f0;">
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold truncate" style="color: var(--color-unergy-deep);">{{ p.nombre_quoia }}</p>
-            <p class="text-xs font-mono" style="color: #9b89b5;">{{ p.frt_code }} · {{ p.categoria }}</p>
-          </div>
-          <Dropdown v-model="p._proyectoId" :options="proyectosAll" optionLabel="nombre_comercial" optionValue="id"
-            placeholder="Proyecto..." filter showClear class="w-64" />
-          <Button label="Agregar" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._proyectoId" @click="confirmarPendiente(p)" style="background: var(--color-unergy-purple); border-color: var(--color-unergy-purple);">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
-          </Button>
-          <Button text severity="secondary" size="small" :loading="p._loading === 'ignorar'" @click="ignorarPendiente(p)" v-tooltip="'Ignorar'">
-            <template #icon><XIcon class="size-[1em]" /></template>
-          </Button>
+    <Dialog v-model:open="showPendientesDialog">
+      <DialogContent class="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Fronteras nuevas en Quoia</DialogTitle>
+        </DialogHeader>
+        <p class="text-sm text-muted-foreground">
+          Estas fronteras existen en Quoia pero todavía no tienen fila aquí. Asígnales un proyecto para agregarlas,
+          o ignóralas si no aplican.
+        </p>
+        <div v-if="loadingPendientes" class="flex items-center justify-center py-8">
+          <LoaderCircleIcon class="size-6 animate-spin text-primary" />
         </div>
-      </div>
+        <div v-else-if="!pendientesQuoia.length" class="py-8 text-center text-sm text-muted-foreground">
+          No hay fronteras pendientes por revisar.
+        </div>
+        <div v-else class="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+          <div v-for="p in pendientesQuoia" :key="p.frt_code" class="flex items-center gap-3 rounded-xl border p-3">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-semibold text-foreground">{{ p.nombre_quoia }}</p>
+              <p class="font-mono text-xs text-muted-foreground">{{ p.frt_code }} · {{ p.categoria }}</p>
+            </div>
+            <ComboBox
+              :model-value="p.proyectoId != null ? String(p.proyectoId) : null"
+              :options="proyectosAllOptions"
+              placeholder="Proyecto..."
+              class="w-64"
+              @update:model-value="(v) => (p.proyectoId = v ? Number(v) : null)"
+            />
+            <Button size="sm" :disabled="p.loading === 'confirmar' || !p.proyectoId" @click="confirmarPendiente(p)">
+              <LoaderCircleIcon v-if="p.loading === 'confirmar'" class="animate-spin" />
+              <CheckIcon v-else class="size-4" />
+              Agregar
+            </Button>
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" :disabled="p.loading === 'ignorar'" @click="ignorarPendiente(p)">
+                  <LoaderCircleIcon v-if="p.loading === 'ignorar'" class="animate-spin" />
+                  <XIcon v-else class="size-4" />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Ignorar</GTooltipContent>
+            </GTooltip>
+          </div>
+        </div>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+<script setup lang="ts">
+import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
+import type { OperadorRed } from '~/features/operadores-red/types'
+import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import type { DuplicadoFrontera, Frontera, FronteraPendienteQuoia, PayloadFrontera } from '~/features/fronteras/types'
+import {
+  CheckIcon,
+  FileSpreadsheetIcon,
+  LoaderCircleIcon,
+  PencilIcon,
+  PlusIcon,
+  SearchIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+  XIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { isFetchError, normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de
+// `DataTable` (ver `AdminUsuariosView.vue`).
+import DataTable, { type DataTableColumn, type DataTableRow } from '~/components/blocks/DataTable.vue'
 import { FronterasService } from '~/features/fronteras/services/fronteras'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Dropdown from 'primevue/dropdown'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import { formatearNombre } from '~/utils/nombreFormato'
 import { exportarExcel } from '~/utils/exportarExcel'
-import { CheckIcon, FileSpreadsheetIcon, LoaderCircleIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, XIcon } from '@lucide/vue'
+import { formatearNombre } from '~/utils/nombreFormato'
+
+const columns: DataTableColumn[] = [
+  { key: 'codigo_frontera', header: 'Código', sortable: true },
+  { key: 'nombre_frontera', header: 'Nombre', sortable: true },
+  { key: 'proyecto_nombre', header: 'Proyecto', sortable: true },
+  { key: 'tipo_frontera', header: 'Tipo', sortable: true },
+  { key: 'estado', header: 'Estado', sortable: true },
+  { key: 'fecha_registro_asic', header: 'Fecha Registro ASIC', sortable: true },
+  { key: 'nro_serie_med_ppal', header: 'Serial Medidor Principal' },
+  { key: 'nro_serie_med_resp', header: 'Serial Medidor Respaldo' },
+  { key: 'operador_comercial', header: 'Operador', sortable: true },
+  { key: 'cap_mw', header: 'Cap. MW', sortable: true },
+  { key: 'proyecto_municipio', header: 'Municipio', sortable: true },
+  { key: 'proyecto_departamento', header: 'Departamento', sortable: true },
+  { key: 'acciones', header: '' },
+]
 
 const confirm = useConfirm()
 const fronterasService = new FronterasService()
@@ -391,37 +509,59 @@ const operadoresRedService = new OperadoresRedService()
 const route = useRoute()
 const router = useRouter()
 
-const fronteras = ref([])
+const fronteras = ref<Frontera[]>([])
 const loading = ref(true)
 /** Mensaje del ultimo fallo de carga; null si la ultima carga salio bien. */
-const errorCarga = ref(null)
+const errorCarga = ref<string | null>(null)
 const saving = ref(false)
+
+function asFrontera(row: DataTableRow): Frontera {
+  return row as unknown as Frontera
+}
+
+function queryStr(v: unknown): string | null {
+  return typeof v === 'string' ? v : null
+}
+function queryNum(v: unknown): number | null {
+  const s = queryStr(v)
+  return s ? Number(s) : null
+}
 
 // Filtros sincronizados con la URL (?q=&estado=&proyecto=&operador=&mes=&anio=&generando=)
 // para que se sostengan al volver con el boton "atras" o al refrescar.
-const search = ref(route.query.q || '')
-const estadoFilter = ref(route.query.estado || null)
-const proyectoFilter = ref(route.query.proyecto ? Number(route.query.proyecto) : null)
-const operadorFilter = ref(route.query.operador || null)
-const mesFilter = ref(route.query.mes ? Number(route.query.mes) : null)
-const anioFilter = ref(route.query.anio ? Number(route.query.anio) : null)
+const search = ref(queryStr(route.query.q) || '')
+const estadoFilter = ref<string | null>(queryStr(route.query.estado))
+const proyectoFilter = ref<number | null>(queryNum(route.query.proyecto))
+const operadorFilter = ref<string | null>(queryStr(route.query.operador))
+const mesFilter = ref<number | null>(queryNum(route.query.mes))
+const anioFilter = ref<number | null>(queryNum(route.query.anio))
 const soloGenerando = ref(route.query.generando === '1')
 
-watch([search, estadoFilter, proyectoFilter, operadorFilter, mesFilter, anioFilter, soloGenerando], ([q, estado, proyecto, operador, mes, anio, generando]) => {
-  const query = {}
-  if (q) query.q = q
-  if (estado) query.estado = estado
-  if (proyecto) query.proyecto = proyecto
-  if (operador) query.operador = operador
-  if (mes) query.mes = mes
-  if (anio) query.anio = anio
-  if (generando) query.generando = '1'
-  router.replace({ query })
+const proyectoFilterStr = computed<string | null>({
+  get: () => (proyectoFilter.value != null ? String(proyectoFilter.value) : null),
+  set: (v) => { proyectoFilter.value = v ? Number(v) : null },
 })
+
+watch(
+  [search, estadoFilter, proyectoFilter, operadorFilter, mesFilter, anioFilter, soloGenerando],
+  ([q, estado, proyecto, operador, mes, anio, generando]) => {
+    const query: Record<string, string> = {}
+    if (q) query.q = q
+    if (estado) query.estado = estado
+    if (proyecto) query.proyecto = String(proyecto)
+    if (operador) query.operador = operador
+    if (mes) query.mes = String(mes)
+    if (anio) query.anio = String(anio)
+    if (generando) query.generando = '1'
+    router.replace({ query })
+  },
+)
+
 const showEdit = ref(false)
-const editingFrontera = ref(null)
-const editForm = ref(null)
-function blankCreateForm() {
+const editingFrontera = ref<Frontera | null>(null)
+const editForm = ref<PayloadFrontera | null>(null)
+
+function blankCreateForm(): PayloadFrontera {
   return {
     proyecto_id: null,
     codigo_frontera: '',
@@ -434,12 +574,12 @@ function blankCreateForm() {
 
 const showCreate = ref(false)
 const creating = ref(false)
-const createForm = ref(blankCreateForm())
+const createForm = ref<PayloadFrontera>(blankCreateForm())
 
 // Aviso de nombre parecido (409 estructurado, igual que en Proyectos): se
 // puede confirmar y crear igual con forzar=true.
 const duplicadoVisible = ref(false)
-const duplicadoInfo = ref(null)   // { mensaje, candidato_id, candidato_nombre }
+const duplicadoInfo = ref<DuplicadoFrontera | null>(null)
 const forzando = ref(false)
 
 const estadoOptions = [
@@ -457,20 +597,20 @@ const tipoOptions = [
   { label: 'Propio', value: 'consumo_propio' },
 ]
 
-const proyectoOptions = computed(() => {
-  const seen = new Map()
+const proyectoOpciones = computed<ComboBoxOption[]>(() => {
+  const seen = new Map<number, string>()
   for (const f of fronteras.value) {
     if (f.proyecto_id != null && !seen.has(f.proyecto_id)) {
       seen.set(f.proyecto_id, f.proyecto_nombre || `#${f.proyecto_id}`)
     }
   }
   return [...seen.entries()]
-    .map(([value, label]) => ({ label, value }))
+    .map(([value, label]) => ({ value: String(value), label }))
     .sort((a, b) => a.label.localeCompare(b.label))
 })
 
 const operadorOptions = computed(() => {
-  const seen = new Set()
+  const seen = new Set<string>()
   for (const f of fronteras.value) {
     const nombre = f.operador_comercial || f.operador_red
     if (nombre) seen.add(nombre)
@@ -482,7 +622,7 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
 const mesOptions = MESES.map((label, i) => ({ label, value: i + 1 }))
 
 const anioOptions = computed(() => {
-  const seen = new Set()
+  const seen = new Set<number>()
   for (const f of fronteras.value) {
     if (!f.fecha_registro_asic) continue
     const anio = new Date(f.fecha_registro_asic).getFullYear()
@@ -510,13 +650,13 @@ const filteredFronteras = computed(() => {
   if (search.value) {
     const s = search.value.toLowerCase()
     list = list.filter(f =>
-      (f.codigo_frontera || '').toLowerCase().includes(s) ||
-      (f.nombre_frontera || '').toLowerCase().includes(s) ||
-      (f.proyecto_nombre || '').toLowerCase().includes(s) ||
-      (f.operador_red || '').toLowerCase().includes(s) ||
-      (f.operador_comercial || '').toLowerCase().includes(s) ||
-      (f.proyecto_municipio || '').toLowerCase().includes(s) ||
-      (f.proyecto_departamento || '').toLowerCase().includes(s)
+      (f.codigo_frontera || '').toLowerCase().includes(s)
+      || (f.nombre_frontera || '').toLowerCase().includes(s)
+      || (f.proyecto_nombre || '').toLowerCase().includes(s)
+      || (f.operador_red || '').toLowerCase().includes(s)
+      || (f.operador_comercial || '').toLowerCase().includes(s)
+      || (f.proyecto_municipio || '').toLowerCase().includes(s)
+      || (f.proyecto_departamento || '').toLowerCase().includes(s),
     )
   }
   return list
@@ -533,8 +673,8 @@ const TIPOS_GENERACION = ['generacion', 'generacion_consumo']
 // generando) aunque el pipeline propio ya las viera generar. f.generando_actual
 // es null si el pipeline todavia no ha corrido para esa frontera (no
 // implica que no genere) -- esas quedan fuera del conteo igual que antes.
-function generaDeVerdad(f) {
-  return TIPOS_GENERACION.includes(f.tipo_frontera) && f.generando_actual === true
+function generaDeVerdad(f: Frontera): boolean {
+  return TIPOS_GENERACION.includes(f.tipo_frontera || '') && f.generando_actual === true
 }
 
 // La capacidad y la ubicacion son del PROYECTO, no de la frontera. Las columnas
@@ -554,16 +694,16 @@ function generaDeVerdad(f) {
  *  `TIPOS_GENERACION` (el mismo criterio que "Generando actualmente" de esta
  *  vista) para que una frontera Gen+Consumo no muestre capacidad en un lado y
  *  no en el otro. `null` cuando no aplica o el proyecto no tiene potencia. */
-function capacidadMw(f) {
-  if (!TIPOS_GENERACION.includes(f.tipo_frontera)) return null
+function capacidadMw(f: Frontera): number | null {
+  if (!TIPOS_GENERACION.includes(f.tipo_frontera || '')) return null
   const mw = Number(f.proyecto_potencia_instalada_mw)
   return Number.isFinite(mw) && mw > 0 ? mw : null
 }
 
 /** La capacidad total, sumada POR PROYECTO y no por fila: un proyecto con dos
  *  fronteras de generacion aporta sus MW una vez, no dos. */
-function capacidadTotalMw(lista) {
-  const porProyecto = new Map()
+function capacidadTotalMw(lista: Frontera[]): number {
+  const porProyecto = new Map<number | string, number>()
   for (const f of lista) {
     const mw = capacidadMw(f)
     if (mw === null) continue
@@ -573,7 +713,14 @@ function capacidadTotalMw(lista) {
   return [...porProyecto.values()].reduce((suma, mw) => suma + mw, 0)
 }
 
-const stats = computed(() => {
+interface Stat {
+  label: string
+  value: number | string
+  color: string
+  clave?: 'generando'
+}
+
+const stats = computed<Stat[]>(() => {
   const all = fronteras.value
   return [
     { label: 'Total', value: all.length, color: '#2C2039' },
@@ -584,38 +731,38 @@ const stats = computed(() => {
   ]
 })
 
-function tipoLabel(t) {
-  const map = { generacion: 'Generación', consumo: 'Consumo', generacion_consumo: 'Gen+Consumo', consumo_auxiliar: 'Auxiliar', consumo_propio: 'Propio' }
-  return map[t] || t
+function tipoLabel(t: string | null): string {
+  const map: Record<string, string> = { generacion: 'Generación', consumo: 'Consumo', generacion_consumo: 'Gen+Consumo', consumo_auxiliar: 'Auxiliar', consumo_propio: 'Propio' }
+  return (t && map[t]) || t || '—'
 }
-function tipoSeverity(t) {
+function tipoSeverity(t: string | null): string {
   if (t === 'generacion') return 'success'
   if (t === 'consumo') return 'information'
   return 'warning'
 }
-function estadoSeverity(e) {
-  const map = { activa: 'success', en_registro: 'warning', en_falla: 'destructive', cancelada: 'default' }
-  return map[e] || 'information'
+function estadoSeverity(e: string | null): string {
+  const map: Record<string, string> = { activa: 'success', en_registro: 'warning', en_falla: 'destructive', cancelada: 'default' }
+  return (e && map[e]) || 'information'
 }
 
 async function descargarExcel() {
   await exportarExcel(filteredFronteras.value, [
-    { header: 'Código', value: f => f.codigo_frontera || '' },
-    { header: 'Nombre', value: f => formatearNombre(f.nombre_frontera) },
-    { header: 'Proyecto', value: f => f.proyecto_nombre || '' },
-    { header: 'Tipo', value: f => tipoLabel(f.tipo_frontera) },
-    { header: 'Estado', value: f => f.estado || '' },
-    { header: 'Fecha Registro ASIC', value: f => f.fecha_registro_asic || '' },
-    { header: 'Serial Medidor Principal', value: f => f.nro_serie_med_ppal || '' },
-    { header: 'Serial Medidor Respaldo', value: f => f.nro_serie_med_resp || '' },
-    { header: 'Operador', value: f => f.operador_comercial || f.operador_red || '' },
-    { header: 'Cap. MW', value: f => (capacidadMw(f) !== null ? capacidadMw(f).toFixed(3) : '') },
-    { header: 'Municipio', value: f => f.proyecto_municipio || '' },
-    { header: 'Departamento', value: f => f.proyecto_departamento || '' },
+    { header: 'Código', value: (f: Frontera) => f.codigo_frontera || '' },
+    { header: 'Nombre', value: (f: Frontera) => formatearNombre(f.nombre_frontera) || '' },
+    { header: 'Proyecto', value: (f: Frontera) => f.proyecto_nombre || '' },
+    { header: 'Tipo', value: (f: Frontera) => tipoLabel(f.tipo_frontera) },
+    { header: 'Estado', value: (f: Frontera) => f.estado || '' },
+    { header: 'Fecha Registro ASIC', value: (f: Frontera) => f.fecha_registro_asic || '' },
+    { header: 'Serial Medidor Principal', value: (f: Frontera) => f.nro_serie_med_ppal || '' },
+    { header: 'Serial Medidor Respaldo', value: (f: Frontera) => f.nro_serie_med_resp || '' },
+    { header: 'Operador', value: (f: Frontera) => f.operador_comercial || f.operador_red || '' },
+    { header: 'Cap. MW', value: (f: Frontera) => (capacidadMw(f) !== null ? capacidadMw(f)!.toFixed(3) : '') },
+    { header: 'Municipio', value: (f: Frontera) => f.proyecto_municipio || '' },
+    { header: 'Departamento', value: (f: Frontera) => f.proyecto_departamento || '' },
   ], `fronteras_${new Date().toISOString().slice(0, 10)}.xlsx`, 'Fronteras')
 }
 
-function editFrontera(f) {
+function editFrontera(f: Frontera) {
   loadProyectosAll()
   editingFrontera.value = f
   editForm.value = {
@@ -646,8 +793,8 @@ async function saveFrontera() {
     toast.success('Frontera actualizada', { duration: 2000 })
     showEdit.value = false
     await loadData()
-  } catch (e) {
-    toast.error('Error', { description: e.data?.detail || 'Error al guardar', duration: 4000 })
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
   } finally {
     saving.value = false
   }
@@ -659,37 +806,33 @@ function abrirCrear() {
   loadProyectosAll()
 }
 
-const pendingCreatePayload = ref(null)  // body a reintentar con forzar=true
+const pendingCreatePayload = ref<PayloadFrontera | null>(null) // body a reintentar con forzar=true
 
 async function crearFrontera() {
-  if (!createForm.value) return
   creating.value = true
-  const body = { ...createForm.value, codigo_frontera: createForm.value.codigo_frontera || null }
+  const body: PayloadFrontera = { ...createForm.value, codigo_frontera: createForm.value.codigo_frontera || null }
   try {
     await fronterasService.crear(body)
     toast.success('Frontera creada', { duration: 2500 })
     showCreate.value = false
     await loadData()
-  } catch (e) {
-    const detail = e.data?.detail
+  } catch (err) {
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
     // igual. Distinto de un choque real de columna unica (detail es un string).
-    if (e.status === 409 && detail?.duplicado_nombre) {
-      duplicadoInfo.value = detail
+    if (isFetchError<{ detail?: DuplicadoFrontera }>(err) && err.status === 409 && err.data?.detail?.duplicado_nombre) {
+      duplicadoInfo.value = err.data.detail
       pendingCreatePayload.value = body
       duplicadoVisible.value = true
       return
     }
-    toast.error('Error', {
-      description: typeof detail === 'string' ? detail : 'No se pudo crear la frontera',
-      duration: 4000,
-    })
+    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
   } finally {
     creating.value = false
   }
 }
 
 async function crearFronteraForzado() {
+  if (!pendingCreatePayload.value) return
   forzando.value = true
   try {
     await fronterasService.crear(pendingCreatePayload.value, true)
@@ -697,12 +840,8 @@ async function crearFronteraForzado() {
     duplicadoVisible.value = false
     showCreate.value = false
     await loadData()
-  } catch (e) {
-    const detail = e.data?.detail
-    toast.error('Error', {
-      description: typeof detail === 'string' ? detail : 'No se pudo crear la frontera',
-      duration: 4000,
-    })
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
   } finally {
     forzando.value = false
   }
@@ -713,7 +852,7 @@ async function crearFronteraForzado() {
  * borrar, no solo el de su fila: el problema no era clickear dos veces la
  * misma, era clickear la de al lado.
  */
-const borrandoId = ref(null)
+const borrandoId = ref<number | null>(null)
 
 /**
  * Borrar una frontera.
@@ -732,7 +871,7 @@ const borrandoId = ref(null)
  * quita de la lista local en vez de recargar las 500. Nada se reacomoda debajo
  * del cursor.
  */
-function deleteFrontera(f) {
+function deleteFrontera(f: Frontera) {
   confirm({
     title: 'Confirmar eliminación',
     // El nombre primero: con codigos como frt55044 y frt55050 nadie nota que
@@ -750,8 +889,8 @@ function deleteFrontera(f) {
         await fronterasService.eliminar(f.id)
         fronteras.value = fronteras.value.filter(x => x.id !== f.id)
         toast.success(`${f.nombre_frontera} eliminada`, { duration: 2000 })
-      } catch (e) {
-        toast.error('Error', { description: e.data?.detail || 'Error al eliminar', duration: 4000 })
+      } catch (err) {
+        toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
       } finally {
         borrandoId.value = null
       }
@@ -773,27 +912,39 @@ async function loadData() {
   errorCarga.value = null
   try {
     fronteras.value = await fronterasService.listar({ limit: 500 })
-  } catch (e) {
-    logger.error('fronteras', e)
-    errorCarga.value = e?.data?.detail || 'No se pudo cargar el listado de fronteras.'
+  } catch (err) {
+    logger.error('fronteras', err)
+    const mensaje = normalizeError(err).message
+    errorCarga.value = mensaje
     fronteras.value = []
-    toast.error('Error al cargar fronteras', { description: errorCarga.value, duration: 6000 })
+    toast.error('Error al cargar fronteras', { description: mensaje, duration: 6000 })
   } finally {
     loading.value = false
   }
 }
 
 // ── Fronteras pendientes de Quoia (detectar + confirmar manual) ────────────────
-const pendientesQuoia = ref([])
+interface PendienteQuoiaUI extends FronteraPendienteQuoia {
+  proyectoId: number | null
+  loading: 'confirmar' | 'ignorar' | null
+}
+
+const pendientesQuoia = ref<PendienteQuoiaUI[]>([])
 const loadingPendientes = ref(false)
 const showPendientesDialog = ref(false)
-const proyectosAll = ref([])
+const proyectosAll = ref<ProyectoConDetalle[]>([])
+const proyectosAllOptions = computed<ComboBoxOption[]>(() =>
+  proyectosAll.value.map((p) => ({ value: String(p.id), label: p.nombre_comercial || `#${p.id}` })),
+)
+const operadoresRedOptions = computed<ComboBoxOption[]>(() =>
+  operadoresRed.value.map((o) => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })),
+)
 
 async function loadPendientesQuoia() {
   try {
     const data = await fronterasService.listarPendientesQuoia()
-    pendientesQuoia.value = data.map(p => ({ ...p, _proyectoId: p.proyecto_sugerido_id ?? null, _loading: null }))
-  } catch (e) {
+    pendientesQuoia.value = data.map(p => ({ ...p, proyectoId: p.proyecto_sugerido_id ?? null, loading: null }))
+  } catch {
     // Gaia sin configurar u otro error -- no bloquea la vista, solo no se muestra el aviso.
     pendientesQuoia.value = []
   }
@@ -815,7 +966,7 @@ function abrirPendientes() {
 }
 
 /** Pendiente a reintentar con forzar=true tras confirmar el aviso de parecido. */
-const pendingConfirmar = ref(null)
+const pendingConfirmar = ref<PendienteQuoiaUI | null>(null)
 
 /**
  * Agrega una frontera que Quoia ya tiene y aca todavia no.
@@ -826,29 +977,26 @@ const pendingConfirmar = ref(null)
  * un "No se pudo agregar la frontera" (2026-09-05, al agregar la minigranja de
  * San Luis de Since).
  */
-async function confirmarPendiente(p, forzar = false) {
-  p._loading = 'confirmar'
+async function confirmarPendiente(p: PendienteQuoiaUI, forzar = false) {
+  if (!p.proyectoId) return
+  p.loading = 'confirmar'
   try {
-    await fronterasService.confirmarPendienteQuoia(p.frt_code, p._proyectoId, forzar)
+    await fronterasService.confirmarPendienteQuoia(p.frt_code, p.proyectoId, forzar)
     pendientesQuoia.value = pendientesQuoia.value.filter(x => x.frt_code !== p.frt_code)
     duplicadoVisible.value = false
     pendingConfirmar.value = null
     toast.success('Frontera agregada', { duration: 2500 })
     await loadData()
-  } catch (e) {
-    const detail = e.data?.detail
-    if (!forzar && e.status === 409 && detail?.duplicado_nombre) {
-      duplicadoInfo.value = detail
+  } catch (err) {
+    if (!forzar && isFetchError<{ detail?: DuplicadoFrontera }>(err) && err.status === 409 && err.data?.detail?.duplicado_nombre) {
+      duplicadoInfo.value = err.data.detail
       pendingConfirmar.value = p
       duplicadoVisible.value = true
       return
     }
-    toast.error('Error', {
-      description: typeof detail === 'string' ? detail : (detail?.mensaje || 'No se pudo agregar la frontera'),
-      duration: 5000,
-    })
+    toast.error('Error', { description: normalizeError(err).message, duration: 5000 })
   } finally {
-    p._loading = null
+    p.loading = null
   }
 }
 
@@ -866,7 +1014,7 @@ async function forzarDuplicado() {
   await crearFronteraForzado()
 }
 
-function ignorarPendiente(p) {
+function ignorarPendiente(p: PendienteQuoiaUI) {
   confirm({
     title: 'Ignorar frontera de Quoia',
     description: `¿Ignorar "${p.nombre_quoia}" (${p.frt_code})? No volverá a aparecer como pendiente.`,
@@ -874,15 +1022,15 @@ function ignorarPendiente(p) {
     cancelLabel: 'Cancelar',
     variant: 'destructive',
     onConfirm: async () => {
-      p._loading = 'ignorar'
+      p.loading = 'ignorar'
       try {
         await fronterasService.ignorarPendienteQuoia(p.frt_code)
         pendientesQuoia.value = pendientesQuoia.value.filter(x => x.frt_code !== p.frt_code)
         toast.success('Ignorada', { duration: 2000 })
-      } catch (e) {
+      } catch {
         toast.error('Error', { description: 'No se pudo ignorar', duration: 4000 })
       } finally {
-        p._loading = null
+        p.loading = null
       }
     },
   })
@@ -890,10 +1038,7 @@ function ignorarPendiente(p) {
 
 // Catálogo de operadores de red -- select en vez de texto libre, para que
 // coincida con el vínculo real que usa Reporte CGM (Frontera.operador_red_id).
-const operadoresRed = ref([])
-const operadoresRedOptions = computed(() =>
-  operadoresRed.value.map(o => ({ id: o.id, label: o.nombre_comercial || o.nombre_legal }))
-)
+const operadoresRed = ref<OperadorRed[]>([])
 async function loadOperadoresRed() {
   try {
     operadoresRed.value = await operadoresRedService.listar()
