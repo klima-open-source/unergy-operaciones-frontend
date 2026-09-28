@@ -18,6 +18,9 @@ export interface ProyectoMonitoreoLegacy {
   nombre_clientes?: string
   /** Respaldo legacy — `EnvioMensualPanel.vue`/`InformesMensualesPanel.vue` lo usan si no hay `sub_project`/`nombre_comercial`. */
   name?: string
+  /** Alias usado por `InformesMensualesPanel.vue` para cruzar portafolios/ranking por nombre. */
+  nombre_bitacora?: string
+  municipio?: string
   [clave: string]: unknown
 }
 
@@ -26,15 +29,28 @@ export interface RespuestaProyectosLegacy {
   projects: ProyectoMonitoreoLegacy[]
 }
 
-/** `getGeneration`: la serie diaria y, si el backend simuló, el P90 mensual. */
+/** `getGeneration`: la serie diaria y, si el backend simuló, el P90/P50 mensual y el P90 diario. */
 export interface RespuestaGeneracionLegacy {
   ok?: boolean
   // MIGRACIÓN (slice `liquidaciones`) — el campo real que trae cada punto es
   // `date` (así lo consume `GeneracionView.vue`, sin migrar todavía); `fecha`
   // quedaba declarado sin que nada lo usara. Se agrega `date` en vez de
   // reemplazarlo por si algún consumidor futuro sí recibe `fecha`.
-  data: { fecha?: string; date?: string; kwh: number; [clave: string]: unknown }[]
-  simulation?: { p90_monthly?: number | null; [clave: string]: unknown }
+  data: {
+    fecha?: string
+    date?: string
+    kwh: number
+    /** Hora del punto (`HH:MM…`) — `InformesMensualesPanel.vue` la usa para inferir disponibilidad en franja solar. */
+    time?: string
+    [clave: string]: unknown
+  }[]
+  simulation?: {
+    p90_monthly?: number | null
+    p50_monthly?: number | null
+    /** P90 a nivel diario (no mensual) — usado para la línea de referencia del gráfico diario. */
+    p90_daily?: number | null
+    [clave: string]: unknown
+  }
   /**
    * De dónde salió la curva. `verified_by_operator` es un campo de la API de
    * Unergy que marca las lecturas que alguien revisó; cuando una planta no
@@ -44,8 +60,42 @@ export interface RespuestaGeneracionLegacy {
   [clave: string]: unknown
 }
 
+/** Datos de un inversor tal como los expone `getFMOData` — forma variable según el fabricante/plataforma de monitoreo. */
+export interface InversorFmoLegacy {
+  name?: string
+  nombre?: string
+  inverter_name?: string
+  sn?: string
+  serial_number?: string
+  serial?: string
+  nominal_power?: number | string
+  capacity?: number | string
+  potencia_nominal?: number | string
+  power_kw?: number | string
+  status?: string | number
+  estado?: string | number
+  alarm_status?: string | number
+  active_power?: number | string
+  power?: number | string
+  potencia?: number | string
+  pac?: number | string
+  [clave: string]: unknown
+}
+
+/** El contrato O&M asociado al proyecto, tal como lo devuelve `getFMOData`. */
+export interface ContratoFmoLegacy {
+  contratista?: string
+  disponibilidad_garantizada_pct?: string | number | null
+  valor_estimado_ano1_cop?: string | number | null
+  garantias_equipos?: string
+  [clave: string]: unknown
+}
+
 /** `getFMOData`: datos de inversores en vivo, forma variable. */
 export interface RespuestaFmoLegacy {
+  contrato?: ContratoFmoLegacy | null
+  inverters?: InversorFmoLegacy[]
+  inverters_error?: string
   [clave: string]: unknown
 }
 
@@ -57,6 +107,17 @@ export interface RespuestaPortafoliosLegacy {
 
 export interface ContratoLegacy {
   sub_project: string
+  /**
+   * Mismo gateway legacy que `ProyectoMonitoreoLegacy` (`getProjects`) — un
+   * contrato FMO cae al proyecto en operación cuando no aparece en
+   * `getAllContratos` (ver `InformesMensualesPanel.vue`), así que comparte sus
+   * mismas etiquetas de nombre/ubicación.
+   */
+  nombre_comercial?: string
+  nombre_display?: string
+  nombre_clientes?: string
+  nombre_bitacora?: string
+  municipio?: string
   [clave: string]: unknown
 }
 
@@ -351,6 +412,14 @@ export interface Informe {
   [clave: string]: unknown
 }
 
+/** Un proyecto miembro de un informe de portafolio: vinculado (`html_inline: null`, usa el informe individual vivo) o embebido (con su propia sección congelada). */
+export interface MiembroInformePayload {
+  sub_project: string
+  nombre: string
+  orden: number
+  html_inline: string | null
+}
+
 export interface PayloadGuardarInforme {
   tipo: TipoInforme
   sub_project: string
@@ -359,6 +428,8 @@ export interface PayloadGuardarInforme {
   periodo_display: string
   proyecto_nombre: string
   html_content: string
+  /** Solo `tipo === 'port'`: los proyectos que agrupa (ver `MiembroInformePayload`). */
+  miembros?: MiembroInformePayload[]
 }
 
 export interface FiltrosListaInformes {

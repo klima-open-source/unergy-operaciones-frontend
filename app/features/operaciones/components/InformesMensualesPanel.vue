@@ -46,7 +46,10 @@
         <!-- Selectores -->
         <div class="flex flex-wrap items-end gap-2.5">
           <!-- Proyecto (operacional individual y FMO) -->
-          <div v-if="tipo === 'proyecto' || tipo === 'fmo'" class="flex min-w-50 flex-1 flex-col gap-1">
+          <div
+            v-if="tipo === 'proyecto' || tipo === 'fmo'"
+            class="flex min-w-50 flex-1 flex-col gap-1"
+          >
             <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
               {{ tipo === 'fmo' ? 'Proyecto con contrato FMO' : 'Proyecto' }}
             </label>
@@ -54,7 +57,7 @@
               :model-value="proyectoSel"
               open-on-click
               open-on-focus
-              @update:model-value="(v) => (proyectoSel = v ?? '')"
+              @update:model-value="(v) => (proyectoSel = (v as string) ?? '')"
             >
               <ComboboxAnchor>
                 <ComboboxInput
@@ -113,7 +116,7 @@
               multiple
               open-on-click
               open-on-focus
-              @update:model-value="(v) => (proyectosSel = v ?? [])"
+              @update:model-value="(v) => (proyectosSel = (v as string[]) ?? [])"
             >
               <ComboboxAnchor>
                 <ComboboxInput
@@ -151,7 +154,7 @@
               :model-value="portafolioSel"
               open-on-click
               open-on-focus
-              @update:model-value="(v) => (portafolioSel = v ?? '')"
+              @update:model-value="(v) => (portafolioSel = (v as string) ?? '')"
             >
               <ComboboxAnchor>
                 <ComboboxInput
@@ -257,11 +260,9 @@
           <p class="font-semibold text-destructive">
             {{ error.title || 'No se pudo generar el informe' }}
           </p>
-          <p class="mt-0.5 text-sm text-muted-foreground">{{ error.detail || error.message || '' }}</p>
+          <p class="mt-0.5 text-sm text-muted-foreground">{{ error.detail }}</p>
         </div>
-        <Button variant="outline" size="sm" @click="generar">
-          <RefreshCwIcon /> Reintentar
-        </Button>
+        <Button variant="outline" size="sm" @click="generar"> <RefreshCwIcon /> Reintentar </Button>
       </CardContent>
     </Card>
 
@@ -339,17 +340,134 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { logger } from '~/core/logger'
+import { normalizeError } from '~/core/errors'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
-import { ArrowRightIcon, CalendarClockIcon, ChartColumnIcon, CheckIcon, CircleAlertIcon, FilePenIcon, InfoIcon, LayoutGridIcon, LoaderCircleIcon, PrinterIcon, RefreshCwIcon, SaveIcon, SettingsIcon, XIcon, ZapIcon } from '@lucide/vue'
+import type {
+  ContratoLegacy,
+  MiembroInformePayload,
+  PayloadGuardarInforme,
+  ProyectoMonitoreoLegacy,
+  RespuestaFmoLegacy,
+  RespuestaGeneracionLegacy,
+} from '~/features/operaciones/types'
+import type { Falla } from '~/features/fallas/types'
+import {
+  ArrowRightIcon,
+  CalendarClockIcon,
+  ChartColumnIcon,
+  CheckIcon,
+  CircleAlertIcon,
+  FilePenIcon,
+  InfoIcon,
+  LayoutGridIcon,
+  LoaderCircleIcon,
+  PrinterIcon,
+  RefreshCwIcon,
+  SaveIcon,
+  SettingsIcon,
+  XIcon,
+  ZapIcon,
+} from '@lucide/vue'
+
+// ── Tipos locales ──────────────────────────────────────────────────────
+type TipoPanelInforme = 'proyecto' | 'portafolio' | 'fmo' | 'ranking'
+type ModoPeriodo = 'mes' | 'custom'
+type AlcanceRanking = 'portafolio' | 'proyectos'
+
+interface OpcionProyecto {
+  value: string
+  label: string
+}
+
+interface OpcionPortafolio extends OpcionProyecto {
+  count: number
+}
+
+interface ErrorPanelInforme {
+  title: string
+  detail: string
+}
+
+interface RangoInforme {
+  from: string
+  to: string
+  year: number
+  month: number
+  monthName: string
+  lastDay: number
+  label: string
+  headerPeriod: string
+  isCustom: boolean
+  totalDays: number
+}
+
+interface MesEnRango {
+  from: string
+  to: string
+  label: string
+}
+
+interface ItemRankingP90 {
+  /** Opcional: `buildConsolidatedPage` puede quedarse sin ningún alias de nombre para el proyecto. */
+  name?: string
+  real: number
+  p90: number | null
+}
+
+interface DiaAtipico {
+  date: string
+  kwh: number
+  pct: number
+}
+
+interface DisponibilidadOperativa {
+  pct: number | null
+  disponibles: number
+  total: number
+  cero: number
+}
+
+interface SemanaGeneracion {
+  lbl: string
+  period: string
+  gen: number
+  p90: number | null
+  pct: number | null
+  ok: boolean | null
+}
+
+/**
+ * `cfg` a lo largo del archivo: un proyecto en operación (`getProjects`) o un
+ * contrato FMO (`getAllContratos`) — ambos vienen del mismo gateway legacy y
+ * comparten las mismas etiquetas de nombre/ubicación (ver comentario en
+ * `ContratoLegacy`).
+ */
+type ProyectoCfg = ProyectoMonitoreoLegacy | ContratoLegacy
+
+interface ProyectoResultadoPeriodo {
+  cfg: ProyectoCfg
+  genRes: RespuestaGeneracionLegacy
+  mf: Falla[]
+}
+
+interface MiembroPortafolio {
+  sub_project: string
+  nombre: string
+  orden: number
+  html: string
+}
+
+type PuntoGeneracion = RespuestaGeneracionLegacy['data'][number]
 
 const router = useRouter()
 const informesService = new InformesService()
@@ -357,21 +475,60 @@ const monitoreoLegacyService = new MonitoreoLegacyService()
 const fallasService = new FallasService()
 
 // ── Constantes ─────────────────────────────────────────────────────────
-const TIPOS = [
-  { key: 'proyecto',   label: 'Por proyecto',    icon: ZapIcon,          tip: 'Operacional individual con KPIs, semanal y eventos.' },
-  { key: 'portafolio', label: 'Por portafolio',  icon: LayoutGridIcon,      tip: 'Consolidado del cliente + páginas por proyecto.' },
-  { key: 'fmo',        label: 'FMO (O&M)',       icon: FilePenIcon,     tip: 'Contrato O&M: disponibilidad, SLA, multas, inversores.' },
-  { key: 'ranking',    label: 'Ranking vs P90',  icon: ChartColumnIcon,     tip: 'Solo el gráfico de generación por proyecto vs P90 (un gráfico por mes).' },
+interface TipoInformeUi {
+  key: TipoPanelInforme
+  label: string
+  icon: Component
+  tip: string
+}
+const TIPOS: TipoInformeUi[] = [
+  {
+    key: 'proyecto',
+    label: 'Por proyecto',
+    icon: ZapIcon,
+    tip: 'Operacional individual con KPIs, semanal y eventos.',
+  },
+  {
+    key: 'portafolio',
+    label: 'Por portafolio',
+    icon: LayoutGridIcon,
+    tip: 'Consolidado del cliente + páginas por proyecto.',
+  },
+  {
+    key: 'fmo',
+    label: 'FMO (O&M)',
+    icon: FilePenIcon,
+    tip: 'Contrato O&M: disponibilidad, SLA, multas, inversores.',
+  },
+  {
+    key: 'ranking',
+    label: 'Ranking vs P90',
+    icon: ChartColumnIcon,
+    tip: 'Solo el gráfico de generación por proyecto vs P90 (un gráfico por mes).',
+  },
 ]
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const MESES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+]
 
 // ── Estado ─────────────────────────────────────────────────────────────
-const tipo = ref('proyecto')
-const periodoMode = ref('mes')
+const tipo = ref<TipoPanelInforme>('proyecto')
+const periodoMode = ref<ModoPeriodo>('mes')
 const proyectoSel = ref('')
 const portafolioSel = ref('')
-const rankingScope = ref('portafolio')   // 'portafolio' | 'proyectos' (solo tipo === 'ranking')
-const proyectosSel = ref([])             // sub_projects seleccionados (ranking por proyectos)
+const rankingScope = ref<AlcanceRanking>('portafolio') // 'portafolio' | 'proyectos' (solo tipo === 'ranking')
+const proyectosSel = ref<string[]>([]) // sub_projects seleccionados (ranking por proyectos)
 const today = new Date()
 const hoyISO = today.toISOString().slice(0, 10)
 const mesMax = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
@@ -379,10 +536,10 @@ const mesSel = ref(mesMax)
 const customDesde = ref('')
 const customHasta = ref('')
 
-const proyectos = ref([])            // proyectos en operación con sub_project
-const portafolios = ref({})          // { portafolio_name: [proyecto_name, ...] }
-const contratosFmo = ref([])         // proyectos con contrato O&M
-const fallas = ref([])               // todas las fallas (filtradas localmente por período + proyecto)
+const proyectos = ref<ProyectoMonitoreoLegacy[]>([]) // proyectos en operación con sub_project
+const portafolios = ref<Record<string, string[]>>({}) // { portafolio_name: [proyecto_name, ...] }
+const contratosFmo = ref<ContratoLegacy[]>([]) // proyectos con contrato O&M
+const fallas = ref<Falla[]>([]) // todas las fallas (filtradas localmente por período + proyecto)
 const loadingCatalogos = ref(false)
 const catalogosListos = ref(false)
 
@@ -390,40 +547,40 @@ const generando = ref(false)
 const guardando = ref(false)
 const loadingMsg = ref('')
 const loadingSub = ref('')
-const error = ref(null)
+const error = ref<ErrorPanelInforme | null>(null)
 
-const htmlContent = ref('')           // HTML del informe generado
+const htmlContent = ref('') // HTML del informe generado
 const resultTitle = ref('')
 const rangeLabel = ref('')
-const reportRef = ref(null)
-const informeIdGuardado = ref(null)   // id luego de guardar
-const ultimoSubProject = ref('')      // para upsert
-const ultimoRange = ref(null)
-const ultimoTipo = ref('')            // 'op' | 'fmo' | 'port' del último generado
-const ultimaConsolidada = ref('')     // portafolio: HTML de la página consolidada (sin secciones)
-const ultimosMiembros = ref([])       // portafolio: [{ sub_project, nombre, orden, html }]
+const reportRef = ref<HTMLDivElement | null>(null)
+const informeIdGuardado = ref<number | null>(null) // id luego de guardar
+const ultimoSubProject = ref('') // para upsert
+const ultimoRange = ref<RangoInforme | null>(null)
+const ultimoTipo = ref('') // 'op' | 'fmo' | 'port' del último generado
+const ultimaConsolidada = ref('') // portafolio: HTML de la página consolidada (sin secciones)
+const ultimosMiembros = ref<MiembroPortafolio[]>([]) // portafolio: [{ sub_project, nombre, orden, html }]
 
 // ── Computados ─────────────────────────────────────────────────────────
 
-const opcionesProyecto = computed(() => {
-  const lista = tipo.value === 'fmo'
-    ? contratosFmo.value.map(c => ({
-        value: c.sub_project,
-        label: c.nombre_clientes || c.sub_project,
-      }))
-    : proyectos.value.map(p => ({
-        value: p.sub_project,
-        label: p.nombre_display || p.nombre_clientes || p.nombre_comercial || p.sub_project,
-      }))
+const opcionesProyecto = computed<OpcionProyecto[]>(() => {
+  const lista =
+    tipo.value === 'fmo'
+      ? contratosFmo.value.map((c) => ({
+          value: c.sub_project,
+          label: c.nombre_clientes || c.sub_project,
+        }))
+      : proyectos.value.map((p) => ({
+          value: p.sub_project,
+          label: p.nombre_display || p.nombre_clientes || p.nombre_comercial || p.sub_project,
+        }))
   return [...lista].sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
 
-const opcionesPortafolio = computed(() => {
+const opcionesPortafolio = computed<OpcionPortafolio[]>(() => {
   return Object.entries(portafolios.value)
     .map(([name, projs]) => ({ value: name, label: name, count: projs.length }))
     .sort((a, b) => a.label.localeCompare(b.label, 'es'))
 })
-
 
 const puedeGenerar = computed(() => {
   if (generando.value || !catalogosListos.value) return false
@@ -444,10 +601,11 @@ const puedeGenerar = computed(() => {
 const deadlineLabel = computed(() => {
   const now = new Date()
   const day = now.getDate()
-  const deadline = day <= 5
-    ? new Date(now.getFullYear(), now.getMonth(), 5)
-    : new Date(now.getFullYear(), now.getMonth() + 1, 5)
-  const diff = Math.ceil((deadline - now) / 86400000)
+  const deadline =
+    day <= 5
+      ? new Date(now.getFullYear(), now.getMonth(), 5)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 5)
+  const diff = Math.ceil((deadline.getTime() - now.getTime()) / 86400000)
   if (diff < 0) return `⚠️ VENCIDO hace ${Math.abs(diff)} día${Math.abs(diff) !== 1 ? 's' : ''}`
   if (diff === 0) return '⚠️ Hoy es el último día'
   if (diff <= 3) return `🔴 Quedan ${diff} día${diff !== 1 ? 's' : ''}`
@@ -457,17 +615,18 @@ const deadlineLabel = computed(() => {
 const deadlineTone = computed(() => {
   const now = new Date()
   const day = now.getDate()
-  const deadline = day <= 5
-    ? new Date(now.getFullYear(), now.getMonth(), 5)
-    : new Date(now.getFullYear(), now.getMonth() + 1, 5)
-  const diff = Math.ceil((deadline - now) / 86400000)
+  const deadline =
+    day <= 5
+      ? new Date(now.getFullYear(), now.getMonth(), 5)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 5)
+  const diff = Math.ceil((deadline.getTime() - now.getTime()) / 86400000)
   if (diff < 0 || diff <= 3) return 'red'
   if (diff <= 7) return 'yellow'
   return 'green'
 })
 
 // ── Acciones ───────────────────────────────────────────────────────────
-function cambiarTipo(t) {
+function cambiarTipo(t: TipoPanelInforme) {
   if (tipo.value === t) return
   tipo.value = t
   if (t === 'fmo') periodoMode.value = 'mes'
@@ -499,7 +658,7 @@ function imprimir() {
   // El Ranking vs P90 se imprime con auto-ajuste: cada mes se escala para caber en una sola hoja.
   const autoFit = tipo.value === 'ranking'
   const doc = buildReportHtmlDoc(html, {
-    title:  resultTitle.value || 'Informe Operacional',
+    title: resultTitle.value || 'Informe Operacional',
     bgGray: false,
     autoFit,
   })
@@ -525,17 +684,17 @@ async function cargarCatalogos() {
       monitoreoLegacyService.obtenerTodosLosContratos(),
     ])
     if (projRes.status === 'fulfilled' && projRes.value?.projects) {
-      proyectos.value = (projRes.value.projects || []).filter(p => p.sub_project)
+      proyectos.value = (projRes.value.projects || []).filter((p) => p.sub_project)
     }
     if (portRes.status === 'fulfilled' && portRes.value?.portfolios) {
       portafolios.value = portRes.value.portfolios || {}
     }
     if (contRes.status === 'fulfilled' && contRes.value?.contratos) {
-      contratosFmo.value = (contRes.value.contratos || []).filter(c => c.sub_project)
+      contratosFmo.value = (contRes.value.contratos || []).filter((c) => c.sub_project)
     }
     catalogosListos.value = true
   } catch (e) {
-    error.value = { title: 'Error al cargar catálogos', detail: e.data?.detail || e.message }
+    error.value = { title: 'Error al cargar catálogos', detail: logger.error('operaciones', e) }
   } finally {
     loadingCatalogos.value = false
   }
@@ -557,7 +716,7 @@ async function cargarCatalogos() {
  * Ahora el rango va en la peticion, y se llama desde `generar()`, que es donde
  * `buildRange()` resuelve el periodo. Hasta entonces no hay nada que pedir.
  */
-async function cargarFallas(range) {
+async function cargarFallas(range: RangoInforme) {
   try {
     const res = await fallasService.listar({
       fecha_identificacion_desde: range.from,
@@ -565,96 +724,140 @@ async function cargarFallas(range) {
       size: 500,
     })
     fallas.value = res.items ?? []
-  } catch { /* no crítico */ }
+  } catch {
+    /* no crítico */
+  }
 }
 
 onMounted(cargarCatalogos)
 
 // ── Resolver rango ─────────────────────────────────────────────────────
-function pad(n) { return String(n).padStart(2, '0') }
-function buildRange() {
+function pad(n: number) {
+  return String(n).padStart(2, '0')
+}
+function buildRange(): RangoInforme | null {
   if (periodoMode.value === 'mes' || tipo.value === 'fmo') {
     if (!mesSel.value) return null
-    const [y, m] = mesSel.value.split('-').map(Number)
+    const [y, m] = mesSel.value.split('-').map(Number) as [number, number]
     const last = new Date(y, m, 0).getDate()
     return {
       from: `${y}-${pad(m)}-01`,
       to: `${y}-${pad(m)}-${pad(last)}`,
-      year: y, month: m, monthName: MESES[m - 1], lastDay: last,
-      label: `${MESES[m - 1]} ${y}`, headerPeriod: `${MESES[m - 1]} ${y}`,
-      isCustom: false, totalDays: last,
+      year: y,
+      month: m,
+      monthName: MESES[m - 1]!,
+      lastDay: last,
+      label: `${MESES[m - 1]} ${y}`,
+      headerPeriod: `${MESES[m - 1]} ${y}`,
+      isCustom: false,
+      totalDays: last,
     }
   }
   if (!customDesde.value || !customHasta.value) return null
-  const [y, m, d] = customDesde.value.split('-').map(Number)
-  const [y2, m2, d2] = customHasta.value.split('-').map(Number)
-  const totalDays = Math.round((new Date(customHasta.value) - new Date(customDesde.value)) / 86400000) + 1
+  const [y, m, d] = customDesde.value.split('-').map(Number) as [number, number, number]
+  const [y2, m2, d2] = customHasta.value.split('-').map(Number) as [number, number, number]
+  const totalDays =
+    Math.round(
+      (new Date(customHasta.value).getTime() - new Date(customDesde.value).getTime()) / 86400000,
+    ) + 1
   const label = `${pad(d)}/${pad(m)}/${y} – ${pad(d2)}/${pad(m2)}/${y2}`
   return {
-    from: customDesde.value, to: customHasta.value, year: y, month: m, monthName: MESES[m - 1],
-    lastDay: d2, label, headerPeriod: label, isCustom: true, totalDays,
+    from: customDesde.value,
+    to: customHasta.value,
+    year: y,
+    month: m,
+    monthName: MESES[m - 1]!,
+    lastDay: d2,
+    label,
+    headerPeriod: label,
+    isCustom: true,
+    totalDays,
   }
 }
 
 // Lista de meses completos a graficar (uno por mes). En modo "mes" devuelve 1;
 // en "rango" enumera cada mes calendario tocado por el rango (mes completo).
-function monthsInRange() {
+function monthsInRange(): MesEnRango[] {
   if (periodoMode.value === 'mes') {
     if (!mesSel.value) return []
-    const [y, m] = mesSel.value.split('-').map(Number)
+    const [y, m] = mesSel.value.split('-').map(Number) as [number, number]
     const last = new Date(y, m, 0).getDate()
-    return [{ from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${pad(last)}`, label: `${MESES[m - 1]} ${y}` }]
+    return [
+      {
+        from: `${y}-${pad(m)}-01`,
+        to: `${y}-${pad(m)}-${pad(last)}`,
+        label: `${MESES[m - 1]} ${y}`,
+      },
+    ]
   }
   if (!customDesde.value || !customHasta.value) return []
-  const [y1, m1] = customDesde.value.split('-').map(Number)
-  const [y2, m2] = customHasta.value.split('-').map(Number)
-  const out = []
-  let yy = y1, mm = m1
+  const [y1, m1] = customDesde.value.split('-').map(Number) as [number, number]
+  const [y2, m2] = customHasta.value.split('-').map(Number) as [number, number]
+  const out: MesEnRango[] = []
+  let yy = y1,
+    mm = m1
   while ((yy < y2 || (yy === y2 && mm <= m2)) && out.length < 36) {
     const last = new Date(yy, mm, 0).getDate()
-    out.push({ from: `${yy}-${pad(mm)}-01`, to: `${yy}-${pad(mm)}-${pad(last)}`, label: `${MESES[mm - 1]} ${yy}` })
-    mm++; if (mm > 12) { mm = 1; yy++ }
+    out.push({
+      from: `${yy}-${pad(mm)}-01`,
+      to: `${yy}-${pad(mm)}-${pad(last)}`,
+      label: `${MESES[mm - 1]} ${yy}`,
+    })
+    mm++
+    if (mm > 12) {
+      mm = 1
+      yy++
+    }
   }
   return out
 }
 
 // Página de informe que contiene ÚNICAMENTE el ranking de generación vs P90 de un mes.
-function buildRankingPage(scopeLabel, monthLabel, items) {
-  const conP90 = items.filter(i => i.p90 > 0).length
-  const overP90 = items.filter(i => i.p90 > 0 && i.real >= i.p90).length
+function buildRankingPage(scopeLabel: string, monthLabel: string, items: ItemRankingP90[]) {
+  const conP90 = items.filter((i) => i.p90 != null && i.p90 > 0).length
+  const overP90 = items.filter((i) => i.p90 != null && i.p90 > 0 && i.real >= i.p90).length
   const chart = svgRankingP90Chart(items)
-  const fmt = (n) => Math.round(n).toLocaleString('es-CO')
+  const fmt = (n: number) => Math.round(n).toLocaleString('es-CO')
 
   // Proyectos por debajo de P90 → nota editable (causa · estado · acción)
-  const bajoP90 = items.filter(i => i.p90 > 0 && i.real < i.p90)
-  let notasHtml
+  const bajoP90 = items.filter(
+    (i): i is ItemRankingP90 & { p90: number } => i.p90 != null && i.p90 > 0 && i.real < i.p90,
+  )
+  let notasHtml: string
   if (bajoP90.length) {
     const slug = monthLabel.replace(/[^\w]/g, '').toLowerCase()
-    const filas = bajoP90.map((it, i) => {
-      const pct = (it.real - it.p90) / it.p90 * 100
-      const pctStr = `${pct.toFixed(1)}%`
-      return '<div class="rpt-nota-item" style="border:1px solid #EDE8F5;border-radius:8px;padding:8px 10px;background:#FCFAFF;margin-bottom:8px">' +
-        `<div style="font-size:11px;font-weight:800;color:#2C2039;margin-bottom:4px">${esc(it.name)} ` +
-        `<span style="color:#DC2626;font-weight:800">${pctStr}</span> ` +
-        `<span style="color:#6B5F80;font-weight:600">· Real ${fmt(it.real)} / P90 ${fmt(it.p90)} kWh</span></div>` +
-        `<div class="rpt-obs-editable" contenteditable="true" data-obs="rank-${slug}-${i}" ` +
-        'style="min-height:42px;outline:none;border:1px solid #EDE8F5;border-radius:6px;padding:8px 10px;background:#fff;font-size:11px;color:#3D2D5C;line-height:1.6">' +
-        'Causa: — · Estado: — · Acción tomada: —</div>'
-        + '</div>'
-    }).join('')
+    const filas = bajoP90
+      .map((it, i) => {
+        const pct = ((it.real - it.p90) / it.p90) * 100
+        const pctStr = `${pct.toFixed(1)}%`
+        return (
+          '<div class="rpt-nota-item" style="border:1px solid #EDE8F5;border-radius:8px;padding:8px 10px;background:#FCFAFF;margin-bottom:8px">' +
+          `<div style="font-size:11px;font-weight:800;color:#2C2039;margin-bottom:4px">${esc(it.name)} ` +
+          `<span style="color:#DC2626;font-weight:800">${pctStr}</span> ` +
+          `<span style="color:#6B5F80;font-weight:600">· Real ${fmt(it.real)} / P90 ${fmt(it.p90)} kWh</span></div>` +
+          `<div class="rpt-obs-editable" contenteditable="true" data-obs="rank-${slug}-${i}" ` +
+          'style="min-height:42px;outline:none;border:1px solid #EDE8F5;border-radius:6px;padding:8px 10px;background:#fff;font-size:11px;color:#3D2D5C;line-height:1.6">' +
+          'Causa: — · Estado: — · Acción tomada: —</div>' +
+          '</div>'
+        )
+      })
+      .join('')
     notasHtml =
       '<div class="rpt-section"><div class="rpt-section-title">▌ Proyectos fuera de P90 — Causa, estado y acción ' +
       '<span class="rpt-edit-hint">✏️ clic para editar (1–5 líneas por proyecto)</span></div>' +
-      filas + '</div>'
+      filas +
+      '</div>'
   } else {
     notasHtml =
       '<div class="rpt-section"><div class="rpt-section-title">▌ Proyectos fuera de P90</div>' +
       '<div style="font-size:12px;color:#16A34A;font-weight:700">✅ Todos los proyectos del período se encuentran en o por encima de P90.</div></div>'
   }
 
-  return '<div class="rpt-page">' +
+  return (
+    '<div class="rpt-page">' +
     '<div class="rpt-header">' +
-    '<div style="display:flex;align-items:center;gap:13px">' + unergyLogoSVG() +
+    '<div style="display:flex;align-items:center;gap:13px">' +
+    unergyLogoSVG() +
     '<div><div style="color:#fff;font-size:14px;font-weight:800;letter-spacing:.8px">GENERACIÓN POR PROYECTO — RANKING vs P90</div>' +
     '<div style="color:#6B5F80;font-size:10px;letter-spacing:.6px;margin-top:2px">Unergy Energía Digital S.A.S ESP | Operación &amp; Mantenimiento</div></div></div>' +
     `<div class="rpt-meta-grid">${rmeta('ALCANCE', scopeLabel)}${rmeta('PERÍODO', monthLabel)}${rmeta('PROYECTOS', String(items.length))}${rmeta('SOBRE P90', `${overP90} / ${conP90}`)}</div>` +
@@ -663,74 +866,93 @@ function buildRankingPage(scopeLabel, monthLabel, items) {
     `<div class="rpt-chart-card">${chart}</div></div>` +
     notasHtml +
     '</div>'
+  )
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-const fmtD = (iso) => {
+const ESCAPE_HTML: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+}
+const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ESCAPE_HTML[c] ?? c)
+const fmtD = (iso: string | null | undefined) => {
   if (!iso) return '—'
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/)
   return m ? `${m[3]}/${m[2]}/${m[1]}` : iso
 }
-const nextMes = (m) => MESES[m === 12 ? 0 : m]
+const nextMes = (m: number) => MESES[m === 12 ? 0 : m]
 
 // Normaliza un nombre para cruzar entre sistemas: minúsculas, sin acentos ni
 // espacios extra (los nombres de proyecto difieren entre /fallas y getProjects).
-function normNombre(s) {
-  return String(s ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+function normNombre(s: unknown) {
+  return String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
 }
 
-function getFaultsForRange(proyectoCfg, range) {
+function getFaultsForRange(proyectoCfg: ProyectoCfg, range: RangoInforme): Falla[] {
   // El endpoint `getProjects` no devuelve `id`, así que cruzamos por nombre.
   // Se comparan TODOS los alias del proyecto (comercial, clientes, bitácora,
   // display, sub_project) contra TODOS los alias que trae la falla, para no
   // perder fallas cuando el nombre difiere entre sistemas.
-  const candidatos = new Set([
-    proyectoCfg.nombre_comercial,
-    proyectoCfg.nombre_clientes,
-    proyectoCfg.nombre_display,
-    proyectoCfg.nombre_bitacora,
-    proyectoCfg.sub_project,
-  ].filter(Boolean).map(normNombre))
-  return fallas.value.filter(f => {
+  const candidatos = new Set(
+    [
+      proyectoCfg.nombre_comercial,
+      proyectoCfg.nombre_clientes,
+      proyectoCfg.nombre_display,
+      proyectoCfg.nombre_bitacora,
+      proyectoCfg.sub_project,
+    ]
+      .filter(Boolean)
+      .map(normNombre),
+  )
+  return fallas.value.filter((f) => {
     if (!f.fecha_identificacion) return false
     const fecha = f.fecha_identificacion.slice(0, 10)
     if (fecha < range.from || fecha > range.to) return false
-    const p = f.proyecto || {}
-    const fNames = [p.nombre_comercial, p.nombre_clientes, p.nombre_bitacora, p.sub_project]
-      .filter(Boolean).map(normNombre)
-    return fNames.some(n => candidatos.has(n))
+    const p = f.proyecto
+    const fNames = [p?.nombre_comercial, p?.nombre_clientes, p?.nombre_bitacora, p?.sub_project]
+      .filter(Boolean)
+      .map(normNombre)
+    return fNames.some((n) => candidatos.has(n))
   })
 }
 
-function calcAvailability(data, range) {
-  const HORA_INI = 7, HORA_FIN = 17
+function calcAvailability(data: PuntoGeneracion[], range: RangoInforme): DisponibilidadOperativa {
+  const HORA_INI = 7,
+    HORA_FIN = 17
 
   // Inferir frecuencia de muestreo a partir de intervalos consecutivos reales
-  const allTimes = []
-  data.forEach(d => {
+  const allTimes: number[] = []
+  data.forEach((d) => {
     const tm = String(d.time || '').match(/(\d{2}):(\d{2})/)
-    if (tm) allTimes.push(parseInt(tm[1]) * 60 + parseInt(tm[2]))
+    if (tm) allTimes.push(parseInt(tm[1]!) * 60 + parseInt(tm[2]!))
   })
   allTimes.sort((a, b) => a - b)
-  const diffs = []
+  const diffs: number[] = []
   for (let i = 1; i < allTimes.length; i++) {
-    const diff = allTimes[i] - allTimes[i - 1]
+    const diff = allTimes[i]! - allTimes[i - 1]!
     if (diff > 0 && diff <= 120) diffs.push(diff)
   }
-  const freqMin = diffs.length > 0 ? Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length) : 60
+  const freqMin =
+    diffs.length > 0 ? Math.round(diffs.reduce((a, b) => a + b, 0) / diffs.length) : 60
   const freqClamped = Math.max(freqMin, 5)
 
   // Slots esperados por día en franja 07:00–17:00
-  const slotsPerDay = Math.round((HORA_FIN - HORA_INI) * 60 / freqClamped) + 1
+  const slotsPerDay = Math.round(((HORA_FIN - HORA_INI) * 60) / freqClamped) + 1
   const totalEsperado = slotsPerDay * range.totalDays
 
   // Registros reales con generación > 0 en la franja solar
   let conGeneracion = 0
-  data.forEach(d => {
+  data.forEach((d) => {
     const tm = String(d.time || '').match(/(\d{2}):(\d{2})/)
     if (!tm) return
-    const h = parseInt(tm[1])
+    const h = parseInt(tm[1]!)
     if (h >= HORA_INI && h <= HORA_FIN && d.kwh > 0.001) conGeneracion++
   })
 
@@ -739,114 +961,163 @@ function calcAvailability(data, range) {
   return { pct, disponibles: conGeneracion, total: totalEsperado, cero: registrosCero }
 }
 
-function buildWeeks(data, range, p90d) {
-  const dm = {}
-  data.forEach(d => { dm[d.date] = (dm[d.date] || 0) + d.kwh })
+function buildWeeks(
+  data: PuntoGeneracion[],
+  range: RangoInforme,
+  p90d: number | null,
+): SemanaGeneracion[] {
+  const dm: Record<string, number> = {}
+  data.forEach((d) => {
+    dm[d.date ?? ''] = (dm[d.date ?? ''] || 0) + d.kwh
+  })
   const pre = `${range.year}-${pad(range.month)}-`
-  const mn = MESES[range.month - 1].slice(0, 3).toLowerCase()
+  const mn = MESES[range.month - 1]!.slice(0, 3).toLowerCase()
   const w4end = range.lastDay
-  return [{ s: 1, e: 7 }, { s: 8, e: 14 }, { s: 15, e: 21 }, { s: 22, e: w4end }].map((w, i) => {
+  return [
+    { s: 1, e: 7 },
+    { s: 8, e: 14 },
+    { s: 15, e: 21 },
+    { s: 22, e: w4end },
+  ].map((w, i) => {
     let tot = 0
-    for (let d = w.s; d <= w.e; d++) tot += (dm[pre + pad(d)] || 0)
+    for (let d = w.s; d <= w.e; d++) tot += dm[pre + pad(d)] || 0
     const days = w.e - w.s + 1
     const p90w = p90d ? p90d * days : null
-    const pct = p90w > 0 ? ((tot - p90w) / p90w * 100) : null
+    const pct = p90w != null && p90w > 0 ? ((tot - p90w) / p90w) * 100 : null
     return {
       lbl: `Semana ${i + 1}`,
       period: `${i < 3 ? `${w.s}-${w.e}` : `${w.s}-${w4end}`} ${mn}`,
-      gen: tot, p90: p90w, pct, ok: pct === null ? null : pct >= -5,
+      gen: tot,
+      p90: p90w,
+      pct,
+      ok: pct === null ? null : pct >= -5,
     }
   })
 }
 
 // Causa raíz por CATEGORÍA estructurada (metodología actual de fallas), con
 // respaldo al código legacy numérico para fallas viejas sin clasificación.
-const CAUSA_POR_CATEGORIA = {
+const CAUSA_POR_CATEGORIA: Record<string, string> = {
   red: 'Ausencia o anomalía en el suministro eléctrico externo (operador de red)',
   frontera: 'Falla en el sistema de medición / comunicación de la frontera comercial',
   inversores: 'Falla o anomalía en inversor(es) del sistema fotovoltaico',
   generando_sin_datos: 'Ausencia de datos de generación: no hay registro de monitoreo del período',
   eventos_adversos: 'Evento adverso externo, no atribuible a la infraestructura del proyecto',
 }
-function autoCause(f) {
-  const cat = f?.clasificacion?.categoria
+function autoCause(f: Falla): string {
+  const cat = f.clasificacion?.categoria
   if (cat && CAUSA_POR_CATEGORIA[cat]) return CAUSA_POR_CATEGORIA[cat]
-  const pre = String(f?.tipo?.codigo || '').charAt(0)
-  return ({
-    '1': 'Falla en sistema de medición o comunicación de datos',
-    '2': 'Falla eléctrica en componente del sistema fotovoltaico',
-    '3': 'Evento adverso externo, no atribuible a la infraestructura del proyecto',
-    '4': 'Desgaste o degradación de componente del sistema',
-    '5': 'Falla en infraestructura civil o estructural',
-    '6': 'Evento de seguridad laboral (HSE)',
-    '7': 'Falla en sistema de almacenamiento (BESS)',
-    '8': 'Incumplimiento administrativo o regulatorio',
-    '9': 'Ausencia de suministro eléctrico externo (operador de red)',
-  })[pre] || 'Causa identificada en campo — ver descripción del evento'
+  const pre = String(f.tipo?.codigo || '').charAt(0)
+  return (
+    {
+      '1': 'Falla en sistema de medición o comunicación de datos',
+      '2': 'Falla eléctrica en componente del sistema fotovoltaico',
+      '3': 'Evento adverso externo, no atribuible a la infraestructura del proyecto',
+      '4': 'Desgaste o degradación de componente del sistema',
+      '5': 'Falla en infraestructura civil o estructural',
+      '6': 'Evento de seguridad laboral (HSE)',
+      '7': 'Falla en sistema de almacenamiento (BESS)',
+      '8': 'Incumplimiento administrativo o regulatorio',
+      '9': 'Ausencia de suministro eléctrico externo (operador de red)',
+    }[pre] || 'Causa identificada en campo — ver descripción del evento'
+  )
 }
 
 // Descripción del evento para el informe: el equipo/evento/detalle reportado
 // (clasificación estructurada) + la narrativa libre si aporta información extra.
-function eventoDesc(f) {
+function eventoDesc(f: Falla): string {
   const t = tituloFalla(f)
-  const d = (f?.descripcion || '').trim()
+  const d = (f.descripcion || '').trim()
   if (d && normNombre(d) !== normNombre(t)) return `${t} — ${d}`
   return t
 }
-function autoAction(f) {
+const ACCION_POR_ESTADO: Record<string, string> = {
+  abierta: 'Monitoreo continuo activo. Equipo técnico en seguimiento de la anomalía.',
+  en_gestion: 'Caso bajo revisión técnica. Pendiente definición de plan de acción.',
+  en_espera: 'Intervención programada. Coordinando visita técnica en sitio.',
+  cerrada: 'Falla resuelta satisfactoriamente. Sin intervención adicional requerida.',
+}
+function autoAction(f: Falla): string {
   if (f.resolucion?.descripcion?.trim()) return f.resolucion.descripcion.trim()
   if (f.descripcion?.trim()) return f.descripcion.trim()
-  return ({
-    'abierta': 'Monitoreo continuo activo. Equipo técnico en seguimiento de la anomalía.',
-    'en_gestion': 'Caso bajo revisión técnica. Pendiente definición de plan de acción.',
-    'en_espera': 'Intervención programada. Coordinando visita técnica en sitio.',
-    'cerrada': 'Falla resuelta satisfactoriamente. Sin intervención adicional requerida.',
-  })[f.estado?.codigo] || 'Seguimiento activo por parte del equipo de operaciones.'
+  return (
+    ACCION_POR_ESTADO[f.estado?.codigo ?? ''] ||
+    'Seguimiento activo por parte del equipo de operaciones.'
+  )
 }
-function autoObs(pname, total, avg, p90m, faultsArr, range, avail) {
-  const pct = p90m > 0 ? ((total - p90m) / p90m * 100) : null
-  const comp = pct !== null
-    ? (pct >= 0 ? `superando en +${pct.toFixed(1)}% el umbral P90` : `por debajo en ${Math.abs(pct).toFixed(1)}% del umbral P90`)
-    : ''
-  let txt = `El proyecto ${pname} registró una generación total de ${Math.round(total).toLocaleString('es-CO')} kWh durante ${range.label}` +
-    (comp ? `, ${comp}` : '.') + `, con un promedio diario de ${Math.round(avg).toLocaleString('es-CO')} kWh/día.`
+function autoObs(
+  pname: string | undefined,
+  total: number,
+  avg: number,
+  p90m: number | null,
+  faultsArr: Falla[],
+  range: RangoInforme,
+  avail: DisponibilidadOperativa,
+): string {
+  const pct = p90m != null && p90m > 0 ? ((total - p90m) / p90m) * 100 : null
+  const comp =
+    pct !== null
+      ? pct >= 0
+        ? `superando en +${pct.toFixed(1)}% el umbral P90`
+        : `por debajo en ${Math.abs(pct).toFixed(1)}% del umbral P90`
+      : ''
+  let txt =
+    `El proyecto ${pname} registró una generación total de ${Math.round(total).toLocaleString('es-CO')} kWh durante ${range.label}` +
+    (comp ? `, ${comp}` : '.') +
+    `, con un promedio diario de ${Math.round(avg).toLocaleString('es-CO')} kWh/día.`
   if (avail && avail.pct !== null) {
     const niv = avail.pct >= 95 ? 'alta' : avail.pct >= 85 ? 'aceptable' : 'baja'
     txt += ` La disponibilidad operativa del período fue de ${avail.pct.toFixed(1)}% (${avail.cero} hora(s) con generación cero en franja solar), considerada ${niv}.`
   }
   if (faultsArr.length) {
-    const activas = faultsArr.filter(f => f.estado?.codigo !== 'cerrada')
+    const activas = faultsArr.filter((f) => f.estado?.codigo !== 'cerrada')
     txt += ` Se registraron ${faultsArr.length} evento(s) operativo(s) durante el período.`
     txt += activas.length
       ? ` Al cierre del período, ${activas.length} evento(s) continúan con seguimiento activo.`
       : ' Todos los eventos fueron atendidos y resueltos durante el período.'
   } else {
-    txt += ' No se registraron eventos operativos durante el período, lo que refleja la estabilidad operacional del activo.'
+    txt +=
+      ' No se registraron eventos operativos durante el período, lo que refleja la estabilidad operacional del activo.'
   }
   if (pct !== null && pct >= 0) {
-    txt += ' El proyecto cerró el período en condición operativa y por encima del umbral de referencia P90, reflejando una gestión oportuna de las contingencias.'
+    txt +=
+      ' El proyecto cerró el período en condición operativa y por encima del umbral de referencia P90, reflejando una gestión oportuna de las contingencias.'
   }
   return txt
 }
 
-function rmeta(lbl, val) { return `<div class="rpt-meta-item"><div class="rpt-meta-lbl">${esc(lbl)}</div><div class="rpt-meta-val">${esc(val)}</div></div>` }
-function rkpi(ico, lbl, val, col) { return `<div class="rpt-kpi"><div class="rpt-kpi-ico">${ico}</div><div class="rpt-kpi-lbl">${esc(lbl)}</div><div class="rpt-kpi-val"${col ? ` style="color:${col}"` : ''}>${val}</div></div>` }
+function rmeta(lbl: string, val: unknown): string {
+  return `<div class="rpt-meta-item"><div class="rpt-meta-lbl">${esc(lbl)}</div><div class="rpt-meta-val">${esc(val)}</div></div>`
+}
+function rkpi(ico: string, lbl: string, val: string | number, col?: string | null): string {
+  return `<div class="rpt-kpi"><div class="rpt-kpi-ico">${ico}</div><div class="rpt-kpi-lbl">${esc(lbl)}</div><div class="rpt-kpi-val"${col ? ` style="color:${col}"` : ''}>${val}</div></div>`
+}
 
 // ── Mini chart SVG: serie diaria con línea P90 y atípicos ─────────────
-function svgDailyChart(days, values, p90d, atypDates) {
+function svgDailyChart(
+  days: string[],
+  values: number[],
+  p90d: number | null,
+  atypDates: string[],
+): string {
   if (!days.length) return '<div class="rpt-chart-empty">Sin datos para graficar</div>'
-  const W = 460, H = 180, padL = 36, padR = 8, padT = 10, padB = 28
+  const W = 460,
+    H = 180,
+    padL = 36,
+    padR = 8,
+    padT = 10,
+    padB = 28
   const maxV = Math.max(...values, p90d || 0, 1)
   const xStep = (W - padL - padR) / Math.max(1, days.length - 1)
-  const yTo = (v) => H - padB - (v / maxV) * (H - padT - padB)
+  const yTo = (v: number) => H - padB - (v / maxV) * (H - padT - padB)
   const atypSet = new Set(atypDates || [])
 
   let bars = ''
   const barW = Math.max(2, (W - padL - padR) / days.length - 1.2)
   days.forEach((d, i) => {
     const cx = padL + i * xStep - barW / 2
-    const top = yTo(values[i])
-    const h = (H - padB) - top
+    const top = yTo(values[i]!)
+    const h = H - padB - top
     const isAty = atypSet.has(d)
     const fill = isAty ? '#DC3232' : '#6B35C0'
     bars += `<rect data-date="${d}" x="${cx.toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${fill}" opacity="0.78" rx="1.5" />`
@@ -855,16 +1126,18 @@ function svgDailyChart(days, values, p90d, atypDates) {
   let p90line = ''
   if (p90d) {
     const y = yTo(p90d)
-    p90line = `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#CC8800" stroke-width="1.5" stroke-dasharray="5 3" />` +
+    p90line =
+      `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#CC8800" stroke-width="1.5" stroke-dasharray="5 3" />` +
       `<text x="${W - padR - 2}" y="${(y - 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#CC8800" font-weight="700">P90 ${Math.round(p90d).toLocaleString('es-CO')}</text>`
   }
 
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map(t => maxV * t)
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => maxV * t)
   let grid = ''
-  ticks.forEach(v => {
+  ticks.forEach((v) => {
     const y = yTo(v)
-    grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#eee" stroke-width="1" />` +
-      `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${v >= 1000 ? (Math.round(v / 100) / 10) + 'k' : Math.round(v)}</text>`
+    grid +=
+      `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#eee" stroke-width="1" />` +
+      `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${v >= 1000 ? Math.round(v / 100) / 10 + 'k' : Math.round(v)}</text>`
   })
 
   const xLabelEvery = Math.ceil(days.length / 7)
@@ -880,47 +1153,70 @@ function svgDailyChart(days, values, p90d, atypDates) {
 }
 
 // ── Mini chart SVG: comparativo Real vs P50/P90/P99 ──────────────────
-function svgCompareChart(real, p50, p90, p99) {
+interface ItemComparativoGeneracion {
+  l: string
+  v: number
+  c: string
+}
+function svgCompareChart(
+  real: number,
+  p50: number | null,
+  p90: number | null,
+  p99: number | null,
+): string {
   const items = [
     { l: 'Real', v: real, c: '#6B35C0' },
     p50 != null ? { l: 'P50', v: p50, c: '#4682C8' } : null,
     p90 != null ? { l: 'P90', v: p90, c: '#C89600' } : null,
     p99 != null ? { l: 'P99', v: p99, c: '#329650' } : null,
-  ].filter(Boolean)
+  ].filter((it): it is ItemComparativoGeneracion => it !== null)
   if (!items.length) return '<div class="rpt-chart-empty">Sin simulaciones disponibles</div>'
-  const W = 460, H = 180, padL = 40, padR = 10, padT = 14, padB = 28
-  const maxV = Math.max(...items.map(i => i.v || 0), 1)
-  const barW = (W - padL - padR) / items.length * 0.55
+  const W = 460,
+    H = 180,
+    padL = 40,
+    padR = 10,
+    padT = 14,
+    padB = 28
+  const maxV = Math.max(...items.map((i) => i.v || 0), 1)
+  const barW = ((W - padL - padR) / items.length) * 0.55
   const slot = (W - padL - padR) / items.length
-  const yTo = (v) => H - padB - (v / maxV) * (H - padT - padB)
+  const yTo = (v: number) => H - padB - (v / maxV) * (H - padT - padB)
 
-  let bars = '', labels = ''
+  let bars = '',
+    labels = ''
   items.forEach((it, i) => {
     const cx = padL + slot * i + slot / 2 - barW / 2
     const top = yTo(it.v)
-    const h = (H - padB) - top
-    bars += `<rect x="${cx.toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${it.c}" opacity="0.82" rx="3" />` +
+    const h = H - padB - top
+    bars +=
+      `<rect x="${cx.toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(0, h).toFixed(1)}" fill="${it.c}" opacity="0.82" rx="3" />` +
       `<text x="${(cx + barW / 2).toFixed(1)}" y="${(top - 4).toFixed(1)}" text-anchor="middle" font-size="10" fill="#444" font-weight="700">${Math.round(it.v).toLocaleString('es-CO')}</text>`
     labels += `<text x="${(cx + barW / 2).toFixed(1)}" y="${H - padB + 14}" text-anchor="middle" font-size="10" fill="#555" font-weight="600">${it.l}</text>`
   })
-  const ticks = [0, 0.5, 1].map(t => maxV * t)
+  const ticks = [0, 0.5, 1].map((t) => maxV * t)
   let grid = ''
-  ticks.forEach(v => {
+  ticks.forEach((v) => {
     const y = yTo(v)
-    grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#eee" stroke-width="1" />` +
-      `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${v >= 1000 ? (Math.round(v / 1000)) + 'k' : Math.round(v)}</text>`
+    grid +=
+      `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#eee" stroke-width="1" />` +
+      `<text x="${padL - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#777">${v >= 1000 ? Math.round(v / 1000) + 'k' : Math.round(v)}</text>`
   })
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">${grid}${bars}${labels}</svg>`
 }
 
 // ── Chart de portafolio (ranking horizontal) ─────────────────────────
-function svgPortfolioChart(items) {
+function svgPortfolioChart(items: ItemRankingP90[]): string {
   if (!items.length) return ''
-  const W = 600, rowH = 26, padL = 135, padR = 150, padT = 30, padB = 8
+  const W = 600,
+    rowH = 26,
+    padL = 135,
+    padR = 150,
+    padT = 30,
+    padB = 8
   const H = padT + items.length * rowH + padB
   const barAreaW = W - padL - padR
   // Escala incluye P90 para que el marcador/objetivo siempre quepa
-  const maxV = Math.max(...items.map(i => Math.max(i.real || 0, i.p90 || 0)), 1)
+  const maxV = Math.max(...items.map((i) => Math.max(i.real || 0, i.p90 || 0)), 1)
 
   // Leyenda
   let html =
@@ -935,11 +1231,12 @@ function svgPortfolioChart(items) {
 
   items.forEach((it, i) => {
     const y = padT + i * rowH
-    const barY = y + 4, barH = 15
+    const barY = y + 4,
+      barH = 15
     const real = it.real || 0
-    const p90 = (it.p90 != null && it.p90 > 0) ? it.p90 : null
+    const p90 = it.p90 != null && it.p90 > 0 ? it.p90 : null
     const wReal = (real / maxV) * barAreaW
-    html += `<text x="${padL - 6}" y="${barY + 11}" text-anchor="end" font-size="10" fill="#444" font-weight="600">${esc(it.name.slice(0, 22))}</text>`
+    html += `<text x="${padL - 6}" y="${barY + 11}" text-anchor="end" font-size="10" fill="#444" font-weight="600">${esc((it.name ?? '').slice(0, 22))}</text>`
 
     if (p90 != null) {
       const wP90 = (p90 / maxV) * barAreaW
@@ -955,7 +1252,7 @@ function svgPortfolioChart(items) {
       // Marcador P90
       html += `<line x1="${(padL + wP90).toFixed(1)}" y1="${barY - 2}" x2="${(padL + wP90).toFixed(1)}" y2="${barY + barH + 2}" stroke="#C89600" stroke-width="2" stroke-dasharray="3 2"/>`
       // Etiqueta: Real + % vs P90 (coloreado)
-      const pct = (real - p90) / p90 * 100
+      const pct = ((real - p90) / p90) * 100
       const pctStr = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
       const pctCol = pct >= 0 ? '#16A34A' : '#DC2626'
       const labelX = padL + Math.max(wReal, wP90) + 5
@@ -971,13 +1268,18 @@ function svgPortfolioChart(items) {
 // Gráfico de ranking vs P90 para el informe Ranking. Mantiene el excedente
 // (verde) sobre P90 y muestra el valor de generación real, el valor de P90 y
 // el % de desviación.
-function svgRankingP90Chart(items) {
+function svgRankingP90Chart(items: ItemRankingP90[]): string {
   if (!items.length) return ''
-  const W = 660, rowH = 26, padL = 135, padR = 215, padT = 30, padB = 8
+  const W = 660,
+    rowH = 26,
+    padL = 135,
+    padR = 215,
+    padT = 30,
+    padB = 8
   const H = padT + items.length * rowH + padB
   const barAreaW = W - padL - padR
-  const maxV = Math.max(...items.map(i => Math.max(i.real || 0, i.p90 || 0)), 1)
-  const fmt = (n) => Math.round(n).toLocaleString('es-CO')
+  const maxV = Math.max(...items.map((i) => Math.max(i.real || 0, i.p90 || 0)), 1)
+  const fmt = (n: number) => Math.round(n).toLocaleString('es-CO')
 
   // Leyenda: Real + Excedente + P90 esperado
   let html =
@@ -992,11 +1294,12 @@ function svgRankingP90Chart(items) {
 
   items.forEach((it, i) => {
     const y = padT + i * rowH
-    const barY = y + 4, barH = 15
+    const barY = y + 4,
+      barH = 15
     const real = it.real || 0
-    const p90 = (it.p90 != null && it.p90 > 0) ? it.p90 : null
+    const p90 = it.p90 != null && it.p90 > 0 ? it.p90 : null
     const wReal = (real / maxV) * barAreaW
-    html += `<text x="${padL - 6}" y="${barY + 11}" text-anchor="end" font-size="10" fill="#444" font-weight="600">${esc(it.name.slice(0, 22))}</text>`
+    html += `<text x="${padL - 6}" y="${barY + 11}" text-anchor="end" font-size="10" fill="#444" font-weight="600">${esc((it.name ?? '').slice(0, 22))}</text>`
 
     if (p90 != null) {
       const wP90 = (p90 / maxV) * barAreaW
@@ -1012,11 +1315,12 @@ function svgRankingP90Chart(items) {
       // Marcador P90
       html += `<line x1="${(padL + wP90).toFixed(1)}" y1="${barY - 2}" x2="${(padL + wP90).toFixed(1)}" y2="${barY + barH + 2}" stroke="#C89600" stroke-width="2" stroke-dasharray="3 2"/>`
       // Etiqueta: Real · P90 · % desviación
-      const pct = (real - p90) / p90 * 100
+      const pct = ((real - p90) / p90) * 100
       const pctStr = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
       const pctCol = pct >= 0 ? '#16A34A' : '#DC2626'
       const labelX = padL + Math.max(wReal, wP90) + 6
-      html += `<text x="${labelX.toFixed(1)}" y="${barY + 11}" font-size="9" fill="#333" font-weight="700">` +
+      html +=
+        `<text x="${labelX.toFixed(1)}" y="${barY + 11}" font-size="9" fill="#333" font-weight="700">` +
         `${fmt(real)} <tspan fill="#B8860B">· P90 ${fmt(p90)}</tspan> <tspan fill="${pctCol}" font-weight="800">${pctStr}</tspan></text>`
     } else {
       // Sin P90: barra morada sólida + valor
@@ -1028,37 +1332,55 @@ function svgRankingP90Chart(items) {
 }
 
 // ── Página de proyecto (operacional individual) ─────────────────────
-function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) {
+function buildProjectPage(
+  cfg: ProyectoCfg,
+  genRes: RespuestaGeneracionLegacy,
+  mf: Falla[],
+  range: RangoInforme,
+  pageNum: number,
+  totalPages: number,
+): string {
   const data = genRes?.data || []
   const sim = genRes?.simulation || null
-  const dm = {}
-  data.forEach(d => { dm[d.date] = (dm[d.date] || 0) + d.kwh })
+  const dm: Record<string, number> = {}
+  data.forEach((d) => {
+    dm[d.date ?? ''] = (dm[d.date ?? ''] || 0) + d.kwh
+  })
   const days = Object.keys(dm).sort()
-  const kpd = days.map(d => Math.round(dm[d] * 100) / 100)
+  const kpd = days.map((d) => Math.round(dm[d]! * 100) / 100)
   const total = kpd.reduce((a, b) => a + b, 0)
   const avg = days.length ? total / days.length : 0
   const p90m = sim?.p90_monthly ?? null
   const p50m = sim?.p50_monthly ?? null
   const p90d = sim?.p90_daily ?? null
   const p99m = p90m ? Math.round(p90m * 0.9) : null
-  const pct = p90m > 0 ? ((total - p90m) / p90m * 100) : null
+  const pct = p90m != null && p90m > 0 ? ((total - p90m) / p90m) * 100 : null
   const pctStr = pct !== null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs P90` : '—'
   const pctCol = pct === null ? '#A89EC0' : pct >= 0 ? '#4ADE80' : '#FF5757'
   const avail = calcAvailability(data, range)
   const availStr = avail.pct !== null ? `${avail.pct.toFixed(1)}%` : '—'
-  const availCol = avail.pct === null ? '#A89EC0' : avail.pct >= 95 ? '#4ADE80' : avail.pct >= 85 ? '#F6FF72' : '#FF5757'
+  const availCol =
+    avail.pct === null
+      ? '#A89EC0'
+      : avail.pct >= 95
+        ? '#4ADE80'
+        : avail.pct >= 85
+          ? '#F6FF72'
+          : '#FF5757'
 
-  const atypical = []
-  if (avg > 0) days.forEach((d, i) => {
-    const v = kpd[i]
-    if (v < avg * 0.7) atypical.push({ date: d, kwh: Math.round(v), pct: Math.round(v / avg * 100) })
-  })
+  const atypical: DiaAtipico[] = []
+  if (avg > 0)
+    days.forEach((d, i) => {
+      const v = kpd[i]!
+      if (v < avg * 0.7)
+        atypical.push({ date: d, kwh: Math.round(v), pct: Math.round((v / avg) * 100) })
+    })
 
   const pname = cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial
   const muni = cfg.municipio || '—'
   const resp = 'Operaciones Unergy'
   const obs = autoObs(pname, total, avg, p90m, mf, range, avail)
-  const activos = mf.filter(f => f.estado?.codigo !== 'cerrada')
+  const activos = mf.filter((f) => f.estado?.codigo !== 'cerrada')
   const stCol = pct === null ? '#A89EC0' : pct >= 0 ? '#4ADE80' : pct >= -10 ? '#F97316' : '#FF5757'
   const stTxt = pct === null ? '—' : pct >= 0 ? 'OPERATIVO' : 'ATENCIÓN'
   const pgLbl = totalPages > 1 ? `Página ${pageNum || 1} de ${totalPages}` : ''
@@ -1067,26 +1389,31 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
   let tableHtml = ''
   if (!range.isCustom) {
     const weeks = buildWeeks(data, range, p90d)
-    tableHtml = '<table class="rpt-table" style="margin-top:12px"><thead><tr>' +
+    tableHtml =
+      '<table class="rpt-table" style="margin-top:12px"><thead><tr>' +
       '<th>SEMANA</th><th>PERÍODO</th><th>TENDENCIA</th><th>GENERACIÓN (kWh)</th><th>P90 ESPERADO (kWh)</th><th>DESV.</th><th>ESTADO</th></tr></thead><tbody>' +
-      weeks.map((w, i) => {
-        const wp = w.pct !== null ? `${w.pct >= 0 ? '+' : ''}${w.pct.toFixed(1)}%` : '—'
-        const wc = w.ok === null ? '#A89EC0' : w.ok ? '#4ADE80' : '#F6FF72'
-        let trendHtml = '—'
-        if (i > 0 && weeks[i - 1].gen > 0) {
-          const diff = w.gen - weeks[i - 1].gen
-          const diffPct = Math.round((diff / weeks[i - 1].gen) * 100)
-          const arrow = diff >= 0 ? '↑' : '↓'
-          const tc = diff >= 0 ? '#4ADE80' : '#FF5757'
-          trendHtml = `<span style="color:${tc};font-weight:800">${arrow} ${diff >= 0 ? '+' : ''}${diffPct}%</span>`
-        }
-        return `<tr><td style="font-weight:700">${esc(w.lbl)}</td><td>${esc(w.period)}</td>` +
-          `<td style="text-align:center">${trendHtml}</td>` +
-          `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(w.gen).toLocaleString('es-CO')}</td>` +
-          `<td style="text-align:right;font-family:monospace">${w.p90 ? Math.round(w.p90).toLocaleString('es-CO') : '—'}</td>` +
-          `<td style="text-align:center;font-weight:700;color:${wc}">${wp}</td>` +
-          `<td style="text-align:center">${w.ok === null ? '—' : (w.ok ? '✅ Normal' : '⚠️ Atención')}</td></tr>`
-      }).join('') +
+      weeks
+        .map((w, i) => {
+          const wp = w.pct !== null ? `${w.pct >= 0 ? '+' : ''}${w.pct.toFixed(1)}%` : '—'
+          const wc = w.ok === null ? '#A89EC0' : w.ok ? '#4ADE80' : '#F6FF72'
+          let trendHtml = '—'
+          if (i > 0 && weeks[i - 1]!.gen > 0) {
+            const diff = w.gen - weeks[i - 1]!.gen
+            const diffPct = Math.round((diff / weeks[i - 1]!.gen) * 100)
+            const arrow = diff >= 0 ? '↑' : '↓'
+            const tc = diff >= 0 ? '#4ADE80' : '#FF5757'
+            trendHtml = `<span style="color:${tc};font-weight:800">${arrow} ${diff >= 0 ? '+' : ''}${diffPct}%</span>`
+          }
+          return (
+            `<tr><td style="font-weight:700">${esc(w.lbl)}</td><td>${esc(w.period)}</td>` +
+            `<td style="text-align:center">${trendHtml}</td>` +
+            `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(w.gen).toLocaleString('es-CO')}</td>` +
+            `<td style="text-align:right;font-family:monospace">${w.p90 ? Math.round(w.p90).toLocaleString('es-CO') : '—'}</td>` +
+            `<td style="text-align:center;font-weight:700;color:${wc}">${wp}</td>` +
+            `<td style="text-align:center">${w.ok === null ? '—' : w.ok ? '✅ Normal' : '⚠️ Atención'}</td></tr>`
+          )
+        })
+        .join('') +
       `<tr class="rpt-total-row"><td>TOTAL</td><td>${range.lastDay} días</td><td></td>` +
       `<td style="text-align:right;font-family:monospace">${Math.round(total).toLocaleString('es-CO')}</td>` +
       `<td style="text-align:right;font-family:monospace">${p90m ? Math.round(p90m).toLocaleString('es-CO') : '—'}</td>` +
@@ -1094,7 +1421,8 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
       `<td style="text-align:center;color:${pctCol}">${pct !== null ? (pct >= 0 ? '✅ Sobre P90' : '⚠️ Bajo P90') : '—'}</td></tr>` +
       '</tbody></table>'
   } else {
-    tableHtml = '<table class="rpt-table" style="margin-top:12px"><thead><tr>' +
+    tableHtml =
+      '<table class="rpt-table" style="margin-top:12px"><thead><tr>' +
       '<th>PERÍODO</th><th>DÍAS CON DATOS</th><th>GENERACIÓN TOTAL (kWh)</th><th>PROMEDIO DIARIO (kWh)</th><th>DESV. P90</th></tr></thead><tbody>' +
       `<tr><td>${esc(range.headerPeriod)}</td><td style="text-align:center">${days.length}</td>` +
       `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(total).toLocaleString('es-CO')}</td>` +
@@ -1106,7 +1434,8 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
   // Atípicos
   let atypHtml = ''
   if (atypical.length) {
-    atypHtml = '<div style="margin-top:13px;background:#FFF5F5;border:1px solid #FF575730;border-radius:9px;padding:11px 14px">' +
+    atypHtml =
+      '<div style="margin-top:13px;background:#FFF5F5;border:1px solid #FF575730;border-radius:9px;padding:11px 14px">' +
       '<div style="font-size:10px;font-weight:800;color:#CC3333;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px">⚠️ Días atípicos — generación inferior al 70% del promedio</div>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>' +
       '<th style="text-align:left;padding:4px 8px;color:#888;font-size:9px;font-weight:700">FECHA</th>' +
@@ -1114,37 +1443,49 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
       '<th style="text-align:center;padding:4px 8px;color:#888;font-size:9px;font-weight:700">% VS PROMEDIO</th>' +
       '<th style="text-align:center;padding:4px 8px;color:#888;font-size:9px;font-weight:700">DÉFICIT (kWh)</th>' +
       '</tr></thead><tbody>' +
-      atypical.map((a, i) => {
-        const def = Math.round(avg - a.kwh)
-        return `<tr style="background:${i % 2 === 0 ? '#FFF0F0' : '#FFF8F8'}">` +
-          `<td style="padding:5px 8px;font-weight:700;color:#AA2222">${esc(a.date)}</td>` +
-          `<td style="padding:5px 8px;text-align:right;font-family:monospace">${a.kwh.toLocaleString('es-CO')}</td>` +
-          `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#CC3333">${a.pct}%</td>` +
-          `<td style="padding:5px 8px;text-align:center;color:#888">−${def.toLocaleString('es-CO')}</td></tr>`
-      }).join('') +
+      atypical
+        .map((a, i) => {
+          const def = Math.round(avg - a.kwh)
+          return (
+            `<tr style="background:${i % 2 === 0 ? '#FFF0F0' : '#FFF8F8'}">` +
+            `<td style="padding:5px 8px;font-weight:700;color:#AA2222">${esc(a.date)}</td>` +
+            `<td style="padding:5px 8px;text-align:right;font-family:monospace">${a.kwh.toLocaleString('es-CO')}</td>` +
+            `<td style="padding:5px 8px;text-align:center;font-weight:800;color:#CC3333">${a.pct}%</td>` +
+            `<td style="padding:5px 8px;text-align:center;color:#888">−${def.toLocaleString('es-CO')}</td></tr>`
+          )
+        })
+        .join('') +
       '</tbody></table></div>'
   }
 
   // Eventos
   let evHtml = ''
   if (mf.length) {
-    mf.forEach(f => {
+    mf.forEach((f) => {
       const desc = eventoDesc(f).slice(0, 220)
-      evHtml += `<tr><td style="white-space:nowrap;font-weight:700;color:#6B35C0">${esc(fmtD(f.fecha_identificacion))}</td>` +
+      evHtml +=
+        `<tr><td style="white-space:nowrap;font-weight:700;color:#6B35C0">${esc(fmtD(f.fecha_identificacion))}</td>` +
         `<td style="text-align:center;white-space:nowrap">${esc(f.hora || '—')}</td>` +
         `<td>${esc(desc)}</td>` +
         `<td>${esc(autoCause(f))}</td>` +
         `<td>${esc(autoAction(f).slice(0, 220))}</td></tr>`
     })
   } else {
-    evHtml = '<tr><td colspan="5" style="text-align:center;color:#A89EC0;padding:18px">Sin eventos operativos registrados en el período</td></tr>'
+    evHtml =
+      '<tr><td colspan="5" style="text-align:center;color:#A89EC0;padding:18px">Sin eventos operativos registrados en el período</td></tr>'
   }
 
   // Gráficos SVG embebidos
-  const chart1 = svgDailyChart(days, kpd, p90d, atypical.map(a => a.date))
+  const chart1 = svgDailyChart(
+    days,
+    kpd,
+    p90d,
+    atypical.map((a) => a.date),
+  )
   const chart2 = svgCompareChart(Math.round(total), p50m, p90m, p99m)
 
-  return '<div class="rpt-page">' +
+  return (
+    '<div class="rpt-page">' +
     // Header
     '<div class="rpt-header">' +
     '<div style="display:flex;align-items:center;gap:13px">' +
@@ -1163,9 +1504,16 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
     '<div class="rpt-kpi-row" style="margin-top:10px">' +
     rkpi('🔆', 'Disponibilidad Operativa', availStr, availCol) +
     rkpi('📆', 'Días con datos', `${days.length} / ${range.totalDays} días`, null) +
-    rkpi('🗓', 'Días atípicos', `${atypical.length} día${atypical.length !== 1 ? 's' : ''}`, atypical.length === 0 ? '#4ADE80' : atypical.length <= 2 ? '#F97316' : '#FF5757') +
+    rkpi(
+      '🗓',
+      'Días atípicos',
+      `${atypical.length} día${atypical.length !== 1 ? 's' : ''}`,
+      atypical.length === 0 ? '#4ADE80' : atypical.length <= 2 ? '#F97316' : '#FF5757',
+    ) +
     '</div>' +
-    tableHtml + atypHtml + '</div>' +
+    tableHtml +
+    atypHtml +
+    '</div>' +
     // S2 gráficos
     '<div class="rpt-section"><div class="rpt-section-title">▌ 2. Análisis Gráfico de Generación</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
@@ -1191,11 +1539,24 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
     `<span style="width:9px;height:9px;border-radius:50%;background:${stCol};display:inline-block"></span>` +
     `<span style="font-size:12px;font-weight:800;color:${stCol}">● ${stTxt}</span>` +
     '<span style="font-size:10px;color:#888;margin-left:2px">Con seguimiento activo</span></div>' +
-    (pct !== null ? `<div class="rpt-status-row">✅ P90: ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>` : '') +
-    (avail.pct !== null ? `<div class="rpt-status-row">🔆 Disponibilidad: ${avail.pct.toFixed(1)}%</div>` : '') +
+    (pct !== null
+      ? `<div class="rpt-status-row">✅ P90: ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>`
+      : '') +
+    (avail.pct !== null
+      ? `<div class="rpt-status-row">🔆 Disponibilidad: ${avail.pct.toFixed(1)}%</div>`
+      : '') +
     `<div class="rpt-status-row">⚡ ${mf.length} evento(s) este período</div>` +
-    (atypical.length ? `<div class="rpt-status-row" style="color:#F97316">⚠️ ${atypical.length} día(s) atípico(s)</div>` : '') +
-    (activos.length ? `<div class="rpt-status-row" style="color:#F97316">En proceso: ${esc(activos.map(f => tituloFalla(f)).slice(0, 3).join(', '))}</div>` : '') +
+    (atypical.length
+      ? `<div class="rpt-status-row" style="color:#F97316">⚠️ ${atypical.length} día(s) atípico(s)</div>`
+      : '') +
+    (activos.length
+      ? `<div class="rpt-status-row" style="color:#F97316">En proceso: ${esc(
+          activos
+            .map((f) => tituloFalla(f))
+            .slice(0, 3)
+            .join(', '),
+        )}</div>`
+      : '') +
     `<div class="rpt-status-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #EDE8F5">Resp: ${esc(resp)}</div>` +
     '<div class="rpt-status-row">Contacto: operaciones@unergy.io</div>' +
     `<div class="rpt-status-row">Prox. reporte: ${esc(nextMes(range.month))} ${range.year}</div>` +
@@ -1207,25 +1568,43 @@ function buildProjectPage(cfg, genRes, mf, range, pageNum, totalPages, fmoMeta) 
     `<span>Documento confidencial – ${esc(range.headerPeriod)}</span>` +
     '</span></div>' +
     '</div>'
+  )
 }
 
 // ── Página consolidada portafolio ────────────────────────────────────
-function buildConsolidatedPage(portName, projsData, range, totalPages) {
+interface ProyectoEnriquecidoPortafolio {
+  pd: ProyectoResultadoPeriodo
+  tot: number
+  avg: number
+  p90: number | null
+  pct: number | null
+  avail: DisponibilidadOperativa
+}
+function buildConsolidatedPage(
+  portName: string,
+  projsData: ProyectoResultadoPeriodo[],
+  range: RangoInforme,
+  totalPages: number,
+): string {
   const resp = 'Operaciones Unergy'
-  const enriched = projsData.map(pd => {
+  const enriched: ProyectoEnriquecidoPortafolio[] = projsData.map((pd) => {
     const data = pd.genRes?.data || []
     const sim = pd.genRes?.simulation
     const tot = data.reduce((a, d) => a + d.kwh, 0)
-    const dset = new Set(); data.forEach(d => dset.add(d.date))
+    const dset = new Set<string>()
+    data.forEach((d) => dset.add(d.date ?? ''))
     const nd = dset.size
     const avg = nd ? tot / nd : 0
     const p90 = sim?.p90_monthly ?? null
-    const pct = p90 > 0 ? ((tot - p90) / p90 * 100) : null
+    const pct = p90 != null && p90 > 0 ? ((tot - p90) / p90) * 100 : null
     const avail = calcAvailability(data, range)
     return { pd, tot, avg, p90, pct, avail }
   })
 
-  let totalPort = 0, overP90 = 0, totalEv = 0, totalP90 = 0
+  let totalPort = 0,
+    overP90 = 0,
+    totalEv = 0,
+    totalP90 = 0
   let rows = ''
   enriched.forEach((e, idx) => {
     const pc = e.pct === null ? '#A89EC0' : e.pct >= 0 ? '#4ADE80' : '#FF5757'
@@ -1239,9 +1618,19 @@ function buildConsolidatedPage(portName, projsData, range, totalPages) {
     if (idx === 0) rankBadge = '<span style="font-size:10px;margin-left:5px">🥇</span>'
     else if (idx === 1) rankBadge = '<span style="font-size:10px;margin-left:5px">🥈</span>'
     else if (idx === 2) rankBadge = '<span style="font-size:10px;margin-left:5px">🥉</span>'
-    else if (idx >= enriched.length - 3 && enriched.length > 3) rankBadge = '<span style="font-size:9px;color:#FF5757;font-weight:700;margin-left:5px">▼</span>'
-    const rowBg = idx === 0 ? 'background:#FFFDF0;' : idx === 1 ? 'background:#F8F8F8;' : idx === 2 ? 'background:#FFF5EC;' : ''
-    rows += `<tr style="${rowBg}">` +
+    else if (idx >= enriched.length - 3 && enriched.length > 3)
+      rankBadge =
+        '<span style="font-size:9px;color:#FF5757;font-weight:700;margin-left:5px">▼</span>'
+    const rowBg =
+      idx === 0
+        ? 'background:#FFFDF0;'
+        : idx === 1
+          ? 'background:#F8F8F8;'
+          : idx === 2
+            ? 'background:#FFF5EC;'
+            : ''
+    rows +=
+      `<tr style="${rowBg}">` +
       `<td style="font-weight:700">${idx + 1}. ${esc(pn)}${rankBadge}</td>` +
       `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(e.tot).toLocaleString('es-CO')}</td>` +
       `<td style="text-align:right;font-family:monospace">${Math.round(e.avg).toLocaleString('es-CO')}</td>` +
@@ -1251,17 +1640,21 @@ function buildConsolidatedPage(portName, projsData, range, totalPages) {
       `<td style="text-align:center;color:${pc}">${esc(e.pct !== null ? (e.pct >= 0 ? '✅ Normal' : '⚠️ Atención') : '—')}</td></tr>`
   })
 
-  const pctPort = totalP90 > 0 ? ((totalPort - totalP90) / totalP90 * 100) : null
+  const pctPort = totalP90 > 0 ? ((totalPort - totalP90) / totalP90) * 100 : null
   const pctPortStr = pctPort !== null ? `${pctPort >= 0 ? '+' : ''}${pctPort.toFixed(1)}%` : '—'
   const pctPortCol = pctPort === null ? '#F6FF72' : pctPort >= 0 ? '#4ADE80' : '#FF5757'
 
-  const chart = svgPortfolioChart(enriched.map(e => ({
-    name: e.pd.cfg.nombre_clientes || e.pd.cfg.nombre_display || e.pd.cfg.nombre_comercial,
-    real: e.tot, p90: e.p90,
-  })))
+  const chart = svgPortfolioChart(
+    enriched.map((e) => ({
+      name: e.pd.cfg.nombre_clientes || e.pd.cfg.nombre_display || e.pd.cfg.nombre_comercial,
+      real: e.tot,
+      p90: e.p90,
+    })),
+  )
 
   const pgLbl = totalPages > 1 ? `Página 1 de ${totalPages}` : ''
-  return '<div class="rpt-page">' +
+  return (
+    '<div class="rpt-page">' +
     '<div class="rpt-header">' +
     '<div style="display:flex;align-items:center;gap:13px">' +
     unergyLogoSVG() +
@@ -1271,14 +1664,36 @@ function buildConsolidatedPage(portName, projsData, range, totalPages) {
     '</div>' +
     `<div class="rpt-section"><div class="rpt-section-title">▌ 1. Resumen Consolidado – ${esc(range.headerPeriod)}</div>` +
     '<div class="rpt-kpi-row">' +
-    rkpi('⚡', 'Generación Total Portafolio', `${Math.round(totalPort).toLocaleString('es-CO')} kWh`, null) +
-    rkpi('🎯', 'P90 Total Portafolio', `${Math.round(totalP90).toLocaleString('es-CO')} kWh`, null) +
-    rkpi('🏭', 'Proyectos sobre P90', `${overP90} / ${projsData.length}`, overP90 === projsData.length ? '#4ADE80' : '#F59E0B') +
-    rkpi('⚠️', 'Total Eventos del Período', `${totalEv} evento(s)`, totalEv > 0 ? '#F97316' : '#4ADE80') +
+    rkpi(
+      '⚡',
+      'Generación Total Portafolio',
+      `${Math.round(totalPort).toLocaleString('es-CO')} kWh`,
+      null,
+    ) +
+    rkpi(
+      '🎯',
+      'P90 Total Portafolio',
+      `${Math.round(totalP90).toLocaleString('es-CO')} kWh`,
+      null,
+    ) +
+    rkpi(
+      '🏭',
+      'Proyectos sobre P90',
+      `${overP90} / ${projsData.length}`,
+      overP90 === projsData.length ? '#4ADE80' : '#F59E0B',
+    ) +
+    rkpi(
+      '⚠️',
+      'Total Eventos del Período',
+      `${totalEv} evento(s)`,
+      totalEv > 0 ? '#F97316' : '#4ADE80',
+    ) +
     '</div>' +
     '<table class="rpt-table" style="margin-top:12px"><thead><tr>' +
     '<th># PROYECTO</th><th>GENERACIÓN (kWh)</th><th>PROM. DIARIO</th><th>DESV. P90</th><th>DISPONIB.</th><th>EVENTOS</th><th>ESTADO</th>' +
-    '</tr></thead><tbody>' + rows + '</tbody>' +
+    '</tr></thead><tbody>' +
+    rows +
+    '</tbody>' +
     '<tfoot><tr class="rpt-total-row"><td>TOTAL PORTAFOLIO</td>' +
     `<td style="text-align:right;font-family:monospace">${Math.round(totalPort).toLocaleString('es-CO')} kWh</td>` +
     `<td colspan="2" style="text-align:right;font-family:monospace">P90: ${Math.round(totalP90).toLocaleString('es-CO')} kWh</td>` +
@@ -1293,29 +1708,38 @@ function buildConsolidatedPage(portName, projsData, range, totalPages) {
     `<span>Documento confidencial – ${esc(range.headerPeriod)}</span>` +
     '</span></div>' +
     '</div>'
+  )
 }
 
 // ── Página FMO ───────────────────────────────────────────────────────
 
-function buildFMOPage(cfg, genRes, mf, range, fmoData) {
+function buildFMOPage(
+  cfg: ProyectoCfg,
+  genRes: RespuestaGeneracionLegacy,
+  mf: Falla[],
+  range: RangoInforme,
+  fmoData: RespuestaFmoLegacy,
+): string {
   const data = genRes?.data || []
   const sim = genRes?.simulation
-  const dm = {}
-  data.forEach(d => { dm[d.date] = (dm[d.date] || 0) + d.kwh })
+  const dm: Record<string, number> = {}
+  data.forEach((d) => {
+    dm[d.date ?? ''] = (dm[d.date ?? ''] || 0) + d.kwh
+  })
   const days = Object.keys(dm).sort()
-  const kpd = days.map(d => Math.round(dm[d] * 100) / 100)
+  const kpd = days.map((d) => Math.round(dm[d]! * 100) / 100)
   const total = kpd.reduce((a, b) => a + b, 0)
   const avg = days.length ? total / days.length : 0
   const p90m = sim?.p90_monthly ?? null
   const p50m = sim?.p50_monthly ?? null
   const p90d = sim?.p90_daily ?? null
-  const pct = p90m > 0 ? ((total - p90m) / p90m * 100) : null
+  const pct = p90m != null && p90m > 0 ? ((total - p90m) / p90m) * 100 : null
   const pctStr = pct !== null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs P90` : '—'
   const pctCol = pct === null ? '#A89EC0' : pct >= 0 ? '#4ADE80' : '#FF5757'
 
   const avail = calcAvailability(data, range)
   const contrato = fmoData?.contrato || null
-  const DISP_GAR = parseFloat(contrato?.disponibilidad_garantizada_pct || '97') || 97
+  const DISP_GAR = parseFloat(String(contrato?.disponibilidad_garantizada_pct || '97')) || 97
   const dispPct = avail.pct
   const cumpleDisp = dispPct !== null && dispPct >= DISP_GAR
   const dispStr = dispPct !== null ? `${dispPct.toFixed(1)}%` : 'No calculado'
@@ -1326,23 +1750,29 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     const deficit = DISP_GAR - dispPct
     const numIntervalos = Math.ceil(deficit / 0.25)
     const pctMulta = numIntervalos * 0.5
-    const honorariosBase = parseFloat(contrato?.valor_estimado_ano1_cop || '0') || 0
-    multaHtml = '<div class="fmo-multa-box"><div style="font-size:11px;font-weight:800;color:#CC0000;margin-bottom:6px">⚠️ INCUMPLIMIENTO DE DISPONIBILIDAD GARANTIZADA</div>' +
+    const honorariosBase = parseFloat(String(contrato?.valor_estimado_ano1_cop || '0')) || 0
+    multaHtml =
+      '<div class="fmo-multa-box"><div style="font-size:11px;font-weight:800;color:#CC0000;margin-bottom:6px">⚠️ INCUMPLIMIENTO DE DISPONIBILIDAD GARANTIZADA</div>' +
       '<div style="font-size:11px;color:#883333;line-height:1.7">' +
       `Déficit: <b>${deficit.toFixed(2)}%</b> (${numIntervalos} intervalo(s) de 0.25%) · ` +
       `Multa aplicable: <b>${pctMulta.toFixed(1)}%</b> del honorario anual` +
-      (honorariosBase > 0 ? ` → estimado <b>COP $${Math.round(honorariosBase * pctMulta / 100).toLocaleString('es-CO')}</b>` : '') +
+      (honorariosBase > 0
+        ? ` → estimado <b>COP $${Math.round((honorariosBase * pctMulta) / 100).toLocaleString('es-CO')}</b>`
+        : '') +
       '<br>Referencia: Sección XIII.04 — Multa por incumplimiento de la Disponibilidad Garantizada</div></div>'
   } else if (dispPct !== null && cumpleDisp) {
-    multaHtml = '<div class="fmo-ok-box"><div style="font-size:11px;font-weight:800;color:#2D8A4E">✅ DISPONIBILIDAD GARANTIZADA CUMPLIDA — Sin multa aplicable</div>' +
+    multaHtml =
+      '<div class="fmo-ok-box"><div style="font-size:11px;font-weight:800;color:#2D8A4E">✅ DISPONIBILIDAD GARANTIZADA CUMPLIDA — Sin multa aplicable</div>' +
       `<div style="font-size:11px;color:#2D7A3E;margin-top:3px">Real: ${dispStr} ≥ Garantizada: ${DISP_GAR}%</div></div>`
   }
 
-  const atypical = []
-  if (avg > 0) days.forEach((d, i) => {
-    const v = kpd[i]
-    if (v < avg * 0.7) atypical.push({ date: d, kwh: Math.round(v), pct: Math.round(v / avg * 100) })
-  })
+  const atypical: DiaAtipico[] = []
+  if (avg > 0)
+    days.forEach((d, i) => {
+      const v = kpd[i]!
+      if (v < avg * 0.7)
+        atypical.push({ date: d, kwh: Math.round(v), pct: Math.round((v / avg) * 100) })
+    })
 
   // El SLA contractual del Anexo 4 lo calcula el backend
   // (`apps/monitoreo/services/fallas/sla_contractual.py`) y llega por falla en
@@ -1354,11 +1784,11 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
   // fallback NO puede inventar un "OK": esto se imprime en un documento que ve
   // el cliente, y un cumplimiento falso es peor que una celda en blanco.
   const SLA_AUSENTE = { dias: null, plazo_dias: null, etiqueta: '—', cumple: null }
-  const fallasSla = mf.map(f => ({ f, sla: f.sla_contractual ?? SLA_AUSENTE }))
+  const fallasSla = mf.map((f) => ({ f, sla: f.sla_contractual ?? SLA_AUSENTE }))
   // `cumple === false` y no `!cumple`: distingue el incumplimiento real del
   // campo ausente. Y no se repite aca la regla de "cerrada cuenta como cumplida"
   // -- el backend ya pone `cumple: true` para todo estado final.
-  const fueraSla = fallasSla.filter(x => x.sla.cumple === false).length
+  const fueraSla = fallasSla.filter((x) => x.sla.cumple === false).length
 
   const weeks = buildWeeks(data, range, p90d)
 
@@ -1367,18 +1797,28 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
   const invErr = fmoData?.inverters_error
   let invTableHtml = ''
   if (inverters.length) {
-    invTableHtml = '<table class="fmo-inv-table"><thead><tr>' +
+    invTableHtml =
+      '<table class="fmo-inv-table"><thead><tr>' +
       '<th>#</th><th>NOMBRE / S/N</th><th>CAPACIDAD</th><th>ESTADO ACTUAL</th><th>POTENCIA</th></tr></thead><tbody>'
     inverters.forEach((inv, i) => {
-      const name = inv.name || inv.nombre || inv.inverter_name || inv.sn || `INV-${String(i + 1).padStart(2, '0')}`
+      const name =
+        inv.name ||
+        inv.nombre ||
+        inv.inverter_name ||
+        inv.sn ||
+        `INV-${String(i + 1).padStart(2, '0')}`
       const sn = inv.serial_number || inv.sn || inv.serial || '—'
       const cap = inv.nominal_power || inv.capacity || inv.potencia_nominal || inv.power_kw
       const capStr = cap != null ? `${cap} kWp` : '—'
       const status = inv.status || inv.estado || inv.alarm_status || '—'
-      const statusOk = String(status).toLowerCase().match(/normal|ok|^0$/) || status === 0
+      const statusOk =
+        String(status)
+          .toLowerCase()
+          .match(/normal|ok|^0$/) || status === 0
       const power = inv.active_power || inv.power || inv.potencia || inv.pac
-      const powerStr = power != null ? `${(parseFloat(power) || 0).toFixed(1)} kW` : '—'
-      invTableHtml += '<tr>' +
+      const powerStr = power != null ? `${(parseFloat(String(power)) || 0).toFixed(1)} kW` : '—'
+      invTableHtml +=
+        '<tr>' +
         `<td style="text-align:center;font-family:monospace;font-weight:700">${i + 1}</td>` +
         `<td><b>${esc(name)}</b>${sn !== '—' ? `<br><span style="font-size:9px;color:#888">${esc(sn)}</span>` : ''}</td>` +
         `<td style="text-align:center">${esc(capStr)}</td>` +
@@ -1387,21 +1827,24 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     })
     invTableHtml += '</tbody></table>'
   } else {
-    invTableHtml = '<div style="font-size:11px;color:#A89EC0;padding:12px;background:#F9F7FD;border-radius:8px;text-align:center">' +
+    invTableHtml =
+      '<div style="font-size:11px;color:#A89EC0;padding:12px;background:#F9F7FD;border-radius:8px;text-align:center">' +
       (invErr ? `⚠️ ${esc(invErr)}` : 'Sin datos de inversores disponibles para este proyecto') +
       '</div>'
   }
 
   // SLA table
-  let slaHtml = '<table class="fmo-mant-table"><thead><tr>' +
+  let slaHtml =
+    '<table class="fmo-mant-table"><thead><tr>' +
     '<th style="width:90px">FECHA</th><th>DESCRIPCIÓN</th><th style="width:90px">GRAVEDAD</th><th style="width:70px">DÍAS ABIERTA</th><th style="width:80px">SLA</th>' +
     '</tr></thead><tbody>'
   if (mf.length) {
-    fallasSla.forEach(x => {
+    fallasSla.forEach((x) => {
       const f = x.f
       const sla = x.sla
       const desc = eventoDesc(f).slice(0, 110)
-      slaHtml += '<tr>' +
+      slaHtml +=
+        '<tr>' +
         `<td style="font-weight:700;color:#6B35C0;font-size:10px">${esc(fmtD(f.fecha_identificacion))}</td>` +
         `<td>${esc(desc)}</td>` +
         `<td style="font-size:10px">${esc(sla.etiqueta)}</td>` +
@@ -1409,29 +1852,48 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
         `<td class="${sla.cumple === false ? 'fmo-sla-err' : 'fmo-sla-ok'}">${sla.cumple == null ? '—' : sla.cumple ? '✅ OK' : '❌ Excede'}</td></tr>`
     })
   } else {
-    slaHtml += '<tr><td colspan="5" style="text-align:center;color:#A89EC0;padding:14px">Sin eventos en el período ✅</td></tr>'
+    slaHtml +=
+      '<tr><td colspan="5" style="text-align:center;color:#A89EC0;padding:14px">Sin eventos en el período ✅</td></tr>'
   }
   slaHtml += '</tbody></table>'
   if (mf.length) {
     slaHtml += `<div style="font-size:10px;color:#888;margin-top:8px">${mf.length} evento(s) · ${mf.length - fueraSla} dentro del SLA · ${fueraSla} fuera del SLA</div>`
   }
 
-  const chart1 = svgDailyChart(days, kpd, p90d, atypical.map(a => a.date))
-  const chart2 = svgCompareChart(Math.round(total), p50m, p90m, p90m ? Math.round(p90m * 0.9) : null)
+  const chart1 = svgDailyChart(
+    days,
+    kpd,
+    p90d,
+    atypical.map((a) => a.date),
+  )
+  const chart2 = svgCompareChart(
+    Math.round(total),
+    p50m,
+    p90m,
+    p90m ? Math.round(p90m * 0.9) : null,
+  )
 
-  const obsFMO = `El proyecto ${cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial} registró una generación total de ` +
+  const obsFMO =
+    `El proyecto ${cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial} registró una generación total de ` +
     `${Math.round(total).toLocaleString('es-CO')} kWh durante ${range.monthName} ${range.year}` +
-    (pct !== null ? `, ${pct >= 0 ? 'superando en +' : 'por debajo en '}${Math.abs(pct).toFixed(1)}% el umbral P90` : '') +
+    (pct !== null
+      ? `, ${pct >= 0 ? 'superando en +' : 'por debajo en '}${Math.abs(pct).toFixed(1)}% el umbral P90`
+      : '') +
     `. La disponibilidad operativa calculada fue de ${dispStr}` +
-    (cumpleDisp ? ` cumpliendo con el umbral contractual del ${DISP_GAR}%.` : ` por debajo del umbral garantizado del ${DISP_GAR}%, lo que genera la aplicación de multa según la Sección XIII.04 del contrato.`) +
-    (mf.length ? ` Se registraron ${mf.length} evento(s) operativo(s).` : ' Sin eventos operativos en el período.')
+    (cumpleDisp
+      ? ` cumpliendo con el umbral contractual del ${DISP_GAR}%.`
+      : ` por debajo del umbral garantizado del ${DISP_GAR}%, lo que genera la aplicación de multa según la Sección XIII.04 del contrato.`) +
+    (mf.length
+      ? ` Se registraron ${mf.length} evento(s) operativo(s).`
+      : ' Sin eventos operativos en el período.')
 
   const resp = 'Operaciones Unergy'
   const contratista = contrato?.contratista || 'Unergy S.A.S.'
   const muni = cfg.municipio || '—'
   const pname = cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial
 
-  return '<div class="rpt-page">' +
+  return (
+    '<div class="rpt-page">' +
     '<div class="rpt-header">' +
     '<div style="display:flex;align-items:center;gap:13px">' +
     unergyLogoSVG() +
@@ -1450,30 +1912,41 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     '</div>' +
     '<div class="rpt-kpi-row" style="margin-top:10px">' +
     rkpi('📆', 'Días con datos', `${days.length} / ${range.totalDays}`, null) +
-    rkpi('🗓', 'Días atípicos', `${atypical.length} día${atypical.length !== 1 ? 's' : ''}`, atypical.length === 0 ? '#4ADE80' : '#F97316') +
+    rkpi(
+      '🗓',
+      'Días atípicos',
+      `${atypical.length} día${atypical.length !== 1 ? 's' : ''}`,
+      atypical.length === 0 ? '#4ADE80' : '#F97316',
+    ) +
     rkpi('⚡', 'Eventos operativos', mf.length, mf.length === 0 ? '#4ADE80' : '#F97316') +
     rkpi('⚠️', 'Fuera de SLA', fueraSla, fueraSla === 0 ? '#4ADE80' : '#FF5757') +
-    '</div>' + multaHtml + '</div>' +
+    '</div>' +
+    multaHtml +
+    '</div>' +
     // S2
     '<div class="rpt-section"><div class="fmo-section-title">▌ 2. GENERACIÓN DEL PERÍODO</div>' +
     '<table class="rpt-table"><thead><tr>' +
     '<th>SEMANA</th><th>PERÍODO</th><th>TENDENCIA</th><th>GENERACIÓN (kWh)</th><th>P90 ESPERADO (kWh)</th><th>DESV.</th><th>ESTADO</th></tr></thead><tbody>' +
-    weeks.map((w, i) => {
-      const wp = w.pct !== null ? `${w.pct >= 0 ? '+' : ''}${w.pct.toFixed(1)}%` : '—'
-      const wc = w.ok === null ? '#A89EC0' : w.ok ? '#4ADE80' : '#F6FF72'
-      let trendHtml = '—'
-      if (i > 0 && weeks[i - 1].gen > 0) {
-        const diff = w.gen - weeks[i - 1].gen
-        const dp = Math.round(diff / weeks[i - 1].gen * 100)
-        trendHtml = `<span style="color:${diff >= 0 ? '#4ADE80' : '#FF5757'};font-weight:800">${diff >= 0 ? '↑' : '↓'}${diff >= 0 ? '+' : ''}${dp}%</span>`
-      }
-      return `<tr><td style="font-weight:700">${esc(w.lbl)}</td><td>${esc(w.period)}</td>` +
-        `<td style="text-align:center">${trendHtml}</td>` +
-        `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(w.gen).toLocaleString('es-CO')}</td>` +
-        `<td style="text-align:right;font-family:monospace">${w.p90 ? Math.round(w.p90).toLocaleString('es-CO') : '—'}</td>` +
-        `<td style="text-align:center;font-weight:700;color:${wc}">${wp}</td>` +
-        `<td style="text-align:center">${w.ok === null ? '—' : (w.ok ? '✅ Normal' : '⚠️ Atención')}</td></tr>`
-    }).join('') +
+    weeks
+      .map((w, i) => {
+        const wp = w.pct !== null ? `${w.pct >= 0 ? '+' : ''}${w.pct.toFixed(1)}%` : '—'
+        const wc = w.ok === null ? '#A89EC0' : w.ok ? '#4ADE80' : '#F6FF72'
+        let trendHtml = '—'
+        if (i > 0 && weeks[i - 1]!.gen > 0) {
+          const diff = w.gen - weeks[i - 1]!.gen
+          const dp = Math.round((diff / weeks[i - 1]!.gen) * 100)
+          trendHtml = `<span style="color:${diff >= 0 ? '#4ADE80' : '#FF5757'};font-weight:800">${diff >= 0 ? '↑' : '↓'}${diff >= 0 ? '+' : ''}${dp}%</span>`
+        }
+        return (
+          `<tr><td style="font-weight:700">${esc(w.lbl)}</td><td>${esc(w.period)}</td>` +
+          `<td style="text-align:center">${trendHtml}</td>` +
+          `<td style="text-align:right;font-family:monospace;font-weight:700">${Math.round(w.gen).toLocaleString('es-CO')}</td>` +
+          `<td style="text-align:right;font-family:monospace">${w.p90 ? Math.round(w.p90).toLocaleString('es-CO') : '—'}</td>` +
+          `<td style="text-align:center;font-weight:700;color:${wc}">${wp}</td>` +
+          `<td style="text-align:center">${w.ok === null ? '—' : w.ok ? '✅ Normal' : '⚠️ Atención'}</td></tr>`
+        )
+      })
+      .join('') +
     `<tr class="rpt-total-row"><td>TOTAL</td><td>${range.lastDay} días</td><td></td>` +
     `<td style="text-align:right;font-family:monospace">${Math.round(total).toLocaleString('es-CO')}</td>` +
     `<td style="text-align:right;font-family:monospace">${p90m ? Math.round(p90m).toLocaleString('es-CO') : '—'}</td>` +
@@ -1488,8 +1961,18 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     // S3
     '<div class="rpt-section"><div class="fmo-section-title">▌ 3. DISPONIBILIDAD GARANTIZADA — Anexo 1 del Contrato</div>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">' +
-    rkpi('⏱', 'HPER (Horas período solar)', `${(range.totalDays * 11).toLocaleString('es-CO')} h`, null) +
-    rkpi('❌', 'HUNA (Horas sin generación)', `${(avail.cero || 0).toLocaleString('es-CO')} h`, null) +
+    rkpi(
+      '⏱',
+      'HPER (Horas período solar)',
+      `${(range.totalDays * 11).toLocaleString('es-CO')} h`,
+      null,
+    ) +
+    rkpi(
+      '❌',
+      'HUNA (Horas sin generación)',
+      `${(avail.cero || 0).toLocaleString('es-CO')} h`,
+      null,
+    ) +
     rkpi('🔆', 'ASYS Calculado', dispStr, dispCol) +
     rkpi('📋', 'Disponibilidad Garantizada', `${DISP_GAR}%`, '#A89EC0') +
     '</div>' +
@@ -1497,7 +1980,9 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     '<b>Metodología:</b> ASYS = (HPER - HUNA) / HPER × 100 | HPER = horas franjas solar 06:00–17:00 · ' +
     'HUNA = horas con generación ≈ 0 en franja solar. Nota: cálculo a nivel de planta; el cálculo contractual (Anexo 1) requiere datos por inversor.' +
     '</div>' +
-    invTableHtml + multaHtml + '</div>' +
+    invTableHtml +
+    multaHtml +
+    '</div>' +
     // S4
     '<div class="rpt-section"><div class="fmo-section-title">▌ 4. EVENTOS OPERATIVOS Y TIEMPOS DE RESPUESTA — Anexo 4</div>' +
     slaHtml +
@@ -1518,7 +2003,9 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     '<div class="rpt-section"><div class="fmo-section-title">▌ 6. ESTADO DE GARANTÍAS DE EQUIPOS</div>' +
     '<div class="rpt-obs-title">GARANTÍAS EN TRÁMITE / ESTADO ACTUAL <span class="rpt-edit-hint">✏️ clic para editar</span></div>' +
     '<div contenteditable="true" data-obs="2" class="rpt-obs-editable" style="min-height:60px;outline:none;border:1px solid #EDE8F5;border-radius:8px;padding:12px 14px;background:#F7F4FD;font-size:12px;color:#3D2D5C;line-height:1.8">' +
-    (contrato?.garantias_equipos?.trim() ? esc(contrato.garantias_equipos) : 'Sin equipos en proceso de garantía actualmente. Edita aquí antes de imprimir si aplica.') +
+    (contrato?.garantias_equipos?.trim()
+      ? esc(contrato.garantias_equipos)
+      : 'Sin equipos en proceso de garantía actualmente. Edita aquí antes de imprimir si aplica.') +
     '</div></div>' +
     // S7
     '<div class="rpt-section"><div class="fmo-section-title">▌ 7. OBSERVACIONES Y ESTADO GENERAL</div>' +
@@ -1545,9 +2032,10 @@ function buildFMOPage(cfg, genRes, mf, range, fmoData) {
     `<span>${esc(range.headerPeriod)} · Entrega: 5 primeros días del mes siguiente</span>` +
     '</div>' +
     '</div>'
+  )
 }
 
-function unergyLogoSVG() {
+function unergyLogoSVG(): string {
   return '<svg width="38" height="31" viewBox="0 0 44 36" fill="none"><circle cx="22" cy="4" r="3" fill="white"/><path d="M8 10 L8 24 Q8 34 22 34 Q36 34 36 24 L36 10" stroke="white" stroke-width="5" fill="none" stroke-linecap="round"/></svg>'
 }
 
@@ -1572,27 +2060,44 @@ async function generar() {
   try {
     if (tipo.value === 'proyecto') {
       const sp = proyectoSel.value
-      const cfg = proyectos.value.find(p => p.sub_project === sp)
+      const cfg = proyectos.value.find((p) => p.sub_project === sp)
       if (!cfg) throw new Error('Proyecto no encontrado')
       ultimoSubProject.value = sp
-      const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: sp, date_from: range.from, date_to: range.to })
+      const r = await monitoreoLegacyService.obtenerGeneracion({
+        sub_project: sp,
+        date_from: range.from,
+        date_to: range.to,
+      })
       const mf = getFaultsForRange(cfg, range)
-      htmlContent.value = buildProjectPage(cfg, r || {}, mf, range, 1, 1)
+      htmlContent.value = buildProjectPage(cfg, r || { data: [] }, mf, range, 1, 1)
       resultTitle.value = cfg.nombre_display || cfg.nombre_clientes || cfg.nombre_comercial || sp
       rangeLabel.value = range.label
     } else if (tipo.value === 'fmo') {
       const sp = proyectoSel.value
-      const cfg = proyectos.value.find(p => p.sub_project === sp) || contratosFmo.value.find(c => c.sub_project === sp) || { sub_project: sp, nombre_clientes: sp }
+      const cfg: ProyectoCfg = proyectos.value.find((p) => p.sub_project === sp) ||
+        contratosFmo.value.find((c) => c.sub_project === sp) || {
+          sub_project: sp,
+          nombre_clientes: sp,
+        }
       ultimoSubProject.value = sp
       loadingMsg.value = 'Consultando generación e inversores…'
       const [genRes, fmoRes] = await Promise.allSettled([
-        monitoreoLegacyService.obtenerGeneracion({ sub_project: sp, date_from: range.from, date_to: range.to }),
-        monitoreoLegacyService.obtenerDatosFmo({ sub_project: sp, date_from: range.from, date_to: range.to }),
+        monitoreoLegacyService.obtenerGeneracion({
+          sub_project: sp,
+          date_from: range.from,
+          date_to: range.to,
+        }),
+        monitoreoLegacyService.obtenerDatosFmo({
+          sub_project: sp,
+          date_from: range.from,
+          date_to: range.to,
+        }),
       ])
-      const r = genRes.status === 'fulfilled' ? genRes.value : { ok: true, data: [] }
-      const fmoData = fmoRes.status === 'fulfilled' ? fmoRes.value : {}
+      const r: RespuestaGeneracionLegacy =
+        genRes.status === 'fulfilled' ? genRes.value : { ok: true, data: [] }
+      const fmoData: RespuestaFmoLegacy = fmoRes.status === 'fulfilled' ? fmoRes.value : {}
       const mf = getFaultsForRange(cfg, range)
-      htmlContent.value = buildFMOPage(cfg, r || {}, mf, range, fmoData || {})
+      htmlContent.value = buildFMOPage(cfg, r || { data: [] }, mf, range, fmoData || {})
       resultTitle.value = cfg.nombre_clientes || cfg.nombre_display || cfg.nombre_comercial || sp
       rangeLabel.value = range.label
     } else if (tipo.value === 'portafolio') {
@@ -1600,27 +2105,37 @@ async function generar() {
       const projNames = portafolios.value[portName] || []
       if (!projNames.length) throw new Error(`Portafolio "${portName}" sin proyectos asociados`)
       const cfgs = projNames
-        .map(name => {
+        .map((name) => {
           const nl = String(name).trim().toLowerCase()
-          return proyectos.value.find(p =>
-            nl === (p.nombre_clientes || '').trim().toLowerCase() ||
-            nl === (p.nombre_display || '').trim().toLowerCase() ||
-            nl === (p.nombre_bitacora || '').trim().toLowerCase() ||
-            nl === (p.nombre_comercial || '').trim().toLowerCase()
+          return proyectos.value.find(
+            (p) =>
+              nl === (p.nombre_clientes || '').trim().toLowerCase() ||
+              nl === (p.nombre_display || '').trim().toLowerCase() ||
+              nl === (p.nombre_bitacora || '').trim().toLowerCase() ||
+              nl === (p.nombre_comercial || '').trim().toLowerCase(),
           )
         })
-        .filter(Boolean)
-      if (!cfgs.length) throw new Error('No se encontraron proyectos del portafolio en la plataforma')
+        .filter((p): p is ProyectoMonitoreoLegacy => !!p)
+      if (!cfgs.length)
+        throw new Error('No se encontraron proyectos del portafolio en la plataforma')
       ultimoSubProject.value = `port_${portName.replace(/[^\w-]/g, '_').toLowerCase()}`
 
       loadingMsg.value = `Consultando ${cfgs.length} proyectos…`
-      const results = []
+      const results: ProyectoResultadoPeriodo[] = []
       for (let i = 0; i < cfgs.length; i++) {
-        const c = cfgs[i]
+        const c = cfgs[i]!
         loadingSub.value = `(${i + 1}/${cfgs.length}) ${c.nombre_clientes || c.nombre_display || c.nombre_comercial}`
         try {
-          const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: c.sub_project, date_from: range.from, date_to: range.to })
-          results.push({ cfg: c, genRes: r && r.ok ? r : { ok: true, data: [] }, mf: getFaultsForRange(c, range) })
+          const r = await monitoreoLegacyService.obtenerGeneracion({
+            sub_project: c.sub_project,
+            date_from: range.from,
+            date_to: range.to,
+          })
+          results.push({
+            cfg: c,
+            genRes: r && r.ok ? r : { ok: true, data: [] },
+            mf: getFaultsForRange(c, range),
+          })
         } catch {
           results.push({ cfg: c, genRes: { ok: true, data: [] }, mf: [] })
         }
@@ -1632,10 +2147,12 @@ async function generar() {
       })
       const totalPages = results.length + 1
       const consolidada = buildConsolidatedPage(portName, results, range, totalPages)
-      const miembros = results.map((pd, i) => {
+      const miembros: MiembroPortafolio[] = results.map((pd, i) => {
         const sp = pd.cfg.sub_project
-        const html = buildProjectPage(pd.cfg, pd.genRes, pd.mf, range, i + 2, totalPages)
-          .replace('<div class="rpt-page">', `<div class="rpt-page" data-sub-project="${sp}" data-nombre="${pd.cfg.nombre_clientes || pd.cfg.nombre_display || pd.cfg.nombre_comercial || sp}">`)
+        const html = buildProjectPage(pd.cfg, pd.genRes, pd.mf, range, i + 2, totalPages).replace(
+          '<div class="rpt-page">',
+          `<div class="rpt-page" data-sub-project="${sp}" data-nombre="${pd.cfg.nombre_clientes || pd.cfg.nombre_display || pd.cfg.nombre_comercial || sp}">`,
+        )
         return {
           sub_project: sp,
           nombre: pd.cfg.nombre_clientes || pd.cfg.nombre_display || pd.cfg.nombre_comercial || sp,
@@ -1645,71 +2162,97 @@ async function generar() {
       })
       ultimaConsolidada.value = consolidada
       ultimosMiembros.value = miembros
-      htmlContent.value = [consolidada, ...miembros.map(m => m.html)].join('<div class="rpt-page-sep"></div>')
+      htmlContent.value = [consolidada, ...miembros.map((m) => m.html)].join(
+        '<div class="rpt-page-sep"></div>',
+      )
       resultTitle.value = portName
       rangeLabel.value = range.label
     } else if (tipo.value === 'ranking') {
       // Resolver proyectos según alcance
-      let cfgs = []
+      let cfgs: ProyectoMonitoreoLegacy[] = []
       let scopeLabel = ''
       if (rankingScope.value === 'portafolio') {
         const portName = portafolioSel.value
         const projNames = portafolios.value[portName] || []
         cfgs = projNames
-          .map(name => {
+          .map((name) => {
             const nl = String(name).trim().toLowerCase()
-            return proyectos.value.find(p =>
-              nl === (p.nombre_clientes || '').trim().toLowerCase() ||
-              nl === (p.nombre_display || '').trim().toLowerCase() ||
-              nl === (p.nombre_bitacora || '').trim().toLowerCase() ||
-              nl === (p.nombre_comercial || '').trim().toLowerCase()
+            return proyectos.value.find(
+              (p) =>
+                nl === (p.nombre_clientes || '').trim().toLowerCase() ||
+                nl === (p.nombre_display || '').trim().toLowerCase() ||
+                nl === (p.nombre_bitacora || '').trim().toLowerCase() ||
+                nl === (p.nombre_comercial || '').trim().toLowerCase(),
             )
           })
-          .filter(Boolean)
+          .filter((p): p is ProyectoMonitoreoLegacy => !!p)
         scopeLabel = portName
-        if (!cfgs.length) throw new Error('No se encontraron proyectos del portafolio en la plataforma')
+        if (!cfgs.length)
+          throw new Error('No se encontraron proyectos del portafolio en la plataforma')
       } else {
-        cfgs = proyectos.value.filter(p => proyectosSel.value.includes(p.sub_project))
+        cfgs = proyectos.value.filter((p) => proyectosSel.value.includes(p.sub_project))
         scopeLabel = `${cfgs.length} proyecto${cfgs.length !== 1 ? 's' : ''}`
         if (!cfgs.length) throw new Error('Selecciona al menos un proyecto')
       }
       const meses = monthsInRange()
       if (!meses.length) throw new Error('Período inválido')
 
-      const pages = []
+      const pages: string[] = []
       const totalReq = meses.length * cfgs.length
       let done = 0
       for (const mes of meses) {
-        const items = []
+        const items: ItemRankingP90[] = []
         for (const c of cfgs) {
           done++
           const cn = c.nombre_comercial || c.nombre_display || c.nombre_clientes || c.sub_project
           loadingSub.value = `(${done}/${totalReq}) ${mes.label} — ${cn}`
-          let tot = 0, p90 = null
+          let tot = 0
+          let p90: number | null = null
           try {
-            const r = await monitoreoLegacyService.obtenerGeneracion({ sub_project: c.sub_project, date_from: mes.from, date_to: mes.to })
+            const r = await monitoreoLegacyService.obtenerGeneracion({
+              sub_project: c.sub_project,
+              date_from: mes.from,
+              date_to: mes.to,
+            })
             const arr = (r && r.data) || []
             tot = arr.reduce((s, d) => s + d.kwh, 0)
             p90 = r?.simulation?.p90_monthly ?? null
-          } catch { /* sin datos para ese mes */ }
+          } catch {
+            /* sin datos para ese mes */
+          }
           items.push({ name: cn, real: tot, p90 })
         }
         items.sort((a, b) => (b.real || 0) - (a.real || 0))
         pages.push(buildRankingPage(scopeLabel, mes.label, items))
       }
-      ultimoSubProject.value = `ranking_${rankingScope.value}_${scopeLabel}`.replace(/[^\w-]/g, '_').toLowerCase().slice(0, 180)
+      ultimoSubProject.value = `ranking_${rankingScope.value}_${scopeLabel}`
+        .replace(/[^\w-]/g, '_')
+        .toLowerCase()
+        .slice(0, 180)
       htmlContent.value = pages.join('<div class="rpt-page-sep"></div>')
       resultTitle.value = scopeLabel
-      rangeLabel.value = meses.length > 1 ? `${meses[0].label} – ${meses[meses.length - 1].label}` : meses[0].label
+      rangeLabel.value =
+        meses.length > 1
+          ? `${meses[0]!.label} – ${meses[meses.length - 1]!.label}`
+          : meses[0]!.label
     }
-    ultimoTipo.value = tipo.value === 'portafolio' ? 'port' : tipo.value === 'fmo' ? 'fmo' : tipo.value === 'ranking' ? 'ranking' : 'op'
+    ultimoTipo.value =
+      tipo.value === 'portafolio'
+        ? 'port'
+        : tipo.value === 'fmo'
+          ? 'fmo'
+          : tipo.value === 'ranking'
+            ? 'ranking'
+            : 'op'
   } catch (e) {
-    logger.error('operaciones', e)
-    error.value = { title: 'Error al generar el informe', detail: e.data?.detail || e.message }
+    const message = logger.error('operaciones', e)
+    error.value = { title: 'Error al generar el informe', detail: message }
   } finally {
     generando.value = false
     loadingSub.value = ''
-    nextTick(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) })
+    nextTick(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    })
   }
 }
 
@@ -1717,22 +2260,29 @@ async function generar() {
 // Para portafolio: averigua qué proyectos ya tienen informe individual ('op') guardado
 // para el mismo período. Los que sí → se vinculan (html_inline=null, el portafolio usa
 // el individual vivo). Los que no → se embeben (html_inline = sección generada/editada).
-async function buildMiembrosPayload() {
-  const from = ultimoRange.value.from
-  const pages = [...reportRef.value.querySelectorAll('.rpt-page')]
-  const secciones = pages.slice(1)   // pages[0] = consolidada
-  const miembros = []
+async function buildMiembrosPayload(): Promise<MiembroInformePayload[]> {
+  const from = ultimoRange.value!.from
+  const pages = [...reportRef.value!.querySelectorAll('.rpt-page')]
+  const secciones = pages.slice(1) // pages[0] = consolidada
+  const miembros: MiembroInformePayload[] = []
   for (let i = 0; i < ultimosMiembros.value.length; i++) {
-    const m = ultimosMiembros.value[i]
-    const el = secciones.find(p => p.getAttribute('data-sub-project') === m.sub_project) || secciones[i]
+    const m = ultimosMiembros.value[i]!
+    const el =
+      secciones.find((p) => p.getAttribute('data-sub-project') === m.sub_project) || secciones[i]
     const sectionHtml = el ? el.outerHTML : m.html
     let existeIndiv = false
     try {
       const data = await informesService.listar({
-        tipo: 'op', sub_project: m.sub_project, periodo_desde_gte: from, periodo_desde_lte: from, limit: 1,
+        tipo: 'op',
+        sub_project: m.sub_project,
+        periodo_desde_gte: from,
+        periodo_desde_lte: from,
+        limit: 1,
       })
       existeIndiv = Array.isArray(data) && data.length > 0
-    } catch { /* si falla la consulta, embebemos por seguridad */ }
+    } catch {
+      /* si falla la consulta, embebemos por seguridad */
+    }
     miembros.push({
       sub_project: m.sub_project,
       nombre: m.nombre,
@@ -1747,8 +2297,10 @@ async function guardar() {
   if (!htmlContent.value || !reportRef.value || !ultimoRange.value) return
   guardando.value = true
   try {
-    const tipoApi = ultimoTipo.value || (tipo.value === 'portafolio' ? 'port' : tipo.value === 'fmo' ? 'fmo' : 'op')
-    const payload = {
+    const tipoApi =
+      ultimoTipo.value ||
+      (tipo.value === 'portafolio' ? 'port' : tipo.value === 'fmo' ? 'fmo' : 'op')
+    const payload: PayloadGuardarInforme = {
       tipo: tipoApi,
       sub_project: ultimoSubProject.value,
       periodo_desde: ultimoRange.value.from,
@@ -1761,16 +2313,14 @@ async function guardar() {
       // El portafolio guarda SOLO la página consolidada como html_content; las secciones
       // van en miembros (vinculadas o embebidas).
       const pages = [...reportRef.value.querySelectorAll('.rpt-page')]
-      payload.html_content = pages.length ? pages[0].outerHTML : ultimaConsolidada.value
+      payload.html_content = pages.length ? pages[0]!.outerHTML : ultimaConsolidada.value
       payload.miembros = await buildMiembrosPayload()
     }
     const data = await informesService.guardar(payload)
     informeIdGuardado.value = data.id
     toast.success('Informe guardado como borrador')
   } catch (e) {
-    const detail = e.data?.detail
-    const msg = Array.isArray(detail) ? detail.map(d => `${d.loc?.slice(-1)[0] ?? ''}: ${d.msg}`).join(' | ') : (detail ?? e.message)
-    toast.error('Error', { description: msg })
+    toast.error('Error', { description: normalizeError(e).message })
   } finally {
     guardando.value = false
   }
@@ -1788,13 +2338,14 @@ watch(tipo, (t) => {
 /* Report frame */
 .im-report-frame {
   margin: 10px 16px 60px;
-  background: #ECE9F2;
+  background: #ece9f2;
   border-radius: 10px;
   padding: 18px;
-  border: 1px solid #DAD3EA;
+  border: 1px solid #dad3ea;
 }
 .im-report {
-  max-width: 920px; margin: 0 auto;
+  max-width: 920px;
+  margin: 0 auto;
   font-family: 'Sora', system-ui, sans-serif;
 }
 
@@ -1803,7 +2354,7 @@ watch(tipo, (t) => {
   background: #fff;
   padding: 30px 36px;
   border-radius: 8px;
-  box-shadow: 0 2px 14px rgba(0,0,0,.08);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
   color: var(--color-unergy-deep);
 }
@@ -1818,161 +2369,298 @@ watch(tipo, (t) => {
   margin: -30px -36px 22px;
 }
 .im-report :deep(.rpt-meta-grid) {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
   margin-top: 14px;
 }
 .im-report :deep(.rpt-meta-item) {
-  background: rgba(255,255,255,.06); padding: 7px 10px; border-radius: 6px;
-  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .im-report :deep(.rpt-meta-lbl) {
-  font-size: 9px; color: rgba(253,250,247,.55); font-weight: 700;
-  letter-spacing: .6px; text-transform: uppercase; margin-bottom: 2px;
+  font-size: 9px;
+  color: rgba(253, 250, 247, 0.55);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 .im-report :deep(.rpt-meta-val) {
-  font-size: 12px; color: var(--color-unergy-avena); font-weight: 700;
+  font-size: 12px;
+  color: var(--color-unergy-avena);
+  font-weight: 700;
 }
 .im-report :deep(.rpt-section) {
   margin-bottom: 26px;
 }
-.im-report :deep(.rpt-section-title), .im-report :deep(.fmo-section-title) {
-  font-size: 13px; font-weight: 800; color: #6B35C0;
-  letter-spacing: .3px; margin-bottom: 12px;
-  padding-bottom: 6px; border-bottom: 2px solid #ECE7F2;
+.im-report :deep(.rpt-section-title),
+.im-report :deep(.fmo-section-title) {
+  font-size: 13px;
+  font-weight: 800;
+  color: #6b35c0;
+  letter-spacing: 0.3px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #ece7f2;
 }
 .im-report :deep(.rpt-kpi-row) {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
-.im-report :deep(.rpt-kpi-row > .rpt-kpi:only-child) { grid-column: span 3; }
+.im-report :deep(.rpt-kpi-row > .rpt-kpi:only-child) {
+  grid-column: span 3;
+}
 .im-report :deep(.rpt-kpi) {
-  background: #F7F4FD; border: 1px solid #ECE7F2; border-radius: 9px;
-  padding: 12px 14px; text-align: center;
+  background: #f7f4fd;
+  border: 1px solid #ece7f2;
+  border-radius: 9px;
+  padding: 12px 14px;
+  text-align: center;
 }
-.im-report :deep(.rpt-kpi-ico) { font-size: 18px; margin-bottom: 4px; }
+.im-report :deep(.rpt-kpi-ico) {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
 .im-report :deep(.rpt-kpi-lbl) {
-  font-size: 9px; color: #888; font-weight: 700; letter-spacing: .6px;
+  font-size: 9px;
+  color: #888;
+  font-weight: 700;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 .im-report :deep(.rpt-kpi-val) {
-  font-size: 16px; font-weight: 800; color: #1A1025; margin-top: 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a1025;
+  margin-top: 4px;
 }
 .im-report :deep(.rpt-table) {
-  width: 100%; border-collapse: collapse; font-size: 11px;
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 6px; overflow: hidden;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid #ece7f2;
+  border-radius: 6px;
+  overflow: hidden;
 }
 .im-report :deep(.rpt-table thead tr) {
-  background: #F7F4FD;
+  background: #f7f4fd;
 }
 .im-report :deep(.rpt-table thead th) {
-  padding: 7px 9px; text-align: left; font-size: 9px;
-  font-weight: 800; color: #6B5A8A; letter-spacing: .5px; text-transform: uppercase;
-  border-bottom: 1px solid #E5E2EC;
+  padding: 7px 9px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 800;
+  color: #6b5a8a;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e5e2ec;
 }
 .im-report :deep(.rpt-table tbody td) {
-  padding: 7px 9px; border-bottom: 1px solid #F3F0F9; color: var(--color-unergy-deep);
+  padding: 7px 9px;
+  border-bottom: 1px solid #f3f0f9;
+  color: var(--color-unergy-deep);
 }
 .im-report :deep(.rpt-total-row) {
-  background: #FAF8FE; font-weight: 800; border-top: 2px solid #6B35C0;
+  background: #faf8fe;
+  font-weight: 800;
+  border-top: 2px solid #6b35c0;
 }
-.im-report :deep(.rpt-total-row td) { font-weight: 800; }
+.im-report :deep(.rpt-total-row td) {
+  font-weight: 800;
+}
 
 .im-report :deep(.rpt-chart-card) {
-  background: #FCFAFE; border: 1px solid #ECE7F2; border-radius: 9px;
+  background: #fcfafe;
+  border: 1px solid #ece7f2;
+  border-radius: 9px;
   padding: 12px 14px;
 }
 .im-report :deep(.rpt-chart-box) {
-  position: relative; height: 200px; width: 100%;
+  position: relative;
+  height: 200px;
+  width: 100%;
 }
-.im-report :deep(.rpt-chart-box-tall) { height: auto; min-height: 220px; }
+.im-report :deep(.rpt-chart-box-tall) {
+  height: auto;
+  min-height: 220px;
+}
 .im-report :deep(.rpt-chart-empty) {
-  height: 200px; display: flex; align-items: center; justify-content: center;
-  color: #A89EC0; font-size: 11px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a89ec0;
+  font-size: 11px;
 }
 
 .im-report :deep(.rpt-obs-title) {
-  font-size: 9px; color: #A89EC0; font-weight: 700; letter-spacing: .7px;
-  text-transform: uppercase; margin-bottom: 6px;
+  font-size: 9px;
+  color: #a89ec0;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
 .im-report :deep(.rpt-edit-hint) {
-  font-size: 9px; color: var(--color-unergy-purple); font-weight: 700; letter-spacing: 0;
-  text-transform: none; margin-left: 6px; cursor: pointer;
+  font-size: 9px;
+  color: var(--color-unergy-purple);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-left: 6px;
+  cursor: pointer;
 }
-.im-report :deep(.rpt-obs-text), .im-report :deep(.rpt-obs-editable) {
-  min-height: 80px; outline: none; border-left: 3px solid #4ADE80;
-  padding: 13px 15px; border-radius: 8px; background: #F0FFF4;
-  font-size: 12px; color: #3D2D5C; line-height: 1.8;
+.im-report :deep(.rpt-obs-text),
+.im-report :deep(.rpt-obs-editable) {
+  min-height: 80px;
+  outline: none;
+  border-left: 3px solid #4ade80;
+  padding: 13px 15px;
+  border-radius: 8px;
+  background: #f0fff4;
+  font-size: 12px;
+  color: #3d2d5c;
+  line-height: 1.8;
 }
 .im-report :deep(.rpt-obs-editable:focus) {
-  background: #FFFBF0; border-left-color: #6B35C0;
-  box-shadow: 0 0 0 2px rgba(145,91,216,.15);
+  background: #fffbf0;
+  border-left-color: #6b35c0;
+  box-shadow: 0 0 0 2px rgba(145, 91, 216, 0.15);
 }
 .im-report :deep(.rpt-status-box) {
-  background: #F7F4FD; border: 1px solid #ECE7F2; border-radius: 9px;
+  background: #f7f4fd;
+  border: 1px solid #ece7f2;
+  border-radius: 9px;
   padding: 14px 16px;
 }
 .im-report :deep(.rpt-status-row) {
-  font-size: 11px; color: #4B3A6E; margin-bottom: 5px; line-height: 1.5;
+  font-size: 11px;
+  color: #4b3a6e;
+  margin-bottom: 5px;
+  line-height: 1.5;
 }
 .im-report :deep(.rpt-footer) {
-  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
-  margin-top: 18px; padding-top: 12px; border-top: 1px solid #ECE7F2;
-  font-size: 10px; color: #888;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #ece7f2;
+  font-size: 10px;
+  color: #888;
 }
 
 /* FMO-specific */
 .im-report :deep(.fmo-multa-box) {
-  background: #FEF2F2; border: 1px solid #FECACA; border-radius: 9px;
-  padding: 12px 14px; margin-top: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 12px 14px;
+  margin-top: 10px;
 }
 .im-report :deep(.fmo-ok-box) {
-  background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 9px;
-  padding: 12px 14px; margin-top: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+  padding: 12px 14px;
+  margin-top: 10px;
 }
-.im-report :deep(.fmo-inv-table), .im-report :deep(.fmo-mant-table) {
-  width: 100%; border-collapse: collapse; font-size: 11px;
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 6px; overflow: hidden;
+.im-report :deep(.fmo-inv-table),
+.im-report :deep(.fmo-mant-table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: #fff;
+  border: 1px solid #ece7f2;
+  border-radius: 6px;
+  overflow: hidden;
 }
-.im-report :deep(.fmo-inv-table thead), .im-report :deep(.fmo-mant-table thead) {
-  background: #F7F4FD;
+.im-report :deep(.fmo-inv-table thead),
+.im-report :deep(.fmo-mant-table thead) {
+  background: #f7f4fd;
 }
-.im-report :deep(.fmo-inv-table thead th), .im-report :deep(.fmo-mant-table thead th) {
-  padding: 7px 9px; text-align: left; font-size: 9px;
-  font-weight: 800; color: #6B5A8A; letter-spacing: .5px; text-transform: uppercase;
-  border-bottom: 1px solid #E5E2EC;
+.im-report :deep(.fmo-inv-table thead th),
+.im-report :deep(.fmo-mant-table thead th) {
+  padding: 7px 9px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 800;
+  color: #6b5a8a;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e5e2ec;
 }
-.im-report :deep(.fmo-inv-table tbody td), .im-report :deep(.fmo-mant-table tbody td) {
-  padding: 6px 9px; border-bottom: 1px solid #F3F0F9;
+.im-report :deep(.fmo-inv-table tbody td),
+.im-report :deep(.fmo-mant-table tbody td) {
+  padding: 6px 9px;
+  border-bottom: 1px solid #f3f0f9;
 }
-.im-report :deep(.fmo-status-ok) { color: #2D8A4E; font-weight: 700; }
-.im-report :deep(.fmo-status-err) { color: #CC0000; font-weight: 700; }
-.im-report :deep(.fmo-sla-ok) { color: #2D8A4E; font-weight: 800; text-align: center; }
-.im-report :deep(.fmo-sla-err) { color: #CC0000; font-weight: 800; text-align: center; }
-
+.im-report :deep(.fmo-status-ok) {
+  color: #2d8a4e;
+  font-weight: 700;
+}
+.im-report :deep(.fmo-status-err) {
+  color: #cc0000;
+  font-weight: 700;
+}
+.im-report :deep(.fmo-sla-ok) {
+  color: #2d8a4e;
+  font-weight: 800;
+  text-align: center;
+}
+.im-report :deep(.fmo-sla-err) {
+  color: #cc0000;
+  font-weight: 800;
+  text-align: center;
+}
 </style>
 
 <!-- Reglas globales (sin scoped) para impresión -->
 <style>
 @media print {
-  body.im-printing { background: #fff !important; }
-  body.im-printing .im-no-print { display: none !important; }
+  body.im-printing {
+    background: #fff !important;
+  }
+  body.im-printing .im-no-print {
+    display: none !important;
+  }
   body.im-printing .inf-hero,
   body.im-printing .inf-tabs,
   body.im-printing .inf-kpis,
   body.im-printing .inf-filtros-bar,
   body.im-printing aside,
   body.im-printing header,
-  body.im-printing nav { display: none !important; }
+  body.im-printing nav {
+    display: none !important;
+  }
   body.im-printing .im-report-frame {
-    margin: 0 !important; padding: 0 !important; background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
     border: none !important;
   }
-  body.im-printing .im-report { max-width: none !important; margin: 0 !important; }
-  body.im-printing .im-report .rpt-page {
-    box-shadow: none !important; margin: 0 0 16px !important;
-    border-radius: 0 !important;
-    page-break-after: always; break-after: page;
+  body.im-printing .im-report {
+    max-width: none !important;
+    margin: 0 !important;
   }
-  body.im-printing .im-report .rpt-page-sep { display: none !important; }
-  body.im-printing .rpt-edit-hint { display: none !important; }
+  body.im-printing .im-report .rpt-page {
+    box-shadow: none !important;
+    margin: 0 0 16px !important;
+    border-radius: 0 !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  body.im-printing .im-report .rpt-page-sep {
+    display: none !important;
+  }
+  body.im-printing .rpt-edit-hint {
+    display: none !important;
+  }
 }
 </style>
