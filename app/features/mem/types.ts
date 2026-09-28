@@ -8,8 +8,36 @@
 export interface RegistroDailySpot {
   fecha?: string
   precio_promedio?: number
+  precio_min?: number
   precio_max?: number
   demanda_gwh?: number
+  hidro_pct?: number
+  /** `precio_max - precio_min` del día, ya calculado por el backend. */
+  spread?: number
+  [clave: string]: unknown
+}
+
+export interface DailySpotSummary {
+  price_avg?: number
+  price_max?: number
+  spread?: number
+  total_gwh?: number
+  hydro_pct?: number
+  /** Hora (0-23) del pico de precio del día. */
+  peak_hour?: number
+  [clave: string]: unknown
+}
+
+/** Generación por fuente de una hora — el backend manda mayúscula o minúscula según la fuente. */
+export interface GeneracionPorFuenteHora {
+  Hidraulica?: number
+  hidraulica?: number
+  Termica?: number
+  termica?: number
+  Renovables?: number
+  renovables?: number
+  Menores?: number
+  menores?: number
   [clave: string]: unknown
 }
 
@@ -21,9 +49,12 @@ export interface RegistroDailySpot {
 export interface DailySpotLatest {
   date?: string
   scarcity_price?: number
-  summary?: Record<string, unknown>
+  summary?: DailySpotSummary
+  /** `{ [hora]: precio }`. */
   prices?: Record<string, number>
-  generation?: Record<string, number>
+  /** `{ [hora]: generación por fuente }`. */
+  generation?: Record<string, GeneracionPorFuenteHora>
+  /** `{ [hora]: nombre de la planta marginal }`. */
   marginal_plants?: Record<string, string>
   [clave: string]: unknown
 }
@@ -35,6 +66,19 @@ export interface RegistroClimaHistorico {
   [clave: string]: unknown
 }
 
+/** Una fila de `trading_signals`: recomendación de compra/venta de un mes, con su riesgo. */
+export interface SenalTradingClima {
+  month?: string | number
+  price?: number
+  /** p. ej. `'COMPRAR'` / `'VENDER'`. */
+  direction?: string
+  risk_level?: string
+  regime?: string
+  regime_prob?: number
+  margin?: number
+  [clave: string]: unknown
+}
+
 /** `GET /evo/clima/forecast`: estado ENSO/ONI vigente y señales de trading. */
 export interface ClimaForecast {
   models_available?: boolean
@@ -43,10 +87,10 @@ export interface ClimaForecast {
     classification?: string | string[]
     latest_oni?: number
     nino34_predicted?: number | number[]
-    probabilities?: Record<string, number>
+    probabilities?: Record<string, number | number[]>
     [clave: string]: unknown
   }
-  trading_signals?: Record<string, unknown>[]
+  trading_signals?: SenalTradingClima[]
   [clave: string]: unknown
 }
 
@@ -55,6 +99,8 @@ export interface RegistroPrecioMensual {
   year: number
   month: number
   price_cop_kwh?: number
+  /** Fase ENSO de ese mes -- el backend la cruza con el ONI del mismo período. */
+  enso_phase?: string
   [clave: string]: unknown
 }
 
@@ -64,6 +110,12 @@ export interface RegistroOni {
   month: number
   oni_value?: number
   enso_phase?: string
+  /** Southern Oscillation Index del mes. */
+  soi_value?: number
+  /** Pacific Decadal Oscillation del mes. */
+  pdo_value?: number
+  /** Amplitud del Madden-Julian Oscillation del mes. */
+  mjo_amplitude?: number
   [clave: string]: unknown
 }
 
@@ -123,4 +175,42 @@ export interface RespuestaAnualMatrizContratos {
 /** `GET /cumplimiento/anual-matriz/contrato/:id`: se mezcla sobre la fila resumen. */
 export type DetalleAnualMatrizContrato = Record<string, unknown>
 
-export type DescubrimientosCumplimiento = Record<string, unknown>
+export interface TotalesDescubrimientos {
+  compras_bolsa_cop: number
+  compras_bolsa_mwh: number
+  excedentes_bolsa_cop: number
+  excedentes_bolsa_mwh: number
+  exposicion_neta_cop: number
+}
+
+/** Fila de `meses[].contratos[]`: el detalle de un contrato dentro del mes expandido. */
+export interface ContratoDescubrimientoMes {
+  contrato_id: number
+  nombre?: string
+  comprador?: string
+  min_mwh: number
+  max_mwh: number
+  gen_asignada_mwh: number
+  compras_cop: number
+  compras_mwh: number
+  excedentes_cop: number
+  excedentes_mwh: number
+  sobrecosto_vs_ppa_cop: number | null
+}
+
+export interface MesDescubrimientos {
+  month: number
+  precio_bolsa_avg?: number | null
+  dias_con_precios: number
+  compras_mwh: number
+  compras_cop: number
+  excedentes_mwh: number
+  excedentes_cop: number
+  contratos?: ContratoDescubrimientoMes[]
+}
+
+/** `GET /cumplimiento/descubrimientos` (`DescubrimientosView.vue`). */
+export interface DescubrimientosCumplimiento {
+  totales: TotalesDescubrimientos
+  meses: MesDescubrimientos[]
+}
