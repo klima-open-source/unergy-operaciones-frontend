@@ -122,6 +122,8 @@ export interface ArchivoEvidencia {
   id: number
   nombre?: string
   url?: string
+  /** MIME del archivo subido — `EvidenciaUploader.vue` lo usa para elegir el ícono. */
+  tipo_mime?: string
   [clave: string]: unknown
 }
 
@@ -154,6 +156,11 @@ export interface Informe {
   estado?: EstadoInforme
   correo_enviado?: boolean
   comentarios?: ComentarioInforme[]
+  /** Última edición — `InformesListView.vue` los muestra en su columna "Última edición". */
+  editado_en?: string
+  editado_por_nombre?: string
+  /** Quién lo aprobó — solo presente cuando `estado === 'aprobado'`. */
+  aprobado_por_nombre?: string
   [clave: string]: unknown
 }
 
@@ -206,11 +213,31 @@ export interface RespuestaPortafolios {
 
 // ── `/polizas/*` ───────────────────────────────────────────────────────────────
 
-/** `GET/PUT /polizas`: una fila por proyecto. */
+export type TipoProyectoPoliza =
+  'minigranja' | 'autoconsumo' | 'gd' | 'movilidad_electrica' | 'otro'
+
+/**
+ * `GET/PUT /polizas`: una fila por proyecto — datos técnicos del proyecto
+ * (solo lectura acá) más el bloque de póliza/presupuesto/IPP (editable desde
+ * `PolizasView.vue`).
+ */
 export interface Poliza {
   proyecto_id: number
+  nombre_comercial?: string
+  tipo_proyecto?: TipoProyectoPoliza
+  municipio?: string
+  departamento?: string
+  direccion_vereda?: string | null
+  marca_paneles?: string | null
+  cantidad_total_paneles?: number | null
+  marca_inversores?: string | null
+  cantidad_inversores?: number | null
+  capacidad_instalada_kwp?: number | null
+  operador_red?: string | null
+  voltaje_red?: string | null
+  potencia_ac_kw?: number | null
   numero_poliza?: string | null
-  poliza_om?: string | null
+  poliza_om?: boolean | null
   fecha_vencimiento?: string | null
   valor_poliza?: number | null
   mano_obra?: number | null

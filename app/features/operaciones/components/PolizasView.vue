@@ -116,7 +116,7 @@
         <CardContent class="flex flex-col gap-2 text-sm">
           <div class="flex items-center justify-between gap-2">
             <GBadge :color="tipoColor(fila.tipo_proyecto)" size="sm">
-              {{ TIPO_LABELS[fila.tipo_proyecto] || '—' }}
+              {{ tipoLabel(fila.tipo_proyecto) }}
             </GBadge>
             <span class="text-xs text-muted-foreground">{{ ciudad(fila) }}</span>
           </div>
@@ -314,10 +314,7 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { PolizasService } from '~/features/operaciones/services/polizas'
-import { formatCurrency } from '~/features/operaciones/utils/financialCalculations'
+<script setup lang="ts">
 import {
   CheckIcon,
   InboxIcon,
@@ -329,30 +326,59 @@ import {
   XIcon,
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
+import type { Poliza, PayloadPoliza, TipoProyectoPoliza } from '~/features/operaciones/types'
+import { PolizasService } from '~/features/operaciones/services/polizas'
+import { formatCurrency } from '~/features/operaciones/utils/financialCalculations'
+
+type EstadoPoliza = 'vigente' | 'proxima' | 'vencida' | 'sin_datos'
+/**
+ * Solo los campos que este panel edita — el resto de `Poliza` es de solo
+ * lectura acá. `undefined` en vez de `null` (a diferencia de `Poliza`): es la
+ * forma que entiende `Input`/`Switch` de shadcn.
+ */
+interface FormPoliza {
+  numero_poliza?: string
+  poliza_om?: boolean
+  fecha_vencimiento?: string
+  valor_poliza?: number
+  mano_obra?: number
+  estructura?: number
+  paneles?: number
+  inversores?: number
+  otros?: number
+  link_estudio_suelos?: string
+  ipp_base?: number
+  ipp_base_fecha?: string
+  ipp_provisional?: number
+  ipp_provisional_fecha?: string
+  tarifa_base?: number
+  generacion_anual_p90_kwh?: number
+}
 
 const polizasService = new PolizasService()
 
-const TIPO_LABELS = {
+const TIPO_LABELS: Record<TipoProyectoPoliza, string> = {
   minigranja: 'Minigranja',
   autoconsumo: 'Autoconsumo',
   gd: 'GD',
   movilidad_electrica: 'Movilidad',
   otro: 'Otro',
 }
-const TIPO_COLOR = {
+const TIPO_COLOR: Record<TipoProyectoPoliza, GandalfBadgeColor> = {
   minigranja: 'success',
   autoconsumo: 'action',
   gd: 'information',
   movilidad_electrica: 'warning',
   otro: 'default',
 }
-const ESTADO_LABELS = {
+const ESTADO_LABELS: Record<EstadoPoliza, string> = {
   vigente: 'Vigente',
   proxima: 'Próxima a vencer',
   vencida: 'Vencida',
   sin_datos: 'Sin datos',
 }
-const ESTADO_COLOR = {
+const ESTADO_COLOR: Record<EstadoPoliza, GandalfBadgeColor> = {
   vigente: 'success',
   proxima: 'warning',
   vencida: 'destructive',
@@ -361,16 +387,17 @@ const ESTADO_COLOR = {
 const OPCIONES_TIPO = Object.entries(TIPO_LABELS).map(([value, label]) => ({ value, label }))
 const OPCIONES_ESTADO = Object.entries(ESTADO_LABELS).map(([value, label]) => ({ value, label }))
 const OPCIONES_OM = [
-  { value: true, label: 'Sí' },
-  { value: false, label: 'No' },
-]
+  { value: 'si', label: 'Sí' },
+  { value: 'no', label: 'No' },
+] as const
 
-const filas = ref([])
+const filas = ref<Poliza[]>([])
 const loading = ref(false)
 const busqueda = ref('')
-const filtroTipo = ref(null)
-const filtroEstado = ref(null)
-const filtroOm = ref(null)
+const filtroTipo = ref<TipoProyectoPoliza | null>(null)
+const filtroEstado = ref<EstadoPoliza | null>(null)
+/** `null` = sin filtrar; el select solo trabaja con valores string (`AcceptableValue`). */
+const filtroOm = ref<'si' | 'no' | null>(null)
 
 async function cargar() {
   loading.value = true
@@ -384,19 +411,19 @@ async function cargar() {
 }
 onMounted(cargar)
 
-function ciudad(fila) {
+function ciudad(fila: Poliza) {
   const partes = [fila.municipio, fila.departamento].filter(Boolean)
   return partes.length ? partes.join(', ') : '—'
 }
 
-function diasHastaVencimiento(fechaVencimiento) {
+function diasHastaVencimiento(fechaVencimiento: string) {
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
-  const venc = new Date(fechaVencimiento + 'T00:00:00')
-  return Math.round((venc - hoy) / (1000 * 60 * 60 * 24))
+  const venc = new Date(`${fechaVencimiento}T00:00:00`)
+  return Math.round((venc.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function estadoDe(fila) {
+function estadoDe(fila: Poliza): EstadoPoliza {
   if (!fila.fecha_vencimiento) return 'sin_datos'
   const dias = diasHastaVencimiento(fila.fecha_vencimiento)
   if (dias < 0) return 'vencida'
@@ -404,15 +431,18 @@ function estadoDe(fila) {
   return 'vigente'
 }
 
-function tipoColor(tipo) {
-  return TIPO_COLOR[tipo] || TIPO_COLOR.otro
+function tipoColor(tipo?: TipoProyectoPoliza) {
+  return TIPO_COLOR[tipo ?? 'otro'] ?? TIPO_COLOR.otro
 }
-function estadoColor(estado) {
-  return ESTADO_COLOR[estado] || ESTADO_COLOR.sin_datos
+function tipoLabel(tipo?: TipoProyectoPoliza) {
+  return (tipo && TIPO_LABELS[tipo]) || '—'
+}
+function estadoColor(estado: EstadoPoliza) {
+  return ESTADO_COLOR[estado] ?? ESTADO_COLOR.sin_datos
 }
 
-function formatFecha(f) {
-  return new Date(f + 'T00:00:00').toLocaleDateString('es-CO', {
+function formatFecha(f: string) {
+  return new Date(`${f}T00:00:00`).toLocaleDateString('es-CO', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -424,7 +454,7 @@ const totalAsegurado = computed(() =>
   filas.value.reduce((acc, f) => acc + (f.valor_poliza || 0), 0),
 )
 
-function contarPorEstado(estado) {
+function contarPorEstado(estado: EstadoPoliza) {
   return filas.value.filter((f) => estadoDe(f) === estado).length
 }
 
@@ -456,7 +486,7 @@ const filtradas = computed(() => {
     }
     if (filtroTipo.value && f.tipo_proyecto !== filtroTipo.value) return false
     if (filtroEstado.value && estadoDe(f) !== filtroEstado.value) return false
-    if (filtroOm.value !== null && !!f.poliza_om !== filtroOm.value) return false
+    if (filtroOm.value !== null && !!f.poliza_om !== (filtroOm.value === 'si')) return false
     return true
   })
 })
@@ -466,34 +496,34 @@ const ordenadas = computed(() => {
     if (!a.fecha_vencimiento && !b.fecha_vencimiento) return 0
     if (!a.fecha_vencimiento) return 1
     if (!b.fecha_vencimiento) return -1
-    return new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)
+    return new Date(a.fecha_vencimiento).getTime() - new Date(b.fecha_vencimiento).getTime()
   })
 })
 
 // ── Edición ──────────────────────────────────────────────────────────────────
-const edicion = ref(null)
+const edicion = ref<Poliza | null>(null)
 const guardando = ref(false)
-const form = ref({})
+const form = ref<FormPoliza>({})
 
-function abrirEdicion(fila) {
+function abrirEdicion(fila: Poliza) {
   edicion.value = fila
   form.value = {
-    numero_poliza: fila.numero_poliza,
-    poliza_om: fila.poliza_om,
-    fecha_vencimiento: fila.fecha_vencimiento || null,
-    valor_poliza: fila.valor_poliza,
-    mano_obra: fila.mano_obra,
-    estructura: fila.estructura,
-    paneles: fila.paneles,
-    inversores: fila.inversores,
-    otros: fila.otros,
-    link_estudio_suelos: fila.link_estudio_suelos,
-    ipp_base: fila.ipp_base,
-    ipp_base_fecha: fila.ipp_base_fecha || null,
-    ipp_provisional: fila.ipp_provisional,
-    ipp_provisional_fecha: fila.ipp_provisional_fecha || null,
-    tarifa_base: fila.tarifa_base,
-    generacion_anual_p90_kwh: fila.generacion_anual_p90_kwh,
+    numero_poliza: fila.numero_poliza ?? undefined,
+    poliza_om: fila.poliza_om ?? undefined,
+    fecha_vencimiento: fila.fecha_vencimiento ?? undefined,
+    valor_poliza: fila.valor_poliza ?? undefined,
+    mano_obra: fila.mano_obra ?? undefined,
+    estructura: fila.estructura ?? undefined,
+    paneles: fila.paneles ?? undefined,
+    inversores: fila.inversores ?? undefined,
+    otros: fila.otros ?? undefined,
+    link_estudio_suelos: fila.link_estudio_suelos ?? undefined,
+    ipp_base: fila.ipp_base ?? undefined,
+    ipp_base_fecha: fila.ipp_base_fecha ?? undefined,
+    ipp_provisional: fila.ipp_provisional ?? undefined,
+    ipp_provisional_fecha: fila.ipp_provisional_fecha ?? undefined,
+    tarifa_base: fila.tarifa_base ?? undefined,
+    generacion_anual_p90_kwh: fila.generacion_anual_p90_kwh ?? undefined,
   }
 }
 function cerrarEdicion() {
@@ -508,7 +538,7 @@ const totalPresupuestoForm = computed(() => {
     form.value.inversores,
     form.value.otros,
   ]
-  const presentes = c.filter((v) => v != null)
+  const presentes = c.filter((v): v is number => v != null)
   return presentes.length ? presentes.reduce((a, b) => a + b, 0) : null
 })
 const pctIndexacionForm = computed(() => {
@@ -531,7 +561,7 @@ async function guardar() {
   if (!edicion.value) return
   guardando.value = true
   try {
-    const body = { ...form.value }
+    const body: PayloadPoliza = { ...form.value }
     await polizasService.guardar(edicion.value.proyecto_id, body)
     await cargar()
     cerrarEdicion()

@@ -1,12 +1,5 @@
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Toast -->
-    <transition name="fade">
-      <div v-if="toastMsg" class="pg-toast" :class="toastErr ? 'pg-toast-err' : 'pg-toast-ok'">
-        {{ toastMsg }}
-      </div>
-    </transition>
-
     <!-- Barra superior: crear portafolio -->
     <div class="flex flex-wrap items-center justify-between gap-3">
       <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -26,13 +19,7 @@
             <PlusIcon /> Crear capa
           </Button>
         </ButtonGroup>
-        <Button
-          variant="outline"
-          size="icon"
-          :disabled="loading"
-          title="Recargar"
-          @click="cargar"
-        >
+        <Button variant="outline" size="icon" :disabled="loading" title="Recargar" @click="cargar">
           <LoaderCircleIcon v-if="loading" class="animate-spin" />
           <RefreshCwIcon v-else />
         </Button>
@@ -49,7 +36,9 @@
 
     <div v-else class="flex items-start gap-3.5 overflow-x-auto pb-2.5">
       <!-- Pool: proyectos sin portafolio -->
-      <Card class="flex max-h-[calc(100vh-200px)] w-[270px] shrink-0 flex-col border-dashed bg-muted/30">
+      <Card
+        class="flex max-h-[calc(100vh-200px)] w-[270px] shrink-0 flex-col border-dashed bg-muted/30"
+      >
         <CardHeader>
           <CardTitle class="flex items-center gap-1.5 text-sm">
             <InboxIcon class="size-4 text-primary" /> Sin portafolio
@@ -67,7 +56,7 @@
             :animation="160"
             @change="onChange($event, null)"
           >
-            <template #item="{ element }">
+            <template #item="{ element }: { element: ProyectoPortafolio }">
               <div
                 class="flex cursor-grab items-center gap-2 rounded-md border border-border bg-card p-2 hover:border-primary active:cursor-grabbing"
               >
@@ -83,8 +72,11 @@
               </div>
             </template>
             <template #footer>
-              <p v-if="!sinPortafolio.length" class="py-3.5 text-center text-xs text-muted-foreground">
-                Todos los proyectos operativos están asignados ✓
+              <p
+                v-if="!sinPortafolio.length"
+                class="py-3.5 text-center text-xs text-muted-foreground"
+              >
+                Todos los proyectos operativos están asignados
               </p>
             </template>
           </draggable>
@@ -124,7 +116,12 @@
             <CardAction class="flex items-center gap-1">
               <Badge variant="secondary">{{ pt.proyectos.length }}</Badge>
               <ButtonGroup>
-                <Button variant="ghost" size="icon-sm" title="Renombrar" @click="empezarEdicion(pt)">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Renombrar"
+                  @click="empezarEdicion(pt)"
+                >
                   <PencilIcon />
                 </Button>
                 <Button
@@ -132,7 +129,7 @@
                   size="icon-sm"
                   title="Eliminar capa"
                   class="hover:bg-destructive/10 hover:text-destructive"
-                  @click="eliminar(pt)"
+                  @click="confirmarEliminar(pt)"
                 >
                   <Trash2Icon />
                 </Button>
@@ -149,7 +146,7 @@
             :animation="160"
             @change="onChange($event, pt.id)"
           >
-            <template #item="{ element }">
+            <template #item="{ element }: { element: ProyectoPortafolio }">
               <div
                 class="flex cursor-grab items-center gap-2 rounded-md border border-border bg-card p-2 hover:border-primary active:cursor-grabbing"
               >
@@ -189,54 +186,74 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import {
+  CheckIcon,
+  FolderIcon,
+  FolderOpenIcon,
+  InboxIcon,
+  InfoIcon,
+  LoaderCircleIcon,
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  XIcon,
+  ZapIcon,
+} from '@lucide/vue'
 import draggable from 'vuedraggable'
+import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
+import type { Portafolio, ProyectoPortafolio } from '~/features/operaciones/types'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
-import { CheckIcon, FolderIcon, FolderOpenIcon, InboxIcon, InfoIcon, LoaderCircleIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, XIcon, ZapIcon } from '@lucide/vue'
+
+/** El drag-and-drop muta las listas en el sitio; `Portafolio.proyectos` deja de ser de solo lectura acá. */
+type PortafolioEditable = Omit<Portafolio, 'proyectos'> & { proyectos: ProyectoPortafolio[] }
+
+interface CambioDraggable {
+  added?: { element: ProyectoPortafolio }
+}
 
 const portafoliosService = new PortafoliosService()
+const confirm = useConfirm()
 
 const loading = ref(false)
 const creando = ref(false)
-const portafolios = ref([])      // [{id, nombre, descripcion, activo, proyectos:[...]}]
-const sinPortafolio = ref([])    // [{id, nombre, sub_project, municipio}]
+const portafolios = ref<PortafolioEditable[]>([])
+const sinPortafolio = ref<ProyectoPortafolio[]>([])
 const nuevoNombre = ref('')
-const editandoId = ref(null)
+const editandoId = ref<number | null>(null)
 const editandoNombre = ref('')
 
-const toastMsg = ref('')
-const toastErr = ref(false)
-let _t = null
-function toast(msg, err = false) {
-  toastMsg.value = msg; toastErr.value = err
-  if (_t) clearTimeout(_t)
-  _t = setTimeout(() => { toastMsg.value = '' }, 3500)
+function ordenarPorNombre(lista: PortafolioEditable[]) {
+  lista.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
 }
 
 async function cargar() {
   loading.value = true
   try {
     const data = await portafoliosService.listar()
-    portafolios.value = (data.portafolios || []).map(p => ({ ...p, proyectos: p.proyectos || [] }))
-    sinPortafolio.value = data.sin_portafolio || []
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    portafolios.value = data.portafolios.map((p) => ({ ...p, proyectos: p.proyectos ?? [] }))
+    sinPortafolio.value = data.sin_portafolio ?? []
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     loading.value = false
   }
 }
 
-// Persistir la asignación cuando un proyecto entra a una lista (added = destino)
-async function onChange(evt, portafolioId) {
+// Persistir la asignación cuando un proyecto entra a una lista (added = destino).
+async function onChange(evt: CambioDraggable, portafolioId: number | null) {
   if (!evt.added) return
   const proyecto = evt.added.element
   try {
     await portafoliosService.asignarProyecto(proyecto.id, portafolioId)
-    toast(portafolioId ? `✅ ${proyecto.nombre} → portafolio` : `✅ ${proyecto.nombre} sin portafolio`)
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
-    cargar()  // revertir al estado real
+    toast.success(
+      portafolioId ? `${proyecto.nombre} → portafolio` : `${proyecto.nombre} sin portafolio`,
+    )
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
+    cargar() // revertir al estado real
   }
 }
 
@@ -246,60 +263,61 @@ async function crear() {
   creando.value = true
   try {
     const data = await portafoliosService.crear(nombre)
-    portafolios.value.push({ ...data, proyectos: data.proyectos || [] })
-    portafolios.value.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    portafolios.value.push({ ...data, proyectos: data.proyectos ?? [] })
+    ordenarPorNombre(portafolios.value)
     nuevoNombre.value = ''
-    toast('✅ Portafolio creado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    toast.success('Portafolio creado')
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     creando.value = false
   }
 }
 
-function empezarEdicion(pt) { editandoId.value = pt.id; editandoNombre.value = pt.nombre }
-async function renombrar(pt) {
+function empezarEdicion(pt: PortafolioEditable) {
+  editandoId.value = pt.id
+  editandoNombre.value = pt.nombre
+}
+
+async function renombrar(pt: PortafolioEditable) {
   const nombre = editandoNombre.value.trim()
-  if (!nombre || nombre === pt.nombre) { editandoId.value = null; return }
+  if (!nombre || nombre === pt.nombre) {
+    editandoId.value = null
+    return
+  }
   try {
     await portafoliosService.renombrar(pt.id, nombre)
     pt.nombre = nombre
-    portafolios.value.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
-    toast('✅ Renombrado')
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+    ordenarPorNombre(portafolios.value)
+    toast.success('Renombrado')
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     editandoId.value = null
   }
 }
 
-async function eliminar(pt) {
-  const msg = pt.proyectos.length
-    ? `¿Eliminar el portafolio "${pt.nombre}"? Sus ${pt.proyectos.length} proyecto(s) volverán a "Sin portafolio".`
-    : `¿Eliminar el portafolio "${pt.nombre}"?`
-  if (!confirm(msg)) return
+function confirmarEliminar(pt: PortafolioEditable) {
+  confirm({
+    title: 'Eliminar portafolio',
+    description: pt.proyectos.length
+      ? `¿Eliminar el portafolio "${pt.nombre}"? Sus ${pt.proyectos.length} proyecto(s) volverán a "Sin portafolio".`
+      : `¿Eliminar el portafolio "${pt.nombre}"?`,
+    confirmLabel: 'Eliminar',
+    variant: 'destructive',
+    onConfirm: () => eliminar(pt),
+  })
+}
+
+async function eliminar(pt: PortafolioEditable) {
   try {
     await portafoliosService.eliminar(pt.id)
-    toast('🗑️ Portafolio eliminado')
+    toast.success('Portafolio eliminado')
     cargar()
-  } catch (e) {
-    toast('⚠️ ' + (e.data?.detail || e.message), true)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   }
 }
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-.pg-toast {
-  position: fixed; top: 80px; right: 24px; padding: 11px 16px; border-radius: 10px;
-  font-size: 13px; font-weight: 700; z-index: 60; box-shadow: 0 4px 18px rgba(0,0,0,.16);
-}
-.pg-toast-ok  { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-.pg-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
-/* clase de vuedraggable mientras se arrastra */
-.sortable-ghost { opacity: .5; background: #F3E8FF; }
-</style>

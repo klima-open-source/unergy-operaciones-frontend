@@ -1,608 +1,365 @@
 <template>
-  <div class="inf-page">
+  <div class="flex flex-col gap-4">
+    <PageHeader title="Informes" subtitle="Informes operacionales y FMO · equipo Unergy">
+      <template #actions>
+        <Button variant="outline" size="sm" :disabled="query.isLoading" @click="cargar">
+          <LoaderCircleIcon v-if="query.isLoading" class="animate-spin" />
+          <RefreshCwIcon v-else />
+          Actualizar
+        </Button>
+      </template>
+    </PageHeader>
 
-    <!-- ══ Hero Header ══════════════════════════════════════════════ -->
-    <div class="inf-hero">
-      <div class="inf-hero-left">
-        <h1 class="inf-hero-title">Informes</h1>
-        <p class="inf-hero-sub">Informes operacionales y FMO · equipo Unergy</p>
-      </div>
-      <button class="inf-refresh-btn" :disabled="loading" @click="cargar" title="Actualizar">
-        <span :class="loading ? 'spin-icon' : ''">↻</span>
-        Actualizar
-      </button>
+    <!-- ══ KPIs ══ -->
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Card
+        size="sm"
+        class="cursor-pointer border-t-2 transition-colors"
+        :class="filtroEstado === null ? 'border-t-primary bg-primary/5' : 'border-t-transparent'"
+        @click="setFiltroEstado(null)"
+      >
+        <CardContent class="items-center text-center">
+          <p class="text-2xl font-extrabold text-primary">{{ todos.length }}</p>
+          <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Total</p>
+        </CardContent>
+      </Card>
+      <Card
+        v-for="estado in ESTADOS"
+        :key="estado"
+        size="sm"
+        class="cursor-pointer border-t-2 transition-colors"
+        :class="filtroEstado === estado ? 'border-t-primary bg-primary/5' : 'border-t-transparent'"
+        @click="setFiltroEstado(estado)"
+      >
+        <CardContent class="items-center text-center">
+          <p class="text-2xl font-extrabold text-foreground">{{ kpis[estado] }}</p>
+          <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {{ ESTADO_LABELS[estado] }}
+          </p>
+        </CardContent>
+      </Card>
     </div>
 
-    <!-- ══ KPIs ═════════════════════════════════════════════════════ -->
-    <div class="inf-kpis">
-      <button
-        class="kpi-card kpi-total"
-        :class="{ 'kpi-active': !filtroEstado }"
-        @click="setFiltroEstado('')"
-      >
-        <span class="kpi-num">{{ todosLoaded.length }}</span>
-        <span class="kpi-label">Total</span>
-      </button>
-      <button
-        class="kpi-card kpi-borrador"
-        :class="{ 'kpi-active': filtroEstado === 'borrador' }"
-        @click="setFiltroEstado('borrador')"
-      >
-        <span class="kpi-num">{{ kpis.borrador }}</span>
-        <span class="kpi-label">Borrador</span>
-      </button>
-      <button
-        class="kpi-card kpi-revisado"
-        :class="{ 'kpi-active': filtroEstado === 'revisado' }"
-        @click="setFiltroEstado('revisado')"
-      >
-        <span class="kpi-num">{{ kpis.revisado }}</span>
-        <span class="kpi-label">Revisado</span>
-      </button>
-      <button
-        class="kpi-card kpi-aprobado"
-        :class="{ 'kpi-active': filtroEstado === 'aprobado' }"
-        @click="setFiltroEstado('aprobado')"
-      >
-        <span class="kpi-num">{{ kpis.aprobado }}</span>
-        <span class="kpi-label">Aprobado</span>
-      </button>
-    </div>
+    <!-- ══ Filtros ══ -->
+    <div class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs text-muted-foreground">Año</Label>
+        <Select v-model="filtroAnio">
+          <SelectTrigger size="sm" class="w-28">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="anio in aniosDisponibles" :key="anio" :value="anio">{{
+              anio
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs text-muted-foreground">Mes</Label>
+        <Select v-model="filtroMes">
+          <SelectTrigger size="sm" class="w-36">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="mes in MESES" :key="mes.value" :value="mes.value">{{
+              mes.label
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <Label class="text-xs text-muted-foreground">Estado</Label>
+        <Select v-model="filtroEstado">
+          <SelectTrigger size="sm" class="w-36">
+            <SelectValue placeholder="Todos" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="estado in ESTADOS" :key="estado" :value="estado">{{
+              ESTADO_LABELS[estado]
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
+        <XIcon /> Limpiar filtros
+      </Button>
 
-    <!-- ══ Filtros ═══════════════════════════════════════════════════ -->
-    <div class="inf-filtros-bar">
-      <div class="inf-filtros-group">
-        <label class="inf-filtro-label">Año</label>
-        <select v-model="filtroAnio" class="inf-select">
-          <option value="">Todos</option>
-          <option v-for="a in aniosDisponibles" :key="a" :value="a">{{ a }}</option>
-        </select>
-      </div>
-      <div class="inf-filtros-group">
-        <label class="inf-filtro-label">Mes</label>
-        <select v-model="filtroMes" class="inf-select">
-          <option value="">Todos</option>
-          <option v-for="m in meses" :key="m.v" :value="m.v">{{ m.label }}</option>
-        </select>
-      </div>
-      <div class="inf-filtros-group">
-        <label class="inf-filtro-label">Estado</label>
-        <select v-model="filtroEstado" class="inf-select">
-          <option value="">Todos</option>
-          <option value="borrador">Borrador</option>
-          <option value="revisado">Revisado</option>
-          <option value="aprobado">Aprobado</option>
-        </select>
-      </div>
-      <button v-if="filtroAnio || filtroMes || filtroEstado" class="inf-clear-btn" @click="limpiarFiltros">
-        ✕ Limpiar filtros
-      </button>
-
-      <!-- contador -->
-      <span class="inf-count-label" v-if="!loading">
+      <span v-if="!query.isLoading" class="ml-auto text-xs text-muted-foreground">
         {{ informesFiltrados.length }} resultado{{ informesFiltrados.length !== 1 ? 's' : '' }}
       </span>
     </div>
 
-    <!-- ══ Loading ═══════════════════════════════════════════════════ -->
-    <div v-if="loading" class="inf-loading">
-      <div class="spin-ring" />
-      <span>Cargando informes…</span>
-    </div>
+    <AsyncView :query="query">
+      <template #empty>
+        <div class="flex flex-col items-center gap-1 py-16 text-center">
+          <FileIcon class="size-8 text-muted-foreground/50" />
+          <p class="text-sm font-medium text-foreground">No hay informes guardados</p>
+          <p class="text-xs text-muted-foreground">Genera un informe desde Monitoreo Fallas</p>
+        </div>
+      </template>
 
-    <!-- ══ Error ═════════════════════════════════════════════════════ -->
-    <div v-else-if="error" class="inf-error-box">
-      <span class="inf-error-icon">⚠️</span>
-      <div>
-        <div class="inf-error-title">Error al cargar informes</div>
-        <div class="inf-error-msg">{{ error }}</div>
-      </div>
-      <button class="inf-refresh-btn" @click="cargar">Reintentar</button>
-    </div>
-
-    <!-- ══ Empty ═════════════════════════════════════════════════════ -->
-    <div v-else-if="!informesFiltrados.length" class="inf-empty">
-      <div class="inf-empty-icon">📄</div>
-      <div class="inf-empty-title">
-        {{ (filtroAnio || filtroMes || filtroEstado) ? 'Sin resultados para los filtros aplicados' : 'No hay informes guardados' }}
-      </div>
-      <div class="inf-empty-sub">
-        {{ (filtroAnio || filtroMes || filtroEstado) ? 'Prueba con otros filtros' : 'Genera un informe desde Monitoreo Fallas' }}
-      </div>
-      <button v-if="filtroAnio || filtroMes || filtroEstado" class="inf-clear-btn" style="margin-top:12px" @click="limpiarFiltros">
-        ✕ Limpiar filtros
-      </button>
-    </div>
-
-    <!-- ══ Lista ═════════════════════════════════════════════════════ -->
-    <div v-else class="inf-table-wrapper">
-      <table class="inf-table">
-        <thead>
-          <tr>
-            <th>Estado</th>
-            <th>Proyecto</th>
-            <th>Tipo</th>
-            <th>Periodo</th>
-            <th>Última edición</th>
-            <th>Aprobado por</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="inf in informesFiltrados"
-            :key="inf.id"
-            class="inf-row"
-            @click="abrirInforme(inf.id)"
-          >
-            <td>
-              <span :class="['estado-pill', 'pill-' + inf.estado]">
-                {{ estadoLabel(inf.estado) }}
-              </span>
-            </td>
-            <td class="td-proyecto">
-              <div class="td-nombre">{{ inf.proyecto_nombre || inf.sub_project }}</div>
-              <div class="td-sub" v-if="inf.proyecto_nombre && inf.sub_project !== inf.proyecto_nombre">{{ inf.sub_project }}</div>
-            </td>
-            <td>
-              <span class="tipo-tag">{{ tipoLabel(inf.tipo) }}</span>
-            </td>
-            <td class="td-periodo">
-              {{ inf.periodo_display || formatPeriodo(inf.periodo_desde) }}
-              <span v-if="inf.correo_enviado" class="enviado-dot" title="Correo enviado">📧</span>
-            </td>
-            <td class="td-fecha">
-              <div>{{ inf.editado_en ? formatFecha(inf.editado_en) : '—' }}</div>
-              <div class="td-autor" v-if="inf.editado_por_nombre">{{ inf.editado_por_nombre }}</div>
-            </td>
-            <td class="td-fecha">
-              <div v-if="inf.aprobado_por_nombre" class="td-autor">{{ inf.aprobado_por_nombre }}</div>
-              <div v-else class="td-empty">—</div>
-            </td>
-            <td class="td-acciones" @click.stop>
-              <button class="action-btn action-open" @click="abrirInforme(inf.id)" title="Abrir informe">
-                →
-              </button>
-              <button
-                v-if="inf.estado !== 'aprobado'"
-                class="action-btn action-del"
-                :title="`Eliminar ${inf.proyecto_nombre || inf.sub_project}`"
-                @click="eliminarInforme(inf)"
+      <template #default>
+        <DataTable
+          v-if="informesFiltrados.length"
+          :columns="columns"
+          :rows="informesFiltrados"
+          row-key="id"
+          @row-click="(row) => abrirInforme(asInforme(row).id)"
+        >
+          <template #cell="{ row, column }">
+            <GBadge v-if="column.key === 'estado'" :color="estadoColor(asInforme(row).estado)">
+              {{ estadoLabel(asInforme(row).estado) }}
+            </GBadge>
+            <div v-else-if="column.key === 'proyecto'">
+              <div class="font-semibold text-foreground">
+                {{ asInforme(row).proyecto_nombre || asInforme(row).sub_project }}
+              </div>
+              <div
+                v-if="
+                  asInforme(row).proyecto_nombre &&
+                  asInforme(row).sub_project !== asInforme(row).proyecto_nombre
+                "
+                class="text-xs text-muted-foreground"
               >
-                🗑
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
+                {{ asInforme(row).sub_project }}
+              </div>
+            </div>
+            <GBadge v-else-if="column.key === 'tipo'" variant="outline">{{
+              tipoLabel(asInforme(row).tipo)
+            }}</GBadge>
+            <span v-else-if="column.key === 'periodo'" class="whitespace-nowrap">
+              {{ asInforme(row).periodo_display || formatPeriodo(asInforme(row).periodo_desde) }}
+              <MailIcon
+                v-if="asInforme(row).correo_enviado"
+                class="inline size-3.5 text-muted-foreground"
+                title="Correo enviado"
+              />
+            </span>
+            <div v-else-if="column.key === 'edicion'">
+              <div>
+                {{ asInforme(row).editado_en ? formatFecha(asInforme(row).editado_en!) : '—' }}
+              </div>
+              <div v-if="asInforme(row).editado_por_nombre" class="text-xs text-muted-foreground">
+                {{ asInforme(row).editado_por_nombre }}
+              </div>
+            </div>
+            <span v-else-if="column.key === 'aprobado'" class="text-muted-foreground">
+              {{ asInforme(row).aprobado_por_nombre || '—' }}
+            </span>
+            <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1" @click.stop>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                title="Abrir informe"
+                @click="abrirInforme(asInforme(row).id)"
+              >
+                <ArrowRightIcon class="size-4" />
+              </Button>
+              <Button
+                v-if="asInforme(row).estado !== 'aprobado'"
+                variant="ghost"
+                size="icon-sm"
+                class="hover:bg-destructive/10 hover:text-destructive"
+                :title="`Eliminar ${asInforme(row).proyecto_nombre || asInforme(row).sub_project}`"
+                @click="confirmarEliminar(asInforme(row))"
+              >
+                <Trash2Icon class="size-4" />
+              </Button>
+            </div>
+          </template>
+        </DataTable>
+        <div v-else class="flex flex-col items-center gap-1 py-16 text-center">
+          <FileIcon class="size-8 text-muted-foreground/50" />
+          <p class="text-sm font-medium text-foreground">
+            {{
+              hayFiltros ? 'Sin resultados para los filtros aplicados' : 'No hay informes guardados'
+            }}
+          </p>
+          <p class="text-xs text-muted-foreground">
+            {{
+              hayFiltros ? 'Prueba con otros filtros' : 'Genera un informe desde Monitoreo Fallas'
+            }}
+          </p>
+          <Button v-if="hayFiltros" variant="ghost" size="sm" class="mt-2" @click="limpiarFiltros">
+            <XIcon /> Limpiar filtros
+          </Button>
+        </div>
+      </template>
+    </AsyncView>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import {
+  ArrowRightIcon,
+  FileIcon,
+  LoaderCircleIcon,
+  MailIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  XIcon,
+} from '@lucide/vue'
+import { toast } from 'vue-sonner'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de `DataTable`.
+import DataTable, {
+  type DataTableRow,
+  type DataTableColumn,
+} from '~/components/blocks/DataTable.vue'
+import { normalizeError } from '~/core/errors'
+import type { EstadoInforme, Informe, TipoInforme } from '~/features/operaciones/types'
 import { InformesService } from '~/features/operaciones/services/informes'
 
-const informesService = new InformesService()
-
-const router = useRouter()
-
-const todosLoaded  = ref([])
-const loading      = ref(false)
-const error        = ref(null)
-const filtroEstado = ref('')
-const filtroAnio   = ref('')
-const filtroMes    = ref('')
-
-const meses = [
-  { v: '01', label: 'Enero' },   { v: '02', label: 'Febrero' },
-  { v: '03', label: 'Marzo' },   { v: '04', label: 'Abril' },
-  { v: '05', label: 'Mayo' },    { v: '06', label: 'Junio' },
-  { v: '07', label: 'Julio' },   { v: '08', label: 'Agosto' },
-  { v: '09', label: 'Septiembre' }, { v: '10', label: 'Octubre' },
-  { v: '11', label: 'Noviembre' }, { v: '12', label: 'Diciembre' },
+const columns: DataTableColumn[] = [
+  { key: 'estado', header: 'Estado' },
+  { key: 'proyecto', header: 'Proyecto' },
+  { key: 'tipo', header: 'Tipo' },
+  { key: 'periodo', header: 'Periodo' },
+  { key: 'edicion', header: 'Última edición' },
+  { key: 'aprobado', header: 'Aprobado por' },
+  { key: 'acciones', header: '' },
 ]
 
-const kpis = computed(() => ({
-  borrador: todosLoaded.value.filter(i => i.estado === 'borrador').length,
-  revisado: todosLoaded.value.filter(i => i.estado === 'revisado').length,
-  aprobado: todosLoaded.value.filter(i => i.estado === 'aprobado').length,
-}))
+const ESTADOS = ['borrador', 'revisado', 'aprobado'] as const
+const ESTADO_LABELS: Record<(typeof ESTADOS)[number], string> = {
+  borrador: 'Borrador',
+  revisado: 'Revisado',
+  aprobado: 'Aprobado',
+}
+const TIPO_LABELS: Record<string, string> = { op: 'Operacional', fmo: 'FMO', port: 'Portafolio' }
+const MESES = [
+  { value: '01', label: 'Enero' },
+  { value: '02', label: 'Febrero' },
+  { value: '03', label: 'Marzo' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Mayo' },
+  { value: '06', label: 'Junio' },
+  { value: '07', label: 'Julio' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Septiembre' },
+  { value: '10', label: 'Octubre' },
+  { value: '11', label: 'Noviembre' },
+  { value: '12', label: 'Diciembre' },
+] as const
+const NOMBRES_MES = [
+  '',
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+]
+
+const informesService = new InformesService()
+const confirm = useConfirm()
+const router = useRouter()
+
+const query = useQuery<Informe[]>()
+const filtroEstado = ref<EstadoInforme | null>(null)
+const filtroAnio = ref<string | null>(null)
+const filtroMes = ref<string | null>(null)
+
+function asInforme(row: DataTableRow): Informe {
+  return row as unknown as Informe
+}
+
+const todos = computed(() => query.data ?? [])
+
+const kpis = computed(() => {
+  const conteo: Record<string, number> = { borrador: 0, revisado: 0, aprobado: 0 }
+  for (const inf of todos.value) {
+    if (inf.estado && inf.estado in conteo) conteo[inf.estado]!++
+  }
+  return conteo as Record<(typeof ESTADOS)[number], number>
+})
 
 const aniosDisponibles = computed(() => {
-  const set = new Set()
-  todosLoaded.value.forEach(i => { if (i.periodo_desde) set.add(i.periodo_desde.slice(0, 4)) })
-  return [...set].sort((a, b) => b - a)
+  const set = new Set<string>()
+  todos.value.forEach((i) => {
+    if (i.periodo_desde) set.add(i.periodo_desde.slice(0, 4))
+  })
+  return [...set].sort((a, b) => Number(b) - Number(a))
 })
 
 const informesFiltrados = computed(() =>
-  todosLoaded.value.filter(i => {
+  todos.value.filter((i) => {
     if (filtroEstado.value && i.estado !== filtroEstado.value) return false
-    if (filtroAnio.value && (!i.periodo_desde || !i.periodo_desde.startsWith(filtroAnio.value))) return false
-    if (filtroMes.value && (!i.periodo_desde || i.periodo_desde.slice(5, 7) !== filtroMes.value)) return false
+    if (filtroAnio.value && (!i.periodo_desde || !i.periodo_desde.startsWith(filtroAnio.value)))
+      return false
+    if (filtroMes.value && (!i.periodo_desde || i.periodo_desde.slice(5, 7) !== filtroMes.value))
+      return false
     return true
-  })
+  }),
 )
 
-function setFiltroEstado(val) {
-  // toggle: si ya está activo, lo quita
-  filtroEstado.value = filtroEstado.value === val ? '' : val
+function setFiltroEstado(estado: EstadoInforme | null) {
+  // Toggle: si ya está activo, lo quita.
+  filtroEstado.value = filtroEstado.value === estado ? null : estado
 }
 
 async function cargar() {
-  loading.value = true
-  error.value = null
-  try {
-    todosLoaded.value = await informesService.listar({ limit: 200 })
-  } catch (e) {
-    error.value = e.data?.detail || e.message
-  } finally {
-    loading.value = false
-  }
+  await query.run(() => informesService.listar({ limit: 200 }))
 }
+onMounted(cargar)
 
+const hayFiltros = computed(() => !!(filtroAnio.value || filtroMes.value || filtroEstado.value))
 function limpiarFiltros() {
-  filtroEstado.value = ''; filtroAnio.value = ''; filtroMes.value = ''
+  filtroEstado.value = null
+  filtroAnio.value = null
+  filtroMes.value = null
 }
 
-function abrirInforme(id) { router.push(`/informes/${id}`) }
+function abrirInforme(id: number) {
+  router.push(`/informes/${id}`)
+}
 
-async function eliminarInforme(inf) {
+function confirmarEliminar(inf: Informe) {
   const nombre = inf.proyecto_nombre || inf.sub_project
   const periodo = inf.periodo_display || inf.periodo_desde || ''
-  if (!confirm(`¿Eliminar el informe "${nombre} · ${periodo}"?\n\nEsta acción no se puede deshacer.`)) return
+  confirm({
+    title: 'Eliminar informe',
+    description: `¿Eliminar el informe "${nombre} · ${periodo}"? Esta acción no se puede deshacer.`,
+    confirmLabel: 'Eliminar',
+    variant: 'destructive',
+    onConfirm: () => eliminarInforme(inf),
+  })
+}
+
+async function eliminarInforme(inf: Informe) {
   try {
     await informesService.eliminar(inf.id)
-    todosLoaded.value = todosLoaded.value.filter(i => i.id !== inf.id)
-  } catch (e) {
-    alert('⚠️ ' + (e.data?.detail || e.message))
+    if (query.data) query.data = query.data.filter((i) => i.id !== inf.id)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message })
   }
 }
 
-function estadoLabel(e) {
-  return { borrador: 'Borrador', revisado: 'Revisado', aprobado: 'Aprobado' }[e] || e
+function estadoColor(estado?: EstadoInforme) {
+  return estado === 'aprobado' ? 'success' : estado === 'revisado' ? 'information' : 'warning'
 }
-function tipoLabel(t) {
-  return { op: 'Operacional', fmo: 'FMO', port: 'Portafolio' }[t] || (t || '—').toUpperCase()
+function estadoLabel(estado?: EstadoInforme) {
+  return (estado && ESTADO_LABELS[estado as (typeof ESTADOS)[number]]) || estado || '—'
 }
-function formatFecha(iso) {
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+function tipoLabel(tipo: TipoInforme) {
+  return TIPO_LABELS[tipo] || (tipo || '—').toUpperCase()
 }
-function formatPeriodo(iso) {
+function formatFecha(iso: string) {
+  return new Date(iso).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+function formatPeriodo(iso?: string) {
   if (!iso) return '—'
-  const [y, m] = iso.split('-')
-  const mes = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][+m] || m
-  return `${mes} ${y}`
+  const [anio, mes] = iso.split('-')
+  return `${NOMBRES_MES[Number(mes)] || mes} ${anio}`
 }
-
-onMounted(cargar)
 </script>
-
-<style scoped>
-/* ── Página ─────────────────────────────────────────────────────── */
-.inf-page {
-  min-height: 100%;
-  background: #f8f7fa;
-  padding: 0;
-  font-family: 'Sora', system-ui, sans-serif;
-}
-
-/* ── Hero ───────────────────────────────────────────────────────── */
-.inf-hero {
-  background: linear-gradient(135deg, var(--color-unergy-deep) 0%, #3d2b52 60%, #4a2d6e 100%);
-  padding: 28px 32px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid rgba(145,91,216,.2);
-}
-.inf-hero-title {
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--color-unergy-avena);
-  margin: 0 0 4px;
-  letter-spacing: -0.3px;
-}
-.inf-hero-sub {
-  font-size: 13px;
-  color: rgba(253,250,247,.55);
-  margin: 0;
-}
-
-/* ── KPIs ───────────────────────────────────────────────────────── */
-.inf-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0;
-  border-bottom: 1px solid #e5e2ec;
-}
-@media (max-width: 640px) { .inf-kpis { grid-template-columns: repeat(2, 1fr); } }
-
-.kpi-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px;
-  border: none;
-  background: #fff;
-  cursor: pointer;
-  transition: background .15s;
-  border-right: 1px solid #e5e2ec;
-  position: relative;
-  font-family: inherit;
-}
-.kpi-card:last-child { border-right: none; }
-.kpi-card:hover { background: #f4f1fa; }
-
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  opacity: 0;
-  transition: opacity .15s;
-}
-.kpi-card.kpi-active::after { opacity: 1; }
-.kpi-card.kpi-active { background: #f9f7ff; }
-
-.kpi-total::after    { background: var(--color-unergy-purple); }
-.kpi-borrador::after { background: #d4a017; }
-.kpi-revisado::after { background: #2563EB; }
-.kpi-aprobado::after { background: #16a34a; }
-
-.kpi-num {
-  font-size: 32px;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 5px;
-}
-.kpi-total    .kpi-num { color: #6d28d9; }
-.kpi-borrador .kpi-num { color: #d4a017; }
-.kpi-revisado .kpi-num { color: #2563EB; }
-.kpi-aprobado .kpi-num { color: #16a34a; }
-
-.kpi-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .6px;
-  color: #9ca3af;
-}
-.kpi-card.kpi-active .kpi-label { color: #6b7280; }
-
-/* ── Filtros ────────────────────────────────────────────────────── */
-.inf-filtros-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 18px 32px;
-  background: #fff;
-  border-bottom: 1px solid #e5e2ec;
-}
-.inf-filtros-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.inf-filtro-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: #9ca3af;
-}
-.inf-select {
-  background: #fff;
-  border: 1.5px solid #e5e2ec;
-  border-radius: 8px;
-  padding: 7px 12px;
-  color: var(--color-unergy-deep);
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  cursor: pointer;
-  min-width: 130px;
-  transition: border-color .15s;
-}
-.inf-select:focus { border-color: var(--color-unergy-purple); }
-
-.inf-clear-btn {
-  background: transparent;
-  border: 1.5px solid #e5e2ec;
-  border-radius: 8px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6b7280;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all .15s;
-  align-self: flex-end;
-}
-.inf-clear-btn:hover { border-color: var(--color-unergy-purple); color: #6d28d9; }
-
-.inf-count-label {
-  margin-left: auto;
-  align-self: flex-end;
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 600;
-}
-
-/* ── Refresh btn ────────────────────────────────────────────────── */
-.inf-refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.25);
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: var(--color-unergy-avena);
-  font-size: 13px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background .15s;
-}
-.inf-refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
-.inf-refresh-btn:disabled { opacity: .5; cursor: not-allowed; }
-
-/* ── Loading ─────────────────────────────────────────────────────── */
-.inf-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 80px 32px;
-  color: #9ca3af;
-  font-size: 13px;
-}
-.spin-ring {
-  width: 32px; height: 32px;
-  border: 3px solid #e5e2ec;
-  border-top-color: var(--color-unergy-purple);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin-icon { display: inline-block; animation: spin .8s linear infinite; }
-
-/* ── Error ───────────────────────────────────────────────────────── */
-.inf-error-box {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin: 24px 32px;
-  background: #fff5f5;
-  border: 1px solid #fecaca;
-  border-radius: 10px;
-  padding: 16px 20px;
-}
-.inf-error-icon { font-size: 22px; flex-shrink: 0; }
-.inf-error-title { font-size: 13px; font-weight: 700; color: #dc2626; margin-bottom: 2px; }
-.inf-error-msg { font-size: 12px; color: #ef4444; }
-
-/* ── Empty ───────────────────────────────────────────────────────── */
-.inf-empty {
-  text-align: center;
-  padding: 80px 32px;
-}
-.inf-empty-icon { font-size: 48px; margin-bottom: 14px; opacity: .3; }
-.inf-empty-title { font-size: 16px; font-weight: 700; color: #6b7280; margin-bottom: 6px; }
-.inf-empty-sub { font-size: 13px; color: #9ca3af; }
-
-/* ── Tabla ───────────────────────────────────────────────────────── */
-.inf-table-wrapper {
-  padding: 24px 32px;
-  overflow-x: auto;
-}
-.inf-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-}
-.inf-table thead tr {
-  background: #f8f7fa;
-  border-bottom: 2px solid #e5e2ec;
-}
-.inf-table thead th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  color: #9ca3af;
-  white-space: nowrap;
-}
-.inf-row {
-  border-bottom: 1px solid #f0edf7;
-  cursor: pointer;
-  transition: background .12s;
-}
-.inf-row:last-child { border-bottom: none; }
-.inf-row:hover { background: #f9f7ff; }
-.inf-row td {
-  padding: 13px 16px;
-  vertical-align: middle;
-}
-
-.td-proyecto { min-width: 180px; }
-.td-nombre {
-  font-size: 13px;
-  font-weight: 700;
-  color: #1a1025;
-}
-.td-sub {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
-}
-.td-periodo {
-  font-size: 13px;
-  color: #374151;
-  white-space: nowrap;
-}
-.td-fecha { min-width: 120px; }
-.td-fecha > div:first-child { font-size: 12px; color: #374151; }
-.td-autor { font-size: 11px; color: #9ca3af; margin-top: 2px; }
-.td-empty { color: #d1d5db; font-size: 13px; }
-
-/* Estado pills */
-.estado-pill {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: .4px;
-  white-space: nowrap;
-  text-transform: uppercase;
-}
-.pill-borrador { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
-.pill-revisado { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.pill-aprobado { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-
-/* Tipo tag */
-.tipo-tag {
-  font-size: 11px;
-  font-weight: 700;
-  background: #f3f0ff;
-  color: #7c3aed;
-  border: 1px solid #e9d5ff;
-  border-radius: 5px;
-  padding: 2px 7px;
-}
-
-.enviado-dot { margin-left: 5px; font-size: 12px; }
-
-/* Acciones */
-.td-acciones {
-  width: 80px;
-  white-space: nowrap;
-}
-.action-btn {
-  background: transparent;
-  border: 1px solid #e5e2ec;
-  border-radius: 6px;
-  padding: 4px 9px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all .14s;
-  font-family: inherit;
-}
-.action-open { color: #6d28d9; margin-right: 4px; font-weight: 800; }
-.action-open:hover { background: #f3f0ff; border-color: #7c3aed; }
-.action-del { color: #ef4444; }
-.action-del:hover { background: #fff5f5; border-color: #ef4444; }
-</style>
