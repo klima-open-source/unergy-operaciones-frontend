@@ -29,6 +29,31 @@ export interface RespuestaMonitoreoSolar {
   projects: ProyectoMonitoreoSolar[]
 }
 
+/** Un punto de `power_curve` (inversores) o de `medidor.curva` (medidor): potencia a un instante. */
+export interface PuntoPotenciaSolar {
+  time?: string
+  kw?: number | null
+  [clave: string]: unknown
+}
+
+/** Una fila del histórico de 30 días (`generation_30d`), usada como respaldo del acumulado de hoy. */
+export interface GeneracionDiaHistorial {
+  date: string
+  kwh: number
+}
+
+/**
+ * El medidor que el BACKEND ya resolvió para este proyecto (ver
+ * `~/features/solar/serieSolar`): su curva de potencia y el contador de
+ * energía acumulada del día.
+ */
+export interface MedidorMonitoreoSolar {
+  curva?: PuntoPotenciaSolar[]
+  energia_kwh?: number | null
+  energia_hasta?: string | null
+  [clave: string]: unknown
+}
+
 /**
  * `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma
  * variable por planta.
@@ -44,7 +69,16 @@ export interface RespuestaMonitoreoSolar {
 export interface DetalleMonitoreoSolar {
   nombre?: string
   generation_?: unknown
-  power_curve?: unknown
+  /** Curva de potencia de INVERSORES del día, cada 5 min (ver `~/features/solar/serieSolar`). */
+  power_curve?: PuntoPotenciaSolar[]
+  /** El medidor a mostrar, ya elegido por el backend (ver `medidorDelDetalle`). */
+  medidor?: MedidorMonitoreoSolar | null
+  /** Energía acumulada de hoy según inversores (`eae`), en kWh — preferida sobre integrar la curva. */
+  generation_today_kwh?: number | null
+  /** Hasta qué hora `HH:MM` cubre `generation_today_kwh`. */
+  generation_today_hasta?: string | null
+  /** Histórico de 30 días, respaldo cuando `generation_today_kwh` no vino. */
+  generation_30d?: GeneracionDiaHistorial[]
   gaia_snapshot?: GaiaSnapshot | null
   gaia_node_id?: string | number | null
   gaia_snapshot_principal?: GaiaSnapshot | null
@@ -54,8 +88,20 @@ export interface DetalleMonitoreoSolar {
   [clave: string]: unknown
 }
 
+/** Un inversor de `PotenciaInversores.inverters`: su serie de potencia del día. */
+export interface PotenciaInversor {
+  dev_name: string
+  points: PuntoPotenciaSolar[]
+  peak_kw?: number | null
+  [clave: string]: unknown
+}
+
 /** `GET /generacion-solar/monitoring/:id/inverters-power`. */
 export interface PotenciaInversores {
+  inverters?: PotenciaInversor[]
+  granularidad?: string
+  date_from?: string
+  date_to?: string
   [clave: string]: unknown
 }
 

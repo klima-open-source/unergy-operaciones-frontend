@@ -10,7 +10,7 @@
  * Colombia no tiene horario de verano, así que el corrimiento es fijo, y así no
  * se depende de que el runtime traiga los datos de zonas horarias.
  *
- * Hay dos copias anteriores de esta función —`app/features/solar/serieSolar.js`
+ * Hay dos copias anteriores de esta función —`app/features/solar/serieSolar.ts`
  * y `ReporteEnergiaAutomatizacionView.vue`— que deberían converger acá; no se
  * tocan en este cambio para no arrastrar features ajenas.
  */

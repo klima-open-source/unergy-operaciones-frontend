@@ -1,6 +1,12 @@
 <template>
   <div class="plc-wrap" @click="flashNowLabel" @touchstart.passive="flashNowLabel">
-    <Line v-if="hasData" ref="chartRef" :data="chartData" :options="chartOptions" :plugins="[nowLinePlugin]" />
+    <Line
+      v-if="hasData"
+      ref="chartRef"
+      :data="chartData"
+      :options="chartOptions"
+      :plugins="[nowLinePlugin]"
+    />
     <div v-else class="plc-empty">
       <ChartLineIcon class="size-[1em]" />
       <span>Sin datos de potencia hoy</span>
@@ -8,35 +14,58 @@
   </div>
 </template>
 
-<script setup>
-import { computed, ref, onBeforeUnmount } from 'vue'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref } from 'vue'
 import {
-  Chart as ChartJS, CategoryScale, LinearScale,
-  PointElement, LineElement, Title, Legend, Filler,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
 } from 'chart.js'
+import type { ChartComponentRef } from 'vue-chartjs'
 import { Line } from 'vue-chartjs'
-import { TIME_LABELS, inverterSeries, meterSeries } from '~/features/solar/serieSolar'
+import type { Chart, ChartOptions, Plugin } from 'chart.js'
 import { ChartLineIcon } from '@lucide/vue'
+import type { DetalleMonitoreoSolar } from '~/features/solar/types'
+import { TIME_LABELS, inverterSeries, meterSeries } from '~/features/solar/serieSolar'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Legend, Filler)
 
-const props = defineProps({
-  detail: { type: Object, default: null },
-})
+const props = defineProps<{
+  detail?: DetalleMonitoreoSolar | null
+}>()
 
 const inv = computed(() => inverterSeries(props.detail))
 const med = computed(() => meterSeries(props.detail))
 const hasData = computed(() => !!(inv.value || med.value))
 
 const chartData = computed(() => {
-  const datasets = []
+  const datasets: {
+    label: string
+    data: (number | null)[]
+    borderColor: string
+    backgroundColor: string
+    fill: boolean
+    tension: number
+    pointRadius: number
+    borderWidth: number
+    spanGaps: boolean
+  }[] = []
   if (inv.value) {
     datasets.push({
       label: 'Inversores',
       data: inv.value,
       borderColor: '#915BD8',
       backgroundColor: 'rgba(145,91,216,0.12)',
-      fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2, spanGaps: true,
+      fill: true,
+      tension: 0.35,
+      pointRadius: 0,
+      borderWidth: 2,
+      spanGaps: true,
     })
   }
   if (med.value) {
@@ -45,7 +74,11 @@ const chartData = computed(() => {
       data: med.value,
       borderColor: '#14B8A6',
       backgroundColor: 'rgba(20,184,166,0.10)',
-      fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2, spanGaps: true,
+      fill: true,
+      tension: 0.35,
+      pointRadius: 0,
+      borderWidth: 2,
+      spanGaps: true,
     })
   }
   return { labels: TIME_LABELS, datasets }
@@ -55,7 +88,7 @@ const chartData = computed(() => {
 // Marca la hora actual de Colombia (UTC-5) con una vertical amarilla.
 // La etiqueta "ahora HH:MM" solo se muestra al tocar la gráfica y se oculta
 // sola a los 3 segundos, para no tapar la curva.
-function colombiaSlot() {
+function colombiaSlot(): { slot: number; label: string } {
   const now = new Date()
   const utcMs = now.getTime() + now.getTimezoneOffset() * 60000
   const col = new Date(utcMs - 5 * 3600000)
@@ -64,11 +97,11 @@ function colombiaSlot() {
   return { slot: Math.max(0, Math.min(287, slot)), label }
 }
 
-const chartRef = ref(null)
+const chartRef = ref<ChartComponentRef<'line'> | null>(null)
 const nowFlag = { show: false } // objeto plano: el plugin lo lee en cada draw
-let hideTimer = null
+let hideTimer: ReturnType<typeof setTimeout> | undefined
 
-function flashNowLabel() {
+function flashNowLabel(): void {
   nowFlag.show = true
   chartRef.value?.chart?.update('none')
   clearTimeout(hideTimer)
@@ -80,15 +113,18 @@ function flashNowLabel() {
 
 onBeforeUnmount(() => clearTimeout(hideTimer))
 
-const nowLinePlugin = {
+const nowLinePlugin: Plugin<'line'> = {
   id: 'nowLine',
-  afterDatasetsDraw(chart) {
+  afterDatasetsDraw(chart: Chart) {
     const xScale = chart.scales.x
     if (!xScale) return
     const { slot, label } = colombiaSlot()
     const px = xScale.getPixelForValue(slot)
     if (px == null || isNaN(px)) return
-    const { ctx, chartArea: { top, bottom } } = chart
+    const {
+      ctx,
+      chartArea: { top, bottom },
+    } = chart
 
     ctx.save()
     // línea vertical
@@ -108,17 +144,21 @@ const nowLinePlugin = {
       bx = Math.max(xScale.left, Math.min(bx, xScale.right - tw))
       const by = top + 2
       ctx.fillStyle = '#EAB308'
-      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(bx, by, tw, 18, 6); ctx.fill() }
-      else ctx.fillRect(bx, by, tw, 18)
-      ctx.fillStyle = '#2C2039'
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      if (ctx.roundRect) {
+        ctx.beginPath()
+        ctx.roundRect(bx, by, tw, 18, 6)
+        ctx.fill()
+      } else ctx.fillRect(bx, by, tw, 18)
+      ctx.fillStyle = '#2C2039' // var(--color-unergy-deep): canvas 2D no resuelve custom properties
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
       ctx.fillText(text, bx + tw / 2, by + 9)
     }
     ctx.restore()
   },
 }
 
-const chartOptions = {
+const chartOptions: ChartOptions<'line'> = {
   responsive: true,
   maintainAspectRatio: false,
   // sin tooltip: tocar la gráfica solo muestra la etiqueta "ahora" 3 s
@@ -130,15 +170,26 @@ const chartOptions = {
       position: 'top',
       align: 'start',
       labels: {
-        boxWidth: 7, boxHeight: 7, usePointStyle: true, pointStyle: 'circle',
-        font: { size: 11.5, weight: '500' }, color: '#787774', padding: 12,
+        boxWidth: 7,
+        boxHeight: 7,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        font: { size: 11.5, weight: 500 },
+        color: '#787774',
+        padding: 12,
       },
     },
     tooltip: { enabled: false },
   },
   scales: {
     x: {
-      ticks: { font: { size: 10 }, color: '#9b9a97', maxTicksLimit: 6, autoSkip: true, maxRotation: 0 },
+      ticks: {
+        font: { size: 10 },
+        color: '#9b9a97',
+        maxTicksLimit: 6,
+        autoSkip: true,
+        maxRotation: 0,
+      },
       grid: { display: false },
       border: { display: false },
     },
@@ -153,10 +204,23 @@ const chartOptions = {
 </script>
 
 <style scoped>
-.plc-wrap { position: relative; width: 100%; height: 100%; }
-.plc-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; height: 100%; color: #9ca3af; font-size: 14px;
+.plc-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
-.plc-empty svg { font-size: 32px; color: #d1d5db; }
+.plc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  color: #9ca3af;
+  font-size: 14px;
+}
+.plc-empty svg {
+  font-size: 32px;
+  color: #d1d5db;
+}
 </style>

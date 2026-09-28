@@ -63,7 +63,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/mem/components/cumplimientoAnualExport.js',
   'app/features/mem/components/cumplimientoMatrizExcel.js',
   'app/features/mem/components/cumplimientoRevision.js',
-  'app/features/mobile/components/**',
   // `GeneracionView.vue` se migró (es el contenido de la tab "Histórico" de
   // `/solar-live`) — el resto de `operaciones` sigue igual. Archivo por
   // archivo porque la negación de un glob de carpeta no funciona en

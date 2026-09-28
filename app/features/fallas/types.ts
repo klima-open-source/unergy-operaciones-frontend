@@ -83,10 +83,19 @@ export interface RespuestaEstructuraFallas {
   categorias: CategoriaFalla[]
 }
 
+/** Un cambio de estado del día, dentro de `RespuestaActividadHoyFallas.cambios_estado`. */
+export interface CambioEstadoFalla {
+  falla: Falla
+  estado_anterior?: CatalogoItemFalla | null
+  estado_nuevo?: CatalogoItemFalla | null
+  /** Hora `HH:MM` (o timestamp) del cambio. */
+  hora?: string
+}
+
 /** `GET /fallas/actividad-hoy` (`MobileResumenView.vue`): fallas creadas y cambios de estado del día. */
 export interface RespuestaActividadHoyFallas {
   creadas: Falla[]
-  cambios_estado: Falla[]
+  cambios_estado: CambioEstadoFalla[]
   fecha?: string
 }
 

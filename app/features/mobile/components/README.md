@@ -18,16 +18,16 @@ login, su propio layout y su propia navegación inferior.
 Las páginas viven en `app/pages/m/**` y son puentes de una línea: importan la vista de
 aquí y declaran `definePageMeta({ layout: 'legacy-blank', mobile: true })`.
 
-| Ruta             | Vista                             | Rol                    |
-| ---------------- | --------------------------------- | ---------------------- |
-| `/m`             | → `/m/solar`                      | —                      |
-| `/m/login`       | `MobileLoginView.vue`             | público                |
+| Ruta             | Vista                             | Rol                      |
+| ---------------- | --------------------------------- | ------------------------ |
+| `/m`             | → `/m/solar`                      | —                        |
+| `/m/login`       | `MobileLoginView.vue`             | público                  |
 | `/m/solar`       | `MobileSolarView.vue`             | todos menos los de abajo |
-| `/m/fallas`      | `MobileFallasView.vue`            | todos                  |
-| `/m/coordinador` | `MobileCoordinadorFallasView.vue` | `coordinador`, `admin` |
-| `/m/tecnico`     | `MobileCoordinadorFallasView.vue` | `tecnico`              |
-| `/m/resumen`     | `MobileResumenView.vue`           | todos                  |
-| `/m/reporte-cgm` | `MobileReporteCGMView.vue`        | todos                  |
+| `/m/fallas`      | `MobileFallasView.vue`            | todos                    |
+| `/m/coordinador` | `MobileCoordinadorFallasView.vue` | `coordinador`, `admin`   |
+| `/m/tecnico`     | `MobileCoordinadorFallasView.vue` | `tecnico`                |
+| `/m/resumen`     | `MobileResumenView.vue`           | todos                    |
+| `/m/reporte-cgm` | `MobileReporteCGMView.vue`        | todos                    |
 
 `/m/tecnico` reusa la vista del coordinador: `MobileTecnicoFallasView.vue` dependía
 entera de `asignado_a_id`, que se eliminó en la auditoría de 2026-09-02.
@@ -44,7 +44,7 @@ app/features/mobile/
 └── components/
     ├── Mobile*View.vue        # una vista por ruta
     ├── solarSeries.js         # extractores de series (inversores/medidor)
-    ├── usePwa.js              # registra el service worker (solo en PROD, scope /m/)
+    ├── usePwa.ts              # registra el service worker (solo en PROD, scope /m/)
     └── components/
         ├── ProjectLiveChart.vue     # inversores + medidor, con la línea "ahora"
         ├── ReconnectSheet.vue       # hoja inferior de reconexión
@@ -64,11 +64,11 @@ Las fallas reusan los endpoints `/fallas`, `/fallas/catalogos`, `/fallas/{id}` y
 Se listan juntos porque se rompen juntos y en silencio: la app sigue cargando en el
 navegador, solo deja de ser instalable.
 
-| Archivo                     | Qué aporta                                                            |
-| --------------------------- | --------------------------------------------------------------------- |
-| `public/manifest.webmanifest` | nombre, iconos, `start_url: /m/solar`, `scope: /m/`, `standalone`   |
-| `public/sw-mobile.js`         | service worker network-first; se registra con scope `/m/`           |
-| `nuxt.config.ts` → `app.head` | `<link rel="manifest">`, metas `apple-*`, `viewport-fit=cover`      |
+| Archivo                       | Qué aporta                                                        |
+| ----------------------------- | ----------------------------------------------------------------- |
+| `public/manifest.webmanifest` | nombre, iconos, `start_url: /m/solar`, `scope: /m/`, `standalone` |
+| `public/sw-mobile.js`         | service worker network-first; se registra con scope `/m/`         |
+| `nuxt.config.ts` → `app.head` | `<link rel="manifest">`, metas `apple-*`, `viewport-fit=cover`    |
 
 El tercero es el que se perdió al migrar de Vite a Nuxt: en el legacy vivía en
 `index.html`, un archivo que Nuxt no usa. Con `ssr: false` **no sirve** ponerlo en un
@@ -84,16 +84,16 @@ caché con otro nombre, y es lo único que saca del dispositivo un shell viejo.
 Unas pocas líneas en archivos de la plataforma. Cambiarlos puede afectar a la web, así
 que tratar con cuidado.
 
-| Archivo                                          | Qué agrega para la app móvil                                       |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| `app/middleware/mobile.global.ts`                | aplica `access.ts` a todo `meta.mobile`                            |
-| `app/middleware/auth.global.ts`                  | deja pasar de largo `/m/*`: lo gobierna el de arriba               |
-| `app/types/route-meta.d.ts`                      | declara `meta.mobile`                                              |
-| `app/layouts/legacy-blank.vue`                   | pantalla completa, sin sidebar ni topbar                           |
-| `app/core/client.ts`                             | en 401, si estás en `/m/…` redirige a `/m/login` (no a `/login`)   |
-| `app/composables/useAuth.ts`                     | `signInMobile()` → token de larga duración                         |
-| `app/features/auth/services/operaciones-auth.ts` | `POST /api/v1/auth/token/mobile`                                   |
-| `nuxt.config.ts`                                 | el `app.head` de la tabla anterior                                 |
+| Archivo                                          | Qué agrega para la app móvil                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------- |
+| `app/middleware/mobile.global.ts`                | aplica `access.ts` a todo `meta.mobile`                          |
+| `app/middleware/auth.global.ts`                  | deja pasar de largo `/m/*`: lo gobierna el de arriba             |
+| `app/types/route-meta.d.ts`                      | declara `meta.mobile`                                            |
+| `app/layouts/legacy-blank.vue`                   | pantalla completa, sin sidebar ni topbar                         |
+| `app/core/client.ts`                             | en 401, si estás en `/m/…` redirige a `/m/login` (no a `/login`) |
+| `app/composables/useAuth.ts`                     | `signInMobile()` → token de larga duración                       |
+| `app/features/auth/services/operaciones-auth.ts` | `POST /api/v1/auth/token/mobile`                                 |
+| `nuxt.config.ts`                                 | el `app.head` de la tabla anterior                               |
 
 `AUTH_ROUTE_PERMISSIONS` **no declara ninguna página móvil** a propósito: el
 deny-by-default de la web decide "permitido/denegado", y aquí la decisión es "a cuál de

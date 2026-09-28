@@ -105,7 +105,7 @@ describe('formato y hora de corte', () => {
 
 /**
  * Los campos crudos que NO se pueden leer directo desde una vista: cada uno
- * tiene su helper en serieSolar.js, y saltearselo es como divergieron.
+ * tiene su helper en serieSolar.ts, y saltearselo es como divergieron.
  */
 const CAMPOS_CON_HELPER = [
   'generation_today_kwh',
