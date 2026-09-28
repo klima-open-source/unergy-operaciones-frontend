@@ -1,15 +1,31 @@
+import type { FallaClasificacion } from '~/features/fallas/utils/fallaTitulo'
+
 /**
- * Forma verificada contra `FallasListView.vue`, `MonitoreoView.vue`,
- * `FallaDetailView.vue`, `FallaForm.vue`, `FallaArchivos.vue`,
- * `CalendarioFallas.vue`, `FallasMapView.vue` y `FallaCreateSheet.vue` (mobile).
+ * Forma verificada contra `MonitoreoView.vue`, `FallaDetailView.vue`,
+ * `FallaForm.vue`, `FallaArchivos.vue`, `CalendarioFallas.vue`,
+ * `FasorialButton.vue` y `FallaCreateSheet.vue` (mobile).
+ *
+ * `FallasListView.vue` y `FallasMapView.vue` no están en esa lista a propósito:
+ * son vistas muertas (`contexto/02-specs.md §7`, la entrada real de la ruta es
+ * `MonitoreoView`) sin ninguna página que las montara — se borraron al migrar
+ * el slice, junto con `listarOperadoresMapa`/`obtenerMapa` del service y los
+ * tipos `OperadorMapa`/`DatosMapa` que solo ellas usaban.
  */
 
-/** Un ítem de catálogo (`tipos`, `estados`, `prioridades`, `categorias`…): `{id, nombre}` y poco más. */
+/** Un ítem de catálogo (`tipos`, `estados`, `prioridades`, `resoluciones`…): `{id, etiqueta}` y poco más. */
 export interface CatalogoItemFalla {
   id: number
   nombre?: string
   codigo?: string
+  etiqueta?: string
+  descripcion?: string
   color?: string
+  /** Solo en `estados`: si es un estado final (cerrada/sin_solucion). */
+  es_estado_final?: boolean
+  /** Solo en `tipos`: sugerencia de qué hacer, mostrada en el detalle. */
+  accion_sugerida?: string
+  /** Solo en `tipos` (legacy): la categoría a la que pertenece. */
+  categoria?: { etiqueta?: string; color_hex?: string; [clave: string]: unknown }
   [clave: string]: unknown
 }
 
@@ -32,16 +48,33 @@ export interface FotoFalla {
 /** Una opción dentro de una categoría de `GET /fallas/estructura` (p.ej. un tipo de evento de red). */
 export interface OpcionCategoriaFalla {
   codigo: string
+  etiqueta?: string
   requiere_detalle?: boolean
+  detalle_label?: string
+  /** Es un estado temporal: marca la falla `pendiente_reclasificar` (ver `Falla`). */
+  pendiente_reclasificar?: boolean
   [clave: string]: unknown
 }
 
-/** Una categoría del árbol de clasificación que arma `FallaCreateSheet.vue` (mobile). */
+/** Un tipo de falla de inversor, dentro de `CategoriaFalla.tipos_falla` (categoría `inversores`). */
+export interface TipoFallaInversor {
+  codigo: string
+  etiqueta?: string
+  [clave: string]: unknown
+}
+
+/** Una categoría del árbol de clasificación que arma `FallaForm.vue` y `FallaCreateSheet.vue` (mobile). */
 export interface CategoriaFalla {
   codigo: string
+  etiqueta?: string
+  color_hex?: string
+  /** `'opcion'` (red/eventos adversos), `'equipo'` (frontera) o `'inversores'`. */
   tipo?: string
   opciones?: OpcionCategoriaFalla[]
+  /** Etiqueta del selector de opciones cuando no son "eventos" (p.ej. frontera). */
   opciones_label?: string
+  /** Solo categoría `inversores`: los tipos de falla que se le pueden imputar a un inversor. */
+  tipos_falla?: TipoFallaInversor[]
   [clave: string]: unknown
 }
 
@@ -61,6 +94,11 @@ export interface SeguimientoFalla {
   id: number
   nota?: string
   estado_id?: number | null
+  /** El estado al que quedó la falla tras este seguimiento, si cambió. */
+  estado_nuevo?: CatalogoItemFalla | null
+  usuario?: { nombre?: string; [clave: string]: unknown } | null
+  /** Respaldo legacy de `usuario?.nombre` en seguimientos viejos. */
+  usuario_nombre?: string
   creado_por?: string
   created_at?: string
   [clave: string]: unknown
@@ -70,6 +108,20 @@ export interface ArchivoFalla {
   id: number
   nombre?: string
   url?: string
+  tipo_mime?: string
+  tamaño?: number
+  created_at?: string
+  [clave: string]: unknown
+}
+
+/**
+ * Un elemento de `Falla.fotos_lista`/`Falla.attachments`: formatos legado que
+ * conviven — string suelto (URL) u objeto `{url, nombre}` — ver `FallaDetailView.vue`.
+ */
+export interface AdjuntoFallaLegado {
+  url?: string
+  nombre?: string
+  archivo_url?: string
   [clave: string]: unknown
 }
 
@@ -122,11 +174,15 @@ export interface Falla {
   } | null
   dias_abierta?: number | null
   tiempo_afectacion_horas?: number | null
-  registrado_por?: string | null
+  registrado_por?: { nombre?: string; [clave: string]: unknown } | null
   resolucion?: CatalogoItemFalla | null
   resolucion_id?: number | null
   fotos?: FotoFalla[]
   fotos_urls?: string[]
+  /** Adjuntos normalizados por el backend: string (URL) u objeto, según cuándo se subieron. */
+  fotos_lista?: (string | AdjuntoFallaLegado)[]
+  /** Adjuntos subidos por `subirAdjunto` (ruta `/attachments`, ver el service). */
+  attachments?: AdjuntoFallaLegado[]
   seguimientos?: SeguimientoFalla[]
   categoria_codigo?: string | null
   subtipo_codigo?: string | null
@@ -134,6 +190,24 @@ export interface Falla {
   frontera_afecta_medicion?: boolean
   frontera_perdida_comunicacion?: boolean
   notificacion?: boolean
+  /**
+   * Vista de presentación de la clasificación estructurada, computada por el
+   * backend (`dominio.clasificacion`) — la escritura va por los campos planos
+   * de arriba (`categoria_codigo`, `subtipo_codigo`...), nunca por este objeto.
+   */
+  clasificacion?: FallaClasificacion | null
+  /** Tipo libre (texto), respaldo legacy cuando no hay `tipo_id` ni clasificación estructurada. */
+  tipo_libre?: string | null
+  /** `desconexion_sin_identificar` es un estado temporal: queda así hasta reclasificar. */
+  pendiente_reclasificar?: boolean
+  inversores_afectados?: {
+    proyecto_inversor_id?: number
+    nombre?: string | null
+    potencia_kw?: number | null
+    tipos?: string[]
+    tipos_etiquetas?: string[]
+    [clave: string]: unknown
+  }[]
   [clave: string]: unknown
 }
 
@@ -143,7 +217,19 @@ export interface Falla {
  * una falla por proyecto) según el modo.
  */
 export type PayloadFalla = Partial<
-  Omit<Falla, 'id' | 'proyecto' | 'tipo' | 'estado' | 'prioridad' | 'fotos' | 'seguimientos'>
+  Omit<
+    Falla,
+    | 'id'
+    | 'proyecto'
+    | 'tipo'
+    | 'estado'
+    | 'prioridad'
+    | 'fotos'
+    | 'seguimientos'
+    | 'registrado_por'
+    | 'clasificacion'
+    | 'inversores_afectados'
+  >
 > & {
   proyecto_id?: number
   proyecto_ids?: number[]
@@ -153,6 +239,19 @@ export type PayloadFalla = Partial<
     potencia_kw?: number | null
     tipos: string[]
   }[]
+}
+
+/**
+ * Emitido por `FallaForm`'s `save`: `PayloadFalla` más los campos que solo
+ * existen en el formulario — cada consumidor (`MonitoreoView.vue`,
+ * `FallaDetailView.vue`, `GestionFallasView.vue`) los separa antes de mandar
+ * el resto a la API.
+ */
+export interface PayloadFallaForm extends PayloadFalla {
+  /** Solo al crear: primer seguimiento, si el usuario escribió uno. */
+  nota_inicial?: string
+  /** Archivos elegidos en el dropzone; se suben aparte tras crear/editar. */
+  _archivos?: File[]
 }
 
 /**
@@ -196,6 +295,9 @@ export interface FiltrosListaFallas {
    */
   fecha_identificacion_desde?: string
   fecha_identificacion_hasta?: string
+  /** Rango sobre CUÁNDO SE PROGRAMÓ la intervención (`YYYY-MM-DD`) — usado por `CalendarioFallas.vue`. */
+  fecha_programada_desde?: string
+  fecha_programada_hasta?: string
 }
 
 /** `POST /fallas/:id/notificar`. */
@@ -211,15 +313,5 @@ export interface ResultadoNotificacionFalla {
 /** `GET /monitoreo/resumen-generacion`. */
 export interface ResumenGeneracionMonitoreo {
   dates: { fecha: string; kwh_real: number }[]
-  [clave: string]: unknown
-}
-
-// ── Mapa de operadores y fallas ───────────────────────────────────────────────
-
-export interface OperadorMapa {
-  [clave: string]: unknown
-}
-
-export interface DatosMapa {
   [clave: string]: unknown
 }

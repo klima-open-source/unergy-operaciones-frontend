@@ -19,8 +19,6 @@ import type {
   RespuestaActividadHoyFallas,
   RespuestaEstructuraFallas,
   RespuestaListaFallas,
-  OperadorMapa,
-  DatosMapa,
 } from '~/features/fallas/types'
 import { BaseService } from '~/core/service'
 
@@ -39,8 +37,6 @@ const RUTAS = {
   attachments: (id: Falla['id']) => `${BASE}/${id}/attachments`,
   notificar: (id: Falla['id']) => `${BASE}/${id}/notificar`,
   resumenGeneracion: '/monitoreo/resumen-generacion',
-  mapaOperadores: '/mapa/operadores',
-  mapa: '/mapa',
 } as const
 
 export class FallasService extends BaseService {
@@ -123,15 +119,5 @@ export class FallasService extends BaseService {
     date_to: string
   }): Promise<ResumenGeneracionMonitoreo> {
     return this.get<ResumenGeneracionMonitoreo>(RUTAS.resumenGeneracion, { query: filtros })
-  }
-
-  // ── Mapa (`FallasMapView.vue`) ─────────────────────────────────────────────────
-
-  listarOperadoresMapa(): Promise<OperadorMapa[]> {
-    return this.get<OperadorMapa[]>(RUTAS.mapaOperadores)
-  }
-
-  obtenerMapa(operator: string): Promise<DatosMapa> {
-    return this.get<DatosMapa>(RUTAS.mapa, { query: { operator } })
   }
 }

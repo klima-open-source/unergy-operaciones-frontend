@@ -10,6 +10,8 @@
  * "borrar es borrar" (`AGENTS.md`), no se migra código sin consumidor.
  */
 
+import type { GaiaSnapshot } from '~/features/fallas/utils/gaiaSnapshotToFasorial'
+
 // ── Monitoreo en vivo (`/generacion-solar/*`) ─────────────────────────────────
 
 export interface ProyectoMonitoreoSolar {
@@ -27,10 +29,28 @@ export interface RespuestaMonitoreoSolar {
   projects: ProyectoMonitoreoSolar[]
 }
 
-/** `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma variable por planta. */
+/**
+ * `GET /generacion-solar/monitoring/:id`: datos crudos de Solenium, forma
+ * variable por planta.
+ *
+ * Los campos `gaia_*` son el snapshot eléctrico del medidor (voltaje,
+ * corriente y potencia por fase), y solo vienen cuando se pide con
+ * `incluir_snapshot: true` (ver `obtenerDetalle`) — los usa el diagrama
+ * fasorial (`FasorialButton.vue`, `~/features/fallas/utils/fasorial.ts`).
+ * `GaiaSnapshot` es el tipo de ESA librería de cálculo, no de este endpoint:
+ * se reimporta acá en vez de duplicar los ~15 campos porque es exactamente
+ * la misma forma de dato.
+ */
 export interface DetalleMonitoreoSolar {
+  nombre?: string
   generation_?: unknown
   power_curve?: unknown
+  gaia_snapshot?: GaiaSnapshot | null
+  gaia_node_id?: string | number | null
+  gaia_snapshot_principal?: GaiaSnapshot | null
+  gaia_node_principal?: string | number | null
+  gaia_snapshot_respaldo?: GaiaSnapshot | null
+  gaia_node_respaldo?: string | number | null
   [clave: string]: unknown
 }
 

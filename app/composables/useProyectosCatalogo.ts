@@ -2,7 +2,7 @@
  * El catálogo de plantas, cargado UNA vez y compartido por toda la aplicación.
  *
  * Diecinueve vistas llamaban a `ProyectosService.listar({ size: 500 })` al
- * montarse — `FallasListView`, `FronterasView`, `CostosView`, `MonitoreoView`,
+ * montarse — `FronterasView`, `CostosView`, `MonitoreoView` (fallas),
  * los wizards de contratos, las vistas móviles, `CumplimientoV2View`… — y casi
  * todas para lo mismo: llenar un `<Select>` de plantas.
  *

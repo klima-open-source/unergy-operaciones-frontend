@@ -1,112 +1,35 @@
-<template>
-  <!-- ══ Botón flotante ═══════════════════════════════════════════════════ -->
-  <button
-    class="fz-fab"
-    type="button"
-    v-tooltip.left="'Generar diagrama fasorial'"
-    @click="abrir">
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
-         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" opacity="0.35" />
-      <line x1="12" y1="12" x2="12" y2="4" />
-      <line x1="12" y1="12" x2="19" y2="15" />
-      <line x1="12" y1="12" x2="6" y2="18" />
-    </svg>
-  </button>
-
-  <!-- ══ Modal ════════════════════════════════════════════════════════════ -->
-  <Dialog v-model:visible="visible" modal :dismissableMask="!loading" :closable="!loading"
-    class="fz-dialog" :style="{ width: '840px', maxWidth: '96vw' }"
-    header="Diagrama fasorial">
-
-    <!-- ── Formulario de generación ──────────────────────────────────────── -->
-    <div class="fz-form">
-      <div class="fz-field">
-        <label class="fz-label">Proyecto</label>
-        <Select
-          v-model="proyectoSel"
-          :options="proyectos"
-          optionLabel="nombre"
-          dataKey="proyecto_id"
-          :loading="loadingProyectos"
-          filter
-          :filterPlaceholder="'Buscar proyecto…'"
-          placeholder="Selecciona un proyecto"
-          class="w-full"
-          @change="onProyectoChange" />
-      </div>
-
-      <div class="fz-field fz-field--medidor">
-        <label class="fz-label">Medidor</label>
-        <SelectButton v-model="medidorSel" :options="MEDIDOR_OPCIONES"
-          optionLabel="label" optionValue="value" :allowEmpty="false"
-          @change="onMedidorChange" />
-      </div>
-
-      <div class="fz-field">
-        <label class="fz-label">Título</label>
-        <InputText v-model="titulo" class="w-full" placeholder="Título del diagrama" />
-      </div>
-
-      <div class="fz-actions">
-        <Button label="Generar" :disabled="!proyectoSel || loading" :loading="loading" @click="generar">
-          <template #icon><ZapIcon class="size-[1em]" /></template>
-        </Button>
-      </div>
-    </div>
-
-    <!-- ── Avisos ────────────────────────────────────────────────────────── -->
-    <div v-if="stale != null" class="fz-note fz-note--warn">
-      <ClockIcon class="size-[1em]" />
-      <span>Lectura desactualizada (hace {{ stale }} min). Se genera de todas formas.</span>
-    </div>
-    <div v-if="sinCarga" class="fz-note fz-note--info">
-      <MoonIcon class="size-[1em]" />
-      <span>Ángulos no evaluables con la planta en vacío — generar en horas de sol.</span>
-    </div>
-    <div v-if="errorMsg" class="fz-note fz-note--error">
-      <TriangleAlertIcon class="size-[1em]" />
-      <span>{{ errorMsg }}</span>
-      <Button v-if="lastProyId" label="Reintentar" text size="small" class="ml-auto" @click="generar" />
-    </div>
-
-    <!-- ── Loading ───────────────────────────────────────────────────────── -->
-    <div v-if="loading" class="fz-loading">
-      <ProgressSpinner style="width:42px;height:42px" strokeWidth="4" />
-      <span>Consultando la última lectura del medidor…</span>
-    </div>
-
-    <!-- ── Diagrama + descargas ──────────────────────────────────────────── -->
-    <div v-show="rendered && !loading" class="fz-result">
-      <div ref="diagramRef" class="fz-diagram" />
-
-      <div class="fz-downloads">
-        <Button label="Descargar SVG" outlined size="small" @click="descargarSVG">
-          <template #icon><DownloadIcon class="size-[1em]" /></template>
-        </Button>
-        <Button label="Descargar PNG" outlined size="small" @click="descargarPNG">
-          <template #icon><ImageIcon class="size-[1em]" /></template>
-        </Button>
-        <Button label="Actualizar lectura" text size="small" class="ml-auto" :loading="loading" @click="generar">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-        </Button>
-      </div>
-    </div>
-  </Dialog>
-</template>
-
-<script setup>
-import { ref, nextTick } from 'vue'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
-import InputText from 'primevue/inputtext'
-import ProgressSpinner from 'primevue/progressspinner'
+<script setup lang="ts">
+/**
+ * Botón flotante que genera el diagrama fasorial de un proyecto solar, a
+ * partir del snapshot eléctrico del medidor (`GET
+ * /generacion-solar/monitoring/:id?incluir_snapshot=true`).
+ */
+import {
+  ClockIcon,
+  DownloadIcon,
+  ImageIcon,
+  MoonIcon,
+  RefreshCwIcon,
+  TriangleAlertIcon,
+  ZapIcon,
+} from '@lucide/vue'
+import { normalizeError } from '~/core/errors'
+import { logger } from '~/core/logger'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+import {
+  gaiaSnapshotToFasorial,
+  validarSnapshot,
+} from '~/features/fallas/utils/gaiaSnapshotToFasorial'
 import { renderFasorial } from '~/features/fallas/utils/fasorial'
-import { gaiaSnapshotToFasorial, validarSnapshot } from '~/features/fallas/utils/gaiaSnapshotToFasorial'
-import { ClockIcon, DownloadIcon, ImageIcon, MoonIcon, RefreshCwIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import type { DetalleMonitoreoSolar } from '~/features/solar/types'
+import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
+
+interface ProyectoFasorial {
+  proyectoId: number
+  nombre: string
+}
+
+type Medidor = 'auto' | 'principal' | 'respaldo'
 
 const generacionSolarService = new GeneracionSolarService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -116,29 +39,39 @@ const catalogoProyectos = useProyectosCatalogo()
 // Umbral (min) para considerar una lectura desactualizada
 const STALE_MIN = 15
 
-// Selector de medidor: automático (el que más exporta), principal o respaldo
-const MEDIDOR_OPCIONES = [
+const MEDIDOR_OPCIONES: { label: string; value: Medidor }[] = [
   { label: 'Automático', value: 'auto' },
   { label: 'Principal', value: 'principal' },
   { label: 'Respaldo', value: 'respaldo' },
 ]
 
 const visible = ref(false)
-const proyectos = ref([])
+const proyectos = ref<ProyectoFasorial[]>([])
 const loadingProyectos = ref(false)
-const proyectoSel = ref(null)
-const medidorSel = ref('auto')
+const proyectoSelId = ref<string | null>(null)
+const medidorSel = ref<Medidor>('auto')
 const titulo = ref('')
 
 const loading = ref(false)
 const rendered = ref(false)
 const errorMsg = ref('')
-const stale = ref(null)          // min de antigüedad si supera STALE_MIN, si no null
-const sinCarga = ref(false)      // diagnóstico "en vacío"
-const lastProyId = ref(null)     // último proyecto consultado (para reintentar)
-const lastDetail = ref(null)     // último detalle del backend (para re-dibujar sin reconsultar)
+/** Minutos de antigüedad si la lectura supera `STALE_MIN`, si no `null`. */
+const stale = ref<number | null>(null)
+/** Diagnóstico "en vacío" (planta sin generación evaluable). */
+const sinCarga = ref(false)
+/** Último proyecto consultado, para reintentar. */
+const lastProyId = ref<number | null>(null)
+/** Último detalle del backend, para re-dibujar sin reconsultar. */
+const lastDetail = ref<DetalleMonitoreoSolar | null>(null)
 
-const diagramRef = ref(null)
+const diagramRef = ref<HTMLDivElement | null>(null)
+
+const proyectoOpciones = computed<ComboBoxOption[]>(() =>
+  proyectos.value.map((p) => ({ label: p.nombre, value: String(p.proyectoId) })),
+)
+const proyectoSel = computed<ProyectoFasorial | null>(
+  () => proyectos.value.find((p) => String(p.proyectoId) === proyectoSelId.value) ?? null,
+)
 
 // ── Abrir modal ───────────────────────────────────────────────────────────
 async function abrir() {
@@ -152,16 +85,18 @@ async function cargarProyectos() {
   try {
     const data = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = (data?.projects ?? [])
-      .map((p) => ({ proyecto_id: p.proyecto_id, nombre: p.nombre }))
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
-  } catch {
+      .map((p) => ({ proyectoId: p.proyecto_id, nombre: p.nombre ?? '' }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+  } catch (err) {
+    logger.error('fallas.fasorial', err)
     // Fallback: lista general de proyectos
     try {
       const lista = await catalogoProyectos.cargar()
       proyectos.value = lista
-        .map((p) => ({ proyecto_id: p.id, nombre: p.nombre_comercial }))
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
-    } catch {
+        .map((p) => ({ proyectoId: p.id, nombre: p.nombre_comercial ?? '' }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    } catch (err2) {
+      logger.error('fallas.fasorial', err2)
       proyectos.value = []
     }
   } finally {
@@ -179,6 +114,7 @@ function onProyectoChange() {
   sinCarga.value = false
   lastDetail.value = null
 }
+watch(proyectoSelId, onProyectoChange)
 
 // Cambiar entre Automático/Principal/Respaldo re-dibuja al instante desde el
 // detalle ya consultado (sin volver a llamar al backend). Si aún no se ha
@@ -186,20 +122,21 @@ function onProyectoChange() {
 function onMedidorChange() {
   if (lastDetail.value) renderFromDetail(lastDetail.value)
 }
+watch(medidorSel, onMedidorChange)
 
 // Selecciona el snapshot y el nodo según el medidor elegido
-function pickSnapshot(data) {
+function pickSnapshot(data: DetalleMonitoreoSolar) {
   if (medidorSel.value === 'principal') {
-    return { snapshot: data?.gaia_snapshot_principal, node: data?.gaia_node_principal, etiqueta: 'principal' }
+    return { snapshot: data.gaia_snapshot_principal, node: data.gaia_node_principal }
   }
   if (medidorSel.value === 'respaldo') {
-    return { snapshot: data?.gaia_snapshot_respaldo, node: data?.gaia_node_respaldo, etiqueta: 'respaldo' }
+    return { snapshot: data.gaia_snapshot_respaldo, node: data.gaia_node_respaldo }
   }
-  return { snapshot: data?.gaia_snapshot, node: data?.gaia_node_id, etiqueta: 'auto' }
+  return { snapshot: data.gaia_snapshot, node: data.gaia_node_id }
 }
 
 // Dibuja el diagrama a partir de un detalle ya cargado (no consulta el backend)
-function renderFromDetail(data) {
+function renderFromDetail(data: DetalleMonitoreoSolar) {
   errorMsg.value = ''
   stale.value = null
   sinCarga.value = false
@@ -207,10 +144,14 @@ function renderFromDetail(data) {
   const { snapshot, node } = pickSnapshot(data)
   const val = validarSnapshot(snapshot)
   if (!val.ok) {
-    const cual = medidorSel.value === 'respaldo' ? 'de respaldo'
-      : medidorSel.value === 'principal' ? 'principal' : ''
+    const cual =
+      medidorSel.value === 'respaldo'
+        ? 'de respaldo'
+        : medidorSel.value === 'principal'
+          ? 'principal'
+          : ''
     errorMsg.value = snapshot
-      ? val.error
+      ? (val.error ?? 'El medidor no reporta datos suficientes.')
       : `El medidor ${cual} no reporta datos para este proyecto.`
     rendered.value = false
     return
@@ -218,14 +159,15 @@ function renderFromDetail(data) {
   if (val.edadMin != null && val.edadMin > STALE_MIN) stale.value = val.edadMin
 
   const datos = gaiaSnapshotToFasorial(snapshot, {
-    meter: node ?? proyectoSel.value?.proyecto_id,
-    nombre: data?.nombre || proyectoSel.value?.nombre,
+    meter: node ?? proyectoSel.value?.proyectoId,
+    nombre: data.nombre || proyectoSel.value?.nombre,
   })
 
   rendered.value = true
   nextTick(() => {
+    if (!diagramRef.value) return
     const res = renderFasorial(diagramRef.value, datos, {
-      titulo: (titulo.value || '').trim() || (data?.nombre || '').toUpperCase(),
+      titulo: (titulo.value || '').trim() || (data.nombre || '').toUpperCase(),
       marca: 'Unergy',
     })
     sinCarga.value = res?.diagnostico?.nivel === 'info'
@@ -235,7 +177,7 @@ function renderFromDetail(data) {
 // ── Generar (o actualizar lectura) ──────────────────────────────────────────
 async function generar() {
   if (!proyectoSel.value) return
-  const proyId = proyectoSel.value.proyecto_id
+  const proyId = proyectoSel.value.proyectoId
   lastProyId.value = proyId
   loading.value = true
   errorMsg.value = ''
@@ -248,9 +190,8 @@ async function generar() {
     const data = await generacionSolarService.obtenerDetalle(proyId, true)
     lastDetail.value = data
     renderFromDetail(data)
-  } catch (e) {
-    const detail = e?.data?.detail
-    errorMsg.value = detail || e?.message || 'No se pudo obtener la lectura del medidor.'
+  } catch (err) {
+    errorMsg.value = normalizeError(err).message
     rendered.value = false
     lastDetail.value = null
   } finally {
@@ -259,25 +200,41 @@ async function generar() {
 }
 
 // ── Descargas ───────────────────────────────────────────────────────────────
-function nombreArchivo(ext) {
+function nombreArchivo(ext: string): string {
   const serial = (proyectoSel.value?.nombre || 'fasorial')
-    .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
   const d = new Date()
   const fecha = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
   // Sufijo del medidor para que principal/respaldo no se pisen al descargar
-  const suf = medidorSel.value === 'principal' ? '_principal'
-    : medidorSel.value === 'respaldo' ? '_respaldo' : ''
+  const suf =
+    medidorSel.value === 'principal'
+      ? '_principal'
+      : medidorSel.value === 'respaldo'
+        ? '_respaldo'
+        : ''
   return `fasorial_${serial}_${fecha}${suf}.${ext}`
 }
 
-function getSvgEl() {
-  return diagramRef.value?.querySelector('svg') || null
+function getSvgEl(): SVGSVGElement | null {
+  return diagramRef.value?.querySelector('svg') ?? null
 }
 
-function serializarSVG(svg) {
-  const clone = svg.cloneNode(true)
+function serializarSVG(svg: SVGSVGElement): string {
+  const clone = svg.cloneNode(true) as SVGSVGElement
   if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
   return new XMLSerializer().serializeToString(clone)
+}
+
+function disparaDescarga(href: string, filename: string, revoke: boolean) {
+  const a = document.createElement('a')
+  a.href = href
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  if (revoke) setTimeout(() => URL.revokeObjectURL(href), 4000)
 }
 
 function descargarSVG() {
@@ -291,8 +248,8 @@ function descargarPNG() {
   const svg = getSvgEl()
   if (!svg) return
   const vb = svg.viewBox?.baseVal
-  const w = (vb?.width || svg.clientWidth || 720)
-  const h = (vb?.height || svg.clientHeight || 780)
+  const w = vb?.width || svg.clientWidth || 720
+  const h = vb?.height || svg.clientHeight || 780
   const scale = 2
   const data = serializarSVG(svg)
   const url = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }))
@@ -303,6 +260,7 @@ function descargarPNG() {
     canvas.width = w * scale
     canvas.height = h * scale
     const ctx = canvas.getContext('2d')
+    if (!ctx) return
     // Fondo oscuro para que el PNG no salga transparente
     ctx.fillStyle = '#0b0f1a'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
@@ -315,103 +273,148 @@ function descargarPNG() {
   img.onerror = () => URL.revokeObjectURL(url)
   img.src = url
 }
-
-function disparaDescarga(href, filename, revoke) {
-  const a = document.createElement('a')
-  a.href = href
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  if (revoke) setTimeout(() => URL.revokeObjectURL(href), 4000)
-}
 </script>
 
+<template>
+  <GTooltip>
+    <GTooltipTrigger as-child>
+      <Button
+        size="icon"
+        class="fixed right-6 bottom-6 z-40 size-13 rounded-full shadow-lg"
+        @click="abrir"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" opacity="0.35" />
+          <line x1="12" y1="12" x2="12" y2="4" />
+          <line x1="12" y1="12" x2="19" y2="15" />
+          <line x1="12" y1="12" x2="6" y2="18" />
+        </svg>
+      </Button>
+    </GTooltipTrigger>
+    <GTooltipContent side="left">Generar diagrama fasorial</GTooltipContent>
+  </GTooltip>
+
+  <Dialog v-model:open="visible">
+    <DialogContent
+      class="max-w-[96vw] sm:max-w-[840px]"
+      :show-close-button="!loading"
+      @escape-key-down="(e) => loading && e.preventDefault()"
+      @pointer-down-outside="(e) => loading && e.preventDefault()"
+    >
+      <DialogHeader>
+        <DialogTitle>Diagrama fasorial</DialogTitle>
+      </DialogHeader>
+
+      <!-- ── Formulario de generación ──────────────────────────────────────── -->
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-60 flex-1 space-y-1.5">
+          <GLabel>Proyecto</GLabel>
+          <ComboBox
+            v-model="proyectoSelId"
+            :options="proyectoOpciones"
+            :disabled="loadingProyectos"
+            placeholder="Selecciona un proyecto"
+          />
+        </div>
+
+        <div class="shrink-0 space-y-1.5">
+          <GLabel>Medidor</GLabel>
+          <ToggleGroup v-model="medidorSel" type="single" variant="outline">
+            <ToggleGroupItem
+              v-for="m in MEDIDOR_OPCIONES"
+              :key="m.value"
+              :value="m.value"
+              class="text-xs"
+            >
+              {{ m.label }}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        <div class="min-w-48 flex-1 space-y-1.5">
+          <GLabel>Título</GLabel>
+          <Input v-model="titulo" placeholder="Título del diagrama" />
+        </div>
+
+        <Button :disabled="!proyectoSel || loading" @click="generar">
+          <ZapIcon class="size-4" />
+          Generar
+        </Button>
+      </div>
+
+      <!-- ── Avisos ────────────────────────────────────────────────────────── -->
+      <div
+        v-if="stale != null"
+        class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2.5 text-sm text-warning"
+      >
+        <ClockIcon class="size-4 shrink-0" />
+        <span>Lectura desactualizada (hace {{ stale }} min). Se genera de todas formas.</span>
+      </div>
+      <div
+        v-if="sinCarga"
+        class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-sm text-muted-foreground"
+      >
+        <MoonIcon class="size-4 shrink-0 text-primary/60" />
+        <span>Ángulos no evaluables con la planta en vacío — generar en horas de sol.</span>
+      </div>
+      <div
+        v-if="errorMsg"
+        class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-sm text-destructive"
+      >
+        <TriangleAlertIcon class="size-4 shrink-0" />
+        <span>{{ errorMsg }}</span>
+        <Button v-if="lastProyId" variant="ghost" size="sm" class="ml-auto" @click="generar">
+          Reintentar
+        </Button>
+      </div>
+
+      <!-- ── Loading ───────────────────────────────────────────────────────── -->
+      <div
+        v-if="loading"
+        class="flex flex-col items-center gap-3 py-10 text-sm text-muted-foreground"
+      >
+        <Spinner class="size-8" />
+        <span>Consultando la última lectura del medidor…</span>
+      </div>
+
+      <!-- ── Diagrama + descargas ──────────────────────────────────────────── -->
+      <div v-show="rendered && !loading" class="mt-2">
+        <div ref="diagramRef" class="fasorial-diagrama w-full" />
+
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" @click="descargarSVG">
+            <DownloadIcon class="size-4" />
+            Descargar SVG
+          </Button>
+          <Button variant="outline" size="sm" @click="descargarPNG">
+            <ImageIcon class="size-4" />
+            Descargar PNG
+          </Button>
+          <Button variant="ghost" size="sm" class="ml-auto" :disabled="loading" @click="generar">
+            <RefreshCwIcon class="size-4" />
+            Actualizar lectura
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+</template>
+
 <style scoped>
-/* ── Botón flotante ───────────────────────────────────────────────────── */
-.fz-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 900;                 /* sobre la tabla, bajo los modales de PrimeVue */
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(145, 91, 216, 0.4);
-  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
-}
-.fz-fab:hover {
-  background: #7d47c4;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(145, 91, 216, 0.5);
-}
-.fz-fab:active { transform: translateY(0); }
-
-/* ── Formulario ───────────────────────────────────────────────────────── */
-.fz-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-}
-.fz-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1 1 240px;
-  min-width: 0;
-}
-.fz-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-.fz-actions { flex-shrink: 0; }
-.fz-field--medidor { flex: 0 0 auto; }
-.fz-field--medidor :deep(.p-selectbutton) { display: flex; }
-.fz-field--medidor :deep(.p-togglebutton) { font-size: 12px; }
-
-/* ── Avisos ───────────────────────────────────────────────────────────── */
-.fz-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-.fz-note--warn  { background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; }
-.fz-note--info  { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.fz-note--error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-
-/* ── Loading ──────────────────────────────────────────────────────────── */
-.fz-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 40px 0;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-/* ── Resultado ────────────────────────────────────────────────────────── */
-.fz-result { margin-top: 16px; }
-.fz-diagram { width: 100%; }
-.fz-diagram :deep(svg) { width: 100%; height: auto; }
-.fz-downloads {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
+/* El SVG lo inyecta `renderFasorial` directo en el DOM (no es contenido de
+   Vue): esta es la única regla que Tailwind no puede expresar. */
+.fasorial-diagrama :deep(svg) {
+  width: 100%;
+  height: auto;
 }
 </style>

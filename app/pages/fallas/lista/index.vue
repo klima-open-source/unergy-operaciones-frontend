@@ -1,9 +1,9 @@
 <script setup>
 /**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
+ * `/fallas/lista` nunca fue una vista propia: el router legacy ya la
+ * redirigía a `/fallas` (la entrada real es `MonitoreoView`, ver
+ * `contexto/inventario-rutas.md`). Se conserva la ruta por si algún enlace
+ * viejo sigue apuntando ahí.
  */
 definePageMeta({ redirect: '/fallas' })
 </script>

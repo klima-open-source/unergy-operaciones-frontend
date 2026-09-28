@@ -1,213 +1,44 @@
-<template>
-  <div class="cal-root">
-
-    <!-- ── Filtros + navegación ─────────────────────────────────────────── -->
-    <div class="cal-toolbar">
-      <div class="cal-nav">
-        <button class="cal-nav-btn" @click="mesAnterior"><ChevronLeftIcon class="size-[1em]" /></button>
-        <span class="cal-mes-label">{{ mesLabel }}</span>
-        <button class="cal-nav-btn" @click="mesSiguiente"><ChevronRightIcon class="size-[1em]" /></button>
-        <button class="cal-hoy-btn" @click="irAHoy">Hoy</button>
-      </div>
-
-      <div class="cal-filtros">
-        <Select v-model="filtroProyecto" :options="proyectos" optionLabel="nombre_comercial"
-          optionValue="id" placeholder="Proyecto" showClear filter class="cal-select" size="small" />
-        <Select v-model="filtroEstado" :options="estados" optionLabel="etiqueta"
-          optionValue="codigo" placeholder="Estado" showClear class="cal-select" size="small" />
-        <button v-if="hayFiltros" class="cal-clear-btn" @click="limpiarFiltros">
-          <XIcon class="size-[1em]" /> Limpiar
-        </button>
-      </div>
-
-      <div class="cal-kpis">
-        <span class="cal-kpi">
-          <span class="cal-kpi-num" style="color:#9CA3AF">{{ kpiMes.pendientes }}</span>
-          <span class="cal-kpi-lbl">pendientes</span>
-        </span>
-        <span class="cal-kpi">
-          <span class="cal-kpi-num" style="color:var(--color-unergy-purple)">{{ kpiMes.ejecutadas }}</span>
-          <span class="cal-kpi-lbl">ejecutadas</span>
-        </span>
-        <span class="cal-kpi">
-          <span class="cal-kpi-num">{{ kpiMes.total }}</span>
-          <span class="cal-kpi-lbl">este mes</span>
-        </span>
-      </div>
-    </div>
-
-    <!-- ── Leyenda ─────────────────────────────────────────────────────────── -->
-    <div class="cal-leyenda">
-      <span class="cal-ley-item">
-        <span class="cal-ley-dot" style="background:#9CA3AF" />
-        Programada (pendiente)
-      </span>
-      <span class="cal-ley-item">
-        <span class="cal-ley-dot" style="background:var(--color-unergy-purple)" />
-        Ejecutada / Cerrada
-      </span>
-      <span class="cal-ley-item">
-        <span class="cal-ley-dot" style="background:#EF4444" />
-        Abierta
-      </span>
-      <span class="cal-ley-item">
-        <span class="cal-ley-dot" style="background:#F97316" />
-        En gestión
-      </span>
-      <span class="cal-ley-item">
-        <span class="cal-ley-dot" style="background:#EAB308" />
-        En espera
-      </span>
-    </div>
-
-    <!-- ── Loading ─────────────────────────────────────────────────────── -->
-    <div v-if="loading" class="cal-loading">
-      <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:24px;color:var(--color-unergy-purple)" />
-      <span>Cargando fallas...</span>
-    </div>
-
-    <!-- ── Grilla del calendario ────────────────────────────────────────── -->
-    <div v-else class="cal-grid-wrap">
-      <!-- Cabecera días -->
-      <div class="cal-week-header">
-        <div v-for="d in DIAS" :key="d" class="cal-weekday">{{ d }}</div>
-      </div>
-
-      <!-- Celda de días -->
-      <div class="cal-grid">
-        <div
-          v-for="cell in celdas" :key="cell.key"
-          :class="['cal-cell',
-            !cell.esDelMes && 'cal-cell--fuera',
-            cell.esHoy && 'cal-cell--hoy',
-            cell.eventos.length > 0 && 'cal-cell--con-eventos'
-          ]"
-        >
-          <span class="cal-cell-num">{{ cell.dia }}</span>
-
-          <div class="cal-eventos-list">
-            <div
-              v-for="ev in cell.eventos.slice(0, 3)" :key="ev.id"
-              :class="['cal-evento', esFinal(ev) && 'cal-evento--final']"
-              :style="{ background: estadoColor(ev.estado?.codigo) + '18', borderLeft: `3px solid ${estadoColor(ev.estado?.codigo)}` }"
-              @click="abrirDetalle(ev)"
-              :title="`[${ev.estado?.etiqueta}] ${ev.proyecto?.nombre_comercial} — ${ev.descripcion}`"
-            >
-              <CircleCheckIcon class="cal-evento-icon size-[1em]" v-if="esFinal(ev)" style="color:var(--color-unergy-purple)" />
-              <ClockIcon class="cal-evento-icon size-[1em]" v-else style="color:#9CA3AF" />
-              <span class="cal-evento-nombre">{{ ev.proyecto?.nombre_comercial }}</span>
-            </div>
-            <div v-if="cell.eventos.length > 3" class="cal-evento-mas"
-              @click="abrirListaDia(cell)">
-              +{{ cell.eventos.length - 3 }} más
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Modal detalle falla ──────────────────────────────────────────── -->
-    <Teleport to="body">
-      <div v-if="detalle" class="cal-modal-backdrop" @click.self="detalle = null">
-        <div class="cal-modal">
-          <div class="cal-modal-header">
-            <div class="cal-modal-title">
-              <span class="cal-modal-code">{{ detalle.codigo_interno }}</span>
-              <span class="cal-estado-badge"
-                :style="{ background: estadoColor(detalle.estado?.codigo) + '22', color: estadoColor(detalle.estado?.codigo), border: `1px solid ${estadoColor(detalle.estado?.codigo)}40` }">
-                {{ detalle.estado?.etiqueta }}
-              </span>
-            </div>
-            <button class="cal-modal-close" @click="detalle = null"><XIcon class="size-[1em]" /></button>
-          </div>
-
-          <div class="cal-modal-body">
-            <div class="cal-detail-grid">
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><ZapIcon class="size-[1em]" /> Proyecto</span>
-                <span class="cal-detail-val">{{ detalle.proyecto?.nombre_comercial }}</span>
-              </div>
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><CalendarIcon class="size-[1em]" /> Fecha programada</span>
-                <span class="cal-detail-val cal-detail-val--highlight">{{ detalle.fecha_programada ?? '—' }}</span>
-              </div>
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><FlagIcon class="size-[1em]" /> Prioridad</span>
-                <span class="cal-detail-val">
-                  <span class="cal-prio-dot" :style="{ background: prioColor(detalle.prioridad?.codigo) }" />
-                  {{ detalle.prioridad?.etiqueta }}
-                </span>
-              </div>
-              <div class="cal-detail-item cal-detail-item--full">
-                <span class="cal-detail-lbl"><AlignLeftIcon class="size-[1em]" /> Descripción</span>
-                <p class="cal-detail-desc">{{ detalle.descripcion }}</p>
-              </div>
-              <div v-if="detalle.causa_raiz" class="cal-detail-item cal-detail-item--full">
-                <span class="cal-detail-lbl"><SearchIcon class="size-[1em]" /> Causa raíz</span>
-                <p class="cal-detail-desc">{{ detalle.causa_raiz }}</p>
-              </div>
-              <div v-if="detalle.acciones_correctivas" class="cal-detail-item cal-detail-item--full">
-                <span class="cal-detail-lbl"><SquareCheckIcon class="size-[1em]" /> Acciones correctivas</span>
-                <p class="cal-detail-desc">{{ detalle.acciones_correctivas }}</p>
-              </div>
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><CalendarClockIcon class="size-[1em]" /> Identificado</span>
-                <span class="cal-detail-val">{{ detalle.fecha_identificacion }}</span>
-              </div>
-              <div class="cal-detail-item">
-                <span class="cal-detail-lbl"><ClockIcon class="size-[1em]" /> SLA</span>
-                <span class="cal-detail-val">{{ formatoLimiteSla(detalle.sla_limite_horas_efectivo) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="cal-modal-footer">
-            <button class="cal-modal-link" @click="irAFalla(detalle)">
-              <ArrowRightIcon class="size-[1em]" /> Ver en Gestión de Fallas
-            </button>
-            <button class="cal-modal-edit" @click="emitEditar(detalle)">
-              <PencilIcon class="size-[1em]" /> Editar
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- ── Modal lista día ──────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <div v-if="diaModal" class="cal-modal-backdrop" @click.self="diaModal = null">
-        <div class="cal-modal cal-modal--sm">
-          <div class="cal-modal-header">
-            <div class="cal-modal-title">
-              Fallas — {{ diaModal.label }}
-            </div>
-            <button class="cal-modal-close" @click="diaModal = null"><XIcon class="size-[1em]" /></button>
-          </div>
-          <div class="cal-modal-body">
-            <div v-for="ev in diaModal.eventos" :key="ev.id"
-              class="cal-dia-row"
-              @click="abrirDetalle(ev); diaModal = null">
-              <span class="cal-dia-dot" :style="{ background: estadoColor(ev.estado?.codigo) }" />
-              <div>
-                <div class="cal-dia-code">{{ ev.codigo_interno }}</div>
-                <div class="cal-dia-proy">{{ ev.proyecto?.nombre_comercial }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-  </div>
-</template>
-
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+<script setup lang="ts">
+/**
+ * Calendario mensual de fallas con `fecha_programada` (tab "Calendario" de
+ * `MonitoreoView.vue`). Las EJECUTADAS (estado final) se homogenizan al color
+ * primario de la plataforma y las PROGRAMADAS (pendientes) a gris — mientras
+ * la falla sigue activa usa el color real de su estado, el mismo que el resto
+ * de la plataforma (`colorEstado`/`colorPrioridad` en `utils/colores.ts`: no
+ * se duplica ese mapa acá).
+ */
+import type { CatalogoItemFalla, Falla } from '~/features/fallas/types'
+import {
+  AlignLeftIcon,
+  ArrowRightIcon,
+  CalendarClockIcon,
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleCheckIcon,
+  ClockIcon,
+  FlagIcon,
+  LoaderCircleIcon,
+  PencilIcon,
+  SearchIcon,
+  SquareCheckIcon,
+  XIcon,
+  ZapIcon,
+} from '@lucide/vue'
+import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { formatoLimiteSla } from '~/features/fallas/utils/formatoSla'
 import { rangoDelMes } from '~/features/fallas/utils/rangoMes'
-import Select from 'primevue/select'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { AlignLeftIcon, ArrowRightIcon, CalendarClockIcon, CalendarIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, ClockIcon, FlagIcon, LoaderCircleIcon, PencilIcon, SearchIcon, SquareCheckIcon, XIcon, ZapIcon } from '@lucide/vue'
+import type { ProyectoConDetalle } from '~/features/proyectos/types'
+
+interface CeldaCalendario {
+  key: string
+  dia: number
+  esDelMes: boolean
+  esHoy: boolean
+  eventos: Falla[]
+  label: string
+}
 
 const fallasService = new FallasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -215,114 +46,120 @@ const fallasService = new FallasService()
 const catalogoProyectos = useProyectosCatalogo()
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
-const props = defineProps({
+const props = defineProps<{
   // Incrementado por el padre cada vez que se guarda una falla → recarga automática
-  refreshKey: { type: Number, default: 0 },
-})
-const emit = defineEmits(['editar', 'ver-falla'])
+  refreshKey?: number
+}>()
+const emit = defineEmits<{
+  editar: [falla: Falla]
+  'ver-falla': [falla: Falla]
+}>()
 
 // ── Estado ───────────────────────────────────────────────────────────────────
-const loading    = ref(false)
-const fallas     = ref([])
-const proyectos  = ref([])
-const estados    = ref([])
-const detalle    = ref(null)
-const diaModal   = ref(null)
+const loading = ref(false)
+const fallas = ref<Falla[]>([])
+const proyectos = ref<ProyectoConDetalle[]>([])
+const estados = ref<CatalogoItemFalla[]>([])
+const detalle = ref<Falla | null>(null)
+const diaModal = ref<{ label: string; eventos: Falla[] } | null>(null)
 
 const hoy = new Date()
-const mesActual  = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+const mesActual = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
 
-const filtroProyecto = ref(null)
-const filtroEstado   = ref(null)
+const filtroProyecto = ref<string | null>(null)
+const filtroEstado = ref<string | null>(null)
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 // ── Colores ───────────────────────────────────────────────────────────────────
-// Fallas EJECUTADAS (estado final) → morado plataforma #915BD8
-// Fallas PENDIENTES (programado)   → gris #9CA3AF
-// Otros estados activos            → colores propios
-const ESTADO_COLORES = {
-  cerrada:      '#915BD8',   // morado plataforma = ejecutada
-  sin_solucion: '#915BD8',   // también final, mismo color
-  programado:   '#9CA3AF',   // gris = pendiente / por ejecutar
-  abierta:      '#EF4444',
-  en_gestion:   '#F97316',
-  en_espera:    '#EAB308',
-}
-const PRIO_COLORES = {
-  critica: '#DC2626',
-  grave:   '#EA580C',
-  media:   '#CA8A04',
-  leve:    '#16A34A',
-}
-
-function estadoColor(codigo) {
-  // Si el estado viene del servidor con es_estado_final=true pero no está mapeado,
-  // también usamos el morado para indicar "ejecutada"
-  return ESTADO_COLORES[codigo] ?? '#915BD8'
-}
-function esFinal(falla) {
+function esFinal(falla: Falla | null | undefined): boolean {
   return falla?.estado?.es_estado_final === true
 }
-function prioColor(codigo) { return PRIO_COLORES[codigo] ?? '#915BD8' }
+
+/** Color del punto/pastilla de un evento: homogeneiza ejecutadas/pendientes, real en el resto. */
+function colorEvento(falla: Falla): string {
+  if (esFinal(falla)) return 'var(--primary)'
+  if (falla.estado?.codigo === 'programado') return 'var(--muted-foreground)'
+  return colorEstado(falla.estado?.codigo)
+}
 
 // ── Computed ─────────────────────────────────────────────────────────────────
-const mesLabel = computed(() => {
-  return mesActual.value.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
-    .replace(/^\w/, c => c.toUpperCase())
-})
+const mesLabel = computed(() =>
+  mesActual.value
+    .toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+    .replace(/^\w/, (c) => c.toUpperCase()),
+)
 
-const hayFiltros = computed(() =>
-  filtroProyecto.value || filtroEstado.value
+const hayFiltros = computed(() => !!(filtroProyecto.value || filtroEstado.value))
+
+const estadosConCodigo = computed(() =>
+  estados.value.filter((e): e is CatalogoItemFalla & { codigo: string } => !!e.codigo),
 )
 
 const eventosFiltrados = computed(() => {
   let list = fallas.value
-  if (filtroProyecto.value) list = list.filter(f => f.proyecto_id === filtroProyecto.value)
-  if (filtroEstado.value)   list = list.filter(f => f.estado?.codigo === filtroEstado.value)
+  if (filtroProyecto.value) {
+    const pid = Number(filtroProyecto.value)
+    list = list.filter((f) => f.proyecto_id === pid)
+  }
+  if (filtroEstado.value) list = list.filter((f) => f.estado?.codigo === filtroEstado.value)
   return list
 })
 
 const eventosMes = computed(() => {
-  const año  = mesActual.value.getFullYear()
-  const mes  = mesActual.value.getMonth()
-  return eventosFiltrados.value.filter(f => {
+  const año = mesActual.value.getFullYear()
+  const mes = mesActual.value.getMonth()
+  return eventosFiltrados.value.filter((f) => {
     if (!f.fecha_programada) return false
-    const d = new Date(f.fecha_programada + 'T00:00:00')
+    const d = new Date(`${f.fecha_programada}T00:00:00`)
     return d.getFullYear() === año && d.getMonth() === mes
   })
 })
 
 // KPIs del mes visible
 const kpiMes = computed(() => ({
-  pendientes: eventosMes.value.filter(f => !esFinal(f)).length,
-  ejecutadas: eventosMes.value.filter(f =>  esFinal(f)).length,
-  total:      eventosMes.value.length,
+  pendientes: eventosMes.value.filter((f) => !esFinal(f)).length,
+  ejecutadas: eventosMes.value.filter((f) => esFinal(f)).length,
+  total: eventosMes.value.length,
 }))
 
-const celdas = computed(() => {
-  const año  = mesActual.value.getFullYear()
-  const mes  = mesActual.value.getMonth()
+const celdas = computed<CeldaCalendario[]>(() => {
+  const año = mesActual.value.getFullYear()
+  const mes = mesActual.value.getMonth()
   const primer = new Date(año, mes, 1)
   const offsetLun = (primer.getDay() + 6) % 7
   const ultimoDia = new Date(año, mes + 1, 0).getDate()
-  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`
+  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
 
-  const cells = []
+  const cells: CeldaCalendario[] = []
   for (let i = offsetLun - 1; i >= 0; i--) {
     const d = new Date(año, mes, -i)
-    cells.push({ key: `prev-${i}`, dia: d.getDate(), esDelMes: false, esHoy: false, eventos: [], label: '' })
-  }
-  for (let d = 1; d <= ultimoDia; d++) {
-    const dStr = `${año}-${String(mes + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
-    const eventos = eventosMes.value.filter(f => f.fecha_programada === dStr)
     cells.push({
-      key: dStr, dia: d, esDelMes: true, esHoy: dStr === hoyStr,
-      eventos,
-      label: new Date(dStr + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }),
+      key: `prev-${i}`,
+      dia: d.getDate(),
+      esDelMes: false,
+      esHoy: false,
+      eventos: [],
+      label: '',
     })
   }
-  const resto = (7 - cells.length % 7) % 7
+  for (let d = 1; d <= ultimoDia; d++) {
+    const dStr = `${año}-${String(mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const eventos = eventosMes.value.filter((f) => f.fecha_programada === dStr)
+    cells.push({
+      key: dStr,
+      dia: d,
+      esDelMes: true,
+      esHoy: dStr === hoyStr,
+      eventos,
+      label: new Date(`${dStr}T00:00:00`).toLocaleDateString('es-CO', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }),
+    })
+  }
+  const resto = (7 - (cells.length % 7)) % 7
   for (let i = 1; i <= resto; i++) {
     cells.push({ key: `next-${i}`, dia: i, esDelMes: false, esHoy: false, eventos: [], label: '' })
   }
@@ -330,16 +167,47 @@ const celdas = computed(() => {
 })
 
 // ── Navegación ────────────────────────────────────────────────────────────────
-function mesAnterior()  { const m = mesActual.value; mesActual.value = new Date(m.getFullYear(), m.getMonth() - 1, 1) }
-function mesSiguiente() { const m = mesActual.value; mesActual.value = new Date(m.getFullYear(), m.getMonth() + 1, 1) }
-function irAHoy()       { mesActual.value = new Date(hoy.getFullYear(), hoy.getMonth(), 1) }
-function limpiarFiltros() { filtroProyecto.value = null; filtroEstado.value = null }
+function mesAnterior() {
+  const m = mesActual.value
+  mesActual.value = new Date(m.getFullYear(), m.getMonth() - 1, 1)
+}
+function mesSiguiente() {
+  const m = mesActual.value
+  mesActual.value = new Date(m.getFullYear(), m.getMonth() + 1, 1)
+}
+function irAHoy() {
+  mesActual.value = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+}
+function limpiarFiltros() {
+  filtroProyecto.value = null
+  filtroEstado.value = null
+}
 
 // ── Acciones ──────────────────────────────────────────────────────────────────
-function abrirDetalle(falla) { detalle.value = falla }
-function abrirListaDia(cell) { diaModal.value = { label: cell.label, eventos: cell.eventos } }
-function irAFalla(falla)     { emit('ver-falla', falla); detalle.value = null }
-function emitEditar(falla)   { emit('editar', falla);    detalle.value = null }
+function abrirDetalle(falla: Falla) {
+  detalle.value = falla
+}
+function abrirDetalleDesdeDia(falla: Falla) {
+  abrirDetalle(falla)
+  diaModal.value = null
+}
+function cerrarDetalle() {
+  detalle.value = null
+}
+function cerrarDiaModal() {
+  diaModal.value = null
+}
+function abrirListaDia(cell: CeldaCalendario) {
+  diaModal.value = { label: cell.label, eventos: cell.eventos }
+}
+function irAFalla(falla: Falla) {
+  emit('ver-falla', falla)
+  detalle.value = null
+}
+function emitEditar(falla: Falla) {
+  emit('editar', falla)
+  detalle.value = null
+}
 
 // ── Carga de datos ────────────────────────────────────────────────────────────
 
@@ -367,7 +235,7 @@ const rangoVisible = computed(() => rangoDelMes(mesActual.value))
  * montar -- un parpadeo en cada clic de flecha. Es la misma forma del bug que
  * tenía "Validar" en el Historial del Reporte de energía.
  */
-async function cargarFallas({ silencioso = false } = {}) {
+async function cargarFallas({ silencioso = false }: { silencioso?: boolean } = {}) {
   if (!silencioso) loading.value = true
   try {
     const { desde, hasta } = rangoVisible.value
@@ -415,215 +283,309 @@ watch(
 )
 
 // Recarga automática cuando el padre guarda una falla
-watch(() => props.refreshKey, (newVal, oldVal) => {
-  if (newVal !== oldVal) cargarFallas({ silencioso: true })
-})
+watch(
+  () => props.refreshKey,
+  (newVal, oldVal) => {
+    if (newVal !== oldVal) cargarFallas({ silencioso: true })
+  },
+)
 
 onMounted(cargar)
 </script>
 
-<style scoped>
-.cal-root {
-  display: flex; flex-direction: column; gap: 16px;
-  padding: 20px; font-family: 'Sora', system-ui, sans-serif;
-  min-height: 0; flex: 1;
-}
+<template>
+  <div class="flex min-h-0 flex-1 flex-col gap-4 p-5">
+    <!-- ── Filtros + navegación ─────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-3">
+      <div class="flex items-center gap-2">
+        <Button variant="outline" size="icon-sm" @click="mesAnterior">
+          <ChevronLeftIcon class="size-4" />
+        </Button>
+        <span class="min-w-40 text-center text-sm font-extrabold text-foreground">{{
+          mesLabel
+        }}</span>
+        <Button variant="outline" size="icon-sm" @click="mesSiguiente">
+          <ChevronRightIcon class="size-4" />
+        </Button>
+        <Button variant="outline" size="sm" @click="irAHoy">Hoy</Button>
+      </div>
 
-/* ── Toolbar ── */
-.cal-toolbar {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  background: #fff; border: 1px solid #e9e6f5; border-radius: 12px;
-  padding: 12px 16px;
-}
-.cal-nav { display: flex; align-items: center; gap: 8px; }
-.cal-nav-btn {
-  width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e5e7eb;
-  background: #fff; cursor: pointer; font-size: 12px; color: #6b7280;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.cal-nav-btn:hover { background: #f3f4f6; color: #374151; }
-.cal-mes-label { font-size: 15px; font-weight: 800; color: var(--color-unergy-deep); min-width: 160px; text-align: center; }
-.cal-hoy-btn {
-  padding: 4px 12px; border-radius: 6px; border: 1px solid var(--color-unergy-purple);
-  background: #fff; color: var(--color-unergy-purple); font-size: 12px; font-weight: 700;
-  cursor: pointer; transition: all 0.15s; font-family: inherit;
-}
-.cal-hoy-btn:hover { background: #f5f0ff; }
+      <div class="flex flex-1 flex-wrap items-center gap-2">
+        <Select v-model="filtroProyecto">
+          <SelectTrigger size="sm" class="w-44">
+            <SelectValue placeholder="Proyecto" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="p in proyectos" :key="p.id" :value="String(p.id)">{{
+              p.nombre_comercial
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select v-model="filtroEstado">
+          <SelectTrigger size="sm" class="w-40">
+            <SelectValue placeholder="Estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="e in estadosConCodigo" :key="e.codigo" :value="e.codigo">{{
+              e.etiqueta
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
+          <XIcon class="size-4" /> Limpiar
+        </Button>
+      </div>
 
-.cal-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
-.cal-select { min-width: 130px !important; }
-.cal-clear-btn {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 10px; border-radius: 6px; border: none;
-  background: #f3f4f6; color: #6b7280; font-size: 12px; font-weight: 600;
-  cursor: pointer; font-family: inherit;
-}
+      <div class="ml-auto flex gap-4">
+        <span class="flex flex-col items-center">
+          <span class="text-lg font-extrabold text-muted-foreground">{{ kpiMes.pendientes }}</span>
+          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+            >pendientes</span
+          >
+        </span>
+        <span class="flex flex-col items-center">
+          <span class="text-lg font-extrabold text-primary">{{ kpiMes.ejecutadas }}</span>
+          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+            >ejecutadas</span
+          >
+        </span>
+        <span class="flex flex-col items-center">
+          <span class="text-lg font-extrabold text-foreground">{{ kpiMes.total }}</span>
+          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+            >este mes</span
+          >
+        </span>
+      </div>
+    </div>
 
-.cal-kpis { display: flex; gap: 16px; margin-left: auto; }
-.cal-kpi { display: flex; flex-direction: column; align-items: center; }
-.cal-kpi-num { font-size: 18px; font-weight: 800; color: var(--color-unergy-deep); line-height: 1.2; }
-.cal-kpi-lbl { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+    <!-- ── Leyenda ─────────────────────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center gap-4 rounded-lg border bg-card px-4 py-2">
+      <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span class="size-2.5 shrink-0 rounded-full" style="background: var(--muted-foreground)" />
+        Programada (pendiente)
+      </span>
+      <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <span class="size-2.5 shrink-0 rounded-full bg-primary" />
+        Ejecutada / Cerrada
+      </span>
+      <span
+        v-for="codigo in ['abierta', 'en_gestion', 'en_espera']"
+        :key="codigo"
+        class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+      >
+        <span class="size-2.5 shrink-0 rounded-full" :style="{ background: colorEstado(codigo) }" />
+        {{ estados.find((e) => e.codigo === codigo)?.etiqueta ?? codigo }}
+      </span>
+    </div>
 
-/* ── Loading ── */
-.cal-loading { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 60px; color: #6b7280; font-size: 14px; }
+    <!-- ── Loading ─────────────────────────────────────────────────────── -->
+    <div
+      v-if="loading"
+      class="flex flex-1 items-center justify-center gap-3 py-16 text-sm text-muted-foreground"
+    >
+      <LoaderCircleIcon class="size-6 animate-spin text-primary" />
+      <span>Cargando fallas...</span>
+    </div>
 
-/* ── Grid ── */
-.cal-grid-wrap { display: flex; flex-direction: column; background: #fff; border: 1px solid #e9e6f5; border-radius: 12px; overflow: hidden; }
+    <!-- ── Grilla del calendario ────────────────────────────────────────── -->
+    <div v-else class="flex flex-col overflow-hidden rounded-xl border bg-card">
+      <!-- Cabecera días -->
+      <div class="grid grid-cols-7 border-b bg-muted/40">
+        <div
+          v-for="d in DIAS"
+          :key="d"
+          class="py-2 text-center text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        >
+          {{ d }}
+        </div>
+      </div>
 
-.cal-week-header {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  background: #f9f8ff; border-bottom: 1px solid #e9e6f5;
-}
-.cal-weekday {
-  padding: 8px 0; text-align: center;
-  font-size: 11px; font-weight: 800; text-transform: uppercase;
-  letter-spacing: 0.5px; color: #7c6a9a;
-}
+      <!-- Celda de días -->
+      <div class="grid grid-cols-7">
+        <div
+          v-for="cell in celdas"
+          :key="cell.key"
+          class="flex min-h-28 flex-col gap-0.5 border-r border-b p-1.5 last:border-r-0"
+          :class="[!cell.esDelMes && 'bg-muted/20', cell.esHoy && 'bg-primary/5']"
+        >
+          <span
+            class="mb-0.5 self-start text-xs font-bold"
+            :class="
+              cell.esHoy
+                ? 'flex size-5.5 items-center justify-center rounded-full bg-primary text-primary-foreground'
+                : cell.esDelMes
+                  ? 'text-foreground'
+                  : 'text-muted-foreground/50'
+            "
+          >
+            {{ cell.dia }}
+          </span>
 
-.cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-}
+          <div class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+            <button
+              v-for="ev in cell.eventos.slice(0, 3)"
+              :key="ev.id"
+              type="button"
+              class="flex items-center gap-1 overflow-hidden rounded px-1.5 py-0.5 text-left transition-opacity hover:opacity-80"
+              :class="esFinal(ev) && 'opacity-90'"
+              :style="{
+                background: `color-mix(in oklab, ${colorEvento(ev)} 12%, transparent)`,
+                borderLeft: `3px solid ${colorEvento(ev)}`,
+              }"
+              :title="`[${ev.estado?.etiqueta}] ${ev.proyecto?.nombre_comercial} — ${ev.descripcion}`"
+              @click="abrirDetalle(ev)"
+            >
+              <CircleCheckIcon v-if="esFinal(ev)" class="size-3 shrink-0 text-primary" />
+              <ClockIcon v-else class="size-3 shrink-0 text-muted-foreground" />
+              <span
+                class="truncate text-[10px] font-semibold"
+                :class="esFinal(ev) ? 'text-muted-foreground line-through' : 'text-foreground'"
+                >{{ ev.proyecto?.nombre_comercial }}</span
+              >
+            </button>
+            <button
+              v-if="cell.eventos.length > 3"
+              type="button"
+              class="rounded px-1 text-left text-[10px] font-bold text-primary hover:bg-primary/10"
+              @click="abrirListaDia(cell)"
+            >
+              +{{ cell.eventos.length - 3 }} más
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-.cal-cell {
-  min-height: 110px; padding: 6px 8px;
-  border-right: 1px solid #f3f1f8; border-bottom: 1px solid #f3f1f8;
-  display: flex; flex-direction: column; gap: 3px;
-  transition: background 0.15s;
-}
-.cal-cell:nth-child(7n) { border-right: none; }
-.cal-cell--fuera { background: #fafafa; }
-.cal-cell--fuera .cal-cell-num { color: #d1d5db; }
-.cal-cell--hoy { background: #faf5ff; }
-.cal-cell--hoy .cal-cell-num {
-  background: var(--color-unergy-purple); color: #fff; border-radius: 50%;
-  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-  font-weight: 800;
-}
-.cal-cell--con-eventos { background: #fdfcff; }
+    <!-- ── Diálogo detalle falla ──────────────────────────────────────────── -->
+    <Dialog :open="!!detalle" @update:open="(v: boolean) => !v && cerrarDetalle()">
+      <DialogContent v-if="detalle" class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <span class="font-mono">{{ detalle.codigo_interno }}</span>
+            <GBadge :color="colorEstado(detalle.estado?.codigo)">{{
+              detalle.estado?.etiqueta
+            }}</GBadge>
+          </DialogTitle>
+        </DialogHeader>
 
-.cal-cell-num {
-  font-size: 12px; font-weight: 700; color: #374151;
-  line-height: 1; margin-bottom: 2px; align-self: flex-start;
-}
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <ZapIcon class="size-3.5" /> Proyecto
+            </span>
+            <span class="text-sm font-semibold text-foreground">{{
+              detalle.proyecto?.nombre_comercial
+            }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <CalendarIcon class="size-3.5" /> Fecha programada
+            </span>
+            <span class="text-sm font-extrabold text-primary">{{
+              detalle.fecha_programada ?? '—'
+            }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <FlagIcon class="size-3.5" /> Prioridad
+            </span>
+            <span class="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <span
+                class="size-2 rounded-full"
+                :style="{ background: colorPrioridad(detalle.prioridad?.codigo) }"
+              />
+              {{ detalle.prioridad?.etiqueta }}
+            </span>
+          </div>
+          <div class="col-span-2 flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <AlignLeftIcon class="size-3.5" /> Descripción
+            </span>
+            <p class="rounded-md bg-muted/50 p-2 text-sm text-foreground">
+              {{ detalle.descripcion }}
+            </p>
+          </div>
+          <div v-if="detalle.causa_raiz" class="col-span-2 flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <SearchIcon class="size-3.5" /> Causa raíz
+            </span>
+            <p class="rounded-md bg-muted/50 p-2 text-sm text-foreground">
+              {{ detalle.causa_raiz }}
+            </p>
+          </div>
+          <div v-if="detalle.acciones_correctivas" class="col-span-2 flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <SquareCheckIcon class="size-3.5" /> Acciones correctivas
+            </span>
+            <p class="rounded-md bg-muted/50 p-2 text-sm text-foreground">
+              {{ detalle.acciones_correctivas }}
+            </p>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <CalendarClockIcon class="size-3.5" /> Identificado
+            </span>
+            <span class="text-sm font-semibold text-foreground">{{
+              detalle.fecha_identificacion
+            }}</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span
+              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+            >
+              <ClockIcon class="size-3.5" /> SLA
+            </span>
+            <span class="text-sm font-semibold text-foreground">{{
+              formatoLimiteSla(detalle.sla_limite_horas_efectivo)
+            }}</span>
+          </div>
+        </div>
 
-/* ── Leyenda ── */
-.cal-leyenda {
-  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-  background: #fff; border: 1px solid #e9e6f5; border-radius: 10px;
-  padding: 8px 16px;
-}
-.cal-ley-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6b7280; font-weight: 500; }
-.cal-ley-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        <DialogFooter>
+          <Button variant="outline" @click="irAFalla(detalle)">
+            <ArrowRightIcon class="size-4" /> Ver en Gestión de Fallas
+          </Button>
+          <Button @click="emitEditar(detalle)"> <PencilIcon class="size-4" /> Editar </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-/* ── Eventos ── */
-.cal-eventos-list { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow: hidden; }
-.cal-evento {
-  display: flex; align-items: center; gap: 4px;
-  padding: 2px 6px; border-radius: 4px;
-  cursor: pointer; transition: opacity 0.15s;
-  overflow: hidden;
-}
-.cal-evento:hover { opacity: 0.82; }
-.cal-evento--final { opacity: 0.9; }
-.cal-evento-icon { font-size: 9px; flex-shrink: 0; }
-.cal-evento-nombre {
-  font-size: 10px; font-weight: 600; color: #374151;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
-}
-.cal-evento--final .cal-evento-nombre { color: #6b7280; text-decoration: line-through; text-decoration-color: #c4b5e0; }
-.cal-evento-mas {
-  font-size: 10px; font-weight: 700; color: var(--color-unergy-purple);
-  cursor: pointer; padding: 1px 4px; border-radius: 3px;
-}
-.cal-evento-mas:hover { background: #f0edf8; }
-
-/* ── Modal backdrop ── */
-.cal-modal-backdrop {
-  position: fixed; inset: 0; background: rgba(44,32,57,0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 9999; backdrop-filter: blur(2px);
-}
-
-/* ── Modal detalle ── */
-.cal-modal {
-  background: #fff; border-radius: 16px; width: 100%; max-width: 520px;
-  max-height: 85vh; overflow-y: auto;
-  box-shadow: 0 24px 48px rgba(0,0,0,0.18);
-  display: flex; flex-direction: column;
-  font-family: 'Sora', system-ui, sans-serif;
-}
-.cal-modal--sm { max-width: 360px; }
-
-.cal-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 24px 16px; border-bottom: 1px solid #f3f1f8;
-  position: sticky; top: 0; background: #fff; z-index: 1;
-}
-.cal-modal-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: var(--color-unergy-deep); }
-.cal-modal-code { font-size: 13px; font-weight: 800; color: var(--color-unergy-deep); font-family: monospace; }
-.cal-modal-close { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 14px; padding: 4px; border-radius: 6px; }
-.cal-modal-close:hover { color: #6b7280; }
-
-.cal-estado-badge {
-  font-size: 11px; font-weight: 700; padding: 2px 10px;
-  border-radius: 999px; letter-spacing: 0.3px;
-}
-
-.cal-modal-body { padding: 16px 24px; flex: 1; }
-
-.cal-detail-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-}
-.cal-detail-item { display: flex; flex-direction: column; gap: 3px; }
-.cal-detail-item--full { grid-column: 1 / -1; }
-.cal-detail-lbl {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.5px; color: #9ca3af;
-  display: flex; align-items: center; gap: 4px;
-}
-.cal-detail-val {
-  font-size: 13px; font-weight: 600; color: #374151;
-  display: flex; align-items: center; gap: 6px;
-}
-.cal-detail-val--highlight {
-  color: #3B82F6; font-weight: 800;
-}
-.cal-detail-desc {
-  font-size: 13px; color: #4b5563; line-height: 1.5; margin: 0;
-  background: #f9f8ff; border-radius: 6px; padding: 8px 10px;
-}
-.cal-prio-dot { width: 8px; height: 8px; border-radius: 50%; }
-
-.cal-modal-footer {
-  display: flex; gap: 10px; justify-content: flex-end;
-  padding: 14px 24px; border-top: 1px solid #f3f1f8;
-  position: sticky; bottom: 0; background: #fff;
-}
-.cal-modal-link {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;
-  background: #fff; color: #6b7280; font-size: 13px; font-weight: 600;
-  cursor: pointer; font-family: inherit; transition: all 0.15s;
-}
-.cal-modal-link:hover { border-color: var(--color-unergy-purple); color: var(--color-unergy-purple); }
-.cal-modal-edit {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 8px; border: none;
-  background: var(--color-unergy-purple); color: #fff; font-size: 13px; font-weight: 700;
-  cursor: pointer; font-family: inherit; transition: background 0.15s;
-}
-.cal-modal-edit:hover { background: #7c3aed; }
-
-/* ── Modal lista día ── */
-.cal-dia-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0; border-bottom: 1px solid #f3f1f8;
-  cursor: pointer;
-}
-.cal-dia-row:hover { background: #faf8ff; border-radius: 6px; padding-inline: 6px; }
-.cal-dia-row:last-child { border-bottom: none; }
-.cal-dia-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.cal-dia-code { font-size: 12px; font-weight: 700; color: var(--color-unergy-deep); font-family: monospace; }
-.cal-dia-proy { font-size: 11px; color: #6b7280; }
-</style>
+    <!-- ── Diálogo lista día ──────────────────────────────────────────────── -->
+    <Dialog :open="!!diaModal" @update:open="(v: boolean) => !v && cerrarDiaModal()">
+      <DialogContent v-if="diaModal" class="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Fallas — {{ diaModal.label }}</DialogTitle>
+        </DialogHeader>
+        <div class="flex flex-col">
+          <button
+            v-for="ev in diaModal.eventos"
+            :key="ev.id"
+            type="button"
+            class="flex items-center gap-2.5 rounded-md px-1.5 py-2 text-left hover:bg-muted"
+            @click="abrirDetalleDesdeDia(ev)"
+          >
+            <span class="size-2.5 shrink-0 rounded-full" :style="{ background: colorEvento(ev) }" />
+            <div>
+              <div class="font-mono text-xs font-bold text-foreground">{{ ev.codigo_interno }}</div>
+              <div class="text-xs text-muted-foreground">{{ ev.proyecto?.nombre_comercial }}</div>
+            </div>
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

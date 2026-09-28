@@ -33,7 +33,8 @@ app/features/auth/components
 app/features/clientes/components/clientesUi.js
 app/features/comercial/components
 app/features/contratos/components
-app/features/fallas/components
+# `fallas` ya migró todo salvo `MonitoreoView.vue` (ver eslint.config.mjs).
+app/features/fallas/components/MonitoreoView.vue
 app/features/finanzas/components
 app/features/fronteras/components
 app/features/garantias/components
@@ -57,7 +58,6 @@ app/assets/*.js
 app/assets/main.css
 app/components/layout/LegacyAppSidebar.vue
 app/components/blocks/PageHeader.vue
-app/components/blocks/InfoField.vue
 app/components/blocks/DetalleLayout.vue
 app/components/blocks/ContactosPanel.vue
 app/features/*/utils
