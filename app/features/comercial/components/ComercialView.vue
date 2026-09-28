@@ -6,153 +6,28 @@
   carga, los mismos filtros y el mismo drawer, que se abre con ?oferta=<id> para
   que el enlace se pueda pegar en un chat y sobreviva un F5.
 -->
-<template>
-  <!-- Sin padding propio: el <main> del shell ya lo paga en todos los
-       breakpoints (px-4 pt-4 pb-8 md:px-8 md:pt-6). Agregar el propio dejaba
-       padding anidado, más grueso mientras más ancha la pantalla. -->
-  <div>
-    <PageHeader class="mb-4" title="Comercial"
-                subtitle="Pipeline de ofertas — la oferta es la unidad del negocio, no el cliente">
-      <template #actions>
-        <SelectButton v-model="vista" :options="VISTAS" optionLabel="label" optionValue="value"
-                      :allowEmpty="false" />
-        <Button label="Registrar oferta" class="whitespace-nowrap" @click="mostrarWizard = true">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </PageHeader>
-
-    <KpisComercial :banda="banda" :alerta-dias="alertaDias" @filtrar="aplicarAtajo" />
-
-    <!-- Filtros, compartidos por las dos vistas.
-
-         Los anchos fijos (w-72/w-52/w-48) no encogían: debajo de ~1100px cada
-         control caía en su propia fila y en celular eran cinco filas apiladas
-         que empujaban la primera fila de datos una pantalla entera hacia abajo.
-         Ahora: a ancho completo debajo de `sm`, con los mismos anchos de antes
-         desde `sm`, y debajo de `lg` los secundarios se pliegan detrás del
-         botón "Filtros". En `lg`+ el botón no existe y todo va expandido en una
-         sola fila, exactamente como hasta ahora. -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <IconField class="w-full sm:w-auto">
-        <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
-        <InputText v-model.trim="filtros.texto" placeholder="Código, cliente, planta, municipio…"
-                   class="w-full sm:w-72" />
-      </IconField>
-
-      <!-- El conteo es lo que evita que un filtro quede activo y escondido:
-           plegado, el botón sigue diciendo cuántos hay puestos. -->
-      <Button v-if="!esEscritorio" :label="filtrosAbiertos ? 'Ocultar' : etiquetaFiltros"
-              outlined size="small"
-              @click="filtrosAbiertos = !filtrosAbiertos">
-        <template #icon><component :is="filtrosAbiertos ? ChevronUpIcon : FilterIcon" class="size-[1em]" /></template>
-      </Button>
-
-      <MultiSelect v-show="filtrosVisibles" v-model="filtros.tipos" :options="TIPOS_OFERTA"
-                   optionLabel="label" optionValue="value" placeholder="Tipo de oferta"
-                   :maxSelectedLabels="1" class="w-full sm:w-52" />
-      <MultiSelect v-show="filtrosVisibles" v-model="filtros.clientes" :options="clientesDisponibles"
-                   optionLabel="nombre" optionValue="id" filter placeholder="Cliente"
-                   :maxSelectedLabels="1" class="w-full sm:w-52" />
-      <MultiSelect v-if="vista === 'tabla'" v-show="filtrosVisibles" v-model="filtros.etapas"
-                   :options="ETAPAS" optionLabel="label" optionValue="value" placeholder="Etapa"
-                   :maxSelectedLabels="1" class="w-full sm:w-48" />
-      <Select v-if="vista === 'tabla'" v-show="filtrosVisibles" v-model="orden" :options="ORDENES"
-              optionLabel="label" optionValue="value" class="w-full sm:w-48" />
-      <div v-show="filtrosVisibles" class="flex items-center gap-1.5">
-        <Checkbox v-model="filtros.soloAlerta" binary inputId="soloAlerta" />
-        <label for="soloAlerta" class="text-sm" style="color:#7a6e8a">Solo con alerta</label>
-      </div>
-      <div v-show="filtrosVisibles" class="flex items-center gap-1.5">
-        <Checkbox v-model="filtros.soloSinRespuesta" binary inputId="soloSinResp" />
-        <label for="soloSinResp" class="text-sm" style="color:#7a6e8a">Solo sin respuesta</label>
-      </div>
-      <Button v-if="hayFiltros" v-show="filtrosVisibles" label="Limpiar" text size="small" @click="limpiarFiltros">
-        <template #icon><FilterXIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <!-- Falla de carga: se distingue de "no hay ofertas" a propósito -->
-    <div v-if="errorCarga" class="rounded-lg p-4 text-center space-y-2 mb-4"
-         style="background:#FEF2F2;border:1px solid rgba(214,68,85,0.2)">
-      <p class="text-sm" style="color:#D64455">No se pudieron cargar las ofertas: {{ errorCarga }}</p>
-      <Button label="Reintentar" size="small" outlined @click="cargar()">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <div v-else-if="cargando && !ofertas.length" class="flex justify-center py-16">
-      <ProgressSpinner style="width:2.5rem;height:2.5rem" strokeWidth="4" />
-    </div>
-
-    <!-- Vacío real: no hay nada registrado todavía -->
-    <div v-else-if="!ofertas.length" class="rounded-lg p-10 text-center"
-         style="background:#FAF8FC;border:1px dashed #e0d3f5">
-      <BriefcaseIcon class="text-3xl mb-3 block size-[1em]" style="color:#c4b8d4" />
-      <p class="text-sm mb-3" style="color:#7a6e8a">Todavía no hay ofertas registradas.</p>
-      <Button label="Registrar la primera" @click="mostrarWizard = true">
-        <template #icon><PlusIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <template v-else>
-      <TableroOfertas v-if="vista === 'tablero'" :por-columna="porColumna"
-                      :oferta-abierta-id="ofertaAbierta?.id"
-                      @abrir="abrirOferta" @mover="mover" @firmar="pedirFirma" @declinar="pedirDeclinar" />
-      <TablaOfertas v-else :ofertas="filtradas" @abrir="abrirOferta" />
-    </template>
-
-    <OfertaDrawer v-model:visible="drawerAbierto" :oferta="ofertaAbierta" :acciones="acciones"
-                  @firmar="pedirFirma" />
-
-    <RegistrarOfertaWizard v-model:visible="mostrarWizard" :acciones="acciones"
-                           @registrada="trasRegistrar" />
-
-    <FirmarOfertaDialog v-model:visible="mostrarFirmar" :oferta="ofertaAFirmar" :acciones="acciones"
-                        @firmada="cargar()" />
-
-    <!-- Declinar pide el motivo: sin él, el histórico solo dice que se perdió. -->
-    <Dialog v-model:visible="mostrarDeclinar" modal header="Declinar oferta" :style="{ width: '28rem' }">
-      <p class="text-sm mb-3" style="color:#7a6e8a">
-        {{ ofertaADeclinar?.planta_nombre || ofertaADeclinar?.cliente_razon_social }}
-      </p>
-      <label class="block text-xs mb-1" style="color:#7a6e8a">Motivo *</label>
-      <Textarea v-model="motivoDeclinar" rows="3" autoResize class="w-full"
-                placeholder="Por qué se cayó el negocio" />
-      <template #footer>
-        <Button label="Cancelar" text severity="secondary" @click="mostrarDeclinar = false" />
-        <Button label="Declinar" severity="danger" :disabled="!motivoDeclinar.trim()"
-                :loading="declinando" @click="declinar" />
-      </template>
-    </Dialog>
-  </div>
-</template>
-
-<script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
-import SelectButton from 'primevue/selectbutton'
-import Checkbox from 'primevue/checkbox'
-import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
-import ProgressSpinner from 'primevue/progressspinner'
+<script setup lang="ts">
+import type { Oferta } from '~/features/comercial/types'
+import {
+  BriefcaseIcon,
+  ChevronUpIcon,
+  FilterIcon,
+  FilterXIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import PageHeader from '~/components/blocks/PageHeader.vue'
+import { readDetail } from '~/core/errors'
+import { ETAPAS, TIPOS_OFERTA } from './comercial'
+import FirmarOfertaDialog from './FirmarOfertaDialog.vue'
 import KpisComercial from './KpisComercial.vue'
-import TableroOfertas from './TableroOfertas.vue'
-import TablaOfertas from './TablaOfertas.vue'
 import OfertaDrawer from './OfertaDrawer.vue'
 import RegistrarOfertaWizard from './RegistrarOfertaWizard.vue'
-import FirmarOfertaDialog from './FirmarOfertaDialog.vue'
-import { useOfertas } from './useOfertas.js'
-import { ETAPAS, TIPOS_OFERTA } from './comercial.js'
-import { BriefcaseIcon, ChevronUpIcon, FilterIcon, FilterXIcon, PlusIcon, RefreshCwIcon, SearchIcon } from '@lucide/vue'
+import TablaOfertas from './TablaOfertas.vue'
+import TableroOfertas from './TableroOfertas.vue'
+import { useOfertas } from './useOfertas'
 
 const route = useRoute()
 const router = useRouter()
@@ -171,58 +46,87 @@ const ORDENES = [
 
 // El tablero es la vista de entrada. Se recuerda la última elección para no
 // pelear con quien trabaja siempre en la tabla.
-const vista = ref(localStorage.getItem('comercial:vista') || 'tablero')
+const vista = ref<'tablero' | 'tabla'>('tablero')
+onMounted(() => {
+  const guardada = localStorage.getItem('comercial:vista')
+  if (guardada === 'tablero' || guardada === 'tabla') vista.value = guardada
+})
 watch(vista, (v) => localStorage.setItem('comercial:vista', v))
 
 const {
-  ofertas, cargando, errorCarga, alertaDias,
-  filtros, orden, filtradas, porColumna, banda, clientesDisponibles, hayFiltros, limpiarFiltros,
-  cargar, moverEtapa, guardarOferta, registrarSeguimiento, registrarGestion,
-  eliminarOferta, firmar, registrar,
+  ofertas,
+  cargando,
+  errorCarga,
+  alertaDias,
+  filtros,
+  orden,
+  filtradas,
+  porColumna,
+  banda,
+  clientesDisponibles,
+  hayFiltros,
+  limpiarFiltros,
+  cargar,
+  moverEtapa,
+  guardarOferta,
+  registrarSeguimiento,
+  registrarGestion,
+  eliminarOferta,
+  firmar,
+  registrar,
 } = useOfertas()
 
 // Las mutaciones se pasan como un objeto a los hijos: el drawer y los diálogos
 // necesitan el RESULTADO de cada acción, que un emit no devuelve.
 const acciones = {
-  moverEtapa, guardarOferta, registrarSeguimiento, registrarGestion,
-  eliminarOferta, firmar, registrar,
+  moverEtapa,
+  guardarOferta,
+  registrarSeguimiento,
+  registrarGestion,
+  eliminarOferta,
+  firmar,
+  registrar,
 }
 
 // ── Filtros secundarios plegables (solo debajo de lg) ───────────────────────
-// El plegado se decide en JS, no con clases `lg:hidden`, porque PrimeVue va
-// montado sin cssLayer: sus estilos entran al <head> DESPUÉS de la hoja de
-// Tailwind y con la misma especificidad (`.p-multiselect` vs `.hidden`, ambos
-// 0-1-0), así que empatan y gana el que llegó último — PrimeVue. Sobre la raíz
-// de un componente suyo, las utilidades de display de Tailwind son inertes.
-// `v-show` escribe estilo inline, que gana siempre.
 const LG = '(min-width: 1024px)'
-// Se lee sincrónicamente en el setup para que el primer pintado ya sea el
-// correcto: arrancar en false hacía parpadear los filtros en escritorio.
-const esEscritorio = ref(window.matchMedia(LG).matches)
-const consultaLg = window.matchMedia(LG)
-function alCambiarAncho(e) { esEscritorio.value = e.matches }
-onMounted(() => consultaLg.addEventListener('change', alCambiarAncho))
-onUnmounted(() => consultaLg.removeEventListener('change', alCambiarAncho))
+// Arranca asumiendo escritorio: en SSR no hay `window`, y el resultado real
+// llega en el próximo tick vía `onMounted` sin que se note un parpadeo.
+const esEscritorio = ref(true)
+function alCambiarAncho(e: MediaQueryListEvent) {
+  esEscritorio.value = e.matches
+}
+let consultaLg: MediaQueryList | undefined
+onMounted(() => {
+  if (typeof window === 'undefined' || !window.matchMedia) return
+  consultaLg = window.matchMedia(LG)
+  esEscritorio.value = consultaLg.matches
+  consultaLg.addEventListener('change', alCambiarAncho)
+})
+onUnmounted(() => consultaLg?.removeEventListener('change', alCambiarAncho))
 
 const filtrosAbiertos = ref(false)
 const filtrosVisibles = computed(() => esEscritorio.value || filtrosAbiertos.value)
 
 // El buscador queda fuera del conteo porque nunca se esconde.
-const nFiltrosSecundarios = computed(() =>
-  (filtros.tipos.length ? 1 : 0)
-  + (filtros.clientes.length ? 1 : 0)
-  + (filtros.etapas.length ? 1 : 0)
-  + (filtros.soloAlerta ? 1 : 0)
-  + (filtros.soloSinRespuesta ? 1 : 0))
+const nFiltrosSecundarios = computed(
+  () =>
+    (filtros.tipos.length ? 1 : 0) +
+    (filtros.clientes.length ? 1 : 0) +
+    (filtros.etapas.length ? 1 : 0) +
+    (filtros.soloAlerta ? 1 : 0) +
+    (filtros.soloSinRespuesta ? 1 : 0),
+)
 
 const etiquetaFiltros = computed(() =>
-  nFiltrosSecundarios.value ? `Filtros (${nFiltrosSecundarios.value})` : 'Filtros')
+  nFiltrosSecundarios.value ? `Filtros (${nFiltrosSecundarios.value})` : 'Filtros',
+)
 
 const mostrarWizard = ref(false)
 const mostrarFirmar = ref(false)
-const ofertaAFirmar = ref(null)
+const ofertaAFirmar = ref<Oferta | null>(null)
 const mostrarDeclinar = ref(false)
-const ofertaADeclinar = ref(null)
+const ofertaADeclinar = ref<Oferta | null>(null)
 const motivoDeclinar = ref('')
 const declinando = ref(false)
 
@@ -231,15 +135,16 @@ const ofertaAbiertaId = computed(() => {
   const v = route.query.oferta
   return v ? Number(v) : null
 })
-const ofertaAbierta = computed(() =>
-  ofertas.value.find((o) => o.id === ofertaAbiertaId.value) ?? null)
+const ofertaAbierta = computed(() => ofertas.value.find((o) => o.id === ofertaAbiertaId.value) ?? null)
 
 const drawerAbierto = computed({
   get: () => !!ofertaAbierta.value,
-  set: (v) => { if (!v) router.replace({ query: { ...route.query, oferta: undefined } }) },
+  set: (v) => {
+    if (!v) router.replace({ query: { ...route.query, oferta: undefined } })
+  },
 })
 
-function abrirOferta(oferta) {
+function abrirOferta(oferta: Oferta) {
   router.replace({ query: { ...route.query, oferta: oferta.id } })
 }
 
@@ -249,21 +154,20 @@ watch([ofertaAbiertaId, ofertas], () => {
   if (ofertaAbiertaId.value && ofertas.value.length && !ofertaAbierta.value) {
     toast.warning('Esa oferta ya no existe', {
       description: `No se encontró la oferta #${ofertaAbiertaId.value}.`,
-      duration: 4000,
     })
     router.replace({ query: { ...route.query, oferta: undefined } })
   }
 })
 
 // ── Acciones del tablero ────────────────────────────────────────────────────
-async function mover(oferta, estado) {
+async function mover(oferta: Oferta, estado: string) {
   const r = await moverEtapa(oferta, estado)
   if (!r.ok) {
-    toast.error('No se pudo cambiar la etapa', { description: r.error, duration: 5000 })
+    toast.error('No se pudo cambiar la etapa', { description: r.error })
   }
 }
 
-function pedirFirma(oferta) {
+function pedirFirma(oferta: Oferta) {
   // Servicios operacionales no deriva en PPA: el backend responde 422.
   if (oferta.tipo === 'servicios_operacionales') {
     toast.info('Esta oferta no genera un PPA', {
@@ -273,17 +177,14 @@ function pedirFirma(oferta) {
     return
   }
   if (oferta.ppa_contrato_id) {
-    toast.info('Ya tiene contrato', {
-      description: `Contrato PPA #${oferta.ppa_contrato_id}.`,
-      duration: 4000,
-    })
+    toast.info('Ya tiene contrato', { description: `Contrato PPA #${oferta.ppa_contrato_id}.` })
     return
   }
   ofertaAFirmar.value = oferta
   mostrarFirmar.value = true
 }
 
-function pedirDeclinar(oferta) {
+function pedirDeclinar(oferta: Oferta) {
   ofertaADeclinar.value = oferta
   motivoDeclinar.value = ''
   mostrarDeclinar.value = true
@@ -292,11 +193,15 @@ function pedirDeclinar(oferta) {
 async function declinar() {
   declinando.value = true
   const oferta = ofertaADeclinar.value
+  if (!oferta) {
+    declinando.value = false
+    return
+  }
   const r = await moverEtapa(oferta, 'declinado')
   if (r.ok) {
     // El motivo va a la bitácora de ESTA oferta: el histórico de etapas solo
     // guarda el "de dónde a dónde", no el por qué.
-    await registrarGestion(oferta.oportunidad_id, {
+    await registrarGestion(oferta.oportunidad_id!, {
       tipo: 'nota',
       // La escribimos nosotros al declinar, aunque la decision haya sido del
       // cliente: la bitacora registra quien puso la entrada, y esto no debe
@@ -307,12 +212,12 @@ async function declinar() {
     })
     mostrarDeclinar.value = false
   } else {
-    toast.error('No se pudo declinar', { description: r.error, duration: 5000 })
+    toast.error('No se pudo declinar', { description: r.error })
   }
   declinando.value = false
 }
 
-async function trasRegistrar(oportunidad) {
+async function trasRegistrar(oportunidad: { ofertas?: Oferta[] }) {
   await cargar()
   // Se abre la primera oferta recién creada: el registro termina donde empieza
   // el trabajo, no en una pantalla de éxito.
@@ -321,7 +226,7 @@ async function trasRegistrar(oportunidad) {
 }
 
 // Atajos de la banda de indicadores.
-function aplicarAtajo(cual) {
+function aplicarAtajo(cual: string) {
   if (cual === 'alerta') {
     filtros.soloAlerta = !filtros.soloAlerta
     filtros.soloSinRespuesta = false
@@ -331,5 +236,158 @@ function aplicarAtajo(cual) {
   }
 }
 
+function alReintentar() {
+  cargar()
+}
+
 onMounted(cargar)
 </script>
+
+<template>
+  <!-- Sin padding propio: el <main> del shell ya lo paga en todos los
+       breakpoints (px-4 pt-4 pb-8 md:px-8 md:pt-6). Agregar el propio dejaba
+       padding anidado, más grueso mientras más ancha la pantalla. -->
+  <div>
+    <PageHeader
+      class="mb-4"
+      title="Comercial"
+      subtitle="Pipeline de ofertas — la oferta es la unidad del negocio, no el cliente"
+    >
+      <template #actions>
+        <ToggleGroup v-model="vista" type="single" variant="outline">
+          <ToggleGroupItem v-for="v in VISTAS" :key="v.value" :value="v.value">{{ v.label }}</ToggleGroupItem>
+        </ToggleGroup>
+        <Button class="whitespace-nowrap" @click="mostrarWizard = true">
+          <PlusIcon class="size-4" />
+          Registrar oferta
+        </Button>
+      </template>
+    </PageHeader>
+
+    <KpisComercial :banda="banda" :alerta-dias="alertaDias" @filtrar="aplicarAtajo" />
+
+    <!-- Filtros, compartidos por las dos vistas.
+
+         Los anchos fijos no encogían: debajo de ~1100px cada control caía en
+         su propia fila y en celular eran cinco filas apiladas que empujaban la
+         primera fila de datos una pantalla entera hacia abajo. Ahora: a ancho
+         completo debajo de `sm`, con anchos fijos desde `sm`, y debajo de `lg`
+         los secundarios se pliegan detrás del botón "Filtros". -->
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <InputGroup class="w-full sm:w-72">
+        <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+        <InputGroupInput v-model.trim="filtros.texto" placeholder="Código, cliente, planta, municipio…" />
+      </InputGroup>
+
+      <!-- El conteo es lo que evita que un filtro quede activo y escondido:
+           plegado, el botón sigue diciendo cuántos hay puestos. -->
+      <Button v-if="!esEscritorio" variant="outline" size="sm" @click="filtrosAbiertos = !filtrosAbiertos">
+        <component :is="filtrosAbiertos ? ChevronUpIcon : FilterIcon" class="size-4" />
+        {{ filtrosAbiertos ? 'Ocultar' : etiquetaFiltros }}
+      </Button>
+
+      <MultiComboBox
+        v-show="filtrosVisibles"
+        v-model="filtros.tipos"
+        :options="TIPOS_OFERTA.map((t) => ({ label: t.label, value: t.value }))"
+        placeholder="Tipo de oferta"
+        class="w-full sm:w-52"
+      />
+      <MultiComboBox
+        v-show="filtrosVisibles"
+        :model-value="filtros.clientes.map(String)"
+        :options="clientesDisponibles.map((c) => ({ label: c.nombre ?? `Cliente #${c.id}`, value: String(c.id) }))"
+        placeholder="Cliente"
+        class="w-full sm:w-52"
+        @update:model-value="(v) => (filtros.clientes = v.map(Number))"
+      />
+      <MultiComboBox
+        v-if="vista === 'tabla'"
+        v-show="filtrosVisibles"
+        v-model="filtros.etapas"
+        :options="ETAPAS.map((e) => ({ label: e.label, value: e.value }))"
+        placeholder="Etapa"
+        class="w-full sm:w-48"
+      />
+      <Select v-if="vista === 'tabla'" v-show="filtrosVisibles" v-model="orden">
+        <SelectTrigger class="w-full sm:w-48"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="o in ORDENES" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+        </SelectContent>
+      </Select>
+      <label v-show="filtrosVisibles" class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Checkbox v-model="filtros.soloAlerta" /> Solo con alerta
+      </label>
+      <label v-show="filtrosVisibles" class="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Checkbox v-model="filtros.soloSinRespuesta" /> Solo sin respuesta
+      </label>
+      <Button v-if="hayFiltros" v-show="filtrosVisibles" variant="ghost" size="sm" @click="limpiarFiltros">
+        <FilterXIcon class="size-4" />
+        Limpiar
+      </Button>
+    </div>
+
+    <!-- Falla de carga: se distingue de "no hay ofertas" a propósito -->
+    <div v-if="errorCarga" class="mb-4 space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center">
+      <p class="text-sm text-destructive">No se pudieron cargar las ofertas: {{ errorCarga }}</p>
+      <Button variant="outline" size="sm" @click="alReintentar">
+        <RefreshCwIcon class="size-4" />
+        Reintentar
+      </Button>
+    </div>
+
+    <div v-else-if="cargando && !ofertas.length" class="flex justify-center py-16">
+      <LoaderCircleIcon class="size-10 animate-spin text-muted-foreground" />
+    </div>
+
+    <!-- Vacío real: no hay nada registrado todavía -->
+    <div v-else-if="!ofertas.length" class="rounded-lg border border-dashed p-10 text-center">
+      <BriefcaseIcon class="mx-auto mb-3 size-8 text-muted-foreground/60" />
+      <p class="mb-3 text-sm text-muted-foreground">Todavía no hay ofertas registradas.</p>
+      <Button @click="mostrarWizard = true">
+        <PlusIcon class="size-4" />
+        Registrar la primera
+      </Button>
+    </div>
+
+    <template v-else>
+      <TableroOfertas
+        v-if="vista === 'tablero'"
+        :por-columna="porColumna"
+        :oferta-abierta-id="ofertaAbierta?.id"
+        @abrir="abrirOferta"
+        @mover="mover"
+        @firmar="pedirFirma"
+        @declinar="pedirDeclinar"
+      />
+      <TablaOfertas v-else :ofertas="filtradas" @abrir="abrirOferta" />
+    </template>
+
+    <OfertaDrawer v-model:visible="drawerAbierto" :oferta="ofertaAbierta" :acciones="acciones" @firmar="pedirFirma" />
+
+    <RegistrarOfertaWizard v-model:visible="mostrarWizard" :acciones="acciones" @registrada="trasRegistrar" />
+
+    <FirmarOfertaDialog v-model:visible="mostrarFirmar" :oferta="ofertaAFirmar" :acciones="acciones" @firmada="cargar()" />
+
+    <!-- Declinar pide el motivo: sin él, el histórico solo dice que se perdió. -->
+    <Dialog v-model:open="mostrarDeclinar">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Declinar oferta</DialogTitle>
+          <DialogDescription>
+            {{ ofertaADeclinar?.planta_nombre || ofertaADeclinar?.cliente_razon_social }}
+          </DialogDescription>
+        </DialogHeader>
+        <GLabel required>Motivo</GLabel>
+        <Textarea v-model="motivoDeclinar" rows="3" placeholder="Por qué se cayó el negocio" />
+        <DialogFooter>
+          <Button variant="ghost" @click="mostrarDeclinar = false">Cancelar</Button>
+          <Button variant="destructive" :disabled="!motivoDeclinar.trim() || declinando" @click="declinar">
+            <LoaderCircleIcon v-if="declinando" class="animate-spin" />
+            Declinar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

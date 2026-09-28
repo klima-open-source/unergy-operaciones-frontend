@@ -12,197 +12,53 @@
   · No mandaba `fecha_fin_tentativa`, que es lo que le da periodo a un PPA en
     borrador.
 -->
-<template>
-  <div>
-    <div class="flex items-center justify-between mb-3">
-      <span class="text-sm" style="color:#7a6e8a">
-        {{ ofertas.length }} oferta(s) — una por planta × servicio
-      </span>
-      <Button label="Agregar oferta" size="small" @click="abrirNueva">
-        <template #icon><PlusIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <DataTable :value="ofertas" dataKey="id" class="text-sm" responsiveLayout="scroll">
-      <Column header="Planta" style="min-width:12rem">
-        <template #body="{ data }">
-          <div>
-            <div>{{ data.planta_nombre || data.ficha?.proyecto_nombre || '—' }}</div>
-            <div v-if="data.plantas?.length" class="text-[11px]" style="color:#9b89b5">
-              {{ data.plantas.map((p) => p.nombre_comercial).join(' · ') }}
-            </div>
-          </div>
-        </template>
-      </Column>
-      <Column header="Tipo">
-        <template #body="{ data }">{{ labelTipo(data.tipo) }}</template>
-      </Column>
-      <Column header="Servicios buscados">
-        <template #body="{ data }">
-          <template v-if="data.detalle?.servicios?.length">
-            <span v-for="s in data.detalle.servicios" :key="s"
-                  class="inline-block rounded px-1.5 py-0.5 mr-1 mb-1 text-xs"
-                  style="background:#EFF6FF;color:#1D4ED8">{{ s }}</span>
-          </template>
-          <span v-else style="color:#c4b8d4">—</span>
-          <div v-if="data.detalle?.fpo" class="text-xs mt-1" style="color:#9b89b5">
-            FPO: {{ data.detalle.fpo }}
-          </div>
-        </template>
-      </Column>
-      <Column header="Código">
-        <template #body="{ data }">
-          <span class="font-mono text-xs">{{ data.codigo_seguimiento || data.numero_oferta || '—' }}</span>
-        </template>
-      </Column>
-      <Column field="precio_detalle" header="Precio">
-        <template #body="{ data }">{{ data.precio_detalle || '—' }}</template>
-      </Column>
-      <!-- La etapa es de la oferta: cada una avanza sola. -->
-      <Column header="Etapa" style="min-width:11rem">
-        <template #body="{ data }">
-          <Select :modelValue="data.estado" :options="ETAPAS" optionLabel="label" optionValue="value"
-                  class="w-full text-xs" :loading="moviendo === data.id"
-                  @update:modelValue="(v) => cambiarEtapa(data, v)" />
-        </template>
-      </Column>
-      <Column header="Enviada">
-        <template #body="{ data }">
-          <span v-if="data.fecha_oferta">{{ fmtFecha(data.fecha_oferta) }}</span>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column header="Toques">
-        <template #body="{ data }">
-          <div class="flex items-center gap-2">
-            <span :class="alarmante(data) ? 'font-semibold' : ''"
-                  :style="{ color: alarmante(data) ? '#D64455' : 'inherit' }">
-              {{ data.seguimientos || 0 }}
-            </span>
-            <Button text rounded size="small" :loading="tocando === data.id" v-tooltip.top="'Registrar un toque (reenvío o llamada de insistencia)'" @click="registrarSeguimiento(data)">
-              <template #icon><SendIcon class="size-[1em]" /></template>
-            </Button>
-          </div>
-        </template>
-      </Column>
-      <Column header="Última respuesta">
-        <template #body="{ data }">
-          <span v-if="data.fecha_ultima_respuesta">{{ fmtFecha(data.fecha_ultima_respuesta) }}</span>
-          <span v-else-if="data.fecha_oferta" class="text-xs" style="color:#D64455">sin respuesta</span>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column header="Contrato">
-        <template #body="{ data }">
-          <router-link v-if="data.ppa_contrato_id" :to="`/contratos/${data.ppa_contrato_id}`"
-                       class="text-xs underline" style="color:var(--color-unergy-purple)">PPA</router-link>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column header="" style="width:8rem">
-        <template #body="{ data }">
-          <div class="flex items-center">
-            <Button text rounded size="small" v-tooltip.left="'Abrir en el tablero (editar todo)'" @click="$router.push(`/comercial?oferta=${data.id}`)">
-              <template #icon><ExternalLinkIcon class="size-[1em]" /></template>
-            </Button>
-            <a v-if="data.documento_url" :href="data.documento_url" target="_blank" rel="noopener"
-               class="p-2" v-tooltip.left="'Documento de la oferta'">
-              <FileTextIcon class="size-[1em]" style="color:var(--color-unergy-purple)" />
-            </a>
-          </div>
-        </template>
-      </Column>
-      <template #empty><span class="text-sm" style="color:#9b89b5">Sin ofertas todavía.</span></template>
-    </DataTable>
-
-    <Dialog v-model:visible="showDialog" header="Nueva oferta" modal :style="{ width: '32rem' }">
-      <div class="flex flex-col gap-3">
-        <div>
-          <label class="etiqueta">Tipo de oferta *</label>
-          <Select v-model="form.tipo" :options="TIPOS_OFERTA" optionLabel="label" optionValue="value"
-                  class="w-full" placeholder="Seleccionar…" />
-        </div>
-        <div>
-          <label class="etiqueta">Planta</label>
-          <InputText v-model.trim="form.planta_nombre" class="w-full" placeholder="Ej: Balmora 1 y 2" />
-        </div>
-        <div>
-          <label class="etiqueta">Plantas ya creadas en Proyectos</label>
-          <MultiSelect v-model="form.proyecto_ids" :options="proyectos" optionLabel="nombre_comercial"
-                       :filterFields="['nombre_comercial', 'municipio', 'departamento']"
-                       optionValue="id" filter display="chip" class="w-full"
-                       :loading="cargandoProyectos"
-                       placeholder="Buscá la planta por nombre, municipio o departamento…"
-                       :emptyMessage="cargandoProyectos ? 'Cargando…' : 'No hay plantas cargadas'" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="etiqueta">Código de seguimiento</label>
-            <InputText v-model.trim="form.numero_oferta" class="w-full"
-                       placeholder="Se autogenera (OP.…) si lo dejás vacío" />
-          </div>
-          <div>
-            <label class="etiqueta">Etapa inicial</label>
-            <Select v-model="form.estado" :options="ETAPAS_INICIALES" optionLabel="label"
-                    optionValue="value" class="w-full" />
-          </div>
-        </div>
-        <div>
-          <label class="etiqueta">{{ etiquetaPrecio(form.tipo) }}</label>
-          <InputText v-model.trim="form.precio_detalle" class="w-full"
-                     :placeholder="placeholderPrecio(form.tipo)" />
-          <p v-if="ayudaPrecio(form.tipo)" class="etiqueta mt-1">{{ ayudaPrecio(form.tipo) }}</p>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div>
-            <label class="etiqueta">Fecha de envío</label>
-            <DatePicker v-model="form.fecha_oferta" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">Inicio tentativo</label>
-            <DatePicker v-model="form.fecha_tentativa_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">Fin tentativo</label>
-            <DatePicker v-model="form.fecha_fin_tentativa" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-        </div>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" text severity="secondary" @click="showDialog = false" />
-        <Button label="Crear oferta" :disabled="!form.tipo" :loading="guardando" @click="guardar">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </Dialog>
-  </div>
-</template>
-
-<script setup>
-import { ref, reactive, watch } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
-import InputText from 'primevue/inputtext'
-import DatePicker from 'primevue/datepicker'
+<script setup lang="ts">
+import type { DataTableColumn, DataTableRow } from '~/components/blocks/DataTable.vue'
+import type { Oferta } from '~/features/comercial/types'
+import { CheckIcon, ExternalLinkIcon, FileTextIcon, LoaderCircleIcon, PlusIcon, SendIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+// Import explícito: bug conocido de tipos de `blocks/DataTable`/`blocks/DatePicker`.
+import DataTable from '~/components/blocks/DataTable.vue'
+import DatePicker from '~/components/blocks/DatePicker.vue'
+import { readDetail } from '~/core/errors'
 import { ComercialService } from '~/features/comercial/services/comercial'
+import { cargarProyectos, type ProyectoCatalogo } from './catalogos'
 import {
-  ETAPAS, TIPOS_OFERTA, labelTipo, fmtFecha, alarmante, aFechaStr,
-  etiquetaPrecio, placeholderPrecio, ayudaPrecio,
-} from './comercial.js'
-import { cargarProyectos } from './catalogos.js'
-import { CheckIcon, ExternalLinkIcon, FileTextIcon, PlusIcon, SendIcon } from '@lucide/vue'
+  aFechaStr,
+  alarmante,
+  ayudaPrecio,
+  ETAPAS,
+  etiquetaPrecio,
+  fmtFecha,
+  labelTipo,
+  placeholderPrecio,
+  TIPOS_OFERTA,
+} from './comercial'
 
-const props = defineProps({
-  oportunidadId: { type: [Number, String], required: true },
-  ofertas: { type: Array, default: () => [] },
-})
-const emit = defineEmits(['changed'])
+const props = withDefaults(
+  defineProps<{ oportunidadId: number; ofertas?: Oferta[] }>(),
+  { ofertas: () => [] },
+)
+const emit = defineEmits<{ changed: [] }>()
 const comercialService = new ComercialService()
+const router = useRouter()
+
+function asOferta(row: DataTableRow): Oferta {
+  return row as unknown as Oferta
+}
+
+const columnas: DataTableColumn[] = [
+  { key: 'planta_nombre', header: 'Planta' },
+  { key: 'tipo', header: 'Tipo' },
+  { key: 'servicios', header: 'Servicios buscados' },
+  { key: 'codigo_seguimiento', header: 'Código' },
+  { key: 'precio_detalle', header: 'Precio' },
+  { key: 'estado', header: 'Etapa' },
+  { key: 'fecha_oferta', header: 'Enviada' },
+  { key: 'seguimientos', header: 'Toques' },
+  { key: 'fecha_ultima_respuesta', header: 'Última respuesta' },
+  { key: 'acciones', header: '' },
+]
 
 // Al crear solo tienen sentido las dos primeras etapas: firmar crea el contrato
 // y se hace desde el tablero, no declarando una etapa.
@@ -211,23 +67,60 @@ const ETAPAS_INICIALES = [
   { label: 'Oferta — ya se envió al cliente', value: 'oferta' },
 ]
 
-const moviendo = ref(null)
-const tocando = ref(null)
+const moviendo = ref<number | null>(null)
+const tocando = ref<number | null>(null)
 const showDialog = ref(false)
 const guardando = ref(false)
-const proyectos = ref([])
+const proyectos = ref<ProyectoCatalogo[]>([])
 const cargandoProyectos = ref(false)
 
-const form = reactive({
-  tipo: null, planta_nombre: '', proyecto_ids: [], numero_oferta: '', estado: 'oportunidad',
-  precio_detalle: '', fecha_oferta: null, fecha_tentativa_inicio: null, fecha_fin_tentativa: null,
+interface FormNuevaOferta {
+  tipo: string | null
+  planta_nombre: string
+  proyecto_ids: number[]
+  numero_oferta: string
+  estado: string
+  precio_detalle: string
+  fecha_oferta: string | null
+  fecha_tentativa_inicio: string | null
+  fecha_fin_tentativa: string | null
+}
+
+function formVacio(): FormNuevaOferta {
+  return {
+    tipo: null,
+    planta_nombre: '',
+    proyecto_ids: [],
+    numero_oferta: '',
+    estado: 'oportunidad',
+    precio_detalle: '',
+    fecha_oferta: null,
+    fecha_tentativa_inicio: null,
+    fecha_fin_tentativa: null,
+  }
+}
+
+const form = reactive<FormNuevaOferta>(formVacio())
+
+const opcionesProyecto = computed(() =>
+  proyectos.value.map((p) => ({
+    label: [p.nombre_comercial, [p.municipio, p.departamento].filter(Boolean).join(', ')]
+      .filter(Boolean)
+      .join(' — '),
+    value: String(p.id),
+  })),
+)
+
+// `MultiComboBox` trabaja con strings; el formulario los guarda como números.
+const proyectoIdsStr = computed<string[]>({
+  get: () => form.proyecto_ids.map(String),
+  set: (v) => {
+    form.proyecto_ids = v.map(Number)
+  },
 })
 
 function reset() {
-  Object.assign(form, {
-    tipo: null, planta_nombre: '', proyecto_ids: [], numero_oferta: '', estado: 'oportunidad',
-    precio_detalle: '', fecha_oferta: null, fecha_tentativa_inicio: null, fecha_fin_tentativa: null,
-  })
+  Object.assign(form, formVacio())
 }
 
 function abrirNueva() {
@@ -241,38 +134,34 @@ watch(showDialog, async (abierto) => {
   try {
     proyectos.value = await cargarProyectos()
   } catch {
-    toast.warning('No se pudo cargar la lista de proyectos', { duration: 4000 })
+    toast.warning('No se pudo cargar la lista de proyectos')
   } finally {
     cargandoProyectos.value = false
   }
 })
 
-async function cambiarEtapa(oferta, estado) {
+async function cambiarEtapa(oferta: Oferta, estado: string) {
   if (!estado || estado === oferta.estado) return
   moviendo.value = oferta.id
   try {
     await comercialService.cambiarEstadoOferta(oferta.id, estado)
     emit('changed')
   } catch (err) {
-    toast.error('No se pudo cambiar la etapa', {
-      description: err.data?.detail ?? '',
-      duration: 5000,
-    })
+    const e = err as { data?: unknown }
+    toast.error('No se pudo cambiar la etapa', { description: readDetail(e.data) ?? '' })
   } finally {
     moviendo.value = null
   }
 }
 
-async function registrarSeguimiento(oferta) {
+async function registrarSeguimiento(oferta: Oferta) {
   tocando.value = oferta.id
   try {
     await comercialService.registrarSeguimientoOferta(oferta.id)
     emit('changed')
   } catch (err) {
-    toast.error('No se pudo registrar el toque', {
-      description: err.data?.detail ?? '',
-      duration: 5000,
-    })
+    const e = err as { data?: unknown }
+    toast.error('No se pudo registrar el toque', { description: readDetail(e.data) ?? '' })
   } finally {
     tocando.value = null
   }
@@ -284,7 +173,7 @@ async function guardar() {
     await comercialService.crearOferta(props.oportunidadId, {
       tipo: form.tipo,
       planta_nombre: form.planta_nombre || null,
-      proyecto_ids: form.proyecto_ids?.length ? form.proyecto_ids : null,
+      proyecto_ids: form.proyecto_ids.length ? form.proyecto_ids : null,
       numero_oferta: form.numero_oferta || null,
       // Antes no se enviaba: toda oferta nacía en 'oportunidad'.
       estado: form.estado,
@@ -296,21 +185,216 @@ async function guardar() {
     showDialog.value = false
     emit('changed')
   } catch (err) {
-    toast.error('No se pudo guardar la oferta', {
-      description: err.data?.detail ?? '',
-      duration: 5000,
-    })
+    const e = err as { data?: unknown }
+    toast.error('No se pudo guardar la oferta', { description: readDetail(e.data) ?? '' })
   } finally {
     guardando.value = false
   }
 }
 </script>
 
-<style scoped>
-.etiqueta {
-  display: block;
-  font-size: 11px;
-  color: #7a6e8a;
-  margin-bottom: 0.15rem;
-}
-</style>
+<template>
+  <div>
+    <div class="mb-3 flex items-center justify-between">
+      <span class="text-sm text-muted-foreground">
+        {{ ofertas.length }} oferta(s) — una por planta × servicio
+      </span>
+      <Button size="sm" @click="abrirNueva">
+        <PlusIcon class="size-4" />
+        Agregar oferta
+      </Button>
+    </div>
+
+    <DataTable
+      :columns="columnas"
+      :rows="ofertas as unknown as DataTableRow[]"
+      row-key="id"
+      empty-message="Sin ofertas todavía."
+    >
+      <template #cell="{ row, column }">
+        <template v-if="column.key === 'planta_nombre'">
+          <div>
+            <div>{{ asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—' }}</div>
+            <div v-if="asOferta(row).plantas?.length" class="text-[11px] text-muted-foreground">
+              {{ asOferta(row).plantas!.map((p) => p.nombre_comercial).join(' · ') }}
+            </div>
+          </div>
+        </template>
+        <template v-else-if="column.key === 'tipo'">{{ labelTipo(asOferta(row).tipo) }}</template>
+        <template v-else-if="column.key === 'servicios'">
+          <template v-if="asOferta(row).detalle?.servicios?.length">
+            <span
+              v-for="s in asOferta(row).detalle!.servicios"
+              :key="s"
+              class="mr-1 mb-1 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700"
+              >{{ s }}</span
+            >
+          </template>
+          <span v-else class="text-muted-foreground/60">—</span>
+          <div v-if="asOferta(row).detalle?.fpo" class="mt-1 text-xs text-muted-foreground">
+            FPO: {{ asOferta(row).detalle!.fpo }}
+          </div>
+        </template>
+        <template v-else-if="column.key === 'codigo_seguimiento'">
+          <span class="font-mono text-xs">{{
+            asOferta(row).codigo_seguimiento || asOferta(row).numero_oferta || '—'
+          }}</span>
+        </template>
+        <template v-else-if="column.key === 'precio_detalle'">{{
+          asOferta(row).precio_detalle || '—'
+        }}</template>
+        <!-- La etapa es de la oferta: cada una avanza sola. -->
+        <template v-else-if="column.key === 'estado'">
+          <Select
+            :model-value="asOferta(row).estado"
+            :disabled="moviendo === asOferta(row).id"
+            @update:model-value="(v) => cambiarEtapa(asOferta(row), v as string)"
+          >
+            <SelectTrigger class="w-full text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </template>
+        <template v-else-if="column.key === 'fecha_oferta'">
+          <span v-if="asOferta(row).fecha_oferta">{{ fmtFecha(asOferta(row).fecha_oferta) }}</span>
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'seguimientos'">
+          <div class="flex items-center gap-2">
+            <span :class="alarmante(asOferta(row)) ? 'font-semibold text-destructive' : ''">
+              {{ asOferta(row).seguimientos || 0 }}
+            </span>
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :disabled="tocando === asOferta(row).id"
+                  @click="registrarSeguimiento(asOferta(row))"
+                >
+                  <SendIcon class="size-4" />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Registrar un toque (reenvío o llamada de insistencia)</GTooltipContent>
+            </GTooltip>
+          </div>
+        </template>
+        <template v-else-if="column.key === 'fecha_ultima_respuesta'">
+          <span v-if="asOferta(row).fecha_ultima_respuesta">{{
+            fmtFecha(asOferta(row).fecha_ultima_respuesta)
+          }}</span>
+          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive">sin respuesta</span>
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'acciones'">
+          <div class="flex items-center">
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  @click="router.push(`/comercial?oferta=${asOferta(row).id}`)"
+                >
+                  <ExternalLinkIcon class="size-4" />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Abrir en el tablero (editar todo)</GTooltipContent>
+            </GTooltip>
+            <GTooltip v-if="asOferta(row).documento_url">
+              <GTooltipTrigger as-child>
+                <a :href="asOferta(row).documento_url" target="_blank" rel="noopener" class="p-2">
+                  <FileTextIcon class="size-4 text-primary" />
+                </a>
+              </GTooltipTrigger>
+              <GTooltipContent>Documento de la oferta</GTooltipContent>
+            </GTooltip>
+          </div>
+        </template>
+      </template>
+    </DataTable>
+
+    <Dialog v-model:open="showDialog">
+      <DialogContent class="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nueva oferta</DialogTitle>
+        </DialogHeader>
+        <div class="flex flex-col gap-3">
+          <div>
+            <GLabel required>Tipo de oferta</GLabel>
+            <Select
+              :model-value="form.tipo ?? undefined"
+              @update:model-value="(v) => (form.tipo = v as string)"
+            >
+              <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{
+                  t.label
+                }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <GLabel>Planta</GLabel>
+            <Input v-model.trim="form.planta_nombre" placeholder="Ej: Balmora 1 y 2" />
+          </div>
+          <div>
+            <GLabel>Plantas ya creadas en Proyectos</GLabel>
+            <MultiComboBox
+              v-model="proyectoIdsStr"
+              :options="opcionesProyecto"
+              :placeholder="cargandoProyectos ? 'Cargando…' : 'Buscá la planta por nombre, municipio o departamento…'"
+              empty-message="No hay plantas cargadas"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <GLabel>Código de seguimiento</GLabel>
+              <Input v-model.trim="form.numero_oferta" placeholder="Se autogenera (OP.…) si lo dejás vacío" />
+            </div>
+            <div>
+              <GLabel>Etapa inicial</GLabel>
+              <Select v-model="form.estado">
+                <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="e in ETAPAS_INICIALES" :key="e.value" :value="e.value">{{
+                    e.label
+                  }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <GLabel>{{ etiquetaPrecio(form.tipo) }}</GLabel>
+            <Input v-model.trim="form.precio_detalle" :placeholder="placeholderPrecio(form.tipo)" />
+            <p v-if="ayudaPrecio(form.tipo)" class="mt-1 text-xs text-muted-foreground">
+              {{ ayudaPrecio(form.tipo) }}
+            </p>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <GLabel>Fecha de envío</GLabel>
+              <DatePicker v-model="form.fecha_oferta" clearable />
+            </div>
+            <div>
+              <GLabel>Inicio tentativo</GLabel>
+              <DatePicker v-model="form.fecha_tentativa_inicio" clearable />
+            </div>
+            <div>
+              <GLabel>Fin tentativo</GLabel>
+              <DatePicker v-model="form.fecha_fin_tentativa" clearable />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" @click="showDialog = false">Cancelar</Button>
+          <Button :disabled="!form.tipo || guardando" @click="guardar">
+            <LoaderCircleIcon v-if="guardando" class="animate-spin" />
+            <CheckIcon v-else class="size-4" />
+            Crear oferta
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

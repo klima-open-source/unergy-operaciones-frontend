@@ -9,56 +9,29 @@
 
   Y lo que faltaba y rompía la integración: la planta creada queda **vinculada a
   la oferta** (`?oferta_id=`). Antes se colgaba solo de la oportunidad, y
-  GET /comercial/proyectos-operando resuelve las plantas por la oferta: la
-  planta existía y la API seguía devolviendo `"proyectos": []`.
+  GET /comercial/proyectos-operando —que resuelve las plantas de cada contrato
+  por la oferta— devolvía nodos con `"proyectos": []`. La planta podía existir
+  con todos sus datos cargados (La Catedral, de la oferta OP.COM No.0021-1-2026)
+  y la integración no la veía.
 -->
-<template>
-  <Dialog :visible="visible" modal :style="{ width: '46rem' }" :closable="!guardando"
-          @update:visible="$emit('update:visible', $event)">
-    <template #header>
-      <div>
-        <h2 class="text-base font-semibold" style="color:var(--color-unergy-deep)">Crear planta</h2>
-        <p class="text-xs" style="color:#9b89b5">
-          Se crea en <strong>Proyectos</strong>, con todos sus datos.
-          <span v-if="oferta"> Queda vinculada a {{ codigoOferta }}.</span>
-        </p>
-      </div>
-    </template>
-
-    <Message v-if="!oferta" severity="warn" :closable="false" class="mb-3">
-      <span class="text-xs">
-        Se va a crear sin vincular a ninguna oferta. Cumplimiento y
-        <code>/comercial/proyectos-operando</code> no la van a ver hasta que la
-        vincules desde el panel de una oferta.
-      </span>
-    </Message>
-
-    <ProyectoForm operador-red-obligatorio :guardando="guardando"
-                  @save="crear" @cancel="$emit('update:visible', false)" />
-
-    <Message v-if="error" severity="error" :closable="false" class="mt-3">
-      <span class="text-xs">{{ error }}</span>
-    </Message>
-  </Dialog>
-</template>
-
-<script setup>
-import { ref, computed, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
+<script setup lang="ts">
+import type { ProyectoEditable, ProyectoInfoTecnica } from '~/types/proyecto'
+import type { Oferta, Oportunidad } from '~/features/comercial/types'
+import type { PayloadInversionista } from '~/features/proyectos/types'
+import { TriangleAlertIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { readDetail } from '~/core/errors'
 import { ComercialService } from '~/features/comercial/services/comercial'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import ProyectoForm from '~/features/proyectos/components/ProyectoForm.vue'
-import { readDetail } from '~/core/errors'
 
-const props = defineProps({
-  visible: Boolean,
-  oportunidadId: { type: [Number, String], required: true },
+const props = defineProps<{
+  visible: boolean
+  oportunidadId: Oportunidad['id']
   /** La oferta a la que se le pega la planta. Sin ella se crea suelta. */
-  oferta: { type: Object, default: null },
-})
-const emit = defineEmits(['update:visible', 'creado'])
+  oferta?: Oferta | null
+}>()
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; creado: [proyecto: { id: number; nombre_comercial: string }] }>()
 
 const confirm = useConfirm()
 const comercialService = new ComercialService()
@@ -67,13 +40,20 @@ const proyectosService = new ProyectosService()
 const guardando = ref(false)
 const error = ref('')
 
-const codigoOferta = computed(() =>
-  props.oferta?.codigo_seguimiento || props.oferta?.numero_oferta || `la oferta #${props.oferta?.id}`)
+const codigoOferta = computed(
+  () => props.oferta?.codigo_seguimiento || props.oferta?.numero_oferta || `la oferta #${props.oferta?.id}`,
+)
 
-watch(() => props.visible, (v) => { if (!v) error.value = '' })
+watch(
+  () => props.visible,
+  (v) => {
+    if (!v) error.value = ''
+  },
+)
 
-function mensajeError(err) {
-  return readDetail(err?.data) ?? 'No se pudo crear el proyecto'
+function mensajeError(err: unknown): string {
+  const e = err as { data?: unknown } | undefined
+  return readDetail(e?.data) ?? 'No se pudo crear el proyecto'
 }
 
 /**
@@ -86,12 +66,16 @@ function mensajeError(err) {
  * inversionista, y un objeto en ese lugar se habría leído como `forzar=true`,
  * saltándose el aviso de posible duplicado sin que nadie lo notara.
  */
-async function crear(payload, infoTecnica, inversionista = null, forzar = false) {
+async function crear(
+  payload: ProyectoEditable,
+  infoTecnica?: ProyectoInfoTecnica | null,
+  inversionista: PayloadInversionista | null = null,
+  forzar = false,
+) {
   guardando.value = true
   error.value = ''
   try {
-    const filtros = { ...(forzar ? { forzar: true } : {}) }
-    if (props.oferta?.id) filtros.oferta_id = props.oferta.id
+    const filtros = { ...(forzar ? { forzar: true } : {}), ...(props.oferta?.id ? { oferta_id: props.oferta.id } : {}) }
     const data = await comercialService.crearProyectoDesdeCRM(props.oportunidadId, payload, filtros)
 
     if (infoTecnica && Object.keys(infoTecnica).length) {
@@ -118,13 +102,13 @@ async function crear(payload, infoTecnica, inversionista = null, forzar = false)
 
     toast.success(`Planta «${data.nombre_comercial}» creada`, {
       description: props.oferta ? `Vinculada a ${codigoOferta.value}.` : 'Sin vincular a ninguna oferta.',
-      duration: 4000,
     })
     emit('creado', data)
     emit('update:visible', false)
   } catch (err) {
-    const det = err.data?.detail
-    if (err.status === 409 && det?.codigo === 'posible_duplicado') {
+    const e = err as { status?: number; data?: { detail?: { codigo?: string; mensaje?: string } } }
+    const det = e.data?.detail
+    if (e.status === 409 && det?.codigo === 'posible_duplicado') {
       confirm({
         title: 'Posible duplicado',
         description: `${det.mensaje}. ¿Crear de todos modos?`,
@@ -140,3 +124,37 @@ async function crear(payload, infoTecnica, inversionista = null, forzar = false)
   }
 }
 </script>
+
+<template>
+  <Dialog :open="visible" @update:open="(v: boolean) => !guardando && emit('update:visible', v)">
+    <DialogContent class="sm:max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Crear planta</DialogTitle>
+        <DialogDescription>
+          Se crea en <strong>Proyectos</strong>, con todos sus datos.
+          <span v-if="oferta"> Queda vinculada a {{ codigoOferta }}.</span>
+        </DialogDescription>
+      </DialogHeader>
+
+      <Alert v-if="!oferta">
+        <TriangleAlertIcon class="text-warning" />
+        <AlertDescription>
+          Se va a crear sin vincular a ninguna oferta. Cumplimiento y
+          <code>/comercial/proyectos-operando</code> no la van a ver hasta que la
+          vincules desde el panel de una oferta.
+        </AlertDescription>
+      </Alert>
+
+      <ProyectoForm
+        operador-red-obligatorio
+        :guardando="guardando"
+        @save="crear"
+        @cancel="emit('update:visible', false)"
+      />
+
+      <Alert v-if="error" variant="destructive">
+        <AlertDescription>{{ error }}</AlertDescription>
+      </Alert>
+    </DialogContent>
+  </Dialog>
+</template>

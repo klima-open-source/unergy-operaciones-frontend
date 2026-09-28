@@ -10,337 +10,57 @@
   · las plantas de la oferta, que son las que se firman
   · el botón de firmar, que cablea POST /comercial/ofertas/{id}/firmar
 -->
-<template>
-  <Drawer :visible="visible" position="right" class="!w-full md:!w-[34rem]"
-          @update:visible="$emit('update:visible', $event)">
-    <template #header>
-      <div v-if="oferta" class="min-w-0 pr-2">
-        <div class="flex items-center gap-2">
-          <span class="font-mono text-xs" style="color:#9b89b5">
-            {{ oferta.codigo_seguimiento || oferta.numero_oferta || 'sin código' }}
-          </span>
-          <GBadge v-if="oferta.alerta" color="destructive" class="scale-90">⚠ {{ oferta.dias_sin_respuesta }}d</GBadge>
-        </div>
-        <h2 class="text-base font-semibold truncate" style="color:var(--color-unergy-deep)">
-          {{ oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta' }}
-        </h2>
-        <router-link :to="`/comercial/oportunidades/${oferta.oportunidad_id}`"
-                     class="text-xs underline" style="color:var(--color-unergy-purple)">
-          {{ oferta.cliente_razon_social }}
-        </router-link>
-      </div>
-    </template>
-
-    <div v-if="oferta" class="flex flex-col gap-5 text-sm">
-      <!-- ── Etapa ───────────────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Etapa</h3>
-        <Select :modelValue="oferta.estado" :options="ETAPAS" optionLabel="label" optionValue="value"
-                class="w-full" :loading="moviendo" @update:modelValue="cambiarEtapa" />
-        <p class="ayuda">
-          En esta etapa desde hace {{ diasDesde(oferta.estado_desde) ?? '—' }} días.
-        </p>
-        <Message v-if="puedeFirmarPPA(oferta)" severity="info" :closable="false" class="mt-2">
-          <span class="text-xs">
-            Cuando se firme, usá <strong>Firmar → crear PPA</strong> (abajo) en vez de mover la etapa a
-            mano: así queda el contrato creado y enlazado.
-          </span>
-        </Message>
-      </section>
-
-      <!-- ── Seguimiento del envío ───────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Seguimiento del envío</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="etiqueta">Enviada el</label>
-            <DatePicker v-model="f.fecha_oferta" dateFormat="yy-mm-dd" showIcon class="w-full"
-                        @update:modelValue="autosave" />
-          </div>
-          <div>
-            <label class="etiqueta">Última respuesta del cliente</label>
-            <DatePicker v-model="f.fecha_ultima_respuesta" dateFormat="yy-mm-dd" showIcon class="w-full"
-                        @update:modelValue="autosave" />
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between gap-2 mt-3 rounded-md px-3 py-2"
-             style="background:#FAF8FC;border:1px solid #e8e0f0">
-          <div class="min-w-0">
-            <div class="text-xs font-medium" style="color:var(--color-unergy-deep)">
-              {{ oferta.seguimientos || 0 }} toque(s) enviados
-            </div>
-            <div v-if="sinRespuesta(oferta)" class="text-[11px]" style="color:#D64455">
-              El cliente nunca contestó
-            </div>
-          </div>
-          <div class="flex items-center gap-1 flex-shrink-0">
-            <Button label="+1 toque" size="small" outlined :loading="tocando" v-tooltip.top="'Reenvío o llamada de insistencia'" @click="tocar">
-              <template #icon><SendIcon class="size-[1em]" /></template>
-            </Button>
-            <Button label="Respondió" size="small" severity="success" outlined :loading="guardando" v-tooltip.top="'Marca la respuesta de hoy y apaga la alerta'" @click="marcarRespuesta">
-              <template #icon><CheckIcon class="size-[1em]" /></template>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Comercial ───────────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Comercial</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="etiqueta">Tipo de oferta</label>
-            <Select v-model="f.tipo" :options="TIPOS_OFERTA" optionLabel="label" optionValue="value"
-                    class="w-full" @update:modelValue="autosave" />
-          </div>
-          <!-- El precio de una compra de energía es una tarifa en $/kWh, no la
-               comisión en % de un servicio: la etiqueta y el ejemplo siguen al tipo. -->
-          <div>
-            <label class="etiqueta">{{ etiquetaPrecio(f.tipo) }}</label>
-            <InputText v-model.trim="f.precio_detalle" class="w-full"
-                       :placeholder="placeholderPrecio(f.tipo)" @update:modelValue="autosave" />
-          </div>
-          <div>
-            <label class="etiqueta">Inicio tentativo del suministro</label>
-            <DatePicker v-model="f.fecha_tentativa_inicio" dateFormat="yy-mm-dd" showIcon class="w-full"
-                        @update:modelValue="autosave" />
-          </div>
-          <div>
-            <label class="etiqueta">Fin tentativo</label>
-            <DatePicker v-model="f.fecha_fin_tentativa" dateFormat="yy-mm-dd" showIcon class="w-full"
-                        @update:modelValue="autosave" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="etiqueta">Documento de la oferta (link)</label>
-            <InputText v-model.trim="f.documento_url" class="w-full" placeholder="https://…"
-                       @update:modelValue="autosave" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="etiqueta">Notas</label>
-            <Textarea v-model="f.notas" rows="2" autoResize class="w-full" @update:modelValue="autosave" />
-          </div>
-        </div>
-        <p v-if="ayudaPrecio(f.tipo)" class="ayuda">{{ ayudaPrecio(f.tipo) }}</p>
-      </section>
-
-      <!-- ── Propuestas (versiones) ──────────────────────────────────────── -->
-      <!--
-        El campo "Documento de la oferta" de arriba es el de la oferta entera y
-        se sobrescribe al reofertar. Las propuestas son el historial: cada
-        reoferta deja su documento y su tabla de precios, y la ACEPTADA es de la
-        que nacera el contrato al firmar.
-      -->
-      <VersionesOferta v-if="oferta?.id" :ofertaId="oferta.id" />
-
-      <!-- ── Plantas ─────────────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Plantas de la oferta</h3>
-        <p class="ayuda mb-2">
-          Son las que pasan al contrato al firmar. Una oferta puede cubrir varias
-          («Balmora 1 y 2»).
-        </p>
-        <label class="etiqueta">Nombre de la planta (texto libre)</label>
-        <InputText v-model.trim="f.planta_nombre" class="w-full" @update:modelValue="autosave" />
-        <div class="mt-3">
-          <div class="flex items-center justify-between mb-1">
-            <label class="etiqueta !mb-0">Proyectos vinculados</label>
-            <Button label="Crear planta" text size="small" v-tooltip.top="'Crearla en Proyectos y vincularla a esta oferta'" @click="crearProyecto = true">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
-            </Button>
-          </div>
-          <MultiSelect v-model="f.proyecto_ids" :options="proyectos" optionLabel="nombre_comercial"
-                       :filterFields="['nombre_comercial', 'municipio', 'departamento']"
-                       optionValue="id" filter display="chip" class="w-full"
-                       :loading="cargandoCatalogos" placeholder="Vincular a proyectos existentes…"
-                       filterPlaceholder="Buscar por nombre, municipio o departamento…"
-                       @update:modelValue="cambiarPlantas">
-            <template #option="{ option }">
-              <div class="min-w-0">
-                <div class="text-sm" style="color:var(--color-unergy-deep)">{{ option.nombre_comercial }}</div>
-                <div class="text-[11px]" style="color:#9b89b5">
-                  {{ [option.municipio, option.departamento].filter(Boolean).join(', ') || 'Sin ubicación' }}
-                  <span v-if="option.potencia_ac_kw">
-                    · {{ Number(option.potencia_ac_kw).toLocaleString('es-CO', { maximumFractionDigits: 0 }) }} kWp
-                  </span>
-                </div>
-              </div>
-            </template>
-          </MultiSelect>
-          <p v-if="!f.proyecto_ids?.length" class="ayuda" style="color:#D64455">
-            Sin ningún proyecto vinculado, el PPA se crearía sin plantas: ni Cumplimiento
-            ni <code>/comercial/proyectos-operando</code> pueden ver esta oferta.
-          </p>
-        </div>
-      </section>
-
-      <!-- ── Ficha operativa ─────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Ficha operativa</h3>
-        <p class="ayuda mb-2">
-          Cada dato dice de dónde salió. Lo que manda el proyecto no se edita acá:
-          se arregla en el proyecto.
-        </p>
-        <div class="flex flex-col gap-3">
-          <div v-for="c in fichaCampos" :key="c.campo" class="flex items-start justify-between gap-2">
-            <div class="min-w-0 flex-1">
-              <div class="etiqueta">{{ c.label }}</div>
-              <!-- Editable solo cuando el dato es (o sería) el declarado en la
-                   oferta: si lo gobierna el proyecto, escribirlo acá no cambiaría
-                   nada visible y se leería como un bug. -->
-              <InputText v-if="c.editor === 'texto'" v-model.trim="f[c.campo]" class="w-full"
-                         @update:modelValue="autosave" />
-              <Select v-else-if="c.editor === 'operador'" v-model="f[c.campo]" :options="operadores"
-                      optionLabel="nombre" optionValue="id" filter showClear class="w-full"
-                      placeholder="Del catálogo…" @update:modelValue="autosave" />
-              <InputNumber v-else-if="c.editor === 'numero'" v-model="f[c.campo]" class="w-full"
-                           :maxFractionDigits="0" @update:modelValue="autosave" />
-              <div v-else class="text-sm" style="color:var(--color-unergy-deep)">{{ c.valor ?? '—' }}</div>
-            </div>
-            <span v-if="fuente(c.campo)" class="text-[10px] rounded px-1.5 py-0.5 flex-shrink-0 mt-4"
-                  :class="fuente(c.campo).clase">{{ fuente(c.campo).label }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Contrato ────────────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Contrato</h3>
-        <div v-if="oferta.ppa_contrato_id" class="rounded-md px-3 py-2"
-             style="background:#E6F7F5;border:1px solid #99E0D8">
-          <router-link :to="`/contratos/${oferta.ppa_contrato_id}`" class="text-sm font-medium underline"
-                       style="color:#0F766E">
-            Contrato PPA #{{ oferta.ppa_contrato_id }}
-          </router-link>
-          <div class="text-xs mt-1" style="color:#0F766E">
-            {{ fmtFecha(oferta.ficha?.contrato_fecha_inicio) }} → {{ fmtFecha(oferta.ficha?.contrato_fecha_fin) }}
-            <span v-if="oferta.ficha?.contrato_compra_anios">
-              · {{ oferta.ficha.contrato_compra_anios }} años ({{ oferta.ficha.contrato_compra_meses }} meses)
-            </span>
-          </div>
-        </div>
-        <div v-else-if="puedeFirmarPPA(oferta)">
-          <Button label="Firmar → crear PPA" class="w-full" @click="$emit('firmar', oferta)">
-            <template #icon><FileCheckIcon class="size-[1em]" /></template>
-          </Button>
-          <p class="ayuda">Crea el contrato con sus tarifas y lo enlaza a esta oferta.</p>
-        </div>
-        <div v-else-if="oferta.tipo === 'servicios_operacionales' && f.contrato_servicio_id"
-             class="rounded-md px-3 py-2" style="background:#E6F7F5;border:1px solid #99E0D8">
-          <router-link :to="`/contratos/${f.contrato_servicio_id}`" class="text-sm font-medium underline"
-                       style="color:#0F766E">
-            Contrato de Representación #{{ f.contrato_servicio_id }}
-          </router-link>
-          <div class="mt-1">
-            <Button label="Desvincular" text size="small" severity="secondary" @click="desvincularContrato">
-              <template #icon><UnlinkIcon class="size-[1em]" /></template>
-            </Button>
-          </div>
-        </div>
-        <div v-else-if="oferta.tipo === 'servicios_operacionales'">
-          <Button label="Crear contrato de representación" class="w-full" @click="showContratoWizard = true">
-            <template #icon><FileCheckIcon class="size-[1em]" /></template>
-          </Button>
-          <p class="ayuda">Crea el contrato y lo enlaza a esta oferta.</p>
-          <div class="mt-2">
-            <label class="etiqueta">O vincular uno ya creado</label>
-            <Select v-model="f.contrato_servicio_id" :options="contratosServicio" optionLabel="contratante_nombre"
-                    optionValue="id" filter showClear class="w-full" :loading="cargandoCatalogos"
-                    placeholder="Buscar contrato de representación existente…"
-                    @update:modelValue="autosave">
-              <template #option="{ option }">
-                <div class="min-w-0">
-                  <div class="text-sm" style="color:var(--color-unergy-deep)">{{ option.contratante_nombre || '—' }}</div>
-                  <div class="text-[11px]" style="color:#9b89b5">{{ option.numero_contrato || 'Sin N° de contrato' }}</div>
-                </div>
-              </template>
-            </Select>
-            <p class="ayuda">
-              Para un contrato creado desde otro camino (ej. la pestaña Servicios de un
-              proyecto), sin pasar por esta oferta.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Bitácora ────────────────────────────────────────────────────── -->
-      <section>
-        <h3 class="seccion">Bitácora de esta oferta</h3>
-        <div class="flex gap-2 flex-wrap">
-          <Select v-model="gestion.tipo" :options="TIPOS_GESTION" optionLabel="label" optionValue="value"
-                  class="w-36" />
-          <SelectButton v-model="gestion.direccion" :options="DIRECCIONES"
-                        optionLabel="label" optionValue="value" :allowEmpty="false" />
-          <InputText v-model.trim="gestion.descripcion" class="flex-1"
-                     placeholder="Qué pasó…" @keyup.enter="registrarGestion" />
-          <Button :disabled="!gestion.descripcion" :loading="guardandoGestion" @click="registrarGestion">
-            <template #icon><PlusIcon class="size-[1em]" /></template>
-          </Button>
-        </div>
-        <p class="ayuda">
-          Queda colgada de esta oferta y apaga solo su alerta — no la de sus hermanas
-          del mismo cliente. <strong>Solo «Nos respondió» apaga la alerta</strong>:
-          insistir no cuenta como respuesta.
-        </p>
-      </section>
-
-      <div class="flex items-center justify-between pt-2 border-t" style="border-color:#e8e0f0">
-        <span class="text-xs" style="color:#9b89b5">{{ estadoGuardado }}</span>
-        <Button label="Eliminar oferta" text severity="danger" size="small" @click="confirmarEliminar">
-          <template #icon><Trash2Icon class="size-[1em]" /></template>
-        </Button>
-      </div>
-    </div>
-
-    <ProyectoDesdeCRMDialog v-if="oferta" v-model:visible="crearProyecto"
-                            :oportunidad-id="oferta.oportunidad_id" :oferta="oferta"
-                            @creado="proyectoCreado" />
-
-    <ContratoServicioWizard v-if="oferta && oferta.tipo === 'servicios_operacionales'"
-                            v-model:visible="showContratoWizard" tipo="representacion"
-                            :proyecto-id-default="f.proyecto_ids?.[0] ?? null"
-                            @creado="contratoCreado" @cerrar="showContratoWizard = false" />
-  </Drawer>
-</template>
-
-<script setup>
-import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
-import Drawer from 'primevue/drawer'
-import VersionesOferta from '~/features/comercial/components/VersionesOferta.vue'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
-import MultiSelect from 'primevue/multiselect'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Textarea from 'primevue/textarea'
-import DatePicker from 'primevue/datepicker'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import { toast } from 'vue-sonner'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
-import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+<script setup lang="ts">
+import type { Oferta } from '~/features/comercial/types'
+import type { OperadorRed } from '~/features/operadores-red/types'
+import type { ContratoServicio } from '~/features/contratos/types'
+import type { UseOfertas } from './useOfertas'
 import {
-  ETAPAS, TIPOS_OFERTA, TIPOS_GESTION, FUENTES, puedeFirmarPPA,
-  aFecha, aFechaStr, fmtFecha, diasDesde, sinRespuesta,
-  etiquetaPrecio, placeholderPrecio, ayudaPrecio,
-} from './comercial.js'
-import { cargarProyectos } from './catalogos.js'
-import ProyectoDesdeCRMDialog from './ProyectoDesdeCRMDialog.vue'
+  CheckIcon,
+  FileCheckIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  SendIcon,
+  Trash2Icon,
+  UnlinkIcon,
+} from '@lucide/vue'
+import { toast } from 'vue-sonner'
+// Import explícito: bug conocido de tipos de `blocks/DatePicker`.
+import DatePicker from '~/components/blocks/DatePicker.vue'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
-import { CheckIcon, FileCheckIcon, PlusIcon, SendIcon, Trash2Icon, UnlinkIcon } from '@lucide/vue'
+import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { cargarProyectos, type ProyectoCatalogo } from './catalogos'
+import {
+  aFecha,
+  aFechaStr,
+  ayudaPrecio,
+  diasDesde,
+  ETAPAS,
+  etiquetaPrecio,
+  fmtFecha,
+  FUENTES,
+  placeholderPrecio,
+  puedeFirmarPPA,
+  sinRespuesta,
+  TIPOS_GESTION,
+  TIPOS_OFERTA,
+} from './comercial'
+import ProyectoDesdeCRMDialog from './ProyectoDesdeCRMDialog.vue'
+import VersionesOferta from './VersionesOferta.vue'
 
-const props = defineProps({
-  visible: Boolean,
-  oferta: { type: Object, default: null },
+const props = defineProps<{
+  visible: boolean
+  oferta?: Oferta | null
   /**
    * Las mutaciones de useOfertas(), inyectadas por la vista dueña del estado.
    * Se pasan como objeto en vez de emitir eventos con callback porque el drawer
    * necesita el RESULTADO de cada acción (para el "Guardado ✓" y para revertir),
    * y un emit no devuelve nada.
    */
-  acciones: { type: Object, required: true },
-})
-const emit = defineEmits(['update:visible', 'firmar'])
+  acciones: Pick<UseOfertas, 'guardarOferta' | 'moverEtapa' | 'registrarSeguimiento' | 'registrarGestion' | 'eliminarOferta'>
+}>()
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; firmar: [oferta: Oferta] }>()
 
 const confirm = useConfirm()
 const operadoresRedService = new OperadoresRedService()
@@ -351,28 +71,31 @@ const tocando = ref(false)
 const guardando = ref(false)
 const guardandoGestion = ref(false)
 const estadoGuardado = ref('')
-const proyectos = ref([])
-const operadores = ref([])
-const contratosServicio = ref([])
+const proyectos = ref<ProyectoCatalogo[]>([])
+const operadores = ref<{ id: number; nombre?: string }[]>([])
+const contratosServicio = ref<ContratoServicio[]>([])
 const cargandoCatalogos = ref(false)
 const crearProyecto = ref(false)
 const showContratoWizard = ref(false)
-let temporizador = null
+let temporizador: ReturnType<typeof setTimeout> | undefined
 
 /**
  * La planta recién creada ya viene vinculada del backend (`?oferta_id=`). Acá
  * solo se refleja en el selector para que se vea sin recargar; NO se reenvía la
  * M2M, porque el backend ya la escribió y mandarla otra vez la reescribiría.
  */
-function proyectoCreado(p) {
-  proyectos.value = [...proyectos.value, {
-    id: p.id,
-    nombre_comercial: p.nombre_comercial,
-    municipio: p.municipio ?? null,
-    departamento: p.departamento ?? null,
-    estado: p.estado ?? null,
-    potencia_ac_kw: p.potencia_ac_kw ?? null,
-  }].sort((a, b) => (a.nombre_comercial || '').localeCompare(b.nombre_comercial || '', 'es'))
+function proyectoCreado(p: { id: number; nombre_comercial: string; municipio?: string | null; departamento?: string | null; estado?: string | null; potencia_ac_kw?: number | null }) {
+  proyectos.value = [
+    ...proyectos.value,
+    {
+      id: p.id,
+      nombre_comercial: p.nombre_comercial,
+      municipio: p.municipio ?? null,
+      departamento: p.departamento ?? null,
+      estado: p.estado ?? null,
+      potencia_ac_kw: p.potencia_ac_kw ?? null,
+    },
+  ].sort((a, b) => (a.nombre_comercial || '').localeCompare(b.nombre_comercial || '', 'es'))
   if (!f.proyecto_ids?.includes(p.id)) f.proyecto_ids = [...(f.proyecto_ids ?? []), p.id]
 }
 
@@ -383,9 +106,43 @@ const DIRECCIONES = [
 
 const gestion = reactive({ tipo: 'llamada', descripcion: '', direccion: 'saliente' })
 
+interface FormularioOferta {
+  tipo: string | null
+  planta_nombre: string
+  precio_detalle: string
+  notas: string
+  documento_url: string
+  fecha_oferta: Date | null
+  fecha_ultima_respuesta: Date | null
+  fecha_tentativa_inicio: Date | null
+  fecha_fin_tentativa: Date | null
+  proyecto_ids: number[]
+  municipio: string
+  departamento: string
+  operador_red_id: number | null
+  energia_promedio_kwh_mes: number | null
+  contrato_servicio_id: number | null
+}
+
 // Copia editable. Se rearma cada vez que cambia la oferta abierta para que un
 // autosave pendiente nunca escriba los datos de una oferta sobre otra.
-const f = reactive({})
+const f = reactive<FormularioOferta>({
+  tipo: null,
+  planta_nombre: '',
+  precio_detalle: '',
+  notas: '',
+  documento_url: '',
+  fecha_oferta: null,
+  fecha_ultima_respuesta: null,
+  fecha_tentativa_inicio: null,
+  fecha_fin_tentativa: null,
+  proyecto_ids: [],
+  municipio: '',
+  departamento: '',
+  operador_red_id: null,
+  energia_promedio_kwh_mes: null,
+  contrato_servicio_id: null,
+})
 
 /**
  * Las plantas solo se envían si de verdad se tocó el selector.
@@ -398,7 +155,7 @@ const f = reactive({})
  */
 const plantasTocadas = ref(false)
 
-function cargarFormulario(o) {
+function cargarFormulario(o: Oferta | null | undefined) {
   Object.assign(f, {
     tipo: o?.tipo ?? null,
     planta_nombre: o?.planta_nombre ?? '',
@@ -420,77 +177,125 @@ function cargarFormulario(o) {
   estadoGuardado.value = ''
 }
 
-watch(() => props.oferta?.id, () => {
-  clearTimeout(temporizador)
-  cargarFormulario(props.oferta)
-}, { immediate: true })
+watch(
+  () => props.oferta?.id,
+  () => {
+    clearTimeout(temporizador)
+    cargarFormulario(props.oferta)
+  },
+  { immediate: true },
+)
 
 // Los catálogos se cargan la primera vez que se abre el drawer, no al montar la
 // vista: son más de mil proyectos que la mayoría de las sesiones no necesita.
-watch(() => props.visible, async (abierto) => {
-  if (!abierto || proyectos.value.length || operadores.value.length) return
-  cargandoCatalogos.value = true
-  const [pr, op, cs] = await Promise.allSettled([
-    cargarProyectos(),
-    operadoresRedService.listar(),
-    contratosServicioService.listar({ tipo: 'representacion' }),
-  ])
-  if (pr.status === 'fulfilled') {
-    proyectos.value = pr.value
-  } else {
-    toast.warning('No se pudo cargar la lista de proyectos', { duration: 4000 })
-  }
-  if (op.status === 'fulfilled') {
-    operadores.value = op.value.map((o) => ({ id: o.id, nombre: o.nombre_comercial || o.nombre_legal }))
-  }
-  if (cs.status === 'fulfilled') {
-    contratosServicio.value = cs.value
-  }
-  cargandoCatalogos.value = false
-})
+watch(
+  () => props.visible,
+  async (abierto) => {
+    if (!abierto || proyectos.value.length || operadores.value.length) return
+    cargandoCatalogos.value = true
+    const [pr, op, cs] = await Promise.allSettled([
+      cargarProyectos(),
+      operadoresRedService.listar(),
+      contratosServicioService.listar({ tipo: 'representacion' }),
+    ])
+    if (pr.status === 'fulfilled') {
+      proyectos.value = pr.value
+    } else {
+      toast.warning('No se pudo cargar la lista de proyectos')
+    }
+    if (op.status === 'fulfilled') {
+      operadores.value = op.value.map((o: OperadorRed) => ({ id: o.id, nombre: o.nombre_comercial || o.nombre_legal }))
+    }
+    if (cs.status === 'fulfilled') {
+      contratosServicio.value = cs.value
+    }
+    cargandoCatalogos.value = false
+  },
+)
 
 // ── Ficha operativa: valor + procedencia por campo ──────────────────────────
-function fuente(campo) {
+function fuente(campo: string) {
   const clave = props.oferta?.ficha?.fuentes?.[campo]
   return clave ? FUENTES[clave] : null
 }
 
 // Si el dato lo gobierna el proyecto, escribir la oferta no cambiaría lo que se
 // ve: el campo se muestra de solo lectura con su chip de procedencia.
-const gobiernaProyecto = (campo) => props.oferta?.ficha?.fuentes?.[campo] === 'proyecto'
+const gobiernaProyecto = (campo: string) => props.oferta?.ficha?.fuentes?.[campo] === 'proyecto'
 
-const fichaCampos = computed(() => {
+interface CampoFicha {
+  campo: string
+  label: string
+  valor?: string | null
+  editor: 'texto' | 'operador' | 'numero' | null
+}
+
+const fichaCampos = computed<CampoFicha[]>(() => {
   const ficha = props.oferta?.ficha ?? {}
   const kwh = ficha.energia_promedio_kwh_mes
   return [
-    { campo: 'municipio', label: 'Municipio', valor: ficha.municipio,
-      editor: gobiernaProyecto('municipio') ? null : 'texto' },
-    { campo: 'departamento', label: 'Departamento', valor: ficha.departamento,
-      editor: gobiernaProyecto('departamento') ? null : 'texto' },
-    { campo: 'operador_red_id', label: 'Operador de red', valor: ficha.operador_red,
-      editor: gobiernaProyecto('operador_red') ? null : 'operador' },
-    { campo: 'energia_promedio_kwh_mes', label: 'Energía promedio estimada (kWh/mes)',
+    {
+      campo: 'municipio',
+      label: 'Municipio',
+      valor: ficha.municipio,
+      editor: gobiernaProyecto('municipio') ? null : 'texto',
+    },
+    {
+      campo: 'departamento',
+      label: 'Departamento',
+      valor: ficha.departamento,
+      editor: gobiernaProyecto('departamento') ? null : 'texto',
+    },
+    {
+      campo: 'operador_red_id',
+      label: 'Operador de red',
+      valor: ficha.operador_red,
+      editor: gobiernaProyecto('operador_red') ? null : 'operador',
+    },
+    {
+      campo: 'energia_promedio_kwh_mes',
+      label: 'Energía promedio estimada (kWh/mes)',
       valor: typeof kwh === 'number' ? kwh.toLocaleString('es-CO') : null,
-      editor: gobiernaProyecto('energia_promedio_kwh_mes') ? null : 'numero' },
-    { campo: 'energia_real_kwh_mes', label: 'Energía medida (último mes cerrado)',
-      valor: typeof ficha.energia_real_kwh_mes === 'number'
-        ? `${ficha.energia_real_kwh_mes.toLocaleString('es-CO')} kWh · ${ficha.energia_real_periodo}`
-        : null,
-      editor: null },
-    { campo: 'fecha_inicio_operacion', label: 'Inicio de operación',
+      editor: gobiernaProyecto('energia_promedio_kwh_mes') ? null : 'numero',
+    },
+    {
+      campo: 'energia_real_kwh_mes',
+      label: 'Energía medida (último mes cerrado)',
+      valor:
+        typeof ficha.energia_real_kwh_mes === 'number'
+          ? `${ficha.energia_real_kwh_mes.toLocaleString('es-CO')} kWh · ${ficha.energia_real_periodo}`
+          : null,
+      editor: null,
+    },
+    {
+      campo: 'fecha_inicio_operacion',
+      label: 'Inicio de operación',
       valor: ficha.fecha_inicio_operacion ? fmtFecha(ficha.fecha_inicio_operacion) : null,
-      editor: null },
+      editor: null,
+    },
   ]
 })
 
+// Los únicos editores 'texto' de la ficha operativa son municipio/departamento
+// (ver `fichaCampos`); acceder por nombre de campo dinámico exige este puente
+// en vez de un `v-model="f[c.campo]"` directo, que TS no puede tipar.
+function valorCampoTexto(campo: string): string {
+  return ((f as unknown as Record<string, unknown>)[campo] as string | undefined) ?? ''
+}
+function setCampoTexto(campo: string, valor: string) {
+  ;(f as unknown as Record<string, unknown>)[campo] = valor
+  autosave()
+}
+
 // ── Guardado ────────────────────────────────────────────────────────────────
-function cambiarPlantas() {
+function cambiarPlantas(v: number[]) {
+  f.proyecto_ids = v
   plantasTocadas.value = true
   autosave()
 }
 
 function cambios() {
-  const c = {
+  const c: Record<string, unknown> = {
     tipo: f.tipo,
     planta_nombre: f.planta_nombre || null,
     precio_detalle: f.precio_detalle || null,
@@ -514,7 +319,7 @@ function cambios() {
  * que el resto del panel) -- el equivalente de "Firmar → crear PPA" para
  * servicios_operacionales, que no tiene un /firmar propio porque los
  * contratos de representación se crean por su wizard genérico. */
-function contratoCreado(data) {
+function contratoCreado(data: ContratoServicio) {
   if (!data?.id) return
   if (!contratosServicio.value.some((c) => c.id === data.id)) {
     contratosServicio.value = [...contratosServicio.value, data]
@@ -545,22 +350,23 @@ function autosave() {
   temporizador = setTimeout(guardarAhora, 700)
 }
 
-async function cambiarEtapa(estado) {
-  if (!estado || estado === props.oferta?.estado) return
+async function cambiarEtapa(estado: string) {
+  if (!estado || estado === props.oferta?.estado || !props.oferta) return
   moviendo.value = true
   const r = await props.acciones.moverEtapa(props.oferta, estado)
   moviendo.value = false
   if (!r.ok) {
-    toast.error('No se pudo cambiar la etapa', { description: r.error, duration: 5000 })
+    toast.error('No se pudo cambiar la etapa', { description: r.error })
   }
 }
 
 async function tocar() {
+  if (!props.oferta) return
   tocando.value = true
   const r = await props.acciones.registrarSeguimiento(props.oferta.id)
   tocando.value = false
   if (!r.ok) {
-    toast.error('No se pudo registrar el toque', { description: r.error, duration: 5000 })
+    toast.error('No se pudo registrar el toque', { description: r.error })
   }
 }
 
@@ -570,23 +376,25 @@ async function tocar() {
  * la última gestión de la bitácora y no esta columna.
  */
 async function marcarRespuesta() {
+  if (!props.oferta) return
   f.fecha_ultima_respuesta = new Date()
   clearTimeout(temporizador)
   const r = await guardarAhora()
   if (!r.ok) return
-  await props.acciones.registrarGestion(props.oferta.oportunidad_id, {
+  await props.acciones.registrarGestion(props.oferta.oportunidad_id!, {
     tipo: 'correo',
     descripcion: 'El cliente respondió la oferta',
     ofertaId: props.oferta.id,
   })
-  toast.success('Respuesta registrada', { duration: 2500 })
+  toast.success('Respuesta registrada')
 }
 
 async function registrarGestion() {
-  if (!gestion.descripcion) return
+  if (!gestion.descripcion || !props.oferta) return
   guardandoGestion.value = true
-  const r = await props.acciones.registrarGestion(props.oferta.oportunidad_id, {
-    tipo: gestion.tipo, descripcion: gestion.descripcion,
+  const r = await props.acciones.registrarGestion(props.oferta.oportunidad_id!, {
+    tipo: gestion.tipo,
+    descripcion: gestion.descripcion,
     // Quien hablo. Esta nota rapida la escribe el comercial, asi que por defecto
     // es saliente; el selector deja marcar que fue el cliente quien respondio.
     // De eso depende que la alerta no se reinicie con nuestras propias
@@ -597,13 +405,14 @@ async function registrarGestion() {
   guardandoGestion.value = false
   if (r.ok) {
     gestion.descripcion = ''
-    toast.success('Gestión registrada', { duration: 2500 })
+    toast.success('Gestión registrada')
   } else {
-    toast.error('No se pudo registrar', { description: r.error, duration: 5000 })
+    toast.error('No se pudo registrar', { description: r.error })
   }
 }
 
 function confirmarEliminar() {
+  if (!props.oferta) return
   const nombre = props.oferta.planta_nombre || props.oferta.codigo_seguimiento || 'esta oferta'
   confirm({
     title: 'Eliminar oferta',
@@ -612,9 +421,9 @@ function confirmarEliminar() {
     cancelLabel: 'Cancelar',
     variant: 'destructive',
     onConfirm: async () => {
-      const r = await props.acciones.eliminarOferta(props.oferta.id)
+      const r = await props.acciones.eliminarOferta(props.oferta!.id)
       if (r.ok) emit('update:visible', false)
-      else toast.error('No se pudo eliminar', { description: r.error, duration: 5000 })
+      else toast.error('No se pudo eliminar', { description: r.error })
     },
   })
 }
@@ -623,24 +432,395 @@ function confirmarEliminar() {
 onBeforeUnmount(() => clearTimeout(temporizador))
 </script>
 
-<style scoped>
-.seccion {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #7a6e8a;
-  margin-bottom: 0.5rem;
-}
-.etiqueta {
-  display: block;
-  font-size: 11px;
-  color: #7a6e8a;
-  margin-bottom: 0.15rem;
-}
-.ayuda {
-  font-size: 11px;
-  color: #9b89b5;
-  margin-top: 0.35rem;
-}
-</style>
+<template>
+  <Sheet :open="visible" @update:open="(v) => emit('update:visible', v)">
+    <SheetContent class="w-full sm:max-w-lg">
+      <SheetHeader v-if="oferta" class="border-b">
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-muted-foreground">
+            {{ oferta.codigo_seguimiento || oferta.numero_oferta || 'sin código' }}
+          </span>
+          <GBadge v-if="oferta.alerta" color="destructive" class="scale-90">⚠ {{ oferta.dias_sin_respuesta }}d</GBadge>
+        </div>
+        <SheetTitle class="truncate">{{ oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta' }}</SheetTitle>
+        <SheetDescription>
+          <NuxtLink :to="`/comercial/oportunidades/${oferta.oportunidad_id}`" class="text-primary underline">
+            {{ oferta.cliente_razon_social }}
+          </NuxtLink>
+        </SheetDescription>
+      </SheetHeader>
+
+      <div v-if="oferta" class="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 text-sm">
+        <!-- ── Etapa ───────────────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Etapa</h3>
+          <Select :model-value="oferta.estado" :disabled="moviendo" @update:model-value="(v) => cambiarEtapa(v as string)">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <p class="mt-1.5 text-[11px] text-muted-foreground">
+            En esta etapa desde hace {{ diasDesde(oferta.estado_desde) ?? '—' }} días.
+          </p>
+          <Alert v-if="puedeFirmarPPA(oferta)" class="mt-2">
+            <AlertDescription class="text-xs">
+              Cuando se firme, usá <strong>Firmar → crear PPA</strong> (abajo) en vez de mover la etapa a
+              mano: así queda el contrato creado y enlazado.
+            </AlertDescription>
+          </Alert>
+        </section>
+
+        <!-- ── Seguimiento del envío ───────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            Seguimiento del envío
+          </h3>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <GLabel>Enviada el</GLabel>
+              <DatePicker
+                :model-value="f.fecha_oferta ? aFechaStr(f.fecha_oferta) : null"
+                clearable
+                @update:model-value="
+                  (v) => {
+                    f.fecha_oferta = aFecha(v)
+                    autosave()
+                  }
+                "
+              />
+            </div>
+            <div>
+              <GLabel>Última respuesta del cliente</GLabel>
+              <DatePicker
+                :model-value="f.fecha_ultima_respuesta ? aFechaStr(f.fecha_ultima_respuesta) : null"
+                clearable
+                @update:model-value="
+                  (v) => {
+                    f.fecha_ultima_respuesta = aFecha(v)
+                    autosave()
+                  }
+                "
+              />
+            </div>
+          </div>
+
+          <div class="mt-3 flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-foreground">{{ oferta.seguimientos || 0 }} toque(s) enviados</div>
+              <div v-if="sinRespuesta(oferta)" class="text-[11px] text-destructive">El cliente nunca contestó</div>
+            </div>
+            <div class="flex flex-shrink-0 items-center gap-1">
+              <GTooltip>
+                <GTooltipTrigger as-child>
+                  <Button variant="outline" size="sm" :disabled="tocando" @click="tocar">
+                    <LoaderCircleIcon v-if="tocando" class="animate-spin" />
+                    <SendIcon v-else class="size-4" />
+                    +1 toque
+                  </Button>
+                </GTooltipTrigger>
+                <GTooltipContent>Reenvío o llamada de insistencia</GTooltipContent>
+              </GTooltip>
+              <GTooltip>
+                <GTooltipTrigger as-child>
+                  <Button variant="outline" size="sm" :disabled="guardando" @click="marcarRespuesta">
+                    <CheckIcon class="size-4 text-success" />
+                    Respondió
+                  </Button>
+                </GTooltipTrigger>
+                <GTooltipContent>Marca la respuesta de hoy y apaga la alerta</GTooltipContent>
+              </GTooltip>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Comercial ───────────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Comercial</h3>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <GLabel>Tipo de oferta</GLabel>
+              <Select
+                :model-value="f.tipo ?? undefined"
+                @update:model-value="
+                  (v) => {
+                    f.tipo = v as string
+                    autosave()
+                  }
+                "
+              >
+                <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <!-- El precio de una compra de energía es una tarifa en $/kWh, no la
+                 comisión en % de un servicio: la etiqueta y el ejemplo siguen al tipo. -->
+            <div>
+              <GLabel>{{ etiquetaPrecio(f.tipo) }}</GLabel>
+              <Input v-model.trim="f.precio_detalle" :placeholder="placeholderPrecio(f.tipo)" @update:model-value="autosave" />
+            </div>
+            <div>
+              <GLabel>Inicio tentativo del suministro</GLabel>
+              <DatePicker
+                :model-value="f.fecha_tentativa_inicio ? aFechaStr(f.fecha_tentativa_inicio) : null"
+                clearable
+                @update:model-value="
+                  (v) => {
+                    f.fecha_tentativa_inicio = aFecha(v)
+                    autosave()
+                  }
+                "
+              />
+            </div>
+            <div>
+              <GLabel>Fin tentativo</GLabel>
+              <DatePicker
+                :model-value="f.fecha_fin_tentativa ? aFechaStr(f.fecha_fin_tentativa) : null"
+                clearable
+                @update:model-value="
+                  (v) => {
+                    f.fecha_fin_tentativa = aFecha(v)
+                    autosave()
+                  }
+                "
+              />
+            </div>
+            <div class="sm:col-span-2">
+              <GLabel>Documento de la oferta (link)</GLabel>
+              <Input v-model.trim="f.documento_url" placeholder="https://…" @update:model-value="autosave" />
+            </div>
+            <div class="sm:col-span-2">
+              <GLabel>Notas</GLabel>
+              <Textarea v-model="f.notas" rows="2" @update:model-value="autosave" />
+            </div>
+          </div>
+          <p v-if="ayudaPrecio(f.tipo)" class="mt-1.5 text-[11px] text-muted-foreground">{{ ayudaPrecio(f.tipo) }}</p>
+        </section>
+
+        <!-- ── Propuestas (versiones) ──────────────────────────────────────── -->
+        <!--
+          El campo "Documento de la oferta" de arriba es el de la oferta entera y
+          se sobrescribe al reofertar. Las propuestas son el historial: cada
+          reoferta deja su documento y su tabla de precios, y la ACEPTADA es de la
+          que nacera el contrato al firmar.
+        -->
+        <VersionesOferta v-if="oferta?.id" :oferta-id="oferta.id" />
+
+        <!-- ── Plantas ─────────────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Plantas de la oferta</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">
+            Son las que pasan al contrato al firmar. Una oferta puede cubrir varias
+            («Balmora 1 y 2»).
+          </p>
+          <GLabel>Nombre de la planta (texto libre)</GLabel>
+          <Input v-model.trim="f.planta_nombre" @update:model-value="autosave" />
+          <div class="mt-3">
+            <div class="mb-1 flex items-center justify-between">
+              <GLabel class="!mb-0">Proyectos vinculados</GLabel>
+              <GTooltip>
+                <GTooltipTrigger as-child>
+                  <Button variant="ghost" size="sm" @click="crearProyecto = true">
+                    <PlusIcon class="size-4" />
+                    Crear planta
+                  </Button>
+                </GTooltipTrigger>
+                <GTooltipContent>Crearla en Proyectos y vincularla a esta oferta</GTooltipContent>
+              </GTooltip>
+            </div>
+            <MultiComboBox
+              :model-value="f.proyecto_ids.map(String)"
+              :options="
+                proyectos.map((p) => ({
+                  label: [p.nombre_comercial, [p.municipio, p.departamento].filter(Boolean).join(', ')]
+                    .filter(Boolean)
+                    .join(' — '),
+                  value: String(p.id),
+                }))
+              "
+              :placeholder="cargandoCatalogos ? 'Cargando…' : 'Vincular a proyectos existentes…'"
+              @update:model-value="(v) => cambiarPlantas(v.map(Number))"
+            />
+            <p v-if="!f.proyecto_ids?.length" class="mt-1.5 text-[11px] text-destructive">
+              Sin ningún proyecto vinculado, el PPA se crearía sin plantas: ni Cumplimiento
+              ni <code>/comercial/proyectos-operando</code> pueden ver esta oferta.
+            </p>
+          </div>
+        </section>
+
+        <!-- ── Ficha operativa ─────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Ficha operativa</h3>
+          <p class="mb-2 text-[11px] text-muted-foreground">
+            Cada dato dice de dónde salió. Lo que manda el proyecto no se edita acá:
+            se arregla en el proyecto.
+          </p>
+          <div class="flex flex-col gap-3">
+            <div v-for="c in fichaCampos" :key="c.campo" class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <GLabel>{{ c.label }}</GLabel>
+                <!-- Editable solo cuando el dato es (o sería) el declarado en la
+                     oferta: si lo gobierna el proyecto, escribirlo acá no cambiaría
+                     nada visible y se leería como un bug. -->
+                <Input
+                  v-if="c.editor === 'texto'"
+                  :model-value="valorCampoTexto(c.campo)"
+                  @update:model-value="(v) => setCampoTexto(c.campo, String(v).trim())"
+                />
+                <Select
+                  v-else-if="c.editor === 'operador'"
+                  :model-value="f.operador_red_id !== null ? String(f.operador_red_id) : ''"
+                  @update:model-value="
+                    (v) => {
+                      f.operador_red_id = v ? Number(v) : null
+                      autosave()
+                    }
+                  "
+                >
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Del catálogo…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin operador</SelectItem>
+                    <SelectItem v-for="o in operadores" :key="o.id" :value="String(o.id)">{{ o.nombre }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <NumberField
+                  v-else-if="c.editor === 'numero'"
+                  v-model="f.energia_promedio_kwh_mes"
+                  :format-options="{ maximumFractionDigits: 0 }"
+                  @update:model-value="autosave"
+                >
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
+                <div v-else class="text-sm text-foreground">{{ c.valor ?? '—' }}</div>
+              </div>
+              <span v-if="fuente(c.campo)" class="mt-4 flex-shrink-0 rounded px-1.5 py-0.5 text-[10px]" :class="fuente(c.campo)!.clase">{{
+                fuente(c.campo)!.label
+              }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Contrato ────────────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Contrato</h3>
+          <div v-if="oferta.ppa_contrato_id" class="rounded-md border border-success/30 bg-success/10 px-3 py-2">
+            <NuxtLink :to="`/contratos/${oferta.ppa_contrato_id}`" class="text-sm font-medium text-success underline">
+              Contrato PPA #{{ oferta.ppa_contrato_id }}
+            </NuxtLink>
+            <div class="mt-1 text-xs text-success">
+              {{ fmtFecha(oferta.ficha?.contrato_fecha_inicio) }} → {{ fmtFecha(oferta.ficha?.contrato_fecha_fin) }}
+              <span v-if="oferta.ficha?.contrato_compra_anios">
+                · {{ oferta.ficha.contrato_compra_anios }} años ({{ oferta.ficha.contrato_compra_meses }} meses)
+              </span>
+            </div>
+          </div>
+          <div v-else-if="puedeFirmarPPA(oferta)">
+            <Button class="w-full" @click="emit('firmar', oferta)">
+              <FileCheckIcon class="size-4" />
+              Firmar → crear PPA
+            </Button>
+            <p class="mt-1.5 text-[11px] text-muted-foreground">Crea el contrato con sus tarifas y lo enlaza a esta oferta.</p>
+          </div>
+          <div
+            v-else-if="oferta.tipo === 'servicios_operacionales' && f.contrato_servicio_id"
+            class="rounded-md border border-success/30 bg-success/10 px-3 py-2"
+          >
+            <NuxtLink :to="`/contratos/${f.contrato_servicio_id}`" class="text-sm font-medium text-success underline">
+              Contrato de Representación #{{ f.contrato_servicio_id }}
+            </NuxtLink>
+            <div class="mt-1">
+              <Button variant="ghost" size="sm" @click="desvincularContrato">
+                <UnlinkIcon class="size-4" />
+                Desvincular
+              </Button>
+            </div>
+          </div>
+          <div v-else-if="oferta.tipo === 'servicios_operacionales'">
+            <Button class="w-full" @click="showContratoWizard = true">
+              <FileCheckIcon class="size-4" />
+              Crear contrato de representación
+            </Button>
+            <p class="mt-1.5 text-[11px] text-muted-foreground">Crea el contrato y lo enlaza a esta oferta.</p>
+            <div class="mt-2">
+              <GLabel>O vincular uno ya creado</GLabel>
+              <Select
+                :model-value="f.contrato_servicio_id !== null ? String(f.contrato_servicio_id) : ''"
+                @update:model-value="
+                  (v) => {
+                    f.contrato_servicio_id = v ? Number(v) : null
+                    autosave()
+                  }
+                "
+              >
+                <SelectTrigger class="w-full"><SelectValue placeholder="Buscar contrato de representación existente…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Ninguno</SelectItem>
+                  <SelectItem v-for="c in contratosServicio" :key="c.id" :value="String(c.id)">
+                    {{ c.contratante_nombre || '—' }} — {{ c.numero_contrato || 'Sin N° de contrato' }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p class="mt-1.5 text-[11px] text-muted-foreground">
+                Para un contrato creado desde otro camino (ej. la pestaña Servicios de un
+                proyecto), sin pasar por esta oferta.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Bitácora ────────────────────────────────────────────────────── -->
+        <section>
+          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bitácora de esta oferta</h3>
+          <div class="flex flex-wrap gap-2">
+            <Select v-model="gestion.tipo">
+              <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <ToggleGroup v-model="gestion.direccion" type="single" variant="outline">
+              <ToggleGroupItem v-for="d in DIRECCIONES" :key="d.value" :value="d.value">{{ d.label }}</ToggleGroupItem>
+            </ToggleGroup>
+            <Input v-model.trim="gestion.descripcion" class="flex-1" placeholder="Qué pasó…" @keyup.enter="registrarGestion" />
+            <Button :disabled="!gestion.descripcion || guardandoGestion" @click="registrarGestion">
+              <LoaderCircleIcon v-if="guardandoGestion" class="animate-spin" />
+              <PlusIcon v-else class="size-4" />
+            </Button>
+          </div>
+          <p class="mt-1.5 text-[11px] text-muted-foreground">
+            Queda colgada de esta oferta y apaga solo su alerta — no la de sus hermanas
+            del mismo cliente. <strong>Solo «Nos respondió» apaga la alerta</strong>:
+            insistir no cuenta como respuesta.
+          </p>
+        </section>
+
+        <div class="flex items-center justify-between border-t pt-2">
+          <span class="text-xs text-muted-foreground">{{ estadoGuardado }}</span>
+          <Button variant="ghost" size="sm" class="text-destructive" @click="confirmarEliminar">
+            <Trash2Icon class="size-4" />
+            Eliminar oferta
+          </Button>
+        </div>
+      </div>
+
+      <ProyectoDesdeCRMDialog
+        v-if="oferta"
+        v-model:visible="crearProyecto"
+        :oportunidad-id="oferta.oportunidad_id!"
+        :oferta="oferta"
+        @creado="proyectoCreado"
+      />
+
+      <ContratoServicioWizard
+        v-if="oferta && oferta.tipo === 'servicios_operacionales'"
+        v-model:visible="showContratoWizard"
+        tipo="representacion"
+        :proyecto-id-default="f.proyecto_ids?.[0]"
+        @creado="contratoCreado"
+        @cerrar="showContratoWizard = false"
+      />
+    </SheetContent>
+  </Sheet>
+</template>

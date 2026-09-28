@@ -6,97 +6,24 @@
   llamada por Margaritas 1 apagaba la alerta de Margaritas 2, que seguía muda.
   Dejar el selector en «Todo el cliente» mantiene el comportamiento viejo.
 -->
-<template>
-  <div class="flex flex-col gap-6">
-    <div>
-      <h3 class="text-sm font-semibold mb-2" style="color:var(--color-unergy-deep)">Registrar gestión</h3>
-      <div class="flex flex-col gap-2 mb-4">
-        <div class="flex flex-wrap gap-2">
-          <Select v-model="nueva.tipo" :options="TIPOS_GESTION" optionLabel="label" optionValue="value"
-                  placeholder="Tipo *" class="w-44" />
-          <Select v-model="nueva.oferta_id" :options="opcionesOferta" optionLabel="label"
-                  optionValue="value" class="w-64" />
-          <!--
-            Quien hablo. Es obligatorio y no es burocracia: de este campo depende
-            que la alerta cuente "hace cuanto que no nos responden" y no "hace
-            cuanto que no pasa nada". Sin el, insistirle al cliente reinicia el
-            contador aunque siga mudo.
-          -->
-          <SelectButton v-model="nueva.direccion" :options="DIRECCIONES"
-                        optionLabel="label" optionValue="value" :allowEmpty="false" />
-        </div>
-        <Textarea v-model.trim="nueva.descripcion" rows="2" autoResize class="w-full"
-                  placeholder="Qué se habló / acordó *" />
-        <div class="flex items-center gap-2 flex-wrap">
-          <Button label="Registrar" size="small" :loading="guardando" :disabled="!nueva.tipo || !nueva.descripcion || !nueva.direccion" @click="registrar">
-            <template #icon><SendIcon class="size-[1em]" /></template>
-          </Button>
-          <small style="color:#9b89b5">
-            {{ nueva.oferta_id
-                ? 'Apaga la alerta solo de esa oferta.'
-                : 'Apaga la alerta de todas las ofertas del cliente.' }}
-          </small>
-        </div>
-      </div>
-
-      <h3 class="text-sm font-semibold mb-2" style="color:var(--color-unergy-deep)">Gestiones</h3>
-      <p v-if="!gestiones.length" class="text-sm" style="color:#9b89b5">Sin gestiones registradas.</p>
-      <ul class="flex flex-col gap-2">
-        <li v-for="g in gestiones" :key="g.id" class="rounded-md p-2 text-sm"
-            style="border:1px solid #e8e0f0">
-          <div class="flex items-center gap-2 text-xs mb-1 flex-wrap" style="color:#9b89b5">
-            <GBadge color="information" class="scale-90">{{ labelGestion(g.tipo) }}</GBadge>
-            <span>{{ fmtFechaHora(g.fecha) }}</span>
-            <span v-if="g.oferta_id" class="rounded px-1.5 py-0.5 text-[10px]"
-                  style="background:#F4EEFB;color:var(--color-unergy-purple-dark)">{{ nombreOferta(g.oferta_id) }}</span>
-            <span v-else class="rounded px-1.5 py-0.5 text-[10px]"
-                  style="background:#F3F4F6;color:#4B5563">todo el cliente</span>
-          </div>
-          {{ g.descripcion }}
-        </li>
-      </ul>
-    </div>
-
-    <div>
-      <h3 class="text-sm font-semibold mb-2" style="color:var(--color-unergy-deep)">Historial de etapas</h3>
-      <p v-if="!historial.length" class="text-sm" style="color:#9b89b5">Sin movimientos.</p>
-      <ul class="flex flex-col gap-1.5 text-sm">
-        <li v-for="h in historial" :key="h.id" class="flex items-center gap-2 flex-wrap">
-          <ArrowRightIcon class="text-xs size-[1em]" style="color:#c4b8d4" />
-          <span v-if="h.estado_anterior">
-            {{ labelEtapa(h.estado_anterior) }} → <b>{{ labelEtapa(h.estado_nuevo) }}</b>
-          </span>
-          <span v-else>Creada en <b>{{ labelEtapa(h.estado_nuevo) }}</b></span>
-          <!-- Las filas viejas traen oferta_id NULL: son de cuando la etapa era
-               del cliente. Se conservan como histórico. -->
-          <span v-if="h.oferta_id" class="text-xs" style="color:#9b89b5">
-            · {{ nombreOferta(h.oferta_id) }}
-          </span>
-          <span class="text-xs" style="color:#9b89b5">{{ fmtFechaHora(h.fecha) }}</span>
-        </li>
-      </ul>
-    </div>
-  </div>
-</template>
-
-<script setup>
-import { reactive, ref, computed } from 'vue'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
-import Textarea from 'primevue/textarea'
-import Button from 'primevue/button'
+<script setup lang="ts">
+import type { GestionComercial, HistorialEtapaOferta, Oferta } from '~/features/comercial/types'
+import { ArrowRightIcon, LoaderCircleIcon, SendIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { readDetail } from '~/core/errors'
 import { ComercialService } from '~/features/comercial/services/comercial'
-import { TIPOS_GESTION, labelGestion, labelEtapa } from './comercial.js'
-import { ArrowRightIcon, SendIcon } from '@lucide/vue'
+import { labelEtapa, labelGestion, TIPOS_GESTION } from './comercial'
 
-const props = defineProps({
-  oportunidadId: { type: [Number, String], required: true },
-  gestiones: { type: Array, default: () => [] },
-  historial: { type: Array, default: () => [] },
-  ofertas: { type: Array, default: () => [] },
-})
-const emit = defineEmits(['registrada'])
+const props = withDefaults(
+  defineProps<{
+    oportunidadId: number
+    gestiones?: GestionComercial[]
+    historial?: HistorialEtapaOferta[]
+    ofertas?: Oferta[]
+  }>(),
+  { gestiones: () => [], historial: () => [], ofertas: () => [] },
+)
+const emit = defineEmits<{ registrada: [] }>()
 
 const comercialService = new ComercialService()
 // «Saliente» por defecto: la mayoria de las entradas las escribe el comercial
@@ -107,27 +34,33 @@ const DIRECCIONES = [
   { label: 'Nos respondió', value: 'entrante' },
 ]
 
-const nueva = reactive({ tipo: null, descripcion: '', oferta_id: null, direccion: 'saliente' })
+const nueva = reactive({
+  tipo: null as string | null,
+  descripcion: '',
+  oferta_id: null as number | null,
+  direccion: 'saliente',
+})
 const guardando = ref(false)
 
 const opcionesOferta = computed(() => [
-  { label: 'Todo el cliente', value: null },
+  { label: 'Todo el cliente', value: '' },
   ...props.ofertas.map((o) => ({
     label: o.planta_nombre || o.codigo_seguimiento || `Oferta #${o.id}`,
-    value: o.id,
+    value: String(o.id),
   })),
 ])
 
-function nombreOferta(id) {
+function nombreOferta(id: number): string {
   const o = props.ofertas.find((x) => x.id === id)
-  return o ? (o.planta_nombre || o.codigo_seguimiento || `Oferta #${id}`) : `Oferta #${id}`
+  return o ? o.planta_nombre || o.codigo_seguimiento || `Oferta #${id}` : `Oferta #${id}`
 }
 
-function fmtFechaHora(v) {
+function fmtFechaHora(v: string | null | undefined): string {
   return v ? new Date(v).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }) : ''
 }
 
 async function registrar() {
+  if (!nueva.tipo || !nueva.descripcion) return
   guardando.value = true
   try {
     await comercialService.registrarGestion(props.oportunidadId, {
@@ -142,9 +75,121 @@ async function registrar() {
     nueva.direccion = 'saliente'
     emit('registrada')
   } catch (err) {
-    toast.error('No se pudo registrar', { description: err.data?.detail ?? '', duration: 5000 })
+    const e = err as { data?: unknown }
+    toast.error('No se pudo registrar', { description: readDetail(e.data) ?? '' })
   } finally {
     guardando.value = false
   }
 }
 </script>
+
+<template>
+  <div class="flex flex-col gap-6">
+    <div>
+      <h3 class="mb-2 text-sm font-semibold text-foreground">Registrar gestión</h3>
+      <div class="mb-4 flex flex-col gap-2">
+        <div class="flex flex-wrap gap-2">
+          <Select
+            :model-value="nueva.tipo ?? undefined"
+            @update:model-value="(v) => (nueva.tipo = v as string)"
+          >
+            <SelectTrigger class="w-44"><SelectValue placeholder="Tipo *" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{
+                t.label
+              }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            :model-value="nueva.oferta_id !== null ? String(nueva.oferta_id) : ''"
+            @update:model-value="(v) => (nueva.oferta_id = v ? Number(v) : null)"
+          >
+            <SelectTrigger class="w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="o in opcionesOferta" :key="o.value" :value="o.value">{{
+                o.label
+              }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <!--
+            Quien hablo. Es obligatorio y no es burocracia: de este campo depende
+            que la alerta cuente "hace cuanto que no nos responden" y no "hace
+            cuanto que no pasa nada". Sin el, insistirle al cliente reinicia el
+            contador aunque siga mudo.
+          -->
+          <ToggleGroup v-model="nueva.direccion" type="single" variant="outline">
+            <ToggleGroupItem v-for="d in DIRECCIONES" :key="d.value" :value="d.value">
+              {{ d.label }}
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <Textarea
+          v-model.trim="nueva.descripcion"
+          rows="2"
+          class="w-full"
+          placeholder="Qué se habló / acordó *"
+        />
+        <div class="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            :disabled="!nueva.tipo || !nueva.descripcion || !nueva.direccion || guardando"
+            @click="registrar"
+          >
+            <LoaderCircleIcon v-if="guardando" class="animate-spin" />
+            <SendIcon v-else class="size-4" />
+            Registrar
+          </Button>
+          <small class="text-muted-foreground">
+            {{
+              nueva.oferta_id
+                ? 'Apaga la alerta solo de esa oferta.'
+                : 'Apaga la alerta de todas las ofertas del cliente.'
+            }}
+          </small>
+        </div>
+      </div>
+
+      <h3 class="mb-2 text-sm font-semibold text-foreground">Gestiones</h3>
+      <p v-if="!gestiones.length" class="text-sm text-muted-foreground">
+        Sin gestiones registradas.
+      </p>
+      <ul class="flex flex-col gap-2">
+        <li v-for="g in gestiones" :key="g.id" class="rounded-md border p-2 text-sm">
+          <div class="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <GBadge color="information" class="scale-90">{{ labelGestion(g.tipo) }}</GBadge>
+            <span>{{ fmtFechaHora(g.fecha) }}</span>
+            <span
+              v-if="g.oferta_id"
+              class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+              >{{ nombreOferta(g.oferta_id) }}</span
+            >
+            <span v-else class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              >todo el cliente</span
+            >
+          </div>
+          {{ g.descripcion }}
+        </li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="mb-2 text-sm font-semibold text-foreground">Historial de etapas</h3>
+      <p v-if="!historial.length" class="text-sm text-muted-foreground">Sin movimientos.</p>
+      <ul class="flex flex-col gap-1.5 text-sm">
+        <li v-for="h in historial" :key="h.id" class="flex flex-wrap items-center gap-2">
+          <ArrowRightIcon class="size-3.5 text-muted-foreground" />
+          <span v-if="h.estado_anterior">
+            {{ labelEtapa(h.estado_anterior) }} → <b>{{ labelEtapa(h.estado_nuevo) }}</b>
+          </span>
+          <span v-else>Creada en <b>{{ labelEtapa(h.estado_nuevo) }}</b></span>
+          <!-- Las filas viejas traen oferta_id NULL: son de cuando la etapa era
+               del cliente. Se conservan como histórico. -->
+          <span v-if="h.oferta_id" class="text-xs text-muted-foreground">
+            · {{ nombreOferta(h.oferta_id) }}
+          </span>
+          <span class="text-xs text-muted-foreground">{{ fmtFechaHora(h.fecha) }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</template>

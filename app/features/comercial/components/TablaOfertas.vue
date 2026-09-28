@@ -3,132 +3,117 @@
   exportar. Click en la fila abre el DRAWER de la oferta — antes navegaba a la
   ficha del cliente y perdías de vista la oferta que habías clickeado.
 -->
-<template>
-  <div>
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs" style="color:#9b89b5">{{ ofertas.length }} ofertas</span>
-      <Button label="Excel" size="small" outlined :loading="exportando" @click="exportar">
-        <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
-      </Button>
-    </div>
-
-    <DataTable :value="ofertas" paginator :rows="25" :rowsPerPageOptions="[25, 50, 100]"
-               dataKey="id" class="text-sm" removableSort selectionMode="single"
-               @row-click="$emit('abrir', $event.data)">
-      <Column field="codigo_seguimiento" header="Código" sortable style="min-width:11rem">
-        <template #body="{ data }">
-          <span class="font-mono text-xs">{{ data.codigo_seguimiento || data.numero_oferta || '—' }}</span>
-        </template>
-      </Column>
-      <Column field="estado" header="Etapa" sortable>
-        <template #body="{ data }">
-          <GBadge :color="severidadEtapa(data.estado)">{{ labelEtapa(data.estado) }}</GBadge>
-        </template>
-      </Column>
-      <Column field="planta_nombre" header="Planta" sortable style="min-width:12rem">
-        <template #body="{ data }">
-          <div class="flex items-center gap-1.5">
-            <span>{{ data.planta_nombre || data.ficha?.proyecto_nombre || '—' }}</span>
-            <span v-if="data.plantas?.length > 1" class="text-[10px] rounded px-1 py-0.5"
-                  style="background:#F3F4F6;color:#4B5563"
-                  v-tooltip.top="data.plantas.map(p => p.nombre_comercial).join(' · ')">
-              +{{ data.plantas.length - 1 }}
-            </span>
-          </div>
-        </template>
-      </Column>
-      <Column field="cliente_razon_social" header="Cliente" sortable style="min-width:14rem" />
-      <Column field="tipo" header="Tipo" sortable>
-        <template #body="{ data }">{{ labelTipo(data.tipo) }}</template>
-      </Column>
-      <!-- Ordena por el campo crudo en kWh (notación de punto, que sí resuelve
-           PrimeVue) y muestra los MWh: el orden es el mismo. -->
-      <Column field="ficha.energia_promedio_kwh_mes" header="Energía" sortable>
-        <template #body="{ data }">
-          <span v-if="mwhMes(data)">{{ fmtMwh(mwhMes(data)) }}</span>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column field="ficha.municipio" header="Municipio" sortable>
-        <template #body="{ data }">{{ data.ficha?.municipio || '—' }}</template>
-      </Column>
-      <Column field="precio_detalle" header="Precio">
-        <template #body="{ data }">{{ data.precio_detalle || '—' }}</template>
-      </Column>
-      <Column field="fecha_oferta" header="Enviada" sortable>
-        <template #body="{ data }">
-          <span v-if="data.fecha_oferta" :title="fmtFecha(data.fecha_oferta)">
-            hace {{ diasDesde(data.fecha_oferta) }} d
-          </span>
-          <!-- Sin fecha registrada, el mes vive dentro del propio código. Se
-               muestra como aproximado y no se guarda nada. -->
-          <span v-else-if="mesDelCodigo(data)" style="color:#c4b8d4"
-                v-tooltip.top="'Aproximado: sale del mes que trae el código, no de una fecha registrada'">
-            ≈ {{ mesDelCodigo(data) }}
-          </span>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column field="seguimientos" header="Toques" sortable>
-        <template #body="{ data }">
-          <span :class="alarmante(data) ? 'font-semibold' : ''"
-                :style="{ color: alarmante(data) ? '#D64455' : 'inherit' }">
-            {{ data.seguimientos || 0 }}
-          </span>
-        </template>
-      </Column>
-      <Column field="fecha_ultima_respuesta" header="Última respuesta" sortable>
-        <template #body="{ data }">
-          <span v-if="data.fecha_ultima_respuesta">{{ fmtFecha(data.fecha_ultima_respuesta) }}</span>
-          <span v-else-if="data.fecha_oferta" style="color:#D64455" class="text-xs">sin respuesta</span>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column header="Contrato">
-        <template #body="{ data }">
-          <router-link v-if="data.ppa_contrato_id" :to="`/contratos/${data.ppa_contrato_id}`"
-                       class="text-xs underline" style="color:var(--color-unergy-purple)" @click.stop>PPA</router-link>
-          <span v-else style="color:#c4b8d4">—</span>
-        </template>
-      </Column>
-      <Column header="" style="width:4rem">
-        <template #body="{ data }">
-          <GBadge v-if="data.alerta" color="destructive" class="scale-90">⚠ {{ data.dias_sin_respuesta }}d</GBadge>
-        </template>
-      </Column>
-      <template #empty>
-        <span style="color:#9b89b5">No hay ofertas con esos filtros.</span>
-      </template>
-    </DataTable>
-  </div>
-</template>
-
-<script setup>
-import { ref } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
+<script setup lang="ts">
+import type { DataTableColumn, DataTableRow, DataTableSort } from '~/components/blocks/DataTable.vue'
+import type { Oferta } from '~/features/comercial/types'
+import { FileSpreadsheetIcon, LoaderCircleIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import { exportarExcel } from '~/utils/exportarExcel'
-import { FileSpreadsheetIcon } from '@lucide/vue'
+// Import explícito: bug conocido de tipos de `blocks/DataTable`.
+import DataTable from '~/components/blocks/DataTable.vue'
+import { normalizeError } from '~/core/errors'
+import { logger } from '~/core/logger'
+import { type ColumnaExportable, exportarExcel } from '~/utils/exportarExcel'
 import {
-  labelEtapa, severidadEtapa, labelTipo, mwhMes, fmtMwh, fmtFecha,
-  diasDesde, mesDelCodigo, alarmante,
-} from './comercial.js'
+  alarmante,
+  diasDesde,
+  fmtFecha,
+  fmtMwh,
+  labelEtapa,
+  labelTipo,
+  mesDelCodigo,
+  mwhMes,
+  severidadEtapa,
+} from './comercial'
 
-const props = defineProps({ ofertas: { type: Array, default: () => [] } })
-defineEmits(['abrir'])
+const props = withDefaults(defineProps<{ ofertas?: Oferta[] }>(), { ofertas: () => [] })
+const emit = defineEmits<{ abrir: [oferta: Oferta] }>()
+
+function asOferta(row: DataTableRow): Oferta {
+  return row as unknown as Oferta
+}
+
+const columnas: DataTableColumn[] = [
+  { key: 'codigo_seguimiento', header: 'Código', sortable: true },
+  { key: 'estado', header: 'Etapa', sortable: true },
+  { key: 'planta_nombre', header: 'Planta', sortable: true },
+  { key: 'cliente_razon_social', header: 'Cliente', sortable: true },
+  { key: 'tipo', header: 'Tipo', sortable: true },
+  { key: 'energia', header: 'Energía', sortable: true },
+  { key: 'municipio', header: 'Municipio', sortable: true },
+  { key: 'precio_detalle', header: 'Precio' },
+  { key: 'fecha_oferta', header: 'Enviada', sortable: true },
+  { key: 'seguimientos', header: 'Toques', sortable: true },
+  { key: 'fecha_ultima_respuesta', header: 'Última respuesta', sortable: true },
+  { key: 'contrato', header: 'Contrato' },
+  { key: 'alerta', header: '' },
+]
+
+// Paginado y ordenado 100% en cliente: las ofertas ya están todas en memoria
+// (`useOfertas`), así que no hay ningún refetch que disparar al cambiar de
+// página u ordenar — es el mismo patrón de `AdminUsuariosView.vue`.
+const sort = ref<DataTableSort | null>(null)
+const pagination = usePagination(25)
+
+function valorOrdenable(o: Oferta, key: string): string | number {
+  switch (key) {
+    case 'estado':
+      return labelEtapa(o.estado)
+    case 'tipo':
+      return labelTipo(o.tipo)
+    case 'energia':
+      return mwhMes(o)
+    case 'municipio':
+      return o.ficha?.municipio || ''
+    case 'fecha_oferta':
+      return o.fecha_oferta ? new Date(o.fecha_oferta).getTime() : 0
+    case 'fecha_ultima_respuesta':
+      return o.fecha_ultima_respuesta ? new Date(o.fecha_ultima_respuesta).getTime() : 0
+    case 'seguimientos':
+      return o.seguimientos || 0
+    default:
+      return String((o as unknown as Record<string, unknown>)[key] ?? '')
+  }
+}
+
+const ordenadas = computed(() => {
+  if (!sort.value) return props.ofertas
+  const { key, direction } = sort.value
+  const factor = direction === 'asc' ? 1 : -1
+  return [...props.ofertas].sort((a, b) => {
+    const left = valorOrdenable(a, key)
+    const right = valorOrdenable(b, key)
+    if (typeof left === 'number' && typeof right === 'number') return (left - right) * factor
+    return String(left).localeCompare(String(right), 'es') * factor
+  })
+})
+
+const paginadas = computed(() =>
+  ordenadas.value.slice(pagination.offset.value, pagination.offset.value + pagination.pageSize.value),
+)
+
+watch(
+  ordenadas,
+  (rows) => {
+    pagination.total.value = rows.length
+  },
+  { immediate: true },
+)
+
+// Un cambio en los filtros de arriba puede dejar la página actual vacía.
+watch(() => props.ofertas, () => pagination.reset())
 
 const exportando = ref(false)
 
-// `columnas` es [{ header, value: fila => valor }] — ver utils/exportarExcel.js.
-const COLUMNAS_EXCEL = [
+const COLUMNAS_EXCEL: ColumnaExportable<Oferta>[] = [
   { header: 'Código de seguimiento', value: (o) => o.codigo_seguimiento || o.numero_oferta || '' },
   { header: 'Etapa', value: (o) => labelEtapa(o.estado) },
   { header: 'Cliente', value: (o) => o.cliente_razon_social || '' },
   { header: 'NIT', value: (o) => o.cliente_nit || '' },
   { header: 'Planta', value: (o) => o.planta_nombre || o.ficha?.proyecto_nombre || '' },
-  { header: 'Plantas del contrato', value: (o) => (o.plantas || []).map((p) => p.nombre_comercial).join(' · ') },
+  {
+    header: 'Plantas del contrato',
+    value: (o) => (o.plantas || []).map((p) => p.nombre_comercial).join(' · '),
+  },
   { header: 'Tipo', value: (o) => labelTipo(o.tipo) },
   { header: 'Municipio', value: (o) => o.ficha?.municipio || '' },
   { header: 'Departamento', value: (o) => o.ficha?.departamento || '' },
@@ -149,9 +134,126 @@ async function exportar() {
     const hoy = new Date().toISOString().slice(0, 10)
     await exportarExcel(props.ofertas, COLUMNAS_EXCEL, `comercial_ofertas_${hoy}`, 'Ofertas')
   } catch (err) {
-    toast.error('No se pudo exportar', { description: err.message, duration: 5000 })
+    const e = normalizeError(err)
+    logger.error('comercial.exportar', e)
+    toast.error('No se pudo exportar', { description: e.message })
   } finally {
     exportando.value = false
   }
 }
 </script>
+
+<template>
+  <div>
+    <div class="mb-2 flex items-center justify-between">
+      <span class="text-xs text-muted-foreground">{{ ofertas.length }} ofertas</span>
+      <Button variant="outline" size="sm" :disabled="exportando" @click="exportar">
+        <LoaderCircleIcon v-if="exportando" class="animate-spin" />
+        <FileSpreadsheetIcon v-else class="size-4" />
+        Excel
+      </Button>
+    </div>
+
+    <DataTable
+      :columns="columnas"
+      :rows="paginadas as unknown as DataTableRow[]"
+      row-key="id"
+      :sort="sort"
+      :page="pagination.page.value"
+      :page-size="pagination.pageSize.value"
+      :total="pagination.total.value"
+      empty-message="No hay ofertas con esos filtros."
+      @row-click="(row) => emit('abrir', asOferta(row))"
+      @update:sort="sort = $event"
+      @update:page="pagination.goTo($event)"
+    >
+      <template #cell="{ row, column }">
+        <template v-if="column.key === 'codigo_seguimiento'">
+          <span class="font-mono text-xs">{{
+            asOferta(row).codigo_seguimiento || asOferta(row).numero_oferta || '—'
+          }}</span>
+        </template>
+        <template v-else-if="column.key === 'estado'">
+          <GBadge :color="severidadEtapa(asOferta(row).estado)">{{
+            labelEtapa(asOferta(row).estado)
+          }}</GBadge>
+        </template>
+        <template v-else-if="column.key === 'planta_nombre'">
+          <div class="flex items-center gap-1.5">
+            <span>{{ asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—' }}</span>
+            <GTooltip v-if="(asOferta(row).plantas?.length ?? 0) > 1">
+              <GTooltipTrigger as-child>
+                <span class="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                  +{{ asOferta(row).plantas!.length - 1 }}
+                </span>
+              </GTooltipTrigger>
+              <GTooltipContent>{{
+                asOferta(row).plantas!.map((p) => p.nombre_comercial).join(' · ')
+              }}</GTooltipContent>
+            </GTooltip>
+          </div>
+        </template>
+        <template v-else-if="column.key === 'cliente_razon_social'">
+          {{ asOferta(row).cliente_razon_social }}
+        </template>
+        <template v-else-if="column.key === 'tipo'">{{ labelTipo(asOferta(row).tipo) }}</template>
+        <!-- Energía: MWh/mes derivado de kWh crudo -->
+        <template v-else-if="column.key === 'energia'">
+          <span v-if="mwhMes(asOferta(row))">{{ fmtMwh(mwhMes(asOferta(row))) }}</span>
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'municipio'">
+          {{ asOferta(row).ficha?.municipio || '—' }}
+        </template>
+        <template v-else-if="column.key === 'precio_detalle'">
+          {{ asOferta(row).precio_detalle || '—' }}
+        </template>
+        <template v-else-if="column.key === 'fecha_oferta'">
+          <span v-if="asOferta(row).fecha_oferta" :title="fmtFecha(asOferta(row).fecha_oferta)">
+            hace {{ diasDesde(asOferta(row).fecha_oferta) }} d
+          </span>
+          <!-- Sin fecha registrada, el mes vive dentro del propio código. Se
+               muestra como aproximado y no se guarda nada. -->
+          <GTooltip v-else-if="mesDelCodigo(asOferta(row))">
+            <GTooltipTrigger as-child>
+              <span class="text-muted-foreground/60">≈ {{ mesDelCodigo(asOferta(row)) }}</span>
+            </GTooltipTrigger>
+            <GTooltipContent
+              >Aproximado: sale del mes que trae el código, no de una fecha registrada</GTooltipContent
+            >
+          </GTooltip>
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'seguimientos'">
+          <span
+            :class="alarmante(asOferta(row)) ? 'font-semibold text-destructive' : ''"
+          >
+            {{ asOferta(row).seguimientos || 0 }}
+          </span>
+        </template>
+        <template v-else-if="column.key === 'fecha_ultima_respuesta'">
+          <span v-if="asOferta(row).fecha_ultima_respuesta">{{
+            fmtFecha(asOferta(row).fecha_ultima_respuesta)
+          }}</span>
+          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive">sin respuesta</span>
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'contrato'">
+          <NuxtLink
+            v-if="asOferta(row).ppa_contrato_id"
+            :to="`/contratos/${asOferta(row).ppa_contrato_id}`"
+            class="text-xs text-primary underline"
+            @click.stop
+            >PPA</NuxtLink
+          >
+          <span v-else class="text-muted-foreground/60">—</span>
+        </template>
+        <template v-else-if="column.key === 'alerta'">
+          <GBadge v-if="asOferta(row).alerta" color="destructive" class="scale-90"
+            >⚠ {{ asOferta(row).dias_sin_respuesta }}d</GBadge
+          >
+        </template>
+      </template>
+    </DataTable>
+  </div>
+</template>

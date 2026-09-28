@@ -1,4 +1,8 @@
+import type { Component } from 'vue'
+import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
+import type { Oferta } from '~/features/comercial/types'
 import { FilePenIcon, MailIcon, MessageSquareIcon, PhoneIcon, UsersIcon } from '@lucide/vue'
+
 /**
  * Vocabulario y derivaciones del CRM comercial.
  *
@@ -8,12 +12,19 @@ import { FilePenIcon, MailIcon, MessageSquareIcon, PhoneIcon, UsersIcon } from '
  * rechaza con 422, y el selector de etapa al crear una oferta se descartaba antes
  * de enviarse. Una sola fuente evita que vuelva a pasar.
  *
- * Todo acá es puro: se prueba con `node src/views/Comercial/comercial.test.mjs`.
+ * Todo acá es puro: se prueba con `comercial.test.ts`.
  */
+
+export interface Etapa {
+  value: string
+  label: string
+  severidad: GandalfBadgeColor
+  color: string
+}
 
 // ── Etapas del pipeline (EstadoComercialEnum del backend) ────────────────────
 // El orden es el del avance del negocio y define el orden de las columnas.
-export const ETAPAS = [
+export const ETAPAS: Etapa[] = [
   { value: 'oportunidad', label: 'Oportunidad', severidad: 'information', color: '#3B82F6' },
   { value: 'oferta', label: 'Oferta', severidad: 'warning', color: '#F59E0B' },
   { value: 'contrato', label: 'Contrato', severidad: 'default', color: '#8B5CF6' },
@@ -26,6 +37,14 @@ export const ETAPAS = [
 // Etapas que siguen abiertas: son las que cuentan como negocio vivo.
 export const ETAPAS_ABIERTAS = ['oportunidad', 'oferta', 'contrato', 'firmado', 'operando']
 
+export interface Columna {
+  value: string
+  label: string
+  estados: string[]
+  /** A qué estado se manda una tarjeta soltada en esta columna, si no es `value`. */
+  alSoltar?: string
+}
+
 /**
  * Columnas del tablero. `terminado` y `declinado` se agrupan en una sola columna
  * "Cerradas": eran dos columnas de 1/7 de ancho, ilegibles, y casi siempre vacías.
@@ -34,18 +53,29 @@ export const ETAPAS_ABIERTAS = ['oportunidad', 'oferta', 'contrato', 'firmado', 
  * `terminado` no se mueve a mano — lo pone el job diario cuando pasa la fecha_fin
  * del PPA (ver cerrar_contratos_vencidos en el backend).
  */
-export const COLUMNAS = [
+export const COLUMNAS: Columna[] = [
   { value: 'oportunidad', label: 'Oportunidad', estados: ['oportunidad'] },
   { value: 'oferta', label: 'Oferta', estados: ['oferta'] },
   { value: 'contrato', label: 'Contrato', estados: ['contrato'] },
   { value: 'firmado', label: 'Firmado', estados: ['firmado'] },
   { value: 'operando', label: 'Operando', estados: ['operando'] },
-  { value: 'cerradas', label: 'Cerradas', estados: ['terminado', 'declinado'], alSoltar: 'declinado' },
+  {
+    value: 'cerradas',
+    label: 'Cerradas',
+    estados: ['terminado', 'declinado'],
+    alSoltar: 'declinado',
+  },
 ]
+
+export interface TipoOferta {
+  value: string
+  label: string
+  segmento: string
+}
 
 // ── Tipos de oferta (TipoOfertaComercialEnum) ────────────────────────────────
 // Estos son los valores REALES que acepta el backend.
-export const TIPOS_OFERTA = [
+export const TIPOS_OFERTA: TipoOferta[] = [
   { value: 'servicios_operacionales', label: 'Servicios operacionales', segmento: 'REP' },
   { value: 'compra_energia', label: 'Compra de energía', segmento: 'COM' },
   { value: 'comunidad_energetica', label: 'Comunidad energética', segmento: 'CEN' },
@@ -55,13 +85,25 @@ export const TIPOS_OFERTA = [
 // contrato de representación (el backend responde 422 si se le pide firmar una).
 export const TIPOS_ENERGIA = ['compra_energia', 'comunidad_energetica']
 
-export const RESULTADOS = [
+export interface Resultado {
+  value: string
+  label: string
+  severidad: GandalfBadgeColor
+}
+
+export const RESULTADOS: Resultado[] = [
   { value: 'pendiente', label: 'Pendiente', severidad: 'warning' },
   { value: 'aceptado', label: 'Aceptado', severidad: 'success' },
   { value: 'declinado', label: 'Declinado', severidad: 'destructive' },
 ]
 
-export const TIPOS_GESTION = [
+export interface TipoGestion {
+  value: string
+  label: string
+  icono: Component
+}
+
+export const TIPOS_GESTION: TipoGestion[] = [
   { value: 'llamada', label: 'Llamada', icono: PhoneIcon },
   { value: 'correo', label: 'Correo', icono: MailIcon },
   { value: 'reunion', label: 'Reunión', icono: UsersIcon },
@@ -69,18 +111,28 @@ export const TIPOS_GESTION = [
   { value: 'nota', label: 'Nota', icono: FilePenIcon },
 ]
 
-export const ORIGENES_CLIENTE = [
+export interface OrigenCliente {
+  value: string
+  label: string
+}
+
+export const ORIGENES_CLIENTE: OrigenCliente[] = [
   { value: 'prospeccion_propia', label: 'Prospección propia' },
   { value: 'recomendacion', label: 'Recomendación' },
   { value: 'referido', label: 'Referido' },
   { value: 'otro', label: 'Otro' },
 ]
 
+export interface Fuente {
+  label: string
+  clase: string
+}
+
 // De dónde salió cada dato de la ficha operativa (`ficha.fuentes` del backend).
 // Se muestra al lado del valor porque un null y un "todavía no lo sabemos" se
 // ven igual, y en una herramienta comercial eso lleva a decisiones sobre datos
 // inventados.
-export const FUENTES = {
+export const FUENTES: Record<string, Fuente> = {
   proyecto: { label: 'del proyecto', clase: 'bg-purple-50 text-purple-700' },
   oferta: { label: 'declarado en la oferta', clase: 'bg-amber-50 text-amber-700' },
   contrato: { label: 'del contrato', clase: 'bg-teal-50 text-teal-700' },
@@ -89,19 +141,37 @@ export const FUENTES = {
 }
 
 // ── Etiquetas ────────────────────────────────────────────────────────────────
-const buscar = (lista, v) => lista.find((x) => x.value === v)
+function buscar<T extends { value: string }>(lista: T[], v: string | null | undefined): T | undefined {
+  return lista.find((x) => x.value === v)
+}
 
-export function labelEtapa(v) { return buscar(ETAPAS, v)?.label ?? v ?? '—' }
-export function severidadEtapa(v) { return buscar(ETAPAS, v)?.severidad ?? 'information' }
-export function colorEtapa(v) { return buscar(ETAPAS, v)?.color ?? '#7a6e8a' }
-export function labelTipo(v) { return buscar(TIPOS_OFERTA, v)?.label ?? v ?? '—' }
-export function segmentoTipo(v) { return buscar(TIPOS_OFERTA, v)?.segmento ?? '—' }
-export function labelResultado(v) { return buscar(RESULTADOS, v)?.label ?? v ?? '—' }
-export function severidadResultado(v) { return buscar(RESULTADOS, v)?.severidad ?? 'default' }
-export function labelGestion(v) { return buscar(TIPOS_GESTION, v)?.label ?? v ?? '—' }
+export function labelEtapa(v: string | null | undefined): string {
+  return buscar(ETAPAS, v)?.label ?? v ?? '—'
+}
+export function severidadEtapa(v: string | null | undefined): GandalfBadgeColor {
+  return buscar(ETAPAS, v)?.severidad ?? 'information'
+}
+export function colorEtapa(v: string | null | undefined): string {
+  return buscar(ETAPAS, v)?.color ?? '#7a6e8a'
+}
+export function labelTipo(v: string | null | undefined): string {
+  return buscar(TIPOS_OFERTA, v)?.label ?? v ?? '—'
+}
+export function segmentoTipo(v: string | null | undefined): string {
+  return buscar(TIPOS_OFERTA, v)?.segmento ?? '—'
+}
+export function labelResultado(v: string | null | undefined): string {
+  return buscar(RESULTADOS, v)?.label ?? v ?? '—'
+}
+export function severidadResultado(v: string | null | undefined): GandalfBadgeColor {
+  return buscar(RESULTADOS, v)?.severidad ?? 'default'
+}
+export function labelGestion(v: string | null | undefined): string {
+  return buscar(TIPOS_GESTION, v)?.label ?? v ?? '—'
+}
 
-export function puedeFirmarPPA(oferta) {
-  return !!oferta && TIPOS_ENERGIA.includes(oferta.tipo) && !oferta.ppa_contrato_id
+export function puedeFirmarPPA(oferta: Oferta | null | undefined): boolean {
+  return !!oferta && TIPOS_ENERGIA.includes(oferta.tipo ?? '') && !oferta.ppa_contrato_id
 }
 
 // ── Precio de la oferta ──────────────────────────────────────────────────────
@@ -116,15 +186,15 @@ export function puedeFirmarPPA(oferta) {
  * tarifa o lo dejaba vacío. Lo mismo vale para comunidad energética, que
  * también desemboca en un PPA.
  */
-export function etiquetaPrecio(tipo) {
-  return TIPOS_ENERGIA.includes(tipo) ? 'Tarifa de energía ($/kWh)' : 'Comisión del servicio (%)'
+export function etiquetaPrecio(tipo: string | null | undefined): string {
+  return TIPOS_ENERGIA.includes(tipo ?? '') ? 'Tarifa de energía ($/kWh)' : 'Comisión del servicio (%)'
 }
 
-export function placeholderPrecio(tipo) {
-  return TIPOS_ENERGIA.includes(tipo) ? 'p. ej. 320' : 'p. ej. REP: 6 · CGM: 6'
+export function placeholderPrecio(tipo: string | null | undefined): string {
+  return TIPOS_ENERGIA.includes(tipo ?? '') ? 'p. ej. 320' : 'p. ej. REP: 6 · CGM: 6'
 }
 
-export function ayudaPrecio(tipo) {
+export function ayudaPrecio(tipo: string | null | undefined): string | null {
   if (!tipo) return null
   return TIPOS_ENERGIA.includes(tipo)
     ? 'Tarifa tentativa de la oferta. La pactada se carga al firmar y vive en el contrato, que es de donde la leen Cumplimiento y Liquidaciones.'
@@ -134,14 +204,14 @@ export function ayudaPrecio(tipo) {
 // ── Fechas ───────────────────────────────────────────────────────────────────
 // Las fechas del API llegan como 'YYYY-MM-DD' (date) o ISO con hora (datetime).
 // Se normaliza a medianoche local para que no se corran un día por la zona.
-export function aFecha(v) {
+export function aFecha(v: string | Date | null | undefined): Date | null {
   if (!v) return null
   if (v instanceof Date) return v
   const s = String(v)
   return s.length <= 10 ? new Date(`${s}T00:00:00`) : new Date(s)
 }
 
-export function aFechaStr(v) {
+export function aFechaStr(v: string | Date | null | undefined): string | null {
   if (!v) return null
   if (typeof v === 'string') return v.slice(0, 10)
   const d = new Date(v)
@@ -149,14 +219,14 @@ export function aFechaStr(v) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export function fmtFecha(v) {
+export function fmtFecha(v: string | Date | null | undefined): string {
   const d = aFecha(v)
   return d && !Number.isNaN(d.getTime())
     ? d.toLocaleDateString('es-CO', { dateStyle: 'medium' })
     : '—'
 }
 
-export function diasDesde(v, hoy = Date.now()) {
+export function diasDesde(v: string | Date | null | undefined, hoy: number = Date.now()): number | null {
   const d = aFecha(v)
   if (!d || Number.isNaN(d.getTime())) return null
   return Math.max(0, Math.floor((hoy - d.getTime()) / 86400000))
@@ -167,53 +237,69 @@ export function diasDesde(v, hoy = Date.now()) {
 // exacta inventada es peor que ninguna en una herramienta comercial.
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
-export function mesDelCodigo(oferta) {
+export function mesDelCodigo(oferta: Pick<Oferta, 'codigo_seguimiento' | 'numero_oferta'> | null | undefined): string | null {
   const codigo = oferta?.codigo_seguimiento || oferta?.numero_oferta || ''
   const m = /No\.?\s*\d{1,4}\s*-\s*(\d{1,2})\s*-\s*(\d{4})/.exec(codigo)
-  const mes = m && MESES[Number(m[1]) - 1]
-  return mes ? `${mes} ${m[2]}` : null
+  const mes = m ? MESES[Number(m[1]) - 1] : undefined
+  return mes ? `${mes} ${m![2]}` : null
 }
 
 // Se envió y el cliente nunca contestó: es la señal fuerte del tablero.
-export function sinRespuesta(oferta) {
+export function sinRespuesta(oferta: Pick<Oferta, 'fecha_oferta' | 'fecha_ultima_respuesta'> | null | undefined): boolean {
   return !!oferta?.fecha_oferta && !oferta?.fecha_ultima_respuesta
 }
 
 // Cuatro toques sin una sola respuesta: el negocio se enfrió.
-export function alarmante(oferta) {
+export function alarmante(oferta: Pick<Oferta, 'seguimientos' | 'fecha_ultima_respuesta'> | null | undefined): boolean {
   return (oferta?.seguimientos || 0) >= 4 && !oferta?.fecha_ultima_respuesta
 }
 
 // ── Energía ──────────────────────────────────────────────────────────────────
 // El CRM habla en kWh/mes (como cantidad_minima_kwh_mes) pero los totales se
 // leen mejor en MWh/mes.
-export function mwhMes(oferta) {
+export function mwhMes(oferta: Pick<Oferta, 'ficha'> | null | undefined): number {
   const kwh = oferta?.ficha?.energia_promedio_kwh_mes
   return typeof kwh === 'number' && Number.isFinite(kwh) ? kwh / 1000 : 0
 }
 
-export function fmtMwh(valor) {
+export function fmtMwh(valor: number | null | undefined): string {
   if (!valor) return '—'
   return `${valor.toLocaleString('es-CO', { maximumFractionDigits: valor < 10 ? 1 : 0 })} MWh/mes`
 }
 
 // ── Derivaciones del tablero ─────────────────────────────────────────────────
+export interface Banda {
+  activas: number
+  total: number
+  energiaMwhMes: number
+  alertas: number
+  sinRespuesta: number
+}
+
 /**
  * La banda de indicadores, derivada de las ofertas que ya están en memoria: no
  * hace falta un endpoint de KPIs para tener el pulso del mes.
  */
-export function kpis(ofertas) {
-  const abiertas = (ofertas || []).filter((o) => ETAPAS_ABIERTAS.includes(o.estado))
+export function kpis(ofertas: Oferta[] | null | undefined): Banda {
+  const abiertas = (ofertas || []).filter((o) => ETAPAS_ABIERTAS.includes(o.estado ?? ''))
   return {
     activas: abiertas.length,
     total: (ofertas || []).length,
     energiaMwhMes: abiertas.reduce((a, o) => a + mwhMes(o), 0),
     alertas: (ofertas || []).filter((o) => o.alerta).length,
-    sinRespuesta: (ofertas || []).filter((o) => ETAPAS_ABIERTAS.includes(o.estado) && sinRespuesta(o)).length,
+    sinRespuesta: (ofertas || []).filter(
+      (o) => ETAPAS_ABIERTAS.includes(o.estado ?? '') && sinRespuesta(o),
+    ).length,
   }
 }
 
-export function resumenColumna(ofertas) {
+export interface ResumenColumna {
+  n: number
+  energiaMwhMes: number
+  alertas: number
+}
+
+export function resumenColumna(ofertas: Oferta[] | null | undefined): ResumenColumna {
   return {
     n: (ofertas || []).length,
     energiaMwhMes: (ofertas || []).reduce((a, o) => a + mwhMes(o), 0),
@@ -221,75 +307,113 @@ export function resumenColumna(ofertas) {
   }
 }
 
-export function agruparPorColumna(ofertas) {
-  const out = {}
+export function agruparPorColumna(ofertas: Oferta[] | null | undefined): Record<string, Oferta[]> {
+  const out: Record<string, Oferta[]> = {}
   for (const col of COLUMNAS) out[col.value] = []
   for (const o of ofertas || []) {
-    const col = COLUMNAS.find((c) => c.estados.includes(o.estado))
-    if (col) out[col.value].push(o)
+    const col = COLUMNAS.find((c) => c.estados.includes(o.estado ?? ''))
+    if (col) out[col.value]!.push(o)
     // Una etapa desconocida (un enum nuevo en el backend) NO se descarta en
     // silencio: cae en la primera columna, donde alguien la va a ver.
-    else out[COLUMNAS[0].value].push(o)
+    else out[COLUMNAS[0]!.value]!.push(o)
   }
   return out
 }
 
-export function filtrar(ofertas, f = {}) {
+export interface FiltrosOfertas {
+  texto?: string
+  tipos?: string[]
+  etapas?: string[]
+  resultado?: string | null
+  clientes?: number[]
+  soloAlerta?: boolean
+  soloSinRespuesta?: boolean
+}
+
+export function filtrar(ofertas: Oferta[] | null | undefined, f: FiltrosOfertas = {}): Oferta[] {
   const q = (f.texto || '').trim().toLowerCase()
   return (ofertas || []).filter((o) => {
     if (q) {
-      const heno = [o.codigo_seguimiento, o.numero_oferta, o.cliente_razon_social,
-        o.planta_nombre, o.oportunidad_nombre, o.ficha?.municipio]
-        .filter(Boolean).join(' ').toLowerCase()
+      const heno = [
+        o.codigo_seguimiento,
+        o.numero_oferta,
+        o.cliente_razon_social,
+        o.planta_nombre,
+        o.oportunidad_nombre,
+        o.ficha?.municipio,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
       if (!heno.includes(q)) return false
     }
-    if (f.tipos?.length && !f.tipos.includes(o.tipo)) return false
-    if (f.etapas?.length && !f.etapas.includes(o.estado)) return false
+    if (f.tipos?.length && !f.tipos.includes(o.tipo ?? '')) return false
+    if (f.etapas?.length && !f.etapas.includes(o.estado ?? '')) return false
     if (f.resultado && o.resultado !== f.resultado) return false
-    if (f.clientes?.length && !f.clientes.includes(o.cliente_id)) return false
+    if (f.clientes?.length && !f.clientes.includes(o.cliente_id ?? -1)) return false
     if (f.soloAlerta && !o.alerta) return false
     if (f.soloSinRespuesta && !sinRespuesta(o)) return false
     return true
   })
 }
 
-export function ordenar(ofertas, criterio = 'reciente') {
-  const ts = (v) => (v ? new Date(v).getTime() : 0)
+export type CriterioOrden = 'reciente' | 'antiguo' | 'rezagadas' | 'energia' | 'cliente'
+
+export function ordenar(ofertas: Oferta[] | null | undefined, criterio: string = 'reciente'): Oferta[] {
+  const ts = (v: string | null | undefined) => (v ? new Date(v).getTime() : 0)
   const copia = [...(ofertas || [])]
-  const comparadores = {
+  const comparadores: Record<string, (a: Oferta, b: Oferta) => number> = {
     reciente: (a, b) => ts(b.updated_at) - ts(a.updated_at),
     antiguo: (a, b) => ts(a.updated_at) - ts(b.updated_at),
     // Lo más rezagado primero: es el orden con el que se trabaja la lista.
     rezagadas: (a, b) => (b.dias_sin_respuesta || 0) - (a.dias_sin_respuesta || 0),
     energia: (a, b) => mwhMes(b) - mwhMes(a),
-    cliente: (a, b) => (a.cliente_razon_social || '').localeCompare(b.cliente_razon_social || '', 'es'),
+    cliente: (a, b) =>
+      (a.cliente_razon_social || '').localeCompare(b.cliente_razon_social || '', 'es'),
   }
   return copia.sort(comparadores[criterio] || comparadores.reciente)
 }
 
 // ── Firmar: validación espejo del schema del backend ─────────────────────────
+export interface PrecioAnual {
+  anio: number | null
+  precio: number | null
+}
+
+export interface FormularioFirma {
+  fecha_inicio?: string | Date | null
+  fecha_fin?: string | Date | null
+  modo_precio?: 'unica' | 'tabla' | string
+  tarifa_base?: number | null
+  precios_anuales?: PrecioAnual[]
+  periodo_indexacion_base?: string | null
+}
+
 /**
  * Las mismas reglas que FirmarOfertaIn, para que el comercial se entere antes
  * del 422 y no después. Devuelve la lista de problemas (vacía = se puede firmar).
  */
-export function validarFirma(form) {
-  const errores = []
+export function validarFirma(form: FormularioFirma | null | undefined): string[] {
+  const errores: string[] = []
   const inicio = aFechaStr(form?.fecha_inicio)
   const fin = aFechaStr(form?.fecha_fin)
   if (!inicio) errores.push('Falta la fecha de inicio del suministro.')
   if (!fin) errores.push('Falta la fecha de fin del suministro.')
   if (inicio && fin && fin < inicio) errores.push('La fecha de fin es anterior a la de inicio.')
 
-  const filas = (form?.precios_anuales || []).filter((p) => p.anio && p.precio > 0)
+  const filas = (form?.precios_anuales || []).filter((p) => p.anio && p.precio && p.precio > 0)
   if (form?.modo_precio === 'tabla') {
     if (!filas.length) errores.push('La tabla de precios está vacía.')
     const anios = filas.map((p) => p.anio)
     if (new Set(anios).size !== anios.length) errores.push('La tabla de precios tiene años repetidos.')
-  } else if (!(form?.tarifa_base > 0)) {
+  } else if (!(form?.tarifa_base && form.tarifa_base > 0)) {
     errores.push('Falta la tarifa ($/kWh).')
   }
 
-  if (form?.periodo_indexacion_base && !/^\d{4}-(0[1-9]|1[0-2])$/.test(form.periodo_indexacion_base)) {
+  if (
+    form?.periodo_indexacion_base &&
+    !/^\d{4}-(0[1-9]|1[0-2])$/.test(form.periodo_indexacion_base)
+  ) {
     errores.push('El mes base de indexación debe ser YYYY-MM (por ejemplo 2025-10).')
   }
   return errores
@@ -300,13 +424,13 @@ export function validarFirma(form) {
  * mismo recorte al periodo que hace el backend (_tarifas_mensuales): un contrato
  * que arranca en octubre no tiene tarifa de enero a septiembre de ese año.
  */
-export function tarifasMensualesQueGenera(form) {
+export function tarifasMensualesQueGenera(form: FormularioFirma | null | undefined): number {
   const inicio = aFecha(form?.fecha_inicio)
   const fin = aFecha(form?.fecha_fin)
   if (!inicio || !fin || form?.modo_precio !== 'tabla') return 0
   let n = 0
   for (const p of form.precios_anuales || []) {
-    if (!p.anio || !(p.precio > 0)) continue
+    if (!p.anio || !(p.precio && p.precio > 0)) continue
     if (p.anio < inicio.getFullYear() || p.anio > fin.getFullYear()) continue
     const desde = p.anio === inicio.getFullYear() ? inicio.getMonth() + 1 : 1
     const hasta = p.anio === fin.getFullYear() ? fin.getMonth() + 1 : 12
@@ -316,11 +440,14 @@ export function tarifasMensualesQueGenera(form) {
 }
 
 // Los años que debería tener la tabla de precios para cubrir el periodo.
-export function aniosDelPeriodo(fechaInicio, fechaFin) {
+export function aniosDelPeriodo(
+  fechaInicio: string | Date | null | undefined,
+  fechaFin: string | Date | null | undefined,
+): number[] {
   const inicio = aFecha(fechaInicio)
   const fin = aFecha(fechaFin)
   if (!inicio || !fin || fin < inicio) return []
-  const out = []
+  const out: number[] = []
   for (let a = inicio.getFullYear(); a <= fin.getFullYear(); a += 1) out.push(a)
   return out
 }

@@ -9,292 +9,40 @@
 
   También manda al backend lo que el formulario viejo descartaba: la etapa de
   cada oferta, sus plantas y la fecha de envío.
+
+  No existe un patrón de "wizard" ya establecido en el codebase: este es un
+  estado de paso simple (`paso` 0/1/2) con botones Atrás/Continuar sobre
+  componentes shadcn, sin ningún componente de "steps" nuevo.
 -->
-<template>
-  <Dialog :visible="visible" modal :style="{ width: '46rem' }" :closable="!guardando"
-          @update:visible="cerrar">
-    <template #header>
-      <div>
-        <h2 class="text-base font-semibold" style="color:var(--color-unergy-deep)">Registrar oferta</h2>
-        <p class="text-xs" style="color:#9b89b5">{{ SUBTITULOS[paso] }}</p>
-      </div>
-    </template>
-
-    <!-- Pasos -->
-    <ol class="flex items-center gap-1 mb-5 text-xs">
-      <li v-for="(t, i) in PASOS" :key="t" class="flex items-center gap-1">
-        <button class="flex items-center gap-1.5 rounded px-2 py-1 transition-colors"
-                :class="i === paso ? 'font-semibold' : ''"
-                :style="{ color: i <= paso ? 'var(--color-unergy-purple)' : '#c4b8d4',
-                          background: i === paso ? '#F4EEFB' : 'transparent' }"
-                :disabled="i > paso" @click="paso = i">
-          <span class="w-4 h-4 rounded-full text-[10px] flex items-center justify-center text-white"
-                :style="{ background: i <= paso ? 'var(--color-unergy-purple)' : '#c4b8d4' }">{{ i + 1 }}</span>
-          {{ t }}
-        </button>
-        <ChevronRightIcon class="size-[1em]" v-if="i < PASOS.length - 1" style="color:#c4b8d4;font-size:10px" />
-      </li>
-    </ol>
-
-    <!-- ── Paso 1: cliente ─────────────────────────────────────────────── -->
-    <div v-if="paso === 0" class="flex flex-col gap-4">
-      <SelectButton v-model="modo" :options="MODOS" optionLabel="label" optionValue="value"
-                    :allowEmpty="false" />
-
-      <div v-if="modo === 'existente'">
-        <label class="etiqueta">Cliente *</label>
-        <AutoComplete v-model="clienteSel" :suggestions="sugerencias" optionLabel="razon_social_nombre"
-                      dropdown forceSelection class="w-full" inputClass="w-full"
-                      placeholder="Buscar por razón social o NIT…" @complete="buscarCliente" />
-        <p v-if="clienteSel?.nit_cedula" class="ayuda">NIT {{ clienteSel.nit_cedula }}</p>
-      </div>
-
-      <template v-else>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="etiqueta">Razón social *</label>
-            <InputText v-model.trim="nuevo.razon_social_nombre" class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">NIT / Cédula</label>
-            <InputText v-model.trim="nuevo.nit_cedula" class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">Origen del cliente</label>
-            <Select v-model="nuevo.origen_tipo" :options="ORIGENES_CLIENTE" optionLabel="label"
-                    optionValue="value" showClear class="w-full" placeholder="—" />
-          </div>
-          <div>
-            <label class="etiqueta">Quién lo consiguió / recomendó</label>
-            <InputText v-model.trim="nuevo.origen_detalle" class="w-full" />
-          </div>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="etiqueta !mb-0">Contactos * (al menos uno con correo)</label>
-            <Button label="Agregar" text size="small" @click="nuevo.contactos.push({ nombre: '', telefono: '', email: '', tipo: 'comercial' })">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
-            </Button>
-          </div>
-          <div v-for="(c, i) in nuevo.contactos" :key="i"
-               class="grid grid-cols-[1fr_1fr_1.2fr_auto_auto] gap-2 mb-2">
-            <InputText v-model.trim="c.nombre" placeholder="Nombre" />
-            <InputText v-model.trim="c.telefono" placeholder="Teléfono" />
-            <InputText v-model.trim="c.email" placeholder="Correo *" />
-            <Select v-model="c.tipo" :options="TIPOS_CONTACTO" optionLabel="label" optionValue="value"
-                    class="w-32" />
-            <Button text severity="danger" :disabled="nuevo.contactos.length === 1" @click="nuevo.contactos.splice(i, 1)">
-              <template #icon><Trash2Icon class="size-[1em]" /></template>
-            </Button>
-          </div>
-        </div>
-
-        <!-- El 409 de duplicado deja de ser un error rojo sin salida. -->
-        <Message v-if="duplicado" severity="warn" :closable="false">
-          <div class="text-xs">
-            <p class="mb-2">{{ duplicado.mensaje }}</p>
-            <div class="flex gap-2">
-              <Button label="Usar ese cliente" size="small" @click="usarCandidato" />
-              <Button label="Crear uno nuevo igual" size="small" outlined severity="secondary"
-                      @click="forzarDuplicado = true; duplicado = null; guardar()" />
-            </div>
-          </div>
-        </Message>
-      </template>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="etiqueta">Nombre del negocio (opcional)</label>
-          <InputText v-model.trim="negocio.nombre" class="w-full"
-                     placeholder="Ej: Comunidad energética 2027" />
-        </div>
-        <div>
-          <label class="etiqueta">Notas</label>
-          <InputText v-model.trim="negocio.notas" class="w-full" />
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Paso 2: ofertas ─────────────────────────────────────────────── -->
-    <div v-else-if="paso === 1" class="flex flex-col gap-3">
-      <div v-for="(o, i) in ofertas" :key="i" class="rounded-lg p-3"
-           style="background:#FAF8FC;border:1px solid #e8e0f0">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold" style="color:#7a6e8a">Oferta {{ i + 1 }}</span>
-          <Button v-if="ofertas.length > 1" text severity="danger" size="small" @click="ofertas.splice(i, 1)">
-            <template #icon><Trash2Icon class="size-[1em]" /></template>
-          </Button>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="etiqueta">Tipo de oferta *</label>
-            <Select v-model="o.tipo" :options="TIPOS_OFERTA" optionLabel="label" optionValue="value"
-                    class="w-full" placeholder="Seleccionar…" />
-          </div>
-          <div>
-            <label class="etiqueta">Planta (nombre libre)</label>
-            <InputText v-model.trim="o.planta_nombre" class="w-full" placeholder="Ej: Balmora 1 y 2" />
-          </div>
-          <!-- El vínculo a la planta REAL. Sin él la oferta queda sin proyecto y
-               /comercial/proyectos-operando la devuelve sin ubicación, sin operador
-               de red y sin ningún dato técnico: todo eso vive en el Proyecto. -->
-          <div class="sm:col-span-2">
-            <label class="etiqueta">Plantas ya creadas en Proyectos</label>
-            <MultiSelect v-model="o.proyecto_ids" :options="proyectos" optionLabel="nombre_comercial"
-                       :filterFields="['nombre_comercial', 'municipio', 'departamento']"
-                         optionValue="id" filter display="chip" class="w-full"
-                         :loading="cargandoCatalogos"
-                         placeholder="Buscá la planta por nombre, municipio o departamento…"
-                         filterPlaceholder="Buscar…" :emptyMessage="cargandoCatalogos ? 'Cargando…' : 'No hay plantas cargadas'">
-              <template #option="{ option }">
-                <div class="min-w-0">
-                  <div class="text-sm" style="color:var(--color-unergy-deep)">{{ option.nombre_comercial }}</div>
-                  <div class="text-[11px]" style="color:#9b89b5">
-                    {{ [option.municipio, option.departamento].filter(Boolean).join(', ') || 'Sin ubicación' }}
-                    <span v-if="option.potencia_ac_kw">
-                      · {{ Number(option.potencia_ac_kw).toLocaleString('es-CO', { maximumFractionDigits: 0 }) }} kWp
-                    </span>
-                  </div>
-                </div>
-              </template>
-            </MultiSelect>
-            <p class="ayuda" :style="o.proyecto_ids?.length ? '' : 'color:#D64455'">
-              <template v-if="o.proyecto_ids?.length">
-                {{ o.proyecto_ids.length }} planta(s) vinculadas: la oferta va a traer su
-                ubicación, operador de red y ficha técnica.
-              </template>
-              <template v-else>
-                Sin vincular, la oferta queda con el nombre y nada más. Si la planta
-                todavía no existe, se crea desde el panel de la oferta después de registrar.
-              </template>
-            </p>
-          </div>
-          <div>
-            <label class="etiqueta">Etapa inicial</label>
-            <Select v-model="o.estado" :options="ETAPAS_INICIALES" optionLabel="label" optionValue="value"
-                    class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">Fecha de envío</label>
-            <DatePicker v-model="o.fecha_oferta" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-          <div>
-            <label class="etiqueta">{{ etiquetaPrecio(o.tipo) }}</label>
-            <InputText v-model.trim="o.precio_detalle" class="w-full"
-                       :placeholder="placeholderPrecio(o.tipo)" />
-          </div>
-          <div>
-            <label class="etiqueta">Inicio tentativo</label>
-            <DatePicker v-model="o.fecha_tentativa_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-          </div>
-        </div>
-        <p v-if="ayudaPrecio(o.tipo)" class="ayuda">{{ ayudaPrecio(o.tipo) }}</p>
-        <p v-if="o.tipo && o.fecha_oferta && o.estado === 'oportunidad'" class="ayuda">
-          Tiene fecha de envío pero la etapa dice «Oportunidad». Si ya se envió, movela a «Oferta».
-        </p>
-      </div>
-
-      <Button label="Agregar otra oferta" outlined size="small" class="self-start" @click="agregarOferta">
-        <template #icon><PlusIcon class="size-[1em]" /></template>
-      </Button>
-      <p class="ayuda">
-        Una oferta por planta × servicio. Es la unidad del tablero: sin al menos una,
-        el registro no aparecería en ninguna vista.
-      </p>
-    </div>
-
-    <!-- ── Paso 3: confirmar ───────────────────────────────────────────── -->
-    <div v-else class="flex flex-col gap-3">
-      <div class="rounded-lg p-3" style="background:#FAF8FC;border:1px solid #e8e0f0">
-        <div class="text-xs font-semibold mb-1" style="color:#7a6e8a">CLIENTE</div>
-        <div class="text-sm font-medium" style="color:var(--color-unergy-deep)">{{ resumenCliente }}</div>
-        <div v-if="modo === 'nuevo'" class="text-xs mt-1" style="color:#9b89b5">
-          Se crea nuevo, con {{ contactosValidos.length }} contacto(s).
-        </div>
-      </div>
-
-      <div class="rounded-lg p-3" style="background:#FAF8FC;border:1px solid #e8e0f0">
-        <div class="text-xs font-semibold mb-2" style="color:#7a6e8a">
-          {{ ofertas.length }} OFERTA(S)
-        </div>
-        <div v-for="(o, i) in ofertas" :key="i"
-             class="flex items-center justify-between py-1.5 text-sm"
-             :class="i ? 'border-t' : ''" style="border-color:#e8e0f0">
-          <div class="min-w-0">
-            <div style="color:var(--color-unergy-deep)">{{ o.planta_nombre || 'Sin planta' }}</div>
-            <div class="text-xs" style="color:#9b89b5">
-              {{ labelTipo(o.tipo) }} · {{ labelEtapa(o.estado) }}
-              <span v-if="o.proyecto_ids?.length">· {{ o.proyecto_ids.length }} proyecto(s)</span>
-            </div>
-          </div>
-          <span class="text-[10px] rounded px-1.5 py-0.5 flex-shrink-0"
-                style="background:#F4EEFB;color:var(--color-unergy-purple-dark)">OP.{{ segmentoTipo(o.tipo) }} No.…</span>
-        </div>
-        <p class="ayuda">
-          El código de seguimiento lo genera el backend con el consecutivo global y el
-          mes de la fecha de envío.
-        </p>
-      </div>
-
-      <Message v-if="errorGuardado" severity="error" :closable="false">
-        <span class="text-xs">{{ errorGuardado }}</span>
-      </Message>
-    </div>
-
-    <template #footer>
-      <div class="flex items-center justify-between w-full">
-        <Button v-if="paso > 0" label="Atrás" text :disabled="guardando" @click="paso -= 1">
-          <template #icon><ChevronLeftIcon class="size-[1em]" /></template>
-        </Button>
-        <span v-else />
-        <div class="flex items-center gap-2">
-          <Button label="Cancelar" text severity="secondary" :disabled="guardando" @click="cerrar(false)" />
-          <Button v-if="paso < PASOS.length - 1" label="Continuar" class="flex-row-reverse"
-                  :disabled="!pasoCompleto" @click="paso += 1">
-            <template #icon><ChevronRightIcon class="size-[1em]" /></template>
-          </Button>
-          <Button v-else label="Registrar" :loading="guardando" :disabled="!pasoCompleto" @click="guardar">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
-          </Button>
-        </div>
-      </div>
-    </template>
-  </Dialog>
-</template>
-
-<script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
-import SelectButton from 'primevue/selectbutton'
-import AutoComplete from 'primevue/autocomplete'
-import DatePicker from 'primevue/datepicker'
-import Message from 'primevue/message'
+<script setup lang="ts">
+import type { Cliente } from '~/types/cliente'
+import type { Oportunidad, PayloadRegistrarOportunidad } from '~/features/comercial/types'
+import type { UseOfertas } from './useOfertas'
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
+// Import explícito: bug conocido de tipos de `blocks/DatePicker`.
+import DatePicker from '~/components/blocks/DatePicker.vue'
+import { cargarClientes, cargarProyectos, type ProyectoCatalogo } from './catalogos'
 import {
-  TIPOS_OFERTA, ORIGENES_CLIENTE, labelTipo, labelEtapa, segmentoTipo, aFechaStr,
-  etiquetaPrecio, placeholderPrecio, ayudaPrecio,
-} from './comercial.js'
-import { cargarClientes, cargarProyectos } from './catalogos.js'
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
+  ayudaPrecio,
+  etiquetaPrecio,
+  labelEtapa,
+  labelTipo,
+  ORIGENES_CLIENTE,
+  placeholderPrecio,
+  segmentoTipo,
+  TIPOS_OFERTA,
+  aFechaStr,
+} from './comercial'
 
-const props = defineProps({
-  visible: Boolean,
-  acciones: { type: Object, required: true },
-})
-const emit = defineEmits(['update:visible', 'registrada'])
-
+const props = defineProps<{
+  visible: boolean
+  acciones: Pick<UseOfertas, 'registrar'>
+}>()
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; registrada: [oportunidad: Oportunidad] }>()
 
 const PASOS = ['Cliente', 'Ofertas', 'Confirmar']
-const SUBTITULOS = [
-  'A quién le vendemos',
-  'Qué le ofrecemos — una oferta por planta × servicio',
-  'Revisá antes de crear',
-]
+const SUBTITULOS = ['A quién le vendemos', 'Qué le ofrecemos — una oferta por planta × servicio', 'Revisá antes de crear']
 const MODOS = [
   { label: 'Cliente existente', value: 'existente' },
   { label: 'Cliente nuevo', value: 'nuevo' },
@@ -313,32 +61,60 @@ const TIPOS_CONTACTO = [
   { label: 'Contable', value: 'contable' },
 ]
 
+interface DuplicadoCliente {
+  mensaje?: string
+  candidato_id?: number
+  candidato_nombre?: string
+  [clave: string]: unknown
+}
+
 const paso = ref(0)
-const modo = ref('existente')
+const modo = ref<'existente' | 'nuevo'>('existente')
 const guardando = ref(false)
 const errorGuardado = ref('')
-const duplicado = ref(null)
+const duplicado = ref<DuplicadoCliente | null>(null)
 const forzarDuplicado = ref(false)
 
-const clientes = ref([])
-const sugerencias = ref([])
-const clienteSel = ref(null)
-const proyectos = ref([])
+/** Lo justo que el paso 1 necesita mostrar — el candidato de un 409 duplicado
+ *  no trae el `Cliente` completo, solo id y nombre. */
+type ClienteResumen = Pick<Cliente, 'id' | 'razon_social_nombre'> & Pick<Partial<Cliente>, 'nit_cedula'>
+
+const clientes = ref<Cliente[]>([])
+const clienteSel = ref<ClienteResumen | null>(null)
+const proyectos = ref<ProyectoCatalogo[]>([])
 const cargandoCatalogos = ref(false)
 
 const negocio = reactive({ nombre: '', notas: '' })
 const nuevo = reactive({
-  razon_social_nombre: '', nit_cedula: '', origen_tipo: null, origen_detalle: '',
+  razon_social_nombre: '',
+  nit_cedula: '',
+  origen_tipo: null as string | null,
+  origen_detalle: '',
   contactos: [{ nombre: '', telefono: '', email: '', tipo: 'comercial' }],
 })
 
-function ofertaVacia() {
+interface OfertaWizard {
+  tipo: string | null
+  planta_nombre: string
+  proyecto_ids: number[]
+  estado: string
+  fecha_oferta: string | null
+  precio_detalle: string
+  fecha_tentativa_inicio: string | null
+}
+
+function ofertaVacia(): OfertaWizard {
   return {
-    tipo: null, planta_nombre: '', proyecto_ids: [], estado: 'oportunidad',
-    fecha_oferta: null, precio_detalle: '', fecha_tentativa_inicio: null,
+    tipo: null,
+    planta_nombre: '',
+    proyecto_ids: [],
+    estado: 'oportunidad',
+    fecha_oferta: null,
+    precio_detalle: '',
+    fecha_tentativa_inicio: null,
   }
 }
-const ofertas = ref([ofertaVacia()])
+const ofertas = ref<OfertaWizard[]>([ofertaVacia()])
 
 function agregarOferta() {
   // Hereda planta y tipo de la anterior: casi siempre se registran dos ofertas
@@ -347,13 +123,36 @@ function agregarOferta() {
   ofertas.value.push({ ...ofertaVacia(), tipo: ultima?.tipo ?? null })
 }
 
+const opcionesCliente = computed(() =>
+  clientes.value.map((c) => ({
+    label: c.nit_cedula ? `${c.razon_social_nombre} — NIT ${c.nit_cedula}` : c.razon_social_nombre,
+    value: String(c.id),
+  })),
+)
+
+const clienteSelStr = computed<string | null>({
+  get: () => (clienteSel.value ? String(clienteSel.value.id) : null),
+  set: (v) => {
+    clienteSel.value = v ? (clientes.value.find((c) => String(c.id) === v) ?? null) : null
+  },
+})
+
+const opcionesProyecto = computed(() =>
+  proyectos.value.map((p) => ({
+    label: [p.nombre_comercial, [p.municipio, p.departamento].filter(Boolean).join(', ')]
+      .filter(Boolean)
+      .join(' — '),
+    value: String(p.id),
+  })),
+)
+
 const contactosValidos = computed(() =>
-  nuevo.contactos.filter((c) => c.email.includes('@') && !c.email.startsWith('@') && !c.email.endsWith('@')))
+  nuevo.contactos.filter((c) => c.email.includes('@') && !c.email.startsWith('@') && !c.email.endsWith('@')),
+)
 
 const resumenCliente = computed(() =>
-  modo.value === 'existente'
-    ? (clienteSel.value?.razon_social_nombre ?? '—')
-    : (nuevo.razon_social_nombre || '—'))
+  modo.value === 'existente' ? (clienteSel.value?.razon_social_nombre ?? '—') : nuevo.razon_social_nombre || '—',
+)
 
 const pasoCompleto = computed(() => {
   if (paso.value === 0) {
@@ -368,24 +167,13 @@ const pasoCompleto = computed(() => {
 async function cargarCatalogos() {
   const [cl, pr] = await Promise.allSettled([cargarClientes(), cargarProyectos()])
   if (cl.status === 'fulfilled') clientes.value = cl.value
-  else toast.warning('No se pudo cargar la lista de clientes', { duration: 4000 })
+  else toast.warning('No se pudo cargar la lista de clientes')
   if (pr.status === 'fulfilled') proyectos.value = pr.value
   // El fallo de proyectos también se avisa: quedarse sin la lista de plantas y
   // no enterarse es cómo se registraban ofertas sin vincular a ningún proyecto.
-  else toast.warning('No se pudo cargar la lista de plantas', { duration: 4000 })
+  else toast.warning('No se pudo cargar la lista de plantas')
   cargandoCatalogos.value = false
 }
-
-watch(() => props.visible, (abierto) => {
-  if (abierto) {
-    if (!clientes.value.length && !proyectos.value.length) {
-      cargandoCatalogos.value = true
-      cargarCatalogos()
-    }
-  } else {
-    reiniciar()
-  }
-})
 
 function reiniciar() {
   paso.value = 0
@@ -397,35 +185,46 @@ function reiniciar() {
   negocio.nombre = ''
   negocio.notas = ''
   Object.assign(nuevo, {
-    razon_social_nombre: '', nit_cedula: '', origen_tipo: null, origen_detalle: '',
+    razon_social_nombre: '',
+    nit_cedula: '',
+    origen_tipo: null,
+    origen_detalle: '',
     contactos: [{ nombre: '', telefono: '', email: '', tipo: 'comercial' }],
   })
   ofertas.value = [ofertaVacia()]
 }
 
-function buscarCliente(e) {
-  const q = (e.query ?? '').toLowerCase()
-  sugerencias.value = clientes.value.filter((c) =>
-    `${c.razon_social_nombre ?? ''} ${c.nit_cedula ?? ''}`.toLowerCase().includes(q))
-}
+watch(
+  () => props.visible,
+  (abierto) => {
+    if (abierto) {
+      if (!clientes.value.length && !proyectos.value.length) {
+        cargandoCatalogos.value = true
+        cargarCatalogos()
+      }
+    } else {
+      reiniciar()
+    }
+  },
+)
 
 function usarCandidato() {
-  const candidato = clientes.value.find((c) => c.id === duplicado.value.candidato_id)
+  const candidato = clientes.value.find((c) => c.id === duplicado.value?.candidato_id)
   modo.value = 'existente'
   clienteSel.value = candidato ?? {
-    id: duplicado.value.candidato_id,
-    razon_social_nombre: duplicado.value.candidato_nombre,
+    id: duplicado.value?.candidato_id ?? 0,
+    razon_social_nombre: duplicado.value?.candidato_nombre ?? '',
   }
   duplicado.value = null
   paso.value = PASOS.length - 1
 }
 
-function cerrar(v) {
+function cerrar(v: boolean) {
   if (guardando.value) return
   emit('update:visible', v === true)
 }
 
-function payload() {
+function payload(): PayloadRegistrarOportunidad {
   const base = {
     nombre: negocio.nombre || null,
     notas: negocio.notas || null,
@@ -433,14 +232,14 @@ function payload() {
     ofertas: ofertas.value.map((o) => ({
       tipo: o.tipo,
       planta_nombre: o.planta_nombre || null,
-      proyecto_ids: o.proyecto_ids?.length ? o.proyecto_ids : null,
+      proyecto_ids: o.proyecto_ids.length ? o.proyecto_ids : null,
       estado: o.estado,
       fecha_oferta: aFechaStr(o.fecha_oferta),
       precio_detalle: o.precio_detalle || null,
       fecha_tentativa_inicio: aFechaStr(o.fecha_tentativa_inicio),
     })),
   }
-  if (modo.value === 'existente') return { ...base, cliente_id: clienteSel.value.id }
+  if (modo.value === 'existente') return { ...base, cliente_id: clienteSel.value!.id }
   return {
     ...base,
     cliente_nuevo: {
@@ -449,8 +248,10 @@ function payload() {
       origen_tipo: nuevo.origen_tipo,
       origen_detalle: nuevo.origen_detalle || null,
       contactos: contactosValidos.value.map((c) => ({
-        nombre: c.nombre || null, telefono: c.telefono || null,
-        email: c.email.toLowerCase(), tipo: c.tipo,
+        nombre: c.nombre || null,
+        telefono: c.telefono || null,
+        email: c.email.toLowerCase(),
+        tipo: c.tipo,
       })),
     },
   }
@@ -465,13 +266,14 @@ async function guardar() {
 
   if (r.ok) {
     const n = r.oportunidad.ofertas?.length ?? 0
-    toast.success(`${n} oferta(s) registrada(s)`, { description: 'Ya están en el tablero.', duration: 3500 })
+    toast.success(`${n} oferta(s) registrada(s)`, { description: 'Ya están en el tablero.' })
     emit('registrada', r.oportunidad)
     emit('update:visible', false)
     return
   }
-  if (r.duplicado?.duplicado_nombre || r.duplicado?.duplicado_nit) {
-    duplicado.value = r.duplicado
+  const dup = r.duplicado as DuplicadoCliente | null
+  if (dup?.candidato_id || dup?.candidato_nombre) {
+    duplicado.value = dup
     paso.value = 0
     return
   }
@@ -479,16 +281,290 @@ async function guardar() {
 }
 </script>
 
-<style scoped>
-.etiqueta {
-  display: block;
-  font-size: 11px;
-  color: #7a6e8a;
-  margin-bottom: 0.15rem;
-}
-.ayuda {
-  font-size: 11px;
-  color: #9b89b5;
-  margin-top: 0.35rem;
-}
-</style>
+<template>
+  <Dialog :open="visible" @update:open="cerrar">
+    <DialogContent class="sm:max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Registrar oferta</DialogTitle>
+        <DialogDescription>{{ SUBTITULOS[paso] }}</DialogDescription>
+      </DialogHeader>
+
+      <!-- Pasos -->
+      <ol class="mb-2 flex items-center gap-1 text-xs">
+        <li v-for="(t, i) in PASOS" :key="t" class="flex items-center gap-1">
+          <button
+            type="button"
+            class="flex items-center gap-1.5 rounded px-2 py-1 transition-colors"
+            :class="i === paso ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground'"
+            :disabled="i > paso"
+            @click="paso = i"
+          >
+            <span
+              class="flex size-4 items-center justify-center rounded-full text-[10px] text-primary-foreground"
+              :class="i <= paso ? 'bg-primary' : 'bg-muted-foreground/40'"
+              >{{ i + 1 }}</span
+            >
+            {{ t }}
+          </button>
+          <ChevronRightIcon v-if="i < PASOS.length - 1" class="size-3 text-muted-foreground" />
+        </li>
+      </ol>
+
+      <!-- ── Paso 1: cliente ─────────────────────────────────────────────── -->
+      <div v-if="paso === 0" class="flex flex-col gap-4">
+        <ToggleGroup v-model="modo" type="single" variant="outline">
+          <ToggleGroupItem v-for="m in MODOS" :key="m.value" :value="m.value">{{ m.label }}</ToggleGroupItem>
+        </ToggleGroup>
+
+        <div v-if="modo === 'existente'">
+          <GLabel required>Cliente</GLabel>
+          <ComboBox v-model="clienteSelStr" :options="opcionesCliente" placeholder="Buscar por razón social o NIT…" />
+          <p v-if="clienteSel?.nit_cedula" class="mt-1 text-[11px] text-muted-foreground">
+            NIT {{ clienteSel.nit_cedula }}
+          </p>
+        </div>
+
+        <template v-else>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <GLabel required>Razón social</GLabel>
+              <Input v-model.trim="nuevo.razon_social_nombre" />
+            </div>
+            <div>
+              <GLabel>NIT / Cédula</GLabel>
+              <Input v-model.trim="nuevo.nit_cedula" />
+            </div>
+            <div>
+              <GLabel>Origen del cliente</GLabel>
+              <Select :model-value="nuevo.origen_tipo ?? ''" @update:model-value="(v) => (nuevo.origen_tipo = (v as string) || null)">
+                <SelectTrigger class="w-full"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">—</SelectItem>
+                  <SelectItem v-for="o in ORIGENES_CLIENTE" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <GLabel>Quién lo consiguió / recomendó</GLabel>
+              <Input v-model.trim="nuevo.origen_detalle" />
+            </div>
+          </div>
+
+          <div>
+            <div class="mb-1 flex items-center justify-between">
+              <GLabel class="!mb-0">Contactos (al menos uno con correo)</GLabel>
+              <Button
+                variant="ghost"
+                size="sm"
+                @click="nuevo.contactos.push({ nombre: '', telefono: '', email: '', tipo: 'comercial' })"
+              >
+                <PlusIcon class="size-4" />
+                Agregar
+              </Button>
+            </div>
+            <div
+              v-for="(c, i) in nuevo.contactos"
+              :key="i"
+              class="mb-2 grid grid-cols-[1fr_1fr_1.2fr_auto_auto] gap-2"
+            >
+              <Input v-model.trim="c.nombre" placeholder="Nombre" />
+              <Input v-model.trim="c.telefono" placeholder="Teléfono" />
+              <Input v-model.trim="c.email" placeholder="Correo *" />
+              <Select v-model="c.tipo">
+                <SelectTrigger class="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="t in TIPOS_CONTACTO" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                :disabled="nuevo.contactos.length === 1"
+                @click="nuevo.contactos.splice(i, 1)"
+              >
+                <Trash2Icon class="size-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+
+          <!-- El 409 de duplicado deja de ser un error rojo sin salida. -->
+          <Alert v-if="duplicado">
+            <AlertTitle>Posible duplicado</AlertTitle>
+            <AlertDescription class="flex flex-col gap-2">
+              <p>{{ duplicado.mensaje }}</p>
+              <div class="flex gap-2">
+                <Button size="sm" @click="usarCandidato">Usar ese cliente</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  @click="
+                    () => {
+                      forzarDuplicado = true
+                      duplicado = null
+                      guardar()
+                    }
+                  "
+                  >Crear uno nuevo igual</Button
+                >
+              </div>
+            </AlertDescription>
+          </Alert>
+        </template>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <GLabel>Nombre del negocio (opcional)</GLabel>
+            <Input v-model.trim="negocio.nombre" placeholder="Ej: Comunidad energética 2027" />
+          </div>
+          <div>
+            <GLabel>Notas</GLabel>
+            <Input v-model.trim="negocio.notas" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Paso 2: ofertas ─────────────────────────────────────────────── -->
+      <div v-else-if="paso === 1" class="flex flex-col gap-3">
+        <div v-for="(o, i) in ofertas" :key="i" class="rounded-lg border bg-muted/30 p-3">
+          <div class="mb-2 flex items-center justify-between">
+            <span class="text-xs font-semibold text-muted-foreground">Oferta {{ i + 1 }}</span>
+            <Button v-if="ofertas.length > 1" variant="ghost" size="icon-sm" @click="ofertas.splice(i, 1)">
+              <Trash2Icon class="size-4 text-destructive" />
+            </Button>
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <GLabel required>Tipo de oferta</GLabel>
+              <Select :model-value="o.tipo ?? undefined" @update:model-value="(v) => (o.tipo = v as string)">
+                <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <GLabel>Planta (nombre libre)</GLabel>
+              <Input v-model.trim="o.planta_nombre" placeholder="Ej: Balmora 1 y 2" />
+            </div>
+            <!-- El vínculo a la planta REAL. Sin él la oferta queda sin proyecto y
+                 /comercial/proyectos-operando la devuelve sin ubicación, sin operador
+                 de red y sin ningún dato técnico: todo eso vive en el Proyecto. -->
+            <div class="sm:col-span-2">
+              <GLabel>Plantas ya creadas en Proyectos</GLabel>
+              <MultiComboBox
+                :model-value="o.proyecto_ids.map(String)"
+                :options="opcionesProyecto"
+                :placeholder="cargandoCatalogos ? 'Cargando…' : 'Buscá la planta por nombre, municipio o departamento…'"
+                @update:model-value="(v) => (o.proyecto_ids = v.map(Number))"
+              />
+              <p class="mt-1 text-[11px]" :class="o.proyecto_ids.length ? 'text-muted-foreground' : 'text-destructive'">
+                <template v-if="o.proyecto_ids.length">
+                  {{ o.proyecto_ids.length }} planta(s) vinculadas: la oferta va a traer su
+                  ubicación, operador de red y ficha técnica.
+                </template>
+                <template v-else>
+                  Sin vincular, la oferta queda con el nombre y nada más. Si la planta
+                  todavía no existe, se crea desde el panel de la oferta después de registrar.
+                </template>
+              </p>
+            </div>
+            <div>
+              <GLabel>Etapa inicial</GLabel>
+              <Select v-model="o.estado">
+                <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="e in ETAPAS_INICIALES" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <GLabel>Fecha de envío</GLabel>
+              <DatePicker v-model="o.fecha_oferta" clearable />
+            </div>
+            <div>
+              <GLabel>{{ etiquetaPrecio(o.tipo) }}</GLabel>
+              <Input v-model.trim="o.precio_detalle" :placeholder="placeholderPrecio(o.tipo)" />
+            </div>
+            <div>
+              <GLabel>Inicio tentativo</GLabel>
+              <DatePicker v-model="o.fecha_tentativa_inicio" clearable />
+            </div>
+          </div>
+          <p v-if="ayudaPrecio(o.tipo)" class="mt-2 text-[11px] text-muted-foreground">{{ ayudaPrecio(o.tipo) }}</p>
+          <p v-if="o.tipo && o.fecha_oferta && o.estado === 'oportunidad'" class="mt-1 text-[11px] text-muted-foreground">
+            Tiene fecha de envío pero la etapa dice «Oportunidad». Si ya se envió, movela a «Oferta».
+          </p>
+        </div>
+
+        <Button variant="outline" size="sm" class="self-start" @click="agregarOferta">
+          <PlusIcon class="size-4" />
+          Agregar otra oferta
+        </Button>
+        <p class="text-[11px] text-muted-foreground">
+          Una oferta por planta × servicio. Es la unidad del tablero: sin al menos una,
+          el registro no aparecería en ninguna vista.
+        </p>
+      </div>
+
+      <!-- ── Paso 3: confirmar ───────────────────────────────────────────── -->
+      <div v-else class="flex flex-col gap-3">
+        <div class="rounded-lg border bg-muted/30 p-3">
+          <div class="mb-1 text-xs font-semibold text-muted-foreground">CLIENTE</div>
+          <div class="text-sm font-medium text-foreground">{{ resumenCliente }}</div>
+          <div v-if="modo === 'nuevo'" class="mt-1 text-xs text-muted-foreground">
+            Se crea nuevo, con {{ contactosValidos.length }} contacto(s).
+          </div>
+        </div>
+
+        <div class="rounded-lg border bg-muted/30 p-3">
+          <div class="mb-2 text-xs font-semibold text-muted-foreground">{{ ofertas.length }} OFERTA(S)</div>
+          <div
+            v-for="(o, i) in ofertas"
+            :key="i"
+            class="flex items-center justify-between py-1.5 text-sm"
+            :class="i ? 'border-t' : ''"
+          >
+            <div class="min-w-0">
+              <div class="text-foreground">{{ o.planta_nombre || 'Sin planta' }}</div>
+              <div class="text-xs text-muted-foreground">
+                {{ labelTipo(o.tipo) }} · {{ labelEtapa(o.estado) }}
+                <span v-if="o.proyecto_ids.length">· {{ o.proyecto_ids.length }} proyecto(s)</span>
+              </div>
+            </div>
+            <span class="flex-shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+              >OP.{{ segmentoTipo(o.tipo) }} No.…</span
+            >
+          </div>
+          <p class="mt-2 text-[11px] text-muted-foreground">
+            El código de seguimiento lo genera el backend con el consecutivo global y el
+            mes de la fecha de envío.
+          </p>
+        </div>
+
+        <Alert v-if="errorGuardado" variant="destructive">
+          <AlertDescription>{{ errorGuardado }}</AlertDescription>
+        </Alert>
+      </div>
+
+      <DialogFooter class="flex items-center justify-between sm:justify-between">
+        <Button v-if="paso > 0" variant="ghost" :disabled="guardando" @click="paso -= 1">
+          <ChevronLeftIcon class="size-4" />
+          Atrás
+        </Button>
+        <span v-else />
+        <div class="flex items-center gap-2">
+          <Button variant="ghost" :disabled="guardando" @click="cerrar(false)">Cancelar</Button>
+          <Button v-if="paso < PASOS.length - 1" :disabled="!pasoCompleto" @click="paso += 1">
+            Continuar
+            <ChevronRightIcon class="size-4" />
+          </Button>
+          <Button v-else :disabled="!pasoCompleto || guardando" @click="guardar">
+            <LoaderCircleIcon v-if="guardando" class="animate-spin" />
+            <CheckIcon v-else class="size-4" />
+            Registrar
+          </Button>
+        </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>

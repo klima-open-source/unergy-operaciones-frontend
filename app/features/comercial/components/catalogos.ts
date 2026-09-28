@@ -24,8 +24,20 @@
  * página, y un catálogo recortado en silencio es el mismo bug con otra cara —
  * la planta que buscás simplemente no está y no hay nada que lo indique.
  */
+import type { Paginado } from '~/types/api'
+import type { Cliente } from '~/types/cliente'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
+
+/** Las plantas del catálogo, con lo justo para reconocerlas en un selector. */
+export interface ProyectoCatalogo {
+  id: number
+  nombre_comercial?: string
+  municipio: string | null
+  departamento: string | null
+  estado: string | null
+  potencia_ac_kw: number | null
+}
 
 // El tope que acepta el backend. No subirlo: por encima responde 422.
 const SIZE_MAX = 500
@@ -37,7 +49,9 @@ const MAX_PAGINAS = 20
  * Todas las filas de un endpoint paginado, en orden. Trae la primera página y,
  * si hay más, el resto en paralelo.
  */
-async function todasLasPaginas(listarPaginado) {
+async function todasLasPaginas<T>(
+  listarPaginado: (opts: { page: number; size: number }) => Promise<Paginado<T>>,
+): Promise<T[]> {
   const primera = await listarPaginado({ page: 1, size: SIZE_MAX })
   const items = [...(primera.items ?? [])]
   const total = primera.total ?? 0
@@ -47,7 +61,9 @@ async function todasLasPaginas(listarPaginado) {
   if (totalPaginas <= 1) return items
 
   const resto = await Promise.all(
-    Array.from({ length: totalPaginas - 1 }, (_, i) => listarPaginado({ page: i + 2, size: SIZE_MAX })),
+    Array.from({ length: totalPaginas - 1 }, (_, i) =>
+      listarPaginado({ page: i + 2, size: SIZE_MAX }),
+    ),
   )
   return items.concat(...resto.map((r) => r.items ?? []))
 }
@@ -63,23 +79,25 @@ async function todasLasPaginas(listarPaginado) {
  * elegir a ciegas entre dos "San José" es cómo se termina vinculando la oferta
  * a la planta equivocada.
  */
-export async function cargarProyectos() {
+export async function cargarProyectos(): Promise<ProyectoCatalogo[]> {
   const proyectosService = new ProyectosService()
   const filas = await todasLasPaginas((opts) => proyectosService.listarPaginado(opts))
   return filas
     .map((p) => ({
       id: p.id,
       nombre_comercial: p.nombre_comercial,
-      municipio: p.municipio ?? null,
-      departamento: p.departamento ?? null,
-      estado: p.estado ?? null,
-      potencia_ac_kw: p.potencia_ac_kw ?? null,
+      municipio: p.municipio,
+      departamento: p.departamento,
+      estado: p.estado,
+      // No declarado en `ProyectoConDetalle` (vive en `ProyectoInfoTecnica`),
+      // pero el listado de `/proyectos` sí lo trae aplanado en la fila.
+      potencia_ac_kw: (p.potencia_ac_kw as number | null | undefined) ?? null,
     }))
     .sort((a, b) => (a.nombre_comercial || '').localeCompare(b.nombre_comercial || '', 'es'))
 }
 
 /** Los clientes, para el paso 1 del registro. */
-export async function cargarClientes() {
+export function cargarClientes(): Promise<Cliente[]> {
   const clientesService = new ClientesService()
   return todasLasPaginas((opts) => clientesService.listarPaginado(opts))
 }

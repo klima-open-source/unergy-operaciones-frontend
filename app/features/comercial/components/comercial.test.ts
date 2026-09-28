@@ -1,9 +1,10 @@
 /**
  * Derivaciones del CRM comercial: KPIs, tablero, filtros, orden y firma.
  *
- * Portada a Vitest en la Fase 0 de la migración (antes: `comercial.test.mjs`,
- * evaluando el fuente con `new Function`).
+ * Portada a TypeScript en la fase 3 de la migración (antes: `comercial.test.js`,
+ * que a su vez venía de `comercial.test.mjs` en la fase 0).
  */
+import type { Oferta } from '~/features/comercial/types'
 import { describe, expect, it } from 'vitest'
 import {
   COLUMNAS,
@@ -27,10 +28,10 @@ import {
   sinRespuesta,
   tarifasMensualesQueGenera,
   validarFirma,
-} from './comercial.js'
+} from './comercial'
 
 // Fixture: el caso real de Tecni-plast (Margaritas 1 firmada, Margaritas 2 muda).
-const oferta = (extra) => ({
+const oferta = (extra: Partial<Oferta> = {}): Oferta => ({
   id: 1,
   estado: 'oferta',
   tipo: 'compra_energia',
@@ -49,7 +50,7 @@ const oferta = (extra) => ({
   ...extra,
 })
 
-const OFERTAS = [
+const OFERTAS: Oferta[] = [
   oferta({ id: 1, estado: 'firmado', planta_nombre: 'Margaritas 1' }),
   oferta({
     id: 2,
@@ -68,7 +69,12 @@ const OFERTAS = [
     resultado: 'declinado',
     ficha: { energia_promedio_kwh_mes: null, fuentes: {} },
   }),
-  oferta({ id: 4, estado: 'operando', planta_nombre: 'San Pelayo', ficha: { energia_promedio_kwh_mes: 430000, fuentes: {} } }),
+  oferta({
+    id: 4,
+    estado: 'operando',
+    planta_nombre: 'San Pelayo',
+    ficha: { energia_promedio_kwh_mes: 430000, fuentes: {} },
+  }),
 ]
 
 describe('kpis de la banda', () => {
@@ -98,20 +104,20 @@ describe('tablero por columnas', () => {
 
   it('reparte cada oferta en su columna y manda declinado a Cerradas', () => {
     const grupos = agruparPorColumna(OFERTAS)
-    expect(grupos.firmado.map((o) => o.id)).toEqual([1])
-    expect(grupos.oferta.map((o) => o.id)).toEqual([2])
-    expect(grupos.operando.map((o) => o.id)).toEqual([4])
-    expect(grupos.cerradas.map((o) => o.id)).toEqual([3])
+    expect(grupos.firmado!.map((o) => o.id)).toEqual([1])
+    expect(grupos.oferta!.map((o) => o.id)).toEqual([2])
+    expect(grupos.operando!.map((o) => o.id)).toEqual([4])
+    expect(grupos.cerradas!.map((o) => o.id)).toEqual([3])
   })
 
   it('soltar en Cerradas declina — terminar lo hace el job diario', () => {
-    expect(COLUMNAS.find((c) => c.value === 'cerradas').alSoltar).toBe('declinado')
+    expect(COLUMNAS.find((c) => c.value === 'cerradas')!.alSoltar).toBe('declinado')
   })
 
   // Una etapa que el backend agregue mañana no se puede perder en silencio.
   it('deja visible una etapa desconocida en la primera columna', () => {
     const grupos = agruparPorColumna([oferta({ id: 9, estado: 'etapa_nueva' })])
-    expect(grupos.oportunidad.map((o) => o.id)).toEqual([9])
+    expect(grupos.oportunidad!.map((o) => o.id)).toEqual([9])
   })
 
   it('resume conteo y energía de una columna', () => {
@@ -146,20 +152,22 @@ describe('filtrar', () => {
 
 describe('ordenar', () => {
   it('rezagadas pone lo más viejo primero y energía pone la planta más grande', () => {
-    expect(ordenar(OFERTAS, 'rezagadas')[0].id).toBe(2)
-    expect(ordenar(OFERTAS, 'energia')[0].id).toBe(4)
+    expect(ordenar(OFERTAS, 'rezagadas')[0]!.id).toBe(2)
+    expect(ordenar(OFERTAS, 'energia')[0]!.id).toBe(4)
   })
 
   it('un criterio inválido no pierde filas y no muta la lista original', () => {
     expect(ordenar(OFERTAS, 'criterio_que_no_existe')).toHaveLength(4)
-    expect(OFERTAS[0].id).toBe(1)
+    expect(OFERTAS[0]!.id).toBe(1)
   })
 })
 
 describe('señales de la tarjeta', () => {
   it('sinRespuesta: enviada y nunca contestada', () => {
     expect(sinRespuesta({ fecha_oferta: '2026-06-01', fecha_ultima_respuesta: null })).toBe(true)
-    expect(sinRespuesta({ fecha_oferta: '2026-06-01', fecha_ultima_respuesta: '2026-06-10' })).toBe(false)
+    expect(
+      sinRespuesta({ fecha_oferta: '2026-06-01', fecha_ultima_respuesta: '2026-06-10' }),
+    ).toBe(false)
     expect(sinRespuesta({ fecha_oferta: null })).toBe(false)
   })
 
@@ -202,27 +210,37 @@ describe('fechas', () => {
 
 describe('firmar', () => {
   it('solo las ofertas de energía firman PPA, y solo si no tienen contrato', () => {
-    expect(puedeFirmarPPA({ tipo: 'compra_energia' })).toBe(true)
-    expect(puedeFirmarPPA({ tipo: 'comunidad_energetica' })).toBe(true)
+    expect(puedeFirmarPPA(oferta({ tipo: 'compra_energia' }))).toBe(true)
+    expect(puedeFirmarPPA(oferta({ tipo: 'comunidad_energetica' }))).toBe(true)
     // El backend responde 422 si se intenta.
-    expect(puedeFirmarPPA({ tipo: 'servicios_operacionales' })).toBe(false)
-    expect(puedeFirmarPPA({ tipo: 'compra_energia', ppa_contrato_id: 5 })).toBe(false)
+    expect(puedeFirmarPPA(oferta({ tipo: 'servicios_operacionales' }))).toBe(false)
+    expect(puedeFirmarPPA(oferta({ tipo: 'compra_energia', ppa_contrato_id: 5 }))).toBe(false)
   })
 
   it('validarFirma acepta una tarifa única bien formada', () => {
     expect(
-      validarFirma({ fecha_inicio: '2026-02-12', fecha_fin: '2032-12-31', modo_precio: 'unica', tarifa_base: 300 }),
+      validarFirma({
+        fecha_inicio: '2026-02-12',
+        fecha_fin: '2032-12-31',
+        modo_precio: 'unica',
+        tarifa_base: 300,
+      }),
     ).toEqual([])
   })
 
   it('validarFirma rechaza periodo invertido, precio ausente, años repetidos y mes base inválido', () => {
     expect(
-      validarFirma({ fecha_inicio: '2026-02-12', fecha_fin: '2025-01-01', modo_precio: 'unica', tarifa_base: 300 }),
+      validarFirma({
+        fecha_inicio: '2026-02-12',
+        fecha_fin: '2025-01-01',
+        modo_precio: 'unica',
+        tarifa_base: 300,
+      }),
     ).toEqual(['La fecha de fin es anterior a la de inicio.'])
 
-    expect(validarFirma({ fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', modo_precio: 'unica' })).toEqual([
-      'Falta la tarifa ($/kWh).',
-    ])
+    expect(
+      validarFirma({ fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', modo_precio: 'unica' }),
+    ).toEqual(['Falta la tarifa ($/kWh).'])
 
     expect(
       validarFirma({

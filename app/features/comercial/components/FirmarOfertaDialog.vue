@@ -9,157 +9,28 @@
   Las condiciones NO se guardan en la oferta: alimentan el contrato, que es donde
   ya viven y donde las leen los demás módulos.
 -->
-<template>
-  <Dialog :visible="visible" modal :style="{ width: '40rem' }" :closable="!firmando"
-          @update:visible="cerrar">
-    <template #header>
-      <div v-if="oferta">
-        <h2 class="text-base font-semibold" style="color:var(--color-unergy-deep)">Firmar → crear contrato PPA</h2>
-        <p class="text-xs" style="color:#9b89b5">
-          {{ oferta.planta_nombre || 'Sin planta' }} · {{ oferta.cliente_razon_social }}
-        </p>
-      </div>
-    </template>
-
-    <div v-if="oferta" class="flex flex-col gap-4">
-      <!-- Firmar sin plantas es legítimo (la planta puede no existir todavía como
-           proyecto) pero Cumplimiento no puede medir ese PPA. Se avisa fuerte. -->
-      <Message v-if="!plantas.length" severity="warn" :closable="false">
-        <div class="text-xs">
-          <strong>Esta oferta no tiene ninguna planta vinculada.</strong>
-          El contrato se crearía sin plantas y Cumplimiento no podría medirlo contra
-          la generación. Vinculá el proyecto en el panel de la oferta antes de firmar,
-          o seguí si la planta todavía no existe en la plataforma.
-        </div>
-      </Message>
-      <div v-else class="rounded-md px-3 py-2" style="background:#F4EEFB;border:1px solid #e0d3f5">
-        <div class="text-[11px] font-semibold mb-0.5" style="color:var(--color-unergy-purple-dark)">
-          {{ plantas.length }} PLANTA(S) AL CONTRATO
-        </div>
-        <div class="text-xs" style="color:var(--color-unergy-purple-dark)">
-          {{ plantas.map((p) => p.nombre_comercial).join(' · ') }}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="etiqueta">Código del contrato</label>
-          <InputText v-model.trim="f.numero_codigo_contrato" class="w-full" />
-          <p class="ayuda">Si lo dejás vacío hereda el código de seguimiento de la oferta.</p>
-        </div>
-        <div>
-          <label class="etiqueta">Nombre interno</label>
-          <InputText v-model.trim="f.nombre_interno" class="w-full" />
-        </div>
-        <div>
-          <label class="etiqueta">Inicio del suministro *</label>
-          <DatePicker v-model="f.fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-        </div>
-        <div>
-          <label class="etiqueta">Fin del suministro *</label>
-          <DatePicker v-model="f.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
-        </div>
-      </div>
-
-      <div>
-        <label class="etiqueta">Precio *</label>
-        <SelectButton v-model="f.modo_precio" :options="MODOS_PRECIO" optionLabel="label"
-                      optionValue="value" :allowEmpty="false" class="mb-2" />
-
-        <div v-if="f.modo_precio === 'unica'" class="w-56">
-          <InputNumber v-model="f.tarifa_base" class="w-full" suffix=" $/kWh" :maxFractionDigits="2"
-                       placeholder="p. ej. 300" />
-        </div>
-
-        <div v-else>
-          <div class="flex items-center gap-2 mb-2">
-            <Button label="Llenar los años del periodo" size="small" outlined :disabled="!aniosPeriodo.length" @click="llenarAnios">
-              <template #icon><ListIcon class="size-[1em]" /></template>
-            </Button>
-            <span class="text-[11px]" style="color:#9b89b5">
-              {{ aniosPeriodo.length ? `${aniosPeriodo.length} año(s) entre inicio y fin` : 'Definí las fechas primero' }}
-            </span>
-          </div>
-          <div v-for="(p, i) in f.precios_anuales" :key="i" class="flex items-center gap-2 mb-1.5">
-            <InputNumber v-model="p.anio" class="w-24" :useGrouping="false" placeholder="Año" />
-            <InputNumber v-model="p.precio" class="w-40" suffix=" $/kWh" :maxFractionDigits="2"
-                         placeholder="Precio" />
-            <Button text severity="danger" size="small" @click="f.precios_anuales.splice(i, 1)">
-              <template #icon><Trash2Icon class="size-[1em]" /></template>
-            </Button>
-          </div>
-          <Button label="Agregar año" text size="small" @click="f.precios_anuales.push({ anio: null, precio: null })">
-            <template #icon><PlusIcon class="size-[1em]" /></template>
-          </Button>
-          <p v-if="filasMensuales" class="ayuda">
-            Se expandirá a <strong>{{ filasMensuales }}</strong> filas mensuales de tarifa,
-            recortadas al periodo del suministro.
-          </p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-3">
-        <div>
-          <label class="etiqueta">Índice de indexación</label>
-          <InputText v-model.trim="f.indice_indexacion" class="w-full" placeholder="IPP / IPC" />
-        </div>
-        <div>
-          <label class="etiqueta">Mes base (YYYY-MM)</label>
-          <InputText v-model.trim="f.periodo_indexacion_base" class="w-full" placeholder="2025-10" />
-        </div>
-        <div>
-          <label class="etiqueta">Cantidad mínima (kWh/mes)</label>
-          <InputNumber v-model="f.cantidad_minima_kwh_mes" class="w-full" :maxFractionDigits="0" />
-        </div>
-      </div>
-
-      <div>
-        <label class="etiqueta">Carpeta de soporte</label>
-        <InputText v-model.trim="f.carpeta_link" class="w-full" placeholder="https://drive.google.com/…" />
-      </div>
-
-      <!-- Las mismas reglas que FirmarOfertaIn, para enterarse antes del 422. -->
-      <Message v-if="errores.length" severity="error" :closable="false">
-        <ul class="text-xs list-disc pl-4">
-          <li v-for="e in errores" :key="e">{{ e }}</li>
-        </ul>
-      </Message>
-      <Message v-if="errorServidor" severity="error" :closable="false">
-        <span class="text-xs">{{ errorServidor }}</span>
-      </Message>
-    </div>
-
-    <template #footer>
-      <Button label="Cancelar" text severity="secondary" :disabled="firmando" @click="cerrar(false)" />
-      <Button label="Firmar y crear contrato" :loading="firmando" :disabled="errores.length > 0" @click="firmar">
-        <template #icon><FileCheckIcon class="size-[1em]" /></template>
-      </Button>
-    </template>
-  </Dialog>
-</template>
-
-<script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import SelectButton from 'primevue/selectbutton'
-import Message from 'primevue/message'
+<script setup lang="ts">
+import type { Oferta } from '~/features/comercial/types'
+import type { UseOfertas } from './useOfertas'
+import { FileCheckIcon, ListIcon, LoaderCircleIcon, PlusIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import { FileCheckIcon, ListIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
+// Import explícito: bug conocido de tipos de `blocks/DatePicker`.
+import DatePicker from '~/components/blocks/DatePicker.vue'
 import {
-  aFecha, aFechaStr, validarFirma, tarifasMensualesQueGenera, aniosDelPeriodo,
-} from './comercial.js'
+  aFecha,
+  aFechaStr,
+  aniosDelPeriodo,
+  tarifasMensualesQueGenera,
+  validarFirma,
+  type PrecioAnual,
+} from './comercial'
 
-const props = defineProps({
-  visible: Boolean,
-  oferta: { type: Object, default: null },
-  acciones: { type: Object, required: true },
-})
-const emit = defineEmits(['update:visible', 'firmada'])
-
+const props = defineProps<{
+  visible: boolean
+  oferta?: Oferta | null
+  acciones: Pick<UseOfertas, 'firmar'>
+}>()
+const emit = defineEmits<{ 'update:visible': [visible: boolean]; firmada: [] }>()
 
 const MODOS_PRECIO = [
   { label: 'Tarifa única', value: 'unica' },
@@ -169,7 +40,19 @@ const MODOS_PRECIO = [
 const firmando = ref(false)
 const errorServidor = ref('')
 
-const f = reactive({
+const f = reactive<{
+  numero_codigo_contrato: string
+  nombre_interno: string
+  fecha_inicio: string | null
+  fecha_fin: string | null
+  modo_precio: 'unica' | 'tabla'
+  tarifa_base: number | null
+  precios_anuales: PrecioAnual[]
+  indice_indexacion: string
+  periodo_indexacion_base: string
+  cantidad_minima_kwh_mes: number | null
+  carpeta_link: string
+}>({
   numero_codigo_contrato: '',
   nombre_interno: '',
   fecha_inicio: null,
@@ -188,39 +71,47 @@ const errores = computed(() => validarFirma(f))
 const filasMensuales = computed(() => tarifasMensualesQueGenera(f))
 const aniosPeriodo = computed(() => aniosDelPeriodo(f.fecha_inicio, f.fecha_fin))
 
-watch(() => props.visible, (abierto) => {
-  if (!abierto) return
-  const o = props.oferta
-  errorServidor.value = ''
-  Object.assign(f, {
-    // El backend hereda el código de seguimiento si va vacío; se precarga para
-    // que se vea qué va a quedar.
-    numero_codigo_contrato: o?.codigo_seguimiento ?? '',
-    nombre_interno: o?.planta_nombre ?? '',
-    fecha_inicio: aFecha(o?.fecha_tentativa_inicio),
-    fecha_fin: aFecha(o?.fecha_fin_tentativa),
-    modo_precio: 'unica',
-    tarifa_base: null,
-    precios_anuales: [],
-    indice_indexacion: '',
-    periodo_indexacion_base: '',
-    cantidad_minima_kwh_mes: null,
-    carpeta_link: '',
-  })
-})
+watch(
+  () => props.visible,
+  (abierto) => {
+    if (!abierto) return
+    const o = props.oferta
+    errorServidor.value = ''
+    Object.assign(f, {
+      // El backend hereda el código de seguimiento si va vacío; se precarga para
+      // que se vea qué va a quedar.
+      numero_codigo_contrato: o?.codigo_seguimiento ?? '',
+      nombre_interno: o?.planta_nombre ?? '',
+      fecha_inicio: aFechaStr(o?.fecha_tentativa_inicio),
+      fecha_fin: aFechaStr(o?.fecha_fin_tentativa),
+      modo_precio: 'unica',
+      tarifa_base: null,
+      precios_anuales: [],
+      indice_indexacion: '',
+      periodo_indexacion_base: '',
+      cantidad_minima_kwh_mes: null,
+      carpeta_link: '',
+    })
+  },
+)
 
 // Al pasar a tabla por año, se precargan los años que cubre el periodo: es lo
 // que evita la tabla a mano y los años fuera de rango que el backend descarta.
-watch(() => f.modo_precio, (modo) => {
-  if (modo === 'tabla' && !f.precios_anuales.length) llenarAnios()
-})
+watch(
+  () => f.modo_precio,
+  (modo) => {
+    if (modo === 'tabla' && !f.precios_anuales.length) llenarAnios()
+  },
+)
 
 function llenarAnios() {
-  const existentes = new Map(f.precios_anuales.filter((p) => p.anio).map((p) => [p.anio, p.precio]))
+  const existentes = new Map(
+    f.precios_anuales.filter((p) => p.anio).map((p) => [p.anio, p.precio]),
+  )
   f.precios_anuales = aniosPeriodo.value.map((a) => ({ anio: a, precio: existentes.get(a) ?? null }))
 }
 
-function cerrar(v) {
+function cerrar(v: boolean) {
   if (firmando.value) return
   emit('update:visible', v === true)
 }
@@ -228,7 +119,7 @@ function cerrar(v) {
 async function firmar() {
   firmando.value = true
   errorServidor.value = ''
-  const payload = {
+  const payload: Record<string, unknown> = {
     numero_codigo_contrato: f.numero_codigo_contrato || null,
     nombre_interno: f.nombre_interno || null,
     fecha_inicio: aFechaStr(f.fecha_inicio),
@@ -240,13 +131,13 @@ async function firmar() {
   }
   if (f.modo_precio === 'tabla') {
     payload.precios_anuales = f.precios_anuales
-      .filter((p) => p.anio && p.precio > 0)
+      .filter((p) => p.anio && p.precio && p.precio > 0)
       .map((p) => ({ anio: p.anio, precio: p.precio }))
   } else {
     payload.tarifa_base = f.tarifa_base
   }
 
-  const r = await props.acciones.firmar(props.oferta.id, payload)
+  const r = await props.acciones.firmar(props.oferta!.id, payload)
   firmando.value = false
 
   if (!r.ok) {
@@ -257,7 +148,6 @@ async function firmar() {
     description: r.plantas_del_contrato
       ? `${r.plantas_del_contrato} planta(s) · ${r.tarifas_creadas} tarifas mensuales`
       : 'Sin plantas: Cumplimiento no podrá medirlo hasta que vincules el proyecto.',
-    duration: 6000,
   })
 
   // El backend ya mandaba `avisos` y esta pantalla los tiraba. Ahí viaja, entre
@@ -268,21 +158,154 @@ async function firmar() {
     toast.warning('Revisa el contrato', { description: aviso, duration: 8000 })
   }
 
-  emit('firmada', r)
+  emit('firmada')
   emit('update:visible', false)
 }
 </script>
 
-<style scoped>
-.etiqueta {
-  display: block;
-  font-size: 11px;
-  color: #7a6e8a;
-  margin-bottom: 0.15rem;
-}
-.ayuda {
-  font-size: 11px;
-  color: #9b89b5;
-  margin-top: 0.35rem;
-}
-</style>
+<template>
+  <Dialog :open="visible" @update:open="cerrar">
+    <DialogContent class="sm:max-w-xl">
+      <DialogHeader v-if="oferta">
+        <DialogTitle>Firmar → crear contrato PPA</DialogTitle>
+        <DialogDescription>
+          {{ oferta.planta_nombre || 'Sin planta' }} · {{ oferta.cliente_razon_social }}
+        </DialogDescription>
+      </DialogHeader>
+
+      <div v-if="oferta" class="flex flex-col gap-4">
+        <!-- Firmar sin plantas es legítimo (la planta puede no existir todavía como
+             proyecto) pero Cumplimiento no puede medir ese PPA. Se avisa fuerte. -->
+        <Alert v-if="!plantas.length">
+          <TriangleAlertIcon class="text-warning" />
+          <AlertDescription>
+            <strong>Esta oferta no tiene ninguna planta vinculada.</strong>
+            El contrato se crearía sin plantas y Cumplimiento no podría medirlo contra
+            la generación. Vinculá el proyecto en el panel de la oferta antes de firmar,
+            o seguí si la planta todavía no existe en la plataforma.
+          </AlertDescription>
+        </Alert>
+        <div v-else class="rounded-md border bg-primary/5 px-3 py-2">
+          <div class="mb-0.5 text-[11px] font-semibold text-primary">
+            {{ plantas.length }} PLANTA(S) AL CONTRATO
+          </div>
+          <div class="text-xs text-primary">
+            {{ plantas.map((p) => p.nombre_comercial).join(' · ') }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <GLabel>Código del contrato</GLabel>
+            <Input v-model.trim="f.numero_codigo_contrato" />
+            <p class="mt-1 text-[11px] text-muted-foreground">
+              Si lo dejás vacío hereda el código de seguimiento de la oferta.
+            </p>
+          </div>
+          <div>
+            <GLabel>Nombre interno</GLabel>
+            <Input v-model.trim="f.nombre_interno" />
+          </div>
+          <div>
+            <GLabel required>Inicio del suministro</GLabel>
+            <DatePicker v-model="f.fecha_inicio" clearable />
+          </div>
+          <div>
+            <GLabel required>Fin del suministro</GLabel>
+            <DatePicker v-model="f.fecha_fin" clearable />
+          </div>
+        </div>
+
+        <div>
+          <GLabel required>Precio</GLabel>
+          <ToggleGroup v-model="f.modo_precio" type="single" variant="outline" class="mb-2">
+            <ToggleGroupItem v-for="m in MODOS_PRECIO" :key="m.value" :value="m.value">{{
+              m.label
+            }}</ToggleGroupItem>
+          </ToggleGroup>
+
+          <div v-if="f.modo_precio === 'unica'" class="flex w-56 items-center gap-2">
+            <NumberField v-model="f.tarifa_base" :format-options="{ maximumFractionDigits: 2 }" class="w-full">
+              <NumberFieldContent><NumberFieldInput placeholder="p. ej. 300" /></NumberFieldContent>
+            </NumberField>
+            <span class="shrink-0 text-xs text-muted-foreground">$/kWh</span>
+          </div>
+
+          <div v-else>
+            <div class="mb-2 flex items-center gap-2">
+              <Button variant="outline" size="sm" :disabled="!aniosPeriodo.length" @click="llenarAnios">
+                <ListIcon class="size-4" />
+                Llenar los años del periodo
+              </Button>
+              <span class="text-[11px] text-muted-foreground">
+                {{ aniosPeriodo.length ? `${aniosPeriodo.length} año(s) entre inicio y fin` : 'Definí las fechas primero' }}
+              </span>
+            </div>
+            <div v-for="(p, i) in f.precios_anuales" :key="i" class="mb-1.5 flex items-center gap-2">
+              <NumberField v-model="p.anio" :format-options="{ useGrouping: false }" class="w-24">
+                <NumberFieldContent><NumberFieldInput placeholder="Año" /></NumberFieldContent>
+              </NumberField>
+              <NumberField v-model="p.precio" :format-options="{ maximumFractionDigits: 2 }" class="w-40">
+                <NumberFieldContent><NumberFieldInput placeholder="Precio $/kWh" /></NumberFieldContent>
+              </NumberField>
+              <Button variant="ghost" size="icon-sm" @click="f.precios_anuales.splice(i, 1)">
+                <Trash2Icon class="size-4 text-destructive" />
+              </Button>
+            </div>
+            <Button variant="ghost" size="sm" @click="f.precios_anuales.push({ anio: null, precio: null })">
+              <PlusIcon class="size-4" />
+              Agregar año
+            </Button>
+            <p v-if="filasMensuales" class="mt-1 text-[11px] text-muted-foreground">
+              Se expandirá a <strong>{{ filasMensuales }}</strong> filas mensuales de tarifa,
+              recortadas al periodo del suministro.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <GLabel>Índice de indexación</GLabel>
+            <Input v-model.trim="f.indice_indexacion" placeholder="IPP / IPC" />
+          </div>
+          <div>
+            <GLabel>Mes base (YYYY-MM)</GLabel>
+            <Input v-model.trim="f.periodo_indexacion_base" placeholder="2025-10" />
+          </div>
+          <div>
+            <GLabel>Cantidad mínima (kWh/mes)</GLabel>
+            <NumberField v-model="f.cantidad_minima_kwh_mes" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+            </NumberField>
+          </div>
+        </div>
+
+        <div>
+          <GLabel>Carpeta de soporte</GLabel>
+          <Input v-model.trim="f.carpeta_link" placeholder="https://drive.google.com/…" />
+        </div>
+
+        <!-- Las mismas reglas que FirmarOfertaIn, para enterarse antes del 422. -->
+        <Alert v-if="errores.length" variant="destructive">
+          <AlertDescription>
+            <ul class="list-disc pl-4 text-xs">
+              <li v-for="e in errores" :key="e">{{ e }}</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+        <Alert v-if="errorServidor" variant="destructive">
+          <AlertDescription>{{ errorServidor }}</AlertDescription>
+        </Alert>
+      </div>
+
+      <DialogFooter>
+        <Button variant="ghost" :disabled="firmando" @click="cerrar(false)">Cancelar</Button>
+        <Button :disabled="firmando || errores.length > 0" @click="firmar">
+          <LoaderCircleIcon v-if="firmando" class="animate-spin" />
+          <FileCheckIcon v-else class="size-4" />
+          Firmar y crear contrato
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>
