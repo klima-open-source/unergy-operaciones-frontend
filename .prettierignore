@@ -33,8 +33,6 @@ app/features/auth/components
 app/features/clientes/components/clientesUi.js
 app/features/comercial/components
 app/features/contratos/components
-# `fallas` ya migró todo salvo `MonitoreoView.vue` (ver eslint.config.mjs).
-app/features/fallas/components/MonitoreoView.vue
 app/features/finanzas/components
 app/features/fronteras/components
 # `mem` ya migró todo salvo `CumplimientoV2View.vue` y sus 3 utils JS

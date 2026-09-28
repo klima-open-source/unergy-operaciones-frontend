@@ -158,6 +158,10 @@ export interface Falla {
   causa_raiz?: string | null
   acciones_correctivas?: string | null
   kwh_perdidos_estimado?: number | null
+  /** Costo estimado del impacto económico, en COP (ver `MonitoreoView.vue`). */
+  impacto_economico_cop?: number | null
+  /** Id de la alarma de monitoreo que generó la falla automáticamente, si aplica (ver `MonitoreoView.vue`). */
+  alarma_monitoreo_id?: number | null
   sla_limite_horas?: number | null
   sla_limite_horas_efectivo?: number | null
   sla_limite_dias?: number | null

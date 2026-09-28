@@ -50,10 +50,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/clientes/components/clientesUi.js',
   'app/features/comercial/components/**',
   'app/features/contratos/components/**',
-  // `fallas` va archivo por archivo: se migró todo salvo `MonitoreoView.vue`
-  // (2123 líneas — JS puro, sin PrimeVue). Convertirlo a TS de un solo pase es
-  // el riesgo que la fase 3 evita: queda para un pase dedicado (roadmap §3.1).
-  'app/features/fallas/components/MonitoreoView.vue',
   'app/features/finanzas/components/**',
   'app/features/fronteras/components/**',
   // `mem` migró Balance/Clima/Descubrimientos/PrecioBolsa/Gescon — queda
