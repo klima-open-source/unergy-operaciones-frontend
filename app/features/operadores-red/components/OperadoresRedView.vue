@@ -1,230 +1,234 @@
-<template>
-  <div class="space-y-4">
-    <PageHeader title="Operadores de Red" :subtitle="`${operadores.length} operadores · catálogo y correos de contacto para el reporte CGM`">
-      <template #actions>
-        <Button label="Nuevo Operador" size="small" @click="abrirCrear">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
-    </PageHeader>
-
-    <div v-if="loading" class="flex items-center justify-center py-12">
-      <LoaderCircleIcon class="text-3xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
-    </div>
-
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden" style="border: 1px solid #e8e0f0;">
-      <DataTable :value="operadores" rowHover class="text-sm">
-        <Column field="nombre_comercial" header="Nombre comercial" sortable>
-          <template #body="{ data }">
-            <span style="color: var(--color-unergy-deep); font-weight: 600;">{{ data.nombre_comercial || '—' }}</span>
-          </template>
-        </Column>
-        <Column field="nombre_legal" header="Nombre legal" sortable>
-          <template #body="{ data }">
-            <span style="color: #6b5a8a;">{{ data.nombre_legal }}</span>
-          </template>
-        </Column>
-        <Column header="Correos">
-          <template #body="{ data }">
-            <span v-if="data.contactos.length" style="color: #6b5a8a;">
-              {{ data.contactos.length }} correo{{ data.contactos.length > 1 ? 's' : '' }}
-            </span>
-            <span v-else class="text-xs italic" style="color: #c4b8d4;">Sin correos</span>
-          </template>
-        </Column>
-        <Column header="Fronteras vinculadas">
-          <template #body="{ data }">
-            <span class="text-xs px-2 py-0.5 rounded-full font-semibold"
-              style="background: rgba(145,91,216,0.1); color: var(--color-unergy-purple-dark);">
-              {{ data.fronteras_vinculadas }}
-            </span>
-          </template>
-        </Column>
-        <Column header="" style="width: 100px">
-          <template #body="{ data }">
-            <Button text rounded size="small" v-tooltip.top="'Editar nombre'" @click="abrirEditar(data)">
-              <template #icon><PencilIcon class="size-[1em]" /></template>
-            </Button>
-            <Button text rounded size="small" v-tooltip.top="'Ver detalle'" @click="$router.push(`/mem/operadores-red/${data.id}`)">
-              <template #icon><EyeIcon class="size-[1em]" /></template>
-            </Button>
-          </template>
-        </Column>
-      </DataTable>
-    </div>
-
-    <!-- Crear / Editar -->
-    <Dialog v-model:visible="showForm" :header="editingId ? 'Editar Operador de Red' : 'Nuevo Operador de Red'"
-      modal class="w-full max-w-sm">
-      <div class="space-y-4 pt-2">
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Nombre legal *</label>
-          <InputText v-model="form.nombre_legal" class="w-full" placeholder="Ej: Electrificadora del Caribe S.A. E.S.P." />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Nombre comercial</label>
-          <InputText v-model="form.nombre_comercial" class="w-full" placeholder="Ej: Afinia" />
-        </div>
-        <template v-if="!editingId">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Correo de contacto (opcional)</label>
-            <InputText v-model="form.contacto_email" class="w-full" placeholder="Ej: reportes@afinia.com.co" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Nombre del contacto (opcional)</label>
-            <InputText v-model="form.contacto_nombre" class="w-full" placeholder="Ej: María Pérez" />
-          </div>
-        </template>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="showForm = false" />
-        <Button :label="editingId ? 'Guardar' : 'Crear'" :loading="saving"
-          :disabled="!form.nombre_legal?.trim()" @click="guardar" />
-      </template>
-    </Dialog>
-
-    <!-- Dialog: nombre parecido a un operador existente -->
-    <Dialog v-model:visible="duplicadoVisible" header="Operador parecido ya existe" modal class="w-full max-w-sm">
-      <p class="text-sm mb-4" style="color: #6b5a8a;">
-        Ya existe un operador con un nombre muy parecido:
-        <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
-        (ID {{ duplicadoInfo?.candidato_id }}).
-        Si de verdad es un operador distinto, puedes crearlo igual.
-      </p>
-      <div class="flex justify-end gap-2">
-        <Button label="Cancelar" severity="secondary" text @click="duplicadoVisible = false" />
-        <Button label="Crear de todos modos" :loading="forzando" @click="guardarForzado" />
-      </div>
-    </Dialog>
-  </div>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import type {
+  DuplicadoOperadorRed,
+  OperadorRed,
+  PayloadOperadorRed,
+} from '~/features/operadores-red/types'
+import { EyeIcon, PencilIcon, PlusIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de
+// `DataTable` y `typecheck` falla (ver `AdminUsuariosView.vue`).
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+} from '~/components/blocks/DataTable.vue'
+import { isFetchError, normalizeError } from '~/core/errors'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
-import { EyeIcon, LoaderCircleIcon, PencilIcon, PlusIcon } from '@lucide/vue'
+
+const columns: DataTableColumn[] = [
+  { key: 'nombre_comercial', header: 'Nombre comercial', sortable: true },
+  { key: 'nombre_legal', header: 'Nombre legal', sortable: true },
+  { key: 'correos', header: 'Correos' },
+  { key: 'fronteras', header: 'Fronteras vinculadas' },
+  { key: 'acciones', header: '' },
+]
 
 const operadoresRedService = new OperadoresRedService()
+const confirm = useConfirm()
+const router = useRouter()
 
-const operadores = ref([])
-const loading = ref(true)
+const query = useQuery<OperadorRed[]>()
 
 async function loadData() {
-  loading.value = true
-  try {
-    operadores.value = await operadoresRedService.listar()
-  } finally {
-    loading.value = false
-  }
+  await query.run(() => operadoresRedService.listar())
 }
+onMounted(loadData)
 
 const showForm = ref(false)
 const saving = ref(false)
-const editingId = ref(null)
+const editingId = ref<number | null>(null)
+
 function blankForm() {
   return { nombre_legal: '', nombre_comercial: '', contacto_email: '', contacto_nombre: '' }
 }
-const form = ref(blankForm())
-
-// Aviso de nombre parecido (409 estructurado, igual que en Fronteras/Proyectos):
-// se puede confirmar y crear igual con forzar=true.
-const duplicadoVisible = ref(false)
-const duplicadoInfo = ref(null)   // { mensaje, candidato_id, candidato_nombre }
-const forzando = ref(false)
-const pendingBody = ref(null)
+const form = reactive(blankForm())
 
 function abrirCrear() {
   editingId.value = null
-  form.value = blankForm()
+  Object.assign(form, blankForm())
   showForm.value = true
 }
 
-function abrirEditar(op) {
+function abrirEditar(op: OperadorRed) {
   editingId.value = op.id
-  form.value = { ...blankForm(), nombre_legal: op.nombre_legal, nombre_comercial: op.nombre_comercial || '' }
+  Object.assign(form, blankForm(), {
+    nombre_legal: op.nombre_legal,
+    nombre_comercial: op.nombre_comercial || '',
+  })
   showForm.value = true
 }
 
 // Si se diligenció un correo de contacto al crear, lo agrega tras crear el
-// operador -- no bloquea la creación si este paso falla, solo avisa aparte.
-async function _crearContactoSiAplica(operadorId) {
-  const email = form.value.contacto_email?.trim()
+// operador — no bloquea la creación si este paso falla, solo avisa aparte.
+async function crearContactoSiAplica(operadorId: number) {
+  const email = form.contacto_email.trim()
   if (!email) return
   try {
     await operadoresRedService.crearContacto(operadorId, {
       email,
-      nombre: form.value.contacto_nombre?.trim() || null,
+      nombre: form.contacto_nombre.trim() || null,
     })
-  } catch (e) {
-    const detail = e.data?.detail
+  } catch (err) {
     toast.warning('Operador creado, pero el contacto no se pudo agregar', {
-      description: typeof detail === 'string' ? detail : 'Revísalo desde el detalle del operador',
-      duration: 5000,
+      description: normalizeError(err).message,
     })
   }
 }
 
-async function guardar() {
+async function guardar(body: PayloadOperadorRed, forzar = false) {
   saving.value = true
-  const body = {
-    nombre_legal: form.value.nombre_legal.trim(),
-    nombre_comercial: form.value.nombre_comercial?.trim() || null,
-  }
   try {
     if (editingId.value) {
       await operadoresRedService.actualizar(editingId.value, body)
-      toast.success('Operador actualizado', { duration: 2000 })
+      toast.success('Operador actualizado')
     } else {
-      const nuevo = await operadoresRedService.crear(body)
-      await _crearContactoSiAplica(nuevo.id)
-      toast.success('Operador creado', { duration: 2000 })
+      const nuevo = await operadoresRedService.crear(body, forzar)
+      await crearContactoSiAplica(nuevo.id)
+      toast.success('Operador creado')
     }
     showForm.value = false
     await loadData()
-  } catch (e) {
-    const detail = e.data?.detail
+  } catch (err) {
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
-    // igual. Distinto de un choque real de nombre_legal exacto (detail es un string).
-    if (e.status === 409 && detail?.duplicado_nombre) {
-      duplicadoInfo.value = detail
-      pendingBody.value = body
-      duplicadoVisible.value = true
+    // igual. Distinto de un choque real de nombre_legal exacto.
+    if (
+      isFetchError<{ detail?: DuplicadoOperadorRed }>(err) &&
+      err.status === 409 &&
+      err.data?.detail?.duplicado_nombre
+    ) {
+      const { candidato_id, candidato_nombre } = err.data.detail
+      confirm({
+        title: 'Operador parecido ya existe',
+        description: `Ya existe un operador con un nombre muy parecido: "${candidato_nombre}" (ID ${candidato_id}). Si de verdad es un operador distinto, puedes crearlo igual.`,
+        confirmLabel: 'Crear de todos modos',
+        onConfirm: () => guardar(body, true),
+      })
       return
     }
-    toast.error('Error', {
-      description: typeof detail === 'string' ? detail : 'No se pudo guardar',
-      duration: 4000,
-    })
+    toast.error('Error', { description: normalizeError(err).message })
   } finally {
     saving.value = false
   }
 }
 
-async function guardarForzado() {
-  forzando.value = true
-  try {
-    const nuevo = await operadoresRedService.crear(pendingBody.value, true)
-    await _crearContactoSiAplica(nuevo.id)
-    toast.success('Operador creado', { duration: 2000 })
-    duplicadoVisible.value = false
-    showForm.value = false
-    await loadData()
-  } catch (e) {
-    const detail = e.data?.detail
-    toast.error('Error', {
-      description: typeof detail === 'string' ? detail : 'No se pudo crear',
-      duration: 4000,
-    })
-  } finally {
-    forzando.value = false
-  }
+function onGuardar() {
+  guardar({
+    nombre_legal: form.nombre_legal.trim(),
+    nombre_comercial: form.nombre_comercial.trim() || null,
+  })
 }
 
-onMounted(loadData)
+// `OperadorRed` no tiene índice de firma abierta (a diferencia de `Usuario`),
+// así que `DataTable` — genérico a propósito — necesita este cast explícito.
+function asOperador(row: DataTableRow): OperadorRed {
+  return row as unknown as OperadorRed
+}
 </script>
+
+<template>
+  <div class="space-y-4">
+    <PageHeader
+      title="Operadores de Red"
+      :subtitle="`${query.data?.length ?? 0} operadores · catálogo y correos de contacto para el reporte CGM`"
+    >
+      <template #actions>
+        <Button size="sm" @click="abrirCrear">
+          <PlusIcon class="size-4" />
+          Nuevo Operador
+        </Button>
+      </template>
+    </PageHeader>
+
+    <AsyncView :query="query">
+      <template #default="{ data: operadores }">
+        <DataTable :columns="columns" :rows="operadores as unknown as DataTableRow[]" row-key="id">
+          <template #cell="{ row: rawRow, column }">
+            <span v-if="column.key === 'nombre_comercial'" class="font-semibold">
+              {{ asOperador(rawRow).nombre_comercial || '—' }}
+            </span>
+            <span v-else-if="column.key === 'nombre_legal'" class="text-muted-foreground">
+              {{ asOperador(rawRow).nombre_legal }}
+            </span>
+            <span v-else-if="column.key === 'correos'" class="text-muted-foreground">
+              <template v-if="asOperador(rawRow).contactos.length">
+                {{ asOperador(rawRow).contactos.length }} correo{{
+                  asOperador(rawRow).contactos.length > 1 ? 's' : ''
+                }}
+              </template>
+              <span v-else class="text-xs italic">Sin correos</span>
+            </span>
+            <GBadge v-else-if="column.key === 'fronteras'">{{
+              asOperador(rawRow).fronteras_vinculadas
+            }}</GBadge>
+            <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1">
+              <GTooltip>
+                <GTooltipTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    @click.stop="abrirEditar(asOperador(rawRow))"
+                  >
+                    <PencilIcon class="size-4" />
+                  </Button>
+                </GTooltipTrigger>
+                <GTooltipContent>Editar nombre</GTooltipContent>
+              </GTooltip>
+              <GTooltip>
+                <GTooltipTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    @click.stop="router.push(`/mem/operadores-red/${asOperador(rawRow).id}`)"
+                  >
+                    <EyeIcon class="size-4" />
+                  </Button>
+                </GTooltipTrigger>
+                <GTooltipContent>Ver detalle</GTooltipContent>
+              </GTooltip>
+            </div>
+          </template>
+        </DataTable>
+      </template>
+    </AsyncView>
+
+    <!-- Crear / Editar -->
+    <Dialog v-model:open="showForm">
+      <DialogContent class="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{{
+            editingId ? 'Editar Operador de Red' : 'Nuevo Operador de Red'
+          }}</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div class="space-y-1.5">
+            <GLabel required>Nombre legal</GLabel>
+            <Input
+              v-model="form.nombre_legal"
+              placeholder="Ej: Electrificadora del Caribe S.A. E.S.P."
+            />
+          </div>
+          <div class="space-y-1.5">
+            <GLabel>Nombre comercial</GLabel>
+            <Input v-model="form.nombre_comercial" placeholder="Ej: Afinia" />
+          </div>
+          <template v-if="!editingId">
+            <div class="space-y-1.5">
+              <GLabel>Correo de contacto (opcional)</GLabel>
+              <Input v-model="form.contacto_email" placeholder="Ej: reportes@afinia.com.co" />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Nombre del contacto (opcional)</GLabel>
+              <Input v-model="form.contacto_nombre" placeholder="Ej: María Pérez" />
+            </div>
+          </template>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" @click="showForm = false">Cancelar</Button>
+          <Button :disabled="!form.nombre_legal.trim() || saving" @click="onGuardar">
+            {{ editingId ? 'Guardar' : 'Crear' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+</template>

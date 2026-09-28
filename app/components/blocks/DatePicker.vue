@@ -6,7 +6,10 @@ import { getLocalTimeZone, parseDate } from '@internationalized/date'
 // `ui/calendar` (mismo problema que `blocks/DataTable`) y `typecheck` falla.
 import { Calendar } from '~/components/ui/calendar'
 
-withDefaults(defineProps<{ placeholder?: string; clearable?: boolean }>(), { clearable: false })
+withDefaults(defineProps<{ placeholder?: string; clearable?: boolean }>(), {
+  placeholder: 'Seleccionar fecha',
+  clearable: false,
+})
 
 /** El valor de afuera es siempre `'yyyy-mm-dd'` — nunca un `Date` ni un `DateValue`. */
 const modelValue = defineModel<string | null>({ default: null })
@@ -38,7 +41,7 @@ const label = computed(() =>
       <PopoverTrigger as-child>
         <Button variant="outline" class="w-full flex-1 justify-start font-normal">
           <CalendarIcon class="size-4" />
-          {{ label ?? placeholder ?? 'Seleccionar fecha' }}
+          {{ label ?? placeholder }}
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-auto p-0" align="start">
