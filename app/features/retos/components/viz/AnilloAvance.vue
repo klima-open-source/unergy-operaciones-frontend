@@ -1,44 +1,16 @@
-<template>
-  <svg :width="size" :height="size" :viewBox="`0 0 52 52`" role="img" :aria-label="aria">
-    <g transform="rotate(-90 26 26)">
-      <!-- Pista -->
-      <circle cx="26" cy="26" r="22" fill="none" stroke="#F1ECF7" stroke-width="6" />
-      <!-- Arco principal -->
-      <circle
-        v-if="pctSeguro !== null"
-        cx="26" cy="26" r="22" fill="none"
-        :stroke="color" stroke-width="6" stroke-linecap="round"
-        :stroke-dasharray="dashPrincipal"
-        class="an-arco"
-      />
-      <!-- Segunda vuelta: lo que se pasó del 100% -->
-      <circle
-        v-if="excesoPct > 0"
-        cx="26" cy="26" r="22" fill="none"
-        stroke="#14B8A6" stroke-width="6" stroke-linecap="round"
-        :stroke-dasharray="dashExceso" opacity="0.9"
-        class="an-arco"
-      />
-    </g>
-    <text
-      x="26" y="26" text-anchor="middle" dominant-baseline="central"
-      :font-size="pctSeguro === null ? 13 : 13" font-weight="800"
-      :fill="pctSeguro === null ? '#9b8fb0' : 'var(--color-unergy-deep)'"
-      style="font-variant-numeric: tabular-nums"
-    >{{ etiquetaCentro }}</text>
-  </svg>
-</template>
-
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
+import type { EstadoMetrica } from '~/features/retos/types'
 import { estadoColor, estadoLabel } from '../retosUi'
 
-const props = defineProps({
-  /** Porcentaje de cumplimiento contra el ritmo esperado. `null` = sin datos. */
-  pct: { type: Number, default: null },
-  estado: { type: String, default: 'sin_datos' },
-  size: { type: Number, default: 52 },
-})
+const props = withDefaults(
+  defineProps<{
+    /** Porcentaje de cumplimiento contra el ritmo esperado. `null` = sin datos. */
+    pct?: number | null
+    estado?: EstadoMetrica | null
+    size?: number
+  }>(),
+  { pct: null, estado: 'sin_datos', size: 52 },
+)
 
 const CIRCUNFERENCIA = 2 * Math.PI * 22 // 138.23
 
@@ -48,6 +20,7 @@ const pctSeguro = computed(() => {
 })
 
 const color = computed(() => estadoColor(props.estado))
+const colorExceso = computed(() => estadoColor('excede'))
 
 const dashPrincipal = computed(() => {
   const p = Math.max(Math.min(pctSeguro.value ?? 0, 100), 0)
@@ -62,7 +35,7 @@ const excesoPct = computed(() => {
 const dashExceso = computed(() => `${(excesoPct.value / 100) * CIRCUNFERENCIA} ${CIRCUNFERENCIA}`)
 
 const etiquetaCentro = computed(() =>
-  pctSeguro.value === null ? '—' : String(Math.round(pctSeguro.value))
+  pctSeguro.value === null ? '—' : String(Math.round(pctSeguro.value)),
 )
 
 const aria = computed(() => {
@@ -71,6 +44,58 @@ const aria = computed(() => {
 })
 </script>
 
+<template>
+  <svg :width="size" :height="size" viewBox="0 0 52 52" role="img" :aria-label="aria">
+    <g transform="rotate(-90 26 26)">
+      <!-- Pista -->
+      <circle cx="26" cy="26" r="22" fill="none" stroke="var(--border)" stroke-width="6" />
+      <!-- Arco principal -->
+      <circle
+        v-if="pctSeguro !== null"
+        cx="26"
+        cy="26"
+        r="22"
+        fill="none"
+        :stroke="color"
+        stroke-width="6"
+        stroke-linecap="round"
+        :stroke-dasharray="dashPrincipal"
+        class="an-arco"
+      />
+      <!-- Segunda vuelta: lo que se pasó del 100% -->
+      <circle
+        v-if="excesoPct > 0"
+        cx="26"
+        cy="26"
+        r="22"
+        fill="none"
+        :stroke="colorExceso"
+        stroke-width="6"
+        stroke-linecap="round"
+        :stroke-dasharray="dashExceso"
+        opacity="0.9"
+        class="an-arco"
+      />
+    </g>
+    <text
+      x="26"
+      y="26"
+      text-anchor="middle"
+      dominant-baseline="central"
+      font-size="13"
+      font-weight="800"
+      :class="pctSeguro === null ? 'fill-muted-foreground' : 'fill-foreground'"
+      style="font-variant-numeric: tabular-nums"
+    >
+      {{ etiquetaCentro }}
+    </text>
+  </svg>
+</template>
+
 <style scoped>
-.an-arco { transition: stroke-dasharray .4s cubic-bezier(.4, 0, .2, 1), stroke .2s; }
+.an-arco {
+  transition:
+    stroke-dasharray 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.2s;
+}
 </style>

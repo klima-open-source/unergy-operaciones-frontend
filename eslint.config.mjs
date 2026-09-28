@@ -75,7 +75,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',
   'app/features/registros-cnd/components/**',
-  'app/features/retos/components/**',
   // `SolarLiveView.vue` ya se limpió de PrimeVue/CSS propio; `SolarView.vue`
   // (histórico de generación, otra vista) todavía no.
   'app/features/solar/components/SolarView.vue',

@@ -1,20 +1,114 @@
+<script setup lang="ts">
+/**
+ * Tile de KPI de una métrica del trimestre (spec §4.4).
+ * No navega: al hacer clic hace scroll a su fila de la matriz y la resalta.
+ */
+import type { MetricaReto } from '~/features/retos/types'
+import { EllipsisIcon, EyeIcon, EyeOffIcon, PencilIcon, Trash2Icon } from '@lucide/vue'
+import BulletMeta from './viz/BulletMeta.vue'
+import RetoSparkline from './viz/RetoSparkline.vue'
+import {
+  estadoBadgeColor,
+  estadoColor,
+  estadoLabel,
+  fmtNumero,
+  fmtPct,
+  fmtPctEntero,
+  fmtValor,
+  TIPOS_AGREGACION,
+} from './retosUi'
+
+const props = defineProps<{
+  metrica: MetricaReto
+  totalSemanas?: number
+}>()
+
+const emit = defineEmits<{
+  foco: [metrica: MetricaReto]
+  editar: [metrica: MetricaReto]
+  'alternar-activa': [metrica: MetricaReto]
+  eliminar: [metrica: MetricaReto]
+}>()
+
+function numeroONulo(v: number | null | undefined) {
+  if (v === null || v === undefined) return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+const tieneMeta = computed(() => numeroONulo(props.metrica.meta) !== null)
+
+/** `MWh · suma · Laura` — los tramos vacíos se omiten, no dejan huecos. */
+const metaDatos = computed(() => {
+  const m = props.metrica
+  const partes: string[] = []
+  if (m.unidad) partes.push(m.unidad)
+  const agg = TIPOS_AGREGACION.find((t) => t.value === m.tipo_agregacion)
+  if (agg) partes.push(agg.label.toLowerCase())
+  if (m.responsable) partes.push(m.responsable)
+  return partes.join(' · ')
+})
+
+const consolidadoTxt = computed(() =>
+  fmtNumero(props.metrica.consolidado, props.metrica.decimales || 0),
+)
+
+const metaTxt = computed(() =>
+  fmtValor(props.metrica.meta, props.metrica.decimales || 0, props.metrica.unidad || ''),
+)
+
+const pie2 = computed(() => {
+  const m = props.metrica
+  const semanas = `${m.semanas_con_dato ?? 0} de ${props.totalSemanas ?? 0} semanas con dato`
+  if (!tieneMeta.value) return semanas
+  const esSuma = m.tipo_agregacion === 'suma'
+  // En `suma` la meta se prorratea, así que hay un "esperado a hoy"; en el
+  // resto de agregaciones la meta es la misma toda la ventana (contrato §4).
+  const valor = fmtValor(esSuma ? m.meta_esperada : m.meta, m.decimales || 0, m.unidad || '')
+  return `${esSuma ? 'Esperado a hoy' : 'Meta'} ${valor} · ${semanas}`
+})
+</script>
+
 <template>
-  <!--
-    Tile de KPI de una métrica del trimestre (spec §4.4).
-    No navega: al hacer clic hace scroll a su fila de la matriz y la resalta.
-  -->
-  <div class="rq-card rq-kpi" @click="emit('foco', metrica)">
+  <div class="rq-card rq-kpi group" @click="emit('foco', metrica)">
     <!-- 1. Fila título -->
     <div class="rq-kpi-head">
-      <span class="rq-kpi-nombre" v-tooltip.top="metrica.descripcion || ''">{{ metrica.nombre }}</span>
-      <span v-if="!metrica.activa" class="rq-chip rq-chip-neutro">Inactiva</span>
-      <span class="rq-chip" :style="estadoBadge(metrica.estado)">{{ estadoLabel(metrica.estado) }}</span>
-      <Button text rounded size="small" class="rq-kpi-mas" :aria-label="`Acciones de ${metrica.nombre}`" @click.stop="menu.toggle($event)">
-        <template #icon><EllipsisIcon class="size-[1em]" /></template>
-      </Button>
-      <Menu ref="menu" :model="items" :popup="true">
-        <template #itemicon="{ item }"><component :is="item.icon" class="size-[1em]" /></template>
-      </Menu>
+      <GTooltip>
+        <GTooltipTrigger as-child>
+          <span class="rq-kpi-nombre">{{ metrica.nombre }}</span>
+        </GTooltipTrigger>
+        <GTooltipContent v-if="metrica.descripcion">{{ metrica.descripcion }}</GTooltipContent>
+      </GTooltip>
+      <GBadge v-if="!metrica.activa" variant="outline">Inactiva</GBadge>
+      <GBadge :color="estadoBadgeColor(metrica.estado)">{{ estadoLabel(metrica.estado) }}</GBadge>
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="rq-kpi-mas"
+            :aria-label="`Acciones de ${metrica.nombre}`"
+            @click.stop
+          >
+            <EllipsisIcon class="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" @click.stop>
+          <DropdownMenuItem @click="emit('editar', metrica)">
+            <PencilIcon class="size-4" />
+            Editar métrica
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="emit('alternar-activa', metrica)">
+            <component :is="metrica.activa ? EyeOffIcon : EyeIcon" class="size-4" />
+            {{ metrica.activa ? 'Desactivar métrica' : 'Activar métrica' }}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" @click="emit('eliminar', metrica)">
+            <Trash2Icon class="size-4" />
+            Eliminar métrica
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
 
     <!-- 2. Fila metadatos -->
@@ -29,8 +123,14 @@
         {{ consolidadoTxt === null ? '—' : consolidadoTxt }}
       </span>
       <span v-if="tieneMeta" class="rq-kpi-meta-valor">/ {{ metaTxt }}</span>
-      <span class="flex-1"></span>
-      <Sparkline :serie="metrica.serie || []" :estado="metrica.estado" />
+      <span class="flex-1" />
+      <!-- `metrica.serie` es `number[]`; `RetoSparkline` espera `{ valor }[]`.
+           La versión legacy pasaba los números sueltos y el componente los
+           leía como `p?.valor` (siempre `undefined`) — el trazo nunca se veía. -->
+      <RetoSparkline
+        :serie="metrica.serie?.map((valor) => ({ valor })) ?? []"
+        :estado="metrica.estado"
+      />
     </div>
 
     <!-- 4. Bullet -->
@@ -49,7 +149,9 @@
         <template v-if="tieneMeta">
           <span>{{ fmtPct(metrica.avance_pct) }} de la meta</span>
           <span class="rq-kpi-punto">·</span>
-          <span :style="{ color: estadoColor(metrica.estado) }">ritmo {{ fmtPctEntero(metrica.cumplimiento_pct) }}</span>
+          <span :style="{ color: estadoColor(metrica.estado) }"
+            >ritmo {{ fmtPctEntero(metrica.cumplimiento_pct) }}</span
+          >
         </template>
         <span v-else class="rq-kpi-sin-meta">Sin meta definida</span>
       </div>
@@ -58,81 +160,12 @@
   </div>
 </template>
 
-<script setup>
-import { computed, ref } from 'vue'
-import Button from 'primevue/button'
-import Menu from 'primevue/menu'
-import Sparkline from './viz/Sparkline.vue'
-import BulletMeta from './viz/BulletMeta.vue'
-import { EllipsisIcon, EyeIcon, EyeOffIcon, PencilIcon, Trash2Icon } from '@lucide/vue'
-import {
-  estadoBadge, estadoColor, estadoLabel,
-  fmtNumero, fmtPct, fmtPctEntero, fmtValor,
-  TIPOS_AGREGACION,
-} from './retosUi'
-
-const props = defineProps({
-  /** MetricaResumen del contrato. */
-  metrica: { type: Object, required: true },
-  totalSemanas: { type: Number, default: 0 },
-})
-
-const emit = defineEmits(['foco', 'editar', 'alternar-activa', 'eliminar'])
-
-const menu = ref(null)
-
-const items = computed(() => [
-  { label: 'Editar métrica', icon: PencilIcon, command: () => emit('editar', props.metrica) },
-  {
-    label: props.metrica.activa ? 'Desactivar métrica' : 'Activar métrica',
-    icon: props.metrica.activa ? EyeOffIcon : EyeIcon,
-    command: () => emit('alternar-activa', props.metrica),
-  },
-  { separator: true },
-  { label: 'Eliminar métrica', icon: Trash2Icon, class: 'rq-menu-danger', command: () => emit('eliminar', props.metrica) },
-])
-
-function numeroONulo(v) {
-  if (v === null || v === undefined) return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-
-const tieneMeta = computed(() => numeroONulo(props.metrica.meta) !== null)
-
-/** `MWh · suma · Laura` — los tramos vacíos se omiten, no dejan huecos. */
-const metaDatos = computed(() => {
-  const m = props.metrica
-  const partes = []
-  if (m.unidad) partes.push(m.unidad)
-  const agg = TIPOS_AGREGACION.find(t => t.value === m.tipo_agregacion)
-  if (agg) partes.push(agg.label.toLowerCase())
-  if (m.responsable) partes.push(m.responsable)
-  return partes.join(' · ')
-})
-
-const consolidadoTxt = computed(() => fmtNumero(props.metrica.consolidado, props.metrica.decimales || 0))
-
-const metaTxt = computed(() => fmtValor(props.metrica.meta, props.metrica.decimales || 0, props.metrica.unidad || ''))
-
-const pie2 = computed(() => {
-  const m = props.metrica
-  const semanas = `${m.semanas_con_dato ?? 0} de ${props.totalSemanas} semanas con dato`
-  if (!tieneMeta.value) return semanas
-  const esSuma = m.tipo_agregacion === 'suma'
-  // En `suma` la meta se prorratea, así que hay un "esperado a hoy"; en el
-  // resto de agregaciones la meta es la misma toda la ventana (contrato §4).
-  const valor = fmtValor(esSuma ? m.meta_esperada : m.meta, m.decimales || 0, m.unidad || '')
-  return `${esSuma ? 'Esperado a hoy' : 'Meta'} ${valor} · ${semanas}`
-})
-</script>
-
 <style scoped>
 .rq-card {
-  background: #fff;
-  border: 1px solid #e8e0f0;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(44, 32, 57, .04);
+  box-shadow: 0 1px 2px rgba(44, 32, 57, 0.04);
 }
 
 .rq-kpi {
@@ -144,59 +177,106 @@ const pie2 = computed(() => {
 }
 
 /* 1. Título */
-.rq-kpi-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rq-kpi-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .rq-kpi-nombre {
-  flex: 1; min-width: 0;
-  font-size: 12.5px; font-weight: 700; color: var(--color-unergy-deep);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.rq-chip {
+.rq-chip-dir {
   flex: none;
-  font-size: 10px; font-weight: 700; line-height: 1.5;
-  padding: 1px 7px; border-radius: 999px; white-space: nowrap;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  padding: 0 6px;
+  border-radius: 999px;
 }
-.rq-chip-neutro { color: #6b5a8a; background: rgba(44, 32, 57, .06); }
 
 /* El menú solo aparece cuando la tarjeta está viva: no compite con el dato */
 .rq-kpi-mas {
   flex: none;
   opacity: 0;
-  transition: opacity .12s ease;
-  width: 24px; height: 24px;
+  transition: opacity 0.12s ease;
 }
-.rq-kpi:hover .rq-kpi-mas,
-.rq-kpi:focus-within .rq-kpi-mas { opacity: 1; }
+.group:hover .rq-kpi-mas,
+.group:focus-within .rq-kpi-mas {
+  opacity: 1;
+}
 
 /* 2. Metadatos */
 .rq-kpi-meta {
-  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  font-size: 10px; font-weight: 600; color: #6b5a8a; margin-top: -4px;
-}
-.rq-chip-dir {
-  font-size: 10px; font-weight: 700; color: #6b5a8a;
-  background: rgba(44, 32, 57, .06); padding: 0 6px; border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-top: -4px;
 }
 
 /* 3. Cifras */
-.rq-kpi-cifras { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.rq-kpi-cifras {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
 .rq-kpi-consolidado {
-  font-size: 20px; font-weight: 800; color: var(--color-unergy-deep);
-  font-variant-numeric: tabular-nums; line-height: 1.1;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
-.rq-kpi-nulo { color: #c7bdd8; }
+.rq-kpi-nulo {
+  color: var(--muted-foreground);
+}
 .rq-kpi-meta-valor {
-  font-size: 12px; font-weight: 600; color: #6b5a8a;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.rq-kpi-cifras :deep(svg) { align-self: center; flex: none; }
+.rq-kpi-cifras :deep(svg) {
+  align-self: center;
+  flex: none;
+}
 
 /* 5 y 6. Pie */
 .rq-kpi-pie1 {
-  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-  font-size: 11px; font-weight: 600; color: var(--color-unergy-deep);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--foreground);
 }
-.rq-kpi-punto { color: #c7bdd8; }
-.rq-kpi-sin-meta { color: #9b8fb0; font-weight: 600; }
-.rq-kpi-pie2 { font-size: 10px; font-weight: 400; color: #9b8fb0; margin-top: 2px; }
+.rq-kpi-punto {
+  color: var(--muted-foreground);
+}
+.rq-kpi-sin-meta {
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.rq-kpi-pie2 {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
 </style>

@@ -87,6 +87,7 @@ export type ValoresPorMetrica = Record<string, Record<string, ValorSemanal>>
 export interface RetoResumen {
   id: number
   nombre?: string | null
+  descripcion?: string | null
   anio: number
   trimestre: number
   fecha_inicio: string

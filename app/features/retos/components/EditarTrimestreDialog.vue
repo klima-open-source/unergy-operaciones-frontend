@@ -1,121 +1,67 @@
-<template>
-  <!--
-    Editar nombre, descripción y rango del trimestre (spec §7.3).
-    El PATCH lo hace la vista orquestadora; aquí solo se arma el payload y se
-    muestran `guardando` y el `detail` del backend bajo el campo que lo provocó.
-  -->
-  <Dialog
-    :visible="visible"
-    modal
-    :draggable="false"
-    class="w-full max-w-md"
-    header="Editar trimestre"
-    @update:visible="emit('update:visible', $event)"
-  >
-    <div class="space-y-3">
-      <div>
-        <label class="rq-field-label" for="rq-t-nombre">Nombre</label>
-        <InputText id="rq-t-nombre" v-model="f.nombre" class="w-full" placeholder="Retos Q3 2026" />
-      </div>
-
-      <div>
-        <label class="rq-field-label" for="rq-t-desc">Descripción</label>
-        <Textarea
-          id="rq-t-desc"
-          v-model="f.descripcion"
-          class="w-full"
-          rows="2"
-          autoResize
-          placeholder="Opcional: en qué se enfoca el trimestre"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="rq-field-label" for="rq-t-ini">Inicio</label>
-          <DatePicker
-            id="rq-t-ini"
-            v-model="f.fechaInicio"
-            dateFormat="dd/mm/yy"
-            showIcon
-            class="w-full"
-          />
-          <p v-if="errorInicio" class="rq-error-campo">{{ errorInicio }}</p>
-        </div>
-        <div>
-          <label class="rq-field-label" for="rq-t-fin">Fin</label>
-          <DatePicker
-            id="rq-t-fin"
-            v-model="f.fechaFin"
-            dateFormat="dd/mm/yy"
-            showIcon
-            class="w-full"
-          />
-          <p v-if="errorFin" class="rq-error-campo">{{ errorFin }}</p>
-        </div>
-      </div>
-
-      <p v-if="vistaPrevia" class="rq-preview">{{ vistaPrevia }}</p>
-
-      <p v-if="avisoValores" class="rq-aviso">
-        <TriangleAlertIcon class="size-[1em]" />
-        <span>
-          Los valores que queden fuera del nuevo rango dejan de mostrarse.
-          No se borran: vuelven a aparecer si restauras las fechas.
-        </span>
-      </p>
-    </div>
-
-    <template #footer>
-      <Button label="Cancelar" severity="secondary" text size="small" @click="emit('update:visible', false)" />
-      <Button label="Guardar" size="small" :loading="guardando" :disabled="guardando || !!errorLocal || !f.fechaInicio || !f.fechaFin" @click="enviar">
-        <template #icon><CheckIcon class="size-[1em]" /></template>
-      </Button>
-    </template>
-  </Dialog>
-</template>
-
-<script setup>
-import { computed, reactive, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
-import DatePicker from 'primevue/datepicker'
+<script setup lang="ts">
+/**
+ * Editar nombre, descripción y rango del trimestre (spec §7.3).
+ * El PATCH lo hace la vista orquestadora; acá solo se arma el payload y se
+ * muestran `guardando` y el `detail` del backend bajo el campo que lo provocó.
+ */
+import type { PayloadEditarTrimestre, Reto } from '~/features/retos/types'
 import { CheckIcon, TriangleAlertIcon } from '@lucide/vue'
+import DatePicker from '~/components/blocks/DatePicker.vue'
 
-const props = defineProps({
-  visible: { type: Boolean, default: false },
-  /** RetoDetalle actual. */
-  reto: { type: Object, default: null },
-  guardando: { type: Boolean, default: false },
-  /** `detail` del backend tras un 400/409, ya normalizado a texto. */
-  errorApi: { type: String, default: '' },
-})
+const props = withDefaults(
+  defineProps<{
+    visible?: boolean
+    reto?: Reto | null
+    guardando?: boolean
+    /** `detail` del backend tras un 400/409, ya normalizado a texto. */
+    errorApi?: string
+  }>(),
+  { visible: false, reto: null, guardando: false, errorApi: '' },
+)
 
-const emit = defineEmits(['update:visible', 'submit'])
+const emit = defineEmits<{
+  'update:visible': [visible: boolean]
+  submit: [payload: PayloadEditarTrimestre]
+}>()
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
 
-const f = reactive({ nombre: '', descripcion: '', fechaInicio: null, fechaFin: null })
+const f = reactive<{
+  nombre: string
+  descripcion: string
+  fechaInicio: string | null
+  fechaFin: string | null
+}>({
+  nombre: '',
+  descripcion: '',
+  fechaInicio: null,
+  fechaFin: null,
+})
 
 /**
  * `new Date('2026-07-01')` se interpreta como UTC y en Colombia cae el 30 de
- * junio. Por eso se parsea y se serializa por componentes, siempre en local.
+ * junio. Por eso se parsea siempre por componentes, en local — nunca con el
+ * constructor de `Date` sobre el string ISO completo.
  */
-function isoADate(iso) {
+function isoADateLocal(iso: string | null | undefined): Date | null {
   if (!iso) return null
   const [a, m, d] = String(iso).split('-').map(Number)
   if (!a || !m || !d) return null
   return new Date(a, m - 1, d)
-}
-
-function dateAIso(d) {
-  if (!d) return null
-  const p = n => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
 watch(
@@ -125,16 +71,16 @@ watch(
     Object.assign(f, {
       nombre: props.reto.nombre || '',
       descripcion: props.reto.descripcion || '',
-      fechaInicio: isoADate(props.reto.fecha_inicio),
-      fechaFin: isoADate(props.reto.fecha_fin),
+      fechaInicio: props.reto.fecha_inicio,
+      fechaFin: props.reto.fecha_fin,
     })
   },
   { immediate: true },
 )
 
 /** Misma generación de semanas del contrato §3, para la vista previa. */
-function semanasDe(inicio, fin) {
-  const out = []
+function semanasDe(inicio: Date, fin: Date) {
+  const out: { numero: number; inicio: Date; fin: Date }[] = []
   const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate())
   cursor.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7)) // lunes de esa semana
   let numero = 1
@@ -149,28 +95,33 @@ function semanasDe(inicio, fin) {
 }
 
 const semanas = computed(() => {
-  if (!f.fechaInicio || !f.fechaFin) return []
-  if (f.fechaFin <= f.fechaInicio) return []
-  return semanasDe(f.fechaInicio, f.fechaFin)
+  const inicio = isoADateLocal(f.fechaInicio)
+  const fin = isoADateLocal(f.fechaFin)
+  if (!inicio || !fin || fin <= inicio) return []
+  return semanasDe(inicio, fin)
 })
 
-function fechaLarga(d) {
+function fechaLarga(d: Date) {
   return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`
 }
 
 const vistaPrevia = computed(() => {
   const s = semanas.value
   if (!s.length) return ''
-  const primera = s[0]
-  const ultima = s[s.length - 1]
-  return `${s.length} ${s.length === 1 ? 'semana' : 'semanas'}. La S1 empieza el ${fechaLarga(primera.inicio)}` +
+  const primera = s[0]!
+  const ultima = s[s.length - 1]!
+  return (
+    `${s.length} ${s.length === 1 ? 'semana' : 'semanas'}. La S1 empieza el ${fechaLarga(primera.inicio)}` +
     ` y la S${ultima.numero} termina el ${fechaLarga(ultima.fin)}.`
+  )
 })
 
 /** Se anticipan los dos 400 del contrato para no gastar un viaje al servidor. */
 const errorLocal = computed(() => {
-  if (!f.fechaInicio || !f.fechaFin) return ''
-  if (f.fechaFin <= f.fechaInicio) return 'La fecha de fin debe ser posterior a la de inicio'
+  const inicio = isoADateLocal(f.fechaInicio)
+  const fin = isoADateLocal(f.fechaFin)
+  if (!inicio || !fin) return ''
+  if (fin <= inicio) return 'La fecha de fin debe ser posterior a la de inicio'
   if (semanas.value.length >= 60) return 'El rango no puede superar 60 semanas'
   return ''
 })
@@ -188,15 +139,14 @@ const errorFin = computed(() => (esErrorDeInicio.value ? '' : errorMostrado.valu
 
 const fechasCambiaron = computed(() => {
   if (!props.reto) return false
-  return dateAIso(f.fechaInicio) !== props.reto.fecha_inicio ||
-    dateAIso(f.fechaFin) !== props.reto.fecha_fin
+  return f.fechaInicio !== props.reto.fecha_inicio || f.fechaFin !== props.reto.fecha_fin
 })
 
 const avisoValores = computed(
   () => fechasCambiaron.value && (props.reto?.semanas_con_datos ?? 0) > 0,
 )
 
-function limpio(txt) {
+function limpio(txt: string | null | undefined) {
   const t = String(txt ?? '').trim()
   return t === '' ? null : t
 }
@@ -206,42 +156,70 @@ function enviar() {
   emit('submit', {
     nombre: limpio(f.nombre),
     descripcion: limpio(f.descripcion),
-    fecha_inicio: dateAIso(f.fechaInicio),
-    fecha_fin: dateAIso(f.fechaFin),
+    fecha_inicio: f.fechaInicio,
+    fecha_fin: f.fechaFin,
   })
 }
 </script>
 
-<style scoped>
-.rq-field-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 4px;
-  color: #6b5a8a;
-}
+<template>
+  <Dialog :open="visible" @update:open="emit('update:visible', $event)">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Editar trimestre</DialogTitle>
+      </DialogHeader>
 
-.rq-error-campo { font-size: 10px; color: #B0364A; margin-top: 3px; }
+      <div class="space-y-3">
+        <div class="space-y-1.5">
+          <GLabel>Nombre</GLabel>
+          <Input v-model="f.nombre" placeholder="Retos Q3 2026" />
+        </div>
 
-.rq-preview {
-  background: rgba(145, 91, 216, .06);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #6b5a8a;
-  line-height: 1.5;
-}
+        <div class="space-y-1.5">
+          <GLabel>Descripción</GLabel>
+          <Textarea
+            v-model="f.descripcion"
+            rows="2"
+            placeholder="Opcional: en qué se enfoca el trimestre"
+          />
+        </div>
 
-.rq-aviso {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  background: rgba(202, 138, 4, .10);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: #A16207;
-  line-height: 1.5;
-}
-.rq-aviso svg { font-size: 10px; margin-top: 2px; flex: none; }
-</style>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1.5">
+            <GLabel>Inicio</GLabel>
+            <DatePicker v-model="f.fechaInicio" />
+            <p v-if="errorInicio" class="text-xs text-destructive">{{ errorInicio }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <GLabel>Fin</GLabel>
+            <DatePicker v-model="f.fechaFin" />
+            <p v-if="errorFin" class="text-xs text-destructive">{{ errorFin }}</p>
+          </div>
+        </div>
+
+        <p v-if="vistaPrevia" class="rounded-lg bg-primary/5 p-2.5 text-xs text-muted-foreground">
+          {{ vistaPrevia }}
+        </p>
+
+        <Alert v-if="avisoValores">
+          <TriangleAlertIcon class="text-warning" />
+          <AlertDescription>
+            Los valores que queden fuera del nuevo rango dejan de mostrarse. No se borran: vuelven a
+            aparecer si restauras las fechas.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      <DialogFooter>
+        <Button variant="secondary" @click="emit('update:visible', false)">Cancelar</Button>
+        <Button
+          :disabled="guardando || !!errorLocal || !f.fechaInicio || !f.fechaFin"
+          @click="enviar"
+        >
+          <CheckIcon class="size-4" />
+          Guardar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>

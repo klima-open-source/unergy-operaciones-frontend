@@ -53,7 +53,6 @@ app/features/operaciones/components/PortafoliosGestionPanel.vue
 app/features/panel-contable/components
 app/features/proyectos/components
 app/features/registros-cnd/components
-app/features/retos/components
 app/features/solar/components/SolarView.vue
 app/data
 app/assets/*.js

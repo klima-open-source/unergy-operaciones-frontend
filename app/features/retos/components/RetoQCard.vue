@@ -1,105 +1,22 @@
-<template>
-  <div
-    class="rq-card-q"
-    :class="{ 'rq-q-actual': esEnCurso }"
-    role="link"
-    tabindex="0"
-    :aria-label="`Abrir ${reto.nombre || `Retos Q${reto.trimestre}`}`"
-    @click="abrir"
-    @keydown.enter.prevent="abrir"
-    @keydown.space.prevent="abrir"
-  >
-    <!-- a) Eyebrow -->
-    <div class="rq-q-eyebrow">
-      <span class="rq-q-eyebrow-l">
-        <span class="rq-q-num">Q{{ reto.trimestre }}</span>
-        <span class="rq-q-punto-sep">·</span>
-        <span class="rq-q-meses">{{ mesesRango }}</span>
-      </span>
-      <span class="rq-chip" :style="periodoBadge(reto.estado_periodo)">
-        <span v-if="esEnCurso" class="rq-punto-vivo" />
-        {{ periodoLabel(reto.estado_periodo) }}
-      </span>
-    </div>
-
-    <!-- b) Identidad + anillo -->
-    <div class="rq-q-identidad">
-      <div class="rq-q-ident-txt">
-        <div class="rq-q-nombre">{{ reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}` }}</div>
-        <div class="rq-q-rango">{{ rangoTxt }}</div>
-        <div class="rq-q-semanas">{{ semanasTxt }}</div>
-      </div>
-      <div class="rq-q-anillo">
-        <AnilloAvance :pct="pctGlobal" :estado="estadoQ" />
-        <span class="rq-q-ritmo">ritmo</span>
-      </div>
-    </div>
-
-    <!-- c) Chip de estado agregado -->
-    <div>
-      <span class="rq-chip" :style="estadoBadge(estadoQ)">{{ estadoLabel(estadoQ) }}</span>
-    </div>
-
-    <template v-if="sinMetricas">
-      <!-- Tarjeta sin métricas -->
-      <div class="rq-q-vacio">
-        <div class="rq-q-vacio-titulo">Sin métricas definidas</div>
-        <div class="rq-q-vacio-cta">Definir métricas</div>
-      </div>
-    </template>
-
-    <template v-else>
-      <!-- d) Separador -->
-      <div class="rq-q-sep" />
-
-      <!-- e) Lista de métricas (máx. 3) -->
-      <div class="rq-q-metricas">
-        <div v-for="m in metricasVisibles" :key="m.id" class="rq-q-metrica">
-          <div class="rq-q-m-nombre">{{ m.nombre }}</div>
-          <div class="rq-q-m-linea">
-            <Sparkline :serie="m.serie || []" :estado="m.estado" />
-            <span class="rq-q-m-spacer" />
-            <span v-if="consolidadoDe(m) === null" class="rq-q-m-vacio">—</span>
-            <template v-else>
-              <span class="rq-q-m-valor">{{ consolidadoDe(m) }}</span>
-              <span
-                v-if="m.unidad"
-                class="rq-q-m-unidad"
-                :class="{ 'rq-q-m-unidad-pegada': m.unidad === '%' }"
-              >{{ m.unidad }}</span>
-            </template>
-          </div>
-        </div>
-        <div v-if="metricasRestantes > 0" class="rq-q-mas">
-          +{{ metricasRestantes }} {{ metricasRestantes === 1 ? 'métrica más' : 'métricas más' }}
-        </div>
-      </div>
-
-      <!-- f) Pie -->
-      <div class="rq-q-pie">{{ pieTxt }}</div>
-    </template>
-  </div>
-</template>
-
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
+import type { EstadoMetrica, MetricaReto, RetoResumen } from '~/features/retos/types'
+import AnilloAvance from './viz/AnilloAvance.vue'
+import RetoSparkline from './viz/RetoSparkline.vue'
 import {
-  estadoBadge,
+  estadoBadgeColor,
   estadoLabel,
-  periodoBadge,
-  periodoLabel,
   fmtNumero,
   fmtRango,
+  periodoBadgeColor,
+  periodoLabel,
 } from './retosUi'
-import AnilloAvance from './viz/AnilloAvance.vue'
-import Sparkline from './viz/Sparkline.vue'
 
-const props = defineProps({
+const props = defineProps<{
   /** `RetoResumen` del contrato (§5). */
-  reto: { type: Object, required: true },
-})
+  reto: RetoResumen
+}>()
 
-const emit = defineEmits(['abrir'])
+const emit = defineEmits<{ abrir: [reto: RetoResumen] }>()
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
@@ -110,14 +27,14 @@ function abrir() {
 const esEnCurso = computed(() => props.reto.estado_periodo === 'en_curso')
 
 const pctGlobal = computed(() => {
-  const n = Number(props.reto.avance_global_pct)
   const crudo = props.reto.avance_global_pct
+  const n = Number(crudo)
   if (crudo === null || crudo === undefined || !Number.isFinite(n)) return null
   return n
 })
 
 /** Mismos umbrales del contrato §4, aplicados al roll-up del trimestre. */
-const estadoQ = computed(() => {
+const estadoQ = computed<EstadoMetrica>(() => {
   const p = pctGlobal.value
   if (p === null) return 'sin_datos'
   if (p < 70) return 'en_riesgo'
@@ -126,7 +43,7 @@ const estadoQ = computed(() => {
   return 'excede'
 })
 
-function mesDe(iso) {
+function mesDe(iso: string | null | undefined) {
   const m = Number(String(iso || '').split('-')[1])
   return m >= 1 && m <= 12 ? MESES[m - 1] : ''
 }
@@ -155,19 +72,23 @@ const semanasTxt = computed(() => {
 const metricasActivas = computed(() => {
   const lista = Array.isArray(props.reto.metricas) ? props.reto.metricas : []
   return lista
-    .filter(m => m && m.activa !== false)
+    .filter((m) => m && m.activa !== false)
     .slice()
-    .sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0) || (Number(a.id) || 0) - (Number(b.id) || 0))
+    .sort(
+      (a, b) =>
+        (Number(a.orden) || 0) - (Number(b.orden) || 0) ||
+        (Number(a.id) || 0) - (Number(b.id) || 0),
+    )
 })
 
 const metricasVisibles = computed(() => metricasActivas.value.slice(0, 3))
 const metricasRestantes = computed(() => Math.max(metricasActivas.value.length - 3, 0))
 
 const sinMetricas = computed(
-  () => !metricasActivas.value.length && !(Number(props.reto.total_metricas) > 0)
+  () => !metricasActivas.value.length && !(Number(props.reto.total_metricas) > 0),
 )
 
-function consolidadoDe(m) {
+function consolidadoDe(m: MetricaReto) {
   return fmtNumero(m.consolidado, m.decimales)
 }
 
@@ -180,116 +101,208 @@ const pieTxt = computed(() => {
 })
 </script>
 
+<template>
+  <Card
+    class="rq-card-q gap-2.5 p-3.5"
+    :class="{ 'rq-q-actual': esEnCurso }"
+    role="link"
+    tabindex="0"
+    :aria-label="`Abrir ${reto.nombre || `Retos Q${reto.trimestre}`}`"
+    @click="abrir"
+    @keydown.enter.prevent="abrir"
+    @keydown.space.prevent="abrir"
+  >
+    <!-- a) Eyebrow -->
+    <div class="rq-q-eyebrow">
+      <span class="rq-q-eyebrow-l">
+        <span class="rq-q-num">Q{{ reto.trimestre }}</span>
+        <span class="text-muted-foreground">·</span>
+        <span class="rq-q-meses text-muted-foreground">{{ mesesRango }}</span>
+      </span>
+      <GBadge :color="periodoBadgeColor(reto.estado_periodo)">
+        <span v-if="esEnCurso" class="rq-punto-vivo" />
+        {{ periodoLabel(reto.estado_periodo) }}
+      </GBadge>
+    </div>
+
+    <!-- b) Identidad + anillo -->
+    <div class="rq-q-identidad">
+      <div class="min-w-0">
+        <div class="rq-q-nombre">{{ reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}` }}</div>
+        <div class="mt-0.5 text-xs text-muted-foreground">{{ rangoTxt }}</div>
+        <div class="text-xs text-muted-foreground">{{ semanasTxt }}</div>
+      </div>
+      <div class="flex shrink-0 flex-col items-center gap-0.5">
+        <AnilloAvance :pct="pctGlobal" :estado="estadoQ" />
+        <span class="rq-q-ritmo">ritmo</span>
+      </div>
+    </div>
+
+    <!-- c) Chip de estado agregado -->
+    <div>
+      <GBadge :color="estadoBadgeColor(estadoQ)">{{ estadoLabel(estadoQ) }}</GBadge>
+    </div>
+
+    <template v-if="sinMetricas">
+      <!-- Tarjeta sin métricas -->
+      <div class="rq-q-vacio">
+        <div class="text-xs font-semibold text-muted-foreground">Sin métricas definidas</div>
+        <div class="mt-0.5 text-xs font-bold text-primary">Definir métricas</div>
+      </div>
+    </template>
+
+    <template v-else>
+      <!-- d) Separador -->
+      <Separator />
+
+      <!-- e) Lista de métricas (máx. 3) -->
+      <div class="flex flex-col gap-1.5">
+        <div v-for="m in metricasVisibles" :key="m.id" class="min-w-0">
+          <div class="rq-q-m-nombre">{{ m.nombre }}</div>
+          <div class="flex items-center gap-2">
+            <!-- `m.serie` es `number[]`; `Sparkline` espera `{ valor }[]`. -->
+            <RetoSparkline :serie="m.serie?.map((valor) => ({ valor })) ?? []" :estado="m.estado" />
+            <span class="flex-1" />
+            <span v-if="consolidadoDe(m) === null" class="text-xs font-bold text-muted-foreground"
+              >—</span
+            >
+            <template v-else>
+              <span class="rq-q-m-valor">{{ consolidadoDe(m) }}</span>
+              <span
+                v-if="m.unidad"
+                class="text-[10px] font-semibold text-muted-foreground"
+                :class="m.unidad === '%' ? '' : 'ml-0.5'"
+              >
+                {{ m.unidad }}
+              </span>
+            </template>
+          </div>
+        </div>
+        <div v-if="metricasRestantes > 0" class="text-[10px] font-semibold text-primary">
+          +{{ metricasRestantes }} {{ metricasRestantes === 1 ? 'métrica más' : 'métricas más' }}
+        </div>
+      </div>
+
+      <!-- f) Pie -->
+      <div class="text-[10px] font-semibold text-muted-foreground">{{ pieTxt }}</div>
+    </template>
+  </Card>
+</template>
+
 <style scoped>
-/* ── Superficie (§1.4) ─────────────────────────────────────────────────── */
 .rq-card-q {
-  background: #fff;
-  border: 1px solid #e8e0f0;
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 1px 2px rgba(44, 32, 57, .04);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   cursor: pointer;
-  transition: all .14s ease;
+  transition: all 0.14s ease;
 }
 .rq-card-q:hover {
-  border-color: var(--color-unergy-purple-light);
-  box-shadow: 0 6px 18px rgba(44, 32, 57, .09);
+  box-shadow: 0 6px 18px rgba(44, 32, 57, 0.09);
   transform: translateY(-1px);
 }
 .rq-card-q:focus-visible {
-  outline: 2px solid var(--color-unergy-purple);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 /* Trimestre en curso: se mantiene también en hover */
 .rq-q-actual {
-  border: 1.5px solid var(--color-unergy-purple);
-  box-shadow: 0 0 0 3px rgba(145, 91, 216, .10);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent);
 }
 .rq-q-actual:hover {
-  border-color: var(--color-unergy-purple);
-  box-shadow: 0 0 0 3px rgba(145, 91, 216, .10), 0 6px 18px rgba(44, 32, 57, .09);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent),
+    0 6px 18px rgba(44, 32, 57, 0.09);
 }
 
-/* ── a) Eyebrow ────────────────────────────────────────────────────────── */
-.rq-q-eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.rq-q-eyebrow-l { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
-.rq-q-num { font-size: 11px; font-weight: 800; color: var(--color-unergy-purple); }
-.rq-q-punto-sep { font-size: 11px; color: #9b8fb0; }
-.rq-q-meses { font-size: 11px; font-weight: 600; color: #9b8fb0; }
-
-.rq-chip {
+.rq-q-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rq-q-eyebrow-l {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 999px;
-  white-space: nowrap;
+  min-width: 0;
 }
+.rq-q-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.rq-q-meses {
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .rq-punto-vivo {
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: var(--color-unergy-purple);
+  background: currentColor;
   animation: rq-pulse 2s ease-in-out infinite;
 }
-@keyframes rq-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes rq-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
 
-/* ── b) Identidad + anillo ─────────────────────────────────────────────── */
-.rq-q-identidad { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-.rq-q-ident-txt { min-width: 0; }
+.rq-q-identidad {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
 .rq-q-nombre {
-  font-size: 15px; font-weight: 800; color: var(--color-unergy-deep); line-height: 1.2;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.rq-q-rango { font-size: 11px; color: #6b5a8a; margin-top: 2px; }
-.rq-q-semanas { font-size: 11px; color: #9b8fb0; }
-.rq-q-anillo { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
 .rq-q-ritmo {
-  font-size: 8px; font-weight: 700; color: #9b8fb0;
-  text-transform: uppercase; letter-spacing: .06em;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* ── d) Separador ──────────────────────────────────────────────────────── */
-.rq-q-sep { height: 1px; background: #ECE7F2; }
-
-/* ── e) Lista de métricas ──────────────────────────────────────────────── */
-.rq-q-metricas { display: flex; flex-direction: column; gap: 6px; }
 .rq-q-m-nombre {
-  font-size: 11px; font-weight: 600; color: var(--color-unergy-deep);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.rq-q-m-linea { display: flex; align-items: center; gap: 8px; }
-.rq-q-m-spacer { flex: 1; }
 .rq-q-m-valor {
-  font-size: 12px; font-weight: 700; color: var(--color-unergy-deep);
+  font-size: 12px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.rq-q-m-unidad { font-size: 10px; font-weight: 600; color: #9b8fb0; margin-left: 3px; }
-.rq-q-m-unidad-pegada { margin-left: 0; }
-.rq-q-m-vacio { font-size: 12px; font-weight: 700; color: #c7bdd8; }
-.rq-q-mas { font-size: 10px; font-weight: 600; color: var(--color-unergy-purple); }
 
-/* ── f) Pie ────────────────────────────────────────────────────────────── */
-.rq-q-pie { font-size: 10px; font-weight: 600; color: #6b5a8a; }
-
-/* ── Tarjeta sin métricas ──────────────────────────────────────────────── */
 .rq-q-vacio {
-  border: 1px dashed #d9d0e6;
+  border: 1px dashed var(--border);
   border-radius: 10px;
   padding: 14px 10px;
   text-align: center;
 }
-.rq-q-vacio-titulo { font-size: 11px; font-weight: 600; color: #9b8fb0; }
-.rq-q-vacio-cta { font-size: 11px; font-weight: 700; color: var(--color-unergy-purple); margin-top: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .rq-card-q { transition: none; }
-  .rq-card-q:hover { transform: none; }
-  .rq-punto-vivo { animation: none; }
+  .rq-card-q {
+    transition: none;
+  }
+  .rq-card-q:hover {
+    transform: none;
+  }
+  .rq-punto-vivo {
+    animation: none;
+  }
 }
 </style>
