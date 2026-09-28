@@ -98,6 +98,30 @@ export interface FrescuraGeneracion {
   umbral_dias: number
 }
 
+/** Qué tan firme es una estimación: si XM ya la publicó, si ya cerró la ventana base, o si sigue abierta. */
+export enum EstadoVencimiento {
+  FIRME = 'firme',
+  ESTIMADO = 'estimado',
+  PRELIMINAR = 'preliminar',
+}
+
+/** De dónde sale la ventana de cálculo usada para un vencimiento. */
+export enum ProcedenciaVentana {
+  OBSERVADA = 'observada',
+  DERIVADA = 'derivada',
+  CANDIDATAS = 'candidatas',
+}
+
+export enum EsquemaModelo {
+  SEMANAL = 'semanal',
+  MENSUAL = 'mensual',
+}
+
+export enum AgenteGarantia {
+  UNGG = 'UNGG',
+  UNGC = 'UNGC',
+}
+
 export interface TotalesModeloPredictivo {
   suma_p90: number
   p90_total: number
@@ -111,8 +135,8 @@ export interface VencimientoSemanal {
   periodo_ini: string
   periodo_fin: string
   etiqueta_periodo: string
-  estado: string
-  procedencia_ventana: string
+  estado: EstadoVencimiento
+  procedencia_ventana: ProcedenciaVentana
   central: number | null
   p90: number | null
   real: number | null
@@ -121,8 +145,8 @@ export interface VencimientoSemanal {
 export interface GarantiaMensual {
   id: Id
   mes: string
-  estado: string
-  procedencia_ventana: string
+  estado: EstadoVencimiento
+  procedencia_ventana: ProcedenciaVentana
   central: number | null
   p90: number
   ventana_cierra: string
@@ -173,17 +197,20 @@ export interface DetalleVencimiento {
 }
 
 export interface ParametrosPlanModeloPredictivo {
-  agente: string
-  esquema: string
+  agente: AgenteGarantia
+  esquema: EsquemaModelo
   cuantil?: number
   horizonte?: number
 }
 
 // ── `/garantias-ajustes` — histórico de ajustes semanales (AjustesXM) ──────────
 
+/** Los tres orígenes de un registro del histórico, uno por tab de `AjustesXM`. */
+export type TipoAjusteGarantia = 'semanal' | 'txr' | 'mensual'
+
 export interface AjusteGarantia {
   id: number
-  tipo: string
+  tipo: TipoAjusteGarantia
   fecha: string
   pb?: number | null
   restricciones?: number | null
