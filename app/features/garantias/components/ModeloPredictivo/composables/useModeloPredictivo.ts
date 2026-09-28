@@ -1,20 +1,22 @@
-import { ref, computed } from 'vue'
+import type { Id } from '~/types/api'
+import type { DetalleVencimiento, PlanModeloPredictivo } from '~/features/garantias/types'
+import { AgenteGarantia, EsquemaModelo } from '~/features/garantias/types'
 import { ModeloPredictivoService } from '~/features/garantias/services/modelo-predictivo'
-import { AGENTE, ESQUEMA, mensajeError } from '../utils/modeloPredictivo'
+import { mensajeError } from '../utils/modeloPredictivo'
 
 export function useModeloPredictivo() {
   const modeloApi = new ModeloPredictivoService()
 
-  const agente = ref(AGENTE.UNGG)
-  const esquema = ref(ESQUEMA.SEMANAL)
+  const agente = ref<AgenteGarantia>(AgenteGarantia.UNGG)
+  const esquema = ref<EsquemaModelo>(EsquemaModelo.SEMANAL)
   const cuantil = ref(0.9)
   const horizonte = ref(4)
 
-  const data = ref(null)
+  const data = ref<PlanModeloPredictivo | null>(null)
   const cargando = ref(false)
   const error = ref('')
 
-  const detalle = ref(null)
+  const detalle = ref<DetalleVencimiento | null>(null)
   const detalleCargando = ref(false)
   const detalleAbierto = ref(false)
   const detalleError = ref('')
@@ -40,7 +42,7 @@ export function useModeloPredictivo() {
     }
   }
 
-  async function abrirDetalle(id) {
+  async function abrirDetalle(id: Id) {
     detalleAbierto.value = true
     detalleCargando.value = true
     detalle.value = null
@@ -48,7 +50,10 @@ export function useModeloPredictivo() {
     try {
       detalle.value = await modeloApi.getDetalle(id)
     } catch (e) {
-      detalleError.value = mensajeError(e, 'El servicio no respondió. Puede que aún no esté publicado.')
+      detalleError.value = mensajeError(
+        e,
+        'El servicio no respondió. Puede que aún no esté publicado.',
+      )
       detalleAbierto.value = false
     } finally {
       detalleCargando.value = false
@@ -61,10 +66,21 @@ export function useModeloPredictivo() {
   }
 
   return {
-    agente, esquema, cuantil, horizonte,
-    data, cargando, error,
-    semanales, mensuales,
-    detalle, detalleCargando, detalleAbierto, detalleError,
-    cargar, abrirDetalle, cerrarDetalle,
+    agente,
+    esquema,
+    cuantil,
+    horizonte,
+    data,
+    cargando,
+    error,
+    semanales,
+    mensuales,
+    detalle,
+    detalleCargando,
+    detalleAbierto,
+    detalleError,
+    cargar,
+    abrirDetalle,
+    cerrarDetalle,
   }
 }

@@ -17,7 +17,8 @@ export interface VentanaProyeccion {
   valor_energia: number
   valor_plantas_nuevas: number
   costo_regulatorio: number
-  regulatorio_periodo: string | null
+  /** El período del costo regulatorio usado. `fallback: true` cuando no había Cruce de facturas del mes y se usó el último disponible. */
+  regulatorio_periodo: { periodo?: string; fallback: boolean } | null
   garantia_total: number
   /** Lo ya pagado del período. Editable en línea. */
   pagado: number | null

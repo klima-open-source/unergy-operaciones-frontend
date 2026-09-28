@@ -56,7 +56,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   'app/features/fallas/components/MonitoreoView.vue',
   'app/features/finanzas/components/**',
   'app/features/fronteras/components/**',
-  'app/features/garantias/components/**',
   'app/features/liquidaciones/components/**',
   'app/features/mem/components/**',
   'app/features/mobile/components/**',

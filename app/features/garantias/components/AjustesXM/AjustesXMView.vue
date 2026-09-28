@@ -1,28 +1,43 @@
+<script setup lang="ts">
+import { SettingsIcon } from '@lucide/vue'
+import SemanalesTab from './tabs/SemanalesTab.vue'
+import TxrTab from './tabs/TxrTab.vue'
+import MensualesTab from './tabs/MensualesTab.vue'
+import TxfTab from './tabs/TxfTab.vue'
+import HistoricoTab from './tabs/HistoricoTab.vue'
+import AjustesDialog from './AjustesDialog.vue'
+
+type TabKey = 'semanales' | 'txr' | 'mensuales' | 'txf' | 'historico'
+
+const tabs: { key: TabKey; label: string }[] = [
+  { key: 'semanales', label: 'Semanales' },
+  { key: 'txr', label: 'TXR' },
+  { key: 'mensuales', label: 'Mensuales' },
+  { key: 'txf', label: 'TXF' },
+  { key: 'historico', label: 'Histórico' },
+]
+
+const activeTab = ref<TabKey>('semanales')
+const showAjustes = ref(false)
+</script>
+
 <template>
   <div class="space-y-4">
-    <!-- Header row with tab nav and settings button -->
     <div class="flex items-center justify-between">
-      <div class="flex gap-0 border-b flex-1" style="border-color: rgba(44,32,57,0.10);">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          @click="activeTab = tab.key"
-          class="px-4 py-2 text-sm font-medium transition-colors relative"
-          :style="activeTab === tab.key
-            ? 'color:var(--color-unergy-purple); border-bottom:2px solid var(--color-unergy-purple); margin-bottom:-1px'
-            : 'color:#6b5a8a'"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-      <button
-        @click="showAjustes = true"
-        class="ml-3 p-2 rounded-lg transition-colors hover:bg-gray-100"
-        title="Configuración"
-        style="color:#6b5a8a"
+      <GTabs
+        :model-value="activeTab"
+        class="flex-1"
+        @update:model-value="(v) => (activeTab = v as TabKey)"
       >
-        <SettingsIcon class="text-base size-[1em]" />
-      </button>
+        <GTabsList>
+          <GTabsTrigger v-for="tab in tabs" :key="tab.key" :value="tab.key">{{
+            tab.label
+          }}</GTabsTrigger>
+        </GTabsList>
+      </GTabs>
+      <Button variant="ghost" size="icon" class="ml-3" @click="showAjustes = true">
+        <SettingsIcon class="size-4" />
+      </Button>
     </div>
 
     <SemanalesTab v-if="activeTab === 'semanales'" />
@@ -34,25 +49,3 @@
     <AjustesDialog :visible="showAjustes" @close="showAjustes = false" />
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import SemanalesTab from './tabs/SemanalesTab.vue'
-import TxrTab from './tabs/TxrTab.vue'
-import MensualesTab from './tabs/MensualesTab.vue'
-import TxfTab from './tabs/TxfTab.vue'
-import HistoricoTab from './tabs/HistoricoTab.vue'
-import AjustesDialog from './AjustesDialog.vue'
-import { SettingsIcon } from '@lucide/vue'
-
-const tabs = [
-  { key: 'semanales',  label: 'Semanales' },
-  { key: 'txr',        label: 'TXR' },
-  { key: 'mensuales',  label: 'Mensuales' },
-  { key: 'txf',        label: 'TXF' },
-  { key: 'historico',  label: 'Histórico' },
-]
-
-const activeTab = ref('semanales')
-const showAjustes = ref(false)
-</script>

@@ -1,97 +1,124 @@
-<template>
-  <div v-if="data" class="space-y-4">
-    <!-- Encabezado opcional -->
-    <div v-if="data.fechaNombre || data.variacionPb != null" class="flex flex-wrap items-center gap-2">
-      <span v-if="data.fechaNombre" class="text-xs font-semibold" style="color:#6b5a8a">{{ data.fechaNombre }}</span>
-      <span v-if="data.variacionPb != null"
-        class="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-        :style="data.variacionPb >= 0 ? 'background:#fde8ea;color:#D64455' : 'background:#d1fae5;color:#065f46'">
-        PB {{ data.variacionPb > 0 ? '+' : '' }}{{ data.variacionPb }}% vs sem. anterior
-      </span>
-    </div>
-
-    <!-- Chips de precios -->
-    <div v-if="preciosList.length" class="flex flex-wrap gap-2">
-      <span v-for="p in preciosList" :key="p.key"
-        class="px-3 py-1 rounded-full text-xs font-semibold" style="background:#f3f0f7; color:var(--color-unergy-purple)">
-        {{ p.key.toUpperCase() }}: {{ p.key === 'trm' ? fmtCOP(p.val) : Number(p.val).toFixed(2) }}
-      </span>
-    </div>
-
-    <!-- Bloques UNGC / UNGG -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <BloqueCodigo titulo="UNGC" :rows="data.ungc || []" :total="data.totalUNGC" />
-      <BloqueCodigo titulo="UNGG" :rows="data.ungg || []" :total="data.totalUNGG" />
-    </div>
-
-    <!-- Total combinado -->
-    <div class="rounded-xl px-4 py-2 flex justify-between items-center" style="background:#7030A0;color:white">
-      <span class="text-xs font-bold tracking-wide uppercase">UNGG y UNGC — Total a pagar</span>
-      <span class="text-sm font-bold">{{ fmtCOP(data.totalConsignar) }}</span>
-    </div>
-
-    <!-- Panel custodia (desglose auditable) -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-      <div class="bg-white rounded-xl p-4 shadow-sm text-center" style="border:1px solid #e8e0f0">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#6b5a8a">Disponible (crudo)</p>
-        <p class="text-base font-bold" style="color:var(--color-unergy-deep)">{{ fmtCOP(data.disponibleCrudo) }}</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 shadow-sm text-center" style="border:1px solid #e8e0f0">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#6b5a8a">(−) Facturas descontadas</p>
-        <p class="text-base font-bold" style="color:#D64455">{{ fmtCOP(data.facturasDescontadas) }}</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 shadow-sm text-center" style="border:1px solid #e8e0f0">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#6b5a8a">Disponible neto</p>
-        <p class="text-base font-bold" :style="(data.disponibleNeto ?? 0) < 0 ? 'color:#D64455' : 'color:#10B981'">{{ fmtCOP(data.disponibleNeto) }}</p>
-      </div>
-      <div class="rounded-xl p-4 shadow-sm text-center" :style="aplicacionStyle.box">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" :style="aplicacionStyle.text">{{ aplicacionStyle.label }}</p>
-        <p class="text-base font-bold" :style="aplicacionStyle.text">{{ fmtCOP(aplicacionStyle.monto) }}</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 shadow-sm text-center" style="border:1px solid #e8e0f0">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#6b5a8a">Congelado</p>
-        <p class="text-base font-bold" style="color:var(--color-unergy-deep)">{{ fmtCOP(data.congelado) }}</p>
-      </div>
-      <div class="bg-white rounded-xl p-4 shadow-sm text-center" style="border:1px solid #e8e0f0">
-        <p class="text-xs font-semibold uppercase tracking-wide mb-1" style="color:#6b5a8a">Saldo</p>
-        <p class="text-base font-bold" style="color:var(--color-unergy-purple)">{{ fmtCOP(data.saldo) }}</p>
-      </div>
-    </div>
-  </div>
-</template>
-
-<script setup>
-import { computed } from 'vue'
+<script setup lang="ts">
+import type { HojaMadre } from './composables/useGarantiasParser'
 import BloqueCodigo from './BloqueCodigo.vue'
-import { fmtCOP } from './utils/formatters.js'
 
-const props = defineProps({ data: { type: Object, default: null } })
+const props = defineProps<{
+  data: HojaMadre | null
+}>()
 
 const preciosList = computed(() => {
   const p = props.data?.precios
   if (!p) return []
   return Object.entries(p)
-    .filter(([, v]) => v != null)
+    .filter((entry): entry is [string, number] => entry[1] != null)
     .map(([key, val]) => ({ key, val }))
 })
 
 // Negativo = lo disponible en custodia no alcanza para la garantía → hay que
 // consignar la diferencia. Positivo/cero = alcanza y sobra ese monto.
-const aplicacionStyle = computed(() => {
-  const v = props.data?.disponibleAplicacion ?? 0
-  if (v < 0) {
-    return {
-      label: '⚠️ Falta consignar',
-      monto: Math.abs(v),
-      box: 'border:1px solid #f3c6cb; background:#FEF2F2',
-      text: 'color:#D64455',
-    }
-  }
-  return {
-    label: '✅ Alcanza (Aplic. garantía)',
-    monto: v,
-    box: 'border:1px solid #a7e8c4; background:#ECFDF3',
-    text: 'color:#047857',
-  }
-})
+const aplicacionAlcanza = computed(() => (props.data?.disponibleAplicacion ?? 0) >= 0)
+const aplicacionMonto = computed(() => Math.abs(props.data?.disponibleAplicacion ?? 0))
 </script>
+
+<template>
+  <div v-if="data" class="space-y-4">
+    <!-- Encabezado opcional -->
+    <div
+      v-if="data.fechaNombre || data.variacionPb != null"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <span v-if="data.fechaNombre" class="text-xs font-semibold text-muted-foreground">{{
+        data.fechaNombre
+      }}</span>
+      <GBadge
+        v-if="data.variacionPb != null"
+        :color="data.variacionPb >= 0 ? 'destructive' : 'success'"
+      >
+        PB {{ data.variacionPb > 0 ? '+' : '' }}{{ data.variacionPb }}% vs sem. anterior
+      </GBadge>
+    </div>
+
+    <!-- Chips de precios -->
+    <div v-if="preciosList.length" class="flex flex-wrap gap-2">
+      <GBadge v-for="p in preciosList" :key="p.key" color="action">
+        {{ p.key.toUpperCase() }}: {{ p.key === 'trm' ? formatCOP(p.val) : p.val.toFixed(2) }}
+      </GBadge>
+    </div>
+
+    <!-- Bloques UNGC / UNGG -->
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <BloqueCodigo titulo="UNGC" :rows="data.ungc || []" :total="data.totalUNGC" />
+      <BloqueCodigo titulo="UNGG" :rows="data.ungg || []" :total="data.totalUNGG" />
+    </div>
+
+    <!-- Total combinado -->
+    <div
+      class="flex items-center justify-between rounded-xl bg-primary px-4 py-2 text-primary-foreground"
+    >
+      <span class="text-xs font-bold tracking-wide uppercase">UNGG y UNGC — Total a pagar</span>
+      <span class="text-sm font-bold">{{ formatCOP(data.totalConsignar) }}</span>
+    </div>
+
+    <!-- Panel custodia (desglose auditable) -->
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div class="rounded-xl border bg-card p-4 text-center shadow-sm">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Disponible (crudo)
+        </p>
+        <p class="text-base font-bold text-foreground">{{ formatCOP(data.disponibleCrudo) }}</p>
+      </div>
+      <div class="rounded-xl border bg-card p-4 text-center shadow-sm">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          (−) Facturas descontadas
+        </p>
+        <p class="text-base font-bold text-destructive">
+          {{ formatCOP(data.facturasDescontadas) }}
+        </p>
+      </div>
+      <div class="rounded-xl border bg-card p-4 text-center shadow-sm">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Disponible neto
+        </p>
+        <p
+          class="text-base font-bold"
+          :class="(data.disponibleNeto ?? 0) < 0 ? 'text-destructive' : 'text-success'"
+        >
+          {{ formatCOP(data.disponibleNeto) }}
+        </p>
+      </div>
+      <div
+        class="rounded-xl border p-4 text-center"
+        :class="
+          aplicacionAlcanza
+            ? 'border-success/30 bg-success/10'
+            : 'border-destructive/30 bg-destructive/10'
+        "
+      >
+        <p
+          class="mb-1 text-xs font-semibold tracking-wide uppercase"
+          :class="aplicacionAlcanza ? 'text-success' : 'text-destructive'"
+        >
+          {{ aplicacionAlcanza ? '✅ Alcanza (Aplic. garantía)' : '⚠️ Falta consignar' }}
+        </p>
+        <p
+          class="text-base font-bold"
+          :class="aplicacionAlcanza ? 'text-success' : 'text-destructive'"
+        >
+          {{ formatCOP(aplicacionMonto) }}
+        </p>
+      </div>
+      <div class="rounded-xl border bg-card p-4 text-center shadow-sm">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Congelado
+        </p>
+        <p class="text-base font-bold text-foreground">{{ formatCOP(data.congelado) }}</p>
+      </div>
+      <div class="rounded-xl border bg-card p-4 text-center shadow-sm">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Saldo
+        </p>
+        <p class="text-base font-bold text-primary">{{ formatCOP(data.saldo) }}</p>
+      </div>
+    </div>
+  </div>
+</template>

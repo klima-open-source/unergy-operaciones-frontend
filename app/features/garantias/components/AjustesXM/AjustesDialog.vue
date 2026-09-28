@@ -1,72 +1,13 @@
-<template>
-  <Dialog
-    :visible="visible"
-    modal
-    header="⚙ Ajustes"
-    style="width: 440px"
-    @update:visible="$emit('close')"
-  >
-    <div class="space-y-4 py-2">
-      <!-- PB anterior -->
-      <div class="space-y-1">
-        <label class="text-xs font-semibold uppercase tracking-wide" style="color:#6b5a8a">
-          PB semana anterior ($)
-        </label>
-        <InputNumber
-          v-model="pbLocal"
-          :min="0"
-          :max-fraction-digits="2"
-          class="w-full"
-          placeholder="Ej: 547.88"
-          fluid
-        />
-        <p class="text-xs" style="color:#9ca3af">
-          Usado para calcular la variación % en el mensaje semanal.
-        </p>
-      </div>
-
-      <!-- Menciones -->
-      <div class="space-y-1">
-        <label class="text-xs font-semibold uppercase tracking-wide" style="color:#6b5a8a">
-          Menciones en el mensaje
-        </label>
-        <Textarea
-          v-model="mencionesLocal"
-          rows="3"
-          class="w-full"
-          placeholder="@Juan @María @Pedro"
-          fluid
-        />
-        <p class="text-xs" style="color:#9ca3af">
-          Se insertan al final del mensaje generado.
-        </p>
-      </div>
-    </div>
-
-    <template #footer>
-      <Button label="Cancelar" text severity="secondary" @click="$emit('close')" />
-      <Button label="Guardar" @click="guardar" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-        <template #icon><CheckIcon class="size-[1em]" /></template>
-      </Button>
-    </template>
-  </Dialog>
-</template>
-
-<script setup>
-import { ref, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputNumber from 'primevue/inputnumber'
-import Textarea from 'primevue/textarea'
-import { useGarantiasHistorial } from './composables/useGarantiasHistorial.js'
+<script setup lang="ts">
 import { CheckIcon } from '@lucide/vue'
+import { useGarantiasHistorial } from './composables/useGarantiasHistorial'
 
-const props = defineProps({ visible: Boolean })
-const emit = defineEmits(['close'])
+const props = defineProps<{ visible: boolean }>()
+const emit = defineEmits<{ close: [] }>()
 
 const store = useGarantiasHistorial()
 
-const pbLocal = ref(null)
+const pbLocal = ref<number | null>(null)
 const mencionesLocal = ref('')
 
 watch(
@@ -84,4 +25,44 @@ function guardar() {
   store.setMenciones(mencionesLocal.value)
   emit('close')
 }
+
+function onOpenChange(open: boolean) {
+  if (!open) emit('close')
+}
 </script>
+
+<template>
+  <Dialog :open="visible" @update:open="onOpenChange">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Ajustes</DialogTitle>
+      </DialogHeader>
+
+      <div class="space-y-4">
+        <div class="space-y-1.5">
+          <GLabel>PB semana anterior ($)</GLabel>
+          <NumberField v-model="pbLocal" :min="0" :format-options="{ maximumFractionDigits: 2 }">
+            <NumberFieldContent><NumberFieldInput placeholder="Ej: 547.88" /></NumberFieldContent>
+          </NumberField>
+          <p class="text-xs text-muted-foreground">
+            Usado para calcular la variación % en el mensaje semanal.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <GLabel>Menciones en el mensaje</GLabel>
+          <Textarea v-model="mencionesLocal" rows="3" placeholder="@Juan @María @Pedro" />
+          <p class="text-xs text-muted-foreground">Se insertan al final del mensaje generado.</p>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button variant="secondary" @click="emit('close')">Cancelar</Button>
+        <Button @click="guardar">
+          <CheckIcon class="size-4" />
+          Guardar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</template>

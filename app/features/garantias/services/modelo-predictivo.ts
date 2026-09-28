@@ -2,6 +2,7 @@
  * El Modelo Predictivo de garantías: cuánto va a pedir XM en cada vencimiento,
  * estimado con antelación (percentil 90) antes de que XM lo publique.
  */
+import type { Id } from '~/types/api'
 import type {
   DetalleVencimiento,
   ParametrosPlanModeloPredictivo,
@@ -13,7 +14,7 @@ const BASE = '/garantias/modelo'
 
 const RUTAS = {
   plan: `${BASE}/plan`,
-  detalle: (id: string) => `${BASE}/detalle/${encodeURIComponent(id)}`,
+  detalle: (id: Id) => `${BASE}/detalle/${encodeURIComponent(id)}`,
 } as const
 
 export class ModeloPredictivoService extends BaseService {
@@ -23,7 +24,7 @@ export class ModeloPredictivoService extends BaseService {
     return this.get<PlanModeloPredictivo>(RUTAS.plan, { query: { ...parametros } })
   }
 
-  getDetalle(id: string): Promise<DetalleVencimiento> {
+  getDetalle(id: Id): Promise<DetalleVencimiento> {
     return this.get<DetalleVencimiento>(RUTAS.detalle(id))
   }
 }

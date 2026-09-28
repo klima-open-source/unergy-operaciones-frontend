@@ -1,65 +1,79 @@
+<script setup lang="ts">
+import { SearchIcon } from '@lucide/vue'
+import type { Id } from '~/types/api'
+import type { GarantiaMensual } from '~/features/garantias/types'
+import { EstadoVencimiento } from '~/features/garantias/types'
+import {
+  ESTADO_LABEL,
+  ESTADO_SEVERITY,
+  ESTADO_TITLE,
+  fechaCorta,
+  nombreMes,
+  PROCEDENCIA_LABEL,
+  PROCEDENCIA_SEVERITY,
+  PROCEDENCIA_TITLE,
+} from './utils/modeloPredictivo'
+
+const props = defineProps<{
+  item: GarantiaMensual
+}>()
+const emit = defineEmits<{ detalle: [id: Id] }>()
+
+const destacada = computed(() => props.item.estado === EstadoVencimiento.ESTIMADO)
+</script>
+
 <template>
-  <div class="rounded-xl p-4"
-    :style="`border:1px solid ${destacada ? '#915BD8' : '#e8e0f0'}`">
-    <div class="flex items-start justify-between gap-3 flex-wrap">
+  <div class="rounded-xl border p-4" :class="destacada ? 'border-primary' : ''">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-semibold" style="color:#2C2039">{{ nombreMes(item.mes) }}</span>
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-          :style="`background:${chipEstado(item.estado).bg};color:${chipEstado(item.estado).color}`"
-          :title="chipEstado(item.estado).title">
-          {{ chipEstado(item.estado).label }}
-        </span>
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-          :style="`background:${chipProcedencia(item.procedencia_ventana).bg};color:${chipProcedencia(item.procedencia_ventana).color}`"
-          :title="chipProcedencia(item.procedencia_ventana).title">
-          {{ chipProcedencia(item.procedencia_ventana).label }}
-        </span>
+        <span class="text-sm font-semibold text-foreground">{{ nombreMes(item.mes) }}</span>
+        <GBadge :color="ESTADO_SEVERITY[item.estado]" :title="ESTADO_TITLE[item.estado]">
+          {{ ESTADO_LABEL[item.estado] }}
+        </GBadge>
+        <GBadge
+          :color="PROCEDENCIA_SEVERITY[item.procedencia_ventana]"
+          :title="PROCEDENCIA_TITLE[item.procedencia_ventana]"
+        >
+          {{ PROCEDENCIA_LABEL[item.procedencia_ventana] }}
+        </GBadge>
       </div>
       <div class="text-right">
-        <div class="text-xl font-bold" style="color:#915BD8">{{ fmtCOP(item.p90) }}</div>
-        <div v-if="item.central != null" class="text-[11px]" style="color:#6b5a8a">
-          central {{ fmtCOP(item.central) }}
+        <div class="text-xl font-bold text-primary">{{ formatCOP(item.p90) }}</div>
+        <div v-if="item.central != null" class="text-[11px] text-muted-foreground">
+          central {{ formatCOP(item.central) }}
         </div>
       </div>
     </div>
 
-    <dl class="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-[11px]" style="color:#6b5a8a">
+    <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
       <div class="flex justify-between">
-        <dt>Ventana cierra</dt><dd style="color:#2C2039">{{ fechaCorta(item.ventana_cierra) }}</dd>
+        <dt>Ventana cierra</dt>
+        <dd class="text-foreground">{{ fechaCorta(item.ventana_cierra) }}</dd>
       </div>
       <div class="flex justify-between">
-        <dt>Lo sabés</dt><dd style="color:#2C2039">{{ fechaCorta(item.objetivo) }}</dd>
+        <dt>Lo sabés</dt>
+        <dd class="text-foreground">{{ fechaCorta(item.objetivo) }}</dd>
       </div>
       <div class="flex justify-between">
-        <dt>XM publica</dt><dd style="color:#2C2039">{{ fechaCorta(item.publica_xm) }}</dd>
+        <dt>XM publica</dt>
+        <dd class="text-foreground">{{ fechaCorta(item.publica_xm) }}</dd>
       </div>
       <div class="flex justify-between">
         <dt>Ventaja</dt>
-        <dd :style="item.dias_ventaja > 0 ? 'color:#059669;font-weight:600' : 'color:#D64455;font-weight:600'">
+        <dd
+          class="font-semibold"
+          :class="item.dias_ventaja > 0 ? 'text-success' : 'text-destructive'"
+        >
           {{ item.dias_ventaja }} {{ item.dias_ventaja === 1 ? 'día' : 'días' }}
         </dd>
       </div>
     </dl>
 
     <div class="mt-3 flex justify-end">
-      <Button label="Ver detalle" text size="small" severity="secondary" @click="emit('detalle', item.id)">
-        <template #icon><SearchIcon class="size-[1em]" /></template>
+      <Button variant="ghost" size="sm" @click="emit('detalle', item.id)">
+        <SearchIcon class="size-4" />
+        Ver detalle
       </Button>
     </div>
   </div>
 </template>
-
-<script setup>
-import { computed } from 'vue'
-import Button from 'primevue/button'
-import { SearchIcon } from '@lucide/vue'
-import { fmtCOP } from '../AjustesXM/utils/formatters.js'
-import { chipEstado, chipProcedencia, fechaCorta, nombreMes, ESTADO } from './utils/modeloPredictivo'
-
-const props = defineProps({
-  item: { type: Object, required: true },
-})
-const emit = defineEmits(['detalle'])
-
-const destacada = computed(() => props.item.estado === ESTADO.ESTIMADO)
-</script>

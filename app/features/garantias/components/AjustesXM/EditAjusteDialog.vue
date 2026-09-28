@@ -1,139 +1,198 @@
-<script setup>
-import { ref, watch } from 'vue'
-import Dialog from 'primevue/dialog'
-import InputNumber from 'primevue/inputnumber'
-import Button from 'primevue/button'
-import { useGarantiasHistorial } from './composables/useGarantiasHistorial.js'
+<script setup lang="ts">
 import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
+import type { AjusteGarantiaFE, CamposAjusteGarantiaFE } from './composables/useGarantiasHistorial'
+import { useGarantiasHistorial } from './composables/useGarantiasHistorial'
 
-const props = defineProps({
-  visible: Boolean,
-  ajuste: Object,
-})
-const emit = defineEmits(['update:visible', 'saved'])
+const props = defineProps<{
+  visible: boolean
+  ajuste: AjusteGarantiaFE | null
+}>()
+const emit = defineEmits<{
+  'update:visible': [visible: boolean]
+  saved: []
+}>()
 
 const store = useGarantiasHistorial()
 
-const local = ref({})
+const local = ref<CamposAjusteGarantiaFE>({})
 
 watch(
   () => props.ajuste,
   (val) => {
     if (val) local.value = { ...val }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
-const TIPO_LABEL = { semanal: 'Semanal', txr: 'TXR', mensual: 'Mensual' }
+const TIPO_LABEL: Record<string, string> = { semanal: 'Semanal', txr: 'TXR', mensual: 'Mensual' }
 
 async function guardar() {
+  if (!props.ajuste) return
   try {
     await store.actualizar(props.ajuste.id, local.value)
     toast.success('Guardado', { description: 'Registro actualizado', duration: 3000 })
     emit('saved')
     emit('update:visible', false)
   } catch (e) {
-    toast.error('Error', { description: 'No se pudo guardar', duration: 4000 })
+    toast.error('Error', { description: normalizeError(e).message, duration: 4000 })
   }
 }
 
-function cancelar() {
-  emit('update:visible', false)
+function onOpenChange(open: boolean) {
+  emit('update:visible', open)
 }
 </script>
 
 <template>
-  <Dialog
-    :visible="visible"
-    @update:visible="emit('update:visible', $event)"
-    header="Editar registro"
-    :modal="true"
-    :style="{ width: '600px' }"
-  >
-    <div class="flex flex-col gap-4">
-      <!-- Tipo (read-only) -->
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-muted-color">Tipo:</span>
-        <span class="font-semibold">{{ TIPO_LABEL[ajuste?.tipo] ?? ajuste?.tipo }}</span>
-        <span class="text-sm text-muted-color ml-4">Fecha:</span>
-        <span class="font-semibold">{{ ajuste?.fecha }}</span>
+  <Dialog :open="visible" @update:open="onOpenChange">
+    <DialogContent class="sm:max-w-xl">
+      <DialogHeader>
+        <DialogTitle>Editar registro</DialogTitle>
+      </DialogHeader>
+
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-muted-foreground">Tipo:</span>
+          <span class="font-semibold text-foreground">{{
+            TIPO_LABEL[ajuste?.tipo ?? ''] ?? ajuste?.tipo
+          }}</span>
+          <span class="ml-4 text-muted-foreground">Fecha:</span>
+          <span class="font-semibold text-foreground">{{ ajuste?.fecha }}</span>
+        </div>
+
+        <fieldset class="rounded-md border p-3">
+          <legend class="px-1 text-sm font-semibold">Precios</legend>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <GLabel>PB</GLabel>
+              <NumberField
+                v-model="local.pb"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>Restricciones</GLabel>
+              <NumberField
+                v-model="local.restricciones"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>STN</GLabel>
+              <NumberField
+                v-model="local.stn"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>TRM</GLabel>
+              <NumberField
+                v-model="local.trm"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>PTB</GLabel>
+              <NumberField
+                v-model="local.ptb"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="rounded-md border p-3">
+          <legend class="px-1 text-sm font-semibold">Totales</legend>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <GLabel>Total UNGC</GLabel>
+              <NumberField
+                v-model="local.totalUNGC"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>Total UNGG</GLabel>
+              <NumberField
+                v-model="local.totalUNGG"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="col-span-2 flex flex-col gap-1">
+              <GLabel>Total a consignar</GLabel>
+              <NumberField
+                v-model="local.totalConsignar"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="rounded-md border p-3">
+          <legend class="px-1 text-sm font-semibold">Custodia</legend>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <GLabel>Disponible custodia</GLabel>
+              <NumberField
+                v-model="local.disponibleCustodia"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>Congelado</GLabel>
+              <NumberField
+                v-model="local.congelado"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+            <div class="col-span-2 flex flex-col gap-1">
+              <GLabel>Saldo</GLabel>
+              <NumberField
+                v-model="local.saldo"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+              >
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="flex flex-col gap-1">
+          <GLabel>Total ajuste TXR</GLabel>
+          <NumberField
+            v-model="local.totalAjusteTXR"
+            :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
+          >
+            <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+          </NumberField>
+        </div>
       </div>
 
-      <!-- Precios -->
-      <fieldset class="border border-surface rounded p-3">
-        <legend class="text-sm font-semibold px-1">Precios</legend>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">PB</label>
-            <InputNumber v-model="local.pb" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">Restricciones</label>
-            <InputNumber v-model="local.restricciones" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">STN</label>
-            <InputNumber v-model="local.stn" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">TRM</label>
-            <InputNumber v-model="local.trm" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">PTB</label>
-            <InputNumber v-model="local.ptb" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-        </div>
-      </fieldset>
-
-      <!-- Totales UNGC / UNGG -->
-      <fieldset class="border border-surface rounded p-3">
-        <legend class="text-sm font-semibold px-1">Totales</legend>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">Total UNGC</label>
-            <InputNumber v-model="local.totalUNGC" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">Total UNGG</label>
-            <InputNumber v-model="local.totalUNGG" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1 col-span-2">
-            <label class="text-xs">Total a consignar</label>
-            <InputNumber v-model="local.totalConsignar" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-        </div>
-      </fieldset>
-
-      <!-- Custodia -->
-      <fieldset class="border border-surface rounded p-3">
-        <legend class="text-sm font-semibold px-1">Custodia</legend>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">Disponible custodia</label>
-            <InputNumber v-model="local.disponibleCustodia" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs">Congelado</label>
-            <InputNumber v-model="local.congelado" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-          <div class="flex flex-col gap-1 col-span-2">
-            <label class="text-xs">Saldo</label>
-            <InputNumber v-model="local.saldo" :min-fraction-digits="2" :max-fraction-digits="2" />
-          </div>
-        </div>
-      </fieldset>
-
-      <!-- TXR -->
-      <div class="flex flex-col gap-1">
-        <label class="text-xs font-semibold">Total ajuste TXR</label>
-        <InputNumber v-model="local.totalAjusteTXR" :min-fraction-digits="2" :max-fraction-digits="2" />
-      </div>
-    </div>
-
-    <template #footer>
-      <Button label="Cancelar" severity="secondary" text @click="cancelar" />
-      <Button label="Guardar" @click="guardar" />
-    </template>
+      <DialogFooter>
+        <Button variant="secondary" @click="onOpenChange(false)">Cancelar</Button>
+        <Button @click="guardar">Guardar</Button>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>

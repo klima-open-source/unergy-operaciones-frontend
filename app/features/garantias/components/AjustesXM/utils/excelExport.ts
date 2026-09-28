@@ -1,24 +1,42 @@
+/** Exportes a Excel del slice de garantías: hoja madre (formato XM), tablas planas e histórico. */
+import type { CellStyle } from 'xlsx-js-style'
+import type { CustodiaGarantia, FilaAjuste, FilaTabla } from '../composables/useGarantiasParser'
+import type { AjusteGarantiaFE } from '../composables/useGarantiasHistorial'
+
 const FONT = 'Arial'
 const PURPLE = '7030A0'
 const GREEN = 'C6EFCE'
 const MONEY = '$#,##0.00'
 
-function thinBorder() {
-  const s = { style: 'thin', color: { rgb: '000000' } }
+function thinBorder(): NonNullable<CellStyle['border']> {
+  const s = { style: 'thin', color: { rgb: '000000' } } as const
   return { top: s, bottom: s, left: s, right: s }
+}
+
+export interface DatosHojaMadreExcel {
+  ungc?: FilaAjuste[]
+  ungg?: FilaAjuste[]
+  totalConsignar?: number
+  custodia?: CustodiaGarantia | null
+  disponibleAplicacion?: number
+  disponibleCrudo?: number | null
+  facturasDescontadas?: number
+  disponibleNeto?: number | null
 }
 
 /**
  * Exporta la "hoja madre" de Garantías Semanales replicando el formato XM:
  * título, bloques por agente (UNGC/UNGG) con ajustes + TIE + TOTAL A PAGAR,
  * total combinado y panel lateral de custodia.
- * data = { ungc, ungg, totalUNGC, totalUNGG, totalConsignar, custodia, disponibleAplicacion }
- * ungc/ungg = [{ label, valor }] donde la última fila es la de TIE.
  */
-export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madre.xlsx') {
+export async function exportHojaMadreExcel(
+  data: DatosHojaMadreExcel,
+  filename = 'garantias_hoja_madre.xlsx',
+): Promise<void> {
   const XLSXStyle = await import('xlsx-js-style')
   const {
-    ungc = [], ungg = [],
+    ungc = [],
+    ungg = [],
     totalConsignar = 0,
     custodia = null,
     disponibleAplicacion = 0,
@@ -27,27 +45,37 @@ export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madr
     disponibleNeto = null,
   } = data || {}
   const crudo = disponibleCrudo ?? custodia?.disponible ?? 0
-  const neto = disponibleNeto ?? (crudo - (facturasDescontadas || 0))
+  const neto = disponibleNeto ?? crudo - (facturasDescontadas || 0)
 
-  const aoa = []
-  const merges = []
-  const set = (r, c, v) => { if (!aoa[r]) aoa[r] = []; aoa[r][c] = v }
+  const aoa: unknown[][] = []
+  const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = []
+  const set = (r: number, c: number, v: unknown) => {
+    if (!aoa[r]) aoa[r] = []
+    aoa[r]![c] = v
+  }
 
   // Título (A1:C1)
   set(0, 0, 'Garantías UNGG Y UNGC')
   merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } })
 
   let r = 1
-  const blocks = []
-  function addBlock(name, rows) {
+  const blocks: { headerRow: number; startData: number; endData: number; totalRow: number }[] = []
+  function addBlock(name: string, rows: FilaAjuste[]) {
     set(r, 0, 'AGENTE')
-    const headerRow = r; r++
+    const headerRow = r
+    r++
     const startData = r
-    for (const row of rows) { set(r, 1, row.label); set(r, 2, Number(row.valor) || 0); r++ }
+    for (const row of rows) {
+      set(r, 1, row.label)
+      set(r, 2, Number(row.valor) || 0)
+      r++
+    }
     const endData = r - 1
     const total = rows.reduce((s, x) => s + (Number(x.valor) || 0), 0)
-    set(r, 1, 'TOTAL A PAGAR'); set(r, 2, total)
-    const totalRow = r; r++
+    set(r, 1, 'TOTAL A PAGAR')
+    set(r, 2, total)
+    const totalRow = r
+    r++
     set(startData, 0, name)
     if (endData >= startData) merges.push({ s: { r: startData, c: 0 }, e: { r: endData, c: 0 } })
     blocks.push({ headerRow, startData, endData, totalRow })
@@ -57,13 +85,15 @@ export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madr
   r++ // fila en blanco
   addBlock('UNGG', ungg)
   r++ // fila en blanco
-  set(r, 0, 'UNGG y UNGC'); set(r, 1, 'TOTAL A PAGAR'); set(r, 2, totalConsignar)
+  set(r, 0, 'UNGG y UNGC')
+  set(r, 1, 'TOTAL A PAGAR')
+  set(r, 2, totalConsignar)
   const combinedRow = r
   r++
 
   // Panel lateral (columnas E-F) — desglose auditable
   const panelStart = 1
-  const panel = [
+  const panel: [string, number][] = [
     ['Disponible (crudo)', crudo],
     ['(−) Facturas descontadas', facturasDescontadas || 0],
     ['Disponible (3050200006371)', neto],
@@ -72,35 +102,50 @@ export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madr
     ['Saldo', custodia?.saldo ?? 0],
   ]
   const aplIdx = 3 // índice (0-based) de la fila "Aplicación de garantía" dentro del panel
-  panel.forEach(([lbl, val], i) => { set(panelStart + i, 4, lbl); set(panelStart + i, 5, val) })
+  panel.forEach(([lbl, val], i) => {
+    set(panelStart + i, 4, lbl)
+    set(panelStart + i, 5, val)
+  })
   const panelEnd = panelStart + panel.length - 1
 
   const ws = XLSXStyle.utils.aoa_to_sheet(aoa)
   ws['!merges'] = merges
   ws['!cols'] = [{ wpx: 80 }, { wpx: 210 }, { wpx: 120 }, { wpx: 18 }, { wpx: 210 }, { wpx: 120 }]
 
-  const range = XLSXStyle.utils.decode_range(ws['!ref'])
-  const cellAt = (rr, cc) => {
+  const range = XLSXStyle.utils.decode_range(ws['!ref']!)
+  const cellAt = (rr: number, cc: number) => {
     const addr = XLSXStyle.utils.encode_cell({ r: rr, c: cc })
     if (!ws[addr]) ws[addr] = { t: 's', v: '' }
-    return ws[addr]
+    return ws[addr]!
   }
-  const purpleStyle = {
+  const purpleStyle: CellStyle = {
     fill: { patternType: 'solid', fgColor: { rgb: PURPLE } },
     font: { name: FONT, sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
     alignment: { vertical: 'center' },
   }
-  const purpleRow = (rr) => { for (let cc = 0; cc <= 2; cc++) cellAt(rr, cc).s = { ...purpleStyle } }
-  const money = (rr, cc) => { const c = cellAt(rr, cc); c.s = c.s || {}; c.s.numFmt = MONEY }
+  const purpleRow = (rr: number) => {
+    for (let cc = 0; cc <= 2; cc++) cellAt(rr, cc).s = { ...purpleStyle }
+  }
+  const money = (rr: number, cc: number) => {
+    const c = cellAt(rr, cc)
+    c.s = c.s || {}
+    c.s.numFmt = MONEY
+  }
 
   // Título
-  cellAt(0, 0).s = { font: { name: FONT, sz: 12, bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
+  cellAt(0, 0).s = {
+    font: { name: FONT, sz: 12, bold: true },
+    alignment: { horizontal: 'center', vertical: 'center' },
+  }
 
   // Bloques
   for (const b of blocks) {
     purpleRow(b.headerRow)
     purpleRow(b.totalRow)
-    cellAt(b.startData, 0).s = { font: { name: FONT, sz: 11, bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
+    cellAt(b.startData, 0).s = {
+      font: { name: FONT, sz: 11, bold: true },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    }
     for (let rr = b.startData; rr <= b.totalRow; rr++) money(rr, 2)
   }
   purpleRow(combinedRow)
@@ -108,12 +153,17 @@ export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madr
 
   // Panel lateral: bordes + dinero + verde en "Aplicación de garantía"
   for (let rr = panelStart; rr <= panelEnd; rr++) {
-    for (const cc of [4, 5]) { const c = cellAt(rr, cc); c.s = c.s || {}; c.s.border = thinBorder(); c.s.font = { name: FONT, sz: 10 } }
+    for (const cc of [4, 5]) {
+      const c = cellAt(rr, cc)
+      c.s = c.s || {}
+      c.s.border = thinBorder()
+      c.s.font = { name: FONT, sz: 10 }
+    }
     money(rr, 5)
   }
   for (const cc of [4, 5]) {
     const c = cellAt(panelStart + aplIdx, cc)
-    c.s.fill = { patternType: 'solid', fgColor: { rgb: GREEN } }
+    c.s!.fill = { patternType: 'solid', fgColor: { rgb: GREEN } }
   }
 
   // Fuente Arial en todas las celdas (preservando estilos ya aplicados)
@@ -130,7 +180,7 @@ export async function exportHojaMadreExcel(data, filename = 'garantias_hoja_madr
   XLSXStyle.writeFile(wb, filename)
 }
 
-export async function exportTablaExcel(rows, filename = 'tabla.xlsx') {
+export async function exportTablaExcel(rows: FilaTabla[], filename = 'tabla.xlsx'): Promise<void> {
   if (!rows || !rows.length) return
   const XLSX = await import('xlsx')
   const ws = XLSX.utils.json_to_sheet(rows)
@@ -139,7 +189,10 @@ export async function exportTablaExcel(rows, filename = 'tabla.xlsx') {
   XLSX.writeFile(wb, filename)
 }
 
-export async function exportHistorialExcel(historial, filename = 'historial_garantias.xlsx') {
+export async function exportHistorialExcel(
+  historial: AjusteGarantiaFE[],
+  filename = 'historial_garantias.xlsx',
+): Promise<void> {
   if (!historial || !historial.length) return
   const XLSX = await import('xlsx')
   const rows = historial.map((r) => ({

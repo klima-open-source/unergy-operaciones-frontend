@@ -1,64 +1,35 @@
-<template>
-  <div
-    class="relative border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer"
-    :style="dropStyle"
-    @click="fileInput.click()"
-    @dragover.prevent="dragging = true"
-    @dragleave.prevent="dragging = false"
-    @drop.prevent="onDrop"
-  >
-    <input
-      ref="fileInput"
-      type="file"
-      accept=".xlsx,.xls"
-      class="hidden"
-      @change="onSelect"
-    />
-
-    <div v-if="!file && !error" class="space-y-1">
-      <FileSpreadsheetIcon class="text-2xl block size-[1em]" style="color:#c4b8d4" />
-      <p class="text-sm font-medium" style="color:#6b5a8a">{{ label }}</p>
-      <p class="text-xs" style="color:#9ca3af">Arrastra o haz clic</p>
-    </div>
-
-    <div v-else-if="error" class="space-y-1">
-      <CircleXIcon class="text-2xl block size-[1em]" style="color:#D64455" />
-      <p class="text-sm font-medium" style="color:#D64455">{{ error }}</p>
-      <p class="text-xs" style="color:#9ca3af">Haz clic para intentar de nuevo</p>
-    </div>
-
-    <div v-else class="space-y-1">
-      <CircleCheckIcon class="text-2xl block size-[1em]" style="color:#10B981" />
-      <p class="text-sm font-medium truncate max-w-xs mx-auto" style="color:var(--color-unergy-deep)">{{ file.name }}</p>
-      <p class="text-xs" style="color:#10B981">Archivo cargado</p>
-    </div>
-  </div>
-</template>
-
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
 import { CircleCheckIcon, CircleXIcon, FileSpreadsheetIcon } from '@lucide/vue'
 
-const props = defineProps({
-  label: { type: String, default: 'Subir archivo' },
-  pattern: { type: RegExp, default: null },
-})
+const props = withDefaults(
+  defineProps<{
+    label?: string
+    pattern?: RegExp | null
+  }>(),
+  {
+    label: 'Subir archivo',
+    pattern: null,
+  },
+)
 
-const emit = defineEmits(['update:file', 'error'])
+const emit = defineEmits<{
+  'update:file': [file: File | null]
+  error: [message: string]
+}>()
 
-const fileInput = ref(null)
-const file = ref(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const file = ref<File | null>(null)
 const error = ref('')
 const dragging = ref(false)
 
-const dropStyle = computed(() => {
-  if (error.value) return 'border-color:#D64455; background:#FEF2F2'
-  if (file.value) return 'border-color:#10B981; background:#F0FDF4'
-  if (dragging.value) return 'border-color:#915BD8; background:rgba(145,91,216,0.05)'
-  return 'border-color:#c4b8d4; background:#fafafa'
+const dropClass = computed(() => {
+  if (error.value) return 'border-destructive bg-destructive/5'
+  if (file.value) return 'border-success bg-success/5'
+  if (dragging.value) return 'border-primary bg-primary/5'
+  return 'border-muted-foreground/30 bg-muted/40'
 })
 
-function validate(f) {
+function validate(f: File | null | undefined): boolean {
   if (!f) return false
   if (props.pattern && !props.pattern.test(f.name)) {
     error.value = `Nombre no coincide: "${f.name}"`
@@ -73,14 +44,15 @@ function validate(f) {
   return true
 }
 
-function onSelect(e) {
-  validate(e.target.files[0])
-  e.target.value = ''
+function onSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  validate(input.files?.[0])
+  input.value = ''
 }
 
-function onDrop(e) {
+function onDrop(e: DragEvent) {
   dragging.value = false
-  validate(e.dataTransfer.files[0])
+  validate(e.dataTransfer?.files[0])
 }
 
 function reset() {
@@ -91,3 +63,34 @@ function reset() {
 
 defineExpose({ reset })
 </script>
+
+<template>
+  <div
+    class="relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors"
+    :class="dropClass"
+    @click="fileInput?.click()"
+    @dragover.prevent="dragging = true"
+    @dragleave.prevent="dragging = false"
+    @drop.prevent="onDrop"
+  >
+    <input ref="fileInput" type="file" accept=".xlsx,.xls" class="hidden" @change="onSelect" />
+
+    <div v-if="!file && !error" class="space-y-1">
+      <FileSpreadsheetIcon class="mx-auto block size-6 text-muted-foreground/60" />
+      <p class="text-sm font-medium text-muted-foreground">{{ label }}</p>
+      <p class="text-xs text-muted-foreground/70">Arrastra o haz clic</p>
+    </div>
+
+    <div v-else-if="error" class="space-y-1">
+      <CircleXIcon class="mx-auto block size-6 text-destructive" />
+      <p class="text-sm font-medium text-destructive">{{ error }}</p>
+      <p class="text-xs text-muted-foreground/70">Haz clic para intentar de nuevo</p>
+    </div>
+
+    <div v-else class="space-y-1">
+      <CircleCheckIcon class="mx-auto block size-6 text-success" />
+      <p class="mx-auto max-w-xs truncate text-sm font-medium text-foreground">{{ file!.name }}</p>
+      <p class="text-xs text-success">Archivo cargado</p>
+    </div>
+  </div>
+</template>
