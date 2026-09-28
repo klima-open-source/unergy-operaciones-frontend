@@ -1,211 +1,272 @@
+<script setup lang="ts">
+import type {
+  AlertasContratosPpa,
+  ContratoDuplicadoPpa,
+  ProyectoHuerfanoPpa,
+} from '~/features/alertas/types'
+import {
+  ArrowLeftIcon,
+  CircleCheckIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  UserMinusIcon,
+  ZapIcon,
+} from '@lucide/vue'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de
+// `DataTable` y `typecheck` falla (ver `AdminUsuariosView.vue`).
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+} from '~/components/blocks/DataTable.vue'
+import { logger } from '~/core/logger'
+import { AlertasService } from '~/features/alertas/services/alertas'
+
+function asHuerfano(row: DataTableRow) {
+  return row as unknown as ProyectoHuerfanoPpa
+}
+function asSic(row: DataTableRow) {
+  return row as unknown as ContratoDuplicadoPpa
+}
+
+const alertasService = new AlertasService()
+const router = useRouter()
+
+const query = useQuery<AlertasContratosPpa>()
+
+function estadoColor(e: string | undefined) {
+  return (
+    { en_operacion: 'success', en_desarrollo: 'information', suspendido: 'warning' }[e ?? ''] ??
+    'default'
+  )
+}
+
+function tipoColor(t: string | undefined) {
+  return (
+    {
+      registro: 'success',
+      modificacion: 'information',
+      terminacion: 'destructive',
+      desistimiento: 'warning',
+    }[t ?? ''] ?? 'default'
+  )
+}
+
+const columnasHuerfanos: DataTableColumn[] = [
+  { key: 'proyecto', header: 'Proyecto' },
+  { key: 'tipo', header: 'Tipo' },
+  { key: 'estado', header: 'Estado' },
+  { key: 'acciones', header: '' },
+]
+
+const columnasSics: DataTableColumn[] = [
+  { key: 'codigo_sic_contrato', header: 'SIC' },
+  { key: 'contrato_interno', header: 'Contrato' },
+  { key: 'tipo', header: 'Tipo' },
+  { key: 'fecha_inicio', header: 'Inicio' },
+  { key: 'fecha_fin', header: 'Fin' },
+  { key: 'porcentaje_fncer', header: '% Desp.' },
+  { key: 'acciones', header: '' },
+]
+
+async function cargar() {
+  await query.run(() => alertasService.obtenerContratosPpa())
+  if (query.error) logger.error('alertas', query.error)
+}
+
+onMounted(cargar)
+</script>
+
 <template>
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center gap-3">
-      <Button text @click="$router.back()" class="-ml-2">
-        <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+      <Button variant="ghost" size="icon-sm" @click="router.back()">
+        <ArrowLeftIcon class="size-4" />
       </Button>
-      <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-        <ZapIcon class="text-amber-500 text-sm size-[1em]" />
+      <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-warning/10">
+        <ZapIcon class="size-4 text-warning" />
       </div>
       <div>
-        <h2 class="text-xl font-bold text-gray-800">Alertas — Contratos PPA</h2>
-        <p v-if="fechaConsulta" class="text-xs text-gray-400 mt-0.5">
-          Fecha de consulta: {{ fechaConsulta }}
+        <h2 class="text-xl font-bold">Alertas — Contratos PPA</h2>
+        <p v-if="query.data?.fecha_consulta" class="mt-0.5 text-xs text-muted-foreground">
+          Fecha de consulta: {{ query.data.fecha_consulta }}
         </p>
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-20">
-      <ProgressSpinner />
-    </div>
-
-    <template v-else>
-      <!-- Resumen -->
-      <div class="grid grid-cols-2 gap-4">
-        <div class="rounded-xl border border-orange-100 bg-orange-50 p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-            <UserMinusIcon class="text-orange-500 text-xl size-[1em]" />
+    <AsyncView :query="query">
+      <template #default="{ data }">
+        <div class="space-y-6">
+          <!-- Resumen -->
+          <div class="grid grid-cols-2 gap-4">
+            <Card class="border-warning/20 bg-warning/5">
+              <CardContent class="flex items-center gap-4">
+                <div
+                  class="flex size-12 shrink-0 items-center justify-center rounded-full bg-warning/10"
+                >
+                  <UserMinusIcon class="size-5 text-warning" />
+                </div>
+                <div>
+                  <p class="text-2xl font-bold text-warning">{{ data.huerfanos.length }}</p>
+                  <p class="text-sm font-medium">Proyectos huérfanos</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    Sin contrato activo en GESCON hoy
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card class="border-destructive/20 bg-destructive/5">
+              <CardContent class="flex items-center gap-4">
+                <div
+                  class="flex size-12 shrink-0 items-center justify-center rounded-full bg-destructive/10"
+                >
+                  <CopyIcon class="size-5 text-destructive" />
+                </div>
+                <div>
+                  <p class="text-2xl font-bold text-destructive">{{ data.duplicados.length }}</p>
+                  <p class="text-sm font-medium">Proyectos duplicados</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    Asociados a 2+ contratos activos a la vez
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div>
-            <p class="text-2xl font-bold text-orange-600">{{ huerfanos.length }}</p>
-            <p class="text-sm font-medium text-orange-700">Proyectos huérfanos</p>
-            <p class="text-xs text-orange-400 mt-0.5">Sin contrato activo en GESCON hoy</p>
-          </div>
-        </div>
-        <div class="rounded-xl border border-red-100 bg-red-50 p-5 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-            <CopyIcon class="text-red-500 text-xl size-[1em]" />
-          </div>
-          <div>
-            <p class="text-2xl font-bold text-red-600">{{ duplicados.length }}</p>
-            <p class="text-sm font-medium text-red-700">Proyectos duplicados</p>
-            <p class="text-xs text-red-400 mt-0.5">Asociados a 2+ contratos activos a la vez</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- ── Sección Huérfanos ── -->
-      <div class="space-y-3">
-        <div class="flex items-center gap-2">
-          <UserMinusIcon class="text-orange-500 size-[1em]" />
-          <h3 class="font-semibold text-gray-700">Proyectos huérfanos</h3>
-          <GBadge color="warning" class="text-xs">{{ huerfanos.length }}</GBadge>
-        </div>
-        <p class="text-xs text-gray-400">
-          Proyectos que no aparecen en ningún contrato activo del GESCON hoy.
-          Pueden estar pendientes de registro o sus contratos haber vencido/terminado.
-        </p>
+          <!-- ── Sección Huérfanos ── -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <UserMinusIcon class="size-4 text-warning" />
+              <h3 class="font-semibold">Proyectos huérfanos</h3>
+              <GBadge color="warning">{{ data.huerfanos.length }}</GBadge>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Proyectos que no aparecen en ningún contrato activo del GESCON hoy. Pueden estar
+              pendientes de registro o sus contratos haber vencido/terminado.
+            </p>
 
-        <div v-if="huerfanos.length === 0"
-          class="flex flex-col items-center py-8 gap-2 text-gray-400">
-          <CircleCheckIcon class="text-green-400 text-3xl size-[1em]" />
-          <p class="text-sm">Todos los proyectos tienen contrato activo en GESCON.</p>
-        </div>
-
-        <DataTable v-else :value="huerfanosTabla" size="small" stripedRows :rowHover="true"
-          :paginator="huerfanos.length > 15" :rows="15" class="text-sm">
-          <Column header="Proyecto" style="min-width:240px">
-            <template #body="{ data }">
-              <RouterLink :to="`/proyectos/${data.proyecto_id}`"
-                class="text-blue-600 hover:underline font-medium">
-                {{ data.nombre_comercial }}
-              </RouterLink>
-            </template>
-          </Column>
-          <Column header="Tipo" style="min-width:110px">
-            <template #body="{ data }">
-              <GBadge color="default" class="text-xs">{{ data.tipo_proyecto || '—' }}</GBadge>
-            </template>
-          </Column>
-          <Column header="Estado" style="min-width:110px">
-            <template #body="{ data }">
-              <GBadge :color="estadoSev(data.estado)" class="text-xs">{{ data.estado }}</GBadge>
-            </template>
-          </Column>
-          <Column header="" style="width:60px">
-            <template #body="{ data }">
-              <RouterLink :to="`/proyectos/${data.proyecto_id}/ppa`">
-                <Button text size="small" severity="warning" v-tooltip="'Ver PPA'">
-                  <template #icon><ZapIcon class="size-[1em]" /></template>
-                </Button>
-              </RouterLink>
-            </template>
-          </Column>
-        </DataTable>
-      </div>
-
-      <Divider />
-
-      <!-- ── Sección Duplicados ── -->
-      <div class="space-y-3">
-        <div class="flex items-center gap-2">
-          <CopyIcon class="text-red-500 size-[1em]" />
-          <h3 class="font-semibold text-gray-700">Proyectos duplicados</h3>
-          <GBadge color="destructive" class="text-xs">{{ duplicados.length }}</GBadge>
-        </div>
-        <p class="text-xs text-gray-400">
-          Proyectos que están activos en 2 o más contratos GESCON simultáneamente.
-          Revisar si los porcentajes de despacho suman 100 % o si es un error de registro.
-        </p>
-
-        <div v-if="duplicados.length === 0"
-          class="flex flex-col items-center py-8 gap-2 text-gray-400">
-          <CircleCheckIcon class="text-green-400 text-3xl size-[1em]" />
-          <p class="text-sm">No hay proyectos con contratos duplicados.</p>
-        </div>
-
-        <div v-else class="space-y-4">
-          <div v-for="dup in duplicados" :key="dup.proyecto_id"
-            class="border border-red-100 rounded-xl bg-white p-4 space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <RouterLink :to="`/proyectos/${dup.proyecto_id}`"
-                  class="font-semibold text-gray-800 hover:text-blue-600">
-                  {{ dup.nombre_comercial }}
-                </RouterLink>
-                <GBadge color="default" class="text-xs">{{ dup.tipo_proyecto || '—' }}</GBadge>
-              </div>
-              <GBadge color="destructive" class="text-xs">{{ dup.sics.length }} contratos activos</GBadge>
+            <div
+              v-if="data.huerfanos.length === 0"
+              class="flex flex-col items-center gap-2 py-8 text-muted-foreground"
+            >
+              <CircleCheckIcon class="size-8 text-success" />
+              <p class="text-sm">Todos los proyectos tienen contrato activo en GESCON.</p>
             </div>
 
-            <DataTable :value="dup.sics" size="small" class="text-xs">
-              <Column field="codigo_sic_contrato" header="SIC" style="min-width:90px" />
-              <Column field="contrato_interno" header="Contrato" style="min-width:130px" />
-              <Column header="Tipo" style="min-width:110px">
-                <template #body="{ data }">
-                  <GBadge :color="tipoSev(data.tipo_solicitud)" class="text-xs">{{ data.tipo_solicitud }}</GBadge>
-                </template>
-              </Column>
-              <Column header="Inicio" style="min-width:90px">
-                <template #body="{ data }">{{ data.fecha_inicio || '—' }}</template>
-              </Column>
-              <Column header="Fin" style="min-width:90px">
-                <template #body="{ data }">{{ data.fecha_fin || '—' }}</template>
-              </Column>
-              <Column header="% Desp." style="min-width:80px">
-                <template #body="{ data }">
-                  {{ data.porcentaje_fncer != null ? `${data.porcentaje_fncer}%` : '—' }}
-                </template>
-              </Column>
-              <Column header="" style="width:50px">
-                <template #body="{ data }">
-                  <RouterLink :to="`/mem/gescon`">
-                    <Button text size="small" severity="secondary" v-tooltip="`SIC ${data.codigo_sic_contrato}`">
-                      <template #icon><ExternalLinkIcon class="size-[1em]" /></template>
+            <DataTable
+              v-else
+              :columns="columnasHuerfanos"
+              :rows="data.huerfanos"
+              row-key="proyecto_id"
+            >
+              <template #cell="{ row, column }">
+                <NuxtLink
+                  v-if="column.key === 'proyecto'"
+                  :to="`/proyectos/${asHuerfano(row).proyecto_id}`"
+                  class="font-medium text-primary hover:underline"
+                >
+                  {{ asHuerfano(row).nombre_comercial }}
+                </NuxtLink>
+                <GBadge v-else-if="column.key === 'tipo'">{{
+                  asHuerfano(row).tipo_proyecto || '—'
+                }}</GBadge>
+                <GBadge
+                  v-else-if="column.key === 'estado'"
+                  :color="estadoColor(asHuerfano(row).estado)"
+                >
+                  {{ asHuerfano(row).estado }}
+                </GBadge>
+                <GTooltip v-else-if="column.key === 'acciones'">
+                  <GTooltipTrigger as-child>
+                    <Button variant="ghost" size="icon-sm" as-child>
+                      <NuxtLink :to="`/proyectos/${asHuerfano(row).proyecto_id}/ppa`">
+                        <ZapIcon class="size-4 text-warning" />
+                      </NuxtLink>
                     </Button>
-                  </RouterLink>
-                </template>
-              </Column>
+                  </GTooltipTrigger>
+                  <GTooltipContent>Ver PPA</GTooltipContent>
+                </GTooltip>
+              </template>
             </DataTable>
           </div>
+
+          <Separator />
+
+          <!-- ── Sección Duplicados ── -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <CopyIcon class="size-4 text-destructive" />
+              <h3 class="font-semibold">Proyectos duplicados</h3>
+              <GBadge color="destructive">{{ data.duplicados.length }}</GBadge>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              Proyectos que están activos en 2 o más contratos GESCON simultáneamente. Revisar si
+              los porcentajes de despacho suman 100&nbsp;% o si es un error de registro.
+            </p>
+
+            <div
+              v-if="data.duplicados.length === 0"
+              class="flex flex-col items-center gap-2 py-8 text-muted-foreground"
+            >
+              <CircleCheckIcon class="size-8 text-success" />
+              <p class="text-sm">No hay proyectos con contratos duplicados.</p>
+            </div>
+
+            <div v-else class="space-y-4">
+              <Card v-for="dup in data.duplicados" :key="dup.proyecto_id">
+                <CardContent class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <NuxtLink
+                        :to="`/proyectos/${dup.proyecto_id}`"
+                        class="font-semibold hover:text-primary"
+                      >
+                        {{ dup.nombre_comercial }}
+                      </NuxtLink>
+                      <GBadge>{{ dup.tipo_proyecto || '—' }}</GBadge>
+                    </div>
+                    <GBadge color="destructive">{{ dup.sics.length }} contratos activos</GBadge>
+                  </div>
+
+                  <DataTable :columns="columnasSics" :rows="dup.sics" row-key="codigo_sic_contrato">
+                    <template #cell="{ row, column }">
+                      <GBadge
+                        v-if="column.key === 'tipo'"
+                        :color="tipoColor(asSic(row).tipo_solicitud)"
+                      >
+                        {{ asSic(row).tipo_solicitud }}
+                      </GBadge>
+                      <span v-else-if="column.key === 'fecha_inicio'">{{
+                        asSic(row).fecha_inicio || '—'
+                      }}</span>
+                      <span v-else-if="column.key === 'fecha_fin'">{{
+                        asSic(row).fecha_fin || '—'
+                      }}</span>
+                      <span v-else-if="column.key === 'porcentaje_fncer'">
+                        {{
+                          asSic(row).porcentaje_fncer != null
+                            ? `${asSic(row).porcentaje_fncer}%`
+                            : '—'
+                        }}
+                      </span>
+                      <GTooltip v-else-if="column.key === 'acciones'">
+                        <GTooltipTrigger as-child>
+                          <Button variant="ghost" size="icon-sm" as-child>
+                            <NuxtLink to="/mem/gescon">
+                              <ExternalLinkIcon class="size-4" />
+                            </NuxtLink>
+                          </Button>
+                        </GTooltipTrigger>
+                        <GTooltipContent>SIC {{ asSic(row).codigo_sic_contrato }}</GTooltipContent>
+                      </GTooltip>
+                    </template>
+                  </DataTable>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-      </div>
-    </template>
+      </template>
+    </AsyncView>
   </div>
 </template>
-
-<script setup>
-import { ref, computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
-import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Divider from 'primevue/divider'
-import { AlertasService } from '~/features/alertas/services/alertas'
-import { logger } from '~/core/logger'
-import { ArrowLeftIcon, CircleCheckIcon, CopyIcon, ExternalLinkIcon, UserMinusIcon, ZapIcon } from '@lucide/vue'
-
-const alertasService = new AlertasService()
-
-const loading = ref(true)
-const fechaConsulta = ref('')
-const huerfanos = ref([])
-const duplicados = ref([])
-
-// Tabla de huérfanos como ref plano (evita bug PrimeVue 4 con computed)
-const huerfanosTabla = ref([])
-
-function estadoSev(e) {
-  return { en_operacion: 'success', en_desarrollo: 'information', suspendido: 'warning' }[e] || 'default'
-}
-
-function tipoSev(t) {
-  return { registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'warning' }[t] || 'default'
-}
-
-onMounted(async () => {
-  try {
-    const data = await alertasService.obtenerContratosPpa()
-    fechaConsulta.value = data.fecha_consulta
-    huerfanos.value = data.huerfanos
-    duplicados.value = data.duplicados
-    huerfanosTabla.value = data.huerfanos
-  } catch (e) {
-    logger.error('alertas', e)
-  } finally {
-    loading.value = false
-  }
-})
-</script>
