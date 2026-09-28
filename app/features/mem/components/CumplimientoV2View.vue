@@ -4999,6 +4999,9 @@ const revSicSinPpa = computed(() => revTramosLibres.value.filter(p => p._sic))
 
 // 3 · UNGC: contratos GESCON donde UNGC compra (b) + remanente cuyo SIC vigente
 // tiene a UNGC de comprador (f). Dos orígenes distintos, una sola lista.
+// La ventana es el TRAMO del mes (segmento_*), igual que en venta: fecha_inicio/
+// fecha_fin son la vigencia completa del registro GESCON, y mostrarlas primero
+// hacía ver 01-ene → 31-dic a una planta que estuvo 8 días.
 const revUngc = computed(() => {
   const d = revData.value
   if (!d) return []
@@ -5008,8 +5011,8 @@ const revUngc = computed(() => {
       out.push({
         _key: `b-${c.id}-${p.id}-${p.segmento_inicio || ''}`,
         nombre: p.nombre, contrato: c.nombre, codigo_sic: p.codigo_sic,
-        desde: p.fecha_inicio || p.segmento_inicio,
-        hasta: p.fecha_fin || p.segmento_fin,
+        desde: p.segmento_inicio || p.fecha_inicio,
+        hasta: p.segmento_fin || p.fecha_fin,
         estado: p.estado,
       })
     }
@@ -5021,8 +5024,8 @@ const revUngc = computed(() => {
     out.push({
       _key: `f-${p.id}-${p.segmento_inicio || ''}`,
       nombre: p.nombre, contrato: null, codigo_sic: p.codigo_sic,
-      desde: p.fecha_inicio || p.segmento_inicio,
-      hasta: p.fecha_fin || p.segmento_fin,
+      desde: p.segmento_inicio || p.fecha_inicio,
+      hasta: p.segmento_fin || p.fecha_fin,
       estado: p.estado,
     })
   }
