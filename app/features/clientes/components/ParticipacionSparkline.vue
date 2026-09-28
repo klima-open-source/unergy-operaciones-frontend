@@ -1,26 +1,39 @@
-<template>
-  <svg v-if="coords.length >= 2" :width="W" :height="H" class="shrink-0" aria-hidden="true">
-    <polyline :points="coords.map(c => `${c.x},${c.y}`).join(' ')"
-      fill="none" stroke="var(--color-unergy-purple)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
-    <circle :cx="coords[coords.length - 1].x" :cy="coords[coords.length - 1].y" r="2.5" fill="var(--color-unergy-purple)" />
-  </svg>
-  <span v-else class="text-xs" style="color:#bba8d4;">—</span>
-</template>
+<script setup lang="ts">
+interface Punto {
+  porcentaje?: number | null
+}
 
-<script setup>
-import { computed } from 'vue'
-const props = defineProps({ puntos: { type: Array, default: () => [] } })
-const W = 120, H = 28, PAD = 3
+const props = withDefaults(defineProps<{ puntos?: Punto[] }>(), { puntos: () => [] })
+
+const WIDTH = 120
+const HEIGHT = 28
+const PADDING = 3
 
 const coords = computed(() => {
-  const pts = props.puntos.filter(p => p.porcentaje !== null && p.porcentaje !== undefined)
-  if (pts.length < 2) return []
-  const vals = pts.map(p => p.porcentaje)
-  const min = Math.min(...vals), max = Math.max(...vals)
+  const puntos = props.puntos.filter((p) => p.porcentaje != null)
+  if (puntos.length < 2) return []
+  const valores = puntos.map((p) => p.porcentaje as number)
+  const min = Math.min(...valores)
+  const max = Math.max(...valores)
   const rango = max - min || 1
-  return pts.map((p, i) => ({
-    x: PAD + (i * (W - 2 * PAD)) / (pts.length - 1),
-    y: H - PAD - ((p.porcentaje - min) / rango) * (H - 2 * PAD),
+  return puntos.map((p, i) => ({
+    x: PADDING + (i * (WIDTH - 2 * PADDING)) / (puntos.length - 1),
+    y: HEIGHT - PADDING - (((p.porcentaje as number) - min) / rango) * (HEIGHT - 2 * PADDING),
   }))
 })
 </script>
+
+<template>
+  <svg v-if="coords.length >= 2" :width="WIDTH" :height="HEIGHT" class="shrink-0 text-primary" aria-hidden="true">
+    <polyline
+      :points="coords.map((c) => `${c.x},${c.y}`).join(' ')"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+      stroke-linecap="round"
+    />
+    <circle :cx="coords[coords.length - 1].x" :cy="coords[coords.length - 1].y" r="2.5" fill="currentColor" />
+  </svg>
+  <span v-else class="text-xs text-muted-foreground">—</span>
+</template>
