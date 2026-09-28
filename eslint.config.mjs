@@ -65,7 +65,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // archivo porque la negación de un glob de carpeta no funciona en
   // `ignores` de ESLint flat config.
   'app/features/operaciones/components/EnvioMensualPanel.vue',
-  'app/features/operaciones/components/GestionFallasView.vue',
   'app/features/operaciones/components/InformesMensualesPanel.vue',
   'app/features/panel-contable/components/**',
   'app/features/proyectos/components/**',

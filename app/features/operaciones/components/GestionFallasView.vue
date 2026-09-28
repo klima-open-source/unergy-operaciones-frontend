@@ -1,565 +1,886 @@
 <template>
-  <div class="gf-page" ref="pageRef">
+  <div class="flex flex-col gap-3">
+    <!-- ══ HEADER STICKY: título + buckets + acciones + filtros ══════════ -->
+    <div class="sticky top-0 z-20 flex flex-col gap-2 bg-background pt-1 pb-3">
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 rounded-t-xl border bg-card px-3.5 py-2"
+      >
+        <div class="flex items-center gap-2 text-sm font-bold text-foreground">
+          <ZapIcon class="size-4 text-primary" /> Gestión de Fallas
+        </div>
 
-    <!-- ══ STICKY HEADER: title + buckets + filters siempre visibles ════ -->
-    <div class="gf-sticky-header" ref="stickyHeaderRef">
+        <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v as BucketKey)">
+          <GTabsList variant="outline">
+            <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
+              <component :is="b.icon" class="size-4" :style="{ color: b.color }" />
+              {{ b.label }} · {{ counts[b.key] }}
+            </GTabsTrigger>
+          </GTabsList>
+        </GTabs>
 
-    <!-- ══ TITLE + BUCKETS + ACTIONS (una sola fila compacta) ═══════════ -->
-    <div class="gf-topbar">
-      <div class="gf-topbar-title">
-        <ZapIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-        <h2 class="text-base font-bold text-gray-800 whitespace-nowrap">Gestión de Fallas</h2>
+        <div class="flex items-center gap-1.5">
+          <GTooltip>
+            <GTooltipTrigger as-child>
+              <Button variant="outline" size="sm" :disabled="loading" @click="cargar()">
+                <LoaderCircleIcon v-if="loading" class="animate-spin" />
+                <RefreshCwIcon v-else />
+              </Button>
+            </GTooltipTrigger>
+            <GTooltipContent>Actualizar</GTooltipContent>
+          </GTooltip>
+          <Button size="sm" @click="abrirCrear"><PlusIcon /> Nueva</Button>
+        </div>
       </div>
 
-      <!-- Bucket pills inline -->
-      <div class="gf-bucket-pills">
-        <button v-for="b in BUCKETS" :key="b.key"
-          class="bucket-pill"
-          :class="{ 'bucket-pill--active': bucket === b.key }"
-          :style="bucketPillStyle(b.color, bucket === b.key)"
-          @click="bucket = b.key">
-          <span class="bucket-pill-dot" :style="{ background: b.color }" />
-          <span class="bucket-pill-label">{{ b.label }}</span>
-          <span class="bucket-pill-count" :style="{ color: b.color }">{{ counts[b.key] }}</span>
-        </button>
-      </div>
+      <div
+        class="flex flex-wrap items-center gap-2 rounded-b-xl border border-t-0 bg-card px-3.5 py-2"
+      >
+        <InputGroup class="max-w-sm min-w-52 flex-1">
+          <InputGroupAddon><SearchIcon /></InputGroupAddon>
+          <InputGroupInput
+            ref="searchInputRef"
+            v-model="search"
+            placeholder="Buscar por código, descripción, proyecto, tipo..."
+          />
+        </InputGroup>
 
-      <div class="gf-topbar-actions">
-        <Button outlined size="small" :loading="loading" @click="cargar" v-tooltip.bottom="'Actualizar'">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-        </Button>
-        <Button label="Nueva" size="small" @click="abrirCrear">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
-        </Button>
-      </div>
-    </div>
+        <ComboBox
+          v-model="filtroProyectoStr"
+          :options="proyectoOpciones"
+          placeholder="Proyecto"
+          class="w-40"
+        />
 
-    <!-- ══ TOOLBAR (fila delgada) ═══════════════════════════════════════ -->
-    <div class="gf-toolbar">
-      <IconField class="flex-1 min-w-[200px] max-w-sm">
-        <InputIcon><SearchIcon class="text-xs size-[1em]" /></InputIcon>
-        <InputText ref="searchInputRef" v-model="search"
-          placeholder="Buscar por código, descripción, proyecto, tipo..."
-          class="w-full" size="small" />
-      </IconField>
-      <Select v-model="filtroProyecto" :options="proyectos" optionLabel="nombre_comercial"
-        optionValue="id" placeholder="Proyecto" showClear filter class="w-36" size="small" />
-      <Select v-model="filtroPrioridad" :options="catalogos.prioridades"
-        optionLabel="etiqueta" optionValue="codigo" placeholder="Prioridad" showClear class="w-32" size="small" />
-      <Select v-model="filtroEstado" :options="catalogos.estados"
-        optionLabel="etiqueta" optionValue="codigo" placeholder="Estado" showClear class="w-32" size="small" />
-      <DatePicker v-model="filtroFechaDesde" placeholder="Desde" dateFormat="yy-mm-dd"
-        showButtonBar class="w-28" size="small" />
-      <DatePicker v-model="filtroFechaHasta" placeholder="Hasta" dateFormat="yy-mm-dd"
-        showButtonBar class="w-28" size="small" />
-      <Button v-if="hayFiltros" text size="small" severity="secondary" @click="limpiarFiltros" v-tooltip.bottom="'Limpiar filtros'">
-        <template #icon><XIcon class="size-[1em]" /></template>
-      </Button>
-      <span class="ml-auto text-[11px] text-gray-500 whitespace-nowrap" v-if="!loading">
-        {{ filtradas.length }} / {{ porBucket.length }}
-      </span>
-    </div>
+        <Select
+          :model-value="filtroPrioridad || undefined"
+          @update:model-value="(v) => (filtroPrioridad = (v as string) ?? '')"
+        >
+          <SelectTrigger size="sm" class="w-32"
+            ><SelectValue placeholder="Prioridad"
+          /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="p in catalogos.prioridades" :key="p.codigo" :value="p.codigo!">{{
+              p.etiqueta
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
 
-    </div><!-- /gf-sticky-header -->
+        <Select
+          :model-value="filtroEstado || undefined"
+          @update:model-value="(v) => (filtroEstado = (v as string) ?? '')"
+        >
+          <SelectTrigger size="sm" class="w-32"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="e in catalogos.estados" :key="e.codigo" :value="e.codigo!">{{
+              e.etiqueta
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
 
-  <div :class="['gf-layout', drawerVisible && 'gf-layout--split']">
+        <DatePicker v-model="filtroFechaDesde" placeholder="Desde" clearable class="w-32" />
+        <DatePicker v-model="filtroFechaHasta" placeholder="Hasta" clearable class="w-32" />
 
-  <div class="gf-main space-y-4 min-w-0">
+        <GTooltip v-if="hayFiltros">
+          <GTooltipTrigger as-child>
+            <Button variant="ghost" size="icon-sm" @click="limpiarFiltros"><XIcon /></Button>
+          </GTooltipTrigger>
+          <GTooltipContent>Limpiar filtros</GTooltipContent>
+        </GTooltip>
 
-    <!-- ══ COMPACT LIST (sólo lg+ con panel abierto) ════════════════════ -->
-    <div v-if="drawerVisible" class="gf-compact hidden lg:flex">
-      <div class="gf-compact-header">
-        <span class="text-[11px] font-bold uppercase tracking-wide text-gray-500">
-          {{ filtradas.length }} falla{{ filtradas.length !== 1 ? 's' : '' }}
+        <span v-if="!loading" class="ml-auto text-xs whitespace-nowrap text-muted-foreground">
+          {{ filtradas.length }} / {{ porBucket.length }}
         </span>
       </div>
-      <div v-if="!filtradas.length" class="gf-compact-empty">
-        <InboxIcon class="text-2xl mb-2 size-[1em]" />
-        <p class="text-xs">Sin resultados</p>
-      </div>
-      <div v-else class="gf-compact-list">
-        <button v-for="f in filtradas" :key="f.id"
-          class="gf-compact-row"
-          :class="{ 'gf-compact-row--active': drawerFalla?.id === f.id }"
-          @click="abrirDrawer(f)">
-          <span class="gf-compact-stripe" :style="{ background: prioColor(f.prioridad?.codigo) }" />
-          <div class="gf-compact-content">
-            <div class="gf-compact-line1">
-              <code class="gf-compact-code">{{ f.codigo_interno }}</code>
-              <span v-if="f.estado?.codigo"
-                class="gf-compact-dot"
-                :style="{ background: colorEstado(f.estado?.codigo, 'var(--color-unergy-purple)') }"
-                v-tooltip.right="f.estado?.etiqueta" />
-            </div>
-            <div class="gf-compact-line2">{{ tituloFalla(f) }}</div>
-          </div>
-        </button>
-      </div>
     </div>
 
-    <!-- ══ TABLA (oculta cuando hay panel en lg+) ═══════════════════════ -->
-    <div :class="['gf-table-wrap', drawerVisible && 'lg:!hidden']">
-      <div v-if="error" class="p-6 flex items-center gap-3 text-red-600">
-        <CircleAlertIcon class="text-xl size-[1em]" />
+    <!-- ══ TABLA ══════════════════════════════════════════════════════════ -->
+    <div class="rounded-xl border bg-card">
+      <div v-if="error" class="flex items-center gap-3 p-6 text-destructive">
+        <CircleAlertIcon class="size-5 shrink-0" />
         <div class="flex-1">
           <div class="font-semibold">Error al cargar</div>
-          <div class="text-sm text-gray-500">{{ error }}</div>
+          <div class="text-sm text-muted-foreground">{{ error }}</div>
         </div>
-        <Button label="Reintentar" outlined size="small" @click="cargar">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
-        </Button>
+        <Button variant="outline" size="sm" @click="cargar()"><RefreshCwIcon /> Reintentar</Button>
       </div>
-      <DataTable v-else :value="filtradas" :loading="loading" rowHover stripedRows
-        class="gf-table text-sm" :rows="25" paginator
-        :rowsPerPageOptions="[15, 25, 50, 100]" :alwaysShowPaginator="false"
-        @row-click="(e) => abrirDrawer(e.data)" selectionMode="single"
-        :rowClass="rowClass" scrollable>
+
+      <DataTable
+        v-else
+        :columns="columns"
+        :rows="paginadas"
+        row-key="id"
+        :sort="sort"
+        :page="pagina"
+        :page-size="filasPorPagina"
+        :total="ordenadas.length"
+        @update:sort="(s) => (sort = s)"
+        @update:page="(p) => (pagina = p)"
+        @row-click="(row) => abrirDrawer(asFalla(row))"
+      >
         <template #empty>
-          <div class="flex flex-col items-center py-14 gap-2 text-gray-400">
-            <component :is="bucketActual.icon" class="text-4xl size-[1em]" :style="{ color: bucketActual.color }" />
-            <p class="text-sm font-semibold text-gray-700">{{ emptyTitulo }}</p>
+          <div class="flex flex-col items-center gap-2 py-14 text-muted-foreground">
+            <component
+              :is="bucketActual.icon"
+              class="size-8"
+              :style="{ color: bucketActual.color }"
+            />
+            <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
             <p class="text-xs">{{ emptySubtitulo }}</p>
-            <Button v-if="bucket === 'activas' && !hayFiltros" label="Registrar primera falla" outlined size="small" class="mt-2" @click="abrirCrear">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+            <Button
+              v-if="bucket === 'activas' && !hayFiltros"
+              variant="outline"
+              size="sm"
+              class="mt-2"
+              @click="abrirCrear"
+            >
+              <PlusIcon /> Registrar primera falla
             </Button>
-            <Button v-else-if="hayFiltros" label="Limpiar filtros" text size="small" class="mt-2" @click="limpiarFiltros">
-              <template #icon><XIcon class="size-[1em]" /></template>
+            <Button
+              v-else-if="hayFiltros"
+              variant="ghost"
+              size="sm"
+              class="mt-2"
+              @click="limpiarFiltros"
+            >
+              <XIcon /> Limpiar filtros
             </Button>
           </div>
         </template>
 
-        <Column header="" style="width:6px;padding:0" :pt="{ headerCell: { style: 'padding:0; border:none' } }">
-          <template #body="{ data }">
-            <div class="prio-stripe" :style="{ background: prioColor(data.prioridad?.codigo) }" />
-          </template>
-        </Column>
-
-        <Column field="codigo_interno" header="Código" style="width:110px" sortable>
-          <template #body="{ data }">
-            <code class="font-mono text-xs text-gray-700 bg-gray-50 px-1.5 py-0.5 rounded">{{ data.codigo_interno }}</code>
-          </template>
-        </Column>
-
-        <Column header="Falla" style="min-width:280px">
-          <template #body="{ data }">
-            <div class="flex items-start gap-2">
-              <span class="cat-dot mt-1.5 flex-shrink-0"
-                :style="{ background: categoriaFalla(data).color }"
-                v-tooltip.top="categoriaFalla(data).etiqueta" />
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium text-gray-800 truncate">{{ tituloFalla(data) }}</div>
-                <div class="text-xs text-gray-500 line-clamp-1">{{ data.descripcion }}</div>
+        <template #cell="{ row, column }">
+          <span
+            v-if="column.key === 'stripe'"
+            class="block h-8 w-1 rounded-full"
+            :style="{ background: prioColor(asFalla(row).prioridad?.codigo) }"
+          />
+          <code
+            v-else-if="column.key === 'codigo'"
+            class="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
+            >{{ asFalla(row).codigo_interno }}</code
+          >
+          <div v-else-if="column.key === 'falla'" class="flex items-start gap-2">
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <span
+                  class="mt-1.5 size-2 shrink-0 rounded-full"
+                  :style="{ background: categoriaFalla(asFalla(row)).color }"
+                />
+              </GTooltipTrigger>
+              <GTooltipContent>{{ categoriaFalla(asFalla(row)).etiqueta }}</GTooltipContent>
+            </GTooltip>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium text-foreground">
+                {{ tituloFalla(asFalla(row)) }}
+              </div>
+              <div class="truncate text-xs text-muted-foreground">
+                {{ asFalla(row).descripcion }}
               </div>
             </div>
-          </template>
-        </Column>
-
-        <Column header="Proyecto" style="min-width:130px">
-          <template #body="{ data }">
-            <span class="text-sm text-gray-700">{{ data.proyecto?.nombre_comercial || '—' }}</span>
-          </template>
-        </Column>
-
-        <Column header="Prioridad" style="width:100px">
-          <template #body="{ data }">
-            <span class="prio-pill" :style="prioPillStyle(data.prioridad?.codigo)">
-              {{ data.prioridad?.etiqueta || '—' }}
-            </span>
-          </template>
-        </Column>
-
-        <Column header="Estado" style="width:130px">
-          <template #body="{ data }">
-            <GBadge :color="colorEstado(data.estado?.codigo)">{{ data.estado?.etiqueta || '—' }}</GBadge>
-          </template>
-        </Column>
-
-        <Column header="Fecha" style="width:100px" field="fecha_identificacion" sortable>
-          <template #body="{ data }">
-            <div class="text-xs">
-              <div class="text-gray-700">{{ fmtFecha(data.fecha_identificacion) }}</div>
-              <div class="text-gray-400">{{ relativeTime(data.fecha_identificacion) }}</div>
+          </div>
+          <span v-else-if="column.key === 'proyecto'" class="text-sm text-foreground">{{
+            asFalla(row).proyecto?.nombre_comercial || '—'
+          }}</span>
+          <GBadge
+            v-else-if="column.key === 'prioridad'"
+            :color="prioColor(asFalla(row).prioridad?.codigo)"
+          >
+            {{ asFalla(row).prioridad?.etiqueta || '—' }}
+          </GBadge>
+          <GBadge
+            v-else-if="column.key === 'estado'"
+            :color="colorEstado(asFalla(row).estado?.codigo)"
+          >
+            {{ asFalla(row).estado?.etiqueta || '—' }}
+          </GBadge>
+          <div v-else-if="column.key === 'fecha'" class="text-xs">
+            <div class="text-foreground">{{ fmtFecha(asFalla(row).fecha_identificacion) }}</div>
+            <div class="text-muted-foreground">
+              {{ relativeTime(asFalla(row).fecha_identificacion) }}
             </div>
-          </template>
-        </Column>
-
-        <Column header="" style="width:120px">
-          <template #body="{ data }">
-            <div class="row-actions" @click.stop>
-              <Button v-if="!data.estado?.es_estado_final" text rounded size="small" severity="success" @click="quickResolve(data)" v-tooltip.left="'Marcar resuelta'">
-                <template #icon><CircleCheckIcon class="size-[1em]" /></template>
-              </Button>
-              <Button text rounded size="small" severity="info" @click="abrirEditar(data)" v-tooltip.left="'Editar'">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
-              </Button>
-              <Button text rounded size="small" severity="secondary" @click="abrirDrawer(data)" v-tooltip.left="'Ver detalle'">
-                <template #icon><ArrowRightIcon class="size-[1em]" /></template>
-              </Button>
-            </div>
-          </template>
-        </Column>
+          </div>
+          <div v-else-if="column.key === 'acciones'" class="flex items-center gap-0.5" @click.stop>
+            <GTooltip v-if="!asFalla(row).estado?.es_estado_final">
+              <GTooltipTrigger as-child>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-success hover:text-success"
+                  @click="quickResolve(asFalla(row))"
+                >
+                  <CircleCheckIcon />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Marcar resuelta</GTooltipContent>
+            </GTooltip>
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="abrirEditar(asFalla(row))">
+                  <PencilIcon />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Editar</GTooltipContent>
+            </GTooltip>
+            <GTooltip>
+              <GTooltipTrigger as-child>
+                <Button variant="ghost" size="icon-sm" @click="abrirDrawer(asFalla(row))">
+                  <ArrowRightIcon />
+                </Button>
+              </GTooltipTrigger>
+              <GTooltipContent>Ver detalle</GTooltipContent>
+            </GTooltip>
+          </div>
+        </template>
       </DataTable>
     </div>
 
-  </div><!-- /gf-main -->
-
-    <!-- ══ PANEL DETALLE ════════════════════════════════════════════════ -->
-    <aside v-if="drawerVisible && drawerFalla" class="gf-aside" @keydown.left.stop="navegar(-1)" @keydown.right.stop="navegar(1)">
-      <!-- Backdrop solo en móvil -->
-      <div class="gf-aside-backdrop" @click="drawerVisible = false" />
-      <div class="gf-aside-panel">
-        <!-- Header panel -->
-        <div class="gf-drawer-header">
-          <Button text rounded size="small" @click="drawerVisible = false" v-tooltip.bottom="'Cerrar (Esc)'">
-            <template #icon><XIcon class="size-[1em]" /></template>
+    <!-- ══ PANEL DETALLE (overlay) ═══════════════════════════════════════ -->
+    <div v-if="drawerVisible && drawerFalla" class="fixed inset-0 z-30 flex justify-end">
+      <div
+        class="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+        @click="drawerVisible = false"
+      />
+      <div
+        class="relative flex h-full w-full max-w-lg flex-col overflow-hidden bg-background shadow-2xl"
+      >
+        <!-- Header -->
+        <div class="flex shrink-0 items-center gap-1 overflow-hidden border-b px-3 py-2.5">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Cerrar (Esc)"
+            @click="drawerVisible = false"
+          >
+            <XIcon />
           </Button>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <code class="font-mono text-sm text-purple-700 bg-purple-50 px-2 py-0.5 rounded">{{ drawerFalla.codigo_interno }}</code>
-              <span class="text-xs text-gray-400">·</span>
-              <span class="text-sm font-medium text-gray-700 truncate">{{ tituloFalla(drawerFalla) }}</span>
-              <span v-if="navIndex >= 0" class="text-[10px] text-gray-400 ml-auto whitespace-nowrap hidden sm:inline-block">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <code class="rounded bg-primary/10 px-2 py-0.5 font-mono text-sm text-primary">{{
+                drawerFalla.codigo_interno
+              }}</code>
+              <span class="text-xs text-muted-foreground">·</span>
+              <span class="truncate text-sm font-medium text-foreground">{{
+                tituloFalla(drawerFalla)
+              }}</span>
+              <span
+                v-if="navIndex >= 0"
+                class="ml-auto hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline-block"
+              >
                 {{ navIndex + 1 }} / {{ filtradas.length }}
               </span>
             </div>
           </div>
-          <Button text rounded size="small" severity="secondary" :disabled="navIndex <= 0" @click="navegar(-1)" v-tooltip.bottom="'Anterior (←)'">
-            <template #icon><ChevronLeftIcon class="size-[1em]" /></template>
+          <ButtonGroup>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Anterior (←)"
+              :disabled="navIndex <= 0"
+              @click="navegar(-1)"
+            >
+              <ChevronLeftIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Siguiente (→)"
+              :disabled="navIndex < 0 || navIndex >= filtradas.length - 1"
+              @click="navegar(1)"
+            >
+              <ChevronRightIcon />
+            </Button>
+          </ButtonGroup>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            title="Abrir página completa"
+            @click="router.push(`/fallas/${drawerFalla.id}`)"
+          >
+            <ExternalLinkIcon />
           </Button>
-          <Button text rounded size="small" severity="secondary" :disabled="navIndex < 0 || navIndex >= filtradas.length - 1" @click="navegar(1)" v-tooltip.bottom="'Siguiente (→)'">
-            <template #icon><ChevronRightIcon class="size-[1em]" /></template>
-          </Button>
-          <Button text rounded size="small" severity="secondary" @click="$router.push(`/fallas/${drawerFalla.id}`)" v-tooltip.bottom="'Abrir página completa'">
-            <template #icon><ExternalLinkIcon class="size-[1em]" /></template>
-          </Button>
-          <Button text rounded size="small" severity="danger" @click="confirmDelete(drawerFalla)" v-tooltip.bottom="'Eliminar'">
-            <template #icon><Trash2Icon class="size-[1em]" /></template>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="text-destructive hover:text-destructive"
+            title="Eliminar"
+            @click="confirmDelete(drawerFalla)"
+          >
+            <Trash2Icon />
           </Button>
         </div>
 
-        <!-- Body drawer -->
-        <div class="gf-drawer-body">
-
-          <!-- ── HERO: identificación + descripción + badges + hechos ─── -->
-          <section class="gf-hero">
-            <!-- Descripción prominente (el "qué pasa") -->
-            <p class="gf-hero-desc">{{ drawerFalla.descripcion }}</p>
-
-            <!-- Badges (estado, prioridad, categoría) -->
+        <!-- Body -->
+        <div class="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <!-- Hero -->
+          <section
+            class="flex flex-col gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5"
+          >
+            <p class="text-sm font-medium whitespace-pre-line text-foreground">
+              {{ drawerFalla.descripcion }}
+            </p>
             <div class="flex flex-wrap gap-1.5">
-              <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{ drawerFalla.estado?.etiqueta }}</GBadge>
-              <span class="prio-pill" :style="prioPillStyle(drawerFalla.prioridad?.codigo)">
-                {{ drawerFalla.prioridad?.etiqueta }}
-              </span>
-              <GBadge v-if="categoriaFalla(drawerFalla).etiqueta"
-                :color="categoriaFalla(drawerFalla).color || '#915BD8'">{{ categoriaFalla(drawerFalla).etiqueta }}</GBadge>
+              <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{
+                drawerFalla.estado?.etiqueta
+              }}</GBadge>
+              <GBadge :color="prioColor(drawerFalla.prioridad?.codigo)">{{
+                drawerFalla.prioridad?.etiqueta
+              }}</GBadge>
+              <GBadge
+                v-if="categoriaFalla(drawerFalla).etiqueta"
+                :color="categoriaFalla(drawerFalla).color || '#915BD8'"
+              >
+                {{ categoriaFalla(drawerFalla).etiqueta }}
+              </GBadge>
             </div>
-
-            <!-- Hechos en grid compacto (todo a un vistazo) -->
-            <dl class="gf-facts">
-              <div class="gf-fact">
-                <dt class="gf-fact-label"><BuildingIcon class="size-[1em]" /> Proyecto</dt>
-                <dd class="gf-fact-value">{{ drawerFalla.proyecto?.nombre_comercial || '—' }}</dd>
-              </div>
-              <div class="gf-fact">
-                <dt class="gf-fact-label"><CalendarIcon class="size-[1em]" /> Identificada</dt>
-                <dd class="gf-fact-value">
-                  {{ fmtFecha(drawerFalla.fecha_identificacion) }}<span v-if="drawerFalla.hora_identificacion"> · {{ fmtHora(drawerFalla.hora_identificacion) }}</span>
-                  <span class="text-gray-500"> · {{ relativeTime(drawerFalla.fecha_identificacion) }}</span>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-primary/20 pt-3">
+              <div class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <BuildingIcon class="size-3" /> Proyecto
+                </dt>
+                <dd class="text-sm font-medium text-foreground">
+                  {{ drawerFalla.proyecto?.nombre_comercial || '—' }}
                 </dd>
               </div>
-              <div class="gf-fact">
-                <dt class="gf-fact-label"><UserPenIcon class="size-[1em]" /> Registrado por</dt>
-                <dd class="gf-fact-value">{{ drawerFalla.registrado_por?.nombre || '—' }}</dd>
+              <div class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <CalendarIcon class="size-3" /> Identificada
+                </dt>
+                <dd class="text-sm font-medium text-foreground">
+                  {{ fmtFecha(drawerFalla.fecha_identificacion)
+                  }}<span v-if="drawerFalla.hora_identificacion">
+                    · {{ fmtHora(drawerFalla.hora_identificacion) }}</span
+                  >
+                  <span class="text-muted-foreground">
+                    · {{ relativeTime(drawerFalla.fecha_identificacion) }}</span
+                  >
+                </dd>
               </div>
-              <div v-if="drawerFalla.fecha_resolucion" class="gf-fact">
-                <dt class="gf-fact-label"><CircleCheckIcon class="size-[1em]" /> Resuelta</dt>
-                <dd class="gf-fact-value text-emerald-700 font-semibold">{{ fmtFechaHora(drawerFalla.fecha_resolucion) }}</dd>
+              <div class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <UserPenIcon class="size-3" /> Registrado por
+                </dt>
+                <dd class="text-sm font-medium text-foreground">
+                  {{ drawerFalla.registrado_por?.nombre || '—' }}
+                </dd>
               </div>
-              <div v-if="drawerFalla.tiempo_afectacion_horas != null" class="gf-fact">
-                <dt class="gf-fact-label"><ClockIcon class="size-[1em]" /> Tiempo de afectación</dt>
-                <dd class="gf-fact-value font-semibold" style="color:#b45309">{{ fmtDuracion(drawerFalla.tiempo_afectacion_horas) }}</dd>
+              <div v-if="drawerFalla.fecha_resolucion" class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <CircleCheckIcon class="size-3" /> Resuelta
+                </dt>
+                <dd class="text-sm font-semibold text-success">
+                  {{ fmtFechaHora(drawerFalla.fecha_resolucion) }}
+                </dd>
               </div>
-              <div v-if="drawerFalla.kwh_perdidos_estimado != null" class="gf-fact">
-                <dt class="gf-fact-label"><ZapIcon class="size-[1em]" /> Energía perdida</dt>
-                <dd class="gf-fact-value text-red-700 font-semibold">{{ Number(drawerFalla.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</dd>
+              <div v-if="drawerFalla.tiempo_afectacion_horas != null" class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <ClockIcon class="size-3" /> Tiempo de afectación
+                </dt>
+                <dd class="text-sm font-semibold text-warning">
+                  {{ fmtDuracion(drawerFalla.tiempo_afectacion_horas) }}
+                </dd>
+              </div>
+              <div v-if="drawerFalla.kwh_perdidos_estimado != null" class="flex flex-col gap-0.5">
+                <dt
+                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                >
+                  <ZapIcon class="size-3" /> Energía perdida
+                </dt>
+                <dd class="text-sm font-semibold text-destructive">
+                  {{ Number(drawerFalla.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh
+                </dd>
               </div>
             </dl>
           </section>
 
-          <!-- ── EDICIÓN RÁPIDA + SLA (grid 2-col en pantallas anchas) ─── -->
-          <div class="gf-twocol">
-            <!-- Quick actions con autosave -->
-            <section class="gf-section gf-section--filled">
-              <header class="gf-section-head">
-                <ZapIcon class="gf-section-icon size-[1em]" />
-                <h3 class="gf-section-title">Edición rápida</h3>
-                <span v-if="savingQuick" class="gf-save-flag">
-                  <LoaderCircleIcon class="size-[1em] animate-spin" /> Guardando…
+          <!-- Edición rápida + SLA -->
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <section class="flex flex-col gap-2 rounded-xl border bg-muted/40 p-3.5">
+              <header class="flex items-center gap-2">
+                <ZapIcon class="size-3.5 text-primary" />
+                <h3 class="text-sm font-bold text-foreground">Edición rápida</h3>
+                <span
+                  v-if="savingQuick"
+                  class="ml-auto flex items-center gap-1 text-xs text-muted-foreground"
+                >
+                  <LoaderCircleIcon class="size-3.5 animate-spin" /> Guardando…
                 </span>
-                <span v-else-if="savedFlash" class="gf-save-flag gf-save-flag--ok">
-                  <CheckIcon class="size-[1em]" /> Guardado
+                <span
+                  v-else-if="savedFlash"
+                  class="ml-auto flex items-center gap-1 text-xs font-semibold text-success"
+                >
+                  <CheckIcon class="size-3.5" /> Guardado
                 </span>
               </header>
-              <div class="space-y-2">
-                <div class="gf-field-row">
-                  <label class="gf-field-label">Estado</label>
-                  <Select v-model="quickEdit.estado_id" :options="catalogos.estados"
-                    optionLabel="etiqueta" optionValue="id" class="flex-1"
-                    @change="autosaveQuick()" />
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                  <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
+                    >Estado</label
+                  >
+                  <Select
+                    :model-value="quickEdit.estado_id ? String(quickEdit.estado_id) : undefined"
+                    @update:model-value="
+                      (v) => {
+                        quickEdit.estado_id = v ? Number(v) : null
+                        autosaveQuick()
+                      }
+                    "
+                  >
+                    <SelectTrigger size="sm" class="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="e in catalogos.estados"
+                        :key="e.id"
+                        :value="String(e.id)"
+                        >{{ e.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div class="gf-field-row">
-                  <label class="gf-field-label">Prioridad</label>
-                  <Select v-model="quickEdit.prioridad_id" :options="catalogos.prioridades"
-                    optionLabel="etiqueta" optionValue="id" class="flex-1"
-                    @change="autosaveQuick()" />
+                <div class="flex items-center gap-2">
+                  <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
+                    >Prioridad</label
+                  >
+                  <Select
+                    :model-value="
+                      quickEdit.prioridad_id ? String(quickEdit.prioridad_id) : undefined
+                    "
+                    @update:model-value="
+                      (v) => {
+                        quickEdit.prioridad_id = v ? Number(v) : null
+                        autosaveQuick()
+                      }
+                    "
+                  >
+                    <SelectTrigger size="sm" class="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="p in catalogos.prioridades"
+                        :key="p.id"
+                        :value="String(p.id)"
+                        >{{ p.etiqueta }}</SelectItem
+                      >
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </section>
 
-            <!-- SLA -->
-            <section class="gf-section gf-section--filled">
-              <header class="gf-section-head">
-                <ClockIcon class="gf-section-icon size-[1em]" />
-                <h3 class="gf-section-title">SLA</h3>
-                <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{ slaText(drawerFalla) }}</GBadge>
+            <section class="flex flex-col gap-1 rounded-xl border bg-muted/40 p-3.5">
+              <header class="flex items-center gap-2">
+                <ClockIcon class="size-3.5 text-primary" />
+                <h3 class="text-sm font-bold text-foreground">SLA</h3>
+                <GBadge class="ml-auto" :color="slaSeverity(drawerFalla)">{{
+                  slaText(drawerFalla)
+                }}</GBadge>
               </header>
-              <div class="gf-sla-stat">
-                <span class="gf-sla-num" :style="{ color: slaTextColor(drawerFalla) }">{{ horasTranscurridas(drawerFalla) }}h</span>
-                <span class="gf-sla-of">de {{ drawerFalla.sla_limite_horas_efectivo }}h</span>
+              <div class="mt-1 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold" :style="{ color: slaTextColor(drawerFalla) }">
+                  {{ horasTranscurridas(drawerFalla) }}h
+                </span>
+                <span class="text-sm font-semibold text-muted-foreground">
+                  de {{ drawerFalla.sla_limite_horas_efectivo }}h
+                </span>
               </div>
-              <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
-                <div class="h-full rounded-full transition-all" :style="slaFillStyle(drawerFalla)" />
+              <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  class="h-full rounded-full transition-all"
+                  :style="slaFillStyle(drawerFalla)"
+                />
               </div>
             </section>
           </div>
 
-          <!-- ── ACCIÓN SUGERIDA (alta visibilidad si existe) ──────────── -->
-          <aside v-if="drawerFalla.tipo?.accion_sugerida" class="gf-suggestion">
-            <div class="gf-suggestion-icon"><LightbulbIcon class="size-[1em]" /></div>
+          <!-- Acción sugerida -->
+          <aside
+            v-if="drawerFalla.tipo?.accion_sugerida"
+            class="flex gap-3 rounded-xl border border-warning/30 bg-warning/10 p-3"
+          >
+            <div
+              class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-warning/20 text-warning"
+            >
+              <LightbulbIcon class="size-4" />
+            </div>
             <div>
-              <p class="gf-suggestion-label">Acción sugerida</p>
-              <p class="gf-suggestion-text">{{ drawerFalla.tipo.accion_sugerida }}</p>
+              <p class="text-[11px] font-bold text-warning uppercase">Acción sugerida</p>
+              <p class="text-sm text-foreground">{{ drawerFalla.tipo.accion_sugerida }}</p>
             </div>
           </aside>
 
-          <!-- ── ANÁLISIS ──────────────────────────────────────────────── -->
-          <section v-if="drawerFalla.causa_raiz || drawerFalla.acciones_correctivas" class="gf-section">
-            <header class="gf-section-head">
-              <SearchIcon class="gf-section-icon size-[1em]" />
-              <h3 class="gf-section-title">Análisis</h3>
+          <!-- Análisis -->
+          <section
+            v-if="drawerFalla.causa_raiz || drawerFalla.acciones_correctivas"
+            class="flex flex-col gap-3 rounded-xl border p-3.5"
+          >
+            <header class="flex items-center gap-2">
+              <SearchIcon class="size-3.5 text-primary" />
+              <h3 class="text-sm font-bold text-foreground">Análisis</h3>
             </header>
-            <div class="space-y-3">
-              <div v-if="drawerFalla.causa_raiz">
-                <p class="gf-subhead">Causa raíz</p>
-                <p class="gf-body-text">{{ drawerFalla.causa_raiz }}</p>
-              </div>
-              <div v-if="drawerFalla.acciones_correctivas">
-                <p class="gf-subhead">Acciones correctivas</p>
-                <p class="gf-body-text">{{ drawerFalla.acciones_correctivas }}</p>
-              </div>
+            <div v-if="drawerFalla.causa_raiz">
+              <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                Causa raíz
+              </p>
+              <p class="text-sm text-foreground">{{ drawerFalla.causa_raiz }}</p>
+            </div>
+            <div v-if="drawerFalla.acciones_correctivas">
+              <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                Acciones correctivas
+              </p>
+              <p class="text-sm text-foreground">{{ drawerFalla.acciones_correctivas }}</p>
             </div>
           </section>
 
-          <!-- ── SEGUIMIENTOS ──────────────────────────────────────────── -->
-          <section class="gf-section">
-            <header class="gf-section-head">
-              <MessagesSquareIcon class="gf-section-icon size-[1em]" />
-              <h3 class="gf-section-title">Seguimientos</h3>
-              <span class="gf-section-count">{{ drawerFalla.seguimientos?.length || 0 }}</span>
+          <!-- Seguimientos -->
+          <section class="flex flex-col gap-3 rounded-xl border p-3.5">
+            <header class="flex items-center gap-2">
+              <MessagesSquareIcon class="size-3.5 text-primary" />
+              <h3 class="text-sm font-bold text-foreground">Seguimientos</h3>
+              <Badge variant="secondary" class="ml-auto">{{
+                drawerFalla.seguimientos?.length || 0
+              }}</Badge>
             </header>
 
-            <!-- Add note -->
-            <div class="gf-add-note">
-              <Textarea v-model="nuevaNota.nota" rows="2" autoResize
-                placeholder="Agregar nota o actualización…" class="w-full" />
-              <div class="flex items-center gap-2 mt-2">
-                <Select v-model="nuevaNota.estado_id" :options="catalogos.estados"
-                  optionLabel="etiqueta" optionValue="id" placeholder="Cambiar estado (opcional)"
-                  showClear class="flex-1" />
-                <Button label="Agregar" size="small" :disabled="!nuevaNota.nota.trim() && !nuevaNota.estado_id" :loading="addingSeg" @click="agregarSeguimiento">
-                  <template #icon><SendIcon class="size-[1em]" /></template>
+            <div class="flex flex-col gap-2 rounded-lg border bg-muted/40 p-2.5">
+              <Textarea
+                v-model="nuevaNota.nota"
+                rows="2"
+                placeholder="Agregar nota o actualización…"
+              />
+              <div class="flex items-center gap-2">
+                <Select
+                  :model-value="nuevaNota.estado_id ? String(nuevaNota.estado_id) : undefined"
+                  @update:model-value="(v) => (nuevaNota.estado_id = v ? Number(v) : null)"
+                >
+                  <SelectTrigger size="sm" class="flex-1">
+                    <SelectValue placeholder="Cambiar estado (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="e in catalogos.estados" :key="e.id" :value="String(e.id)">{{
+                      e.etiqueta
+                    }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  :disabled="(!nuevaNota.nota.trim() && !nuevaNota.estado_id) || addingSeg"
+                  @click="agregarSeguimiento"
+                >
+                  <LoaderCircleIcon v-if="addingSeg" class="animate-spin" />
+                  <SendIcon v-else />
+                  Agregar
                 </Button>
               </div>
             </div>
 
-            <!-- Timeline -->
-            <div v-if="cargandoSeguimientos" class="flex items-center gap-2 mt-3 text-sm" style="color: #9b89b5;">
-              <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando seguimientos…
+            <div
+              v-if="cargandoSeguimientos"
+              class="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <LoaderCircleIcon class="size-3.5 animate-spin" /> Cargando seguimientos…
             </div>
-            <div v-else-if="sortedSeguimientos.length" class="space-y-3 mt-3">
+            <div v-else-if="sortedSeguimientos.length" class="flex flex-col gap-3">
               <div v-for="seg in sortedSeguimientos" :key="seg.id" class="flex gap-2.5">
-                <div class="avatar-md flex-shrink-0" :style="avatarStyle(seg.usuario)">
+                <div
+                  class="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  :style="avatarStyle(seg.usuario)"
+                >
                   {{ initials(seg.usuario?.nombre) }}
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span class="gf-body-text font-semibold">{{ seg.usuario?.nombre || 'Sistema' }}</span>
-                    <span class="text-xs text-gray-500">{{ relativeTime(seg.created_at, true) }}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="mb-0.5 flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-semibold text-foreground">{{
+                      seg.usuario?.nombre || 'Sistema'
+                    }}</span>
+                    <span class="text-xs text-muted-foreground">{{
+                      relativeTime(seg.created_at)
+                    }}</span>
                   </div>
-                  <p v-if="seg.nota" class="gf-body-text whitespace-pre-line">{{ seg.nota }}</p>
+                  <p v-if="seg.nota" class="text-sm whitespace-pre-line text-foreground">
+                    {{ seg.nota }}
+                  </p>
                   <div v-if="seg.estado_nuevo" class="mt-1.5">
-                    <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)">{{ seg.estado_nuevo?.etiqueta }}</GBadge>
+                    <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)">{{
+                      seg.estado_nuevo?.etiqueta
+                    }}</GBadge>
                   </div>
                 </div>
               </div>
             </div>
-            <p v-else class="text-sm text-gray-500 mt-3">Aún no hay seguimientos registrados.</p>
+            <p v-else class="text-sm text-muted-foreground">Aún no hay seguimientos registrados.</p>
           </section>
 
-          <!-- ── ACCIONES PRINCIPALES (final del scroll) ───────────────── -->
-          <div class="gf-actions-inline">
-            <Button label="Editar completa" outlined class="flex-1" @click="editarDesdeDrawer">
-              <template #icon><PencilIcon class="size-[1em]" /></template>
+          <!-- Acciones principales -->
+          <div class="flex flex-wrap gap-2 pt-1">
+            <Button variant="outline" class="flex-1" @click="editarDesdeDrawer">
+              <PencilIcon /> Editar completa
             </Button>
-            <Button v-if="!drawerFalla.estado?.es_estado_final" label="Marcar resuelta" severity="success" class="flex-1" :loading="resolvingFalla" @click="quickResolve(drawerFalla)">
-              <template #icon><CheckIcon class="size-[1em]" /></template>
+            <Button
+              v-if="!drawerFalla.estado?.es_estado_final"
+              class="text-success-foreground flex-1 bg-success hover:bg-success/90"
+              :disabled="resolvingFalla"
+              @click="quickResolve(drawerFalla)"
+            >
+              <LoaderCircleIcon v-if="resolvingFalla" class="animate-spin" />
+              <CheckIcon v-else />
+              Marcar resuelta
             </Button>
-            <Button v-else label="Reabrir" severity="warn" outlined class="flex-1" @click="reabrirFalla">
-              <template #icon><RotateCcwIcon class="size-[1em]" /></template>
+            <Button
+              v-else
+              variant="outline"
+              class="flex-1 text-warning hover:text-warning"
+              @click="reabrirFalla"
+            >
+              <RotateCcwIcon /> Reabrir
             </Button>
           </div>
-
         </div>
-      </div><!-- /gf-aside-panel -->
-    </aside>
-
-  </div><!-- /gf-layout -->
+      </div>
+    </div>
 
     <!-- ══ DIALOG CREAR / EDITAR ══════════════════════════════════════════ -->
-    <Dialog v-model:visible="formDialogVisible" modal class="w-full max-w-2xl"
-      :header="editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'"
-      :closable="!savingForm">
-      <FallaForm :initial="editingFalla" :catalogos="catalogos" :proyectos="proyectos"
-        @save="onSaveForm" @cancel="formDialogVisible = false" />
+    <Dialog v-model:open="formDialogVisible">
+      <DialogContent
+        class="max-h-[90dvh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]"
+        :show-close-button="!savingForm"
+        @escape-key-down="(e) => savingForm && e.preventDefault()"
+        @pointer-down-outside="(e) => savingForm && e.preventDefault()"
+      >
+        <DialogHeader>
+          <DialogTitle>{{
+            editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
+          }}</DialogTitle>
+        </DialogHeader>
+        <div class="-mx-6 min-h-0 overflow-y-auto px-6">
+          <FallaForm
+            :initial="editingFalla"
+            :catalogos="catalogos"
+            :proyectos="proyectos"
+            @save="onSaveForm"
+            @cancel="formDialogVisible = false"
+          />
+        </div>
+      </DialogContent>
     </Dialog>
 
-    <!-- ══ DIALOG RESOLVER (confirmar/editar fecha y hora de cierre) ══════ -->
-    <Dialog v-model:visible="resolveDialog.visible" modal class="w-full max-w-md"
-      header="Resolver falla" :closable="!resolvingFalla">
-      <div v-if="resolveDialog.falla" class="gf-resolve-body">
-        <p class="gf-resolve-text">
-          Vas a marcar la falla <strong>{{ resolveDialog.falla.codigo_interno }}</strong> como
-          <strong>{{ resolveDialog.estadoEtiqueta?.toLowerCase() }}</strong>.
-          Confirma o edita la fecha y hora de cierre:
-        </p>
-        <label class="gf-resolve-label">Fecha y hora de solución *</label>
-        <DatePicker v-model="resolveDialog.fecha" dateFormat="yy-mm-dd" showTime hourFormat="24"
-          placeholder="AAAA-MM-DD HH:mm" class="w-full" showIcon />
-        <small v-if="resolveDialog.error" class="gf-resolve-error">{{ resolveDialog.error }}</small>
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" :disabled="resolvingFalla"
-          @click="resolveDialog.visible = false" />
-        <Button label="Marcar resuelta" severity="success" :loading="resolvingFalla" @click="confirmarResolver">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
-        </Button>
-      </template>
+    <!-- ══ DIALOG RESOLVER ═══════════════════════════════════════════════ -->
+    <Dialog v-model:open="resolveDialogVisible">
+      <DialogContent
+        class="max-w-sm"
+        :show-close-button="!resolvingFalla"
+        @escape-key-down="(e) => resolvingFalla && e.preventDefault()"
+        @pointer-down-outside="(e) => resolvingFalla && e.preventDefault()"
+      >
+        <DialogHeader>
+          <DialogTitle>Resolver falla</DialogTitle>
+        </DialogHeader>
+        <div v-if="resolveFallaTarget" class="flex flex-col gap-3 py-1">
+          <p class="text-sm text-muted-foreground">
+            Vas a marcar la falla
+            <strong class="text-foreground">{{ resolveFallaTarget.codigo_interno }}</strong> como
+            <strong class="text-foreground">resuelta</strong>. Confirma o edita la fecha y hora de
+            cierre:
+          </p>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">Fecha y hora de solución</Label>
+            <Input
+              type="datetime-local"
+              :model-value="toDatetimeLocalValue(resolveFecha)"
+              @update:model-value="(v) => (resolveFecha = v ? new Date(String(v)) : new Date())"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            :disabled="resolvingFalla"
+            @click="resolveDialogVisible = false"
+          >
+            Cancelar
+          </Button>
+          <Button
+            class="text-success-foreground bg-success hover:bg-success/90"
+            :disabled="resolvingFalla"
+            @click="confirmarResolver"
+          >
+            <LoaderCircleIcon v-if="resolvingFalla" class="animate-spin" />
+            <CheckIcon v-else />
+            Marcar resuelta
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
-
-  </div><!-- /outer space-y-4 -->
+  </div>
 </template>
 
-<script setup>
-import { ArrowRightIcon, BuildingIcon, CalendarClockIcon, CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleAlertIcon, CircleCheckIcon, ClockIcon, ExternalLinkIcon, InboxIcon, LightbulbIcon, ListIcon, LoaderCircleIcon, MessagesSquareIcon, PencilIcon, PlusIcon, RefreshCwIcon, RotateCcwIcon, SearchIcon, SendIcon, Trash2Icon, UserPenIcon, XIcon, ZapIcon } from '@lucide/vue'
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+<script setup lang="ts">
+import type { Component } from 'vue'
+import {
+  ArrowRightIcon,
+  BuildingIcon,
+  CalendarClockIcon,
+  CalendarIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  ClockIcon,
+  ExternalLinkIcon,
+  LightbulbIcon,
+  ListIcon,
+  LoaderCircleIcon,
+  MessagesSquareIcon,
+  PencilIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  SearchIcon,
+  SendIcon,
+  Trash2Icon,
+  UserPenIcon,
+  XIcon,
+  ZapIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import DatePicker from 'primevue/datepicker'
-import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
+import { normalizeError } from '~/core/errors'
+// Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de `DataTable`.
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+  type DataTableSort,
+} from '~/components/blocks/DataTable.vue'
+import DatePicker from '~/components/blocks/DatePicker.vue'
+import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
+import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
 import FallaForm from '~/features/fallas/components/FallaForm.vue'
 import { FallasService } from '~/features/fallas/services/fallas'
-import { tituloFalla, categoriaFalla } from '~/features/fallas/utils/fallaTitulo'
+import type { CatalogosFalla, Falla, PayloadFalla, PayloadFallaForm } from '~/features/fallas/types'
+import { categoriaFalla, tituloFalla } from '~/features/fallas/utils/fallaTitulo'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import type { ProyectoConDetalle } from '~/features/proyectos/types'
 
 const route = useRoute()
 const router = useRouter()
 const fallasService = new FallasService()
-// El catalogo de plantas se pide UNA vez para toda la aplicacion:
-// ver ~/composables/useProyectosCatalogo.
+// El catálogo de plantas se pide UNA vez para toda la aplicación: ver ~/composables/useProyectosCatalogo.
 const catalogoProyectos = useProyectosCatalogo()
 const confirm = useConfirm()
 
-// ── Constantes ──────────────────────────────────────────────────────────
-const BUCKETS = [
-  { key: 'activas',     label: 'Activas',     icon: ZapIcon,          color: '#dc2626' },
-  { key: 'programadas', label: 'Programadas', icon: CalendarClockIcon,color: '#2563eb' },
-  { key: 'resueltas',   label: 'Resueltas',   icon: CircleCheckIcon,  color: '#16a34a' },
-  { key: 'todas',       label: 'Todas',       icon: ListIcon,          color: '#915BD8' },
+// ── Constantes ───────────────────────────────────────────────────────────
+type BucketKey = 'activas' | 'programadas' | 'resueltas' | 'todas'
+interface Bucket {
+  key: BucketKey
+  label: string
+  icon: Component
+  color: string
+}
+const BUCKETS: Bucket[] = [
+  { key: 'activas', label: 'Activas', icon: ZapIcon, color: '#dc2626' },
+  { key: 'programadas', label: 'Programadas', icon: CalendarClockIcon, color: '#2563eb' },
+  { key: 'resueltas', label: 'Resueltas', icon: CircleCheckIcon, color: '#16a34a' },
+  { key: 'todas', label: 'Todas', icon: ListIcon, color: '#915BD8' },
 ]
 
-const AVATAR_PALETTE = ['#915BD8', '#2563eb', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#7c3aed', '#db2777']
+const AVATAR_PALETTE = [
+  '#915BD8',
+  '#2563eb',
+  '#16a34a',
+  '#d97706',
+  '#dc2626',
+  '#0891b2',
+  '#7c3aed',
+  '#db2777',
+]
 
 // ── Estado base ──────────────────────────────────────────────────────────
-const allFallas = ref([])
-const proyectos = ref([])
-const catalogos = ref({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
+const allFallas = ref<Falla[]>([])
+const proyectos = ref<ProyectoConDetalle[]>([])
+const catalogos = ref<CatalogosFalla>({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 
 const loading = ref(false)
-const error = ref(null)
+const error = ref<string | null>(null)
 
-const bucket = ref('todas')
-// Sincronizados con la URL (?q=&proyecto=&prioridad=&estado=&desde=&hasta=)
-// para que se sostengan al volver con "atras" o al refrescar.
-const search = ref(route.query.q || '')
-const filtroProyecto = ref(route.query.proyecto ? Number(route.query.proyecto) : null)
-const filtroPrioridad = ref(route.query.prioridad || null)
-const filtroEstado = ref(route.query.estado || null)
-const filtroFechaDesde = ref(route.query.desde ? new Date(route.query.desde) : null)
-const filtroFechaHasta = ref(route.query.hasta ? new Date(route.query.hasta) : null)
+const bucket = ref<BucketKey>('todas')
+// Sincronizados con la URL (?q=&proyecto=&prioridad=&estado=&desde=&hasta=) para
+// que se sostengan al volver con "atrás" o al refrescar.
+function queryStr(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+const search = ref(queryStr(route.query.q))
+const filtroProyecto = ref<number | null>(
+  route.query.proyecto ? Number(route.query.proyecto) : null,
+)
+const filtroPrioridad = ref(queryStr(route.query.prioridad))
+const filtroEstado = ref(queryStr(route.query.estado))
+/** `blocks/DatePicker` trabaja en ISO `yyyy-mm-dd` — igual que el query param. */
+const filtroFechaDesde = ref<string | null>(queryStr(route.query.desde) || null)
+const filtroFechaHasta = ref<string | null>(queryStr(route.query.hasta) || null)
 
-watch([search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
+/** El filtro de proyecto de la barra es un `ComboBox` (string) — `''` es "todos". */
+const filtroProyectoStr = computed<string | null>({
+  get: () => (filtroProyecto.value != null ? String(filtroProyecto.value) : ''),
+  set: (v) => {
+    filtroProyecto.value = v ? Number(v) : null
+  },
+})
+const proyectoOpciones = computed<ComboBoxOption[]>(() => [
+  { label: 'Todos los proyectos', value: '' },
+  ...proyectos.value.map((p) => ({ label: p.nombre_comercial ?? '', value: String(p.id) })),
+])
+
+watch(
+  [search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
   ([q, proyecto, prioridad, estado, desde, hasta]) => {
-    const query = {}
-    if (q) query.q = q
-    if (proyecto) query.proyecto = proyecto
-    if (prioridad) query.prioridad = prioridad
-    if (estado) query.estado = estado
-    if (desde) query.desde = desde.toISOString().split('T')[0]
-    if (hasta) query.hasta = hasta.toISOString().split('T')[0]
+    const query: Record<string, string> = {}
+    if (q) query.q = String(q)
+    if (proyecto) query.proyecto = String(proyecto)
+    if (prioridad) query.prioridad = String(prioridad)
+    if (estado) query.estado = String(estado)
+    if (desde) query.desde = String(desde)
+    if (hasta) query.hasta = String(hasta)
     router.replace({ query })
-  })
+  },
+)
 
-const searchInputRef = ref(null)
-
-// Refs para medir la altura real del header sticky y anclar la lista compacta
-const pageRef = ref(null)
-const stickyHeaderRef = ref(null)
+const searchInputRef = ref<{ $el?: HTMLElement } | null>(null)
 
 // ── Drawer / detalle ─────────────────────────────────────────────────────
 const drawerVisible = ref(false)
-const drawerFalla = ref(null)
-const quickEdit = reactive({
+const drawerFalla = ref<Falla | null>(null)
+const quickEdit = reactive<{ estado_id: number | null; prioridad_id: number | null }>({
   estado_id: null,
   prioridad_id: null,
 })
 const savingQuick = ref(false)
 const savedFlash = ref(false)
 const resolvingFalla = ref(false)
-const resolveDialog = reactive({
-  visible: false, falla: null, estadoId: null, estadoEtiqueta: '', fecha: null, error: '',
-})
+const resolveDialogVisible = ref(false)
+const resolveFallaTarget = ref<Falla | null>(null)
+const resolveFecha = ref(new Date())
 const addingSeg = ref(false)
-const nuevaNota = reactive({ nota: '', estado_id: null })
+const nuevaNota = reactive<{ nota: string; estado_id: number | null }>({
+  nota: '',
+  estado_id: null,
+})
 
 // ── Dialog formulario ────────────────────────────────────────────────────
 const formDialogVisible = ref(false)
-const editingFalla = ref(null)
+const editingFalla = ref<Falla | null>(null)
 const savingForm = ref(false)
 
-// ── Computed ─────────────────────────────────────────────────────────────
+// ── Computed: buckets/filtros ────────────────────────────────────────────
+const hoy = new Date()
+hoy.setHours(0, 0, 0, 0)
 
-const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
-
-function bucketDeFalla(f) {
+function bucketDeFalla(f: Falla): BucketKey {
   if (f.estado?.es_estado_final) return 'resueltas'
   const fid = f.fecha_identificacion ? new Date(f.fecha_identificacion + 'T00:00:00') : null
   if (fid && fid.getTime() > hoy.getTime()) return 'programadas'
@@ -567,187 +888,232 @@ function bucketDeFalla(f) {
 }
 
 const counts = computed(() => {
-  const c = { activas: 0, programadas: 0, resueltas: 0, todas: allFallas.value.length }
+  const c: Record<BucketKey, number> = {
+    activas: 0,
+    programadas: 0,
+    resueltas: 0,
+    todas: allFallas.value.length,
+  }
   for (const f of allFallas.value) c[bucketDeFalla(f)]++
   return c
 })
 
 const porBucket = computed(() => {
   if (bucket.value === 'todas') return allFallas.value
-  return allFallas.value.filter(f => bucketDeFalla(f) === bucket.value)
+  return allFallas.value.filter((f) => bucketDeFalla(f) === bucket.value)
 })
 
 const filtradas = computed(() => {
   let arr = porBucket.value
   const q = search.value.trim().toLowerCase()
   if (q) {
-    arr = arr.filter(f =>
-      (f.codigo_interno || '').toLowerCase().includes(q) ||
-      (f.descripcion || '').toLowerCase().includes(q) ||
-      (f.proyecto?.nombre_comercial || '').toLowerCase().includes(q) ||
-      tituloFalla(f).toLowerCase().includes(q) ||
-      categoriaFalla(f).etiqueta.toLowerCase().includes(q)
+    arr = arr.filter(
+      (f) =>
+        (f.codigo_interno || '').toLowerCase().includes(q) ||
+        (f.descripcion || '').toLowerCase().includes(q) ||
+        (f.proyecto?.nombre_comercial || '').toLowerCase().includes(q) ||
+        tituloFalla(f).toLowerCase().includes(q) ||
+        categoriaFalla(f).etiqueta.toLowerCase().includes(q),
     )
   }
-  if (filtroProyecto.value) arr = arr.filter(f => f.proyecto?.id === filtroProyecto.value)
-  if (filtroPrioridad.value) arr = arr.filter(f => f.prioridad?.codigo === filtroPrioridad.value)
-  if (filtroEstado.value) arr = arr.filter(f => f.estado?.codigo === filtroEstado.value)
+  if (filtroProyecto.value) arr = arr.filter((f) => f.proyecto?.id === filtroProyecto.value)
+  if (filtroPrioridad.value) arr = arr.filter((f) => f.prioridad?.codigo === filtroPrioridad.value)
+  if (filtroEstado.value) arr = arr.filter((f) => f.estado?.codigo === filtroEstado.value)
   if (filtroFechaDesde.value) {
-    const desde = startOfDay(filtroFechaDesde.value)
-    arr = arr.filter(f => f.fecha_identificacion && new Date(f.fecha_identificacion + 'T00:00:00') >= desde)
+    const desde = filtroFechaDesde.value
+    arr = arr.filter((f) => f.fecha_identificacion && f.fecha_identificacion >= desde)
   }
   if (filtroFechaHasta.value) {
-    const hasta = startOfDay(filtroFechaHasta.value); hasta.setHours(23, 59, 59, 999)
-    arr = arr.filter(f => f.fecha_identificacion && new Date(f.fecha_identificacion + 'T00:00:00') <= hasta)
+    const hasta = filtroFechaHasta.value
+    arr = arr.filter((f) => f.fecha_identificacion && f.fecha_identificacion <= hasta)
   }
   return arr
 })
 
-const hayFiltros = computed(() =>
-  search.value || filtroProyecto.value || filtroPrioridad.value ||
-  filtroEstado.value || filtroFechaDesde.value || filtroFechaHasta.value
+const hayFiltros = computed(
+  () =>
+    !!(
+      search.value ||
+      filtroProyecto.value ||
+      filtroPrioridad.value ||
+      filtroEstado.value ||
+      filtroFechaDesde.value ||
+      filtroFechaHasta.value
+    ),
 )
 
-const bucketActual = computed(() => BUCKETS.find(b => b.key === bucket.value) || BUCKETS[0])
+const bucketActual = computed(() => BUCKETS.find((b) => b.key === bucket.value) ?? BUCKETS[0]!)
 
-const emptyTitulo = computed(() => {
-  if (hayFiltros.value) return 'Sin resultados con los filtros aplicados'
-  return {
-    activas: 'No hay fallas activas',
-    programadas: 'Sin fallas programadas',
-    resueltas: 'Sin fallas resueltas',
-    todas: 'No hay fallas registradas',
-  }[bucket.value]
-})
-
-const emptySubtitulo = computed(() => {
-  if (hayFiltros.value) return 'Prueba con otros filtros o limpia la búsqueda'
-  return {
-    activas: 'Todas las incidencias están bajo control',
-    programadas: 'No hay intervenciones planificadas a futuro',
-    resueltas: 'Aún no se han cerrado fallas',
-    todas: 'Registra la primera para empezar',
-  }[bucket.value]
-})
+const EMPTY_TITULO: Record<BucketKey, string> = {
+  activas: 'No hay fallas activas',
+  programadas: 'Sin fallas programadas',
+  resueltas: 'Sin fallas resueltas',
+  todas: 'No hay fallas registradas',
+}
+const EMPTY_SUBTITULO: Record<BucketKey, string> = {
+  activas: 'Todas las incidencias están bajo control',
+  programadas: 'No hay intervenciones planificadas a futuro',
+  resueltas: 'Aún no se han cerrado fallas',
+  todas: 'Registra la primera para empezar',
+}
+const emptyTitulo = computed(() =>
+  hayFiltros.value ? 'Sin resultados con los filtros aplicados' : EMPTY_TITULO[bucket.value],
+)
+const emptySubtitulo = computed(() =>
+  hayFiltros.value
+    ? 'Prueba con otros filtros o limpia la búsqueda'
+    : EMPTY_SUBTITULO[bucket.value],
+)
 
 const sortedSeguimientos = computed(() =>
-  [...(drawerFalla.value?.seguimientos ?? [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  [...(drawerFalla.value?.seguimientos ?? [])].sort(
+    (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+  ),
 )
 
 // Índice de la falla actual del panel en la lista filtrada (para navegación)
 const navIndex = computed(() => {
   if (!drawerFalla.value) return -1
-  return filtradas.value.findIndex(f => f.id === drawerFalla.value.id)
+  return filtradas.value.findIndex((f) => f.id === drawerFalla.value!.id)
 })
 
-function navegar(delta) {
+function navegar(delta: number) {
   if (!filtradas.value.length) return
   const cur = navIndex.value
   if (cur < 0) return
   const next = Math.max(0, Math.min(filtradas.value.length - 1, cur + delta))
   if (next === cur) return
-  abrirDrawer(filtradas.value[next])
+  abrirDrawer(filtradas.value[next]!)
+}
+
+// ── Tabla (paginación/orden en cliente) ──────────────────────────────────
+const columns: DataTableColumn[] = [
+  { key: 'stripe', header: '', class: 'w-1 p-0' },
+  { key: 'codigo', header: 'Código', sortable: true },
+  { key: 'falla', header: 'Falla' },
+  { key: 'proyecto', header: 'Proyecto' },
+  { key: 'prioridad', header: 'Prioridad' },
+  { key: 'estado', header: 'Estado' },
+  { key: 'fecha', header: 'Fecha', sortable: true },
+  { key: 'acciones', header: '' },
+]
+const sort = ref<DataTableSort | null>(null)
+const pagina = ref(1)
+const filasPorPagina = ref(25)
+
+const ordenadas = computed(() => {
+  if (!sort.value) return filtradas.value
+  const { key, direction } = sort.value
+  const factor = direction === 'asc' ? 1 : -1
+  return [...filtradas.value].sort((a, b) => {
+    const av = key === 'fecha' ? (a.fecha_identificacion ?? '') : (a.codigo_interno ?? '')
+    const bv = key === 'fecha' ? (b.fecha_identificacion ?? '') : (b.codigo_interno ?? '')
+    if (av === bv) return 0
+    return av < bv ? -factor : factor
+  })
+})
+const paginadas = computed(() => {
+  const inicio = (pagina.value - 1) * filasPorPagina.value
+  return ordenadas.value.slice(inicio, inicio + filasPorPagina.value)
+})
+watch(filtradas, () => {
+  pagina.value = 1
+})
+function asFalla(row: DataTableRow): Falla {
+  return row as unknown as Falla
 }
 
 // ── Carga ────────────────────────────────────────────────────────────────
 
-/** Cuanto historial de fallas CERRADAS se trae sin que nadie lo pida. */
+/** Cuánto historial de fallas CERRADAS se trae sin que nadie lo pida. */
 const DIAS_HISTORIAL = 90
 
-/** Desde que fecha estan cargadas las cerradas. */
-const ventanaDesde = ref(null)
-
-function haceDias(dias) {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() - dias)
-  return d
-}
+/** Desde qué fecha están cargadas las cerradas (`yyyy-mm-dd`). */
+const ventanaDesde = ref<string | null>(null)
 
 /**
  * `YYYY-MM-DD` de una fecha LOCAL.
  *
- * No `toISOString()`: eso pasa por UTC, y la medianoche local de Bogota
- * (UTC-5) es el mismo dia, pero en un navegador al este de Greenwich seria el
- * dia anterior. Aca ese numero decide que se le pide al servidor.
+ * No `toISOString()`: eso pasa por UTC, y la medianoche local de Bogotá
+ * (UTC-5) es el mismo día, pero en un navegador al este de Greenwich sería el
+ * día anterior. Acá ese número decide qué se le pide al servidor.
  */
-function fechaLocalISO(d) {
+function fechaLocalISO(d: Date): string {
   const mes = String(d.getMonth() + 1).padStart(2, '0')
   const dia = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}-${mes}-${dia}`
 }
+function haceDias(dias: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - dias)
+  return fechaLocalISO(d)
+}
 
-async function cargar(desde = null) {
+async function cargar(desde: string | null = null) {
   loading.value = true
   error.value = null
   const inicio = desde ?? haceDias(DIAS_HISTORIAL)
   try {
-    // Dos peticiones con sentido, no 33.
-    //
-    // Antes se traia el historial COMPLETO: el bucle pedia paginas de 500 y el
-    // servidor las sirve de 100 (TOPE_FILAS en api/pagination.py), asi que cada
-    // pagina se solapaba con la anterior --filas duplicadas-- y la lista se
-    // cortaba antes de tiempo.
-    //
-    // Y paginar bien tampoco era el arreglo: de las fallas vivas, la gran
-    // mayoria estan CERRADAS. Esta vista traia miles de filas cerradas para
-    // mostrar las abiertas, que son las que se vienen a ver aca.
+    // Dos peticiones con sentido, no muchas: de las fallas vivas, la gran
+    // mayoría están CERRADAS. Traer solo las activas + una ventana de
+    // cerradas evita pedir miles de filas para mostrar un puñado de abiertas.
     const [abiertas, cerradas] = await Promise.all([
       fallasService.listar({ solo_activas: true, size: 500 }),
-      fallasService.listar({ fecha_identificacion_desde: fechaLocalISO(inicio), size: 500 }),
+      fallasService.listar({ fecha_identificacion_desde: inicio, size: 500 }),
     ])
-    // Se solapan --una falla abierta identificada dentro de la ventana llega en
-    // las dos-- asi que se unen por id.
-    const porId = new Map()
+    // Se solapan —una falla abierta identificada dentro de la ventana llega en
+    // las dos— así que se unen por id.
+    const porId = new Map<number, Falla>()
     for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? [])]) {
       porId.set(f.id, f)
     }
     allFallas.value = [...porId.values()]
     ventanaDesde.value = inicio
-  } catch (e) {
-    error.value = e.data?.detail || e.message || 'Error de conexión'
+  } catch (err) {
+    error.value = normalizeError(err).message
   } finally {
     loading.value = false
   }
 }
 
-// Pedir una fecha anterior a la cargada trae ese tramo del historico. Al
-// reves no: estrechar el filtro se resuelve en el navegador, sin ir a la red.
+// Pedir una fecha anterior a la cargada trae ese tramo del histórico. Al
+// revés no: estrechar el filtro se resuelve en el navegador, sin ir a la red.
 watch(filtroFechaDesde, (nueva) => {
-  if (nueva && ventanaDesde.value && startOfDay(nueva) < ventanaDesde.value) {
-    cargar(startOfDay(nueva))
-  }
+  if (nueva && ventanaDesde.value && nueva < ventanaDesde.value) cargar(nueva)
 })
 
 async function cargarCatalogos() {
   try {
     catalogos.value = await fallasService.obtenerCatalogos()
-  } catch { /* no crítico */ }
+  } catch {
+    /* no crítico */
+  }
 }
 
 async function cargarProyectos() {
   try {
     proyectos.value = await catalogoProyectos.cargar()
-  } catch { /* no crítico */ }
+  } catch {
+    /* no crítico */
+  }
 }
 
 // ── Acciones ─────────────────────────────────────────────────────────────
 function limpiarFiltros() {
   search.value = ''
   filtroProyecto.value = null
-  filtroPrioridad.value = null
-  filtroEstado.value = null
+  filtroPrioridad.value = ''
+  filtroEstado.value = ''
   filtroFechaDesde.value = null
   filtroFechaHasta.value = null
 }
 
 // El listado (GET /fallas) no trae seguimientos/intervalos/inversores_afectados
-// -- forzaría un lazy-load por fila en el backend (ver _FALLA_LOAD_LISTA).
-// Se completan aparte al abrir el detalle puntual, mismo patrón que ya usa
-// guardarQuickEdit/agregarSeguimiento para refrescar la fila tras guardar.
+// -- forzaría un lazy-load por fila en el backend. Se completan aparte al abrir
+// el detalle puntual.
 const cargandoSeguimientos = ref(false)
 
-async function abrirDrawer(falla) {
+async function abrirDrawer(falla: Falla) {
   drawerFalla.value = falla
   quickEdit.estado_id = falla.estado?.id ?? null
   quickEdit.prioridad_id = falla.prioridad?.id ?? null
@@ -759,9 +1125,9 @@ async function abrirDrawer(falla) {
   try {
     const data = await fallasService.obtener(falla.id)
     if (drawerFalla.value?.id === falla.id) drawerFalla.value = data
-    const idx = allFallas.value.findIndex(f => f.id === data.id)
+    const idx = allFallas.value.findIndex((f) => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
-  } catch (e) {
+  } catch {
     // no crítico -- el drawer ya muestra los datos livianos del listado
   } finally {
     cargandoSeguimientos.value = false
@@ -773,7 +1139,7 @@ function abrirCrear() {
   formDialogVisible.value = true
 }
 
-function abrirEditar(falla) {
+function abrirEditar(falla: Falla) {
   editingFalla.value = falla
   formDialogVisible.value = true
 }
@@ -784,12 +1150,12 @@ function editarDesdeDrawer() {
   formDialogVisible.value = true
 }
 
-async function onSaveForm(payload) {
+async function onSaveForm(payload: PayloadFallaForm) {
   savingForm.value = true
   try {
     if (editingFalla.value) {
-      // eslint-disable-next-line no-unused-vars
       const { nota_inicial: notaInicial, _archivos, ...patchPayload } = payload
+      void _archivos
       await fallasService.actualizar(editingFalla.value.id, patchPayload)
       if (notaInicial) {
         fallasService.crearSeguimiento(editingFalla.value.id, { nota: notaInicial }).catch(() => {})
@@ -797,62 +1163,70 @@ async function onSaveForm(payload) {
       toast.success('Falla actualizada', { duration: 2500 })
     } else {
       // Al crear: puede venir proyecto_ids (array) → una falla por proyecto
-      // eslint-disable-next-line no-unused-vars
-      const { proyecto_ids, nota_inicial, _archivos, ...basePayload } = payload
+      const { proyecto_ids, nota_inicial, _archivos: _archivosCrear, ...basePayload } = payload
+      void _archivosCrear
       const ids = proyecto_ids?.length ? proyecto_ids : [basePayload.proyecto_id].filter(Boolean)
       if (!ids.length) throw new Error('Selecciona al menos un proyecto')
-      const created = []
+      const created: Falla[] = []
       for (const pid of ids) {
-        const nueva = await fallasService.crear({ ...basePayload, proyecto_id: pid })
+        const nueva = await fallasService.crear({
+          ...basePayload,
+          proyecto_id: pid,
+        } as PayloadFalla)
         created.push(nueva)
         // La nota inicial se agrega por separado — no bloquea el guardado si falla
         if (nota_inicial) {
           fallasService.crearSeguimiento(nueva.id, { nota: nota_inicial }).catch(() => {})
         }
       }
-      toast.success(created.length > 1 ? `${created.length} fallas registradas` : 'Falla registrada', {
-        duration: 2500,
-      })
+      toast.success(
+        created.length > 1 ? `${created.length} fallas registradas` : 'Falla registrada',
+        {
+          duration: 2500,
+        },
+      )
     }
     formDialogVisible.value = false
     await cargar()
     // Si el drawer estaba abierto, refrescar su contenido
     if (drawerFalla.value && editingFalla.value) {
-      const refreshed = allFallas.value.find(f => f.id === editingFalla.value.id)
+      const refreshed = allFallas.value.find((f) => f.id === editingFalla.value!.id)
       if (refreshed) abrirDrawer(refreshed)
     }
   } catch (err) {
-    const msg = err?.data?.detail ?? 'Error al guardar'
-    toast.error('Error', { description: msg, duration: 4000 })
+    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
   } finally {
     savingForm.value = false
   }
 }
 
 // Autosave quick-edit con debounce
-let _autosaveTimer = null
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null
 function autosaveQuick() {
-  if (_autosaveTimer) clearTimeout(_autosaveTimer)
-  _autosaveTimer = setTimeout(() => guardarQuickEdit(), 350)
+  if (autosaveTimer) clearTimeout(autosaveTimer)
+  autosaveTimer = setTimeout(() => guardarQuickEdit(), 350)
 }
 
 async function guardarQuickEdit() {
   if (!drawerFalla.value) return
-  const payload = {}
+  const payload: PayloadFalla = {}
   if (quickEdit.estado_id !== drawerFalla.value.estado?.id) payload.estado_id = quickEdit.estado_id
-  if (quickEdit.prioridad_id !== drawerFalla.value.prioridad?.id) payload.prioridad_id = quickEdit.prioridad_id
+  if (quickEdit.prioridad_id !== drawerFalla.value.prioridad?.id)
+    payload.prioridad_id = quickEdit.prioridad_id
   if (!Object.keys(payload).length) return
 
   savingQuick.value = true
   try {
     const data = await fallasService.actualizar(drawerFalla.value.id, payload)
     drawerFalla.value = data
-    const idx = allFallas.value.findIndex(f => f.id === data.id)
+    const idx = allFallas.value.findIndex((f) => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     savedFlash.value = true
-    setTimeout(() => { savedFlash.value = false }, 1500)
+    setTimeout(() => {
+      savedFlash.value = false
+    }, 1500)
   } catch (err) {
-    toast.error('No se pudo guardar', { description: err?.data?.detail, duration: 3000 })
+    toast.error('No se pudo guardar', { description: normalizeError(err).message, duration: 3000 })
     // Revertir UI
     quickEdit.estado_id = drawerFalla.value.estado?.id ?? null
     quickEdit.prioridad_id = drawerFalla.value.prioridad?.id ?? null
@@ -861,50 +1235,46 @@ async function guardarQuickEdit() {
   }
 }
 
-function quickResolve(falla) {
-  const estadoFinal = catalogos.value.estados.find(e => e.es_estado_final)
+function quickResolve(falla: Falla) {
+  const estadoFinal = catalogos.value.estados.find((e) => e.es_estado_final)
   if (!estadoFinal) {
     toast.warning('Sin estado final configurado', { duration: 3000 })
     return
   }
-  // Abrir diálogo con la fecha/hora de cierre sugerida (momento actual, editable)
-  resolveDialog.falla = falla
-  resolveDialog.estadoId = estadoFinal.id
-  resolveDialog.estadoEtiqueta = estadoFinal.etiqueta
-  resolveDialog.fecha = new Date()
-  resolveDialog.error = ''
-  resolveDialog.visible = true
+  resolveFallaTarget.value = falla
+  resolveFecha.value = new Date()
+  resolveDialogVisible.value = true
 }
 
 async function confirmarResolver() {
-  if (!resolveDialog.fecha) {
-    resolveDialog.error = 'La fecha y hora de cierre es obligatoria.'
-    return
-  }
-  resolveDialog.error = ''
-  const falla = resolveDialog.falla
+  const falla = resolveFallaTarget.value
+  if (!falla) return
+  const estadoFinal = catalogos.value.estados.find((e) => e.es_estado_final)
+  if (!estadoFinal) return
   resolvingFalla.value = true
   try {
     const data = await fallasService.actualizar(falla.id, {
-      estado_id: resolveDialog.estadoId,
-      fecha_resolucion: resolveDialog.fecha.toISOString(),
+      estado_id: estadoFinal.id,
+      fecha_resolucion: resolveFecha.value.toISOString(),
       sla_cumplido: !slaVencido(falla),
     })
-    const idx = allFallas.value.findIndex(f => f.id === data.id)
+    const idx = allFallas.value.findIndex((f) => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     if (drawerFalla.value?.id === data.id) drawerFalla.value = data
-    resolveDialog.visible = false
+    resolveDialogVisible.value = false
     toast.success('Falla resuelta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: normalizeError(err).message, duration: 3000 })
   } finally {
     resolvingFalla.value = false
   }
 }
 
 async function reabrirFalla() {
-  const abierta = catalogos.value.estados.find(e => e.codigo === 'abierta')
-    || catalogos.value.estados.find(e => !e.es_estado_final)
+  if (!drawerFalla.value) return
+  const abierta =
+    catalogos.value.estados.find((e) => e.codigo === 'abierta') ??
+    catalogos.value.estados.find((e) => !e.es_estado_final)
   if (!abierta) {
     toast.warning('Sin estado abierto configurado', { duration: 3000 })
     return
@@ -915,40 +1285,41 @@ async function reabrirFalla() {
       fecha_resolucion: null,
     })
     drawerFalla.value = data
-    const idx = allFallas.value.findIndex(f => f.id === data.id)
+    const idx = allFallas.value.findIndex((f) => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     quickEdit.estado_id = data.estado?.id ?? null
     toast.success('Falla reabierta', { duration: 2500 })
   } catch (err) {
-    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: normalizeError(err).message, duration: 3000 })
   }
 }
 
 async function agregarSeguimiento() {
+  if (!drawerFalla.value) return
   if (!nuevaNota.nota.trim() && !nuevaNota.estado_id) return
   addingSeg.value = true
   try {
-    const payload = {}
-    if (nuevaNota.nota.trim()) payload.nota = nuevaNota.nota.trim()
-    if (nuevaNota.estado_id) payload.estado_nuevo_id = nuevaNota.estado_id
-    await fallasService.crearSeguimiento(drawerFalla.value.id, payload)
+    await fallasService.crearSeguimiento(drawerFalla.value.id, {
+      nota: nuevaNota.nota.trim() || undefined,
+      estado_nuevo_id: nuevaNota.estado_id ?? undefined,
+    })
     nuevaNota.nota = ''
     nuevaNota.estado_id = null
     // Refrescar la falla del drawer
     const data = await fallasService.obtener(drawerFalla.value.id)
     drawerFalla.value = data
-    const idx = allFallas.value.findIndex(f => f.id === data.id)
+    const idx = allFallas.value.findIndex((f) => f.id === data.id)
     if (idx >= 0) allFallas.value[idx] = data
     quickEdit.estado_id = data.estado?.id ?? null
     toast.success('Seguimiento agregado', { duration: 2000 })
   } catch (err) {
-    toast.error('Error', { description: err?.data?.detail, duration: 3000 })
+    toast.error('Error', { description: normalizeError(err).message, duration: 3000 })
   } finally {
     addingSeg.value = false
   }
 }
 
-function confirmDelete(falla) {
+function confirmDelete(falla: Falla) {
   confirm({
     title: 'Eliminar falla',
     description: `¿Eliminar la falla ${falla.codigo_interno}? Esta acción no se puede deshacer.`,
@@ -958,103 +1329,74 @@ function confirmDelete(falla) {
     onConfirm: async () => {
       try {
         await fallasService.eliminar(falla.id)
-        allFallas.value = allFallas.value.filter(f => f.id !== falla.id)
+        allFallas.value = allFallas.value.filter((f) => f.id !== falla.id)
         drawerVisible.value = false
         toast.success('Falla eliminada', { duration: 2500 })
       } catch (err) {
-        toast.error('Error', { description: err?.data?.detail, duration: 3000 })
+        toast.error('Error', { description: normalizeError(err).message, duration: 3000 })
       }
     },
   })
 }
 
 // ── Helpers visuales ─────────────────────────────────────────────────────
-function prioColor(codigo) { return colorPrioridad(codigo, '#9ca3af') }
-function prioPillStyle(codigo) {
-  const c = prioColor(codigo)
-  return { background: c + '18', color: c, border: `1px solid ${c}40` }
-}
-function bucketActiveStyle(color, active) {
-  if (!active) return {}
-  return { boxShadow: `inset 0 0 0 2px ${color}` }
+function prioColor(codigo?: string | null): string {
+  return colorPrioridad(codigo, '#9ca3af')
 }
 
-function bucketPillStyle(color, active) {
-  if (!active) return {}
-  return { color }
-}
-
-function rowClass(data) {
-  return drawerFalla.value?.id === data.id ? 'gf-row-active' : ''
-}
-
-function initials(nombre) {
+function initials(nombre?: string): string {
   if (!nombre) return '?'
   const parts = nombre.trim().split(/\s+/)
   return (parts[0]?.[0] || '?').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
 }
 
-function avatarStyle(user) {
+function avatarStyle(user?: { id?: number; nombre?: string } | null) {
   if (!user) return { background: '#9ca3af' }
   const id = user.id ?? hashCode(user.nombre || '')
   const color = AVATAR_PALETTE[Math.abs(id) % AVATAR_PALETTE.length]
   return { background: color }
 }
 
-function hashCode(str) {
+function hashCode(str: string): number {
   let h = 0
   for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0
   return h
 }
 
 // El reloj del SLA lo calcula el backend: `sla_horas_transcurridas` y `sla_pct`
-// vienen del serializer de fallas (`dominio.horas_transcurridas_sla` /
-// `dominio.sla_pct`). Esta vista solo los LEE.
-//
-// Antes las tres pantallas de fallas tenian cada una su copia de este calculo, y
-// las tres anclaban a `fecha_identificacion + 'T00:00:00'`: para una critica
-// (SLA 8 h) identificada a las 9 a.m. la barra marcaba "Excedido" desde que se
-// creaba. Y contaban desde `fecha_ocurrencia` mientras el limite se calculaba
-// desde la identificacion, asi que el porcentaje no correspondia con el badge de
-// la misma pantalla.
-function horasTranscurridas(falla) {
-  return Math.round(falla?.sla_horas_transcurridas ?? 0)
+// vienen del serializer de fallas. Esta vista solo los LEE.
+function horasTranscurridas(falla: Falla): number {
+  return Math.round(falla.sla_horas_transcurridas ?? 0)
 }
-
-function slaPct(falla) {
-  return falla?.sla_pct ?? null
+function slaPct(falla: Falla): number | null {
+  return falla.sla_pct ?? null
 }
-
-function slaVencido(falla) {
+function slaVencido(falla: Falla): boolean {
   const p = slaPct(falla)
   return p != null && p >= 100
 }
-
-function slaFillStyle(falla) {
+function slaFillStyle(falla: Falla) {
   const p = Math.min(slaPct(falla) ?? 0, 100)
   return { width: `${p}%`, background: slaTextColor(falla) }
 }
-
-function slaTextColor(falla) {
-  if (falla?.sla_cumplido === true) return '#16a34a'
-  if (falla?.sla_cumplido === false) return '#dc2626'
+function slaTextColor(falla: Falla): string {
+  if (falla.sla_cumplido === true) return '#16a34a'
+  if (falla.sla_cumplido === false) return '#dc2626'
   const p = slaPct(falla)
   if (p == null) return '#9ca3af'
   if (p >= 100) return '#dc2626'
   if (p >= 70) return '#d97706'
   return '#16a34a'
 }
-
-function slaText(falla) {
-  if (falla?.sla_cumplido === true) return 'OK'
-  if (falla?.sla_cumplido === false) return 'Vencido'
+function slaText(falla: Falla): string {
+  if (falla.sla_cumplido === true) return 'OK'
+  if (falla.sla_cumplido === false) return 'Vencido'
   const p = slaPct(falla)
   if (p == null) return '—'
   if (p >= 100) return 'Vencido'
   return `${p}%`
 }
-
-function slaSeverity(falla) {
+function slaSeverity(falla: Falla): GandalfBadgeColor {
   const c = slaTextColor(falla)
   if (c === '#16a34a') return 'success'
   if (c === '#dc2626') return 'destructive'
@@ -1062,74 +1404,78 @@ function slaSeverity(falla) {
   return 'default'
 }
 
-function fmtFecha(d) {
+function fmtFecha(d?: string | null): string {
   if (!d) return '—'
-  return new Date(d + 'T00:00:00').toLocaleDateString('es-CO',
-    { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Date(d + 'T00:00:00').toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
-// Fecha + hora (para fechas con timestamp completo, ej. resolución)
-function fmtFechaHora(d) {
+/** Fecha + hora (para fechas con timestamp completo, ej. resolución). */
+function fmtFechaHora(d?: string | null): string {
   if (!d) return '—'
-  return new Date(d).toLocaleString('es-CO',
-    { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-// "08:30" / "08:30:00" → "08:30"
-function fmtHora(h) {
+/** "08:30" / "08:30:00" → "08:30". */
+function fmtHora(h?: string | null): string {
   if (!h) return ''
   return String(h).slice(0, 5)
 }
 
-// Horas decimales → "1 d 4 h", "3 h 30 min", "45 min"
-function fmtDuracion(horas) {
+/** Horas decimales → "1 d 4 h", "3 h 30 min", "45 min". */
+function fmtDuracion(horas?: number | null): string {
   if (horas == null || horas < 0) return '—'
   const totalMin = Math.round(horas * 60)
   if (totalMin === 0) return '0 min'
   const dias = Math.floor(totalMin / 1440)
   const hrs = Math.floor((totalMin % 1440) / 60)
   const min = totalMin % 60
-  const parts = []
+  const parts: string[] = []
   if (dias) parts.push(`${dias} d`)
   if (hrs) parts.push(`${hrs} h`)
   if (min) parts.push(`${min} min`)
   return parts.join(' ')
 }
 
-function relativeTime(d, includeAbsolute = false) {
+function relativeTime(d?: string | null): string {
   if (!d) return ''
-  const date = typeof d === 'string' && d.length === 10
-    ? new Date(d + 'T00:00:00')
-    : new Date(d)
+  const date = typeof d === 'string' && d.length === 10 ? new Date(d + 'T00:00:00') : new Date(d)
   const diff = (Date.now() - date.getTime()) / 1000
-  let rel
-  if (diff < 60) rel = 'ahora'
-  else if (diff < 3600) rel = `hace ${Math.floor(diff / 60)}min`
-  else if (diff < 86400) rel = `hace ${Math.floor(diff / 3600)}h`
-  else if (diff < 86400 * 30) rel = `hace ${Math.floor(diff / 86400)}d`
-  else if (diff < 86400 * 365) rel = `hace ${Math.floor(diff / (86400 * 30))}m`
-  else rel = `hace ${Math.floor(diff / (86400 * 365))}a`
   if (diff < 0) {
     const future = Math.abs(diff)
-    if (future < 86400) rel = `en ${Math.floor(future / 3600)}h`
-    else rel = `en ${Math.floor(future / 86400)}d`
+    return future < 86400 ? `en ${Math.floor(future / 3600)}h` : `en ${Math.floor(future / 86400)}d`
   }
-  if (!includeAbsolute) return rel
-  return rel
+  if (diff < 60) return 'ahora'
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)}min`
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`
+  if (diff < 86400 * 30) return `hace ${Math.floor(diff / 86400)}d`
+  if (diff < 86400 * 365) return `hace ${Math.floor(diff / (86400 * 30))}m`
+  return `hace ${Math.floor(diff / (86400 * 365))}a`
 }
 
-function startOfDay(d) {
-  const x = new Date(d); x.setHours(0, 0, 0, 0); return x
+/** Formato local para `<input type="datetime-local">`: `YYYY-MM-DDTHH:mm` en hora del navegador. */
+function toDatetimeLocalValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// ── Mounted + keyboard ──────────────────────────────────────────────────
-function onKeydown(e) {
-  // Ignorar si está escribiendo en un input/textarea
-  const t = e.target.tagName
-  if (t === 'INPUT' || t === 'TEXTAREA' || e.target.isContentEditable) return
+// ── Montado + teclado ────────────────────────────────────────────────────
+function onKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return
   if (e.key === '/') {
     e.preventDefault()
-    nextTick(() => searchInputRef.value?.$el?.querySelector('input')?.focus())
+    nextTick(() => searchInputRef.value?.$el?.focus())
   } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
     abrirCrear()
@@ -1141,799 +1487,30 @@ function onKeydown(e) {
   }
 }
 
-// Mide la altura real del header sticky y la expone como --gf-header-h en
-// la página. Así la lista compacta se ancla justo debajo del header (colisiona
-// con él, no se deja tapar) sin depender de un valor mágico que se desfasa
-// cuando los pills/filtros hacen wrap en pantallas medianas.
-let _headerRO = null
-function measureHeader() {
-  if (!stickyHeaderRef.value || !pageRef.value) return
-  pageRef.value.style.setProperty('--gf-header-h', `${stickyHeaderRef.value.offsetHeight}px`)
-}
-
 onMounted(() => {
   cargar()
   cargarCatalogos()
   cargarProyectos()
   window.addEventListener('keydown', onKeydown)
-  nextTick(() => {
-    measureHeader()
-    if (window.ResizeObserver && stickyHeaderRef.value) {
-      _headerRO = new ResizeObserver(measureHeader)
-      _headerRO.observe(stickyHeaderRef.value)
-    }
-  })
 })
-
-import { onBeforeUnmount } from 'vue'
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
-  _headerRO?.disconnect()
 })
 
 // Limpiar drawer al cerrar
 watch(drawerVisible, (val) => {
   if (!val) {
-    setTimeout(() => { drawerFalla.value = null }, 200)
+    setTimeout(() => {
+      drawerFalla.value = null
+    }, 200)
   }
 })
 
 // Si el usuario cambia de bucket y la falla abierta NO pertenece al nuevo bucket,
 // cerrar el panel para evitar inconsistencias (ej: viendo una activa y cambias a resueltas).
-// NOTA: sólo se aplica al cambio de bucket, no a filtros de búsqueda/proyecto/etc.
-// para no interrumpir al usuario mientras refina la lista.
 watch(bucket, (newBucket) => {
   if (!drawerVisible.value || !drawerFalla.value) return
   if (newBucket === 'todas') return
-  const bucketDeLaFallaAbierta = bucketDeFalla(drawerFalla.value)
-  if (bucketDeLaFallaAbierta !== newBucket) {
-    drawerVisible.value = false
-  }
+  if (bucketDeFalla(drawerFalla.value) !== newBucket) drawerVisible.value = false
 })
-
-// Si la falla seleccionada cambia de bucket por edición (ej: marcar resuelta) y el
-// usuario está viendo Activas, el panel sigue abierto mostrando los datos finales —
-// se considera intencional ya que el usuario acaba de actuar sobre esa falla.
 </script>
-
-<style scoped>
-/* ── Página: layout con scroll híbrido ──────────────────────────────── */
-.gf-page {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* Header sticky con title + buckets + filtros — pieza visual unificada */
-.gf-sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: #f3f4f6;
-  padding-top: 4px;
-  padding-bottom: 12px;       /* gris hasta el inicio del contenido — sin "gap" desnudo */
-  display: flex;
-  flex-direction: column;
-  gap: 0;                      /* topbar + toolbar pegados, sin franja gris entre ellos */
-}
-/* El contenedor de scroll (<main>) tiene padding 16px (32px desde md:). Un
-   sticky top:0 queda anclado esa distancia por debajo del borde visible,
-   dejando una franja superior por la que el contenido (lista compacta / panel
-   detalle) se asomaba al hacer scroll. Este "cap" full-bleed tapa esa franja
-   (arriba y en los bordes laterales), con el mismo breakpoint que el layout. */
-.gf-sticky-header::before {
-  content: "";
-  position: absolute;
-  left: -16px;
-  right: -16px;
-  bottom: 100%;
-  height: 28px;
-  background: #f3f4f6;
-  pointer-events: none;
-}
-@media (min-width: 768px) {
-  .gf-sticky-header::before {
-    left: -32px;
-    right: -32px;
-  }
-}
-
-/* ── Top bar (parte superior del card unificado) ───────────────────── */
-.gf-topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 6px 10px;
-  background: #fff;
-  border-radius: 10px 10px 0 0;  /* sólo bordes superiores redondeados */
-  border: 1px solid #ece8f4;
-  border-bottom: none;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  min-height: 42px;
-}
-.gf-topbar-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.gf-topbar-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* Bucket pills inline */
-.gf-bucket-pills {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: center;
-  min-width: 0;
-}
-.bucket-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 5px 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b5a8a;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.bucket-pill:hover { background: #faf7ff; }
-.bucket-pill--active {
-  background: #faf5ff;
-  border-color: rgba(145, 91, 216, 0.25);
-}
-.bucket-pill-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.bucket-pill-label { color: inherit; }
-.bucket-pill-count {
-  font-weight: 700;
-  font-size: 12px;
-}
-
-/* ── Toolbar (parte inferior del card unificado, divisor sutil) ────── */
-.gf-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: #fff;
-  border-radius: 0 0 10px 10px;
-  border: 1px solid #ece8f4;
-  border-top: 1px solid #ece8f4;  /* divisor interno entre filas */
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-}
-.gf-toolbar :deep(.p-inputtext),
-.gf-toolbar :deep(.p-select),
-.gf-toolbar :deep(.p-datepicker-input) {
-  font-size: 12px !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-}
-.gf-toolbar :deep(.p-select-label) {
-  font-size: 12px !important;
-  padding-top: 5px !important;
-  padding-bottom: 5px !important;
-}
-
-/* ── Bucket cards (vista no usada actualmente — backup) ──────────────── */
-.bucket-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff;
-  border: 1px solid #ece8f4;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-  overflow: hidden;
-  text-align: left;
-}
-.bucket-card:hover { background: #faf9fc; transform: translateY(-1px); }
-.bucket-card--active { background: #faf7ff; }
-
-.bucket-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 10px; font-size: 16px;
-  flex-shrink: 0;
-}
-.bucket-count {
-  font-size: 24px; font-weight: 800; line-height: 1;
-}
-.bucket-label {
-  font-size: 12px; font-weight: 600; color: #6b5a8a;
-  text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px;
-}
-.bucket-bar {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: 3px; opacity: 0.65;
-}
-
-/* ── Prio stripe + pill ────────────────────────────────────────────────── */
-.prio-stripe {
-  width: 4px; height: 32px; border-radius: 2px; margin: 0 auto;
-}
-.prio-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  text-transform: uppercase;
-}
-
-/* ── Category dot ──────────────────────────────────────────────────────── */
-.cat-dot {
-  display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%;
-  box-shadow: 0 0 0 2px #fff;
-}
-
-/* ── Avatar ────────────────────────────────────────────────────────────── */
-.avatar-sm {
-  width: 24px; height: 24px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 10px; font-weight: 700;
-  flex-shrink: 0;
-}
-.avatar-sm--empty {
-  background: #e5e7eb !important; color: #9ca3af !important;
-}
-
-/* ── SLA mini ──────────────────────────────────────────────────────────── */
-.sla-mini {
-  display: flex; flex-direction: column; gap: 2px;
-}
-.sla-mini-bar {
-  width: 100%; height: 4px;
-  background: #f3f4f6; border-radius: 2px; overflow: hidden;
-}
-.sla-mini-fill {
-  height: 100%; border-radius: 2px; transition: width 0.3s;
-}
-.sla-mini-text {
-  font-size: 10px; font-weight: 600; line-height: 1;
-}
-
-/* ── Row actions ──────────────────────────────────────────────────────── */
-.row-actions {
-  display: flex; gap: 2px; opacity: 0.4;
-  transition: opacity 0.15s;
-}
-:deep(tr:hover) .row-actions { opacity: 1; }
-
-/* ── Quick action label ───────────────────────────────────────────────── */
-.qa-label {
-  width: 78px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b5a8a;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  flex-shrink: 0;
-}
-
-/* ── Push layout (lista + panel lateral) ──────────────────────────────── */
-/* Alturas: AppTopbar=56px, padding p-6=24px*2 = 48px. Total a descontar = 104px (~6.5rem) */
-.gf-layout { display: block; }
-.gf-main { min-width: 0; }
-
-/* En lg+, cuando hay panel abierto, layout grid: lista compacta + panel ancho */
-@media (min-width: 1024px) {
-  .gf-layout--split {
-    display: grid;
-    grid-template-columns: minmax(230px, 290px) minmax(0, 1fr);
-    gap: 16px;
-    /* stretch (no 'start'): la columna izquierda (.gf-main) debe ocupar TODA
-       la altura de la fila (= alto del panel). Si solo midiera su contenido, el
-       sticky de la lista compacta no tendría recorrido y se iría con el scroll.
-       Con stretch, la lista compacta queda fija durante todo el scroll del panel. */
-    align-items: stretch;
-  }
-  /* La columna izquierda estirada es el containing block del sticky; la lista
-     compacta se ancla arriba y el espacio sobrante queda vacío (sin afectar nada). */
-  .gf-layout--split .gf-main { align-self: stretch; }
-}
-@media (min-width: 1440px) {
-  .gf-layout--split {
-    grid-template-columns: minmax(250px, 325px) minmax(0, 1fr);
-  }
-}
-
-/* Aside: en <lg = overlay; en lg+ = panel en flujo (sticky) */
-.gf-aside {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  justify-content: flex-end;
-}
-.gf-aside-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(28, 18, 50, 0.35);
-  backdrop-filter: blur(2px);
-}
-.gf-aside-panel {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
-  height: 100%;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -8px 0 24px rgba(28, 18, 50, 0.12);
-  overflow: hidden;
-}
-
-@media (min-width: 1024px) {
-  /* El panel detalle ya NO es sticky: fluye con el scroll de la página */
-  .gf-aside {
-    position: static;
-    z-index: auto;
-    display: block;
-    max-height: none;
-  }
-  .gf-aside-backdrop { display: none; }
-  .gf-aside-panel {
-    max-width: none;
-    height: auto;            /* contenido define la altura */
-    border-radius: 12px;
-    border: 1px solid #ece8f4;
-    box-shadow: 0 4px 14px rgba(28, 18, 50, 0.08);
-  }
-}
-
-/* Header / body / footer del panel */
-.gf-drawer-header {
-  display: flex; align-items: center; gap: 4px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #ece8f4;
-  background: #fff;
-  flex-shrink: 0;
-  flex-wrap: nowrap;
-  overflow: hidden;
-}
-.gf-drawer-header > :deep(.p-button) {
-  flex-shrink: 0;
-}
-.gf-drawer-body {
-  padding: 16px 18px;
-  display: flex; flex-direction: column; gap: 16px;
-  flex: 1;
-  /* SIN overflow propio: el contenido del panel scrollea con la página */
-}
-/* ── Sistema tipográfico del panel detalle ─────────────────────────────
-   Sólo 3 niveles para evitar caos:
-   - title (h3): text-sm font-bold (14px / semibold)
-   - body:      text-sm (14px / 400)
-   - meta:      text-xs gray-500 (12px / 500) — siempre AA legible
-*/
-.gf-drawer-body :deep(.p-tag) {
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 3px 8px;
-}
-
-.gf-section {
-  background: #fff;
-  border: 1px solid #ece8f4;
-  border-radius: 10px;
-  padding: 14px;
-}
-.gf-section--filled {
-  background: #faf9fc;
-  border-color: #ece8f4;
-}
-.gf-section-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.gf-section-icon {
-  color: var(--color-unergy-purple);
-  font-size: 13px;
-}
-.gf-section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin: 0;
-}
-.gf-section-count {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-unergy-purple);
-  background: rgba(145, 91, 216, 0.1);
-  padding: 1px 8px;
-  border-radius: 999px;
-  min-width: 22px;
-  text-align: center;
-}
-.gf-save-flag {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: #6b5a8a;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.gf-save-flag--ok { color: #047857; font-weight: 600; }
-
-.gf-subhead {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #6b5a8a;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin: 0 0 4px;
-}
-.gf-body-text {
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--color-unergy-deep);
-  margin: 0;
-}
-
-/* Hero — info de identificación al abrir */
-.gf-hero {
-  background: linear-gradient(180deg, #faf7ff 0%, #fff 100%);
-  border: 1px solid #e9ddff;
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.gf-hero-desc {
-  font-size: 15px;
-  line-height: 1.5;
-  color: #1f1530;
-  font-weight: 500;
-  margin: 0;
-  white-space: pre-line;
-}
-.gf-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
-  margin: 0;
-  padding-top: 10px;
-  border-top: 1px solid #e9ddff;
-}
-@media (max-width: 480px) {
-  .gf-facts { grid-template-columns: 1fr; }
-}
-.gf-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gf-fact-label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.gf-fact-label svg { font-size: 11px; }
-.gf-fact-value {
-  font-size: 14px;
-  color: var(--color-unergy-deep);
-  font-weight: 500;
-  margin: 0;
-  word-break: break-word;
-}
-/* Diálogo de resolución (confirmar/editar fecha y hora de cierre) */
-.gf-resolve-body { display: flex; flex-direction: column; gap: 6px; }
-.gf-resolve-text { font-size: 13px; color: #4a3b6b; margin: 0 0 6px; line-height: 1.5; }
-.gf-resolve-label { font-size: 12px; font-weight: 600; color: #4a3b6b; }
-.gf-resolve-error { color: #dc2626; font-size: 12px; }
-
-/* Grid 2-col para Edición rápida + SLA en pantallas anchas */
-.gf-twocol {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 640px) {
-  .gf-twocol { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
-
-/* Field row dentro de "Edición rápida" */
-.gf-field-row { display: flex; align-items: center; gap: 8px; }
-.gf-field-label {
-  width: 70px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #4a3b6b;
-  flex-shrink: 0;
-}
-
-/* SLA stat */
-.gf-sla-stat {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 4px;
-}
-.gf-sla-num { font-size: 28px; font-weight: 800; line-height: 1; }
-.gf-sla-of { font-size: 16px; color: #4a3b6b; font-weight: 600; }
-
-/* Avatar tamaños */
-.avatar-xs {
-  width: 18px; height: 18px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 9px; font-weight: 700;
-  flex-shrink: 0;
-}
-.avatar-md {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 12px; font-weight: 700;
-  flex-shrink: 0;
-}
-
-/* Sugerencia destacada */
-.gf-suggestion {
-  display: flex;
-  gap: 12px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 1px solid #fcd34d;
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.gf-suggestion-icon {
-  width: 32px; height: 32px;
-  border-radius: 8px;
-  background: rgba(217, 119, 6, 0.18);
-  color: #92400e;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.gf-suggestion-icon svg { font-size: 14px; }
-.gf-suggestion-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #92400e;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin: 0 0 3px;
-}
-.gf-suggestion-text {
-  font-size: 14px;
-  color: #1f1530;
-  margin: 0;
-  line-height: 1.45;
-}
-
-/* Add note */
-.gf-add-note {
-  background: #faf9fc;
-  border: 1px solid #ece8f4;
-  border-radius: 8px;
-  padding: 10px;
-}
-.gf-add-note :deep(textarea) { font-size: 14px; }
-
-/* Acciones inline al final del scroll del panel (NO sticky) */
-.gf-actions-inline {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding-top: 4px;
-}
-.gf-actions-inline :deep(.p-button) {
-  flex: 1 1 140px;
-  min-width: 0;
-  padding-top: 9px;
-  padding-bottom: 9px;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-/* Tabla con mismos bordes + sombra que el panel para que combinen visualmente */
-.gf-table-wrap {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 4px 14px rgba(28, 18, 50, 0.08);
-  overflow: hidden;
-}
-@media (min-width: 1024px) {
-  .gf-layout--split .gf-table-wrap {
-    /* La tabla ocupa toda la altura disponible junto al panel */
-    max-height: calc(100vh - var(--gf-header-h, 6.5rem) - 1rem);
-    display: flex;
-    flex-direction: column;
-  }
-  .gf-layout--split .gf-table-wrap :deep(.p-datatable) {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-  .gf-layout--split .gf-table-wrap :deep(.p-datatable-wrapper) {
-    flex: 1;
-    overflow: auto;
-  }
-}
-
-/* ── DataTable density tweaks ─────────────────────────────────────────── */
-:deep(.gf-table .p-datatable-tbody > tr) { cursor: pointer; transition: background 0.12s; }
-:deep(.gf-table .p-datatable-tbody > tr > td) {
-  padding: 10px 12px;
-  vertical-align: middle;
-}
-:deep(.gf-table .p-datatable-thead > tr > th) {
-  background: #faf9fc;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #6b5a8a;
-  padding: 10px 12px;
-}
-:deep(.gf-table .p-datatable-tbody > tr.gf-row-active) {
-  background: #faf5ff !important;
-  box-shadow: inset 3px 0 0 var(--color-unergy-purple);
-}
-:deep(.gf-table .p-datatable-tbody > tr.gf-row-active > td) {
-  border-color: #e9ddff;
-}
-:deep(.gf-table .p-datatable-wrapper) {
-  overflow-x: auto;
-}
-
-/* En split-mode comprimimos buckets y headers para ahorrar espacio */
-@media (min-width: 1024px) {
-  .gf-layout--split .gf-main { /* hint para hijos */ }
-  .gf-layout--split .gf-buckets {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Line clamp utility */
-.line-clamp-1 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-}
-
-/* ── Compact list (panel abierto en lg+) ───────────────────────────────── */
-.gf-compact {
-  flex-direction: column;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #ece8f4;
-  box-shadow: 0 4px 14px rgba(28, 18, 50, 0.08);
-  overflow: hidden;
-}
-@media (min-width: 1024px) {
-  /* La lista compacta se ancla JUSTO DEBAJO del sticky-header usando su altura
-     real medida (--gf-header-h). Así "choca" con el header y no se deja tapar,
-     sin depender de un valor fijo que se desfasa cuando los filtros hacen wrap.
-     Fallback 6.25rem para el primer frame antes de medir. */
-  .gf-compact {
-    position: sticky;
-    top: var(--gf-header-h, 6.25rem);
-    max-height: calc(100vh - var(--gf-header-h, 6.25rem) - 1.25rem);
-    z-index: 1;
-  }
-}
-.gf-compact-header {
-  padding: 10px 14px;
-  border-bottom: 1px solid #ece8f4;
-  background: #faf9fc;
-  flex-shrink: 0;
-}
-.gf-compact-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  padding: 24px;
-}
-.gf-compact-list {
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
-}
-.gf-compact-row {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  padding: 10px 14px 10px 10px;
-  border: none;
-  background: #fff;
-  border-bottom: 1px solid #f3f1f8;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  transition: background 0.12s;
-}
-.gf-compact-row:hover { background: #faf9fc; }
-.gf-compact-row--active {
-  background: #faf5ff;
-}
-.gf-compact-row--active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--color-unergy-purple);
-}
-.gf-compact-stripe {
-  width: 3px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.gf-compact-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.gf-compact-line1 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.gf-compact-code {
-  font-family: 'Courier New', monospace;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #6b5a8a;
-  background: #f3f1f8;
-  padding: 1px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.2px;
-}
-.gf-compact-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-.gf-compact-line2 {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-unergy-deep);
-  line-height: 1.3;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-word;
-}
-.gf-compact-row--active .gf-compact-line2 { color: #4a3b6b; font-weight: 600; }
-</style>
