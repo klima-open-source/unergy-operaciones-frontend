@@ -1,12 +1,5 @@
 <template>
   <div class="flex flex-col gap-4">
-    <!-- Toast -->
-    <transition name="fade">
-      <div v-if="toastMsg" :class="['im-toast', toastErr ? 'im-toast-err' : 'im-toast-ok']">
-        {{ toastMsg }}
-      </div>
-    </transition>
-
     <!-- ══ Toolbar de configuración ═══════════════════════════════════ -->
     <Card size="sm" class="im-no-print">
       <CardContent class="flex flex-col gap-3">
@@ -349,6 +342,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { logger } from '~/core/logger'
 import { InformesService } from '~/features/operaciones/services/informes'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
@@ -408,9 +402,6 @@ const ultimoRange = ref(null)
 const ultimoTipo = ref('')            // 'op' | 'fmo' | 'port' del último generado
 const ultimaConsolidada = ref('')     // portafolio: HTML de la página consolidada (sin secciones)
 const ultimosMiembros = ref([])       // portafolio: [{ sub_project, nombre, orden, html }]
-const toastMsg = ref('')
-const toastErr = ref(false)
-let _toastTimer = null
 
 // ── Computados ─────────────────────────────────────────────────────────
 
@@ -522,13 +513,6 @@ function imprimir() {
 
 function abrirEditor() {
   if (informeIdGuardado.value) router.push(`/informes/${informeIdGuardado.value}`)
-}
-
-function toast(msg, isErr = false) {
-  toastMsg.value = msg
-  toastErr.value = isErr
-  if (_toastTimer) clearTimeout(_toastTimer)
-  _toastTimer = setTimeout(() => { toastMsg.value = '' }, 4200)
 }
 
 // ── Catálogos ──────────────────────────────────────────────────────────
@@ -1782,11 +1766,11 @@ async function guardar() {
     }
     const data = await informesService.guardar(payload)
     informeIdGuardado.value = data.id
-    toast('💾 Informe guardado como borrador')
+    toast.success('Informe guardado como borrador')
   } catch (e) {
     const detail = e.data?.detail
     const msg = Array.isArray(detail) ? detail.map(d => `${d.loc?.slice(-1)[0] ?? ''}: ${d.msg}`).join(' | ') : (detail ?? e.message)
-    toast(`⚠️ ${msg}`, true)
+    toast.error('Error', { description: msg })
   } finally {
     guardando.value = false
   }
@@ -1801,17 +1785,6 @@ watch(tipo, (t) => {
 </script>
 
 <style scoped>
-/* Toast */
-.im-toast {
-  position: fixed; top: 80px; right: 24px;
-  padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 700;
-  z-index: 60; box-shadow: 0 4px 18px rgba(0,0,0,.16);
-}
-.im-toast-ok { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-.im-toast-err { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-.fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-
 /* Report frame */
 .im-report-frame {
   margin: 10px 16px 60px;
