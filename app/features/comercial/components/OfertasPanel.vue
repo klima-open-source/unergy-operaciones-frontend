@@ -15,7 +15,14 @@
 <script setup lang="ts">
 import type { DataTableColumn, DataTableRow } from '~/components/blocks/DataTable.vue'
 import type { Oferta } from '~/features/comercial/types'
-import { CheckIcon, ExternalLinkIcon, FileTextIcon, LoaderCircleIcon, PlusIcon, SendIcon } from '@lucide/vue'
+import {
+  CheckIcon,
+  ExternalLinkIcon,
+  FileTextIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  SendIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 // Import explícito: bug conocido de tipos de `blocks/DataTable`/`blocks/DatePicker`.
 import DataTable from '~/components/blocks/DataTable.vue'
@@ -35,10 +42,9 @@ import {
   TIPOS_OFERTA,
 } from './comercial'
 
-const props = withDefaults(
-  defineProps<{ oportunidadId: number; ofertas?: Oferta[] }>(),
-  { ofertas: () => [] },
-)
+const props = withDefaults(defineProps<{ oportunidadId: number; ofertas?: Oferta[] }>(), {
+  ofertas: () => [],
+})
 const emit = defineEmits<{ changed: [] }>()
 const comercialService = new ComercialService()
 const router = useRouter()
@@ -214,9 +220,15 @@ async function guardar() {
       <template #cell="{ row, column }">
         <template v-if="column.key === 'planta_nombre'">
           <div>
-            <div>{{ asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—' }}</div>
-            <div v-if="asOferta(row).plantas?.length" class="text-[11px] text-muted-foreground">
-              {{ asOferta(row).plantas!.map((p) => p.nombre_comercial).join(' · ') }}
+            <div>
+              {{ asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—' }}
+            </div>
+            <div v-if="asOferta(row).plantas?.length" class="text-xs text-muted-foreground">
+              {{
+                asOferta(row)
+                  .plantas!.map((p) => p.nombre_comercial)
+                  .join(' · ')
+              }}
             </div>
           </div>
         </template>
@@ -226,7 +238,7 @@ async function guardar() {
             <span
               v-for="s in asOferta(row).detalle!.servicios"
               :key="s"
-              class="mr-1 mb-1 inline-block rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700"
+              class="mr-1 mb-1 inline-block rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
               >{{ s }}</span
             >
           </template>
@@ -252,7 +264,9 @@ async function guardar() {
           >
             <SelectTrigger class="w-full text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{
+                e.label
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </template>
@@ -276,7 +290,9 @@ async function guardar() {
                   <SendIcon class="size-4" />
                 </Button>
               </GTooltipTrigger>
-              <GTooltipContent>Registrar un toque (reenvío o llamada de insistencia)</GTooltipContent>
+              <GTooltipContent
+                >Registrar un toque (reenvío o llamada de insistencia)</GTooltipContent
+              >
             </GTooltip>
           </div>
         </template>
@@ -284,7 +300,9 @@ async function guardar() {
           <span v-if="asOferta(row).fecha_ultima_respuesta">{{
             fmtFecha(asOferta(row).fecha_ultima_respuesta)
           }}</span>
-          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive">sin respuesta</span>
+          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive"
+            >sin respuesta</span
+          >
           <span v-else class="text-muted-foreground/60">—</span>
         </template>
         <template v-else-if="column.key === 'acciones'">
@@ -326,7 +344,9 @@ async function guardar() {
               :model-value="form.tipo ?? undefined"
               @update:model-value="(v) => (form.tipo = v as string)"
             >
-              <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+              <SelectTrigger class="w-full"
+                ><SelectValue placeholder="Seleccionar…"
+              /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{
                   t.label
@@ -343,14 +363,21 @@ async function guardar() {
             <MultiComboBox
               v-model="proyectoIdsStr"
               :options="opcionesProyecto"
-              :placeholder="cargandoProyectos ? 'Cargando…' : 'Buscá la planta por nombre, municipio o departamento…'"
+              :placeholder="
+                cargandoProyectos
+                  ? 'Cargando…'
+                  : 'Buscá la planta por nombre, municipio o departamento…'
+              "
               empty-message="No hay plantas cargadas"
             />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <GLabel>Código de seguimiento</GLabel>
-              <Input v-model.trim="form.numero_oferta" placeholder="Se autogenera (OP.…) si lo dejás vacío" />
+              <Input
+                v-model.trim="form.numero_oferta"
+                placeholder="Se autogenera (OP.…) si lo dejás vacío"
+              />
             </div>
             <div>
               <GLabel>Etapa inicial</GLabel>

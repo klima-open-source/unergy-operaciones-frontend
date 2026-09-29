@@ -160,10 +160,10 @@ async function registrar() {
             <span>{{ fmtFechaHora(g.fecha) }}</span>
             <span
               v-if="g.oferta_id"
-              class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+              class="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
               >{{ nombreOferta(g.oferta_id) }}</span
             >
-            <span v-else class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            <span v-else class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
               >todo el cliente</span
             >
           </div>
@@ -181,7 +181,9 @@ async function registrar() {
           <span v-if="h.estado_anterior">
             {{ labelEtapa(h.estado_anterior) }} → <b>{{ labelEtapa(h.estado_nuevo) }}</b>
           </span>
-          <span v-else>Creada en <b>{{ labelEtapa(h.estado_nuevo) }}</b></span>
+          <span v-else
+            >Creada en <b>{{ labelEtapa(h.estado_nuevo) }}</b></span
+          >
           <!-- Las filas viejas traen oferta_id NULL: son de cuando la etapa era
                del cliente. Se conservan como histórico. -->
           <span v-if="h.oferta_id" class="text-xs text-muted-foreground">

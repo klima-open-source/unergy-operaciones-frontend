@@ -58,7 +58,10 @@ const props = defineProps<{
    * necesita el RESULTADO de cada acción (para el "Guardado ✓" y para revertir),
    * y un emit no devuelve nada.
    */
-  acciones: Pick<UseOfertas, 'guardarOferta' | 'moverEtapa' | 'registrarSeguimiento' | 'registrarGestion' | 'eliminarOferta'>
+  acciones: Pick<
+    UseOfertas,
+    'guardarOferta' | 'moverEtapa' | 'registrarSeguimiento' | 'registrarGestion' | 'eliminarOferta'
+  >
 }>()
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; firmar: [oferta: Oferta] }>()
 
@@ -84,7 +87,14 @@ let temporizador: ReturnType<typeof setTimeout> | undefined
  * solo se refleja en el selector para que se vea sin recargar; NO se reenvía la
  * M2M, porque el backend ya la escribió y mandarla otra vez la reescribiría.
  */
-function proyectoCreado(p: { id: number; nombre_comercial: string; municipio?: string | null; departamento?: string | null; estado?: string | null; potencia_ac_kw?: number | null }) {
+function proyectoCreado(p: {
+  id: number
+  nombre_comercial: string
+  municipio?: string | null
+  departamento?: string | null
+  estado?: string | null
+  potencia_ac_kw?: number | null
+}) {
   proyectos.value = [
     ...proyectos.value,
     {
@@ -204,7 +214,10 @@ watch(
       toast.warning('No se pudo cargar la lista de proyectos')
     }
     if (op.status === 'fulfilled') {
-      operadores.value = op.value.map((o: OperadorRed) => ({ id: o.id, nombre: o.nombre_comercial || o.nombre_legal }))
+      operadores.value = op.value.map((o: OperadorRed) => ({
+        id: o.id,
+        nombre: o.nombre_comercial || o.nombre_legal,
+      }))
     }
     if (cs.status === 'fulfilled') {
       contratosServicio.value = cs.value
@@ -440,11 +453,18 @@ onBeforeUnmount(() => clearTimeout(temporizador))
           <span class="font-mono text-xs text-muted-foreground">
             {{ oferta.codigo_seguimiento || oferta.numero_oferta || 'sin código' }}
           </span>
-          <GBadge v-if="oferta.alerta" color="destructive" class="scale-90">⚠ {{ oferta.dias_sin_respuesta }}d</GBadge>
+          <GBadge v-if="oferta.alerta" color="destructive" class="scale-90"
+            >⚠ {{ oferta.dias_sin_respuesta }}d</GBadge
+          >
         </div>
-        <SheetTitle class="truncate">{{ oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta' }}</SheetTitle>
+        <SheetTitle class="truncate">{{
+          oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta'
+        }}</SheetTitle>
         <SheetDescription>
-          <NuxtLink :to="`/comercial/oportunidades/${oferta.oportunidad_id}`" class="text-primary underline">
+          <NuxtLink
+            :to="`/comercial/oportunidades/${oferta.oportunidad_id}`"
+            class="text-primary underline"
+          >
             {{ oferta.cliente_razon_social }}
           </NuxtLink>
         </SheetDescription>
@@ -453,27 +473,35 @@ onBeforeUnmount(() => clearTimeout(temporizador))
       <div v-if="oferta" class="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 text-sm">
         <!-- ── Etapa ───────────────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Etapa</h3>
-          <Select :model-value="oferta.estado" :disabled="moviendo" @update:model-value="(v) => cambiarEtapa(v as string)">
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Etapa
+          </h3>
+          <Select
+            :model-value="oferta.estado"
+            :disabled="moviendo"
+            @update:model-value="(v) => cambiarEtapa(v as string)"
+          >
             <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+              <SelectItem v-for="e in ETAPAS" :key="e.value" :value="e.value">{{
+                e.label
+              }}</SelectItem>
             </SelectContent>
           </Select>
-          <p class="mt-1.5 text-[11px] text-muted-foreground">
+          <p class="mt-1.5 text-xs text-muted-foreground">
             En esta etapa desde hace {{ diasDesde(oferta.estado_desde) ?? '—' }} días.
           </p>
           <Alert v-if="puedeFirmarPPA(oferta)" class="mt-2">
             <AlertDescription class="text-xs">
-              Cuando se firme, usá <strong>Firmar → crear PPA</strong> (abajo) en vez de mover la etapa a
-              mano: así queda el contrato creado y enlazado.
+              Cuando se firme, usá <strong>Firmar → crear PPA</strong> (abajo) en vez de mover la
+              etapa a mano: así queda el contrato creado y enlazado.
             </AlertDescription>
           </Alert>
         </section>
 
         <!-- ── Seguimiento del envío ───────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Seguimiento del envío
           </h3>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -505,10 +533,16 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             </div>
           </div>
 
-          <div class="mt-3 flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+          <div
+            class="mt-3 flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2"
+          >
             <div class="min-w-0">
-              <div class="text-xs font-medium text-foreground">{{ oferta.seguimientos || 0 }} toque(s) enviados</div>
-              <div v-if="sinRespuesta(oferta)" class="text-[11px] text-destructive">El cliente nunca contestó</div>
+              <div class="text-xs font-medium text-foreground">
+                {{ oferta.seguimientos || 0 }} toque(s) enviados
+              </div>
+              <div v-if="sinRespuesta(oferta)" class="text-xs text-destructive">
+                El cliente nunca contestó
+              </div>
             </div>
             <div class="flex flex-shrink-0 items-center gap-1">
               <GTooltip>
@@ -523,7 +557,12 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               </GTooltip>
               <GTooltip>
                 <GTooltipTrigger as-child>
-                  <Button variant="outline" size="sm" :disabled="guardando" @click="marcarRespuesta">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    :disabled="guardando"
+                    @click="marcarRespuesta"
+                  >
                     <CheckIcon class="size-4 text-success" />
                     Respondió
                   </Button>
@@ -536,7 +575,9 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
         <!-- ── Comercial ───────────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Comercial</h3>
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Comercial
+          </h3>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <GLabel>Tipo de oferta</GLabel>
@@ -551,7 +592,9 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               >
                 <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{
+                    t.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -559,7 +602,11 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                  comisión en % de un servicio: la etiqueta y el ejemplo siguen al tipo. -->
             <div>
               <GLabel>{{ etiquetaPrecio(f.tipo) }}</GLabel>
-              <Input v-model.trim="f.precio_detalle" :placeholder="placeholderPrecio(f.tipo)" @update:model-value="autosave" />
+              <Input
+                v-model.trim="f.precio_detalle"
+                :placeholder="placeholderPrecio(f.tipo)"
+                @update:model-value="autosave"
+              />
             </div>
             <div>
               <GLabel>Inicio tentativo del suministro</GLabel>
@@ -589,14 +636,20 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             </div>
             <div class="sm:col-span-2">
               <GLabel>Documento de la oferta (link)</GLabel>
-              <Input v-model.trim="f.documento_url" placeholder="https://…" @update:model-value="autosave" />
+              <Input
+                v-model.trim="f.documento_url"
+                placeholder="https://…"
+                @update:model-value="autosave"
+              />
             </div>
             <div class="sm:col-span-2">
               <GLabel>Notas</GLabel>
               <Textarea v-model="f.notas" rows="2" @update:model-value="autosave" />
             </div>
           </div>
-          <p v-if="ayudaPrecio(f.tipo)" class="mt-1.5 text-[11px] text-muted-foreground">{{ ayudaPrecio(f.tipo) }}</p>
+          <p v-if="ayudaPrecio(f.tipo)" class="mt-1.5 text-xs text-muted-foreground">
+            {{ ayudaPrecio(f.tipo) }}
+          </p>
         </section>
 
         <!-- ── Propuestas (versiones) ──────────────────────────────────────── -->
@@ -610,10 +663,12 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
         <!-- ── Plantas ─────────────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Plantas de la oferta</h3>
-          <p class="mb-2 text-[11px] text-muted-foreground">
-            Son las que pasan al contrato al firmar. Una oferta puede cubrir varias
-            («Balmora 1 y 2»).
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Plantas de la oferta
+          </h3>
+          <p class="mb-2 text-xs text-muted-foreground">
+            Son las que pasan al contrato al firmar. Una oferta puede cubrir varias («Balmora 1 y
+            2»).
           </p>
           <GLabel>Nombre de la planta (texto libre)</GLabel>
           <Input v-model.trim="f.planta_nombre" @update:model-value="autosave" />
@@ -634,7 +689,10 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               :model-value="f.proyecto_ids.map(String)"
               :options="
                 proyectos.map((p) => ({
-                  label: [p.nombre_comercial, [p.municipio, p.departamento].filter(Boolean).join(', ')]
+                  label: [
+                    p.nombre_comercial,
+                    [p.municipio, p.departamento].filter(Boolean).join(', '),
+                  ]
                     .filter(Boolean)
                     .join(' — '),
                   value: String(p.id),
@@ -643,22 +701,28 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               :placeholder="cargandoCatalogos ? 'Cargando…' : 'Vincular a proyectos existentes…'"
               @update:model-value="(v) => cambiarPlantas(v.map(Number))"
             />
-            <p v-if="!f.proyecto_ids?.length" class="mt-1.5 text-[11px] text-destructive">
-              Sin ningún proyecto vinculado, el PPA se crearía sin plantas: ni Cumplimiento
-              ni <code>/comercial/proyectos-operando</code> pueden ver esta oferta.
+            <p v-if="!f.proyecto_ids?.length" class="mt-1.5 text-xs text-destructive">
+              Sin ningún proyecto vinculado, el PPA se crearía sin plantas: ni Cumplimiento ni
+              <code>/comercial/proyectos-operando</code> pueden ver esta oferta.
             </p>
           </div>
         </section>
 
         <!-- ── Ficha operativa ─────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Ficha operativa</h3>
-          <p class="mb-2 text-[11px] text-muted-foreground">
-            Cada dato dice de dónde salió. Lo que manda el proyecto no se edita acá:
-            se arregla en el proyecto.
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Ficha operativa
+          </h3>
+          <p class="mb-2 text-xs text-muted-foreground">
+            Cada dato dice de dónde salió. Lo que manda el proyecto no se edita acá: se arregla en
+            el proyecto.
           </p>
           <div class="flex flex-col gap-3">
-            <div v-for="c in fichaCampos" :key="c.campo" class="flex items-start justify-between gap-2">
+            <div
+              v-for="c in fichaCampos"
+              :key="c.campo"
+              class="flex items-start justify-between gap-2"
+            >
               <div class="min-w-0 flex-1">
                 <GLabel>{{ c.label }}</GLabel>
                 <!-- Editable solo cuando el dato es (o sería) el declarado en la
@@ -679,10 +743,14 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                     }
                   "
                 >
-                  <SelectTrigger class="w-full"><SelectValue placeholder="Del catálogo…" /></SelectTrigger>
+                  <SelectTrigger class="w-full"
+                    ><SelectValue placeholder="Del catálogo…"
+                  /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Sin operador</SelectItem>
-                    <SelectItem v-for="o in operadores" :key="o.id" :value="String(o.id)">{{ o.nombre }}</SelectItem>
+                    <SelectItem v-for="o in operadores" :key="o.id" :value="String(o.id)">{{
+                      o.nombre
+                    }}</SelectItem>
                   </SelectContent>
                 </Select>
                 <NumberField
@@ -695,24 +763,39 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                 </NumberField>
                 <div v-else class="text-sm text-foreground">{{ c.valor ?? '—' }}</div>
               </div>
-              <span v-if="fuente(c.campo)" class="mt-4 flex-shrink-0 rounded px-1.5 py-0.5 text-[10px]" :class="fuente(c.campo)!.clase">{{
-                fuente(c.campo)!.label
-              }}</span>
+              <span
+                v-if="fuente(c.campo)"
+                class="mt-4 flex-shrink-0 rounded px-1.5 py-0.5 text-xs"
+                :class="fuente(c.campo)!.clase"
+                >{{ fuente(c.campo)!.label }}</span
+              >
             </div>
           </div>
         </section>
 
         <!-- ── Contrato ────────────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Contrato</h3>
-          <div v-if="oferta.ppa_contrato_id" class="rounded-md border border-success/30 bg-success/10 px-3 py-2">
-            <NuxtLink :to="`/contratos/${oferta.ppa_contrato_id}`" class="text-sm font-medium text-success underline">
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Contrato
+          </h3>
+          <div
+            v-if="oferta.ppa_contrato_id"
+            class="rounded-md border border-success/30 bg-success/10 px-3 py-2"
+          >
+            <NuxtLink
+              :to="`/contratos/${oferta.ppa_contrato_id}`"
+              class="text-sm font-medium text-success underline"
+            >
               Contrato PPA #{{ oferta.ppa_contrato_id }}
             </NuxtLink>
             <div class="mt-1 text-xs text-success">
-              {{ fmtFecha(oferta.ficha?.contrato_fecha_inicio) }} → {{ fmtFecha(oferta.ficha?.contrato_fecha_fin) }}
+              {{ fmtFecha(oferta.ficha?.contrato_fecha_inicio) }} →
+              {{ fmtFecha(oferta.ficha?.contrato_fecha_fin) }}
               <span v-if="oferta.ficha?.contrato_compra_anios">
-                · {{ oferta.ficha.contrato_compra_anios }} años ({{ oferta.ficha.contrato_compra_meses }} meses)
+                · {{ oferta.ficha.contrato_compra_anios }} años ({{
+                  oferta.ficha.contrato_compra_meses
+                }}
+                meses)
               </span>
             </div>
           </div>
@@ -721,13 +804,18 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               <FileCheckIcon class="size-4" />
               Firmar → crear PPA
             </Button>
-            <p class="mt-1.5 text-[11px] text-muted-foreground">Crea el contrato con sus tarifas y lo enlaza a esta oferta.</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">
+              Crea el contrato con sus tarifas y lo enlaza a esta oferta.
+            </p>
           </div>
           <div
             v-else-if="oferta.tipo === 'servicios_operacionales' && f.contrato_servicio_id"
             class="rounded-md border border-success/30 bg-success/10 px-3 py-2"
           >
-            <NuxtLink :to="`/contratos/${f.contrato_servicio_id}`" class="text-sm font-medium text-success underline">
+            <NuxtLink
+              :to="`/contratos/${f.contrato_servicio_id}`"
+              class="text-sm font-medium text-success underline"
+            >
               Contrato de Representación #{{ f.contrato_servicio_id }}
             </NuxtLink>
             <div class="mt-1">
@@ -742,7 +830,9 @@ onBeforeUnmount(() => clearTimeout(temporizador))
               <FileCheckIcon class="size-4" />
               Crear contrato de representación
             </Button>
-            <p class="mt-1.5 text-[11px] text-muted-foreground">Crea el contrato y lo enlaza a esta oferta.</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">
+              Crea el contrato y lo enlaza a esta oferta.
+            </p>
             <div class="mt-2">
               <GLabel>O vincular uno ya creado</GLabel>
               <Select
@@ -754,17 +844,20 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                   }
                 "
               >
-                <SelectTrigger class="w-full"><SelectValue placeholder="Buscar contrato de representación existente…" /></SelectTrigger>
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Buscar contrato de representación existente…"
+                /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Ninguno</SelectItem>
                   <SelectItem v-for="c in contratosServicio" :key="c.id" :value="String(c.id)">
-                    {{ c.contratante_nombre || '—' }} — {{ c.numero_contrato || 'Sin N° de contrato' }}
+                    {{ c.contratante_nombre || '—' }} —
+                    {{ c.numero_contrato || 'Sin N° de contrato' }}
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <p class="mt-1.5 text-[11px] text-muted-foreground">
-                Para un contrato creado desde otro camino (ej. la pestaña Servicios de un
-                proyecto), sin pasar por esta oferta.
+              <p class="mt-1.5 text-xs text-muted-foreground">
+                Para un contrato creado desde otro camino (ej. la pestaña Servicios de un proyecto),
+                sin pasar por esta oferta.
               </p>
             </div>
           </div>
@@ -772,27 +865,38 @@ onBeforeUnmount(() => clearTimeout(temporizador))
 
         <!-- ── Bitácora ────────────────────────────────────────────────────── -->
         <section>
-          <h3 class="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Bitácora de esta oferta</h3>
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            Bitácora de esta oferta
+          </h3>
           <div class="flex flex-wrap gap-2">
             <Select v-model="gestion.tipo">
               <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{
+                  t.label
+                }}</SelectItem>
               </SelectContent>
             </Select>
             <ToggleGroup v-model="gestion.direccion" type="single" variant="outline">
-              <ToggleGroupItem v-for="d in DIRECCIONES" :key="d.value" :value="d.value">{{ d.label }}</ToggleGroupItem>
+              <ToggleGroupItem v-for="d in DIRECCIONES" :key="d.value" :value="d.value">{{
+                d.label
+              }}</ToggleGroupItem>
             </ToggleGroup>
-            <Input v-model.trim="gestion.descripcion" class="flex-1" placeholder="Qué pasó…" @keyup.enter="registrarGestion" />
+            <Input
+              v-model.trim="gestion.descripcion"
+              class="flex-1"
+              placeholder="Qué pasó…"
+              @keyup.enter="registrarGestion"
+            />
             <Button :disabled="!gestion.descripcion || guardandoGestion" @click="registrarGestion">
               <LoaderCircleIcon v-if="guardandoGestion" class="animate-spin" />
               <PlusIcon v-else class="size-4" />
             </Button>
           </div>
-          <p class="mt-1.5 text-[11px] text-muted-foreground">
-            Queda colgada de esta oferta y apaga solo su alerta — no la de sus hermanas
-            del mismo cliente. <strong>Solo «Nos respondió» apaga la alerta</strong>:
-            insistir no cuenta como respuesta.
+          <p class="mt-1.5 text-xs text-muted-foreground">
+            Queda colgada de esta oferta y apaga solo su alerta — no la de sus hermanas del mismo
+            cliente. <strong>Solo «Nos respondió» apaga la alerta</strong>: insistir no cuenta como
+            respuesta.
           </p>
         </section>
 

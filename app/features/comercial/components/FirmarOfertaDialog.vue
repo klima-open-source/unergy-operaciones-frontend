@@ -193,7 +193,7 @@ async function firmar() {
           </AlertDescription>
         </Alert>
         <div v-else class="rounded-md border bg-primary/5 px-3 py-2">
-          <div class="mb-0.5 text-[11px] font-semibold text-primary">
+          <div class="mb-0.5 text-xs font-semibold text-primary">
             {{ plantas.length }} PLANTA(S) AL CONTRATO
           </div>
           <div class="text-xs text-primary">
@@ -205,7 +205,7 @@ async function firmar() {
           <div>
             <GLabel>Código del contrato</GLabel>
             <Input v-model.trim="f.numero_codigo_contrato" />
-            <p class="mt-1 text-[11px] text-muted-foreground">
+            <p class="mt-1 text-xs text-muted-foreground">
               Si lo dejás vacío hereda el código de seguimiento de la oferta.
             </p>
           </div>
@@ -253,7 +253,7 @@ async function firmar() {
                 <ListIcon class="size-4" />
                 Llenar los años del periodo
               </Button>
-              <span class="text-[11px] text-muted-foreground">
+              <span class="text-xs text-muted-foreground">
                 {{
                   aniosPeriodo.length
                     ? `${aniosPeriodo.length} año(s) entre inicio y fin`
@@ -290,7 +290,7 @@ async function firmar() {
               <PlusIcon class="size-4" />
               Agregar año
             </Button>
-            <p v-if="filasMensuales" class="mt-1 text-[11px] text-muted-foreground">
+            <p v-if="filasMensuales" class="mt-1 text-xs text-muted-foreground">
               Se expandirá a <strong>{{ filasMensuales }}</strong> filas mensuales de tarifa,
               recortadas al periodo del suministro.
             </p>

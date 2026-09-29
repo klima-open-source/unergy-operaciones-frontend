@@ -81,7 +81,7 @@ function alClick(t: Tarjeta) {
            texto como "MWh/mes estimados de las ofertas abiertas" envuelve a
            cuatro líneas, descuadra la fila y empuja el contenido real fuera de
            la primera pantalla. La cifra y su etiqueta se sostienen solas. -->
-      <div v-if="k.detalle" class="mt-0.5 hidden text-[11px] text-muted-foreground sm:block">
+      <div v-if="k.detalle" class="mt-0.5 hidden text-xs text-muted-foreground sm:block">
         {{ k.detalle }}
       </div>
     </div>
