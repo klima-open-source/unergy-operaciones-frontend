@@ -261,9 +261,10 @@
                     <code class="font-mono text-xs text-muted-foreground">{{
                       f.codigo_interno
                     }}</code>
-                    <span class="truncate text-sm font-medium text-foreground">{{
-                      tituloFalla(f)
-                    }}</span>
+                    <TruncatedText
+                      :text="tituloFalla(f)"
+                      class="min-w-0 text-sm font-medium text-foreground"
+                    />
                     <Badge
                       v-if="recurrencias(f) > 1"
                       variant="outline"
@@ -273,16 +274,19 @@
                       <RotateCcwIcon /> {{ recurrencias(f) }}×
                     </Badge>
                   </div>
-                  <p v-if="!drawerVisible" class="truncate text-xs text-muted-foreground">
-                    {{ f.proyecto?.nombre_comercial
-                    }}<span v-if="f.descripcion"> · {{ f.descripcion }}</span>
-                  </p>
+                  <TruncatedText
+                    v-if="!drawerVisible"
+                    :text="
+                      [f.proyecto?.nombre_comercial, f.descripcion].filter(Boolean).join(' · ')
+                    "
+                    class="text-xs text-muted-foreground"
+                  />
                 </div>
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-1.5 md:flex">
                   <span
                     class="size-1.5 rounded-full bg-(--c)"
-                    :style="{ '--c': colorEstado(f.estado?.codigo, '#9ca3af') }"
+                    :style="{ '--c': colorEstado(f.estado?.codigo, 'var(--muted-foreground)') }"
                   />
                   <span class="text-xs text-muted-foreground">{{ f.estado?.etiqueta || '—' }}</span>
                 </div>
@@ -362,9 +366,10 @@
                     drawerFalla.codigo_interno
                   }}</code>
                   <span class="text-xs text-muted-foreground">·</span>
-                  <span class="truncate text-sm font-medium text-foreground">{{
-                    tituloFalla(drawerFalla)
-                  }}</span>
+                  <TruncatedText
+                    :text="tituloFalla(drawerFalla)"
+                    class="min-w-0 text-sm font-medium text-foreground"
+                  />
                   <span
                     v-if="navIndex >= 0"
                     class="ml-auto hidden text-xs whitespace-nowrap text-muted-foreground sm:inline-block"
@@ -1940,7 +1945,7 @@ function confirmDelete(falla: Falla) {
 
 // ── Helpers visuales ──────────────────────────────────────────────────────
 function prioColor(codigo?: string | null): string {
-  return colorPrioridad(codigo, '#9ca3af')
+  return colorPrioridad(codigo, 'var(--muted-foreground)')
 }
 
 function initials(nombre?: string): string {
