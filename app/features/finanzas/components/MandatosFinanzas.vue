@@ -1,14 +1,14 @@
 <template>
-  <div class="mf-wrap">
+  <div>
     <div class="mf-top">
       <div>
         <h1>Mandatos</h1>
         <div class="mf-sub">Estado de firma de mandatos de ingresos y costos · {{ periodoLabel }}</div>
       </div>
       <div class="mf-period">
-        <button class="mf-arrow" @click="stepMes(-1)" title="Mes anterior"><ChevronLeftIcon class="size-[1em]" /></button>
+        <button class="mf-arrow" @click="stepMes(-1)" title="Mes anterior"><ChevronLeftIcon class="size-4" /></button>
         <span class="mf-perlabel">{{ periodoLabel }}</span>
-        <button class="mf-arrow" :disabled="esMesActual" @click="stepMes(1)" title="Mes siguiente"><ChevronRightIcon class="size-[1em]" /></button>
+        <button class="mf-arrow" :disabled="esMesActual" @click="stepMes(1)" title="Mes siguiente"><ChevronRightIcon class="size-4" /></button>
       </div>
     </div>
 

@@ -2,10 +2,10 @@
   <div class="mand-root">
     <!-- B. Navegador de período -->
     <div class="mand-periodo-bar">
-      <CalendarIcon class="text-sm size-[1em]" style="color:#6D4AE8" />
-      <button class="mand-nav-btn" @click="cambiarMes(-1)"><ChevronLeftIcon class="size-[1em]" /></button>
+      <CalendarIcon class="size-4 text-primary" />
+      <button class="mand-nav-btn" @click="cambiarMes(-1)"><ChevronLeftIcon class="size-4" /></button>
       <span class="mand-periodo-label">{{ periodoLargo }}</span>
-      <button class="mand-nav-btn" @click="cambiarMes(1)"><ChevronRightIcon class="size-[1em]" /></button>
+      <button class="mand-nav-btn" @click="cambiarMes(1)"><ChevronRightIcon class="size-4" /></button>
       <span class="mand-periodo-code">{{ periodo }}</span>
       <span v-if="badgeMes === 'correcciones' || badgeMes === 'cerrado'" class="mand-badge-mes" :class="`mand-badge-mes--${badgeMes}`">
         {{ badgeMes === 'correcciones' ? 'Correcciones pendientes' : 'Mes cerrado' }}
@@ -14,13 +14,13 @@
     </div>
 
     <div v-if="cargando" class="flex justify-center py-10">
-      <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:1.5rem; color:#6D4AE8;" />
+      <LoaderCircleIcon class="size-6 animate-spin text-primary" />
     </div>
 
     <div v-else>
       <!-- C. Banner de correcciones -->
       <div v-if="hayBanner" class="mand-banner">
-        <MailIcon class="size-[1em]" />
+        <MailIcon class="size-4" />
         <div class="mand-banner-txt">
           <strong>Vanessa (revisoría)</strong> reportó {{ correcciones.length }} mandato(s) con novedad.
           <span class="mand-banner-obs">{{ obsBanner }}</span>
@@ -51,7 +51,7 @@
           placeholder="Estado" showClear class="mand-filtro-sel" />
         <Select v-model="filtroTercero" :options="tercerosOpciones" placeholder="Tercero / inversionista"
           showClear filter class="mand-filtro-sel" />
-        <span class="mand-buscar"><SearchIcon class="size-[1em]" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" /></span>
+        <span class="mand-buscar"><SearchIcon class="size-4" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" /></span>
       </div>
 
       <!-- G. Tabla principal -->
@@ -72,7 +72,7 @@
               </td>
               <td>{{ m.periodo }}</td>
               <td><span class="mand-badge" :class="`mand-badge--${estadoMeta(m.estado).cls}`">
-                <TriangleAlertIcon class="size-[1em]" v-if="estadoMeta(m.estado).cls === 'neutro-alerta'" style="font-size:10px" />
+                <TriangleAlertIcon class="size-3" v-if="estadoMeta(m.estado).cls === 'neutro-alerta'" />
                 {{ estadoMeta(m.estado).label }}</span></td>
               <td class="mand-obs">{{ m.observacion || '—' }}</td>
               <td><span v-if="m.tiene_pdf" class="mand-doc-ok">Disponible</span><span v-else class="mand-guion">—</span></td>
@@ -84,9 +84,9 @@
               </td>
               <td>
                 <button v-if="m.tiene_pdf_zip || m.tiene_pdf" class="mand-clip-btn" title="Ver PDF" @click="descargarPdf(m)">
-                  <PaperclipIcon class="size-[1em]" style="color:#185FA5" />
+                  <PaperclipIcon class="size-4 text-primary" />
                 </button>
-                <PaperclipIcon class="size-[1em]" v-else style="color:#C9C2D6" />
+                <PaperclipIcon class="size-4 text-muted-foreground" v-else  />
               </td>
             </tr>
             <tr v-if="mandatosFiltrados.length === 0">
@@ -98,20 +98,20 @@
 
       <!-- H. Barra de acciones -->
       <div class="mand-acciones">
-        <button class="mand-btn mand-btn--sec" @click="exportarCsv"><DownloadIcon class="size-[1em]" /> Exportar</button>
-        <button class="mand-btn mand-btn--sec" disabled title="Acción interna (Fase B)"><SendIcon class="size-[1em]" /> Correo a revisoría</button>
+        <button class="mand-btn mand-btn--sec" @click="exportarCsv"><DownloadIcon class="size-4" /> Exportar</button>
+        <button class="mand-btn mand-btn--sec" disabled title="Acción interna (Fase B)"><SendIcon class="size-4" /> Correo a revisoría</button>
         <span class="mand-acciones-sep" />
         <label class="mand-btn mand-btn--pri">
-          <LoaderCircleIcon v-if="subiendoPdf" class="size-[1em] animate-spin" />
-          <UploadIcon v-else class="size-[1em]" /> Subir firmados
+          <LoaderCircleIcon v-if="subiendoPdf" class="size-4 animate-spin" />
+          <UploadIcon v-else class="size-4" /> Subir firmados
           <input type="file" accept=".pdf" class="hidden" @change="onSubirFirmado" />
         </label>
         <label class="mand-btn mand-btn--pri">
-          <LoaderCircleIcon v-if="subiendoZip" class="size-[1em] animate-spin" />
-          <FileInputIcon v-else class="size-[1em]" /> Cargar ZIP de mandatos
+          <LoaderCircleIcon v-if="subiendoZip" class="size-4 animate-spin" />
+          <FileInputIcon v-else class="size-4" /> Cargar ZIP de mandatos
           <input type="file" accept=".zip" class="hidden" @change="abrirDialogoZip" />
         </label>
-        <button class="mand-btn mand-btn--pri" disabled title="Acción interna (Fase B)"><Share2Icon class="size-[1em]" /> Enviar a inversionistas</button>
+        <button class="mand-btn mand-btn--pri" disabled title="Acción interna (Fase B)"><Share2Icon class="size-4" /> Enviar a inversionistas</button>
       </div>
     </div>
 
@@ -124,8 +124,8 @@
         <div class="mand-modal-acciones">
           <button class="mand-btn mand-btn--sec" @click="mostrarDialogoZip = false">Cancelar</button>
           <button class="mand-btn mand-btn--pri" :disabled="subiendoZip || !periodoZip" @click="confirmarCargaZip">
-            <LoaderCircleIcon v-if="subiendoZip" class="size-[1em] animate-spin" />
-            <CheckIcon v-else class="size-[1em]" /> Confirmar
+            <LoaderCircleIcon v-if="subiendoZip" class="size-4 animate-spin" />
+            <CheckIcon v-else class="size-4" /> Confirmar
           </button>
         </div>
       </div>
@@ -134,11 +134,11 @@
     <!-- Panel de resumen de la carga -->
     <div v-if="resumenZip" class="mand-resumen">
       <div class="mand-resumen-head">
-        <span><CircleCheckIcon class="size-[1em]" style="color:#3B6D11" /> {{ resumenZip.detectados }} mandatos detectados</span>
-        <span><CircleCheckIcon class="size-[1em]" style="color:#3B6D11" /> {{ resumenZip.identificados_auto }} inversionistas identificados</span>
-        <span v-if="resumenZip.sin_inversionista"><TriangleAlertIcon class="size-[1em]" style="color:#854F0B" /> {{ resumenZip.sin_inversionista }} sin inversionista</span>
+        <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.detectados }} mandatos detectados</span>
+        <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.identificados_auto }} inversionistas identificados</span>
+        <span v-if="resumenZip.sin_inversionista"><TriangleAlertIcon class="size-4 text-warning" /> {{ resumenZip.sin_inversionista }} sin inversionista</span>
         <span v-if="resumenZip.omitidos">· {{ resumenZip.omitidos }} omitidos (ya existían)</span>
-        <button class="mand-resumen-x" @click="resumenZip = null"><XIcon class="size-[1em]" /></button>
+        <button class="mand-resumen-x" @click="resumenZip = null"><XIcon class="size-4" /></button>
       </div>
       <div v-if="resumenZip.sugerencias?.length" class="mand-sugerencias">
         <p class="mand-sug-titulo">Sugerencias de inversionista (confirma cada una):</p>

@@ -2,58 +2,58 @@
   <div class="space-y-5 pt-3">
 
     <!-- ── Barra superior: navegación + upload + descarga ──────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
 
       <!-- Navegación por período (solo si hay datos) -->
       <div class="flex items-center gap-3">
         <template v-if="periodos.length">
           <div class="flex items-center gap-2">
             <button type="button" @click="irAnterior" :disabled="periodoIndex <= 0"
-              class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-              <ChevronLeftIcon class="text-xs text-gray-500 size-[1em]" />
+              class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
+              <ChevronLeftIcon class="text-muted-foreground size-3" />
             </button>
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep); min-width:100px; text-align:center">
+            <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
               {{ periodoLabel }}
             </span>
             <button type="button" @click="irSiguiente" :disabled="periodoIndex >= periodos.length - 1"
-              class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
-              <ChevronRightIcon class="text-xs text-gray-500 size-[1em]" />
+              class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
+              <ChevronRightIcon class="text-muted-foreground size-3" />
             </button>
           </div>
           <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
         </template>
-        <span v-else class="text-sm text-gray-400">Sin facturas procesadas</span>
+        <span v-else class="text-sm text-muted-foreground">Sin facturas procesadas</span>
       </div>
 
       <!-- Acciones -->
       <div class="flex items-center gap-2">
         <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="onFileSelected" />
-        <Button label="Subir PDF" size="small" :loading="procesando" @click="fileInputRef.click()" style="background:#06b6d4;border-color:#06b6d4">
-          <template #icon><UploadIcon class="size-[1em]" /></template>
+        <Button label="Subir PDF" size="small" :loading="procesando" @click="fileInputRef.click()" class="bg-chart-2! border-chart-2!">
+          <template #icon><UploadIcon class="size-4" /></template>
         </Button>
-        <Button v-if="facturaActual" label="Descargar Excel" size="small" outlined :loading="descargando" @click="descargarExcel" style="border-color:#1F4E79;color:#1F4E79">
-          <template #icon><DownloadIcon class="size-[1em]" /></template>
+        <Button v-if="facturaActual" label="Descargar Excel" size="small" outlined :loading="descargando" @click="descargarExcel" class="border-chart-3! text-chart-3!">
+          <template #icon><DownloadIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div v-if="facturaActual" class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div v-if="facturaActual" class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="filtroTexto" placeholder="Nombre de la minigranja…" class="w-56" />
         </IconField>
       </div>
-      <div class="ml-auto pb-1.5 text-xs text-gray-400">{{ filasFiltradas.length }} de {{ lineas.length }}</div>
+      <div class="ml-auto pb-1.5 text-xs text-muted-foreground">{{ filasFiltradas.length }} de {{ lineas.length }}</div>
     </div>
 
     <!-- ── Estado vacío ─────────────────────────────────────────────────────── -->
     <div v-if="!periodos.length && !procesando" class="mon-tab-empty">
-      <WifiIcon class="size-[1em]" style="font-size:2.5rem; color:#c4b8d4;" />
-      <p class="mt-3 text-sm font-semibold" style="color:#6b5a8a;">Sin facturas procesadas</p>
-      <p class="mt-1 text-xs" style="color:#a094b8; max-width:300px; margin:4px auto 0">
+      <WifiIcon class="size-4 text-muted-foreground" />
+      <p class="mt-3 text-sm font-semibold text-muted-foreground">Sin facturas procesadas</p>
+      <p class="mt-1 text-xs text-muted-foreground max-w-75 mx-auto mt-1">
         Haz clic en <strong>Subir PDF</strong> para cargar la primera factura Starlink
         y comenzar a registrar los costos por mes.
       </p>
@@ -61,7 +61,7 @@
 
     <!-- ── Spinner de carga ──────────────────────────────────────────────────── -->
     <div v-else-if="cargandoFactura" class="flex justify-center py-10">
-      <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:1.5rem; color:var(--color-unergy-purple)" />
+      <LoaderCircleIcon class="animate-spin size-4 text-unergy-purple" />
     </div>
 
     <!-- ── Datos del período seleccionado ───────────────────────────────────── -->
@@ -69,18 +69,18 @@
 
       <!-- Resumen -->
       <div class="flex items-center gap-4 flex-wrap">
-        <div class="text-xs text-gray-500">
-          <span class="font-semibold" style="color:var(--color-unergy-deep)">{{ facturaActual.items.length }}</span> ítems
+        <div class="text-xs text-muted-foreground">
+          <span class="font-semibold text-unergy-deep">{{ facturaActual.items.length }}</span> ítems
         </div>
-        <div class="text-xs text-gray-500">
+        <div class="text-xs text-muted-foreground">
           Suma:
-          <span class="font-semibold" style="color:#7c3aed">{{ formatCOP(facturaActual.suma_items) }}</span>
+          <span class="font-semibold text-unergy-purple">{{ formatCOP(facturaActual.suma_items) }}</span>
         </div>
-        <div v-if="facturaActual.cargos_totales" class="text-xs text-gray-500">
+        <div v-if="facturaActual.cargos_totales" class="text-xs text-muted-foreground">
           Cargos totales PDF:
-          <span class="font-semibold" style="color:#166534">{{ formatCOP(facturaActual.cargos_totales) }}</span>
+          <span class="font-semibold text-success">{{ formatCOP(facturaActual.cargos_totales) }}</span>
         </div>
-        <div v-if="facturaActual.updated_at" class="text-xs text-gray-400">
+        <div v-if="facturaActual.updated_at" class="text-xs text-muted-foreground">
           Procesado: {{ fmtFecha(facturaActual.updated_at) }}
         </div>
       </div>
@@ -88,56 +88,56 @@
       <!-- Tabla por proyecto, agrupada por tipo (igual que Arriendos) -->
       <template v-if="secciones.length">
         <div v-for="sec in secciones" :key="sec.tipo"
-          class="bg-white rounded-xl shadow-sm border overflow-hidden" style="border-color:#ECE7F2">
+          class="bg-white rounded-xl shadow-sm border overflow-hidden">
           <button type="button"
-            class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-gray-50 transition-colors duration-150"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
             @click="toggleSection(sec.tipo)">
-            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: sec.dot }" />
-            <span class="font-semibold text-gray-800 text-sm flex-1">{{ sec.label }}</span>
-            <span class="text-xs text-gray-400 font-medium">({{ sec.items.length }})</span>
-            <ChevronDownIcon class="text-gray-400 text-xs ml-2 transition-transform duration-200 size-[1em]" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
+            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-(--c)" :style="{ '--c': sec.dot }" />
+            <span class="font-semibold text-foreground text-sm flex-1">{{ sec.label }}</span>
+            <span class="text-xs text-muted-foreground font-medium">({{ sec.items.length }})</span>
+            <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
           </button>
           <div class="section-collapse" :class="{ open: openSections.has(sec.tipo) }">
             <div class="overflow-x-auto">
-              <table class="w-full text-sm border-collapse" style="min-width:760px; table-layout:fixed">
+              <table class="w-full text-sm border-collapse min-w-190 table-fixed">
                 <thead>
-                  <tr class="bg-gray-50 border-t border-b border-gray-100">
-                    <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap">Minigranja</th>
-                    <th class="px-4 py-2.5 text-center font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap" style="width:90px">Cantidad</th>
-                    <th class="px-4 py-2.5 text-right font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap" style="width:140px">Precio unit. prom.</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-purple-50 whitespace-nowrap" style="color:#7c3aed; width:130px">Sin IVA</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-purple-50 whitespace-nowrap" style="color:#7c3aed; width:120px">IVA</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-purple-50 whitespace-nowrap" style="color:#7c3aed; width:140px">Monto total</th>
+                  <tr class="bg-muted border-t border-b border-border">
+                    <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Minigranja</th>
+                    <th class="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Cantidad</th>
+                    <th class="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Precio unit. prom.</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">Sin IVA</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">IVA</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">Monto total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(fila, i) in sec.items" :key="i"
-                    class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
-                    <td class="px-4 py-2 font-medium" style="color:var(--color-unergy-deep)">
+                    class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
+                    <td class="px-4 py-2 font-medium text-unergy-deep">
                       <span v-if="fila.nombre_comercial">
-                        <span class="block text-[11px] leading-tight"
-                              :class="fila.codigo_tsf ? 'text-gray-400' : 'text-gray-300'">
+                        <span class="block text-xs leading-tight"
+                              :class="fila.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground'">
                           {{ fila.codigo_tsf || '—' }}
                         </span>
                         {{ fila.nombre_comercial }}
                       </span>
                       <div v-else-if="fila.excluido" class="flex items-center gap-1.5">
                         <GBadge color="default">No aplica</GBadge>
-                        <span class="text-[11px] text-gray-400">{{ fila.descripcion }}</span>
+                        <span class="text-xs text-muted-foreground">{{ fila.descripcion }}</span>
                       </div>
                       <div v-else class="flex items-center gap-1.5">
                         <GBadge color="warning">Sin asignar</GBadge>
                         <button type="button" class="mn-asignar-btn" title="Asignar minigranja"
                           @click="abrirAsignarMinigranja(fila.descripcion)">
-                          <LinkIcon class="text-xs size-[1em]" />
+                          <LinkIcon class="size-3" />
                         </button>
                       </div>
                     </td>
-                    <td class="px-4 py-2 text-xs text-center text-gray-600">{{ fila.cantidad_total }}</td>
-                    <td class="px-4 py-2 text-right font-mono text-xs text-gray-600">{{ formatCOP(fila.precio_unitario_promedio) }}</td>
-                    <td class="px-4 py-2 text-right font-mono text-xs bg-purple-50/30">{{ formatCOP(fila.sin_iva) }}</td>
-                    <td class="px-4 py-2 text-right font-mono text-xs bg-purple-50/30">{{ formatCOP(fila.iva) }}</td>
-                    <td class="px-4 py-2 text-right font-semibold tabular-nums bg-purple-50/30" style="color:#7c3aed">{{ formatCOP(fila.monto_total) }}</td>
+                    <td class="px-4 py-2 text-xs text-center text-muted-foreground">{{ fila.cantidad_total }}</td>
+                    <td class="px-4 py-2 text-right font-mono text-xs text-muted-foreground">{{ formatCOP(fila.precio_unitario_promedio) }}</td>
+                    <td class="px-4 py-2 text-right font-mono text-xs bg-unergy-purple/5">{{ formatCOP(fila.sin_iva) }}</td>
+                    <td class="px-4 py-2 text-right font-mono text-xs bg-unergy-purple/5">{{ formatCOP(fila.iva) }}</td>
+                    <td class="px-4 py-2 text-right font-semibold tabular-nums bg-unergy-purple/5 text-unergy-purple">{{ formatCOP(fila.monto_total) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -146,69 +146,67 @@
         </div>
 
         <!-- Total general -->
-        <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between" style="border-color:#ECE7F2">
-          <span class="text-xs font-semibold text-gray-600">Total del período</span>
+        <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
+          <span class="text-xs font-semibold text-muted-foreground">Total del período</span>
           <div class="flex items-center gap-6 ml-auto">
             <div class="text-right">
-              <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Subtotal (Sin IVA)</p>
-              <p class="text-sm font-semibold tabular-nums" style="color:var(--color-unergy-deep)">{{ formatCOP(totalSinIVAGeneral) }}</p>
+              <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtotal (Sin IVA)</p>
+              <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalSinIVAGeneral) }}</p>
             </div>
             <div class="text-right">
-              <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wide">IVA</p>
-              <p class="text-sm font-semibold tabular-nums" style="color:var(--color-unergy-deep)">{{ formatCOP(totalIVAGeneral) }}</p>
+              <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">IVA</p>
+              <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalIVAGeneral) }}</p>
             </div>
             <div class="text-right">
-              <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Total</p>
-              <p class="text-base font-bold tabular-nums" style="color:#06b6d4">{{ formatCOP(totalGeneral) }}</p>
+              <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
+              <p class="text-base font-bold tabular-nums text-chart-2">{{ formatCOP(totalGeneral) }}</p>
             </div>
           </div>
         </div>
       </template>
-      <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-gray-400 border" style="border-color:#ECE7F2">
+      <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
         {{ filtroTexto ? 'No se encontraron minigranjas con ese nombre.' : 'Sin líneas para este período.' }}
       </div>
     </template>
 
     <!-- ── Dialog: confirmar período antes de guardar ────────────────────────── -->
     <Dialog v-model:visible="showGuardarDialog" modal header="Guardar factura procesada"
-      :style="{ width: '420px' }" :closable="!guardando">
+      class="w-full max-w-md" :closable="!guardando">
       <div class="space-y-4 pt-1">
 
         <!-- Alerta de discrepancia si existe -->
         <div v-if="resultadoPendiente?.advertencia"
-          class="rounded-xl border p-3 flex items-start gap-3"
-          style="background:#fef3c7;border-color:#f59e0b40">
-          <TriangleAlertIcon class="text-sm flex-shrink-0 mt-0.5 size-[1em]" style="color:#d97706" />
-          <p class="text-xs" style="color:#92400e">{{ resultadoPendiente.advertencia }}</p>
+          class="rounded-xl border p-3 flex items-start gap-3 bg-warning/15 border-warning/25">
+          <TriangleAlertIcon class="flex-shrink-0 mt-0.5 size-4 text-warning" />
+          <p class="text-xs text-warning">{{ resultadoPendiente.advertencia }}</p>
         </div>
 
         <!-- Selector de período -->
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-medium text-gray-600">
+          <label class="text-xs font-medium text-muted-foreground">
             Período de la factura
-            <span class="text-gray-400 font-normal">(detectado automáticamente — puedes corregirlo)</span>
+            <span class="text-muted-foreground font-normal">(detectado automáticamente — puedes corregirlo)</span>
           </label>
           <input type="month" v-model="periodoParaGuardar"
-            class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200" />
+            class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-unergy-purple/30" />
         </div>
 
         <!-- Advertencia de sobreescritura -->
         <div v-if="periodoYaExiste"
-          class="rounded-lg border p-2.5 flex items-start gap-2"
-          style="background:#fef3c7;border-color:#f59e0b60">
-          <TriangleAlertIcon class="text-xs flex-shrink-0 mt-0.5 size-[1em]" style="color:#d97706" />
-          <p class="text-xs" style="color:#92400e">
+          class="rounded-lg border p-2.5 flex items-start gap-2 bg-warning/15 border-warning/40">
+          <TriangleAlertIcon class="flex-shrink-0 mt-0.5 size-3 text-warning" />
+          <p class="text-xs text-warning">
             Ya existen datos para <strong>{{ periodoLabelFrom(periodoParaGuardar) }}</strong>.
             Al confirmar se sobreescribirán.
           </p>
         </div>
 
         <!-- Resumen -->
-        <div class="text-xs text-gray-500 space-y-0.5">
+        <div class="text-xs text-muted-foreground space-y-0.5">
           <p>{{ resultadoPendiente?.items?.length }} ítems · Suma: <strong>{{ formatCOP(resultadoPendiente?.suma_items) }}</strong></p>
           <p v-if="resultadoPendiente?.cargos_totales">
             Cargos totales PDF: <strong>{{ formatCOP(resultadoPendiente?.cargos_totales) }}</strong>
-            <span :style="resultadoPendiente?.coincide ? 'color:#166534' : 'color:#dc2626'">
+            <span :class="resultadoPendiente?.coincide ? 'text-success' : 'text-destructive'">
               {{ resultadoPendiente?.coincide ? '✓ Coincide' : '✗ No coincide' }}
             </span>
           </p>
@@ -217,8 +215,8 @@
         <div class="flex gap-2 justify-end pt-1">
           <Button label="Cancelar" size="small" outlined severity="secondary"
             :disabled="guardando" @click="showGuardarDialog = false" />
-          <Button label="Guardar" size="small" :loading="guardando" :disabled="!periodoParaGuardar" @click="guardarFactura" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+          <Button label="Guardar" size="small" :loading="guardando" :disabled="!periodoParaGuardar" @click="guardarFactura">
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -226,14 +224,14 @@
 
     <!-- ── Dialog: asignar minigranja a un sitio sin mapear ─────────────────── -->
     <Dialog v-model:visible="showAsignarDialog" modal header="Asignar minigranja"
-      :style="{ width: '420px' }" :closable="!asignando">
+      class="w-full max-w-md" :closable="!asignando">
       <div class="space-y-4 pt-1">
-        <p class="text-xs text-gray-500">
-          Sitio Starlink: <strong style="color:var(--color-unergy-deep)">{{ descripcionParaAsignar }}</strong>
+        <p class="text-xs text-muted-foreground">
+          Sitio Starlink: <strong class="text-unergy-deep">{{ descripcionParaAsignar }}</strong>
         </p>
 
         <div class="flex flex-col gap-2">
-          <label class="text-xs font-medium text-gray-600">Minigranja / proyecto</label>
+          <label class="text-xs font-medium text-muted-foreground">Minigranja / proyecto</label>
           <Select
             v-model="proyectoParaAsignar"
             :options="proyectos"
@@ -247,7 +245,7 @@
           />
         </div>
 
-        <p class="text-[11px] text-gray-400">
+        <p class="text-xs text-muted-foreground">
           Si el sitio no corresponde a un proyecto nuestro (ej. tema contable, oficina),
           márcalo como "No aplica" en vez de asignarle una minigranja.
         </p>
@@ -257,8 +255,8 @@
             :disabled="asignando" :loading="excluyendo" @click="confirmarExcluirSitio" />
           <Button label="Cancelar" size="small" outlined severity="secondary"
             :disabled="asignando || excluyendo" @click="showAsignarDialog = false" />
-          <Button label="Asignar" size="small" :loading="asignando" :disabled="!proyectoParaAsignar || excluyendo" @click="confirmarAsignarMinigranja" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+          <Button label="Asignar" size="small" :loading="asignando" :disabled="!proyectoParaAsignar || excluyendo" @click="confirmarAsignarMinigranja">
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -566,7 +564,7 @@ onMounted(async () => {
    ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
    le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
 @reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
+.field-label { @apply block text-xs font-medium text-muted-foreground mb-1; }
 
 .mon-tab-empty {
   text-align: center;
