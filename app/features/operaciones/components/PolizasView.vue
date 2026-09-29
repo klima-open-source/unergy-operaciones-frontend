@@ -106,7 +106,9 @@
         @click="abrirEdicion(fila)"
       >
         <CardHeader>
-          <CardTitle class="truncate text-sm">{{ fila.nombre_comercial }}</CardTitle>
+          <CardTitle class="min-w-0 text-sm"
+            ><TruncatedText :text="fila.nombre_comercial"
+          /></CardTitle>
           <CardAction>
             <GBadge :color="estadoColor(estadoDe(fila))" size="sm">
               {{ ESTADO_LABELS[estadoDe(fila)] }}

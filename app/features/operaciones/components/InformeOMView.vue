@@ -47,7 +47,9 @@
           @click="abrir(p.id)"
         >
           <CardHeader>
-            <CardTitle class="truncate text-sm">{{ p.nombre_comercial }}</CardTitle>
+            <CardTitle class="min-w-0 text-sm"
+              ><TruncatedText :text="p.nombre_comercial"
+            /></CardTitle>
             <CardAction>
               <GBadge :color="estadoProyectoColor(p)" size="sm">{{
                 estadoProyectoLabel(p)

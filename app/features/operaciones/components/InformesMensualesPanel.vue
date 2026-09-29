@@ -166,7 +166,7 @@
               <ComboboxList>
                 <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
                 <ComboboxItem v-for="o in opcionesPortafolio" :key="o.value" :value="o.value">
-                  <span class="min-w-0 flex-1 truncate">{{ o.label }}</span>
+                  <TruncatedText :text="o.label" class="min-w-0 flex-1" />
                   <span class="shrink-0 text-xs text-muted-foreground"
                     >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
                   >
