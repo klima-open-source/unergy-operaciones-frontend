@@ -98,26 +98,26 @@
         <label class="text-xs font-semibold text-muted-foreground">Estado</label>
         <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
                 optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                size="small" class="w-40" />
+                size="small" />
       </div>
       <div>
         <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
         <Select v-model="filtrosProyectos.tipo_proyecto.value" :options="tipoOpcionesProyectos"
                 optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                size="small" class="w-40" />
+                size="small" />
       </div>
       <div>
         <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
         <Select v-model="filtrosProyectos.portafolio_id.value" :options="portafolios"
                 optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
-                size="small" class="w-48" />
+                size="small" />
       </div>
       <div>
         <label class="text-xs font-semibold text-muted-foreground">PPA</label>
         <MultiSelect v-model="filtrosProyectos.ppa_contratos.value" :options="ppaOpcionesProyectos"
                      optionLabel="label" optionValue="value" filter display="chip"
                      placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
-                     size="small" class="w-56" />
+                     size="small" />
       </div>
       <Button v-if="nFiltrosProyectosActivos" label="Limpiar filtros" text size="small"
               @click="limpiarFiltrosProyectos" />
@@ -133,25 +133,25 @@
           <label class="text-xs font-semibold text-muted-foreground">Estado</label>
           <Select v-model="filtrosPpa.estado" :options="VIGENCIA_OPCIONES"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-40" />
+                  size="small" />
         </div>
         <div>
           <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
           <Select v-model="filtrosPpa.tipo" :options="opcionesPpaTipo"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-36" />
+                  size="small" />
         </div>
         <div>
           <label class="text-xs font-semibold text-muted-foreground">Comprador</label>
           <Select v-model="filtrosPpa.comprador" :options="opcionesPpaComprador"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-48" />
+                  size="small" />
         </div>
         <div>
           <label class="text-xs font-semibold text-muted-foreground">Vendedor</label>
           <Select v-model="filtrosPpa.vendedor" :options="opcionesPpaVendedor"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-48" />
+                  size="small" />
         </div>
         <Button v-if="nFiltrosPpaActivos" label="Limpiar filtros" text size="small"
                 @click="limpiarFiltrosPpa" />
@@ -162,25 +162,25 @@
           <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
           <Select v-model="filtrosServicio.tipo" :options="opcionesServicioTipo"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-44" />
+                  size="small" />
         </div>
         <div>
           <label class="text-xs font-semibold text-muted-foreground">Estado</label>
           <Select v-model="filtrosServicio.estado" :options="ESTADO_CONTRATO_OPCIONES"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-40" />
+                  size="small" />
         </div>
         <div v-if="esRepresentacion">
           <label class="text-xs font-semibold text-muted-foreground">Inversionista</label>
           <Select v-model="filtrosServicio.inversionista" :options="opcionesInversionista"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-56" />
+                  size="small" />
         </div>
         <div v-if="esRepresentacion">
           <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
           <Select v-model="filtrosServicio.portafolio" :options="opcionesPortafolio"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
-                  size="small" class="w-44" />
+                  size="small" />
         </div>
         <!-- Solo si hay más de una clase entre los contratos cargados: con una
              sola, el desplegable no seleccionaría nada distinto. -->
@@ -188,7 +188,7 @@
           <label class="text-xs font-semibold text-muted-foreground">Tipo de planta</label>
           <Select v-model="filtrosServicio.tipoPlanta" :options="opcionesTipoPlanta"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
-                  size="small" class="w-40" />
+                  size="small" />
         </div>
         <!-- Sin desplegable de "Proyecto": aislar los huérfanos sigue estando en
              el botón "Ver solo estos" de la barra de aviso, que es de donde salió
