@@ -856,7 +856,12 @@
                       >{{ Math.round(resSim(c.id).pct!) }}%</span
                     >
                   </div>
-                  <div class="mt-0.5 truncate text-xs text-muted-foreground">
+                  <TruncatedText
+                    :text="
+                      esOculto(c) ? `${c.comprador_nombre} ${c.responsable}` : c.comprador_nombre
+                    "
+                    class="mt-0.5 text-xs text-muted-foreground"
+                  >
                     {{ c.comprador_nombre
                     }}<span
                       v-if="esOculto(c)"
@@ -866,7 +871,7 @@
                       "
                       >{{ c.responsable }}</span
                     >
-                  </div>
+                  </TruncatedText>
                 </div>
               </div>
               <div class="flex flex-shrink-0 items-center gap-0.5">
@@ -1045,9 +1050,7 @@
                 @dragend="onDragEnd"
               >
                 <div class="min-w-0">
-                  <span class="block max-w-32 truncate font-medium text-unergy-deep">{{
-                    p.nombre
-                  }}</span>
+                  <TruncatedText :text="p.nombre" class="max-w-32 font-medium text-unergy-deep" />
                   <span
                     v-if="p.es_duplicado && !p.comprado_por_unergy"
                     class="mt-0.5 inline-flex items-center gap-1 rounded bg-warning/22 px-1.5 py-0.5 text-xs font-semibold text-warning"
@@ -2873,11 +2876,8 @@
                     >
                   </div>
                 </td>
-                <td
-                  class="max-w-xs truncate px-4 py-2 text-xs text-muted-foreground"
-                  :title="p.motivo"
-                >
-                  {{ p.motivo }}
+                <td class="max-w-xs px-4 py-2 text-xs text-muted-foreground">
+                  <TruncatedText :text="p.motivo" />
                 </td>
               </tr>
             </tbody>
@@ -3307,12 +3307,14 @@
           <div class="border-b border-b-unergy-deep/8 px-6 pt-4 pb-3">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <div class="truncate text-lg font-bold text-unergy-deep">
-                  {{ detalleCapa.c.nombre }}
-                </div>
-                <div class="truncate text-sm text-muted-foreground">
-                  {{ detalleCapa.c.comprador_nombre }}
-                </div>
+                <TruncatedText
+                  :text="detalleCapa.c.nombre"
+                  class="text-lg font-bold text-unergy-deep"
+                />
+                <TruncatedText
+                  :text="detalleCapa.c.comprador_nombre"
+                  class="text-sm text-muted-foreground"
+                />
                 <span
                   class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-unergy-purple/10 px-2 py-0.5 text-xs font-semibold text-unergy-purple"
                 >
@@ -4069,10 +4071,13 @@
                         (respSel = v ? [...respSel, c.id] : respSel.filter((id) => id !== c.id))
                     "
                   />
-                  <span class="flex-1 truncate text-unergy-deep">
+                  <TruncatedText
+                    :text="`${c.nombre_interno || c.numero_codigo_contrato} ${c.comprador_nombre}`"
+                    class="min-w-0 flex-1 text-unergy-deep"
+                  >
                     {{ c.nombre_interno || c.numero_codigo_contrato }}
                     <span class="ml-1 text-xs text-muted-foreground">{{ c.comprador_nombre }}</span>
-                  </span>
+                  </TruncatedText>
                   <span class="rounded px-1.5 py-0.5 text-xs" :class="responsableChip(c)">
                     {{ c.responsable || 'sin responsable' }}
                   </span>
