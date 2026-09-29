@@ -117,7 +117,7 @@ function warnText(f: FilaFactura): string {
                 <NumberField
                   v-model="f.valorTotal"
                   :format-options="{ maximumFractionDigits: 2 }"
-                  class="w-32"
+                  class="min-w-0 flex-1"
                 >
                   <NumberFieldContent
                     ><NumberFieldInput class="text-right text-xs"

@@ -395,9 +395,7 @@ function exportarExcel() {
           <div v-if="mesesAbiertos[grupo.mes]" class="border-t">
             <div v-for="r in grupo.registros" :key="r.id" class="border-b last:border-b-0">
               <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50">
-                <span class="w-24 shrink-0 text-sm text-foreground tabular-nums">{{
-                  r.fecha
-                }}</span>
+                <span class="shrink-0 text-sm text-foreground tabular-nums">{{ r.fecha }}</span>
                 <GBadge :color="TIPO_SEVERITY[r.tipo]" class="shrink-0">{{ r.tipo }}</GBadge>
                 <span class="flex-1 text-right text-sm font-semibold text-foreground tabular-nums">
                   {{ cifraClave(r) }}
