@@ -1,7 +1,7 @@
 <template>
   <!-- Popover de desglose del cálculo IPC. Mismo formato visual que Mantenimiento. -->
   <Popover ref="pop">
-    <div class="text-xs text-unergy-deep">
+    <div class="text-xs text-foreground">
       <p class="font-semibold mb-2 flex items-center gap-1.5 text-primary">
         <ChartColumnIcon class="text-xs size-4" /> Cálculo del Valor a Facturar
       </p>
