@@ -41,7 +41,10 @@
         <div class="flex items-start justify-between gap-3 mb-2">
           <div class="min-w-0">
             <div class="flex items-center gap-2 mb-0.5">
-              <span class="chip" :class="p.tipo_sugerencia === 'crear' ? 'chip-new' : 'chip-update'">
+              <span
+                class="inline-block text-xs font-bold rounded-full px-2 py-0.5"
+                :class="p.tipo_sugerencia === 'crear' ? 'bg-unergy-purple/10 text-unergy-purple' : 'bg-destructive/10 text-destructive'"
+              >
                 {{ p.tipo_sugerencia === 'crear' ? 'Nuevo' : 'Actualizar' }}
               </span>
               <span class="text-xs text-muted-foreground">{{ p.fuentes.join(' + ') }}</span>
@@ -75,11 +78,11 @@
         <!-- Overrides editables (solo aplican al crear) -->
         <div v-if="p.tipo_sugerencia === 'crear'" class="flex flex-wrap gap-2 items-end">
           <div>
-            <label class="field-label">Nombre comercial</label>
+            <label class="block text-xs font-semibold text-muted-foreground mb-1">Nombre comercial</label>
             <InputText v-model="p._nombre" />
           </div>
           <div>
-            <label class="field-label">Tipo</label>
+            <label class="block text-xs font-semibold text-muted-foreground mb-1">Tipo</label>
             <Select v-model="p._tipo" :options="TIPOS_PROYECTO" placeholder="Tipo" />
           </div>
           <Button label="Crear" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._nombre"
@@ -235,26 +238,3 @@ function ignorar(p) {
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-/* MIGRACION -- Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y
-   no ve el tema, asi que `@apply` falla con "unknown utility class".
-   `@reference` se lo trae. Mismo criterio que el resto de las vistas. */
-@reference 'tailwindcss';
-
-.chip {
-  @apply inline-block text-xs font-bold rounded-full px-2 py-0.5;
-}
-.chip-new {
-  background: rgba(145, 91, 216, 0.12);
-  color: var(--color-unergy-purple);
-}
-.chip-update {
-  background: rgba(214, 68, 85, 0.12);
-  color: #d64455;
-}
-.field-label {
-  @apply block text-xs font-semibold mb-1;
-  color: #6b5a8a;
-}
-</style>

@@ -4,33 +4,33 @@
     <!-- Header -->
     <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-unergy-deep/10">
       <div class="flex items-center gap-2.5 flex-wrap">
-        <div class="stat-pill">
-          <span class="stat-num">{{ projects.length }}</span>
-          <span class="stat-label">en pipeline</span>
+        <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs bg-unergy-deep/5">
+          <span class="text-base font-extrabold tabular-nums text-unergy-deep">{{ projects.length }}</span>
+          <span class="text-muted-foreground whitespace-nowrap">en pipeline</span>
         </div>
         <button
           type="button"
-          class="stat-pill clickable"
-          :class="{ active: soloProximosAEnergizar }"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs cursor-pointer transition-colors duration-150"
+          :class="soloProximosAEnergizar ? 'bg-success/15 border-success/40' : 'bg-success/10 hover:bg-success/15'"
           @click="soloProximosAEnergizar = !soloProximosAEnergizar"
           v-tooltip.bottom="'Tienen frontera asignada o Sun Factory ya los marca \'Próximo a energizar\'.'"
         >
-          <span class="stat-num text-warning">{{ proximosAEnergizarCount }}</span>
-          <span class="stat-label">próximos a energizar</span>
+          <span class="text-base font-extrabold tabular-nums text-warning">{{ proximosAEnergizarCount }}</span>
+          <span class="text-muted-foreground whitespace-nowrap">próximos a energizar</span>
           <CircleXIcon v-if="soloProximosAEnergizar" class="size-3 text-warning" />
           <FilterIcon v-else class="size-3 text-warning" />
         </button>
         <button
           type="button"
-          class="stat-pill clickable"
-          :class="{ active: soloConFrontera }"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs cursor-pointer transition-colors duration-150"
+          :class="soloConFrontera ? 'bg-success/15 border-success/40' : 'bg-success/10 hover:bg-success/15'"
           @click="soloConFrontera = !soloConFrontera"
           v-tooltip.bottom="'Ya tienen frontera comercial registrada en Quoia.'"
         >
-          <span class="stat-num text-success">{{ conFronteraCount }}</span>
-          <span class="stat-label">con frontera asignada</span>
-          <CircleXIcon v-if="soloConFrontera" class="size-3" />
-          <FilterIcon v-else class="size-3" />
+          <span class="text-base font-extrabold tabular-nums text-success">{{ conFronteraCount }}</span>
+          <span class="text-muted-foreground whitespace-nowrap">con frontera asignada</span>
+          <CircleXIcon v-if="soloConFrontera" class="size-3 text-success" />
+          <FilterIcon v-else class="size-3 text-success" />
         </button>
         <Button label="Actualizar" size="small" :loading="syncing" @click="onSync" v-tooltip.bottom="'Trae de nuevo % de obra, estado y fecha estimada desde Sun Factory'">
           <template #icon><RefreshCwIcon class="size-4" /></template>
@@ -95,7 +95,7 @@
         <!-- Commercial name (read-only, viene de Sun Factory) -->
         <Column header="Proyecto" frozen>
           <template #body="{ data }">
-            <span class="text-sm proyecto-name" v-tooltip.top="data.commercialName">{{ data.commercialName }}</span>
+            <span class="text-sm block max-w-80 truncate" v-tooltip.top="data.commercialName">{{ data.commercialName }}</span>
           </template>
         </Column>
 
@@ -133,23 +133,23 @@
         <!-- Frontera asignada (señal real de energización inminente) -->
         <Column header="Frontera">
           <template #body="{ data }">
-            <span v-if="data.tieneFrontera" class="frontera-badge yes" v-tooltip.top="data.codigoFrontera">
+            <span v-if="data.tieneFrontera" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate bg-success/10 text-success" v-tooltip.top="data.codigoFrontera">
               <CircleCheckIcon class="size-4" /> {{ data.codigoFrontera }}
             </span>
-            <span v-else class="frontera-badge no">—</span>
+            <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate text-unergy-deep/30">—</span>
           </template>
         </Column>
 
         <!-- Linked PPA contracts (read-only — se gestionan en el flujo PPA) -->
         <Column header="Contratos">
           <template #body="{ data }">
-            <span v-if="data.contracts && data.contracts.length" class="contract-badge has-contract"
+            <span v-if="data.contracts && data.contracts.length" class="inline-flex items-center gap-1 text-xs whitespace-nowrap font-semibold text-unergy-purple-dark"
                   v-tooltip.top="data.contracts.join(', ')">
               <FileIcon class="size-4" />
               {{ data.contracts[0] }}<template v-if="data.contracts.length > 1"> +{{ data.contracts.length - 1 }}</template>
             </span>
-            <span v-else class="contract-badge">
-              <span class="dot" /> Sin contratos
+            <span v-else class="inline-flex items-center gap-1 text-xs whitespace-nowrap text-unergy-deep/35">
+              <span class="size-1.5 rounded-full bg-unergy-deep/25" /> Sin contratos
             </span>
           </template>
         </Column>
@@ -157,7 +157,7 @@
         <!-- Expected monthly MWh (read-only, viene de Sun Factory) -->
         <Column header="MWh / mes">
           <template #body="{ data }">
-            <span class="text-sm font-mono tabular-nums" :class="{ 'mwh-muted': !data.monthlyMwh }">
+            <span class="text-sm font-mono tabular-nums" :class="{ 'text-unergy-deep/30': !data.monthlyMwh }">
               {{ Number(data.monthlyMwh).toFixed(2) }}
             </span>
           </template>
@@ -178,15 +178,21 @@
             <p class="text-xs font-semibold uppercase tracking-wide mb-2.5 text-muted-foreground">
               Proyección MWh/mes — {{ data.commercialName }}
             </p>
-            <div class="month-grid">
+            <div class="month-grid gap-2">
               <div
                 v-for="col in monthColumns" :key="col.field"
-                class="month-chip"
-                :class="{ partial: isProrated(data, col.year, col.month), zero: calculateGeneration(data, col.year, col.month) === 0 }"
+                class="rounded-lg border px-1.5 py-2 text-center"
+                :class="isProrated(data, col.year, col.month) ? 'bg-warning/15 border-warning/40' : 'bg-card border-unergy-deep/10'"
                 v-tooltip.top="isProrated(data, col.year, col.month) ? 'Mes parcial — prorrateado desde la energización' : ''"
               >
-                <div class="m">{{ col.header }}</div>
-                <div class="v">{{ calculateGeneration(data, col.year, col.month).toFixed(2) }}</div>
+                <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ col.header }}</div>
+                <div
+                  class="text-sm mt-0.5 tabular-nums"
+                  :class="[
+                    calculateGeneration(data, col.year, col.month) === 0 ? 'font-medium' : 'font-bold',
+                    isProrated(data, col.year, col.month) ? 'text-warning' : calculateGeneration(data, col.year, col.month) === 0 ? 'text-unergy-deep/30' : 'text-unergy-deep',
+                  ]"
+                >{{ calculateGeneration(data, col.year, col.month).toFixed(2) }}</div>
               </div>
             </div>
           </div>
@@ -425,94 +431,27 @@ function isProrated(project, year, month) {
 </script>
 
 <style scoped>
-/* Tarjetas de resumen en el header -- responden "cuántos" de un vistazo,
-   y la de "con frontera" duplica como el toggle del filtro (antes un
-   checkbox aparte, poco intuitivo). */
-.stat-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 10px;
-  background: rgba(44,32,57,0.04);
-  border: 1.5px solid transparent;
-  font-size: 12px;
-}
-.stat-pill.clickable {
-  cursor: pointer;
-  background: rgba(22,163,74,0.07);
-  transition: background 0.12s, border-color 0.12s;
-}
-.stat-pill.clickable:hover { background: rgba(22,163,74,0.13); }
-.stat-pill.clickable.active {
-  background: rgba(22,163,74,0.14);
-  border-color: rgba(22,163,74,0.4);
-}
-.stat-pill.clickable svg { color: #15803d; }
-.stat-num { font-size: 15px; font-weight: 800; color: var(--color-unergy-deep); font-variant-numeric: tabular-nums; }
-.stat-label { color: #7a6e8a; white-space: nowrap; }
-
-/* Nombres largos: no cortar sin avisar -- el tooltip muestra el valor entero. */
-.proyecto-name {
-  display: block;
-  max-width: 20rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Grilla de la proyección mensual: auto-fill/minmax no tiene utilidad Tailwind. */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing) * 18.5), 1fr));
 }
 
+/* Estilos de PrimeVue (DataTable): no controlamos su markup. */
 :deep(.energ-table .p-datatable-thead th) {
-  background: rgba(44,32,57,0.05);
-  color: #7a6e8a;
-  font-size: 11px;
+  background: color-mix(in oklab, var(--color-unergy-deep) 5%, transparent);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 8px 10px;
+  letter-spacing: var(--tracking-wide);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2.5);
   white-space: nowrap;
 }
 :deep(.energ-table .p-datatable-tbody td) {
-  padding: 6px 10px;
-  font-size: 13px;
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
+  font-size: var(--text-sm);
   color: var(--color-unergy-deep);
   vertical-align: middle;
 }
-
-/* Frontera asignada */
-.frontera-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
-  white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;
-}
-.frontera-badge.yes { background: rgba(22,163,74,0.10); color: #15803d; }
-.frontera-badge.no  { color: rgba(44,32,57,0.3); }
-
-/* Contratos: badge compacto en vez de columna ancha */
-.contract-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 11.5px; color: rgba(44,32,57,0.35); white-space: nowrap;
-}
-.contract-badge.has-contract { color: #6b3fa0; font-weight: 600; }
-.contract-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(44,32,57,0.25); }
-
-/* MWh/mes apagado cuando es 0 -- se activa visualmente solo si hay dato */
-.mwh-muted {
-  color: rgba(44,32,57,0.3);
-}
-
-/* Proyección mensual expandible */
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
-  gap: 8px;
-}
-.month-chip {
-  background: white;
-  border: 1px solid rgba(44,32,57,0.08);
-  border-radius: 8px;
-  padding: 7px 6px;
-  text-align: center;
-}
-.month-chip .m { font-size: 9.5px; text-transform: uppercase; color: #9b89b5; letter-spacing: 0.04em; }
-.month-chip .v { font-size: 13px; font-weight: 700; margin-top: 2px; color: var(--color-unergy-deep); font-variant-numeric: tabular-nums; }
-.month-chip.zero .v { color: rgba(44,32,57,0.3); font-weight: 500; }
-.month-chip.partial { background: rgba(240,192,64,0.15); border-color: rgba(240,192,64,0.4); }
-.month-chip.partial .v { color: #9a6700; }
 </style>
