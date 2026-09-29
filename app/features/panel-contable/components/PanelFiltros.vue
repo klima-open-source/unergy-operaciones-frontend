@@ -57,7 +57,7 @@ function limpiar() {
     </InputGroup>
 
     <Select v-model="tipo">
-      <SelectTrigger class="w-36 shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
+      <SelectTrigger class="shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="">Tipo: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_TIPO_LIQUIDACION" :key="op.value" :value="op.value">{{
@@ -67,7 +67,7 @@ function limpiar() {
     </Select>
 
     <Select v-model="estado">
-      <SelectTrigger class="w-40 shrink-0"><SelectValue placeholder="Estado" /></SelectTrigger>
+      <SelectTrigger class="shrink-0"><SelectValue placeholder="Estado" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="">Estado: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_ESTADO_LIQUIDACION" :key="op.value" :value="op.value">{{
@@ -77,7 +77,7 @@ function limpiar() {
     </Select>
 
     <Select v-model="marcador">
-      <SelectTrigger class="w-40 shrink-0"><SelectValue placeholder="Marcador" /></SelectTrigger>
+      <SelectTrigger class="shrink-0"><SelectValue placeholder="Marcador" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="">Marcador: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_MARCADOR" :key="op.value" :value="op.value">{{
@@ -87,9 +87,7 @@ function limpiar() {
     </Select>
 
     <Select v-model="inversionista">
-      <SelectTrigger class="w-48 shrink-0"
-        ><SelectValue placeholder="Inversionista"
-      /></SelectTrigger>
+      <SelectTrigger class="shrink-0"><SelectValue placeholder="Inversionista" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="">Inversionista: todos</SelectItem>
         <SelectItem v-for="nom in inversionistas" :key="nom" :value="nom">{{ nom }}</SelectItem>
@@ -97,7 +95,7 @@ function limpiar() {
     </Select>
 
     <Select v-model="bloque">
-      <SelectTrigger class="w-52 shrink-0"><SelectValue placeholder="Documento" /></SelectTrigger>
+      <SelectTrigger class="shrink-0"><SelectValue placeholder="Documento" /></SelectTrigger>
       <SelectContent>
         <SelectItem value="">Documento: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_DOCUMENTO" :key="op.value" :value="op.value">{{

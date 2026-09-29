@@ -177,7 +177,7 @@ function toggleMapeo(id: number) {
         v-if="tipo === TipoPanel.OFICIAL"
         class="flex flex-wrap items-end gap-4 border-t bg-muted/30 px-4 py-3"
       >
-        <Field class="w-40">
+        <Field>
           <FieldLabel class="text-xs font-normal text-muted-foreground"
             >Consecutivo Ingresos inicial</FieldLabel
           >
@@ -201,7 +201,7 @@ function toggleMapeo(id: number) {
             >
           </FieldDescription>
         </Field>
-        <Field class="w-40">
+        <Field>
           <FieldLabel class="text-xs font-normal text-muted-foreground"
             >Consecutivo Costos inicial</FieldLabel
           >
@@ -284,7 +284,6 @@ function toggleMapeo(id: number) {
                 <GTableCell>{{ ln.concepto }}</GTableCell>
                 <GTableCell>
                   <Input
-                    class="w-40"
                     :model-value="ln.origen"
                     placeholder="hoja!celda"
                     @change="
