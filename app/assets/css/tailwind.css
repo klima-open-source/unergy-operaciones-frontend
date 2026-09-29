@@ -17,6 +17,9 @@
 /* MIGRACIÓN — Fase 1: la paleta y las fuentes del legacy. Se retira en la fase 3. */
 @import './legacy-theme.css';
 
+/* Puente de tokens de Gandalf hasta sincronizar su tema. */
+@import './gandalf-tokens.css';
+
 @theme inline {
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
