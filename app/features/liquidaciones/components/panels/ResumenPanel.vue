@@ -258,6 +258,8 @@ const pipeline = computed(() => {
 
 // ── Tendencia ────────────────────────────────────────────────────────────────
 const tieneTendencia = computed(() => periodosData.value.length > 0)
+const { color } = useThemeColors()
+
 const trendData = computed<ChartData<'line'>>(() => {
   const byMes: Record<string, { ing: number; cos: number; vap: number }> = {}
   for (const p of mesesVentana.value) byMes[p] = { ing: 0, cos: 0, vap: 0 }
@@ -275,50 +277,57 @@ const trendData = computed<ChartData<'line'>>(() => {
       {
         label: 'Ingresos',
         data: mesesVentana.value.map((p) => byMes[p]!.ing),
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16,185,129,0.08)',
+        borderColor: color('success'),
+        backgroundColor: color('success', 0.08),
         tension: 0.3,
         fill: true,
       },
       {
         label: 'Costos',
         data: mesesVentana.value.map((p) => byMes[p]!.cos),
-        borderColor: '#D64455',
-        backgroundColor: 'rgba(214,68,85,0.06)',
+        borderColor: color('destructive'),
+        backgroundColor: color('destructive', 0.06),
         tension: 0.3,
         fill: false,
       },
       {
         label: 'Valor a pagar',
         data: mesesVentana.value.map((p) => byMes[p]!.vap),
-        borderColor: '#915BD8',
-        backgroundColor: 'rgba(145,91,216,0.10)',
+        borderColor: color('unergy-purple'),
+        backgroundColor: color('unergy-purple', 0.1),
         tension: 0.3,
         fill: true,
       },
     ],
   }
 })
-const trendOptions: ChartOptions<'line'> = {
+const trendOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { display: true, labels: { font: { size: 11 }, color: '#6b5a8a', boxWidth: 12 } },
+    legend: {
+      display: true,
+      labels: { font: { size: 11 }, color: color('muted-foreground'), boxWidth: 12 },
+    },
     tooltip: {
       callbacks: { label: (c) => `${c.dataset.label}: ${fmtCompact(Number(c.parsed.y))}` },
     },
   },
   scales: {
     x: {
-      ticks: { font: { size: 10 }, color: '#9ca3af', maxTicksLimit: 12 },
+      ticks: { font: { size: 10 }, color: color('muted-foreground'), maxTicksLimit: 12 },
       grid: { display: false },
     },
     y: {
-      ticks: { font: { size: 10 }, color: '#9ca3af', callback: (v) => fmtCompact(Number(v)) },
-      grid: { color: 'rgba(0,0,0,0.05)' },
+      ticks: {
+        font: { size: 10 },
+        color: color('muted-foreground'),
+        callback: (v) => fmtCompact(Number(v)),
+      },
+      grid: { color: color('foreground', 0.05) },
     },
   },
-}
+}))
 
 // ── Carga ─────────────────────────────────────────────────────────────────────
 function goDetalle(id: number) {

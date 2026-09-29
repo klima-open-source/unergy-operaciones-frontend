@@ -15,19 +15,23 @@ const props = withDefaults(defineProps<{ bars?: BarraNetoMensual[] }>(), {
   bars: () => [],
 })
 
+const { color } = useThemeColors()
+
 const data = computed<ChartData<'bar'>>(() => ({
   labels: props.bars.map((b) => b.label),
   datasets: [
     {
       data: props.bars.map((b) => b.neto),
-      backgroundColor: props.bars.map((b) => (b.neto >= 0 ? '#915BD8' : '#ef4444')),
+      backgroundColor: props.bars.map((b) =>
+        b.neto >= 0 ? color('unergy-purple') : color('destructive'),
+      ),
       borderRadius: 4,
       maxBarThickness: 28,
     },
   ],
 }))
 
-const options: ChartOptions<'bar'> = {
+const options = computed<ChartOptions<'bar'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -35,13 +39,20 @@ const options: ChartOptions<'bar'> = {
     tooltip: { callbacks: { label: (c) => fmtCompact(c.parsed.y) } },
   },
   scales: {
-    x: { ticks: { font: { size: 10 }, color: '#9ca3af' }, grid: { display: false } },
+    x: {
+      ticks: { font: { size: 10 }, color: color('muted-foreground') },
+      grid: { display: false },
+    },
     y: {
-      ticks: { font: { size: 10 }, color: '#9ca3af', callback: (v) => fmtCompact(Number(v)) },
-      grid: { color: 'rgba(0,0,0,0.05)' },
+      ticks: {
+        font: { size: 10 },
+        color: color('muted-foreground'),
+        callback: (v) => fmtCompact(Number(v)),
+      },
+      grid: { color: color('foreground', 0.05) },
     },
   },
-}
+}))
 </script>
 
 <template>

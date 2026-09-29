@@ -135,6 +135,8 @@ const kpis = computed<Kpi[]>(() => {
   ]
 })
 
+const { color } = useThemeColors()
+
 const chartData = computed<ChartData<'bar'>>(() => {
   const a = actual.value
   const p = promedio.value
@@ -143,7 +145,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
     {
       label: 'Este mes',
       data: ITEMS.map((i) => a[i.key]),
-      backgroundColor: '#915BD8',
+      backgroundColor: color('unergy-purple'),
       borderRadius: 4,
       maxBarThickness: 46,
     },
@@ -152,32 +154,44 @@ const chartData = computed<ChartData<'bar'>>(() => {
     ds.push({
       label: 'Promedio proyecto',
       data: ITEMS.map((i) => p[i.key]),
-      backgroundColor: '#D7C9EC',
+      backgroundColor: color('unergy-purple', 0.3),
       borderRadius: 4,
       maxBarThickness: 46,
     })
   return { labels: ITEMS.map((i) => i.label), datasets: ds }
 })
 
-const chartOptions: ChartOptions<'bar'> = {
+const chartOptions = computed<ChartOptions<'bar'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
       display: true,
-      labels: { font: { size: 11 }, color: '#6b5a8a', boxWidth: 12, usePointStyle: true },
+      labels: {
+        font: { size: 11 },
+        color: color('muted-foreground'),
+        boxWidth: 12,
+        usePointStyle: true,
+      },
     },
     tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmtCOP(c.parsed.y)}` } },
   },
   scales: {
-    x: { ticks: { font: { size: 11 }, color: '#6b5a8a' }, grid: { display: false } },
+    x: {
+      ticks: { font: { size: 11 }, color: color('muted-foreground') },
+      grid: { display: false },
+    },
     y: {
-      ticks: { font: { size: 9 }, color: '#9ca3af', callback: (v) => fmtCompact(Number(v)) },
-      grid: { color: 'rgba(0,0,0,0.05)' },
+      ticks: {
+        font: { size: 9 },
+        color: color('muted-foreground'),
+        callback: (v) => fmtCompact(Number(v)),
+      },
+      grid: { color: color('foreground', 0.05) },
       beginAtZero: true,
     },
   },
-}
+}))
 
 async function load() {
   // Cifras del Panel Contable (fuente única), ventana de meses para el promedio.
