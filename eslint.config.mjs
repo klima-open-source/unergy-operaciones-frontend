@@ -39,11 +39,6 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // métrica de avance de la fase 3: cuando un slice se migra, se borra su
   // línea y el linter empieza a exigirle.
   //
-  // `auth` va archivo por archivo porque su carpeta está mezclada: el
-  // `LoginForm.vue` es del template y sí cumple las reglas.
-  'app/features/auth/components/ForgotPasswordView.vue',
-  'app/features/auth/components/LoginView.vue',
-  'app/features/auth/components/ResetPasswordView.vue',
   // `clientes` va archivo por archivo: `clientesUi.js` sigue en JS porque lo
   // importa `ServiciosUnificadoView.vue` (fuera de alcance de esta migración,
   // sigue en `contratos`) — cambiarle la forma lo rompería.

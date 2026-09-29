@@ -2,8 +2,12 @@
   <div class="flex min-h-screen items-center justify-center bg-unergy-deep">
     <!-- Background accent -->
     <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div class="absolute -top-40 -right-40 size-96 rounded-full bg-unergy-purple opacity-10"></div>
-      <div class="absolute -bottom-40 -left-40 size-96 rounded-full bg-unergy-purple opacity-10"></div>
+      <div
+        class="absolute -top-40 -right-40 size-96 rounded-full bg-unergy-purple opacity-10"
+      ></div>
+      <div
+        class="absolute -bottom-40 -left-40 size-96 rounded-full bg-unergy-purple opacity-10"
+      ></div>
     </div>
 
     <div class="relative mx-4 w-full max-w-sm">
@@ -23,7 +27,9 @@
         <div class="px-10 pb-10">
           <form class="space-y-4" @submit.prevent="submit">
             <div>
-              <label class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase">
+              <label
+                class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase"
+              >
                 Correo
               </label>
               <input
@@ -36,7 +42,9 @@
             </div>
 
             <div>
-              <label class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase">
+              <label
+                class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase"
+              >
                 Contraseña
               </label>
               <input
@@ -48,7 +56,10 @@
               />
             </div>
 
-            <div v-if="error" class="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <div
+              v-if="error"
+              class="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
               {{ error }}
             </div>
 
