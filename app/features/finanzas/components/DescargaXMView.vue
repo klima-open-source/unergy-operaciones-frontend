@@ -19,11 +19,11 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Usuario FTP</label>
-            <input v-model="form.ftpUsuario" type="text" class="xm-input" autocomplete="off" />
+            <input v-model="form.ftpUsuario" type="text" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" autocomplete="off" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Clave FTP</label>
-            <input v-model="form.ftpClave" type="password" class="xm-input" autocomplete="off" />
+            <input v-model="form.ftpClave" type="password" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" autocomplete="off" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2">
@@ -44,11 +44,11 @@
 
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha inicio</label>
-            <input v-model="form.fechaInicio" type="date" class="xm-input" />
+            <input v-model="form.fechaInicio" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha fin</label>
-            <input v-model="form.fechaFin" type="date" class="xm-input" />
+            <input v-model="form.fechaFin" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2" v-if="tipoEsFiltrable">
@@ -286,17 +286,3 @@ function onDescargarArchivo(formato) {
 
 onBeforeUnmount(detenerPolling)
 </script>
-
-<style scoped>
-.xm-input {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-}
-.xm-input:focus {
-  outline: none;
-  border-color: var(--color-unergy-purple);
-  box-shadow: 0 0 0 2px rgba(145, 91, 216, 0.15);
-}
-</style>

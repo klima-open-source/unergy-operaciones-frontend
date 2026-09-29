@@ -38,16 +38,16 @@
         <p class="text-xs text-muted-foreground">{{ cfg.ayuda }}</p>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Mes</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
             <Select v-model="c.mes" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
           </div>
           <div>
-            <label class="field-label">Año</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
             <InputNumber v-model="c.anio" :useGrouping="false" class="w-full" />
           </div>
         </div>
         <div v-if="cfg.version">
-          <label class="field-label">Versión</label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
           <Select v-model="c.version" :options="VERSIONES" class="w-full" />
         </div>
 
@@ -91,25 +91,25 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Mes</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
                 @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Año</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
         <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
       </div>
       <div>
-        <label class="field-label">Versión</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
         <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Tipo</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo</label>
         <Select v-model="tipoSel" :options="OPCIONES_TIPO" optionLabel="label" optionValue="value"
                 showClear placeholder="Todos" />
       </div>
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto, contrato, fecha…" />
@@ -477,11 +477,3 @@ function fmtNum(v) {
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-</style>
