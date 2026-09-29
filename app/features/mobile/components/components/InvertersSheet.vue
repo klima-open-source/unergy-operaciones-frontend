@@ -4,7 +4,7 @@
       <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-muted font-sans text-foreground">
         <!-- Encabezado -->
         <header
-          class="is-head flex shrink-0 items-center gap-2.5 bg-foreground px-3 pb-2 text-white"
+          class="is-head flex shrink-0 items-center gap-2.5 bg-foreground px-3 pb-2 text-background"
         >
           <button class="size-9 shrink-0 rounded-lg bg-white/10 text-white" @click="close">
             <ChevronLeftIcon class="size-4" />
@@ -72,7 +72,7 @@
             <TriangleAlertIcon class="size-8 text-warning" />
             <span>{{ error }}</span>
             <button
-              class="mt-0.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white"
+              class="mt-0.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
               @click="cargar(true)"
             >
               Reintentar
