@@ -389,7 +389,7 @@ function descargarPNG() {
 
       <!-- ── Diagrama + descargas ──────────────────────────────────────────── -->
       <div v-show="rendered && !loading" class="mt-2">
-        <div ref="diagramRef" class="fasorial-diagrama w-full" />
+        <div ref="diagramRef" class="w-full [&_svg]:h-auto [&_svg]:w-full" />
 
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" @click="descargarSVG">
@@ -409,12 +409,3 @@ function descargarPNG() {
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-/* El SVG lo inyecta `renderFasorial` directo en el DOM (no es contenido de
-   Vue): esta es la única regla que Tailwind no puede expresar. */
-.fasorial-diagrama :deep(svg) {
-  width: 100%;
-  height: auto;
-}
-</style>
