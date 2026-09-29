@@ -1061,10 +1061,18 @@
                       ><Input v-model="p.criterio_aceptacion" @update:model-value="marcar"
                     /></GTableCell>
                     <GTableCell>
-                      <Select v-model="p.resultado" @update:model-value="marcar">
+                      <Select
+                        :model-value="aValorSelect(p.resultado)"
+                        @update:model-value="
+                          (val) => {
+                            p.resultado = deValorSelect(val)
+                            marcar()
+                          }
+                        "
+                      >
                         <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">—</SelectItem>
+                          <SelectItem :value="VALOR_SELECT_VACIO">—</SelectItem>
                           <SelectItem value="conforme">Conforme</SelectItem>
                           <SelectItem value="no_conforme">No conforme</SelectItem>
                           <SelectItem value="na">N/A</SelectItem>
@@ -1132,10 +1140,18 @@
                       ><Input v-model="e.accion_correctiva" @update:model-value="marcar"
                     /></GTableCell>
                     <GTableCell>
-                      <Select v-model="e.estado" @update:model-value="marcar">
+                      <Select
+                        :model-value="aValorSelect(e.estado)"
+                        @update:model-value="
+                          (val) => {
+                            e.estado = deValorSelect(val)
+                            marcar()
+                          }
+                        "
+                      >
                         <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">—</SelectItem>
+                          <SelectItem :value="VALOR_SELECT_VACIO">—</SelectItem>
                           <SelectItem value="abierta">Abierta</SelectItem>
                           <SelectItem value="en_gestion">En gestión</SelectItem>
                           <SelectItem value="cerrada">Cerrada</SelectItem>
@@ -1195,10 +1211,18 @@
                       ><Input v-model="p.fecha_compromiso" type="date" @update:model-value="marcar"
                     /></GTableCell>
                     <GTableCell>
-                      <Select v-model="p.estado" @update:model-value="marcar">
+                      <Select
+                        :model-value="aValorSelect(p.estado)"
+                        @update:model-value="
+                          (val) => {
+                            p.estado = deValorSelect(val)
+                            marcar()
+                          }
+                        "
+                      >
                         <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">—</SelectItem>
+                          <SelectItem :value="VALOR_SELECT_VACIO">—</SelectItem>
                           <SelectItem value="abierto">Abierto</SelectItem>
                           <SelectItem value="en_gestion">En gestión</SelectItem>
                           <SelectItem value="cerrado">Cerrado</SelectItem>
