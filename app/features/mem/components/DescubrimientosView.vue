@@ -442,7 +442,7 @@ onMounted(loadData)
 
               <div
                 v-if="hoveredMes"
-                class="pointer-events-none absolute top-(--t) left-(--l) z-10 min-w-55 -translate-y-full rounded-xl bg-unergy-deep px-3.5 py-2.5 text-sm text-unergy-avena shadow-lg"
+                class="pointer-events-none absolute top-(--t) left-(--l) z-10 min-w-55 -translate-y-full rounded-xl bg-foreground px-3.5 py-2.5 text-sm text-background shadow-lg"
                 :style="{ '--l': `${tooltipX}px`, '--t': `${tooltipY}px` }"
               >
                 <div class="mb-2 font-bold text-warning">

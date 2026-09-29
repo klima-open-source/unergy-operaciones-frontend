@@ -471,7 +471,7 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                   :y="bar.y"
                   :width="bar.w"
                   :height="bar.h"
-                  :fill="bar.peak ? 'var(--color-unergy-yellow)' : 'var(--color-primary)'"
+                  :fill="bar.peak ? 'var(--highlight)' : 'var(--color-primary)'"
                   :opacity="hoverBar?.hour === bar.hour ? 1 : 0.85"
                   rx="2"
                 />
