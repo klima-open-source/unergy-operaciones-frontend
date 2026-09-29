@@ -14,7 +14,7 @@
           </div>
           <div>
             <p class="text-xs text-muted-foreground leading-none mb-0.5">Proveedor O&amp;M</p>
-            <span class="text-sm font-semibold text-unergy-deep">Facturas Solenium</span>
+            <span class="text-sm font-semibold text-foreground">Facturas Solenium</span>
           </div>
           <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1 bg-warning/15 text-warning">
             {{ facturasSol.length }}
@@ -103,7 +103,7 @@
                   class="border-b border-border/50 transition-colors duration-100"
                   :class="isPending(fac) ? 'opacity-50 hover:opacity-70 hover:bg-warning/10' : 'hover:bg-warning/5'">
                   <td class="px-4 py-2.5">
-                    <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
+                    <span class="font-mono text-sm text-foreground">{{ fac.fecha }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-2">
@@ -115,7 +115,7 @@
                     </div>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-semibold tabular-nums text-sm text-unergy-deep">
+                    <span class="font-semibold tabular-nums text-sm text-foreground">
                       {{ formatCOP(fac.monto) }}
                     </span>
                   </td>
@@ -173,7 +173,7 @@
           </div>
           <div>
             <p class="text-xs text-muted-foreground leading-none mb-0.5">Cobros a clientes</p>
-            <span class="text-sm font-semibold text-unergy-deep">Facturas Inversionistas</span>
+            <span class="text-sm font-semibold text-foreground">Facturas Inversionistas</span>
           </div>
           <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1 bg-primary/15 text-primary">
             {{ facturasInv.length }}
@@ -263,7 +263,7 @@
                   class="border-b border-border/50 transition-colors duration-100"
                   :class="isPending(fac) ? 'opacity-50 hover:opacity-70 hover:bg-warning/10' : 'hover:bg-primary/5'">
                   <td class="px-4 py-2.5">
-                    <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
+                    <span class="font-mono text-sm text-foreground">{{ fac.fecha }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <!-- `inversionista_nombre`: la API mandaba `inversionista_id`
@@ -281,7 +281,7 @@
                     </div>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-semibold tabular-nums text-sm text-unergy-deep">
+                    <span class="font-semibold tabular-nums text-sm text-foreground">
                       {{ formatCOP(fac.monto) }}
                     </span>
                   </td>
@@ -334,7 +334,7 @@
             :class="modal.tipo === 'solenium' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'">
             <ReceiptIcon class="size-3" />
           </div>
-          <span class="font-semibold text-sm text-unergy-deep">
+          <span class="font-semibold text-sm text-foreground">
             Agregar factura — {{ modal.tipo === 'solenium' ? 'Solenium' : 'Inversionistas' }}
           </span>
         </div>

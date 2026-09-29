@@ -497,7 +497,7 @@ const todosProyectos = ref([])
 const TIPO_CONFIG = {
   representacion: { label: 'Representación', color: 'var(--chart-3)' },
   mantenimiento:  { label: 'Mantenimiento',   color: 'var(--warning)' },
-  arriendo:       { label: 'Arriendo',        color: 'var(--color-unergy-purple)' },
+  arriendo:       { label: 'Arriendo',        color: 'var(--primary)' },
   internet:       { label: 'Internet',        color: 'var(--chart-2)' },
 }
 

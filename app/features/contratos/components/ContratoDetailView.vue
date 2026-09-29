@@ -29,13 +29,13 @@
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-(--c)!">
               <CircleIcon class="size-1.5 fill-current" />Estado
             </p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-(--c)!">{{ estadoVigencia.label }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase text-(--c)!">{{ estadoVigencia.label }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate text-(--c)! opacity-70">{{ estadoVigencia.detalle }}</p>
           </div>
 
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ClockIcon class="size-3" />Duración</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ duracion || '—' }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ duracion || '—' }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">
               {{ formatFecha(contrato.fecha_inicio) || '—' }} → {{ formatFecha(contrato.fecha_fin) || '—' }}
             </p>
@@ -43,7 +43,7 @@
 
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ChartLineIcon class="size-3" />Indexación</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ contrato.indice_indexacion || '—' }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ contrato.indice_indexacion || '—' }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">
               {{ contrato.periodicidad_indexacion || 'sin periodicidad' }}<template v-if="contrato.periodo_indexacion_base"> · base {{ contrato.periodo_indexacion_base }}</template>
             </p>
@@ -51,7 +51,7 @@
 
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><FileIcon class="size-3" />Facturación</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ contrato.periodicidad_facturacion || '—' }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ contrato.periodicidad_facturacion || '—' }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">
               {{ contrato.tiempo_pago != null ? ('pago a ' + contrato.tiempo_pago + ' días') : 'sin plazo de pago' }}
             </p>
@@ -61,8 +61,8 @@
         <!-- ── Identificación ────────────────────────────────────────── -->
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
-            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10"><IdCardIcon class="size-3 text-unergy-purple" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Identificación</h3>
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><IdCardIcon class="size-3 text-primary" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Identificación</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoId" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionId">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -86,7 +86,7 @@
                 <span class="text-xs font-medium text-muted-foreground">Comunidad energética</span>
                 <div>
                   <GBadge v-if="contrato.es_comunidad_energetica" color="success" class="text-xs">🏘 Sí</GBadge>
-                  <span v-else class="text-sm text-unergy-deep">{{ contrato.es_comunidad_energetica === false ? 'No' : '—' }}</span>
+                  <span v-else class="text-sm text-foreground">{{ contrato.es_comunidad_energetica === false ? 'No' : '—' }}</span>
                 </div>
               </div>
             </div>
@@ -108,7 +108,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><UsersIcon class="size-3 text-primary" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Partes del contrato</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Partes del contrato</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoPartes" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionPartes">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -129,13 +129,13 @@
             <div v-if="!editandoPartes" class="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><SunIcon class="size-3" />Vendedor</p>
-                <p class="text-sm font-semibold text-unergy-deep">{{ contrato.vendedor_nombre || '—' }}</p>
+                <p class="text-sm font-semibold text-foreground">{{ contrato.vendedor_nombre || '—' }}</p>
                 <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ contrato.vendedor_nit || '—' }}</p>
               </div>
               <ArrowRightIcon class="text-muted-foreground/50 self-center rotate-90 sm:rotate-0 size-3" />
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Comprador</p>
-                <p class="text-sm font-semibold text-unergy-deep">{{ contrato.comprador_nombre || '—' }}</p>
+                <p class="text-sm font-semibold text-foreground">{{ contrato.comprador_nombre || '—' }}</p>
                 <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ contrato.comprador_nit || '—' }}</p>
               </div>
             </div>
@@ -177,7 +177,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-success/10"><CalendarIcon class="size-3 text-success" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Vigencia</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Vigencia</h3>
           </header>
           <div class="p-3.5">
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -190,7 +190,7 @@
                   <GBadge v-if="contrato.renovacion_automatica != null"
                     :color="contrato.renovacion_automatica ? 'success' : 'default'"
                     class="text-xs">{{ contrato.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
-                  <span v-else class="text-sm text-unergy-deep">—</span>
+                  <span v-else class="text-sm text-foreground">—</span>
                 </div>
               </div>
             </div>
@@ -201,7 +201,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><DollarSignIcon class="size-3 text-warning" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Condiciones comerciales</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Condiciones comerciales</h3>
           </header>
           <div class="p-3.5">
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -216,7 +216,7 @@
                 :value="contrato.tiempo_pago != null ? String(contrato.tiempo_pago) : null" />
               <div v-if="contrato.condiciones_pago" class="col-span-full flex flex-col gap-0.5">
                 <span class="text-xs font-medium text-muted-foreground">Condiciones de pago</span>
-                <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.condiciones_pago }}</span>
+                <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.condiciones_pago }}</span>
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><LinkIcon class="size-3 text-warning" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Documentos y enlaces</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Documentos y enlaces</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoEnlace"
                 :label="enlaceContrato ? 'Editar' : 'Agregar enlace'"
@@ -276,24 +276,24 @@
         <section v-if="tieneDetallesOperacionales" class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-muted-foreground/10"><ListIcon class="size-3 text-muted-foreground" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Detalles operacionales y contractuales</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Detalles operacionales y contractuales</h3>
           </header>
           <div class="p-3.5 space-y-3">
             <div v-if="contrato.service_scope" class="flex flex-col gap-0.5">
               <span class="text-xs font-medium text-muted-foreground">Alcance del servicio</span>
-              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.service_scope }}</span>
+              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.service_scope }}</span>
             </div>
             <div v-if="contrato.specific_service_terms" class="flex flex-col gap-0.5">
               <span class="text-xs font-medium text-muted-foreground">Términos específicos del servicio</span>
-              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.specific_service_terms }}</span>
+              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.specific_service_terms }}</span>
             </div>
             <div v-if="contrato.slas" class="flex flex-col gap-0.5">
               <span class="text-xs font-medium text-muted-foreground">SLAs (Acuerdos de nivel de servicio)</span>
-              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.slas }}</span>
+              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.slas }}</span>
             </div>
             <div v-if="contrato.responsibilities" class="flex flex-col gap-0.5">
               <span class="text-xs font-medium text-muted-foreground">Responsabilidades</span>
-              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.responsibilities }}</span>
+              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.responsibilities }}</span>
             </div>
           </div>
         </section>
@@ -307,19 +307,19 @@
         <div v-if="resumenCantidades && !editandoCantidades" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><CalendarIcon class="size-3" />Períodos</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenCantidades.periodos }} meses</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ resumenCantidades.periodos }} meses</p>
             <p class="text-xs text-muted-foreground mt-px truncate">{{ resumenCantidades.añoMin }} – {{ resumenCantidades.añoMax }}</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ZapIcon class="size-3" />Compromiso {{ hoyPeriodo.año }}</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ fmtNum(resumenCantidades.totalAñoActual) }} MWh</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ fmtNum(resumenCantidades.totalAñoActual) }} MWh</p>
             <p class="text-xs text-muted-foreground mt-px truncate">
               {{ resumenCantidades.tieneAñoActual ? 'suma de mínimos del año' : 'sin compromisos este año' }}
             </p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ClockIcon class="size-3" />Mes en curso</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">
               {{ resumenCantidades.actual ? fmtNum(resumenCantidades.actual.energia_minima) + ' MWh' : '—' }}
             </p>
             <p class="text-xs text-muted-foreground mt-px truncate">
@@ -332,7 +332,7 @@
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><MoveHorizontalIcon class="size-3" />Flexibilidad</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">
               {{ resumenCantidades.flex != null ? resumenCantidades.flex.toFixed(0) + '%' : '—' }}
             </p>
             <p class="text-xs text-muted-foreground mt-px truncate">
@@ -345,7 +345,7 @@
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <SelectButton v-if="!editandoCantidades" v-model="vistaCantidades" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
-          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
+          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <UploadIcon class="size-4" />Cargar compromisos desde Excel
           </span>
           <div class="ml-auto flex items-center gap-1.5">
@@ -403,14 +403,14 @@
               </thead>
               <tbody>
                 <tr v-for="(r, i) in energiaRows.slice(0, 8)" :key="i">
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ r.año }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ MESES[r.mes - 1] }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.energia_minima }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.energia_maxima ?? '—' }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.cantidad_proyectos ?? '—' }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground">{{ r.año }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground">{{ MESES[r.mes - 1] }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground text-right font-mono tabular-nums">{{ r.energia_minima }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground text-right font-mono tabular-nums">{{ r.energia_maxima ?? '—' }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground text-right font-mono tabular-nums">{{ r.cantidad_proyectos ?? '—' }}</td>
                 </tr>
                 <tr v-if="energiaRows.length > 8">
-                  <td colspan="5" class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-muted-foreground/50 italic">… y {{ energiaRows.length - 8 }} filas más</td>
+                  <td colspan="5" class="px-3 py-1.5 border-b border-border/50 text-foreground text-muted-foreground/50 italic">… y {{ energiaRows.length - 8 }} filas más</td>
                 </tr>
               </tbody>
             </table>
@@ -440,7 +440,7 @@
               <Column :header="vistaCantidades === 'anual' ? 'Mín (MWh/año)' : 'Mín (MWh/mes)'"
                 headerClass="cd-th-der" bodyClass="text-right!">
                 <template #body="{ data }">
-                  <span class="font-mono tabular-nums font-semibold text-unergy-deep">{{ fmtNum(data.energia_minima) }}</span>
+                  <span class="font-mono tabular-nums font-semibold text-foreground">{{ fmtNum(data.energia_minima) }}</span>
                 </template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Máx (MWh/año)' : 'Máx (MWh/mes)'"
@@ -486,26 +486,26 @@
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3 bg-warning/10! border-warning/30!">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-warning!"><DollarSignIcon class="size-3" />
               {{ resumenTarifas.esDelMes ? 'Tarifa del mes' : 'Última tarifa' }}</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-warning!">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase text-warning!">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate text-warning! opacity-75">
               {{ MESES[resumenTarifas.vigente.mes - 1] }} {{ resumenTarifas.vigente.año }} · COP/kWh
             </p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ChartLineIcon class="size-3" />Variación</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-(--c)!" :style="{ '--c': varColor(resumenTarifas.varPct) }">
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase text-(--c)!" :style="{ '--c': varColor(resumenTarifas.varPct) }">
               {{ resumenTarifas.varPct != null ? (resumenTarifas.varPct > 0 ? '+' : '') + resumenTarifas.varPct.toFixed(1) + '%' : '—' }}
             </p>
             <p class="text-xs text-muted-foreground mt-px truncate">frente al período anterior</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><MoveVerticalIcon class="size-3" />Rango histórico</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ fmtCOP(resumenTarifas.min) }} – {{ fmtCOP(resumenTarifas.max) }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ fmtCOP(resumenTarifas.min) }} – {{ fmtCOP(resumenTarifas.max) }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">mínimo y máximo registrados</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><CalendarIcon class="size-3" />Períodos</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenTarifas.periodos }} meses</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ resumenTarifas.periodos }} meses</p>
             <p class="text-xs text-muted-foreground mt-px truncate">{{ resumenTarifas.añoMin }} – {{ resumenTarifas.añoMax }}</p>
           </div>
         </div>
@@ -514,7 +514,7 @@
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <SelectButton v-if="!editandoTarifas" v-model="vistaTarifas" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
-          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
+          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <UploadIcon class="size-4" />Cargar tarifas desde Excel
           </span>
           <div class="ml-auto flex items-center gap-1.5">
@@ -566,12 +566,12 @@
               </thead>
               <tbody>
                 <tr v-for="(r, i) in tarifasRows.slice(0, 8)" :key="i">
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ r.año }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ MESES[r.mes - 1] }}</td>
-                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.tarifa }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground">{{ r.año }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground">{{ MESES[r.mes - 1] }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-foreground text-right font-mono tabular-nums">{{ r.tarifa }}</td>
                 </tr>
                 <tr v-if="tarifasRows.length > 8">
-                  <td colspan="3" class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-muted-foreground/50 italic">… y {{ tarifasRows.length - 8 }} filas más</td>
+                  <td colspan="3" class="px-3 py-1.5 border-b border-border/50 text-foreground text-muted-foreground/50 italic">… y {{ tarifasRows.length - 8 }} filas más</td>
                 </tr>
               </tbody>
             </table>
@@ -626,23 +626,23 @@
         <div v-if="!loadingAsic && asicRows.length" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BookIcon class="size-3" />Registros</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenAsic.total }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ resumenAsic.total }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">histórico completo</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3 bg-success/10! border-success/30!">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-success!"><CircleCheckIcon class="size-3" />Vigentes</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-success!">{{ resumenAsic.vigentes }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase text-success!">{{ resumenAsic.vigentes }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate text-success! opacity-75">con fecha fin en el futuro</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BadgeCheckIcon class="size-3" />Publicados</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenAsic.publicados }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase">{{ resumenAsic.publicados }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate">estado de la solicitud</p>
           </div>
           <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3" :class="resumenAsic.enProceso && 'bg-warning/10! border-warning/30!'">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1" :class="resumenAsic.enProceso && 'text-warning!'">
               <HourglassIcon class="size-3" />En proceso</p>
-            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase" :class="resumenAsic.enProceso && 'text-warning!'">{{ resumenAsic.enProceso }}</p>
+            <p class="text-base font-bold text-foreground leading-tight truncate first-letter:uppercase" :class="resumenAsic.enProceso && 'text-warning!'">{{ resumenAsic.enProceso }}</p>
             <p class="text-xs text-muted-foreground mt-px truncate" :class="resumenAsic.enProceso && 'text-warning! opacity-75'">
               pendientes ante el ASIC
             </p>
@@ -682,7 +682,7 @@
             </Column>
             <Column field="planta_nombre" header="Planta" sortable>
               <template #body="{ data }">
-                <router-link v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`" class="font-medium text-unergy-purple hover:underline underline-offset-2">
+                <router-link v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`" class="font-medium text-primary hover:underline underline-offset-2">
                   {{ data.planta_nombre || data.proyecto_id }}
                 </router-link>
                 <span v-else class="text-muted-foreground/50">—</span>
@@ -729,7 +729,7 @@
       <!-- ══ PROYECTOS ══ -->
       <div v-if="tab === 'proyectos'" class="space-y-4">
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
-          <span class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <ZapIcon class="size-4" />
             {{ contrato.proyectos?.length || 0 }}
             {{ (contrato.proyectos?.length === 1) ? 'planta asociada' : 'plantas asociadas' }}
@@ -742,13 +742,13 @@
         </div>
 
         <div v-if="contrato.proyectos?.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="group flex items-center gap-2.5 px-3 py-3 rounded-lg border border-border bg-card transition-colors duration-150 hover:border-unergy-purple/30 hover:bg-muted/30">
-            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10"><ZapIcon class="size-3 text-unergy-purple" /></span>
+          <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="group flex items-center gap-2.5 px-3 py-3 rounded-lg border border-border bg-card transition-colors duration-150 hover:border-primary/30 hover:bg-muted/30">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><ZapIcon class="size-3 text-primary" /></span>
             <div class="min-w-0 flex-1">
-              <TruncatedText :text="p.nombre_comercial" class="text-sm font-semibold text-unergy-deep" />
+              <TruncatedText :text="p.nombre_comercial" class="text-sm font-semibold text-foreground" />
               <p class="font-mono text-xs text-muted-foreground">ID {{ p.id }}</p>
             </div>
-            <ChevronRightIcon class="text-muted-foreground/50 shrink-0 group-hover:text-unergy-purple size-2.5" />
+            <ChevronRightIcon class="text-muted-foreground/50 shrink-0 group-hover:text-primary size-2.5" />
           </router-link>
         </div>
         <div v-else class="flex flex-col items-center gap-1 px-5 py-11 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1">
@@ -1456,11 +1456,11 @@ onMounted(cargar)
 .cd-tabla :deep(.p-datatable-tbody > tr > td) {
   padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
   border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
-  color: var(--color-unergy-deep);
+  color: var(--foreground);
 }
 .cd-tabla :deep(.p-datatable-tbody > tr:last-child > td) { border-bottom: none; }
 .cd-tabla :deep(.p-datatable-tbody > tr.p-row-odd) { background: color-mix(in oklab, var(--muted) 20%, transparent); }
-.cd-tabla :deep(.p-datatable-tbody > tr:hover) { background: color-mix(in oklab, var(--color-unergy-purple) 6%, transparent); }
+.cd-tabla :deep(.p-datatable-tbody > tr:hover) { background: color-mix(in oklab, var(--primary) 6%, transparent); }
 .cd-tabla :deep(.p-paginator) {
   background: color-mix(in oklab, var(--muted) 50%, transparent);
   border-top: 1px solid var(--border);
