@@ -35,6 +35,15 @@ de inventar uno nuevo.
 ## UI / Estilos
 
 - **Tailwind siempre.** CSS custom solo si es estrictamente imposible con utilidades de Tailwind.
+- **Nada hardcodeado ni de reparto manual.** Sin valores arbitrarios (`text-[11px]`, `w-[320px]`), sin
+  `style=` ni colores de la paleta cruda (`text-red-500`), y sin anchos fijos (`w-40`, `w-3/12`): el
+  contenido y el layout resuelven el ancho. Un texto largo se acota con `max-w-*` y se recorta con
+  `<TruncatedText>` (recorta y muestra el resto en un Tooltip). Los valores dinámicos van como
+  variable CSS (`:style="{ '--w': x }"` + `w-(--w)`). Colores de Chart.js/canvas: `useThemeColors()`.
+  `bun run lint:design` lo verifica (y corre en el pre-commit); las excepciones son clases exactas en
+  `eslint.design.config.mjs`.
+- Un `SelectItem` nunca lleva `value=""` (Reka UI lo rechaza en runtime): usa `VALOR_SELECT_VACIO` y
+  `aValorSelect`/`deValorSelect` de `~/utils/select.ts`.
 - **Si `app/components/gandalf/` no tiene componentes, Gandalf no está en este proyecto y todo lo
   que sigue sobre él no aplica — no es un bug ni algo pendiente de arreglar.** En ese caso compón
   directamente sobre `ui/` y sigue adelante.
@@ -164,6 +173,7 @@ cuerpo `{ status, message, payload? }` para que el cliente reciba un `AppError` 
 
 ```sh
 bun run lint       # sin errores
+bun run lint:design # sin errores (consistencia con el sistema de diseño)
 bun run typecheck  # cero errores
 bun run test       # verde
 ```
