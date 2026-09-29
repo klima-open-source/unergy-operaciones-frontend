@@ -6,7 +6,7 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto…" />
@@ -178,7 +178,7 @@
         </div>
 
         <div>
-          <label class="field-label">AC Power (kW)</label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">AC Power (kW)</label>
           <InputNumber v-model="f.ac_power" :maxFractionDigits="2" class="w-full" placeholder="ej: 996" />
           <small class="text-xs text-muted-foreground">Divisor de la prorrata al repartir los costos de XM.</small>
         </div>
@@ -322,11 +322,3 @@ async function cargar() {
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
-</style>
