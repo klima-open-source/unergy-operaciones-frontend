@@ -165,7 +165,7 @@
                   />
                   <button
                     type="button"
-                    class="w-11.5 shrink-0 rounded-xl bg-primary text-white"
+                    class="w-11.5 shrink-0 rounded-xl bg-primary text-primary-foreground"
                     @click="agregarInv"
                   >
                     <PlusIcon class="size-3" />
@@ -288,7 +288,7 @@
           </div>
 
           <button
-            class="mt-2.5 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary p-4 text-base font-bold text-white disabled:opacity-50"
+            class="mt-2.5 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary p-4 text-base font-bold text-primary-foreground disabled:opacity-50"
             :disabled="saving"
             @click="submit"
           >
@@ -410,7 +410,7 @@ const labelOpciones = computed(
 const CHIP = 'flex items-center gap-1 rounded-xl border-2 px-3.5 py-2 text-sm font-semibold'
 const CHIP_IDLE = 'border-border bg-card text-muted-foreground'
 const CHIP_ACTIVO = 'border-(--c) bg-(--c) text-white'
-const CHIP_ACTIVO_PURPURA = 'border-primary bg-primary text-white'
+const CHIP_ACTIVO_PURPURA = 'border-primary bg-primary text-primary-foreground'
 
 const LABEL = 'mb-3.5 block text-xs font-semibold text-muted-foreground'
 const CONTROL =

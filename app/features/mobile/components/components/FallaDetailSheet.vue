@@ -232,7 +232,7 @@
                     </option>
                   </select>
                   <button
-                    class="shrink-0 rounded-xl bg-primary px-4 text-white disabled:opacity-40"
+                    class="shrink-0 rounded-xl bg-primary px-4 text-primary-foreground disabled:opacity-40"
                     :disabled="addingSeg || (!nota.trim() && !notaEstadoId)"
                     @click="agregarSeg"
                   >

@@ -2,7 +2,7 @@
   <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- ══ TOP BAR ══ -->
     <header
-      class="ms-topbar relative flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-white"
+      class="ms-topbar relative flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <button
         class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
@@ -250,7 +250,7 @@
             >
             <button
               v-if="rcnMap[p.proyecto_id]"
-              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-md"
+              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-md"
               @click="openSheet(p)"
             >
               <span
@@ -277,7 +277,7 @@
         <SunIcon class="size-8 text-muted-foreground" />
         <span>Sin proyectos disponibles</span>
         <button
-          class="mt-1 h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
+          class="mt-1 h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground"
           @click="cargarLista"
         >
           Reintentar
