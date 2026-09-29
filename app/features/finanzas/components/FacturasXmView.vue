@@ -123,22 +123,22 @@
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
-                class="w-36" showClear placeholder="Todos" @change="cargar" />
+                showClear placeholder="Todos" @change="cargar" />
       </div>
       <div>
         <label class="field-label">Año</label>
-        <InputNumber v-model="filtros.year" :useGrouping="false" class="w-28" @update:modelValue="cargar" />
+        <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
       </div>
       <div>
         <label class="field-label">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" class="w-28" showClear
+        <Select v-model="filtros.version" :options="VERSIONES" showClear
                 placeholder="Todas" @change="cargar" />
       </div>
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Código, nombre, agente…" class="w-64" />
+          <InputText v-model="q" placeholder="Código, nombre, agente…" />
         </IconField>
       </div>
       <div class="flex-1" />

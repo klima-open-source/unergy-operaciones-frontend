@@ -27,22 +27,21 @@
       <div>
         <label class="field-label">Período</label>
         <Select v-model="periodoSel" :options="opcionesPeriodo" optionLabel="label" optionValue="value"
-                class="w-44" :loading="cargandoPeriodos" />
+                :loading="cargandoPeriodos" />
       </div>
 
       <!-- La versión (txf, tx3…tx8) solo está en el nombre del cruce de facturas;
            los estados de resultados no la llevan, así que el filtro no aplica ahí. -->
       <div v-if="versiones.length">
         <label class="field-label">Versión</label>
-        <Select v-model="versionSel" :options="opcionesVersion" optionLabel="label" optionValue="value"
-                class="w-32" />
+        <Select v-model="versionSel" :options="opcionesVersion" optionLabel="label" optionValue="value" />
       </div>
 
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Cliente o proyecto…" class="w-64" />
+          <InputText v-model="q" placeholder="Cliente o proyecto…" />
         </IconField>
       </div>
 
