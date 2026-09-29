@@ -56,14 +56,14 @@
 
     <!-- ══ FILTROS ══════════════════════════════════════════════════════════ -->
     <div class="flex flex-wrap items-center gap-2">
-      <InputGroup class="w-64">
+      <InputGroup class="w-full sm:max-w-xs">
         <InputGroupAddon>
           <SearchIcon />
         </InputGroupAddon>
         <InputGroupInput v-model="busqueda" placeholder="Buscar por proyecto o ciudad…" />
       </InputGroup>
       <Select v-model="filtroTipo">
-        <SelectTrigger size="sm" class="w-36">
+        <SelectTrigger size="sm">
           <SelectValue placeholder="Tipo" />
         </SelectTrigger>
         <SelectContent>
@@ -73,7 +73,7 @@
         </SelectContent>
       </Select>
       <Select v-model="filtroEstado">
-        <SelectTrigger size="sm" class="w-36">
+        <SelectTrigger size="sm">
           <SelectValue placeholder="Estado" />
         </SelectTrigger>
         <SelectContent>
@@ -83,7 +83,7 @@
         </SelectContent>
       </Select>
       <Select v-model="filtroOm">
-        <SelectTrigger size="sm" class="w-32">
+        <SelectTrigger size="sm">
           <SelectValue placeholder="Póliza O&M" />
         </SelectTrigger>
         <SelectContent>

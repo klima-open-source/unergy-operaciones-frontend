@@ -45,7 +45,7 @@
       <div class="flex flex-col gap-1">
         <Label class="text-xs text-muted-foreground">Año</Label>
         <Select v-model="filtroAnio">
-          <SelectTrigger size="sm" class="w-28">
+          <SelectTrigger size="sm">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -58,7 +58,7 @@
       <div class="flex flex-col gap-1">
         <Label class="text-xs text-muted-foreground">Mes</Label>
         <Select v-model="filtroMes">
-          <SelectTrigger size="sm" class="w-36">
+          <SelectTrigger size="sm">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
@@ -71,7 +71,7 @@
       <div class="flex flex-col gap-1">
         <Label class="text-xs text-muted-foreground">Estado</Label>
         <Select v-model="filtroEstado">
-          <SelectTrigger size="sm" class="w-36">
+          <SelectTrigger size="sm">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
