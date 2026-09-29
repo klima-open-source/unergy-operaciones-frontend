@@ -395,13 +395,13 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-page,
 .fmo-page {
   --rpt-paper: white;
-  --rpt-ink: var(--color-unergy-deep);
-  --rpt-ink-2: color-mix(in oklab, white 6%, var(--color-unergy-deep));
-  --rpt-ink-line: color-mix(in oklab, white 12%, var(--color-unergy-deep));
-  --rpt-subtle: color-mix(in oklab, var(--color-unergy-deep) 60%, white);
-  --rpt-faint: color-mix(in oklab, var(--color-unergy-deep) 40%, white);
-  --rpt-line: color-mix(in oklab, var(--color-unergy-purple) 12%, white);
-  --rpt-tint: color-mix(in oklab, var(--color-unergy-purple) 6%, white);
+  --rpt-ink: var(--foreground);
+  --rpt-ink-2: color-mix(in oklab, white 6%, var(--foreground));
+  --rpt-ink-line: color-mix(in oklab, white 12%, var(--foreground));
+  --rpt-subtle: color-mix(in oklab, var(--foreground) 60%, white);
+  --rpt-faint: color-mix(in oklab, var(--foreground) 40%, white);
+  --rpt-line: color-mix(in oklab, var(--primary) 12%, white);
+  --rpt-tint: color-mix(in oklab, var(--primary) 6%, white);
   --rpt-ok-bg: color-mix(in oklab, var(--success) 8%, white);
   --rpt-ok-ink: color-mix(in oklab, var(--success) 45%, black);
   --rpt-ok-line: color-mix(in oklab, var(--success) 25%, transparent);
@@ -466,7 +466,7 @@ function estadoLabel(estado?: EstadoInforme): string {
   color: var(--rpt-ink);
   margin-bottom: 13px;
   padding-left: 10px;
-  border-left: 3px solid var(--color-unergy-purple);
+  border-left: 3px solid var(--primary);
 }
 .rpt-kpi-row {
   display: grid;
@@ -505,7 +505,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 }
 .rpt-table th {
   background: var(--rpt-ink);
-  color: var(--color-unergy-yellow);
+  color: var(--highlight);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -524,7 +524,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-total-row td {
   background: var(--rpt-line) !important;
   font-weight: 700;
-  border-top: 2px solid var(--color-unergy-purple);
+  border-top: 2px solid var(--primary);
 }
 .rpt-chart-card {
   background: var(--rpt-tint);
@@ -542,7 +542,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 }
 .rpt-obs-text {
   font-size: 12px;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
   line-height: 1.8;
   background: var(--rpt-tint);
   border-radius: 8px;
@@ -555,7 +555,7 @@ function estadoLabel(estado?: EstadoInforme): string {
   border-radius: 10px;
   padding: 15px;
   font-size: 12px;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
 }
 .rpt-status-row {
   font-size: 11px;
@@ -592,7 +592,7 @@ function estadoLabel(estado?: EstadoInforme): string {
   color: var(--rpt-ink);
   margin-bottom: 12px;
   padding-left: 10px;
-  border-left: 3px solid var(--color-unergy-purple);
+  border-left: 3px solid var(--primary);
 }
 .fmo-kpi-grid {
   display: grid;
@@ -645,7 +645,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .fmo-inv-table th,
 .fmo-mant-table th {
   background: var(--rpt-ink);
-  color: var(--color-unergy-yellow);
+  color: var(--highlight);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -730,7 +730,7 @@ function estadoLabel(estado?: EstadoInforme): string {
   .fmo-inv-table th,
   .fmo-mant-table th {
     background: var(--rpt-ink) !important;
-    color: var(--color-unergy-yellow) !important;
+    color: var(--highlight) !important;
   }
   .rpt-total-row td {
     background: var(--rpt-line) !important;
