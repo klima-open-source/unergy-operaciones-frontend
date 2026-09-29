@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
-    <div class="mon-tab-bar">
+    <div class="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5">
       <FileCheckIcon class="size-4 text-unergy-purple" />
       <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Validador de Mandatos</span>
-      <span class="vm-version">v8.0</span>
+      <span class="font-mono text-xs text-muted-foreground">v8.0</span>
     </div>
 
     <!-- El validador (HTML/JS portado tal cual) se inyecta aquí en onMounted -->
@@ -990,21 +990,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ── Header (estilo plataforma) ───────────────────────────────────────── */
-.mon-tab-bar {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px; margin-bottom: 16px;
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 12px;
-}
-.vm-version {
-  color: #94a3b8; font-size: 12px;
-  font-family: 'IBM Plex Mono', monospace;
-}
-
 /* ── Variables del validador: --accent adaptado a la marca (var(--color-unergy-purple)) ──── */
 .vm-root {
-  --bg: #f8fafc; --accent: var(--color-unergy-purple); --text: #1e293b;
-  --err: #e11d48; --ok: #10b981; --warn: #f59e0b; --radius: 12px;
+  --bg: var(--muted); --accent: var(--color-unergy-purple); --text: var(--foreground);
+  --err: var(--destructive); --ok: var(--success); --warn: var(--warning); --radius: 0.75rem;
   font-family: 'IBM Plex Sans', 'Sora', system-ui, sans-serif;
   color: var(--text);
 }
@@ -1012,65 +1001,65 @@ onBeforeUnmount(() => {
 /* Las reglas siguientes son ::v-deep para alcanzar el HTML inyectado en onMounted */
 .vm-root :deep(*) { box-sizing: border-box; }
 
-.vm-root :deep(.tab-bar) { display: flex; gap: 10px; margin-bottom: 18px; background: #e2e8f0; padding: 5px; border-radius: 10px; }
-.vm-root :deep(.tab-btn) { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: .3s; color: #64748b; font-size: 14px; background:transparent; }
-.vm-root :deep(.tab-btn.active) { background: white; color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+.vm-root :deep(.tab-bar) { display: flex; gap: 0.625rem; margin-bottom: 1.125rem; background: var(--border); padding: 0.3rem; border-radius: 0.625rem; }
+.vm-root :deep(.tab-btn) { flex: 1; padding: 0.75rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: .3s; color: var(--muted-foreground); font-size: 0.875rem; background:transparent; }
+.vm-root :deep(.tab-btn.active) { background: var(--card); color: var(--accent); box-shadow: 0 2px 0.25rem color-mix(in oklab, var(--foreground) 10%, transparent); }
 
-.vm-root :deep(.mode-selector) { display: flex; gap: 10px; margin-bottom: 16px; background: #e2e8f0; padding: 5px; border-radius: 10px; }
-.vm-root :deep(.mode-btn) { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: .3s; color: #64748b; font-size: 13px; background:transparent; }
-.vm-root :deep(.mode-btn.active) { background: white; color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+.vm-root :deep(.mode-selector) { display: flex; gap: 0.625rem; margin-bottom: 1rem; background: var(--border); padding: 0.3rem; border-radius: 0.625rem; }
+.vm-root :deep(.mode-btn) { flex: 1; padding: 0.625rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: .3s; color: var(--muted-foreground); font-size: 0.8125rem; background:transparent; }
+.vm-root :deep(.mode-btn.active) { background: var(--card); color: var(--accent); box-shadow: 0 2px 0.25rem color-mix(in oklab, var(--foreground) 10%, transparent); }
 
-.vm-root :deep(.drop-zone) { border: 2px dashed #cbd5e1; border-radius: var(--radius); padding: 32px; text-align: center; background: white; cursor: pointer; margin-bottom: 14px; transition:.2s; }
-.vm-root :deep(.drop-zone:hover) { border-color: var(--accent); background:#faf8ff; }
-.vm-root :deep(.drop-zone.loaded) { border-color: var(--ok); border-style: solid; background: #f0fdf4; }
+.vm-root :deep(.drop-zone) { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; background: var(--card); cursor: pointer; margin-bottom: 0.875rem; transition:.2s; }
+.vm-root :deep(.drop-zone:hover) { border-color: var(--accent); background: var(--muted); }
+.vm-root :deep(.drop-zone.loaded) { border-color: var(--ok); border-style: solid; background: color-mix(in oklab, var(--success) 10%, transparent); }
 .vm-root :deep(.drop-zone.loaded .dz-icon) { color: var(--ok); }
 
-.vm-root :deep(.btn-primary) { background: var(--accent); color: white; border: none; padding: 14px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px; transition:.2s; }
+.vm-root :deep(.btn-primary) { background: var(--accent); color: var(--card); border: none; padding: 0.875rem 1.25rem; border-radius: 0.625rem; font-weight: 600; cursor: pointer; font-size: 0.9375rem; transition:.2s; }
 .vm-root :deep(.btn-primary:disabled) { opacity: .4; cursor: not-allowed; }
-.vm-root :deep(.btn-primary:not(:disabled):hover) { background: #6D28D9; }
-.vm-root :deep(.btn-secondary) { background: #0f766e; color: white; border: none; padding: 14px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; white-space:nowrap; }
+.vm-root :deep(.btn-primary:not(:disabled):hover) { background: var(--color-unergy-purple-dark); }
+.vm-root :deep(.btn-secondary) { background: var(--chart-2); color: var(--card); border: none; padding: 0.875rem 1.25rem; border-radius: 0.625rem; font-weight: 600; cursor: pointer; font-size: 0.875rem; white-space:nowrap; }
 .vm-root :deep(.btn-secondary:disabled) { opacity:.4; cursor:not-allowed; }
 
-.vm-root :deep(.stats) { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap:wrap; }
-.vm-root :deep(.stat-card) { flex: 1; min-width: 100px; background: white; padding: 14px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; }
-.vm-root :deep(.stat-val) { font-size: 22px; font-weight: 700; display: block; }
+.vm-root :deep(.stats) { display: flex; gap: 0.75rem; margin-bottom: 1.125rem; flex-wrap:wrap; }
+.vm-root :deep(.stat-card) { flex: 1; min-width: 6.25rem; background: var(--card); padding: 0.875rem; border-radius: 0.625rem; text-align: center; border: 1px solid var(--border); }
+.vm-root :deep(.stat-val) { font-size: 1.375rem; font-weight: 700; display: block; }
 
-.vm-root :deep(.results-grid) { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; margin-bottom: 24px; }
-.vm-root :deep(.card) { background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 15px; position: relative; }
-.vm-root :deep(.pill) { position: absolute; top: 13px; right: 13px; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 50px; text-transform: uppercase; }
-.vm-root :deep(.pill-ok)  { background: #ecfdf5; color: #065f46; }
-.vm-root :deep(.pill-err) { background: #fff1f2; color: #9f1239; }
+.vm-root :deep(.results-grid) { display: grid; grid-template-columns: repeat(auto-fill, minmax(19.375rem, 1fr)); gap: 0.875rem; margin-bottom: 1.5rem; }
+.vm-root :deep(.card) { background: var(--card); border-radius: 0.625rem; border: 1px solid var(--border); padding: 0.9375rem; position: relative; }
+.vm-root :deep(.pill) { position: absolute; top: 0.8125rem; right: 0.8125rem; font-size: 0.625rem; font-weight: 800; padding: 3px 0.625rem; border-radius: 3.125rem; text-transform: uppercase; }
+.vm-root :deep(.pill-ok)  { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); }
+.vm-root :deep(.pill-err) { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); }
 
-.vm-root :deep(.panel) { background: white; border-radius: var(--radius); border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
-.vm-root :deep(.report-table) { width: 100%; border-collapse: collapse; font-size: 13px; }
-.vm-root :deep(.report-table th) { text-align: left; padding: 10px 12px; background: #f1f5f9; border-bottom: 2px solid #e2e8f0; font-size:12px; }
-.vm-root :deep(.report-table td) { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+.vm-root :deep(.panel) { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.125rem; box-shadow: 0 2px 0.375rem color-mix(in oklab, var(--foreground) 6%, transparent); }
+.vm-root :deep(.report-table) { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.vm-root :deep(.report-table th) { text-align: left; padding: 0.625rem 0.75rem; background: var(--muted); border-bottom: 2px solid var(--border); font-size:0.75rem; }
+.vm-root :deep(.report-table td) { padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--muted); }
 .vm-root :deep(.report-table tr:last-child td) { border-bottom: none; }
 .vm-root :deep(.mono) { font-family: 'IBM Plex Mono', monospace; }
 .vm-root :deep(.txt-err) { color: var(--err); font-weight: 600; }
 .vm-root :deep(.txt-ok)  { color: var(--ok); font-weight: 600; }
 .vm-root :deep(.txt-warn){ color: var(--warn); font-weight: 600; }
 
-.vm-root :deep(.spinner) { border: 3px solid #f3f3f3; border-top: 3px solid var(--accent); border-radius: 50%; width: 18px; height: 18px; animation: vm-spin 1s linear infinite; display:inline-block; }
+.vm-root :deep(.spinner) { border: 3px solid var(--muted); border-top: 3px solid var(--accent); border-radius: 50%; width: 1.125rem; height: 1.125rem; animation: vm-spin 1s linear infinite; display:inline-block; }
 @keyframes vm-spin { to { transform: rotate(360deg); } }
 
 .vm-root :deep(.flash-highlight) { animation: vm-flash 2s ease-out; }
 @keyframes vm-flash {
-  0%, 40% { background-color: #ede9fe; border-color: #6366f1; }
+  0%, 40% { background-color: color-mix(in oklab, var(--color-unergy-purple) 15%, transparent); border-color: var(--color-unergy-purple); }
   100% { background-color: transparent; }
 }
 
-.vm-root :deep(.step-badge) { display:inline-block; background:var(--accent); color:white; border-radius:50%; width:22px; height:22px; line-height:22px; text-align:center; font-size:12px; font-weight:700; margin-right:8px; flex-shrink:0; }
-.vm-root :deep(.step-row) { display:flex; align-items:flex-start; gap:0; margin-bottom:14px; }
+.vm-root :deep(.step-badge) { display:inline-block; background:var(--accent); color:var(--card); border-radius:50%; width:1.375rem; height:1.375rem; line-height:1.375rem; text-align:center; font-size:0.75rem; font-weight:700; margin-right:0.5rem; flex-shrink:0; }
+.vm-root :deep(.step-row) { display:flex; align-items:flex-start; gap:0; margin-bottom:0.875rem; }
 
-.vm-root :deep(.conc-controls) { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-.vm-root :deep(.toggle-label) { display:flex; align-items:center; gap:5px; cursor:pointer; font-size:13px; white-space:nowrap; }
-.vm-root :deep(.tol-input) { width:90px; padding:6px 10px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; }
+.vm-root :deep(.conc-controls) { display:flex; gap:0.625rem; align-items:center; flex-wrap:wrap; margin-bottom:0.875rem; }
+.vm-root :deep(.toggle-label) { display:flex; align-items:center; gap:0.3125rem; cursor:pointer; font-size:0.8125rem; white-space:nowrap; }
+.vm-root :deep(.tol-input) { width:5.625rem; padding:0.375rem 0.625rem; border:1px solid var(--border); border-radius:0.5rem; font-size:0.8125rem; }
 
-.vm-root :deep(.badge) { padding:2px 10px; border-radius:50px; font-size:11px; font-weight:700; }
-.vm-root :deep(.badge-ok)   { background:#ecfdf5; color:#065f46; }
-.vm-root :deep(.badge-err)  { background:#fff1f2; color:#9f1239; }
-.vm-root :deep(.badge-warn) { background:#fffbeb; color:#92400e; }
+.vm-root :deep(.badge) { padding:2px 0.625rem; border-radius:3.125rem; font-size:0.6875rem; font-weight:700; }
+.vm-root :deep(.badge-ok)   { background:color-mix(in oklab, var(--success) 15%, transparent); color:var(--success); }
+.vm-root :deep(.badge-err)  { background:color-mix(in oklab, var(--destructive) 10%, transparent); color:var(--destructive); }
+.vm-root :deep(.badge-warn) { background:color-mix(in oklab, var(--warning) 15%, transparent); color:var(--warning); }
 
 .vm-root :deep(h2),
 .vm-root :deep(h3),

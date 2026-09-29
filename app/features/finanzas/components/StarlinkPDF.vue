@@ -40,7 +40,7 @@
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
     <div v-if="facturaActual" class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="filtroTexto" placeholder="Nombre de la minigranja…" />
@@ -50,7 +50,7 @@
     </div>
 
     <!-- ── Estado vacío ─────────────────────────────────────────────────────── -->
-    <div v-if="!periodos.length && !procesando" class="mon-tab-empty">
+    <div v-if="!periodos.length && !procesando" class="px-5 py-20 text-center">
       <WifiIcon class="size-4 text-muted-foreground" />
       <p class="mt-3 text-sm font-semibold text-muted-foreground">Sin facturas procesadas</p>
       <p class="mt-1 text-xs text-muted-foreground max-w-75 mx-auto mt-1">
@@ -97,7 +97,7 @@
             <span class="text-xs text-muted-foreground font-medium">({{ sec.items.length }})</span>
             <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
           </button>
-          <div class="section-collapse" :class="{ open: openSections.has(sec.tipo) }">
+          <div class="overflow-hidden transition-all" :class="openSections.has(sec.tipo) ? 'max-h-5000 duration-450 ease-in' : 'max-h-0 duration-350 ease-out'">
             <div class="overflow-x-auto">
               <table class="w-full text-sm border-collapse min-w-190 table-fixed">
                 <thead>
@@ -127,7 +127,7 @@
                       </div>
                       <div v-else class="flex items-center gap-1.5">
                         <GBadge color="warning">Sin asignar</GBadge>
-                        <button type="button" class="mn-asignar-btn" title="Asignar minigranja"
+                        <button type="button" class="inline-flex size-5.5 cursor-pointer items-center justify-center rounded-md border border-border bg-card text-unergy-purple transition-colors duration-150 hover:bg-muted" title="Asignar minigranja"
                           @click="abrirAsignarMinigranja(fila.descripcion)">
                           <LinkIcon class="size-3" />
                         </button>
@@ -557,43 +557,3 @@ onMounted(async () => {
   cargarProyectos()
 })
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
-
-.mon-tab-empty {
-  text-align: center;
-  padding: 80px 20px;
-}
-
-/* Secciones colapsables por tipo (igual que ArriendosOperaciones.vue) */
-.section-collapse {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.35s ease-out;
-}
-.section-collapse.open {
-  max-height: 20000px;
-  transition: max-height 0.45s ease-in;
-}
-
-/* Botón de asignar minigranja (columna Minigranja, tabla Agrupado) */
-.mn-asignar-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid #E5E2EC;
-  background: #fff;
-  color: var(--color-unergy-purple);
-  cursor: pointer;
-  transition: background .15s;
-}
-.mn-asignar-btn:hover { background: #F4F1FA; }
-</style>
