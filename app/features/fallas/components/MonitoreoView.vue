@@ -1,5 +1,5 @@
 <template>
-  <div ref="pageRef" class="flex min-h-full flex-col bg-muted">
+  <div ref="pageRef" class="flex min-h-full flex-col bg-muted" :style="pageStyle">
     <!-- ══ TAB BAR (sticky, fuera del sticky-header de la tab Fallas) ══════ -->
     <div
       ref="tabBarRef"
@@ -76,7 +76,7 @@
                 }}</Badge>
               </Button>
             </PopoverTrigger>
-            <PopoverContent class="w-80" align="start">
+            <PopoverContent align="start">
               <div class="flex flex-col gap-3">
                 <div class="flex flex-col gap-1">
                   <Label class="text-xs text-muted-foreground">Proyecto</Label>
@@ -843,10 +843,8 @@
                   </span>
                 </header>
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div class="flex items-center gap-2">
-                    <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
-                      >Estado</label
-                    >
+                  <div class="grid grid-cols-3 items-center gap-2">
+                    <label class="text-xs font-semibold text-muted-foreground">Estado</label>
                     <Select
                       :model-value="quickEdit.estado_id ? String(quickEdit.estado_id) : undefined"
                       @update:model-value="
@@ -856,7 +854,7 @@
                         }
                       "
                     >
-                      <SelectTrigger class="flex-1">
+                      <SelectTrigger class="col-span-2 w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -869,10 +867,8 @@
                       </SelectContent>
                     </Select>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
-                      >Prioridad</label
-                    >
+                  <div class="grid grid-cols-3 items-center gap-2">
+                    <label class="text-xs font-semibold text-muted-foreground">Prioridad</label>
                     <Select
                       :model-value="
                         quickEdit.prioridad_id ? String(quickEdit.prioridad_id) : undefined
@@ -884,7 +880,7 @@
                         }
                       "
                     >
-                      <SelectTrigger class="flex-1">
+                      <SelectTrigger class="col-span-2 w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1332,6 +1328,10 @@ const filtrosActivosCount = computed(
 // ── Refs DOM ─────────────────────────────────────────────────────────────
 const searchInputRef = ref<{ $el?: HTMLElement } | null>(null)
 const pageRef = ref<HTMLElement | null>(null)
+// Altura inicial del tab bar (una fila con py-2 y controles sm) mientras no se mide;
+// measureHeader() la reemplaza con la altura real.
+const TABBAR_H_INICIAL = 41
+const pageStyle = { '--gf-tabbar-h': `${TABBAR_H_INICIAL}px` }
 const tabBarRef = ref<HTMLElement | null>(null)
 const stickyHeaderRef = ref<HTMLElement | null>(null)
 
