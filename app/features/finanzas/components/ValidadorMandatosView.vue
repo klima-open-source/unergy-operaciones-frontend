@@ -91,7 +91,7 @@ const CLS = {
   th: 'border-b-2 border-border bg-muted px-3 py-2.5 text-left text-xs font-semibold',
   thR: 'border-b-2 border-border bg-muted px-3 py-2.5 text-right text-xs font-semibold',
   td: 'border-b border-muted px-3 py-2.5 group-last:border-b-0',
-  tol: 'w-22 rounded-lg border border-border px-2.5 py-1.5 text-sm',
+  tol: 'rounded-lg border border-border px-2.5 py-1.5 text-sm',
   toggle: 'flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm',
   step: 'mr-2 inline-block size-5.5 shrink-0 rounded-full bg-unergy-purple text-center text-xs font-bold leading-5.5 text-card',
   badgeOk: 'rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success',
