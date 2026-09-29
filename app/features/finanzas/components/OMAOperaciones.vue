@@ -9,7 +9,7 @@
             class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
             <ChevronLeftIcon class="text-muted-foreground size-3" />
           </button>
-          <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
+          <span class="text-sm font-semibold text-foreground min-w-25 text-center">
             {{ periodoLabel }}
           </span>
           <button type="button" @click="cambiarMes(1)"
@@ -30,7 +30,7 @@
             <p class="text-xs font-semibold text-muted-foreground mb-2">Mostrar columnas</p>
             <label v-for="col in columnasOpcionales" :key="col.key"
               class="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
-              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-unergy-purple" />
+              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-primary" />
               {{ col.label }}
             </label>
           </div>
@@ -125,7 +125,7 @@
               <th class="px-4 py-2.5 text-left">
                 <input type="checkbox" :checked="todosMarcadosSeccion(sec.items)"
                   @change="toggleTodosSeccion(sec.items, $event.target.checked)"
-                  class="accent-unergy-purple" />
+                  class="accent-primary" />
               </th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Proyecto</th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Estado contrato</th>
@@ -141,13 +141,13 @@
                 class="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Mes Completo</th>
               <th v-if="colsVisibles.prorrateo"
                 class="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Prorrateo</th>
-              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">
+              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">
                 Valor a Facturar
               </th>
-              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">
+              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">
                 IVA (19%)
               </th>
-              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">
+              <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">
                 Total
               </th>
               <th v-if="colsVisibles.historial"
@@ -163,16 +163,16 @@
                 <input type="checkbox"
                   :disabled="!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)"
                   v-model="seleccion[fila.contrato_id]"
-                  class="accent-unergy-purple" />
+                  class="accent-primary" />
               </td>
               <!-- Proyecto: se mantiene a opacidad completa aunque no sea facturable, para que el nombre siga siendo legible -->
-              <td class="px-4 py-2 font-medium text-unergy-deep whitespace-nowrap">
+              <td class="px-4 py-2 font-medium text-foreground whitespace-nowrap">
                 <span class="block text-xs leading-tight"
                       :class="fila.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground'">
                   {{ fila.codigo_tsf || '—' }}
                 </span>
                 <button v-if="fila.proyecto_id" type="button"
-                        class="text-left hover:underline text-unergy-deep"
+                        class="text-left hover:underline text-foreground"
                         @click="irADetalleProyecto(fila)"
                         v-tooltip.bottom="'Ver detalle del proyecto'">
                   {{ fila.nombre_proyecto }}
@@ -219,12 +219,12 @@
               <td v-if="colsVisibles.prorrateo" class="px-4 py-2 text-center text-xs text-muted-foreground" :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 {{ fila.prorrateo_label }}
               </td>
-              <td class="px-4 py-2 text-right bg-unergy-purple/5 group relative min-w-37.5"
+              <td class="px-4 py-2 text-right bg-primary/5 group relative min-w-37.5"
                 :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 <!-- Valor a facturar: SOLO LECTURA (se edita en Proyecto>Detalle>Servicios) -->
                 <div class="flex items-center justify-end gap-1.5">
                   <span class="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <InfoIcon class="cursor-pointer size-3 text-unergy-purple" v-if="fila.habilitado" title="Ver cálculo" @click="mostrarInfo($event, fila)" />
+                    <InfoIcon class="cursor-pointer size-3 text-primary" v-if="fila.habilitado" title="Ver cálculo" @click="mostrarInfo($event, fila)" />
                   </span>
                   <!-- Indicador de modificación manual (histórico) -->
                   <span v-if="esManual(fila)" title="Valor modificado manualmente"
@@ -233,16 +233,16 @@
                   <TriangleAlertIcon class="size-3 text-warning" v-if="fila.ipc_incompleto" title="Falta la tasa IPC de algún año; la indexación de este proyecto es parcial." />
                   <TriangleAlertIcon class="size-3 text-destructive" v-if="fila.valor_manual_desactualizado" title="El valor manual difiere del recalculado; revísalo tras el cambio de IPC." />
                   <span class="font-semibold tabular-nums"
-                    :class="(fila.incluido && fila.habilitado) ? 'text-unergy-purple' : 'text-muted-foreground'">
+                    :class="(fila.incluido && fila.habilitado) ? 'text-primary' : 'text-muted-foreground'">
                     {{ valorEfectivo(fila) != null ? formatCOP(valorEfectivo(fila)) : '—' }}
                   </span>
                 </div>
               </td>
-              <td class="px-4 py-2 text-right bg-unergy-purple/5 font-mono text-xs"
+              <td class="px-4 py-2 text-right bg-primary/5 font-mono text-xs"
                 :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 {{ valorEfectivo(fila) != null ? formatCOP(valorEfectivo(fila) * IVA_TASA) : '—' }}
               </td>
-              <td class="px-4 py-2 text-right bg-unergy-purple/5 font-semibold tabular-nums text-unergy-purple"
+              <td class="px-4 py-2 text-right bg-primary/5 font-semibold tabular-nums text-primary"
                 :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 {{ valorEfectivo(fila) != null ? formatCOP(valorEfectivo(fila) * (1 + IVA_TASA)) : '—' }}
               </td>
@@ -287,15 +287,15 @@
         <div class="flex items-center gap-6 ml-auto">
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtotal Facturado</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalSeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalSeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">IVA (19%)</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalIVASeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalIVASeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
-            <p class="text-base font-bold tabular-nums text-unergy-purple">{{ formatCOP(totalConIVASeleccionado) }}</p>
+            <p class="text-base font-bold tabular-nums text-primary">{{ formatCOP(totalConIVASeleccionado) }}</p>
           </div>
         </div>
       </div>
@@ -324,7 +324,7 @@
       </button>
       <a v-else-if="facturaProveedor.enlace_pdf"
         :href="facturaProveedor.enlace_pdf" target="_blank" rel="noopener"
-        class="flex items-center gap-1 text-xs font-medium hover:underline flex-shrink-0 text-unergy-purple">
+        class="flex items-center gap-1 text-xs font-medium hover:underline flex-shrink-0 text-primary">
         <ExternalLinkIcon class="size-3" />Ver
       </a>
     </div>
@@ -349,8 +349,8 @@
 
     <!-- ── Popover: desglose del cálculo ──────────────────────────────── -->
     <Popover ref="infoPopover">
-      <div v-if="filaInfo" class="text-xs min-w-70 text-unergy-deep">
-        <p class="font-semibold mb-2 flex items-center gap-1.5 text-unergy-purple">
+      <div v-if="filaInfo" class="text-xs min-w-70 text-foreground">
+        <p class="font-semibold mb-2 flex items-center gap-1.5 text-primary">
           <ChartColumnIcon class="size-3" /> Cálculo del Valor a Facturar
         </p>
         <div class="space-y-1 font-mono">
@@ -385,7 +385,7 @@
         <div class="border-t mt-2 pt-2">
           <div class="flex justify-between gap-6 font-semibold">
             <span>Valor a Facturar</span>
-            <span class="text-unergy-purple">{{ formatCOP(valorEfectivo(filaInfo)) }}</span>
+            <span class="text-primary">{{ formatCOP(valorEfectivo(filaInfo)) }}</span>
           </div>
         </div>
         <!-- Aviso de modificación manual -->
@@ -400,7 +400,7 @@
             <p v-if="filaInfo.valor_manual_desactualizado" class="mt-0.5 text-destructive">
               El valor manual ya no coincide con el recalculado — revísalo.
             </p>
-            <button type="button" class="mt-1 underline text-unergy-purple"
+            <button type="button" class="mt-1 underline text-primary"
               @click="revertirCalculado(filaInfo)">
               Revertir a calculado
             </button>

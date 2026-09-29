@@ -6,7 +6,7 @@
         class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
         <ChevronLeftIcon class="text-muted-foreground size-3" />
       </button>
-      <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
+      <span class="text-sm font-semibold text-foreground min-w-25 text-center">
         {{ periodoLabel }}
       </span>
       <button type="button" @click="cambiarMes(1)"
@@ -40,9 +40,9 @@
           <tbody>
             <tr v-for="fila in filas" :key="fila.contrato_id"
               class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
-              <td class="px-4 py-2.5 font-medium text-unergy-deep">{{ fila.nombre_proyecto }}</td>
+              <td class="px-4 py-2.5 font-medium text-foreground">{{ fila.nombre_proyecto }}</td>
               <td class="px-4 py-2.5 text-xs text-muted-foreground">{{ fila.mes_año }}</td>
-              <td class="px-4 py-2.5 text-right font-semibold tabular-nums text-unergy-purple">
+              <td class="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">
                 {{ formatCOP(fila.valor_a_facturar) }}
               </td>
               <td class="px-4 py-2.5 text-xs text-muted-foreground max-w-65 overflow-hidden text-ellipsis whitespace-nowrap"
@@ -72,8 +72,8 @@
     <div class="rounded-xl border bg-white shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
         <div class="flex items-center gap-2">
-          <FileTextIcon class="size-3 text-unergy-purple" />
-          <span class="text-sm font-semibold text-unergy-deep">Factura consolidada del mes</span>
+          <FileTextIcon class="size-3 text-primary" />
+          <span class="text-sm font-semibold text-foreground">Factura consolidada del mes</span>
           <GBadge color="default" class="text-xs font-mono">{{ periodoLabel }}</GBadge>
         </div>
         <!-- indicador de estado -->
@@ -104,7 +104,7 @@
           <!-- Abrir link externo -->
           <a v-else-if="factura.enlace_pdf"
             :href="factura.enlace_pdf" target="_blank" rel="noopener"
-            class="flex items-center gap-1 text-xs font-medium hover:underline flex-shrink-0 text-unergy-purple">
+            class="flex items-center gap-1 text-xs font-medium hover:underline flex-shrink-0 text-primary">
             <ExternalLinkIcon class="size-3" />Ver
           </a>
         </div>
@@ -116,10 +116,10 @@
           </p>
 
           <!-- Opción A: subir archivo -->
-          <label class="flex items-center gap-2 text-xs border border-dashed rounded-lg px-3 py-2 cursor-pointer hover:border-unergy-purple transition-colors"
-            :class="archivoSeleccionado ? 'border-unergy-purple bg-unergy-purple/10' : 'border-border'">
-            <PaperclipIcon class="size-3" :class="['min-w-0', archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground']" />
-            <TruncatedText :text="archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar PDF…'" :class="archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground'" />
+          <label class="flex items-center gap-2 text-xs border border-dashed rounded-lg px-3 py-2 cursor-pointer hover:border-primary transition-colors"
+            :class="archivoSeleccionado ? 'border-primary bg-primary/10' : 'border-border'">
+            <PaperclipIcon class="size-3" :class="['min-w-0', archivoSeleccionado ? 'text-primary' : 'text-muted-foreground']" />
+            <TruncatedText :text="archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar PDF…'" :class="archivoSeleccionado ? 'text-primary' : 'text-muted-foreground'" />
             <input type="file" accept=".pdf,.PDF" class="hidden" @change="onFacturaChange" />
           </label>
 
@@ -131,11 +131,11 @@
           </div>
           <input type="url" v-model="linkExterno"
             placeholder="https://drive.google.com/…"
-            class="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-unergy-purple/30"/>
+            class="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30"/>
 
           <button type="button"
             :disabled="!puedeSubir || subiendoFactura"
-            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all bg-unergy-purple text-primary-foreground border-0"
+            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all bg-primary text-primary-foreground border-0"
             :class="!puedeSubir || subiendoFactura ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'"
             @click="subirFactura">
             <LoaderCircleIcon v-if="subiendoFactura" class="animate-spin size-3" />
@@ -167,7 +167,7 @@
               <FileTextIcon class="flex-shrink-0 size-3 text-success" />
               <TruncatedText :text="item.nombre" class="font-medium max-w-40 min-w-0" />
               <span v-if="item.numero_factura" class="font-mono text-muted-foreground">{{ item.numero_factura }}</span>
-              <span v-if="item.total_pagar" class="ml-auto font-semibold tabular-nums text-unergy-purple">
+              <span v-if="item.total_pagar" class="ml-auto font-semibold tabular-nums text-primary">
                 {{ formatCOP(item.total_pagar) }}
               </span>
             </div>
@@ -210,7 +210,7 @@
             </select>
             <button type="button"
               :disabled="!asignacionSeleccionada[item.id] || asignando[item.id]"
-              class="text-xs font-semibold px-2 py-1 rounded bg-unergy-purple text-primary-foreground border-0"
+              class="text-xs font-semibold px-2 py-1 rounded bg-primary text-primary-foreground border-0"
               :class="!asignacionSeleccionada[item.id] || asignando[item.id] ? 'opacity-40' : 'cursor-pointer'"
               @click="asignarSinMatch(item)">
               {{ asignando[item.id] ? 'Asignando…' : 'Asignar' }}
