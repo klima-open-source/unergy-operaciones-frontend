@@ -3,62 +3,59 @@
 
     <div class="flex items-center gap-3">
       <button type="button" @click="cambiarMes(-1)"
-        class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50">
-        <ChevronLeftIcon class="text-xs text-gray-500 size-[1em]" />
+        class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+        <ChevronLeftIcon class="text-muted-foreground size-3" />
       </button>
-      <span class="text-sm font-semibold" style="color:var(--color-unergy-deep); min-width:100px; text-align:center">
+      <span class="text-sm font-semibold text-unergy-deep text-center">
         {{ periodoLabel }}
       </span>
       <button type="button" @click="cambiarMes(1)"
-        class="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50">
-        <ChevronRightIcon class="text-xs text-gray-500 size-[1em]" />
+        class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+        <ChevronRightIcon class="text-muted-foreground size-3" />
       </button>
       <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
     </div>
 
     <div v-if="!filas.length"
-      class="rounded-xl border border-dashed p-8 text-center" style="border-color:#915BD840">
-      <InboxIcon class="text-2xl mb-2 block size-[1em]" style="color:#c4b5fd" />
-      <p class="text-sm text-gray-500">No hay proyectos guardados para este período.</p>
-      <p class="text-xs text-gray-400 mt-1">Operaciones aún no guardó la selección del mes.</p>
+      class="rounded-xl border border-dashed p-8 text-center border-primary/30">
+      <InboxIcon class="mb-2 block size-6 text-primary" />
+      <p class="text-sm text-muted-foreground">No hay proyectos guardados para este período.</p>
+      <p class="text-xs text-muted-foreground mt-1">Operaciones aún no guardó la selección del mes.</p>
     </div>
-    <div v-else class="rounded-xl border border-gray-100 overflow-hidden">
+    <div v-else class="rounded-xl border border-border overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse" style="min-width:680px">
+        <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Proyecto</th>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Mes / Año</th>
-              <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500">Canon a Facturar</th>
-              <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500">Indexación aplicada</th>
-              <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-500">Estado</th>
+            <tr class="bg-muted/50 border-b border-border">
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Proyecto</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Mes / Año</th>
+              <th class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Canon a Facturar</th>
+              <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Indexación aplicada</th>
+              <th class="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Estado</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="fila in filas" :key="fila.id"
-              class="border-b border-gray-50 hover:bg-gray-50/50">
-              <td class="px-4 py-2.5 font-medium" style="color:var(--color-unergy-deep)">{{ fila.proyecto }}</td>
-              <td class="px-4 py-2.5 text-xs text-gray-500">{{ periodoLabel }}</td>
-              <td class="px-4 py-2.5 text-right font-semibold tabular-nums" style="color:#7c3aed">
+              class="border-b border-border hover:bg-muted/50">
+              <td class="px-4 py-2.5 font-medium text-unergy-deep">{{ fila.proyecto }}</td>
+              <td class="px-4 py-2.5 text-xs text-muted-foreground">{{ periodoLabel }}</td>
+              <td class="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">
                 {{ formatCOP(fila.canon_a_facturar) }}
               </td>
-              <td class="px-4 py-2.5 text-xs text-gray-400"
-                style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+              <td class="px-4 py-2.5 text-xs text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap"
                 :title="fila.historial_texto">
                 {{ fila.historial_texto }}
               </td>
               <td class="px-4 py-2.5 text-center">
                 <button v-if="!facturadoActual[fila.id]" type="button"
-                  class="text-xs px-2.5 py-1 rounded-full border font-medium transition-colors hover:bg-green-50"
-                  style="border-color:#15803d;color:#15803d"
+                  class="text-xs px-2.5 py-1 rounded-full border font-medium transition-colors hover:bg-success/10 border-success text-success"
                   @click="toggleFacturado(fila.id)">
                   Marcar facturado
                 </button>
                 <span v-else
-                  class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80"
-                  style="background:#dcfce7;color:#166534"
+                  class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer hover:opacity-80 bg-success/10 text-success"
                   @click="toggleFacturado(fila.id)">
-                  <CheckIcon class="text-[10px] size-[1em]" />FACTURADO
+                  <CheckIcon class="text-xs size-4" />FACTURADO
                 </span>
               </td>
             </tr>
@@ -68,46 +65,44 @@
     </div>
 
     <!-- ── Soporte del período ─────────────────────────────────────────────── -->
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#E5E2EC">
-      <div class="flex items-center justify-between px-4 py-2.5 border-b"
-        style="border-color:#F3F0FA;background:#FDFCFF">
+    <div class="rounded-xl border bg-white overflow-hidden border-border">
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-primary/10"
+        >
         <div class="flex items-center gap-2">
-          <FileTextIcon class="text-xs size-[1em]" style="color:var(--color-unergy-purple)" />
-          <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Soporte del período</span>
+          <FileTextIcon class="size-3 text-unergy-purple" />
+          <span class="text-sm font-semibold text-unergy-deep">Soporte del período</span>
           <GBadge color="default" class="text-xs font-mono">{{ periodoLabel }}</GBadge>
         </div>
         <span v-if="soporte.enlace"
-          class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style="background:#dcfce7;color:#166534">
-          <CheckIcon class="text-[10px] size-[1em]" />Registrado
+          class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-success/10 text-success"
+          >
+          <CheckIcon class="text-xs size-4" />Registrado
         </span>
-        <span v-else class="text-xs text-gray-400">Pendiente</span>
+        <span v-else class="text-xs text-muted-foreground">Pendiente</span>
       </div>
       <div class="px-4 py-3 space-y-2">
         <div v-if="soporte.enlace"
-          class="flex items-center gap-3 p-2.5 rounded-lg" style="background:#f0fdf4;border:1px solid #bbf7d0">
-          <ExternalLinkIcon class="text-sm flex-shrink-0 size-[1em]" style="color:#16a34a" />
+          class="flex items-center gap-3 p-2.5 rounded-lg bg-success/10 border border-success/30">
+          <ExternalLinkIcon class="flex-shrink-0 size-4 text-success" />
           <a :href="soporte.enlace" target="_blank" rel="noopener"
-            class="flex-1 text-xs font-medium truncate hover:underline" style="color:#15803d">
+            class="flex-1 text-xs font-medium truncate hover:underline text-success">
             {{ soporte.enlace }}
           </a>
           <button type="button" @click="soporte.enlace = ''; persistSoporte()"
-            class="text-gray-400 hover:text-red-500 text-xs">
-            <XIcon class="size-[1em]" />
+            class="text-muted-foreground hover:text-destructive text-xs">
+            <XIcon class="size-4" />
           </button>
         </div>
-        <p class="text-xs text-gray-500">{{ soporte.enlace ? 'Reemplazar enlace:' : 'Enlace al soporte (Drive, etc.):' }}</p>
+        <p class="text-xs text-muted-foreground">{{ soporte.enlace ? 'Reemplazar enlace:' : 'Enlace al soporte (Drive, etc.):' }}</p>
         <div class="flex gap-2">
           <input type="url" v-model="nuevoEnlace"
             placeholder="https://drive.google.com/…"
-            class="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200" />
+            class="flex-1 text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20" />
           <button type="button"
             :disabled="!nuevoEnlace.startsWith('http')"
-            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
-            style="background:var(--color-unergy-purple);color:#fff;border:none"
-            :style="!nuevoEnlace.startsWith('http') ? 'opacity:0.4;cursor:not-allowed' : 'cursor:pointer'"
+            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all bg-unergy-purple text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             @click="guardarSoporte">
-            <SaveIcon class="text-xs size-[1em]" />Guardar
+            <SaveIcon class="size-3" />Guardar
           </button>
         </div>
       </div>

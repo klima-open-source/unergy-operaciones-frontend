@@ -2,25 +2,25 @@
   <!-- Botón trigger -->
   <div class="inline-block">
     <input ref="zipInputRef" type="file" accept=".zip" class="hidden" @change="onZipSelected" />
-    <Button label="Cargar ZIP" size="small" outlined :loading="procesando" @click="zipInputRef.click()" style="border-color:var(--color-unergy-purple);color:var(--color-unergy-purple)">
-      <template #icon><UploadIcon class="size-[1em]" /></template>
+    <Button label="Cargar ZIP" size="small" outlined :loading="procesando" @click="zipInputRef.click()" class="border-unergy-purple text-unergy-purple">
+      <template #icon><UploadIcon class="size-4" /></template>
     </Button>
   </div>
 
   <!-- ── Dialog preview ──────────────────────────────────────────────────── -->
   <Dialog v-model:visible="showDialog" modal
     header="Vista previa — Predios por documento"
-    :style="{ width: '1120px', maxWidth: '98vw' }"
+    class="w-full max-w-6xl"
     :closable="!guardando">
 
     <div class="space-y-4 pt-1">
 
       <!-- Período detectado del ZIP -->
       <div v-if="periodoZip && periodoZip !== periodo"
-        class="rounded-xl border p-3 flex items-center gap-3"
-        style="background:#eff6ff;border-color:#bfdbfe">
-        <InfoIcon class="text-sm flex-shrink-0 size-[1em]" style="color:#2563eb" />
-        <p class="text-xs" style="color:#1e40af">
+        class="rounded-xl border p-3 flex items-center gap-3 bg-primary/10 border-primary/30"
+        >
+        <InfoIcon class="flex-shrink-0 size-4 text-primary" />
+        <p class="text-xs text-primary">
           El ZIP corresponde al período <strong>{{ periodoZip }}</strong>.
           Los documentos se guardarán en ese período.
         </p>
@@ -28,10 +28,10 @@
 
       <!-- Advertencia de documentos ya existentes -->
       <div v-if="hayDuplicados"
-        class="rounded-xl border p-3 flex items-start gap-3"
-        style="background:#fef3c7;border-color:#f59e0b40">
-        <TriangleAlertIcon class="text-sm flex-shrink-0 mt-0.5 size-[1em]" style="color:#d97706" />
-        <div class="flex-1 text-xs" style="color:#92400e">
+        class="rounded-xl border p-3 flex items-start gap-3 bg-warning/10 border-warning/30"
+        >
+        <TriangleAlertIcon class="flex-shrink-0 mt-0.5 size-4 text-warning" />
+        <div class="flex-1 text-xs text-warning">
           <p class="font-semibold mb-1">
             Ya existe documento para {{ predioscDuplicados.length }} predio(s) en este período
           </p>
@@ -41,68 +41,68 @@
 
       <!-- Predios sin match -->
       <div v-if="prediosSinMatch.length"
-        class="rounded-xl border p-3 flex items-start gap-3"
-        style="background:#fef2f2;border-color:#fca5a540">
-        <CircleAlertIcon class="text-sm flex-shrink-0 mt-0.5 size-[1em]" style="color:#dc2626" />
-        <div class="flex-1 text-xs" style="color:#991b1b">
+        class="rounded-xl border p-3 flex items-start gap-3 bg-destructive/10 border-destructive/30"
+        >
+        <CircleAlertIcon class="flex-shrink-0 mt-0.5 size-4 text-destructive" />
+        <div class="flex-1 text-xs text-destructive">
           <p class="font-semibold mb-1">{{ prediosSinMatch.length }} predio(s) sin proyecto en BD</p>
-          <p class="font-mono text-[11px]">{{ prediosSinMatch.map(p => p.codigoPredio).join(', ') }}</p>
+          <p class="font-mono text-xs">{{ prediosSinMatch.map(p => p.codigoPredio).join(', ') }}</p>
           <p class="mt-0.5">Se guardarán como <span class="font-mono">…_SIN-MATCH.pdf</span> para revisión manual.</p>
         </div>
       </div>
 
       <!-- Tabla de preview agrupada por carpeta/documento -->
-      <div class="rounded-xl border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto" style="max-height:58vh">
-          <table class="w-full text-sm border-collapse" style="min-width:1000px">
+      <div class="rounded-xl border border-border overflow-hidden">
+        <div class="overflow-x-auto max-h-96">
+          <table class="w-full text-sm border-collapse">
             <thead>
-              <tr class="bg-gray-50 border-b border-gray-100">
-                <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">Código predio</th>
-                <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">Proyecto identificado</th>
-                <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 w-32">Valor (COP)</th>
-                <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">Archivo resultante</th>
-                <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 w-20">Match</th>
+              <tr class="bg-muted/50 border-b border-border">
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Código predio</th>
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Proyecto identificado</th>
+                <th class="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground w-32">Valor (COP)</th>
+                <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Archivo resultante</th>
+                <th class="px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground w-20">Match</th>
               </tr>
             </thead>
             <tbody>
               <template v-for="grupo in gruposPreview" :key="grupo.uid">
                 <!-- Encabezado de grupo -->
-                <tr class="bg-purple-50/40 border-b border-purple-100">
+                <tr class="bg-primary/5 border-b border-primary/20">
                   <td colspan="5" class="px-3 py-2">
-                    <div class="flex items-center gap-2 flex-wrap text-[11px]">
-                      <span class="font-mono text-gray-500">{{ grupo.carpeta }}</span>
-                      <span class="text-gray-300">·</span>
-                      <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold"
-                        :style="formatoStyle(grupo.formato)">Formato {{ grupo.formato }}</span>
-                      <span v-if="grupo.numeroCuentaCobro" class="text-gray-300">·</span>
-                      <span v-if="grupo.numeroCuentaCobro" class="font-semibold" style="color:#6d28d9">
+                    <div class="flex items-center gap-2 flex-wrap text-xs">
+                      <span class="font-mono text-muted-foreground">{{ grupo.carpeta }}</span>
+                      <span class="text-muted-foreground/50">·</span>
+                      <span class="text-xs px-1.5 py-0.5 rounded font-semibold"
+                        :class="formatoClase(grupo.formato)">Formato {{ grupo.formato }}</span>
+                      <span v-if="grupo.numeroCuentaCobro" class="text-muted-foreground/50">·</span>
+                      <span v-if="grupo.numeroCuentaCobro" class="font-semibold text-primary">
                         {{ grupo.numeroCuentaCobro }}
                       </span>
-                      <span class="text-gray-300">·</span>
-                      <span class="text-gray-500">Arrendatario:</span>
+                      <span class="text-muted-foreground/50">·</span>
+                      <span class="text-muted-foreground">Arrendatario:</span>
                       <input v-model="grupo.nombreArrendatario" type="text"
                         placeholder="(vacío)"
-                        class="text-[11px] border border-gray-200 rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-purple-300"
-                        style="min-width:200px" />
-                      <span class="ml-auto text-gray-400">{{ grupo.predios.length }} predio(s)</span>
+                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20"
+                         />
+                      <span class="ml-auto text-muted-foreground">{{ grupo.predios.length }} predio(s)</span>
                     </div>
                   </td>
                 </tr>
                 <!-- Filas de predios -->
                 <tr v-for="predio in grupo.predios" :key="predio.uid"
-                  class="border-b border-gray-50 hover:bg-gray-50/50"
-                  :class="!predio.proyectoId ? 'bg-red-50/40' : (predio.yaExiste ? 'bg-amber-50/40' : '')">
-                  <td class="px-3 py-2 font-mono text-xs text-gray-600">
+                  class="border-b border-border hover:bg-muted/50"
+                  :class="!predio.proyectoId ? 'bg-destructive/5' : (predio.yaExiste ? 'bg-warning/5' : '')">
+                  <td class="px-3 py-2 font-mono text-xs text-muted-foreground">
                     {{ predio.codigoPredio }}
-                    <RefreshCwIcon class="text-[9px] ml-1 size-[1em]" v-if="predio.yaExiste" style="color:#d97706" title="Ya existe — se reemplazará" />
+                    <RefreshCwIcon class="text-xs ml-1 size-4 text-warning" v-if="predio.yaExiste"  title="Ya existe — se reemplazará" />
                   </td>
                   <td class="px-3 py-2">
-                    <div v-if="predio.proyectoId" class="text-xs font-medium" style="color:var(--color-unergy-deep)">
+                    <div v-if="predio.proyectoId" class="text-xs font-medium text-unergy-deep">
                       {{ predio.proyectoNombre }}
                     </div>
                     <select v-else
                       v-model="predio.proyectoId"
-                      class="text-xs border border-red-300 rounded px-2 py-1 w-full bg-white"
+                      class="text-xs border border-destructive/30 rounded px-2 py-1 w-full bg-white"
                       @change="onProyectoSeleccionado(predio)">
                       <option :value="null">— Sin match (SIN-MATCH) —</option>
                       <option v-for="p in props.proyectos" :key="p.id" :value="p.id">
@@ -112,31 +112,31 @@
                     <!-- Selector de arrendador: solo cuando el proyecto tiene MÁS DE UNO -->
                     <select v-if="predio.arrendadorOpciones && predio.arrendadorOpciones.length > 1"
                       v-model="predio.arrArrendadorId"
-                      class="text-[11px] border border-purple-200 rounded px-1.5 py-0.5 mt-1 w-full bg-white"
+                      class="text-xs border border-primary/20 rounded px-1.5 py-0.5 mt-1 w-full bg-white"
                       title="Este proyecto tiene varios arrendadores: elige a cuál corresponde esta cuenta de cobro">
                       <option v-for="a in predio.arrendadorOpciones" :key="a.id" :value="a.id">
                         {{ a.nombre }}
                       </option>
                     </select>
                   </td>
-                  <td class="px-3 py-2 text-right font-mono text-xs text-gray-600">
+                  <td class="px-3 py-2 text-right font-mono text-xs text-muted-foreground">
                     {{ predio.valor != null ? formatCOP(predio.valor) : '—' }}
                   </td>
-                  <td class="px-3 py-2 text-[11px] font-mono" style="color:#7c3aed;max-width:320px">
+                  <td class="px-3 py-2 text-xs font-mono text-primary">
                     <span class="truncate block" :title="nombrePredio(grupo, predio)">
                       {{ nombrePredio(grupo, predio) }}
                     </span>
                   </td>
                   <td class="px-3 py-2 text-center">
                     <span v-if="predio.proyectoId"
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium"
-                      style="background:#dcfce7;color:#166534">
-                      <CheckIcon class="text-[10px] size-[1em]" />OK
+                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-success/10 text-success"
+                      >
+                      <CheckIcon class="text-xs size-4" />OK
                     </span>
                     <span v-else
-                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium"
-                      style="background:#fee2e2;color:#991b1b">
-                      <XIcon class="text-[10px] size-[1em]" />Sin match
+                      class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive"
+                      >
+                      <XIcon class="text-xs size-4" />Sin match
                     </span>
                   </td>
                 </tr>
@@ -148,15 +148,15 @@
 
       <!-- Acciones -->
       <div class="flex items-center justify-between pt-1">
-        <span class="text-xs text-gray-400">
+        <span class="text-xs text-muted-foreground">
           {{ totalPredios }} predio(s) en {{ gruposPreview.length }} documento(s) ·
           {{ prediosListos }} con match
         </span>
         <div class="flex gap-2">
           <Button label="Cancelar" size="small" outlined severity="secondary"
             :disabled="guardando" @click="showDialog = false" />
-          <Button :label="hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar'" size="small" :loading="guardando" :disabled="totalPredios === 0" @click="confirmar" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+          <Button :label="hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar'" size="small" :loading="guardando" :disabled="totalPredios === 0" @click="confirmar" class="bg-unergy-purple border-unergy-purple">
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -165,41 +165,41 @@
   </Dialog>
 
   <!-- ── Dialog resumen post-guardado ────────────────────────────────────── -->
-  <Dialog v-model:visible="showResumen" modal header="Resultado del procesamiento" :style="{ width: '580px' }">
+  <Dialog v-model:visible="showResumen" modal header="Resultado del procesamiento" class="w-full max-w-xl">
     <div class="space-y-3 pt-1 text-sm">
       <!-- Asociados -->
-      <div class="rounded-lg border p-3 space-y-1.5" style="background:#f0fdf4;border-color:#bbf7d0">
-        <p class="text-xs font-semibold" style="color:#166534">
-          <CircleCheckIcon class="mr-1 size-[1em]" />
+      <div class="rounded-lg border p-3 space-y-1.5 bg-success/10 border-success/30">
+        <p class="text-xs font-semibold text-success">
+          <CircleCheckIcon class="mr-1 size-4" />
           {{ resumen.asociados.length }} predio(s) asociados correctamente
         </p>
         <div v-for="(item, idx) in resumen.asociados" :key="idx"
-          class="flex items-center gap-2 text-[11px] text-gray-600 pl-3">
-          <FileTextIcon class="text-[9px] size-[1em]" style="color:#16a34a" />
-          <span class="font-mono text-gray-400">{{ item.codigo }}</span>
-          <ArrowRightIcon class="text-[9px] text-gray-300 size-[1em]" />
+          class="flex items-center gap-2 text-xs text-muted-foreground pl-3">
+          <FileTextIcon class="text-xs size-4 text-success" />
+          <span class="font-mono text-muted-foreground">{{ item.codigo }}</span>
+          <ArrowRightIcon class="text-xs text-muted-foreground/50 size-4" />
           <span>{{ item.proyecto }}</span>
         </div>
       </div>
 
       <!-- Sin match -->
-      <div v-if="resumen.sinMatch.length" class="rounded-lg border p-3 space-y-1.5" style="background:#fffbeb;border-color:#fcd34d40">
-        <p class="text-xs font-semibold" style="color:#92400e">
-          <TriangleAlertIcon class="mr-1 size-[1em]" />
+      <div v-if="resumen.sinMatch.length" class="rounded-lg border p-3 space-y-1.5 bg-warning/10 border-warning/30">
+        <p class="text-xs font-semibold text-warning">
+          <TriangleAlertIcon class="mr-1 size-4" />
           {{ resumen.sinMatch.length }} predio(s) sin match — revisión manual
         </p>
         <div v-for="(item, idx) in resumen.sinMatch" :key="idx"
-          class="flex items-center gap-2 text-[11px] pl-3">
-          <span class="font-mono font-semibold text-amber-700">{{ item.codigo }}</span>
-          <span class="text-gray-400">—</span>
-          <span class="text-gray-500">{{ item.carpeta }}</span>
+          class="flex items-center gap-2 text-xs pl-3">
+          <span class="font-mono font-semibold text-warning">{{ item.codigo }}</span>
+          <span class="text-muted-foreground">—</span>
+          <span class="text-muted-foreground">{{ item.carpeta }}</span>
         </div>
       </div>
 
       <!-- Totales -->
-      <div class="flex items-center gap-4 text-xs text-gray-500 pt-1 border-t">
-        <span><CopyIcon class="mr-1 size-[1em]" />{{ resumen.copiasGeneradas }} copias generadas</span>
-        <span><FolderIcon class="mr-1 size-[1em]" />{{ resumen.carpetasProcesadas }} carpetas procesadas</span>
+      <div class="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
+        <span><CopyIcon class="mr-1 size-4" />{{ resumen.copiasGeneradas }} copias generadas</span>
+        <span><FolderIcon class="mr-1 size-4" />{{ resumen.carpetasProcesadas }} carpetas procesadas</span>
       </div>
     </div>
     <template #footer>
@@ -264,13 +264,13 @@ function formatCOP(v) {
   return '$ ' + Math.round(v).toLocaleString('es-CO')
 }
 
-function formatoStyle(f) {
+function formatoClase(f) {
   return {
-    A: 'background:#dcfce7;color:#166534',
-    B: 'background:#dbeafe;color:#1e40af',
-    C: 'background:#fef3c7;color:#92400e',
-    D: 'background:#f3f4f6;color:#6b7280',
-  }[f] ?? 'background:#f3f4f6;color:#6b7280'
+    A: 'bg-success/10 text-success',
+    B: 'bg-chart-2/10 text-chart-2',
+    C: 'bg-warning/10 text-warning',
+    D: 'bg-muted text-muted-foreground',
+  }[f] ?? 'bg-muted text-muted-foreground'
 }
 
 // ── Período del nombre del ZIP ──────────────────────────────────────────────────

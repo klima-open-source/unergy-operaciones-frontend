@@ -2,26 +2,26 @@
   <div class="space-y-4 pt-3">
 
     <!-- ── Barra superior ────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border border-border">
       <div class="flex items-center gap-3">
-        <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">{{ periodoLabel }}</span>
+        <span class="text-sm font-semibold text-unergy-deep">{{ periodoLabel }}</span>
         <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
       </div>
-      <p class="text-xs text-gray-400">
+      <p class="text-xs text-muted-foreground">
         Edita estos datos en Proyecto&gt;Detalle&gt;Servicios&gt;Operación&gt;Arriendos (sección Arrendadores).
       </p>
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-gray-600">Buscar</label>
+        <label class="text-xs font-medium text-muted-foreground">Buscar</label>
         <input v-model="filtroTexto" type="text" placeholder="Nombre del proyecto…"
-          class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-56" style="outline:none" />
+          class="text-sm border border-border rounded-lg px-3 py-1.5 w-56 outline-none" />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-gray-600">Tipo de pago</label>
-        <select v-model="filtroPeriodicidad" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white w-40">
+        <label class="text-xs font-medium text-muted-foreground">Tipo de pago</label>
+        <select v-model="filtroPeriodicidad" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white w-40">
           <option value="todos">Toda periodicidad</option>
           <option value="mensual">Mensual</option>
           <option value="bimestral">Bimestral</option>
@@ -31,55 +31,55 @@
         </select>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-gray-600">Con anticipo</label>
-        <select v-model="filtroAnticipo" class="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white w-36">
+        <label class="text-xs font-medium text-muted-foreground">Con anticipo</label>
+        <select v-model="filtroAnticipo" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white w-36">
           <option value="todos">Todos</option>
           <option value="con">Con anticipo</option>
           <option value="sin">Sin anticipo</option>
         </select>
       </div>
-      <div class="ml-auto pb-1.5 text-xs text-gray-400">{{ filasFiltradas.length }} de {{ filas.length }}</div>
+      <div class="ml-auto pb-1.5 text-xs text-muted-foreground">{{ filasFiltradas.length }} de {{ filas.length }}</div>
     </div>
 
     <!-- ── Tabla ──────────────────────────────────────────────────────────── -->
     <template v-if="loading">
-      <div class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-gray-400 border" style="border-color:#ECE7F2">
+      <div class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
         Cargando…
       </div>
     </template>
     <template v-else-if="secciones.length">
       <div v-for="sec in secciones" :key="sec.tipo"
-        class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+        class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
 
         <!-- Cabecera de sección (colapsable) -->
         <button type="button"
-          class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-gray-50 transition-colors duration-150"
+          class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
           @click="toggleSection(sec.tipo)">
-          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :style="{ background: sec.dot }" />
-          <span class="font-semibold text-gray-800 text-sm flex-1">{{ sec.label }}</span>
-          <span class="text-xs text-gray-400 font-medium">({{ sec.items.length }})</span>
-          <ChevronDownIcon class="text-gray-400 text-xs ml-2 transition-transform duration-200 size-[1em]" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
+          <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="sec.dot" />
+          <span class="font-semibold text-foreground text-sm flex-1">{{ sec.label }}</span>
+          <span class="text-xs text-muted-foreground font-medium">({{ sec.items.length }})</span>
+          <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
         </button>
 
         <div class="section-collapse" :class="{ open: openSections.has(sec.tipo) }">
           <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse" style="min-width:900px; table-layout:fixed">
+            <table class="w-full text-sm border-collapse table-fixed">
               <thead>
-                <tr class="bg-gray-50 border-b border-gray-100">
-                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500" style="width:300px">Proyecto</th>
-                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500" style="width:140px">Tipo de pago</th>
-                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500" style="width:170px">Anticipo pagado hasta</th>
-                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500" style="width:160px">Próxima fecha por cobrar</th>
-                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-500">Observaciones</th>
+                <tr class="bg-muted/50 border-b border-border">
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Proyecto</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Tipo de pago</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Anticipo pagado hasta</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Próxima fecha por cobrar</th>
+                  <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Observaciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="fila in sec.items" :key="fila.id"
-                  class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
-                  <td class="px-3 py-2.5 font-medium" style="color:var(--color-unergy-deep)">
+                  class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
+                  <td class="px-3 py-2.5 font-medium text-unergy-deep">
                     <div class="flex flex-col gap-0.5 max-w-full">
-                      <span style="white-space:normal">{{ fila.proyecto }}</span>
-                      <span v-if="mostrarArrendador(fila)" class="text-[11px] text-gray-400">
+                      <span class="whitespace-normal">{{ fila.proyecto }}</span>
+                      <span v-if="mostrarArrendador(fila)" class="text-xs text-muted-foreground">
                         {{ fila.nombre_arrendador }}
                       </span>
                     </div>
@@ -87,14 +87,14 @@
                   <td class="px-3 py-2.5">
                     <span v-if="fila.periodicidad"
                       class="text-xs px-2 py-0.5 rounded-full font-medium"
-                      :style="tipoPagoStyle(fila.periodicidad)">
+                      :class="tipoPagoClase(fila.periodicidad)">
                       {{ capitalizar(fila.periodicidad) }}
                     </span>
-                    <span v-else class="text-xs text-gray-300">—</span>
+                    <span v-else class="text-xs text-muted-foreground/50">—</span>
                   </td>
-                  <td class="px-3 py-2.5 text-xs text-gray-600">{{ fmtFecha(fila.anticipo_pagado_hasta) }}</td>
-                  <td class="px-3 py-2.5 text-xs text-gray-600">{{ proximaFecha(fila.anticipo_pagado_hasta) }}</td>
-                  <td class="px-3 py-2.5 text-xs text-gray-500 max-w-xs truncate" :title="fila.observaciones_arrendador">
+                  <td class="px-3 py-2.5 text-xs text-muted-foreground">{{ fmtFecha(fila.anticipo_pagado_hasta) }}</td>
+                  <td class="px-3 py-2.5 text-xs text-muted-foreground">{{ proximaFecha(fila.anticipo_pagado_hasta) }}</td>
+                  <td class="px-3 py-2.5 text-xs text-muted-foreground max-w-xs truncate" :title="fila.observaciones_arrendador">
                     {{ fila.observaciones_arrendador || '—' }}
                   </td>
                 </tr>
@@ -104,7 +104,7 @@
         </div>
       </div>
     </template>
-    <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-gray-400 border" style="border-color:#ECE7F2">
+    <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
       No se encontraron proyectos con los filtros aplicados.
     </div>
 
@@ -175,7 +175,7 @@ const filasFiltradas = computed(() => {
 
 // ── Agrupación por tipo de proyecto (secciones colapsables, como Panel) ──────
 const TIPO_LABELS = { minigranja: 'Minigranja', autoconsumo: 'Autoconsumo', gd: 'GD', movilidad_electrica: 'Movilidad', otro: 'Otro' }
-const TIPO_DOT    = { minigranja: '#10B981', autoconsumo: '#6366F1', gd: '#3B82F6', movilidad_electrica: '#8B5CF6', otro: '#9CA3AF' }
+const TIPO_DOT    = { minigranja: 'bg-success', autoconsumo: 'bg-chart-2', gd: 'bg-chart-3', movilidad_electrica: 'bg-primary', otro: 'bg-muted-foreground/50' }
 const TIPO_ORDER  = ['minigranja', 'autoconsumo', 'gd', 'movilidad_electrica', 'otro']
 const secciones = computed(() => {
   const groups = {}
@@ -184,7 +184,7 @@ const secciones = computed(() => {
     ;(groups[t] ||= []).push(f)
   }
   return TIPO_ORDER.filter(t => groups[t]?.length)
-    .map(t => ({ tipo: t, label: TIPO_LABELS[t] || t, dot: TIPO_DOT[t] || '#9CA3AF', items: groups[t] }))
+    .map(t => ({ tipo: t, label: TIPO_LABELS[t] || t, dot: TIPO_DOT[t] || 'bg-muted-foreground/50', items: groups[t] }))
 })
 const openSections = ref(new Set())
 function toggleSection(tipo) {
@@ -202,14 +202,14 @@ function capitalizar(s) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function tipoPagoStyle(periodicidad) {
+function tipoPagoClase(periodicidad) {
   const p = (periodicidad || '').toLowerCase()
-  if (p === 'mensual')    return 'background:#ede9fe;color:#6d28d9'
-  if (p === 'bimestral')  return 'background:#e0e7ff;color:#3730a3'
-  if (p === 'trimestral') return 'background:#dbeafe;color:#1e40af'
-  if (p === 'semestral')  return 'background:#dcfce7;color:#166534'
-  if (p === 'anual')      return 'background:#fef3c7;color:#92400e'
-  return 'background:#f3f4f6;color:#6b7280'
+  if (p === 'mensual')    return 'bg-primary/10 text-primary'
+  if (p === 'bimestral')  return 'bg-chart-3/10 text-chart-3'
+  if (p === 'trimestral') return 'bg-chart-2/10 text-chart-2'
+  if (p === 'semestral')  return 'bg-success/10 text-success'
+  if (p === 'anual')      return 'bg-warning/10 text-warning'
+  return 'bg-muted text-muted-foreground'
 }
 
 function fmtFecha(iso) {
