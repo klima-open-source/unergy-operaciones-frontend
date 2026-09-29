@@ -1,8 +1,8 @@
 <template>
-  <div class="rounded-xl border" style="border-color: rgba(44,32,57,0.12); background: white;">
+  <div class="rounded-xl border border-unergy-deep/10 bg-card">
 
     <!-- Header -->
-    <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap" style="border-bottom: 1px solid rgba(44,32,57,0.10);">
+    <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-unergy-deep/10">
       <div class="flex items-center gap-2.5 flex-wrap">
         <div class="stat-pill">
           <span class="stat-num">{{ projects.length }}</span>
@@ -15,10 +15,10 @@
           @click="soloProximosAEnergizar = !soloProximosAEnergizar"
           v-tooltip.bottom="'Tienen frontera asignada o Sun Factory ya los marca \'Próximo a energizar\'.'"
         >
-          <span class="stat-num" style="color:#b45309;">{{ proximosAEnergizarCount }}</span>
+          <span class="stat-num text-warning">{{ proximosAEnergizarCount }}</span>
           <span class="stat-label">próximos a energizar</span>
-          <CircleXIcon v-if="soloProximosAEnergizar" class="size-[1em]" style="font-size:0.65rem; color:#b45309;" />
-          <FilterIcon v-else class="size-[1em]" style="font-size:0.65rem; color:#b45309;" />
+          <CircleXIcon v-if="soloProximosAEnergizar" class="size-3 text-warning" />
+          <FilterIcon v-else class="size-3 text-warning" />
         </button>
         <button
           type="button"
@@ -27,35 +27,33 @@
           @click="soloConFrontera = !soloConFrontera"
           v-tooltip.bottom="'Ya tienen frontera comercial registrada en Quoia.'"
         >
-          <span class="stat-num" style="color:#15803d;">{{ conFronteraCount }}</span>
+          <span class="stat-num text-success">{{ conFronteraCount }}</span>
           <span class="stat-label">con frontera asignada</span>
-          <CircleXIcon v-if="soloConFrontera" class="size-[1em]" style="font-size:0.65rem;" />
-          <FilterIcon v-else class="size-[1em]" style="font-size:0.65rem;" />
+          <CircleXIcon v-if="soloConFrontera" class="size-3" />
+          <FilterIcon v-else class="size-3" />
         </button>
         <Button label="Actualizar" size="small" :loading="syncing" @click="onSync" v-tooltip.bottom="'Trae de nuevo % de obra, estado y fecha estimada desde Sun Factory'">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <template #icon><RefreshCwIcon class="size-4" /></template>
         </Button>
         <Button label="Descargar Excel" size="small" severity="secondary" outlined @click="descargarExcel">
-          <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
         </Button>
       </div>
-      <p class="text-xs" style="color: #7a6e8a;">
+      <p class="text-xs text-muted-foreground">
         <template v-if="lastSync">última sincronización {{ lastSyncLabel }}</template>
       </p>
     </div>
 
     <!-- Aviso de origen de datos (config faltante / fuente caída) -->
-    <div v-if="warning" class="mx-3 mt-3 flex items-start gap-2 px-3 py-2 rounded-lg text-xs"
-      style="background: rgba(240,192,64,0.12); border: 1px solid rgba(240,192,64,0.35); color: #8a6d00;">
-      <TriangleAlertIcon class="mt-0.5 size-[1em]" />
+    <div v-if="warning" class="mx-3 mt-3 flex items-start gap-2 px-3 py-2 rounded-lg text-xs bg-warning/10 border border-warning/30 text-warning">
+      <TriangleAlertIcon class="mt-0.5 size-3" />
       <span>{{ warning }}</span>
     </div>
 
     <!-- Sugerencias de vínculo pendientes (el sync no encontró match exacto, pero
          un proyecto existente se parece — necesitan confirmación humana) -->
-    <div v-if="sugerencias.length" class="mx-3 mt-3 flex items-start gap-2 px-3 py-2 rounded-lg text-xs"
-      style="background: rgba(145,91,216,0.10); border: 1px solid rgba(145,91,216,0.30); color: #6b3fa0;">
-      <InfoIcon class="mt-0.5 size-[1em]" />
+    <div v-if="sugerencias.length" class="mx-3 mt-3 flex items-start gap-2 px-3 py-2 rounded-lg text-xs bg-primary/10 border border-primary/30 text-primary">
+      <InfoIcon class="mt-0.5 size-3" />
       <span>
         {{ sugerencias.length }} posible{{ sugerencias.length !== 1 ? 's' : '' }} vínculo{{ sugerencias.length !== 1 ? 's' : '' }} con Sun Factory por confirmar.
         <button type="button" class="underline font-semibold" @click="sugerenciasVisible = true">Revisar</button>
@@ -73,15 +71,15 @@
         class="energ-table"
       >
         <template #empty>
-          <div class="text-center py-8 text-sm" style="color: rgba(44,32,57,0.45);">
+          <div class="text-center py-8 text-sm text-muted-foreground">
             <template v-if="loading">
-              <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:1.2rem; color:var(--color-unergy-purple);" />
+              <LoaderCircleIcon class="size-5 animate-spin text-unergy-purple" />
               <p class="mt-2">Cargando proyectos del pipeline…</p>
             </template>
             <template v-else-if="warning">
-              <DatabaseIcon class="size-[1em]" style="font-size:1.4rem; color:#c4b8d4;" />
+              <DatabaseIcon class="size-6 text-muted-foreground/60" />
               <p class="mt-2">No se pudieron cargar los proyectos.</p>
-              <p class="mt-1 text-xs" style="color: rgba(44,32,57,0.4);">Revisa el aviso de arriba (configuración / fuente de datos).</p>
+              <p class="mt-1 text-xs text-muted-foreground">Revisa el aviso de arriba (configuración / fuente de datos).</p>
             </template>
             <template v-else-if="soloConFrontera">
               Ningún proyecto en construcción tiene frontera asignada todavía.
@@ -92,62 +90,62 @@
           </div>
         </template>
 
-        <Column expander style="width: 44px" />
+        <Column expander />
 
         <!-- Commercial name (read-only, viene de Sun Factory) -->
-        <Column header="Proyecto" frozen style="min-width: 340px;">
+        <Column header="Proyecto" frozen>
           <template #body="{ data }">
             <span class="text-sm proyecto-name" v-tooltip.top="data.commercialName">{{ data.commercialName }}</span>
           </template>
         </Column>
 
         <!-- Origina project code (read-only) -->
-        <Column header="Código" style="min-width: 150px;">
+        <Column header="Código">
           <template #body="{ data }">
-            <span class="text-xs font-mono" style="color: rgba(44,32,57,0.5);">{{ data.name || '—' }}</span>
+            <span class="text-xs font-mono text-muted-foreground">{{ data.name || '—' }}</span>
           </template>
         </Column>
 
         <!-- Status (read-only, viene de Sun Factory) -->
-        <Column header="Estado" style="min-width: 200px;">
+        <Column header="Estado">
           <template #body="{ data }">
             <span class="text-sm">{{ data.status }}</span>
           </template>
         </Column>
 
         <!-- Energization date (read-only, viene de Sun Factory) -->
-        <Column header="Energización" style="min-width: 140px;">
+        <Column header="Energización">
           <template #body="{ data }">
             <span class="text-sm font-mono tabular-nums">{{ formatDate(data.energizationDate) }}</span>
           </template>
         </Column>
 
         <!-- Construction progress (Sun Factory, read-only) -->
-        <Column header="% Obra" style="min-width: 90px;">
+        <Column header="% Obra">
           <template #body="{ data }">
-            <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums" style="color: var(--color-unergy-deep);">
+            <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums text-unergy-deep">
               {{ Number(data.avancePct).toFixed(1) }}%
             </span>
-            <span v-else class="text-sm" style="color: rgba(44,32,57,0.3);">—</span>
+            <span v-else class="text-sm text-muted-foreground/50">—</span>
           </template>
         </Column>
 
         <!-- Frontera asignada (señal real de energización inminente) -->
-        <Column header="Frontera" style="min-width: 130px;">
+        <Column header="Frontera">
           <template #body="{ data }">
             <span v-if="data.tieneFrontera" class="frontera-badge yes" v-tooltip.top="data.codigoFrontera">
-              <CircleCheckIcon class="size-[1em]" /> {{ data.codigoFrontera }}
+              <CircleCheckIcon class="size-4" /> {{ data.codigoFrontera }}
             </span>
             <span v-else class="frontera-badge no">—</span>
           </template>
         </Column>
 
         <!-- Linked PPA contracts (read-only — se gestionan en el flujo PPA) -->
-        <Column header="Contratos" style="min-width: 110px;">
+        <Column header="Contratos">
           <template #body="{ data }">
             <span v-if="data.contracts && data.contracts.length" class="contract-badge has-contract"
                   v-tooltip.top="data.contracts.join(', ')">
-              <FileIcon class="size-[1em]" />
+              <FileIcon class="size-4" />
               {{ data.contracts[0] }}<template v-if="data.contracts.length > 1"> +{{ data.contracts.length - 1 }}</template>
             </span>
             <span v-else class="contract-badge">
@@ -157,7 +155,7 @@
         </Column>
 
         <!-- Expected monthly MWh (read-only, viene de Sun Factory) -->
-        <Column header="MWh / mes" style="min-width: 110px;">
+        <Column header="MWh / mes">
           <template #body="{ data }">
             <span class="text-sm font-mono tabular-nums" :class="{ 'mwh-muted': !data.monthlyMwh }">
               {{ Number(data.monthlyMwh).toFixed(2) }}
@@ -166,18 +164,18 @@
         </Column>
 
         <!-- Actions -->
-        <Column style="width: 56px; text-align: center;">
+        <Column>
           <template #body="{ data }">
             <Button severity="danger" text rounded size="small" @click="confirmRemove(data)">
-              <template #icon><Trash2Icon class="size-[1em]" /></template>
+              <template #icon><Trash2Icon class="size-4" /></template>
             </Button>
           </template>
         </Column>
 
         <!-- Proyección mensual (detalle expandible por fila) -->
         <template #expansion="{ data }">
-          <div class="px-5 py-4" style="background: rgba(145,91,216,0.04);">
-            <p class="text-xs font-semibold uppercase tracking-wide mb-2.5" style="color:#7a6e8a; letter-spacing:0.05em;">
+          <div class="px-5 py-4 bg-primary/5">
+            <p class="text-xs font-semibold uppercase tracking-wide mb-2.5 text-muted-foreground">
               Proyección MWh/mes — {{ data.commercialName }}
             </p>
             <div class="month-grid">
@@ -198,27 +196,27 @@
 
     <!-- Dialog: sugerencias de vínculo con Sun Factory -->
     <Dialog v-model:visible="sugerenciasVisible" header="Posibles vínculos con Sun Factory" modal class="w-full max-w-2xl">
-      <p class="text-sm text-gray-600 mb-3">
+      <p class="text-sm text-muted-foreground mb-3">
         El sync no encontró un match exacto para estos proyectos de Sun Factory, pero encontró un
         proyecto existente con un nombre parecido. Para cada uno, responde: <b>¿es el mismo proyecto?</b>
         Si confirmas que sí, queda vinculado permanentemente y el sync ya no lo vuelve a duplicar.
       </p>
-      <div v-if="!sugerencias.length" class="text-sm text-gray-400 py-6 text-center">
+      <div v-if="!sugerencias.length" class="text-sm text-muted-foreground py-6 text-center">
         No quedan sugerencias pendientes.
       </div>
       <div v-else class="space-y-3">
         <div v-for="sug in sugerencias" :key="sug.sunfactory_project_id + '-' + sug.candidato_id"
-          class="flex items-center justify-between gap-3 p-3 rounded-lg border" style="border-color:#ECE7F2;">
+          class="flex items-center justify-between gap-3 p-3 rounded-lg border">
           <div class="text-sm">
-            <div><span class="text-gray-400">Sun Factory:</span> <b>{{ sug.sunfactory_nombre }}</b>
-              <span v-if="sug.sunfactory_municipio" class="text-gray-400"> · {{ sug.sunfactory_municipio }}</span>
+            <div><span class="text-muted-foreground">Sun Factory:</span> <b>{{ sug.sunfactory_nombre }}</b>
+              <span v-if="sug.sunfactory_municipio" class="text-muted-foreground"> · {{ sug.sunfactory_municipio }}</span>
             </div>
-            <div class="mt-0.5"><span class="text-gray-400">Proyecto existente:</span>
+            <div class="mt-0.5"><span class="text-muted-foreground">Proyecto existente:</span>
               <b>{{ sug.candidato_nombre }}</b> (ID {{ sug.candidato_id }})
-              <span v-if="sug.candidato_municipio" class="text-gray-400"> · {{ sug.candidato_municipio }}</span>
+              <span v-if="sug.candidato_municipio" class="text-muted-foreground"> · {{ sug.candidato_municipio }}</span>
             </div>
-            <div v-if="sug.candidato_sunfactory_id_previo != null" class="mt-1 text-xs" style="color:#b45309;">
-              <TriangleAlertIcon class="size-[1em]" style="font-size:0.7rem;" />
+            <div v-if="sug.candidato_sunfactory_id_previo != null" class="mt-1 text-xs text-warning">
+              <TriangleAlertIcon class="size-3" />
               Este proyecto ya había quedado confirmado antes como el ID {{ sug.candidato_sunfactory_id_previo }}
               de Sun Factory. Si confirmas que también es el {{ sug.sunfactory_project_id }}, ese ID anterior
               se reemplaza por este — puede ser que Sun Factory tenga el mismo proyecto duplicado con dos IDs.
@@ -454,7 +452,7 @@ function isProrated(project, year, month) {
 /* Nombres largos: no cortar sin avisar -- el tooltip muestra el valor entero. */
 .proyecto-name {
   display: block;
-  max-width: 320px;
+  max-width: 20rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
