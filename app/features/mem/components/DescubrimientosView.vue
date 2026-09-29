@@ -227,7 +227,7 @@ onMounted(loadData)
       <div class="flex flex-col gap-1">
         <label class="text-xs font-semibold tracking-wider text-primary uppercase">Año</label>
         <Select v-model="selectedYear" @update:model-value="loadData">
-          <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="y in years" :key="y" :value="y">{{ y }}</SelectItem>
           </SelectContent>
@@ -236,7 +236,7 @@ onMounted(loadData)
       <div class="flex flex-col gap-1">
         <label class="text-xs font-semibold tracking-wider text-primary uppercase">Desde</label>
         <Select v-model="monthFrom" @update:model-value="loadData">
-          <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="op.value">{{
               op.label
@@ -247,7 +247,7 @@ onMounted(loadData)
       <div class="flex flex-col gap-1">
         <label class="text-xs font-semibold tracking-wider text-primary uppercase">Hasta</label>
         <Select v-model="monthTo" @update:model-value="loadData">
-          <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="op.value">{{
               op.label

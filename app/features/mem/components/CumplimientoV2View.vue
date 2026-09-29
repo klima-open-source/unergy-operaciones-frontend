@@ -77,7 +77,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -96,7 +96,7 @@
               }
             "
           >
-            <SelectTrigger class="w-72"
+            <SelectTrigger class="max-w-72"
               ><SelectValue placeholder="Seleccionar contrato"
             /></SelectTrigger>
             <SelectContent>
@@ -503,25 +503,25 @@
           <!-- Legend -->
           <div class="mt-3 flex flex-wrap gap-5 pl-1">
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <div class="h-4 w-4 rounded-sm border border-success/45 bg-success/18"></div>
+              <div class="size-4 rounded-sm border border-success/45 bg-success/18"></div>
               Zona de cumplimiento
             </div>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <div class="h-4 w-4 rounded-sm bg-unergy-purple"></div>
+              <div class="size-4 rounded-sm bg-unergy-purple"></div>
               Generación real
             </div>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
               <div
-                class="h-4 w-4 rounded-sm border border-dashed border-chart-2/90 bg-chart-2/65"
+                class="size-4 rounded-sm border border-dashed border-chart-2/90 bg-chart-2/65"
               ></div>
               Proyección cierre (prom. 30d)
             </div>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <div class="h-4 w-4 rounded-sm bg-destructive/38"></div>
+              <div class="size-4 rounded-sm bg-destructive/38"></div>
               Brecha de déficit
             </div>
             <div class="flex items-center gap-2 text-xs text-muted-foreground">
-              <div class="h-4 w-4 rounded-sm bg-chart-2/60"></div>
+              <div class="size-4 rounded-sm bg-chart-2/60"></div>
               Excedente contractual
             </div>
           </div>
@@ -624,7 +624,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -641,7 +641,7 @@
               }
             "
           >
-            <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="String(op.value)">{{
                 op.label
@@ -741,7 +741,7 @@
         <div class="flex flex-wrap items-end gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-semibold text-muted-foreground">Nombre</label>
-            <Input v-model="ficticioNombre" placeholder="Ej: PPA Simulado 1" class="w-48" />
+            <Input v-model="ficticioNombre" placeholder="Ej: PPA Simulado 1" />
             <span class="text-xs text-muted-foreground/70">No se guarda en la plataforma</span>
           </div>
           <div class="flex flex-col gap-1">
@@ -750,7 +750,6 @@
               :model-value="ficticioMin"
               type="number"
               placeholder="0"
-              class="w-32"
               @update:model-value="(v) => (ficticioMin = Number(v))"
             />
           </div>
@@ -760,7 +759,6 @@
               :model-value="ficticioMax"
               type="number"
               placeholder="0"
-              class="w-32"
               @update:model-value="(v) => (ficticioMax = Number(v))"
             />
           </div>
@@ -1179,7 +1177,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -1196,7 +1194,7 @@
               }
             "
           >
-            <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="String(op.value)">{{
                 op.label
@@ -1842,7 +1840,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in etYearOptions" :key="y" :value="String(y)">{{
                 y
@@ -1861,7 +1859,7 @@
               }
             "
           >
-            <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="op in etMonthOptions" :key="op.value" :value="String(op.value)">{{
                 op.label
@@ -2036,7 +2034,7 @@
               }
             "
           >
-            <SelectTrigger class="w-28"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -2230,7 +2228,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -2247,7 +2245,7 @@
               }
             "
           >
-            <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="String(op.value)">{{
                 op.label
@@ -2320,9 +2318,9 @@
                 <thead>
                   <tr class="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                     <th class="pb-2 text-left"></th>
-                    <th class="w-24 pb-2 text-right">Real</th>
-                    <th class="w-24 pb-2 text-right">Proyectado</th>
-                    <th class="w-28 pb-2 text-right">Total</th>
+                    <th class="pb-2 text-right">Real</th>
+                    <th class="pb-2 text-right">Proyectado</th>
+                    <th class="pb-2 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2470,9 +2468,9 @@
                 <thead>
                   <tr class="text-xs font-bold tracking-wider text-muted-foreground uppercase">
                     <th class="pb-2 text-left"></th>
-                    <th class="w-24 pb-2 text-right">Real</th>
-                    <th class="w-24 pb-2 text-right">Proyectado</th>
-                    <th class="w-28 pb-2 text-right">Total</th>
+                    <th class="pb-2 text-right">Real</th>
+                    <th class="pb-2 text-right">Proyectado</th>
+                    <th class="pb-2 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2612,7 +2610,11 @@
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <Input v-model="beBusqueda" placeholder="Buscar frontera o contrato…" class="w-64" />
+              <Input
+                v-model="beBusqueda"
+                placeholder="Buscar frontera o contrato…"
+                class="min-w-48 flex-1"
+              />
               <button
                 class="flex items-center gap-1.5 rounded-lg bg-unergy-purple px-3 py-2 text-xs font-semibold text-primary-foreground"
                 @click="exportarBalanceExcel"
@@ -2715,7 +2717,7 @@
               }
             "
           >
-            <SelectTrigger class="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="y in years" :key="y" :value="String(y)">{{ y }}</SelectItem>
             </SelectContent>
@@ -2732,7 +2734,7 @@
               }
             "
           >
-            <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="op in MESES_OPTIONS" :key="op.value" :value="String(op.value)">{{
                 op.label
@@ -2757,7 +2759,7 @@
 
       <template v-else-if="revData">
         <!-- Resumen: tres contadores -->
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div
             v-for="s in revResumen"
             :key="s.key"
@@ -2847,7 +2849,12 @@
                     >
                   </div>
                 </td>
-                <td class="px-4 py-2 text-xs text-muted-foreground">{{ p.motivo }}</td>
+                <td
+                  class="max-w-xs truncate px-4 py-2 text-xs text-muted-foreground"
+                  :title="p.motivo"
+                >
+                  {{ p.motivo }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -3037,7 +3044,7 @@
                 <td class="px-4 py-2 text-right font-mono text-xs text-muted-foreground">
                   {{ a.pct ? revPct(a.pct) + '%' : '—' }}
                 </td>
-                <td class="px-4 py-2 text-xs text-muted-foreground/70">
+                <td class="px-4 py-2 text-xs whitespace-nowrap text-muted-foreground/70">
                   {{ fmtFechaDia(a.desde) }} → {{ fmtFechaDia(a.hasta) }}
                 </td>
               </tr>
@@ -3085,7 +3092,7 @@
                 <td class="px-4 py-2 font-mono text-xs text-primary">
                   {{ p.codigo_sic || '—' }}
                 </td>
-                <td class="px-4 py-2 text-xs text-muted-foreground">
+                <td class="px-4 py-2 text-xs whitespace-nowrap text-muted-foreground">
                   {{ fmtFechaDia(p.desde) }} → {{ fmtFechaDia(p.hasta) }}
                 </td>
               </tr>
@@ -3944,7 +3951,7 @@
                     />
                     Relevante
                   </label>
-                  <span class="w-20 text-right font-mono text-xs text-muted-foreground"
+                  <span class="shrink-0 text-right font-mono text-xs text-muted-foreground"
                     >{{ r.n_contratos }} contr.</span
                   >
                   <button
