@@ -1,5 +1,5 @@
 <template>
-  <div class="plc-wrap" @click="flashNowLabel" @touchstart.passive="flashNowLabel">
+  <div class="relative size-full" @click="flashNowLabel" @touchstart.passive="flashNowLabel">
     <Line
       v-if="hasData"
       ref="chartRef"
@@ -7,8 +7,11 @@
       :options="chartOptions"
       :plugins="[nowLinePlugin]"
     />
-    <div v-else class="plc-empty">
-      <ChartLineIcon class="size-8" />
+    <div
+      v-else
+      class="flex h-full flex-col items-center justify-center gap-2 text-sm text-muted-foreground"
+    >
+      <ChartLineIcon class="size-8 text-border" />
       <span>Sin datos de potencia hoy</span>
     </div>
   </div>
@@ -202,25 +205,3 @@ const chartOptions: ChartOptions<'line'> = {
   },
 }
 </script>
-
-<style scoped>
-.plc-wrap {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-.plc-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 100%;
-  color: #9ca3af;
-  font-size: 14px;
-}
-.plc-empty svg {
-  font-size: 32px;
-  color: #d1d5db;
-}
-</style>

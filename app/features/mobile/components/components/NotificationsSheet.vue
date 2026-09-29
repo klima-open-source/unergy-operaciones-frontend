@@ -1,39 +1,62 @@
 <template>
   <Teleport to="body">
     <Transition name="nsheet">
-      <div v-if="open" class="ns-backdrop" @click.self="close">
-        <div class="ns-sheet">
-          <div class="ns-grab" />
+      <div
+        v-if="open"
+        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        @click.self="close"
+      >
+        <div
+          class="ns-sheet flex max-h-4/5 w-full flex-col rounded-t-3xl bg-card px-4 pt-2.5 shadow-lg"
+        >
+          <div class="mx-auto mt-1 mb-3 h-1 w-10 rounded-full bg-border" />
 
-          <div class="ns-header">
-            <span class="ns-title"><BellIcon class="size-4" /> Notificaciones</span>
-            <button v-if="items.length" class="ns-readall" @click="marcarTodas">
+          <div class="mb-2.5 flex items-center gap-2.5">
+            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-unergy-deep"
+              ><BellIcon class="size-4 text-unergy-purple" /> Notificaciones</span
+            >
+            <button
+              v-if="items.length"
+              class="text-sm font-semibold text-unergy-purple"
+              @click="marcarTodas"
+            >
               Marcar todas
             </button>
-            <button class="ns-close" @click="close"><XIcon class="size-4" /></button>
+            <button class="p-1 text-muted-foreground" @click="close">
+              <XIcon class="size-4" />
+            </button>
           </div>
 
-          <div class="ns-body">
-            <div v-if="loading" class="ns-state">
-              <LoaderCircleIcon class="size-6 animate-spin" /> Cargando…
+          <div class="flex-1 overflow-y-auto">
+            <div v-if="loading" :class="STATE">
+              <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" /> Cargando…
             </div>
-            <div v-else-if="!items.length" class="ns-state">
-              <CircleCheckIcon class="size-8 text-success!" />
+            <div v-else-if="!items.length" :class="STATE">
+              <CircleCheckIcon class="size-8 text-success" />
               <span>Sin notificaciones hoy</span>
             </div>
             <button
               v-for="n in items"
               :key="n.id"
-              :class="['ns-item', !n.leida && 'ns-item--unread']"
+              :class="[
+                'flex w-full items-start gap-3 border-b border-border px-2 py-3 text-left',
+                !n.leida && 'bg-unergy-purple/5',
+              ]"
               @click="leer(n)"
             >
-              <component :is="iconFor(n.tipo)" class="size-6" :class="colorFor(n.tipo)" />
-              <div class="ns-item-text">
-                <span class="ns-item-title">{{ n.titulo }}</span>
-                <span class="ns-item-msg">{{ n.mensaje }}</span>
-                <span class="ns-item-time">{{ timeAgo(n.created_at) }}</span>
+              <component
+                :is="iconFor(n.tipo)"
+                class="mt-0.5 size-6 shrink-0"
+                :class="colorFor(n.tipo)"
+              />
+              <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="text-sm font-bold text-unergy-deep">{{ n.titulo }}</span>
+                <span class="text-sm leading-snug text-muted-foreground">{{ n.mensaje }}</span>
+                <span class="mt-0.5 text-xs text-muted-foreground">{{
+                  timeAgo(n.created_at)
+                }}</span>
               </div>
-              <span v-if="!n.leida" class="ns-dot" />
+              <span v-if="!n.leida" class="mt-1 size-2 shrink-0 rounded-full bg-unergy-purple" />
             </button>
           </div>
         </div>
@@ -59,6 +82,9 @@ import { NotificacionesService } from '~/features/notificaciones/services/notifi
 
 const props = withDefaults(defineProps<{ open?: boolean }>(), { open: false })
 const emit = defineEmits<{ close: []; changed: [] }>()
+
+const STATE =
+  'flex flex-col items-center justify-center gap-2.5 py-10 text-sm text-muted-foreground'
 
 const items = ref<Notificacion[]>([])
 const loading = ref(false)
@@ -132,129 +158,9 @@ function timeAgo(s: string | null | undefined): string {
 </script>
 
 <style scoped>
-.ns-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(28, 18, 50, 0.45);
-  display: flex;
-  align-items: flex-end;
-}
+/* safe-area del dispositivo: env() no tiene utilidad */
 .ns-sheet {
-  width: 100%;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-}
-.ns-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: #e5e7eb;
-  margin: 4px auto 12px;
-}
-.ns-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.ns-title {
-  flex: 1;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.ns-title svg {
-  color: var(--color-unergy-purple);
-  margin-right: 6px;
-}
-.ns-readall {
-  background: none;
-  border: none;
-  color: var(--color-unergy-purple);
-  font-size: 13px;
-  font-weight: 600;
-}
-.ns-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  padding: 4px;
-}
-
-.ns-body {
-  overflow-y: auto;
-  flex: 1;
-}
-.ns-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 40px 0;
-  color: #6b5a8a;
-  font-size: 14px;
-}
-.ns-state svg {
-  font-size: 22px;
-  color: var(--color-unergy-purple);
-}
-
-.ns-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-  text-align: left;
-  padding: 13px 8px;
-  border: none;
-  background: none;
-  border-bottom: 1px solid #f3f0f7;
-}
-.ns-item--unread {
-  background: rgba(145, 91, 216, 0.05);
-}
-.ns-item > svg {
-  font-size: 18px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-.ns-item-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.ns-item-title {
-  font-size: 14.5px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.ns-item-msg {
-  font-size: 13px;
-  color: #4b5563;
-  line-height: 1.35;
-}
-.ns-item-time {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
-}
-.ns-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--color-unergy-purple);
-  flex-shrink: 0;
-  margin-top: 5px;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
 .nsheet-enter-active,
