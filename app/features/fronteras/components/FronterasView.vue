@@ -556,14 +556,7 @@
           {{ pendingConfirmar ? 'agregarla' : 'crearla' }} igual.
         </p>
         <DialogFooter>
-          <Button
-            variant="secondary"
-            @click="
-              duplicadoVisible = false
-              pendingConfirmar = null
-            "
-            >Cancelar</Button
-          >
+          <Button variant="secondary" @click="cancelarDuplicado">Cancelar</Button>
           <Button :disabled="forzando" @click="forzarDuplicado">
             <LoaderCircleIcon v-if="forzando" class="animate-spin" />
             {{ pendingConfirmar ? 'Agregar de todos modos' : 'Crear de todos modos' }}
@@ -1271,6 +1264,11 @@ async function forzarDuplicado() {
     return
   }
   await crearFronteraForzado()
+}
+
+function cancelarDuplicado() {
+  duplicadoVisible.value = false
+  pendingConfirmar.value = null
 }
 
 function ignorarPendiente(p: PendienteQuoiaUI) {

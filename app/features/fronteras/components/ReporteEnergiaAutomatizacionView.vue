@@ -155,10 +155,7 @@
               :key="`${seleccion.frontera_id}-${fechaISO}`"
               :frontera-id="seleccion.frontera_id"
               :fecha="fechaISO"
-              @actualizado="
-                cargarLista(true)
-                cargarResumen()
-              "
+              @actualizado="onActualizadoHoy"
             />
           </div>
         </div>
@@ -951,6 +948,12 @@ async function cargarLista(silent = false) {
   } finally {
     if (!silent) loadingLista.value = false
   }
+}
+
+/** `@actualizado` de "Revisión de hoy": refresca en silencio, ver `cargarLista()`. */
+function onActualizadoHoy() {
+  cargarLista(true)
+  cargarResumen()
 }
 
 // `silent` existe por la misma razón que en cargarLista(): refrescar la lista

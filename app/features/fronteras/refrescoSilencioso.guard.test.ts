@@ -28,18 +28,28 @@ const VISTA = join(RAIZ, 'app/features/fronteras/components/ReporteEnergiaAutoma
 
 const fuente = () => readFileSync(VISTA, 'utf8')
 
-/** El contenido de cada `@actualizado="..."` del template. */
-function handlersActualizado(): string[] {
-  return [...fuente().matchAll(/@actualizado="([^"]*)"/g)].map((m) => m[1]!)
-}
-
-/** El cuerpo de una `async function <nombre>(...)`, hasta su `\n}` de cierre. */
+/** El cuerpo de una `function`/`async function <nombre>(...)`, hasta su `\n}` de cierre. */
 function cuerpoDeFuncion(nombre: string): string {
   const src = fuente()
-  const inicio = src.indexOf('async function ' + nombre + '(')
+  let inicio = src.indexOf('async function ' + nombre + '(')
+  if (inicio === -1) inicio = src.indexOf('function ' + nombre + '(')
   expect(inicio, 'no se encontró ' + nombre + '()').toBeGreaterThan(-1)
   const fin = src.indexOf('\n}', inicio)
   return src.slice(inicio, fin)
+}
+
+/**
+ * El contenido de cada `@actualizado="..."` del template. Un handler que es
+ * solo un identificador (p. ej. `@actualizado="onActualizadoHoy"`, en vez de
+ * una expresión inline) se resuelve al cuerpo de esa función -- Prettier
+ * reformatea una expresión inline multi-statement partiéndola en líneas sin
+ * el `;` que las separa, así que "Revisión de hoy" pasó a un handler nombrado.
+ */
+function handlersActualizado(): string[] {
+  return [...fuente().matchAll(/@actualizado="([^"]*)"/g)].map((m) => {
+    const handler = m[1]!
+    return /^\w+$/.test(handler) ? cuerpoDeFuncion(handler) : handler
+  })
 }
 
 /** Marca, línea por línea, si está cubierta por una guarda `if (!silent)`. */
