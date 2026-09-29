@@ -2,7 +2,7 @@
   <nav class="mtb flex shrink-0 border-t border-border bg-card">
     <!-- Coordinador y técnico no tienen acceso a generación/resumen -->
     <template v-if="esCoordinadorOTecnico">
-      <RouterLink :to="fallasPath" :class="itemClass" active-class="text-unergy-purple!">
+      <RouterLink :to="fallasPath" :class="itemClass" active-class="text-primary!">
         <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
       <button :class="itemClass" @click="logout">
@@ -10,16 +10,16 @@
       </button>
     </template>
     <template v-else>
-      <RouterLink to="/m/solar" :class="itemClass" active-class="text-unergy-purple!">
+      <RouterLink to="/m/solar" :class="itemClass" active-class="text-primary!">
         <SunIcon class="size-5" /><span>Generación</span>
       </RouterLink>
-      <RouterLink to="/m/fallas" :class="itemClass" active-class="text-unergy-purple!">
+      <RouterLink to="/m/fallas" :class="itemClass" active-class="text-primary!">
         <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
-      <RouterLink to="/m/reporte-cgm" :class="itemClass" active-class="text-unergy-purple!">
+      <RouterLink to="/m/reporte-cgm" :class="itemClass" active-class="text-primary!">
         <MailIcon class="size-5" /><span>CGM</span>
       </RouterLink>
-      <RouterLink to="/m/resumen" :class="itemClass" active-class="text-unergy-purple!">
+      <RouterLink to="/m/resumen" :class="itemClass" active-class="text-primary!">
         <ChartColumnIcon class="size-5" /><span>Resumen</span>
       </RouterLink>
     </template>

@@ -64,8 +64,8 @@ const chartData = computed(() => {
     datasets.push({
       label: 'Inversores',
       data: inv.value,
-      borderColor: color('unergy-purple'),
-      backgroundColor: color('unergy-purple', 0.12),
+      borderColor: color('primary'),
+      backgroundColor: color('primary', 0.12),
       fill: true,
       tension: 0.35,
       pointRadius: 0,
@@ -154,7 +154,7 @@ const nowLinePlugin: Plugin<'line'> = {
         ctx.roundRect(bx, by, tw, 18, 6)
         ctx.fill()
       } else ctx.fillRect(bx, by, tw, 18)
-      ctx.fillStyle = color('unergy-deep')
+      ctx.fillStyle = color('foreground')
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(text, bx + tw / 2, by + 9)
