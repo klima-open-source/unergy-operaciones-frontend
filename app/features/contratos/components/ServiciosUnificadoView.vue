@@ -56,7 +56,7 @@
               class="inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm font-bold cursor-pointer select-none transition-colors duration-150"
               :class="vista === v.key
                 ? 'bg-(--bg) border-(--bd) text-(--c) shadow-xs [&>svg]:text-(--c)'
-                : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-unergy-purple/30 hover:text-unergy-deep'"
+                : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-primary/30 hover:text-foreground'"
               :style="vista === v.key ? { '--bg': tinte(v.color, 10), '--bd': tinte(v.color, 33), '--c': v.color } : undefined"
               @click="seleccionarVista(v.key)">
         <component :is="v.icon" class="size-4" />
@@ -74,7 +74,7 @@
                 class="inline-flex items-center gap-1.5 px-2 py-1 border rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors duration-150"
                 :class="servicio === s.key
                   ? 'bg-(--bg) border-(--bd) text-(--c) shadow-xs [&>svg]:text-(--c)'
-                  : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-unergy-purple/30 hover:text-unergy-deep'"
+                  : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-primary/30 hover:text-foreground'"
                 :style="servicio === s.key ? { '--bg': tinte(s.color, 10), '--bd': tinte(s.color, 33), '--c': s.color } : undefined"
                 @click="seleccionarServicio(s.key)">
           <component :is="s.icon" class="size-4" />
@@ -218,7 +218,7 @@
         <Column field="razon_social_nombre" header="Razón social" sortable>
           <template #body="{ data }">
             <div class="flex items-center gap-1 min-w-0">
-              <TruncatedText :text="formatearNombre(data.razon_social_nombre)" class="min-w-0 max-w-full font-semibold text-unergy-deep" />
+              <TruncatedText :text="formatearNombre(data.razon_social_nombre)" class="min-w-0 max-w-full font-semibold text-foreground" />
               <span v-if="data.alerta_contrato && data.alerta_contrato !== 'vigente'"
                     class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap bg-(--bg) text-(--c)"
                     :style="{ '--c': SEMAFORO[data.alerta_contrato].color, '--bg': SEMAFORO[data.alerta_contrato].bg }">
@@ -232,13 +232,13 @@
         </Column>
         <Column field="num_plantas" header="Plantas" sortable bodyStyle="text-align:right">
           <template #body="{ data }">
-            <span class="font-semibold tabular-nums text-unergy-deep">{{ data.num_plantas }}</span>
+            <span class="font-semibold tabular-nums text-foreground">{{ data.num_plantas }}</span>
           </template>
         </Column>
         <Column header="Servicios">
           <template #body="{ data }">
             <div class="flex gap-0.5 overflow-hidden min-w-0">
-              <span v-for="sv in data.servicios" :key="sv" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap bg-unergy-purple/10 text-unergy-purple">{{ servicioLabel(sv) }}</span>
+              <span v-for="sv in data.servicios" :key="sv" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap bg-primary/10 text-primary">{{ servicioLabel(sv) }}</span>
               <span v-if="!data.servicios?.length" class="text-xs text-muted-foreground/50">—</span>
             </div>
           </template>
@@ -297,7 +297,7 @@
                   :class="data.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground/50'">
               {{ data.codigo_tsf || '—' }}
             </span>
-            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/proyectos/${data.id}`)">
+            <button type="button" class="block max-w-full text-left text-xs font-semibold text-foreground cursor-pointer transition-colors duration-150 hover:text-primary hover:underline underline-offset-2" @click="ir(`/proyectos/${data.id}`)">
               <TruncatedText :text="formatearNombre(data.nombre_comercial)" class="min-w-0" />
             </button>
           </template>
@@ -350,7 +350,7 @@
         <Column header="PPA">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="flex gap-0.5 overflow-hidden min-w-0">
-              <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="min-w-0 truncate bg-unergy-purple/10 text-unergy-purple-dark text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-unergy-purple hover:text-white"
+              <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="min-w-0 truncate bg-primary/10 text-primary text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-primary hover:text-white"
                       v-tooltip.bottom="ppaTooltip(c)" @click="ir(`/proyectos/${data.id}/ppa`)">
                 {{ ppaLabel(c) }}
               </button>
@@ -397,7 +397,7 @@
                  emptyMessage="No hay contratos PPA registrados.">
         <Column field="nombre_interno" header="Nombre interno" sortable>
           <template #body="{ data }">
-            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/contratos/${data.id}`)">
+            <button type="button" class="block max-w-full text-left text-xs font-semibold text-foreground cursor-pointer transition-colors duration-150 hover:text-primary hover:underline underline-offset-2" @click="ir(`/contratos/${data.id}`)">
               <TruncatedText :text="data.nombre_interno || data.numero_codigo_contrato || '—'" class="min-w-0" />
             </button>
           </template>
@@ -412,8 +412,8 @@
           <template #body="{ data }">
             <span class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap"
                   :class="data.tipo_contrato === 'compra'
-                    ? 'bg-unergy-purple text-primary-foreground'
-                    : 'bg-unergy-yellow text-unergy-deep'">
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-highlight text-foreground'">
               {{ data.tipo_contrato === 'compra' ? 'Compra' : 'Venta' }}
             </span>
           </template>
@@ -546,10 +546,10 @@
         <Column field="proyecto.nombre_comercial" header="Proyecto"
                 sortable>
           <template #body="{ data }">
-            <button v-if="data.proyecto" type="button" class="group flex items-center gap-1 min-w-0 w-full text-left cursor-pointer text-unergy-deep"
+            <button v-if="data.proyecto" type="button" class="group flex items-center gap-1 min-w-0 w-full text-left cursor-pointer text-foreground"
                     v-tooltip.bottom="'Ver la planta'"
                     @click.stop="ir(rutaDeLaPlanta(data))">
-              <TruncatedText :text="data.proyecto.nombre_comercial" class="min-w-0 max-w-full text-sm font-semibold group-hover:text-unergy-purple group-hover:underline" />
+              <TruncatedText :text="data.proyecto.nombre_comercial" class="min-w-0 max-w-full text-sm font-semibold group-hover:text-primary group-hover:underline" />
             </button>
             <button v-else type="button" class="inline-flex items-center gap-1 text-xs font-bold leading-normal px-2 rounded-full cursor-pointer bg-warning/10 text-warning border border-dashed border-warning/50 transition-colors duration-150 hover:bg-warning/20"
                     v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
@@ -719,7 +719,7 @@
       :header="duplicadoTipo === 'cliente' ? 'Cliente parecido ya existe' : 'Proyecto parecido ya existe'"
       modal class="w-full max-w-sm">
       <p class="text-sm text-muted-foreground">{{ duplicadoInfo?.mensaje }}</p>
-      <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium text-unergy-deep">
+      <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium text-foreground">
         {{ duplicadoInfo.candidato_nombre }}
       </p>
       <template #footer>
@@ -804,7 +804,7 @@ const VISTAS = [
   // Proyectos va primero y es el que abre: la planta es la base, y clientes y
   // contratos son formas de mirar ese mismo portafolio.
   { key: 'proyectos', label: 'Proyectos', icon: ZapIcon,      color: 'var(--success)' },
-  { key: 'clientes',  label: 'Clientes',  icon: BuildingIcon,  color: 'var(--color-unergy-purple)' },
+  { key: 'clientes',  label: 'Clientes',  icon: BuildingIcon,  color: 'var(--primary)' },
   { key: 'servicios', label: 'Servicios', icon: FilePenIcon, color: 'var(--primary)' },
 ]
 
@@ -841,7 +841,7 @@ const TIPO_CONTRATO_LABELS = {
   representacion: 'Representación', cgm: 'CGM',
 }
 const TIPO_CONTRATO_COLOR = {
-  mantenimiento: 'var(--warning)', arriendo: 'var(--color-unergy-purple)', internet: 'var(--chart-2)',
+  mantenimiento: 'var(--warning)', arriendo: 'var(--primary)', internet: 'var(--chart-2)',
   representacion: 'var(--chart-3)', cgm: 'var(--chart-1)',
 }
 
@@ -863,7 +863,7 @@ const TIPO_LABELS = {
 }
 const TIPO_BADGE_CLASS = {
   minigranja: 'bg-success/10 text-success', autoconsumo: 'bg-chart-2/10 text-chart-2', gd: 'bg-primary/10 text-primary',
-  movilidad_electrica: 'bg-unergy-purple/10 text-unergy-purple-dark', otro: 'bg-muted text-muted-foreground',
+  movilidad_electrica: 'bg-primary/10 text-primary', otro: 'bg-muted text-muted-foreground',
 }
 // `estado` real de Proyecto (apps/proyectos/models.py). "en_construccion" NO es
 // un valor de este campo -- es de `fase_construccion`, un campo distinto -- pero

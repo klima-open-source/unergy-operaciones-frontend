@@ -15,9 +15,9 @@
           <span class="mx-1.5">›</span>
           <span>Servicios</span>
           <span class="mx-1.5">›</span>
-          <span class="font-medium text-unergy-deep">Operación</span>
+          <span class="font-medium text-foreground">Operación</span>
         </p>
-        <h2 class="text-lg font-bold text-unergy-deep">Operación</h2>
+        <h2 class="text-lg font-bold text-foreground">Operación</h2>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
                   </div>
                   <div>
                     <p class="text-xs text-muted-foreground leading-none mb-0.5">Contrato de Mantenimiento O&amp;M</p>
-                    <span class="text-sm font-semibold text-unergy-deep">{{ proyectoNombre }}</span>
+                    <span class="text-sm font-semibold text-foreground">{{ proyectoNombre }}</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
@@ -175,7 +175,7 @@
                           :class="fila.anio === ANIO_ACTUAL ? 'bg-warning/50' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="font-mono font-semibold"
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-foreground'" class="font-mono font-semibold"
                                >
                                 {{ fila.anio }}
                               </span>
@@ -189,7 +189,7 @@
                             <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
                             <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-foreground'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
                            >
                             {{ formatCOP(fila.valor) }}
                           </td>
@@ -251,7 +251,7 @@
                           :class="fila.anio === ANIO_ACTUAL ? 'bg-warning/50' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="font-mono font-semibold"
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-foreground'" class="font-mono font-semibold"
                                >
                                 {{ fila.anio }}
                               </span>
@@ -265,7 +265,7 @@
                             <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
                             <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-foreground'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
                            >
                             {{ formatCOP(fila.valor) }}
                           </td>
@@ -346,7 +346,7 @@
                   </div>
                   <div>
                     <p class="text-xs text-muted-foreground leading-none mb-0.5">Contrato de Arriendo</p>
-                    <span class="text-sm font-semibold text-unergy-deep">{{ proyectoNombre }}</span>
+                    <span class="text-sm font-semibold text-foreground">{{ proyectoNombre }}</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
@@ -483,7 +483,7 @@
                           :class="fila.anio === ANIO_ACTUAL ? 'bg-primary/40' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="font-mono font-semibold"
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-foreground'" class="font-mono font-semibold"
                                >
                                 {{ fila.anio }}
                               </span>
@@ -497,7 +497,7 @@
                             <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
                             <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-foreground'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
                            >
                             {{ formatCOP(fila.valor) }}
                           </td>
@@ -560,7 +560,7 @@
                           :class="fila.anio === ANIO_ACTUAL ? 'bg-primary/40' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="font-mono font-semibold"
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-foreground'" class="font-mono font-semibold"
                                >
                                 {{ fila.anio }}
                               </span>
@@ -574,7 +574,7 @@
                             <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
                             <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-foreground'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
                            >
                             {{ formatCOP(fila.valor) }}
                           </td>
@@ -691,7 +691,7 @@
                   <div class="size-8 rounded-lg flex items-center justify-center bg-chart-2/10">
                     <WifiIcon class="size-4 text-chart-2" />
                   </div>
-                  <span class="text-sm font-semibold text-unergy-deep">Servicio de Internet</span>
+                  <span class="text-sm font-semibold text-foreground">Servicio de Internet</span>
                   <GBadge :color="CONTRATO_SEVERITY[contratos.internet.estado]">{{ CONTRATO_LABELS[contratos.internet.estado] }}</GBadge>
                 </div>
                 <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('internet')">
@@ -760,7 +760,7 @@
       <template #header>
         <div class="flex items-center gap-2">
           <WrenchIcon class="size-4 text-warning" />
-          <span class="font-semibold text-sm text-unergy-deep">
+          <span class="font-semibold text-sm text-foreground">
             {{ dialogMant.modo === 'crear' ? 'Crear contrato de mantenimiento' : 'Editar contrato de mantenimiento' }}
           </span>
         </div>
@@ -871,7 +871,7 @@
       <template #header>
         <div class="flex items-center gap-2">
           <PencilIcon class="size-4" :class="DIALOG_EDIT_TEXT[dialogEdit.tipo]" />
-          <span class="font-semibold text-sm text-unergy-deep">
+          <span class="font-semibold text-sm text-foreground">
             Editar — {{ DIALOG_EDIT_LABEL[dialogEdit.tipo] }}
           </span>
         </div>
