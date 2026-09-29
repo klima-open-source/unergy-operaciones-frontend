@@ -16,9 +16,9 @@ const search = ref('')
 
 const columns: DataTableColumn[] = [
   { key: 'proyecto', header: 'Proyecto' },
-  { key: 'avance', header: 'Avance', class: 'w-52' },
+  { key: 'avance', header: 'Avance' },
   { key: 'siguiente_paso', header: 'Siguiente paso' },
-  { key: 'estado', header: '', class: 'w-44' },
+  { key: 'estado', header: '' },
 ]
 
 const filtradas = computed(() => {
@@ -50,7 +50,7 @@ onMounted(cargar)
   <div class="space-y-4">
     <PageHeader title="Registros CND/ASIC" :subtitle="`${filtradas.length} proyecto(s)`">
       <template #actions>
-        <InputGroup class="w-full sm:w-64">
+        <InputGroup>
           <InputGroupAddon><SearchIcon /></InputGroupAddon>
           <InputGroupInput v-model="search" placeholder="Buscar proyecto…" />
         </InputGroup>
@@ -99,9 +99,9 @@ onMounted(cargar)
               <div v-else-if="column.key === 'avance'" class="flex items-center gap-2">
                 <Progress
                   :model-value="Math.min(100, asResumen(row).avance_pct)"
-                  class="h-2 flex-1"
+                  class="h-2 min-w-24 flex-1"
                 />
-                <span class="w-10 text-right text-xs font-semibold text-primary">
+                <span class="shrink-0 text-right text-xs font-semibold text-primary">
                   {{ asResumen(row).avance_pct }}%
                 </span>
               </div>

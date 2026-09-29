@@ -489,10 +489,10 @@ async function copiarCorreo() {
 
 // ── Tabla de hitos ────────────────────────────────────────────────────────
 const columnasHitos: DataTableColumn[] = [
-  { key: 'codigo', header: 'Hito', class: 'w-24' },
+  { key: 'codigo', header: 'Hito' },
   { key: 'descripcion', header: 'Descripción' },
-  { key: 'peso_pct', header: 'Peso', class: 'w-20' },
-  { key: 'estado', header: 'Estado', class: 'w-32' },
+  { key: 'peso_pct', header: 'Peso' },
+  { key: 'estado', header: 'Estado' },
 ]
 function asHito(row: DataTableRow): HitoRegistroCnd {
   return row as unknown as HitoRegistroCnd
@@ -504,14 +504,14 @@ const columnasEquipos: DataTableColumn[] = [
   { key: 'modelo', header: 'Modelo' },
   { key: 'serial', header: 'Serial' },
   { key: 'fecha_vencimiento_calibracion', header: 'Venc. calibración' },
-  { key: 'acciones', header: '', class: 'w-12' },
+  { key: 'acciones', header: '' },
 ]
 const columnasDocumentos: DataTableColumn[] = [
   { key: 'tipo', header: 'Tipo' },
   { key: 'radicado', header: 'Radicado' },
   { key: 'estado', header: 'Estado' },
   { key: 'firmado_por', header: 'Firmado por' },
-  { key: 'acciones', header: '', class: 'w-20' },
+  { key: 'acciones', header: '' },
 ]
 
 onMounted(cargar)
