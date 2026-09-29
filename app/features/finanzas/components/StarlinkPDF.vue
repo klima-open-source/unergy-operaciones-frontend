@@ -563,7 +563,7 @@ onMounted(async () => {
    ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
    le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
 @reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-muted-foreground mb-1; }
+.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
 
 .mon-tab-empty {
   text-align: center;

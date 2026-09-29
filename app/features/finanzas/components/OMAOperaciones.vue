@@ -254,8 +254,10 @@
               <td class="px-4 py-2 text-center" :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 <button v-if="conContrato(fila)" type="button" @click="toggleFacturado(fila)"
                   class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium transition-colors"
-                  :class="togglingFacturado[fila.contrato_id] ? 'opacity-50 pointer-events-none' : ''"
-                  :class="fila.facturado ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'"
+                  :class="[
+                    togglingFacturado[fila.contrato_id] ? 'opacity-50 pointer-events-none' : '',
+                    fila.facturado ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
+                  ]"
                   :title="fila.facturado
                     ? 'Facturado — clic para desmarcar (descongela y recalcula el valor)'
                     : 'Clic para marcar como facturado (congela el valor de este mes)'">
@@ -930,7 +932,7 @@ onBeforeUnmount(() => {
    le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
 @reference 'tailwindcss';
 /* Coincide con la estética de la vista Proyectos */
-.field-label { @apply block text-xs font-medium text-muted-foreground mb-1; }
+.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
 
 /* Realce suave de fila al pasar el cursor (paralelo a Proyectos) */
 .row-hover { transition: background 0.1s; }
