@@ -378,9 +378,11 @@ onMounted(loadKpis)
                       :key="bar.code"
                       class="flex items-center gap-3"
                     >
-                      <span class="w-14 text-right text-xs font-medium" :class="bar.textClass">{{
-                        bar.label
-                      }}</span>
+                      <span
+                        class="shrink-0 text-right text-xs font-medium"
+                        :class="bar.textClass"
+                        >{{ bar.label }}</span
+                      >
                       <div class="h-5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
                           class="h-full w-(--bar-w) rounded-full transition-all duration-500"
@@ -388,7 +390,9 @@ onMounted(loadKpis)
                           :style="{ '--bar-w': `${bar.pct}%` }"
                         />
                       </div>
-                      <span class="w-8 text-sm font-bold text-foreground">{{ bar.count }}</span>
+                      <span class="shrink-0 text-sm font-bold text-foreground">{{
+                        bar.count
+                      }}</span>
                     </div>
                   </div>
                   <p v-else class="text-sm text-success">Sin fallas activas</p>
