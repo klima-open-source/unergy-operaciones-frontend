@@ -1,46 +1,64 @@
 <template>
-  <div class="cf-root">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
     <!-- TOP BAR -->
-    <header class="cf-topbar">
-      <div class="cf-topbar-left">
-        <span class="cf-role-badge">Coordinador</span>
-        <span class="cf-brand"><WrenchIcon class="size-4" /> Fallas</span>
+    <header
+      class="cf-topbar flex shrink-0 items-center gap-2.5 bg-chart-3 px-3.5 pb-2.5 text-white"
+    >
+      <div class="flex flex-1 flex-col gap-px">
+        <span
+          class="self-start rounded-sm bg-chart-2/15 px-2 py-px text-xs font-extrabold tracking-widest text-chart-2 uppercase"
+          >Coordinador</span
+        >
+        <span class="flex items-center gap-1 text-base font-bold"
+          ><WrenchIcon class="size-4 text-warning" /> Fallas</span
+        >
       </div>
-      <button class="cf-icon-btn" @click="notifOpen = true" title="Notificaciones">
+      <button
+        class="relative size-10 rounded-lg bg-white/12 text-white"
+        @click="notifOpen = true"
+        title="Notificaciones"
+      >
         <BellIcon class="size-4" />
-        <span v-if="unreadCount > 0" class="cf-bell-badge">{{
-          unreadCount > 9 ? '9+' : unreadCount
-        }}</span>
+        <span
+          v-if="unreadCount > 0"
+          class="absolute top-px right-px flex h-4.5 min-w-4.5 items-center justify-center rounded-full border-2 border-chart-3 bg-destructive px-1 text-xs leading-none font-extrabold text-white"
+          >{{ unreadCount > 9 ? '9+' : unreadCount }}</span
+        >
       </button>
-      <button class="cf-icon-btn cf-add" @click="createOpen = true" title="Registrar falla">
+      <button
+        class="relative size-10 rounded-lg bg-chart-2 text-white"
+        @click="createOpen = true"
+        title="Registrar falla"
+      >
         <PlusIcon class="size-4" />
       </button>
     </header>
 
     <!-- FILTROS -->
-    <div class="cf-filters">
-      <div class="cf-search">
-        <SearchIcon class="size-4" />
-        <input v-model="search" placeholder="Código, descripción, proyecto…" />
-        <XIcon class="cf-clear size-4" v-if="search" @click="search = ''" />
+    <div class="shrink-0 border-b border-border bg-card px-3.5 py-3">
+      <div class="flex items-center gap-2 rounded-xl bg-muted px-3.5 py-3">
+        <SearchIcon class="size-4 text-muted-foreground" />
+        <input
+          v-model="search"
+          class="flex-1 border-none bg-transparent text-base text-unergy-deep outline-none"
+          placeholder="Código, descripción, proyecto…"
+        />
+        <XIcon class="size-4 text-muted-foreground" v-if="search" @click="search = ''" />
       </div>
-      <div class="cf-chips">
+      <div class="mt-3 flex gap-2 overflow-x-auto pb-0.5">
         <button
-          :class="['cf-fchip', filtro === 'activas' && 'cf-fchip--on']"
+          :class="[FCHIP, filtro === 'activas' ? FCHIP_ON : FCHIP_OFF]"
           @click="filtro = 'activas'"
         >
           Activas
         </button>
-        <button :class="['cf-fchip', filtro === null && 'cf-fchip--on']" @click="filtro = null">
+        <button :class="[FCHIP, filtro === null ? FCHIP_ON : FCHIP_OFF]" @click="filtro = null">
           Todas
         </button>
         <button
           v-for="e in catalogos.estados"
           :key="e.id"
-          :class="[
-            'cf-fchip',
-            filtro === e.id && 'cf-fchip--on border-(--c)! bg-(--c)! text-white!',
-          ]"
+          :class="[FCHIP, filtro === e.id ? 'border-(--c) bg-(--c) text-white' : FCHIP_OFF]"
           :style="{ '--c': colorEstado(e.codigo) }"
           @click="filtro = e.id"
         >
@@ -50,57 +68,71 @@
     </div>
 
     <!-- CONTADORES -->
-    <div class="cf-stats">
-      <div class="cf-stat">
-        <span class="cf-stat-n">{{ activas }}</span>
-        <span class="cf-stat-l">Activas</span>
+    <div class="flex shrink-0 border-b border-border bg-card px-3.5 py-2.5">
+      <div class="flex flex-1 flex-col items-center gap-px border-r border-border">
+        <span class="text-xl font-extrabold text-chart-3">{{ activas }}</span>
+        <span class="text-xs font-semibold text-muted-foreground">Activas</span>
       </div>
-      <div class="cf-stat cf-stat--ok">
-        <span class="cf-stat-n">{{ resueltas }}</span>
-        <span class="cf-stat-l">Resueltas</span>
+      <div class="flex flex-1 flex-col items-center gap-px">
+        <span class="text-xl font-extrabold text-success">{{ resueltas }}</span>
+        <span class="text-xs font-semibold text-muted-foreground">Resueltas</span>
       </div>
     </div>
 
     <!-- LISTA -->
-    <main class="cf-list">
-      <div v-if="loading" class="cf-state">
-        <LoaderCircleIcon class="size-6 animate-spin" /> Cargando…
+    <main class="flex-1 overflow-y-auto px-3.5 py-3">
+      <div v-if="loading" :class="STATE">
+        <LoaderCircleIcon class="size-6 animate-spin text-chart-2" /> Cargando…
       </div>
-      <div v-else-if="!filtradas.length" class="cf-state">
-        <CircleCheckIcon class="size-8 text-success!" />
+      <div v-else-if="!filtradas.length" :class="STATE">
+        <CircleCheckIcon class="size-8 text-success" />
         <span>{{
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
-        <button class="cf-empty-add" @click="createOpen = true">
+        <button
+          class="mt-1.5 flex items-center gap-2 rounded-xl bg-chart-2 px-5 py-2.5 text-base font-bold text-white"
+          @click="createOpen = true"
+        >
           <PlusIcon class="size-4" /> Registrar falla
         </button>
       </div>
       <template v-else>
-        <button v-for="f in filtradas" :key="f.id" class="cf-card" @click="openDetail(f)">
+        <button
+          v-for="f in filtradas"
+          :key="f.id"
+          class="mb-3 flex w-full overflow-hidden rounded-2xl border border-border bg-card text-left"
+          @click="openDetail(f)"
+        >
           <span
-            class="cf-stripe bg-(--c)"
+            class="w-1 shrink-0 bg-(--c)"
             :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
           />
-          <div class="cf-card-main">
-            <div class="cf-card-top">
-              <code class="cf-card-code">{{ f.codigo_interno }}</code>
+          <div class="min-w-0 flex-1 px-4 py-3">
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <code class="rounded-md bg-chart-3/10 px-2 py-px font-mono text-xs text-chart-3">{{
+                f.codigo_interno
+              }}</code>
               <span
-                class="cf-card-estado bg-(--c)/15 text-(--c)"
+                class="rounded-md bg-(--c)/15 px-2 py-0.5 text-xs font-extrabold text-(--c)"
                 :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
             </div>
-            <div class="cf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
-            <div class="cf-card-proj">
-              <ZapIcon class="size-3" /> {{ f.proyecto?.nombre_comercial || '—' }}
+            <div class="text-sm leading-tight font-bold text-unergy-deep">
+              {{ f.tipo?.etiqueta || 'Falla' }}
             </div>
-            <div class="cf-card-foot">
+            <div class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ZapIcon class="size-3 text-chart-2" /> {{ f.proyecto?.nombre_comercial || '—' }}
+            </div>
+            <div class="mt-2 flex items-center gap-2.5">
               <span
-                class="cf-prio text-(--c)"
+                class="text-xs font-bold text-(--c)"
                 :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
                 >{{ f.prioridad?.etiqueta }}</span
               >
-              <span class="cf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
+              <span class="text-xs text-muted-foreground">{{
+                relativeTime(f.fecha_identificacion)
+              }}</span>
             </div>
           </div>
         </button>
@@ -150,6 +182,13 @@ import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.v
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 import FallaCreateSheet from '~/features/mobile/components/components/FallaCreateSheet.vue'
 import NotificationsSheet from '~/features/mobile/components/components/NotificationsSheet.vue'
+
+const FCHIP =
+  'flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-sm font-semibold'
+const FCHIP_ON = 'border-chart-3 bg-chart-3 text-white'
+const FCHIP_OFF = 'border-border bg-card text-foreground'
+const STATE =
+  'flex flex-col items-center justify-center gap-3 px-5 py-15 text-center text-base text-muted-foreground'
 
 const fallasService = new FallasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -304,284 +343,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.cf-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  background: #f3f4f6;
-  color: var(--color-unergy-deep);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-/* Top bar */
+/* safe-area del dispositivo: env() no tiene utilidad */
 .cf-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: #1e3a5f;
-  color: #fff;
-}
-.cf-topbar-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.cf-role-badge {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #93c5fd;
-  background: rgba(147, 197, 253, 0.15);
-  padding: 1px 7px;
-  border-radius: 5px;
-  align-self: flex-start;
-}
-.cf-brand {
-  font-size: clamp(14px, 4vw, 16px);
-  font-weight: 700;
-}
-.cf-brand svg {
-  color: #fbbf24;
-  margin-right: 5px;
-}
-.cf-icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 15px;
-  position: relative;
-}
-.cf-add {
-  background: #2563eb;
-}
-.cf-bell-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 9px;
-  border: 2px solid #1e3a5f;
-}
-
-/* Filtros */
-.cf-filters {
-  flex-shrink: 0;
-  background: #fff;
-  padding: 12px 14px;
-  border-bottom: 1px solid #eceaf2;
-}
-.cf-search {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: #f1f5f9;
-  border-radius: 12px;
-  padding: 11px 14px;
-}
-.cf-search svg {
-  color: #9ca3af;
-  font-size: 15px;
-}
-.cf-search input {
-  flex: 1;
-  border: none;
-  background: none;
-  outline: none;
-  font-size: 16px;
-  color: var(--color-unergy-deep);
-}
-.cf-clear {
-  color: #9ca3af;
-}
-.cf-chips {
-  display: flex;
-  gap: 8px;
-  margin-top: 11px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  -webkit-overflow-scrolling: touch;
-}
-.cf-fchip {
-  white-space: nowrap;
-  padding: 7px 14px;
-  border-radius: 20px;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.cf-fchip--on {
-  background: #1e3a5f;
-  border-color: #1e3a5f;
-  color: #fff;
-}
-
-/* Stats */
-.cf-stats {
-  display: flex;
-  flex-shrink: 0;
-  background: #fff;
-  border-bottom: 1px solid #eceaf2;
-  padding: 10px 14px;
-  gap: 0;
-}
-.cf-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  border-right: 1px solid #eceaf2;
-}
-.cf-stat:last-child {
-  border-right: none;
-}
-.cf-stat-n {
-  font-size: 22px;
-  font-weight: 800;
-  color: #1e3a5f;
-}
-.cf-stat--ok .cf-stat-n {
-  color: #16a34a;
-}
-.cf-stat-l {
-  font-size: 11px;
-  color: #9b8db5;
-  font-weight: 600;
-}
-
-/* Lista */
-.cf-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 14px;
-  -webkit-overflow-scrolling: touch;
-}
-.cf-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: #6b5a8a;
-  font-size: 15px;
-  text-align: center;
-}
-.cf-state svg {
-  font-size: 26px;
-  color: #2563eb;
-}
-.cf-empty-add {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 20px;
-  border: none;
-  border-radius: 12px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.cf-card {
-  width: 100%;
-  display: flex;
-  text-align: left;
-  margin-bottom: 11px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 15px;
-  overflow: hidden;
-}
-.cf-stripe {
-  width: 5px;
-  flex-shrink: 0;
-}
-.cf-card-main {
-  flex: 1;
-  min-width: 0;
-  padding: 13px 15px;
-}
-.cf-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.cf-card-code {
-  font-family: ui-monospace, monospace;
-  font-size: 12px;
-  color: #1e40af;
-  background: #eff6ff;
-  padding: 1px 7px;
-  border-radius: 6px;
-}
-.cf-card-estado {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 7px;
-}
-.cf-card-tipo {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  line-height: 1.25;
-}
-.cf-card-proj {
-  font-size: 12.5px;
-  color: #6b5a8a;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.cf-card-proj svg {
-  font-size: 11px;
-  color: #2563eb;
-}
-.cf-card-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 9px;
-}
-.cf-prio {
-  font-size: 12.5px;
-  font-weight: 700;
-}
-.cf-time {
-  font-size: 12px;
-  color: #9ca3af;
+  padding-top: calc(0.625rem + env(safe-area-inset-top));
 }
 </style>

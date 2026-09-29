@@ -1,49 +1,64 @@
 <template>
-  <div class="mf-root">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
     <!-- TOP BAR -->
-    <header class="mf-topbar">
-      <span class="mf-brand"><WrenchIcon class="size-4" /> Fallas</span>
-      <button class="mf-icon-btn" @click="notifOpen = true" title="Notificaciones">
+    <header
+      class="mf-topbar flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+    >
+      <span class="flex flex-1 items-center gap-1.5 text-base font-bold"
+        ><WrenchIcon class="size-4 text-unergy-yellow" /> Fallas</span
+      >
+      <button
+        class="relative size-9 rounded-lg bg-white/10 text-white"
+        @click="notifOpen = true"
+        title="Notificaciones"
+      >
         <BellIcon class="size-4" />
-        <span v-if="unreadCount > 0" class="mf-bell-badge">{{
-          unreadCount > 9 ? '9+' : unreadCount
-        }}</span>
+        <span
+          v-if="unreadCount > 0"
+          class="absolute top-px right-px flex h-4.5 min-w-4.5 items-center justify-center rounded-full border-2 border-unergy-deep bg-destructive px-1 text-xs leading-none font-extrabold text-white"
+          >{{ unreadCount > 9 ? '9+' : unreadCount }}</span
+        >
       </button>
-      <button class="mf-icon-btn mf-add" @click="createOpen = true" title="Registrar falla">
+      <button
+        class="relative size-9 rounded-lg bg-unergy-purple text-white"
+        @click="createOpen = true"
+        title="Registrar falla"
+      >
         <PlusIcon class="size-4" />
       </button>
     </header>
 
     <!-- FILTROS -->
-    <div class="mf-filters">
-      <div class="mf-search">
-        <SearchIcon class="size-4" />
-        <input v-model="search" placeholder="Buscar código, descripción, proyecto…" />
-        <XIcon class="mf-clear size-4" v-if="search" @click="search = ''" />
+    <div class="shrink-0 border-b border-border bg-card px-3.5 py-3">
+      <div class="flex items-center gap-2 rounded-xl bg-muted px-3.5 py-3">
+        <SearchIcon class="size-4 text-muted-foreground" />
+        <input
+          v-model="search"
+          class="flex-1 border-none bg-transparent text-base text-unergy-deep outline-none"
+          placeholder="Buscar código, descripción, proyecto…"
+        />
+        <XIcon class="size-4 text-muted-foreground" v-if="search" @click="search = ''" />
       </div>
-      <div class="mf-chips">
+      <div class="mt-3 flex gap-2 overflow-x-auto pb-0.5">
         <button
-          :class="['mf-fchip', filtro === 'activas' && 'mf-fchip--on']"
+          :class="[FCHIP, filtro === 'activas' ? FCHIP_ON : FCHIP_OFF]"
           @click="filtro = 'activas'"
         >
           Activas
         </button>
         <button
-          :class="['mf-fchip', filtro === 'programadas' && 'mf-fchip--on']"
+          :class="[FCHIP, filtro === 'programadas' ? FCHIP_ON : FCHIP_OFF]"
           @click="filtro = 'programadas'"
         >
           Programadas
         </button>
-        <button :class="['mf-fchip', filtro === null && 'mf-fchip--on']" @click="filtro = null">
+        <button :class="[FCHIP, filtro === null ? FCHIP_ON : FCHIP_OFF]" @click="filtro = null">
           Todas
         </button>
         <button
           v-for="e in catalogos.estados"
           :key="e.id"
-          :class="[
-            'mf-fchip',
-            filtro === e.id && 'mf-fchip--on border-(--c)! bg-(--c)! text-white!',
-          ]"
+          :class="[FCHIP, filtro === e.id ? 'border-(--c) bg-(--c) text-white' : FCHIP_OFF]"
           :style="{ '--c': colorEstado(e.codigo) }"
           @click="filtro = e.id"
         >
@@ -53,45 +68,61 @@
     </div>
 
     <!-- LISTA -->
-    <main class="mf-list">
-      <div v-if="loading" class="mf-state">
-        <LoaderCircleIcon class="size-6 animate-spin" /> Cargando fallas…
+    <main class="flex-1 overflow-y-auto px-3.5 py-3">
+      <div v-if="loading" :class="STATE">
+        <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" /> Cargando fallas…
       </div>
-      <div v-else-if="!filtradas.length" class="mf-state">
-        <CircleCheckIcon class="size-8 text-success!" />
+      <div v-else-if="!filtradas.length" :class="STATE">
+        <CircleCheckIcon class="size-8 text-success" />
         <span>{{
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
-        <button class="mf-empty-add" @click="createOpen = true">
+        <button
+          class="mt-1.5 flex items-center gap-2 rounded-xl bg-unergy-purple px-5 py-2.5 text-base font-bold text-white"
+          @click="createOpen = true"
+        >
           <PlusIcon class="size-4" /> Registrar falla
         </button>
       </div>
       <template v-else>
-        <button v-for="f in filtradas" :key="f.id" class="mf-card" @click="openDetail(f)">
+        <button
+          v-for="f in filtradas"
+          :key="f.id"
+          class="mb-3 flex w-full overflow-hidden rounded-2xl border border-border bg-card text-left"
+          @click="openDetail(f)"
+        >
           <span
-            class="mf-stripe bg-(--c)"
+            class="w-1 shrink-0 bg-(--c)"
             :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
           />
-          <div class="mf-card-main">
-            <div class="mf-card-top">
-              <code class="mf-card-code">{{ f.codigo_interno }}</code>
+          <div class="min-w-0 flex-1 px-4 py-3">
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <code
+                class="rounded-md bg-unergy-purple/10 px-2 py-px font-mono text-xs text-unergy-purple-dark"
+                >{{ f.codigo_interno }}</code
+              >
               <span
-                class="mf-card-estado bg-(--c)/15 text-(--c)"
+                class="rounded-md bg-(--c)/15 px-2 py-0.5 text-xs font-extrabold text-(--c)"
                 :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
             </div>
-            <div class="mf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
-            <div class="mf-card-proj">
-              <ZapIcon class="size-3" /> {{ f.proyecto?.nombre_comercial || '—' }}
+            <div class="text-sm leading-tight font-bold text-unergy-deep">
+              {{ f.tipo?.etiqueta || 'Falla' }}
             </div>
-            <div class="mf-card-foot">
+            <div class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ZapIcon class="size-3 text-unergy-purple" />
+              {{ f.proyecto?.nombre_comercial || '—' }}
+            </div>
+            <div class="mt-2 flex items-center gap-2.5">
               <span
-                class="mf-prio text-(--c)"
+                class="text-xs font-bold text-(--c)"
                 :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
                 >{{ f.prioridad?.etiqueta }}</span
               >
-              <span class="mf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
+              <span class="text-xs text-muted-foreground">{{
+                relativeTime(f.fecha_identificacion)
+              }}</span>
             </div>
           </div>
         </button>
@@ -141,6 +172,12 @@ import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.v
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 import FallaCreateSheet from '~/features/mobile/components/components/FallaCreateSheet.vue'
 import NotificationsSheet from '~/features/mobile/components/components/NotificationsSheet.vue'
+
+const FCHIP = 'shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-sm font-semibold'
+const FCHIP_ON = 'border-unergy-deep bg-unergy-deep text-white'
+const FCHIP_OFF = 'border-border bg-card text-muted-foreground'
+const STATE =
+  'flex flex-col items-center justify-center gap-3 px-5 py-15 text-center text-base text-muted-foreground'
 
 const fallasService = new FallasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -301,232 +338,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mf-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  background: #f3f4f6;
-  color: var(--color-unergy-deep);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-/* Top bar */
+/* safe-area del dispositivo: env() no tiene utilidad */
 .mf-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: var(--color-unergy-deep);
-  color: #fff;
-}
-.mf-brand {
-  flex: 1;
-  font-size: clamp(15px, 4vw, 17px);
-  font-weight: 700;
-}
-.mf-brand svg {
-  color: var(--color-unergy-yellow);
-  margin-right: 6px;
-}
-.mf-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 15px;
-  position: relative;
-}
-.mf-add {
-  background: var(--color-unergy-purple);
-}
-.mf-bell-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 9px;
-  border: 2px solid var(--color-unergy-deep);
-}
-
-/* Filtros */
-.mf-filters {
-  flex-shrink: 0;
-  background: #fff;
-  padding: 12px 14px;
-  border-bottom: 1px solid #eceaf2;
-}
-.mf-search {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: #f5f3fa;
-  border-radius: 12px;
-  padding: 11px 14px;
-}
-.mf-search svg {
-  color: #9ca3af;
-  font-size: 15px;
-}
-.mf-search input {
-  flex: 1;
-  border: none;
-  background: none;
-  outline: none;
-  font-size: 16px;
-  color: var(--color-unergy-deep);
-}
-.mf-clear {
-  color: #9ca3af;
-}
-.mf-chips {
-  display: flex;
-  gap: 8px;
-  margin-top: 11px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  -webkit-overflow-scrolling: touch;
-}
-.mf-fchip {
-  white-space: nowrap;
-  padding: 7px 14px;
-  border-radius: 20px;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-  flex-shrink: 0;
-}
-.mf-fchip--on {
-  background: var(--color-unergy-deep);
-  border-color: var(--color-unergy-deep);
-  color: #fff;
-}
-
-/* Lista */
-.mf-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 14px;
-  -webkit-overflow-scrolling: touch;
-}
-.mf-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 20px;
-  color: #6b5a8a;
-  font-size: 15px;
-  text-align: center;
-}
-.mf-state svg {
-  font-size: 26px;
-  color: var(--color-unergy-purple);
-}
-.mf-empty-add {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 20px;
-  border: none;
-  border-radius: 12px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.mf-card {
-  width: 100%;
-  display: flex;
-  gap: 0;
-  text-align: left;
-  margin-bottom: 11px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 15px;
-  overflow: hidden;
-}
-.mf-stripe {
-  width: 5px;
-  flex-shrink: 0;
-}
-.mf-card-main {
-  flex: 1;
-  min-width: 0;
-  padding: 13px 15px;
-}
-.mf-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.mf-card-code {
-  font-family: ui-monospace, monospace;
-  font-size: 12px;
-  color: var(--color-unergy-purple-dark);
-  background: #f3edfb;
-  padding: 1px 7px;
-  border-radius: 6px;
-}
-.mf-card-estado {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 7px;
-}
-.mf-card-tipo {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  line-height: 1.25;
-}
-.mf-card-proj {
-  font-size: 12.5px;
-  color: #6b5a8a;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.mf-card-proj svg {
-  font-size: 11px;
-  color: var(--color-unergy-purple);
-}
-.mf-card-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 9px;
-}
-.mf-prio {
-  font-size: 12.5px;
-  font-weight: 700;
-}
-.mf-time {
-  font-size: 12px;
-  color: #9ca3af;
+  padding-top: calc(0.625rem + env(safe-area-inset-top));
 }
 </style>
