@@ -24,7 +24,7 @@
       <!-- ══ STICKY HEADER ════════════════════════════════════════════════ -->
       <div
         ref="stickyHeaderRef"
-        class="sticky top-[var(--gf-tabbar-h,41px)] z-20 flex flex-col gap-0 bg-muted pt-1 pb-3 before:absolute before:inset-x-[-16px] before:bottom-full before:h-7 before:bg-muted before:content-[''] md:before:inset-x-[-32px]"
+        class="sticky top-(--gf-tabbar-h) z-20 flex flex-col gap-0 bg-muted pt-1 pb-3 before:absolute before:-inset-x-4 before:bottom-full before:h-7 before:bg-muted md:before:-inset-x-8"
       >
         <!-- ── Topbar ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -181,12 +181,10 @@
 
       <div
         :class="
-          drawerVisible && drawerFalla
-            ? 'min-[1440px]:grid-cols-[minmax(250px,325px)_minmax(0,1fr)] lg:grid lg:grid-cols-[minmax(230px,290px)_minmax(0,1fr)] lg:items-stretch lg:gap-4'
-            : ''
+          drawerVisible && drawerFalla ? 'lg:grid lg:grid-cols-4 lg:items-stretch lg:gap-4' : ''
         "
       >
-        <div class="min-w-0">
+        <div class="min-w-0 lg:col-span-1">
           <!-- ══ COLA DE TRIAGE (ordenada por urgencia de SLA) ═══════════ -->
           <div class="flex flex-col rounded-lg border border-border bg-card">
             <div
@@ -213,8 +211,8 @@
             >
               <component
                 :is="bucketActual.icon"
-                class="size-8"
-                :style="{ color: bucketActual.color }"
+                class="size-8 text-(--c)"
+                :style="{ '--c': bucketActual.color }"
               />
               <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
               <p class="text-xs">{{ emptySubtitulo }}</p>
@@ -248,19 +246,19 @@
                 @click="abrirDrawer(f)"
               >
                 <span
-                  class="h-8 w-1 shrink-0 rounded-full"
-                  :style="{ background: prioColor(f.prioridad?.codigo) }"
+                  class="h-8 w-1 shrink-0 rounded-full bg-(--c)"
+                  :style="{ '--c': prioColor(f.prioridad?.codigo) }"
                   :title="f.prioridad?.etiqueta"
                 />
                 <span
-                  class="mt-0.5 hidden size-2 shrink-0 rounded-full sm:block"
-                  :style="{ background: categoriaFalla(f).color }"
+                  class="mt-0.5 hidden size-2 shrink-0 rounded-full bg-(--c) sm:block"
+                  :style="{ '--c': categoriaFalla(f).color }"
                   :title="categoriaFalla(f).etiqueta"
                 />
 
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-1.5">
-                    <code class="font-mono text-[10px] text-muted-foreground">{{
+                    <code class="font-mono text-xs text-muted-foreground">{{
                       f.codigo_interno
                     }}</code>
                     <span class="truncate text-sm font-medium text-foreground">{{
@@ -283,8 +281,8 @@
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-1.5 md:flex">
                   <span
-                    class="size-1.5 rounded-full"
-                    :style="{ background: colorEstado(f.estado?.codigo, '#9ca3af') }"
+                    class="size-1.5 rounded-full bg-(--c)"
+                    :style="{ '--c': colorEstado(f.estado?.codigo, '#9ca3af') }"
                   />
                   <span class="text-xs text-muted-foreground">{{ f.estado?.etiqueta || '—' }}</span>
                 </div>
@@ -336,17 +334,17 @@
         <!-- ══ PANEL DETALLE ══════════════════════════════════════════════ -->
         <aside
           v-if="drawerVisible && drawerFalla"
-          class="fixed inset-0 z-30 flex justify-end lg:static lg:z-auto lg:block"
+          class="fixed inset-0 z-30 flex justify-end lg:static lg:z-auto lg:col-span-3 lg:block"
           @keydown.left.stop="navegar(-1)"
           @keydown.right.stop="navegar(1)"
         >
           <!-- Backdrop solo en móvil -->
           <div
-            class="absolute inset-0 bg-black/35 backdrop-blur-[2px] lg:hidden"
+            class="absolute inset-0 bg-black/35 backdrop-blur-xs lg:hidden"
             @click="drawerVisible = false"
           />
           <div
-            class="relative flex h-full w-full max-w-[560px] flex-col overflow-hidden bg-background shadow-2xl lg:h-auto lg:max-w-none lg:rounded-xl lg:border lg:shadow-sm"
+            class="relative flex h-full w-full max-w-xl flex-col overflow-hidden bg-background shadow-2xl lg:h-auto lg:max-w-none lg:rounded-xl lg:border lg:shadow-sm"
           >
             <!-- Header panel -->
             <div class="flex shrink-0 items-center gap-1 overflow-hidden border-b px-3 py-2.5">
@@ -369,7 +367,7 @@
                   }}</span>
                   <span
                     v-if="navIndex >= 0"
-                    class="ml-auto hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline-block"
+                    class="ml-auto hidden text-xs whitespace-nowrap text-muted-foreground sm:inline-block"
                   >
                     {{ navIndex + 1 }} / {{ filtradas.length }}
                   </span>
@@ -458,20 +456,19 @@
                 </header>
                 <div class="flex items-baseline gap-2">
                   <span
-                    class="text-2xl font-extrabold"
-                    :style="{ color: slaTextColor(drawerFalla) }"
+                    class="text-2xl font-extrabold text-(--c)"
+                    :style="{ '--c': slaTextColor(drawerFalla) }"
                     >{{ horasTranscurridas(drawerFalla) }}h</span
                   >
                   <span class="text-sm font-semibold text-muted-foreground"
                     >de {{ drawerFalla.sla_limite_horas_efectivo }}h</span
                   >
                 </div>
-                <div class="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    class="h-full rounded-full transition-all"
-                    :style="slaFillStyle(drawerFalla)"
-                  />
-                </div>
+                <Progress
+                  :model-value="slaFillPct(drawerFalla)"
+                  class="*:bg-(--c)"
+                  :style="{ '--c': slaTextColor(drawerFalla) }"
+                />
 
                 <div class="mt-2 flex flex-col gap-1.5 border-t pt-2.5">
                   <div class="flex flex-wrap items-baseline justify-between gap-2">
@@ -505,7 +502,7 @@
                       <XIcon />
                     </Button>
                   </div>
-                  <p class="text-[11px] text-muted-foreground">
+                  <p class="text-xs text-muted-foreground">
                     Opcional. Solo para casos puntuales que necesitan más o menos tiempo que el
                     default de su prioridad.
                   </p>
@@ -518,8 +515,8 @@
                   <component
                     :is="clasifDrawer ? clasifDrawer.icono : ServerIcon"
                     class="size-3.5"
-                    :class="clasifDrawer ? '' : 'text-primary'"
-                    :style="clasifDrawer ? { color: clasifDrawer.categoriaColor } : {}"
+                    :class="clasifDrawer ? 'text-(--c)' : 'text-primary'"
+                    :style="{ '--c': clasifDrawer?.categoriaColor }"
                   />
                   <h3 class="text-sm font-bold text-foreground">Equipo / clasificación</h3>
                 </header>
@@ -584,7 +581,7 @@
                     class="rounded-lg border border-primary/20 bg-primary/5 p-2.5"
                   >
                     <p
-                      class="mb-1.5 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+                      class="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase"
                     >
                       Tipo{{ clasifDrawer.inversorTipos.length > 1 ? 's' : '' }} de falla
                     </p>
@@ -600,7 +597,7 @@
 
                   <!-- Capa: INVERSORES afectados -->
                   <div v-if="clasifDrawer.inversores.length" class="flex flex-col gap-2">
-                    <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                       Inversores afectados ({{ clasifDrawer.inversores.length }})
                     </p>
                     <div
@@ -623,7 +620,7 @@
                         <span
                           v-for="(t, ti) in inv.tipos"
                           :key="ti"
-                          class="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
+                          class="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
                           >{{ t }}</span
                         >
                       </div>
@@ -660,7 +657,7 @@
                 <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
                   <div class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <CalendarPlusIcon class="size-3" /> Identificada
                     </dt>
@@ -676,7 +673,7 @@
                   </div>
                   <div v-if="drawerFalla.fecha_ocurrencia" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <ClockIcon class="size-3" /> Ocurrencia
                     </dt>
@@ -686,7 +683,7 @@
                   </div>
                   <div v-if="drawerFalla.fecha_programada" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <CalendarIcon class="size-3" /> Programada
                     </dt>
@@ -696,7 +693,7 @@
                   </div>
                   <div v-if="drawerFalla.fecha_resolucion" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <CircleCheckIcon class="size-3" /> Resuelta
                     </dt>
@@ -706,7 +703,7 @@
                   </div>
                   <div v-if="drawerFalla.dias_abierta != null" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <HourglassIcon class="size-3" /> Días abierta
                     </dt>
@@ -721,7 +718,7 @@
                     class="flex flex-col gap-0.5"
                   >
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <TimerIcon class="size-3" /> Tiempo de afectación
                     </dt>
@@ -734,7 +731,7 @@
                     class="flex flex-col gap-0.5"
                   >
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <TimerIcon class="size-3" /> En estado actual
                     </dt>
@@ -752,7 +749,7 @@
                 <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
                   <div class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <BuildingIcon class="size-3" /> Proyecto
                     </dt>
@@ -762,7 +759,7 @@
                   </div>
                   <div class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <UserPenIcon class="size-3" /> Registrado por
                     </dt>
@@ -772,7 +769,7 @@
                   </div>
                   <div v-if="drawerFalla.resolucion" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <WrenchIcon class="size-3" /> Resolución
                     </dt>
@@ -785,7 +782,7 @@
                     class="flex flex-col gap-0.5"
                   >
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <ZapIcon class="size-3" /> Energía perdida
                     </dt>
@@ -798,7 +795,7 @@
                     class="flex flex-col gap-0.5"
                   >
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <DollarSignIcon class="size-3" /> Impacto económico
                     </dt>
@@ -808,7 +805,7 @@
                   </div>
                   <div v-if="recurrencias(drawerFalla) > 1" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-warning uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-warning uppercase"
                     >
                       <RotateCcwIcon class="size-3" /> Reincidencia
                     </dt>
@@ -818,7 +815,7 @@
                   </div>
                   <div v-if="origenFalla" class="flex flex-col gap-0.5">
                     <dt
-                      class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                     >
                       <BellIcon class="size-3" /> Origen
                     </dt>
@@ -914,7 +911,7 @@
                   <LightbulbIcon class="size-4" />
                 </div>
                 <div>
-                  <p class="text-[11px] font-bold text-warning uppercase">Acción sugerida</p>
+                  <p class="text-xs font-bold text-warning uppercase">Acción sugerida</p>
                   <p class="text-sm text-foreground">{{ drawerFalla.tipo.accion_sugerida }}</p>
                 </div>
               </aside>
@@ -930,13 +927,13 @@
                 </header>
                 <div class="flex flex-col gap-3">
                   <div v-if="drawerFalla.causa_raiz">
-                    <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                       Causa raíz
                     </p>
                     <p class="text-sm text-foreground">{{ drawerFalla.causa_raiz }}</p>
                   </div>
                   <div v-if="drawerFalla.acciones_correctivas">
-                    <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                       Acciones correctivas
                     </p>
                     <p class="text-sm text-foreground">{{ drawerFalla.acciones_correctivas }}</p>
@@ -988,8 +985,8 @@
                       :disabled="(!nuevaNota.nota.trim() && !nuevaNota.estado_id) || addingSeg"
                       @click="agregarSeguimiento"
                     >
-                      <LoaderCircleIcon v-if="addingSeg" class="size-[1em] animate-spin" />
-                      <SendIcon v-else class="size-[1em]" />
+                      <LoaderCircleIcon v-if="addingSeg" class="animate-spin" />
+                      <SendIcon v-else />
                       Agregar
                     </Button>
                   </div>
@@ -999,8 +996,8 @@
                 <div v-if="sortedSeguimientos.length" class="flex flex-col gap-3">
                   <div v-for="seg in sortedSeguimientos" :key="seg.id" class="flex gap-2.5">
                     <div
-                      class="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      :style="avatarStyle(seg.usuario)"
+                      class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--c) text-xs font-bold text-white"
+                      :style="{ '--c': avatarColor(seg.usuario) }"
                     >
                       {{ initials(seg.usuario?.nombre) }}
                     </div>
@@ -1035,16 +1032,16 @@
               <!-- ── ACCIONES PRINCIPALES ───────────────────────────── -->
               <div class="flex flex-wrap gap-2 pt-1">
                 <Button variant="outline" class="flex-1" @click="editarDesdeDrawer">
-                  <PencilIcon class="size-[1em]" /> Editar completa
+                  <PencilIcon /> Editar completa
                 </Button>
                 <Button
                   v-if="!drawerFalla.estado?.es_estado_final"
-                  class="text-success-foreground flex-1 bg-success hover:bg-success/90"
+                  class="flex-1 bg-success text-primary-foreground hover:bg-success/90"
                   :disabled="resolvingFalla"
                   @click="quickResolve(drawerFalla)"
                 >
-                  <LoaderCircleIcon v-if="resolvingFalla" class="size-[1em] animate-spin" />
-                  <CheckIcon v-else class="size-[1em]" />
+                  <LoaderCircleIcon v-if="resolvingFalla" class="animate-spin" />
+                  <CheckIcon v-else />
                   Marcar resuelta
                 </Button>
                 <Button
@@ -1053,7 +1050,7 @@
                   class="flex-1 text-warning hover:text-warning"
                   @click="reabrirFalla"
                 >
-                  <RotateCcwIcon class="size-[1em]" /> Reabrir
+                  <RotateCcwIcon /> Reabrir
                 </Button>
               </div>
             </div>
@@ -1067,7 +1064,7 @@
       <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
       <Dialog v-model:open="formDialogVisible">
         <DialogContent
-          class="max-h-[90dvh] max-w-3xl grid-rows-[auto_minmax(0,1fr)]"
+          class="flex max-h-11/12 max-w-3xl flex-col"
           :show-close-button="!savingForm"
           @escape-key-down="(e) => savingForm && e.preventDefault()"
           @pointer-down-outside="(e) => savingForm && e.preventDefault()"
@@ -1077,7 +1074,7 @@
               editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
             }}</DialogTitle>
           </DialogHeader>
-          <div class="-mx-6 min-h-0 overflow-y-auto px-6">
+          <div class="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
             <FallaForm
               :initial="editingFalla"
               :catalogos="catalogos"
@@ -1143,12 +1140,12 @@
               >Cancelar</Button
             >
             <Button
-              class="text-success-foreground bg-success hover:bg-success/90"
+              class="bg-success text-primary-foreground hover:bg-success/90"
               :disabled="resolvingFalla"
               @click="confirmarResolve"
             >
-              <LoaderCircleIcon v-if="resolvingFalla" class="size-[1em] animate-spin" />
-              <CheckIcon v-else class="size-[1em]" />
+              <LoaderCircleIcon v-if="resolvingFalla" class="animate-spin" />
+              <CheckIcon v-else />
               Marcar resuelta
             </Button>
           </DialogFooter>
@@ -1267,21 +1264,21 @@ interface Bucket {
   color: string
 }
 const BUCKETS: Bucket[] = [
-  { key: 'activas', label: 'Activas', icon: ZapIcon, color: '#dc2626' },
-  { key: 'alerta', label: 'Alerta SLA', icon: CircleAlertIcon, color: '#d97706' },
-  { key: 'cerradas', label: 'Cerradas', icon: CircleCheckIcon, color: '#16a34a' },
-  { key: 'todas', label: 'Todas', icon: ListIcon, color: '#915BD8' },
+  { key: 'activas', label: 'Activas', icon: ZapIcon, color: 'var(--destructive)' },
+  { key: 'alerta', label: 'Alerta SLA', icon: CircleAlertIcon, color: 'var(--warning)' },
+  { key: 'cerradas', label: 'Cerradas', icon: CircleCheckIcon, color: 'var(--success)' },
+  { key: 'todas', label: 'Todas', icon: ListIcon, color: 'var(--primary)' },
 ]
 
 const AVATAR_PALETTE = [
-  '#915BD8',
-  '#2563eb',
-  '#16a34a',
-  '#d97706',
-  '#dc2626',
-  '#0891b2',
-  '#7c3aed',
-  '#db2777',
+  'var(--primary)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--success)',
+  'var(--warning)',
 ]
 
 // ── Estado base ───────────────────────────────────────────────────────────
@@ -1952,11 +1949,10 @@ function initials(nombre?: string): string {
   return (parts[0]?.[0] || '?').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
 }
 
-function avatarStyle(user?: { id?: number; nombre?: string } | null) {
-  if (!user) return { background: '#9ca3af' }
+function avatarColor(user?: { id?: number; nombre?: string } | null): string {
+  if (!user) return 'var(--muted-foreground)'
   const id = user.id ?? hashCode(user.nombre || '')
-  const color = AVATAR_PALETTE[Math.abs(id) % AVATAR_PALETTE.length]
-  return { background: color }
+  return AVATAR_PALETTE[Math.abs(id) % AVATAR_PALETTE.length] ?? 'var(--primary)'
 }
 
 function hashCode(str: string): number {
@@ -1996,19 +1992,18 @@ function slaVencido(falla: Falla): boolean {
   return p != null && p >= 100
 }
 
-function slaFillStyle(falla: Falla) {
-  const p = Math.min(slaPct(falla) ?? 0, 100)
-  return { width: `${p}%`, background: slaTextColor(falla) }
+function slaFillPct(falla: Falla): number {
+  return Math.min(slaPct(falla) ?? 0, 100)
 }
 
 function slaTextColor(falla: Falla): string {
-  if (falla.sla_cumplido === true) return '#16a34a'
-  if (falla.sla_cumplido === false) return '#dc2626'
+  if (falla.sla_cumplido === true) return 'var(--success)'
+  if (falla.sla_cumplido === false) return 'var(--destructive)'
   const p = slaPct(falla)
-  if (p == null) return '#9ca3af'
-  if (p >= 100) return '#dc2626'
-  if (p >= 70) return '#d97706'
-  return '#16a34a'
+  if (p == null) return 'var(--muted-foreground)'
+  if (p >= 100) return 'var(--destructive)'
+  if (p >= 70) return 'var(--warning)'
+  return 'var(--success)'
 }
 
 function slaText(falla: Falla): string {
@@ -2022,9 +2017,9 @@ function slaText(falla: Falla): string {
 
 function slaSeverity(falla: Falla): GandalfBadgeColor {
   const c = slaTextColor(falla)
-  if (c === '#16a34a') return 'success'
-  if (c === '#dc2626') return 'destructive'
-  if (c === '#d97706') return 'warning'
+  if (c === 'var(--success)') return 'success'
+  if (c === 'var(--destructive)') return 'destructive'
+  if (c === 'var(--warning)') return 'warning'
   return 'default'
 }
 
