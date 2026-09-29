@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
     <Transition name="isheet">
-      <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-muted font-sans text-unergy-deep">
+      <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-muted font-sans text-foreground">
         <!-- Encabezado -->
         <header
-          class="is-head flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3 pb-2 text-white"
+          class="is-head flex shrink-0 items-center gap-2.5 bg-foreground px-3 pb-2 text-white"
         >
           <button class="size-9 shrink-0 rounded-lg bg-white/10 text-white" @click="close">
             <ChevronLeftIcon class="size-4" />
@@ -36,7 +36,7 @@
               CHIP,
               ocultos.has(inv.dev_name)
                 ? 'border-border bg-muted text-muted-foreground'
-                : 'border-(--c) bg-(--c)/8 text-unergy-deep',
+                : 'border-(--c) bg-(--c)/8 text-foreground',
             ]"
             :style="{ '--c': inv.color }"
             @click="toggle(inv.dev_name)"
@@ -55,7 +55,7 @@
               >{{ fmtKw(inv.peak_kw) }}</span
             >
           </button>
-          <button :class="[CHIP, 'border-border bg-muted text-unergy-purple']" @click="todos">
+          <button :class="[CHIP, 'border-border bg-muted text-primary']" @click="todos">
             <EyeIcon v-if="ocultos.size" class="size-3" />
             <EyeOffIcon v-else class="size-3" />
             {{ ocultos.size ? 'Todos' : 'Ninguno' }}
@@ -65,14 +65,14 @@
         <!-- Gráfica -->
         <main class="relative min-h-0 flex-1 bg-card px-2.5 pt-3 pb-1.5">
           <div v-if="loading" :class="STATE">
-            <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+            <LoaderCircleIcon class="size-6 animate-spin text-primary" />
             <span>Cargando inversores…</span>
           </div>
           <div v-else-if="error" :class="STATE">
             <TriangleAlertIcon class="size-8 text-warning" />
             <span>{{ error }}</span>
             <button
-              class="mt-0.5 rounded-xl bg-unergy-purple px-5 py-2.5 text-sm font-semibold text-white"
+              class="mt-0.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white"
               @click="cargar(true)"
             >
               Reintentar
@@ -146,13 +146,13 @@ const { color } = useThemeColors()
 // Misma paleta que la "Comparativa de inversores" del escritorio, con tokens del tema.
 // Es una función: Chart.js necesita el color resuelto, que depende del modo claro/oscuro.
 const PALETA: TokenColor[] = [
-  'unergy-purple',
+  'primary',
   'success',
   'warning',
   'chart-2',
   'destructive',
   'chart-1',
-  'primary',
+  'muted-foreground',
   'chart-4',
   'chart-5',
   'chart-3',
@@ -254,7 +254,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   plugins: {
     legend: { display: false }, // las líneas se prenden y apagan con los chips
     tooltip: {
-      backgroundColor: color('unergy-deep', 0.95),
+      backgroundColor: color('foreground', 0.95),
       padding: 10,
       titleFont: { size: 12 },
       bodyFont: { size: 11.5 },
