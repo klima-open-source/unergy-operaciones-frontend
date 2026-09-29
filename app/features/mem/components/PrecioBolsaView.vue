@@ -78,11 +78,19 @@ const spotKpis = computed<Kpi[]>(() => {
   const s = spot.value?.summary
   if (!s) return []
   return [
-    { label: 'Precio promedio', value: `$${s.price_avg?.toFixed(0)}`, color: '#915BD8' },
-    { label: 'Precio máximo', value: `$${s.price_max?.toFixed(0)}`, color: '#D64455' },
-    { label: 'Spread', value: `$${s.spread?.toFixed(0)}`, color: '#F0C040' },
-    { label: 'Demanda', value: `${s.total_gwh?.toFixed(1)} GWh`, color: '#3B82F6' },
-    { label: 'Hidráulica', value: `${s.hydro_pct}%`, color: '#10B981' },
+    {
+      label: 'Precio promedio',
+      value: `$${s.price_avg?.toFixed(0)}`,
+      color: 'var(--color-primary)',
+    },
+    {
+      label: 'Precio máximo',
+      value: `$${s.price_max?.toFixed(0)}`,
+      color: 'var(--color-destructive)',
+    },
+    { label: 'Spread', value: `$${s.spread?.toFixed(0)}`, color: 'var(--color-warning)' },
+    { label: 'Demanda', value: `${s.total_gwh?.toFixed(1)} GWh`, color: 'var(--color-chart-3)' },
+    { label: 'Hidráulica', value: `${s.hydro_pct}%`, color: 'var(--color-success)' },
   ]
 })
 
@@ -208,7 +216,7 @@ const ensoColor = computed(() => {
     (Array.isArray(enso?.classification) ? enso.classification[0] : enso?.classification) ||
     ''
   if (c.includes('Niño')) return 'text-destructive'
-  if (c.includes('Niña')) return 'text-blue-600'
+  if (c.includes('Niña')) return 'text-chart-3'
   return 'text-muted-foreground'
 })
 
@@ -293,7 +301,7 @@ const ensoBands = computed<EnsoBand[]>(() => {
         bands.push({
           x: histPadL + start * step,
           w: (i - start) * step,
-          color: phase === 'El Niño' ? '#ef4444' : '#3b82f6',
+          color: phase === 'El Niño' ? 'fill-destructive' : 'fill-chart-3',
         })
       }
       start = i
@@ -304,7 +312,7 @@ const ensoBands = computed<EnsoBand[]>(() => {
     bands.push({
       x: histPadL + start * step,
       w: (n - start) * step,
-      color: phase === 'El Niño' ? '#ef4444' : '#3b82f6',
+      color: phase === 'El Niño' ? 'fill-destructive' : 'fill-chart-3',
     })
   }
   return bands
@@ -334,17 +342,16 @@ const histKpis = computed<Kpi[]>(() => {
   const max = Math.max(...prices2)
   const latest = prices2[prices2.length - 1]!
   return [
-    { label: 'Meses de datos', value: String(data.length), color: '#915BD8' },
-    { label: 'Precio actual', value: `$${latest.toFixed(0)}`, color: '#2C2039' },
-    { label: 'Prom. histórico', value: `$${avg.toFixed(0)}`, color: '#10B981' },
-    { label: 'Máx. histórico', value: `$${max.toFixed(0)}`, color: '#D64455' },
+    { label: 'Meses de datos', value: String(data.length), color: 'var(--color-primary)' },
+    { label: 'Precio actual', value: `$${latest.toFixed(0)}`, color: 'var(--color-foreground)' },
+    { label: 'Prom. histórico', value: `$${avg.toFixed(0)}`, color: 'var(--color-success)' },
+    { label: 'Máx. histórico', value: `$${max.toFixed(0)}`, color: 'var(--color-destructive)' },
   ]
 })
 
 interface EnsoPhaseStat {
   label: string
   color: string
-  bg: string
   avgPrice: string
   count: number
 }
@@ -360,9 +367,9 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
     groups[phase].count++
   }
   const phases = [
-    { key: 'El Niño', label: 'El Niño', color: '#D64455', bg: 'rgba(214,68,85,0.08)' },
-    { key: 'Neutral', label: 'Neutral', color: '#6b5a8a', bg: 'rgba(107,90,138,0.08)' },
-    { key: 'La Niña', label: 'La Niña', color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
+    { key: 'El Niño', label: 'El Niño', color: 'var(--color-destructive)' },
+    { key: 'Neutral', label: 'Neutral', color: 'var(--color-muted-foreground)' },
+    { key: 'La Niña', label: 'La Niña', color: 'var(--color-chart-3)' },
   ]
   return phases
     .filter((p) => groups[p.key])
@@ -382,7 +389,7 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
     <PageHeader title="Mercado de Energía" subtitle="Precios de bolsa XM + Pronóstico Clima">
       <template #lead>
         <Button variant="ghost" class="-ml-2" @click="router.back()">
-          <ArrowLeftIcon class="size-[1em]" />
+          <ArrowLeftIcon />
         </Button>
         <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <ChartLineIcon class="size-4 text-primary" />
@@ -414,11 +421,11 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
               <div
                 v-for="kpi in spotKpis"
                 :key="kpi.label"
-                class="rounded-xl border p-3"
-                :style="`border-color:${kpi.color}33; background:${kpi.color}08`"
+                class="rounded-xl border border-(--c)/20 bg-(--c)/5 p-3"
+                :style="{ '--c': kpi.color }"
               >
-                <p class="text-2xl font-bold" :style="`color:${kpi.color}`">{{ kpi.value }}</p>
-                <p class="mt-0.5 text-xs font-medium" :style="`color:${kpi.color}cc`">
+                <p class="text-2xl font-bold text-(--c)">{{ kpi.value }}</p>
+                <p class="mt-0.5 text-xs font-medium text-(--c)/80">
                   {{ kpi.label }}
                 </p>
               </div>
@@ -431,28 +438,27 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
               </div>
               <svg
                 :viewBox="`0 0 ${chartW} ${chartH}`"
-                class="w-full"
-                style="max-height: 260px"
+                class="max-h-65 w-full"
                 @mousemove="onChartMove"
                 @mouseleave="hoverBar = null"
               >
                 <line
                   v-for="y in gridY"
                   :key="`g${y.val}`"
+                  class="stroke-border"
                   :x1="padL"
                   :x2="chartW - padR"
                   :y1="y.py"
                   :y2="y.py"
-                  stroke="#e5e7eb"
                   stroke-width="0.5"
                 />
                 <text
                   v-for="y in gridY"
                   :key="`t${y.val}`"
+                  class="fill-muted-foreground"
                   :x="padL - 4"
                   :y="y.py + 3"
                   text-anchor="end"
-                  fill="#9ca3af"
                   font-size="9"
                 >
                   {{ y.label }}
@@ -472,19 +478,19 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
 
                 <line
                   v-if="spot.scarcity_price"
+                  class="stroke-destructive"
                   :x1="padL"
                   :x2="chartW - padR"
                   :y1="priceToY(spot.scarcity_price)"
                   :y2="priceToY(spot.scarcity_price)"
-                  stroke="#D64455"
                   stroke-width="1"
                   stroke-dasharray="4,3"
                 />
                 <text
                   v-if="spot.scarcity_price"
+                  class="fill-destructive"
                   :x="chartW - padR + 2"
                   :y="priceToY(spot.scarcity_price) + 3"
-                  fill="#D64455"
                   font-size="8"
                 >
                   P.Esc ${{ Math.round(spot.scarcity_price) }}
@@ -493,10 +499,10 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                 <text
                   v-for="h in 24"
                   :key="`h${h}`"
+                  class="fill-muted-foreground"
                   :x="padL + (h - 0.5) * barStep"
                   :y="chartH - 2"
                   text-anchor="middle"
-                  fill="#9ca3af"
                   font-size="8"
                 >
                   {{ h }}
@@ -505,8 +511,8 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
 
               <div
                 v-if="hoverBar"
-                class="pointer-events-none fixed z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-lg"
-                :style="{ left: `${tooltipLeft}px`, top: `${tooltipTop}px` }"
+                class="pointer-events-none fixed top-(--t) left-(--l) z-50 rounded-lg border bg-popover px-3 py-2 text-xs shadow-lg"
+                :style="{ '--l': `${tooltipLeft}px`, '--t': `${tooltipTop}px` }"
               >
                 <p class="font-semibold text-foreground">Hora {{ hoverBar.hour }}</p>
                 <p class="text-primary">${{ hoverBar.price.toFixed(2) }} /kWh</p>
@@ -527,14 +533,12 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                     class="font-mono text-xs font-semibold text-foreground"
                     >{{ asGeneracion(row).hour }}</span
                   >
-                  <span
-                    v-else-if="column.key === 'hidro'"
-                    class="font-mono text-xs text-blue-600"
-                    >{{ asGeneracion(row).hidro.toLocaleString() }}</span
-                  >
+                  <span v-else-if="column.key === 'hidro'" class="font-mono text-xs text-chart-3">{{
+                    asGeneracion(row).hidro.toLocaleString()
+                  }}</span>
                   <span
                     v-else-if="column.key === 'termica'"
-                    class="font-mono text-xs text-orange-600"
+                    class="font-mono text-xs text-warning"
                     >{{ asGeneracion(row).termica.toLocaleString() }}</span
                   >
                   <span
@@ -642,7 +646,7 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                     class="rounded-full px-2 py-0.5 text-xs font-medium"
                     :class="{
                       'bg-destructive/15 text-destructive': asSenal(row).risk_level === 'ALTO',
-                      'bg-amber-100 text-amber-600': asSenal(row).risk_level === 'MEDIO',
+                      'bg-warning/15 text-warning': asSenal(row).risk_level === 'MEDIO',
                       'bg-success/15 text-success': !['ALTO', 'MEDIO'].includes(
                         asSenal(row).risk_level || '',
                       ),
@@ -685,11 +689,11 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
               <div
                 v-for="kpi in histKpis"
                 :key="kpi.label"
-                class="rounded-xl border p-3"
-                :style="`border-color:${kpi.color}33; background:${kpi.color}08`"
+                class="rounded-xl border border-(--c)/20 bg-(--c)/5 p-3"
+                :style="{ '--c': kpi.color }"
               >
-                <p class="text-2xl font-bold" :style="`color:${kpi.color}`">{{ kpi.value }}</p>
-                <p class="mt-0.5 text-xs font-medium" :style="`color:${kpi.color}cc`">
+                <p class="text-2xl font-bold text-(--c)">{{ kpi.value }}</p>
+                <p class="mt-0.5 text-xs font-medium text-(--c)/80">
                   {{ kpi.label }}
                 </p>
               </div>
@@ -699,11 +703,7 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
               <h3 class="mb-3 text-sm font-semibold text-foreground">
                 Precio Bolsa vs ONI ({{ histPrices.length }} meses)
               </h3>
-              <svg
-                :viewBox="`0 0 ${histChartW} ${histChartH}`"
-                class="w-full"
-                style="max-height: 320px"
-              >
+              <svg :viewBox="`0 0 ${histChartW} ${histChartH}`" class="max-h-80 w-full">
                 <rect
                   v-for="(band, i) in ensoBands"
                   :key="`b${i}`"
@@ -711,7 +711,7 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                   y="10"
                   :width="band.w"
                   :height="histChartH - 30"
-                  :fill="band.color"
+                  :class="band.color"
                   opacity="0.12"
                 />
                 <polyline
@@ -721,27 +721,27 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                   stroke-width="1.5"
                 />
                 <polyline
+                  class="stroke-chart-3"
                   :points="histOniLine"
                   fill="none"
-                  stroke="#3B82F6"
                   stroke-width="1"
                   stroke-dasharray="4,2"
                 />
                 <line
+                  class="stroke-muted-foreground"
                   :x1="histPadL"
                   :x2="histChartW - histPadR"
                   :y1="oniToY(0)"
                   :y2="oniToY(0)"
-                  stroke="#94a3b8"
                   stroke-width="0.5"
                   stroke-dasharray="2,2"
                 />
                 <template v-for="(yl, i) in histYearLabels" :key="`yl${i}`">
                   <text
+                    class="fill-muted-foreground"
                     :x="yl.x"
                     :y="histChartH - 2"
                     text-anchor="middle"
-                    fill="#9ca3af"
                     font-size="9"
                   >
                     {{ yl.year }}
@@ -757,19 +757,19 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                 />
                 <text x="33" y="9" fill="var(--color-primary)" font-size="8">Precio COP/kWh</text>
                 <line
+                  class="stroke-chart-3"
                   x1="140"
                   x2="160"
                   y1="6"
                   y2="6"
-                  stroke="#3B82F6"
                   stroke-width="1"
                   stroke-dasharray="4,2"
                 />
-                <text x="163" y="9" fill="#3B82F6" font-size="8">ONI</text>
-                <rect x="230" y="2" width="10" height="8" fill="#ef4444" opacity="0.2" />
-                <text x="243" y="9" fill="#9ca3af" font-size="8">El Niño</text>
-                <rect x="300" y="2" width="10" height="8" fill="#3b82f6" opacity="0.2" />
-                <text x="313" y="9" fill="#9ca3af" font-size="8">La Niña</text>
+                <text class="fill-chart-3" x="163" y="9" font-size="8">ONI</text>
+                <rect class="fill-destructive" x="230" y="2" width="10" height="8" opacity="0.2" />
+                <text class="fill-muted-foreground" x="243" y="9" font-size="8">El Niño</text>
+                <rect class="fill-chart-3" x="300" y="2" width="10" height="8" opacity="0.2" />
+                <text class="fill-muted-foreground" x="313" y="9" font-size="8">La Niña</text>
               </svg>
             </div>
 
@@ -781,10 +781,10 @@ const ensoPhaseStats = computed<EnsoPhaseStat[]>(() => {
                 <div
                   v-for="phase in ensoPhaseStats"
                   :key="phase.label"
-                  class="rounded-lg p-4 text-center"
-                  :style="`background: ${phase.bg}`"
+                  class="rounded-lg bg-(--c)/8 p-4 text-center"
+                  :style="{ '--c': phase.color }"
                 >
-                  <p class="text-lg font-bold" :style="`color: ${phase.color}`">
+                  <p class="text-lg font-bold text-(--c)">
                     {{ phase.label }}
                   </p>
                   <p class="mt-1 text-2xl font-bold text-foreground">${{ phase.avgPrice }}</p>

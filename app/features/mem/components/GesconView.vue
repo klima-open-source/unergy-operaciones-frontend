@@ -1137,7 +1137,7 @@ onMounted(() => {
                   "
                 >
                   {{ fmt(finEfectivo(asRow(row))) }}
-                  <HistoryIcon class="size-3 text-amber-600" />
+                  <HistoryIcon class="size-3 text-warning" />
                 </span>
               </GTooltipTrigger>
               <GTooltipContent
@@ -1182,9 +1182,7 @@ onMounted(() => {
 
           <template v-else-if="column.key === 'coexiste'">
             <GTooltip v-if="!asRow(row).reemplaza_anterior">
-              <GTooltipTrigger as-child
-                ><LinkIcon class="size-3.5 text-amber-600"
-              /></GTooltipTrigger>
+              <GTooltipTrigger as-child><LinkIcon class="size-3.5 text-warning" /></GTooltipTrigger>
               <GTooltipContent>Coexiste con otras plantas en este SIC</GTooltipContent>
             </GTooltip>
           </template>
@@ -1193,7 +1191,7 @@ onMounted(() => {
             <GTooltip v-if="asRow(row).uso_del_recurso">
               <GTooltipTrigger as-child>
                 <span
-                  class="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700"
+                  class="inline-flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary"
                 >
                   <RefreshCwIcon class="size-2.5" />Uso recurso
                 </span>
@@ -1206,7 +1204,7 @@ onMounted(() => {
             <GTooltip v-else-if="asRow(row).es_duplicado">
               <GTooltipTrigger as-child>
                 <span
-                  class="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                  class="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-xs font-semibold text-warning"
                 >
                   <ShoppingCartIcon class="size-2.5" />Bolsa
                 </span>
@@ -1315,9 +1313,9 @@ onMounted(() => {
             <!-- ── Terminación: solo los datos que XM exige ─────────────── -->
             <template v-if="esTerminacion">
               <div
-                class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                class="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
               >
-                <InfoIcon class="mt-0.5 size-[1em]" />
+                <InfoIcon class="mt-0.5 size-3 text-warning" />
                 <span
                   >Al publicar, el contrato con este código SIC terminará en la fecha indicada:
                   dejará de aportar energía en Cumplimiento después de esa fecha (el histórico
@@ -1421,8 +1419,8 @@ onMounted(() => {
               </div>
 
               <!-- Fila 4: Proyecto + coexistencia + duplicado -->
-              <div class="grid grid-cols-[1fr_auto_auto] items-end gap-4">
-                <div class="flex flex-col gap-1.5">
+              <div class="flex items-end gap-4">
+                <div class="flex flex-1 flex-col gap-1.5">
                   <GLabel>Planta / Proyecto</GLabel>
                   <ComboBox
                     :model-value="form.proyecto_id != null ? String(form.proyecto_id) : null"
@@ -1470,16 +1468,13 @@ onMounted(() => {
                       >{{ op.label }}</ToggleGroupItem
                     >
                   </ToggleGroup>
-                  <span
-                    v-if="modalidadSuministro === 'uso_recurso'"
-                    class="text-[11px] text-blue-700"
-                  >
+                  <span v-if="modalidadSuministro === 'uso_recurso'" class="text-xs text-primary">
                     Uso del recurso: se le paga al cliente su generación a precio bolsa. No genera
                     compra en bolsa ni garantías.
                   </span>
                   <span
                     v-else-if="modalidadSuministro === 'duplicado'"
-                    class="text-[11px] text-amber-700"
+                    class="text-xs text-warning"
                   >
                     Compra en bolsa: la planta ya está en otro contrato; su aporte aquí se cubre
                     comprando en bolsa (genera garantías).
@@ -1510,11 +1505,11 @@ onMounted(() => {
                 :class="
                   conflictoNoResuelto
                     ? 'border-destructive/30 bg-destructive/5 text-destructive'
-                    : 'border-amber-300 bg-amber-50 text-amber-900'
+                    : 'border-warning/30 bg-warning/5 text-foreground'
                 "
               >
                 <div class="flex items-start gap-2">
-                  <TriangleAlertIcon class="mt-0.5 size-[1em]" />
+                  <TriangleAlertIcon class="mt-0.5 size-3" />
                   <div class="flex-1">
                     <p class="font-medium">
                       Se detectó {{ conflictosSolapamiento.length }} contrato{{
@@ -1682,7 +1677,7 @@ onMounted(() => {
             <span v-if="backfillTermReport.a_recortar" class="text-destructive">
               <b>{{ backfillTermReport.a_recortar }}</b> registro(s) con fecha por recortar
             </span>
-            <span v-if="backfillTermReport.sin_resolver" class="text-amber-700"
+            <span v-if="backfillTermReport.sin_resolver" class="text-warning"
               ><b>{{ backfillTermReport.sin_resolver }}</b> sin resolver</span
             >
             <span v-if="backfillTermReport.total_terminaciones" class="text-muted-foreground"
@@ -1737,7 +1732,7 @@ onMounted(() => {
           </div>
 
           <details v-if="backfillTermReport.no_resueltos?.length" class="text-xs">
-            <summary class="cursor-pointer text-amber-700">
+            <summary class="cursor-pointer text-warning">
               {{ backfillTermReport.no_resueltos.length }} sin resolver (ver)
             </summary>
             <ul class="mt-1 list-disc pl-4 text-muted-foreground">
@@ -1786,7 +1781,7 @@ onMounted(() => {
             <span
               ><b>{{ backfillReport.a_actualizar }}</b> se completarán</span
             >
-            <span v-if="backfillReport.sin_resolver" class="text-amber-700"
+            <span v-if="backfillReport.sin_resolver" class="text-warning"
               ><b>{{ backfillReport.sin_resolver }}</b> sin resolver</span
             >
             <span v-if="backfillReport.total_sin_nombre" class="text-muted-foreground"
@@ -1815,7 +1810,7 @@ onMounted(() => {
           </div>
 
           <details v-if="backfillReport.no_resueltos?.length" class="text-xs">
-            <summary class="cursor-pointer text-amber-700">
+            <summary class="cursor-pointer text-warning">
               {{ backfillReport.no_resueltos.length }} sin resolver (ver)
             </summary>
             <ul class="mt-1 list-disc pl-4 text-muted-foreground">

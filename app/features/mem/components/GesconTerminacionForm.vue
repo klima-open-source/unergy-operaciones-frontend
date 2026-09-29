@@ -134,9 +134,9 @@ async function guardar() {
 <template>
   <form class="space-y-5 pt-1" @submit.prevent="guardar">
     <div
-      class="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+      class="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-foreground"
     >
-      <InfoIcon class="mt-0.5 size-[1em]" />
+      <InfoIcon class="mt-0.5 size-3 text-warning" />
       <span
         >Al publicar, los registros de este código SIC dejarán de aportar energía en Cumplimiento
         después de la fecha indicada. El histórico previo se conserva.</span
@@ -187,10 +187,7 @@ async function guardar() {
           </tr>
         </tbody>
       </table>
-      <p
-        v-if="inscritas.length && !algoSeCierra && fechaTerminacion"
-        class="text-[11px] text-amber-700"
-      >
+      <p v-if="inscritas.length && !algoSeCierra && fechaTerminacion" class="text-xs text-warning">
         Ningún registro se recorta: todos terminan antes de esa fecha.
       </p>
     </div>
@@ -239,7 +236,7 @@ async function guardar() {
       v-if="resumen"
       class="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs text-foreground"
     >
-      <FlagIcon class="mt-0.5 size-[1em] text-primary" />
+      <FlagIcon class="mt-0.5 size-3 text-primary" />
       <span>{{ resumen }}</span>
     </div>
 
