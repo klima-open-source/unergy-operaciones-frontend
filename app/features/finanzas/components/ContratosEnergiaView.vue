@@ -24,34 +24,34 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Comercializador, proyecto, código…" />
         </IconField>
       </div>
       <div>
-        <label class="field-label">Planta</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Planta</label>
         <Select v-model="plantaSel" :options="proyectosOptions" optionLabel="label" optionValue="value"
                 showClear filter placeholder="Todas" />
       </div>
       <div>
-        <label class="field-label">Tipo de contrato</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de contrato</label>
         <Select v-model="tipoSel" :options="TIPOS_CONTRATO" optionLabel="label" optionValue="value"
                 showClear placeholder="Todos" />
       </div>
       <div>
-        <label class="field-label">Tipo de tarifa</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de tarifa</label>
         <Select v-model="tarifaSel" :options="TIPOS_TARIFA" optionLabel="label" optionValue="value"
                 showClear placeholder="Todas" />
       </div>
       <div>
-        <label class="field-label">Año</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
         <Select v-model="anioSel" :options="aniosOptions" showClear placeholder="Todos"
                 v-tooltip.top="'Contratos cuya vigencia toca ese año'" />
       </div>
       <div>
-        <label class="field-label">Vigencia</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Vigencia</label>
         <div class="flex items-center gap-2 h-9.5">
           <ToggleSwitch v-model="soloVigentes" />
           <span class="text-xs text-muted-foreground">{{ soloVigentes ? 'Solo vigentes' : 'Todos' }}</span>
@@ -143,16 +143,16 @@
       <form @submit.prevent="guardar" class="space-y-5 pt-1">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="field-label">Fecha desde *</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Fecha desde *</label>
             <DatePicker v-model="f.fecha_desde" dateFormat="yy-mm-dd" showIcon class="w-full" placeholder="Seleccionar" />
           </div>
           <div>
-            <label class="field-label">Fecha hasta *</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Fecha hasta *</label>
             <DatePicker v-model="f.fecha_hasta" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
           </div>
 
           <div>
-            <label class="field-label">Código</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Código</label>
             <InputText v-model="f.codigo" class="w-full" placeholder="ej: 90060" />
             <p class="text-xs text-muted-foreground mt-1">
               Es el código del contrato en XM. Sin él, el proyecto no entra en la
@@ -160,25 +160,25 @@
             </p>
           </div>
           <div>
-            <label class="field-label">Comercializador</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Comercializador</label>
             <Select v-model="f.comercializador" :options="empresasOptions" optionLabel="label" optionValue="id"
                     class="w-full" placeholder="Seleccionar" filter showClear />
             <p class="text-xs text-muted-foreground mt-1">Necesario si el proyecto es comercializador.</p>
           </div>
 
           <div>
-            <label class="field-label">Tipo de contrato *</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de contrato *</label>
             <Select v-model="f.tipo_contrato" :options="TIPOS_CONTRATO" optionLabel="label" optionValue="value"
                     class="w-full" placeholder="Seleccionar" />
           </div>
           <div>
-            <label class="field-label">Tipo de tarifa *</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de tarifa *</label>
             <Select v-model="f.tipo_tarifa" :options="tarifasDisponibles" optionLabel="label" optionValue="value"
                     class="w-full" placeholder="Seleccionar" />
           </div>
 
           <div>
-            <label class="field-label">Porcentaje de despacho</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Porcentaje de despacho</label>
             <InputNumber v-model="f.porcentaje" :maxFractionDigits="4" :useGrouping="false"
                          class="w-full" placeholder="ej: 1.0" :min="0" :max="1" />
             <p class="text-xs text-muted-foreground mt-1">
@@ -211,12 +211,12 @@
                :class="idx < f.proyectos.length - 1 ? 'border-b border-border' : ''">
             <div class="grid grid-cols-12 gap-2 items-end">
               <div class="col-span-6">
-                <label class="field-label">Proyecto</label>
+                <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
                 <Select v-model="linea.project" :options="proyectosOptions" optionLabel="label" optionValue="value"
                         class="w-full" placeholder="Seleccionar" filter showClear />
               </div>
               <div class="col-span-5">
-                <label class="field-label">Precio de energía</label>
+                <label class="mb-1 block text-xs font-medium text-muted-foreground">Precio de energía</label>
                 <Select v-model="linea.energy_price" :options="preciosOptions" optionLabel="label" optionValue="id"
                         class="w-full" placeholder="Seleccionar" filter showClear
                         :disabled="f.tipo_tarifa === 'market'" />
@@ -234,12 +234,12 @@
 
             <div v-if="esPlc" class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
-                <label class="field-label">Piso · 24 valores kWh</label>
+                <label class="mb-1 block text-xs font-medium text-muted-foreground">Piso · 24 valores kWh</label>
                 <Textarea v-model="linea.floorTexto" rows="2" class="w-full text-xs"
                           placeholder="0, 0, 0, …, 120.5, 340, …" />
               </div>
               <div>
-                <label class="field-label">Techo · 24 valores kWh</label>
+                <label class="mb-1 block text-xs font-medium text-muted-foreground">Techo · 24 valores kWh</label>
                 <Textarea v-model="linea.roofTexto" rows="2" class="w-full text-xs"
                           placeholder="0, 0, 0, …, 150.2, 400, …" />
               </div>
@@ -622,11 +622,3 @@ onMounted(() => {
   cargarProyectos()
 })
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-</style>

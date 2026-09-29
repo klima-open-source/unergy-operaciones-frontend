@@ -13,27 +13,27 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Proyecto</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
                 showClear filter placeholder="Todos" />
       </div>
       <!-- Mes, año y versión definen el período que se le pide a XM: no se
            filtran en pantalla, se recarga. Por eso no admiten "todos". -->
       <div>
-        <label class="field-label">Mes</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
         <Select v-model="filtros.mes" :options="MESES" optionLabel="label" optionValue="value"
                 @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Año</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
         <Select v-model="filtros.anio" :options="aniosOptions" @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Versión</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
         <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto…" />
@@ -63,9 +63,9 @@
         <table class="w-full text-sm border-collapse">
           <thead>
             <tr class="bg-muted/50 border-b border-border">
-              <th class="col-fija col-proyecto px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Proyecto</th>
-              <th class="col-fija col-fecha px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Fecha</th>
-              <th class="col-fija col-version px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Versión</th>
+              <th class="sticky left-0 z-20 min-w-47.5 bg-muted px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Proyecto</th>
+              <th class="sticky left-47.5 z-20 bg-muted px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Fecha</th>
+              <th class="sticky left-72.5 z-20 border-r border-border bg-muted px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Versión</th>
               <th v-for="h in HORAS" :key="h"
                   class="px-2 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase whitespace-nowrap">
                 {{ h }}
@@ -76,10 +76,10 @@
           </thead>
           <tbody>
             <tr v-for="(row, i) in filtrados" :key="i"
-                class="border-t border-border hover:bg-muted/50 transition-colors duration-100 row-hover">
-              <td class="col-fija col-proyecto px-4 py-2">{{ row.proyecto || '—' }}</td>
-              <td class="col-fija col-fecha px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{{ row.fecha || '—' }}</td>
-              <td class="col-fija col-version px-3 py-2 text-xs font-mono uppercase">{{ row.version || '—' }}</td>
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100 group">
+              <td class="sticky left-0 z-10 min-w-47.5 bg-card px-4 py-2 group-hover:bg-muted">{{ row.proyecto || '—' }}</td>
+              <td class="sticky left-47.5 z-10 bg-card px-3 py-2 group-hover:bg-muted text-xs text-muted-foreground whitespace-nowrap">{{ row.fecha || '—' }}</td>
+              <td class="sticky left-72.5 z-10 border-r border-border bg-card px-3 py-2 group-hover:bg-muted text-xs font-mono uppercase">{{ row.version || '—' }}</td>
               <td v-for="(v, j) in row.horas" :key="j"
                   class="px-2 py-2 text-right font-mono text-xs text-muted-foreground">
                 {{ fmtNum(v) }}
@@ -224,24 +224,3 @@ async function cargarProyectos() {
 
 onMounted(() => { cargar(); cargarProyectos() })
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-
-/* Proyecto, fecha y versión quedan fijas: con 24 horas la tabla se desplaza
-   mucho y sin esto se pierde de vista a qué fila corresponde cada número. */
-.col-fija {
-  position: sticky;
-  z-index: 2;
-  background: #ffffff;
-}
-thead .col-fija { background: #F9FAFB; z-index: 3; }
-.row-hover:hover .col-fija { background: #F8FAFC; }
-.col-proyecto { left: 0; min-width: 190px; }
-.col-fecha { left: 190px; }
-.col-version { left: 290px; border-right: 1px solid #E5E7EB; }
-</style>
