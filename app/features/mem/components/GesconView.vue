@@ -1030,30 +1030,39 @@ onMounted(() => {
         <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
       </ToggleGroup>
 
-      <Select v-model="filtroTipo">
+      <Select
+        :model-value="aValorSelect(filtroTipo)"
+        @update:model-value="(v) => (filtroTipo = deValorSelect(v))"
+      >
         <SelectTrigger class="shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
           <SelectItem v-for="op in opcionesTipo" :key="op.value" :value="op.value">{{
             op.label
           }}</SelectItem>
         </SelectContent>
       </Select>
 
-      <Select v-model="filtroMes">
+      <Select
+        :model-value="aValorSelect(filtroMes)"
+        @update:model-value="(v) => (filtroMes = deValorSelect(v))"
+      >
         <SelectTrigger class="shrink-0"><SelectValue placeholder="Mes (vigencia)" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Mes</SelectItem>
+          <SelectItem :value="VALOR_SELECT_VACIO">Mes</SelectItem>
           <SelectItem v-for="op in opcionesMes" :key="op.value" :value="op.value">{{
             op.label
           }}</SelectItem>
         </SelectContent>
       </Select>
 
-      <Select v-model="filtroAnio">
+      <Select
+        :model-value="aValorSelect(filtroAnio)"
+        @update:model-value="(v) => (filtroAnio = deValorSelect(v))"
+      >
         <SelectTrigger class="shrink-0"><SelectValue placeholder="Año (vigencia)" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Año</SelectItem>
+          <SelectItem :value="VALOR_SELECT_VACIO">Año</SelectItem>
           <SelectItem v-for="op in opcionesAnio" :key="op.value" :value="op.value">{{
             op.label
           }}</SelectItem>
