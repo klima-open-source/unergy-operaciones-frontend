@@ -295,7 +295,7 @@ onMounted(load)
           {{ t.label }}
         </button>
       </div>
-      <InputGroup class="ml-2 w-56">
+      <InputGroup class="ml-2 max-w-xs min-w-48 flex-1">
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
         <InputGroupInput v-model="q" placeholder="Buscar inversionista…" />
       </InputGroup>

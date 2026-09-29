@@ -490,14 +490,14 @@ onMounted(load)
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b bg-muted/30 text-left text-xs text-muted-foreground">
-                <th class="w-12 px-3 py-2" />
+                <th class="px-3 py-2" />
                 <th class="px-3 py-2 font-medium">Proyecto</th>
                 <th class="px-3 py-2 font-medium">Tipo</th>
                 <th class="px-3 py-2 font-medium">Estado</th>
                 <th class="px-3 py-2 text-right font-medium">Ingresos</th>
                 <th class="px-3 py-2 text-right font-medium">Costos</th>
                 <th class="px-3 py-2 text-right font-medium">Valor a pagar</th>
-                <th class="w-12 px-3 py-2" />
+                <th class="px-3 py-2" />
               </tr>
             </thead>
             <tbody>
