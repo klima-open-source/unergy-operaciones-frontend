@@ -870,7 +870,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
           </h3>
           <div class="flex flex-wrap gap-2">
             <Select v-model="gestion.tipo">
-              <SelectTrigger class="w-36"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{
                   t.label

@@ -231,7 +231,7 @@ async function firmar() {
             }}</ToggleGroupItem>
           </ToggleGroup>
 
-          <div v-if="f.modo_precio === 'unica'" class="flex w-56 items-center gap-2">
+          <div v-if="f.modo_precio === 'unica'" class="flex max-w-56 items-center gap-2">
             <NumberField
               v-model="f.tarifa_base"
               :format-options="{ maximumFractionDigits: 2 }"
@@ -266,13 +266,13 @@ async function firmar() {
               :key="i"
               class="mb-1.5 flex items-center gap-2"
             >
-              <NumberField v-model="p.anio" :format-options="{ useGrouping: false }" class="w-24">
+              <NumberField v-model="p.anio" :format-options="{ useGrouping: false }" class="flex-1">
                 <NumberFieldContent><NumberFieldInput placeholder="Año" /></NumberFieldContent>
               </NumberField>
               <NumberField
                 v-model="p.precio"
                 :format-options="{ maximumFractionDigits: 2 }"
-                class="w-40"
+                class="flex-1"
               >
                 <NumberFieldContent
                   ><NumberFieldInput placeholder="Precio $/kWh"
