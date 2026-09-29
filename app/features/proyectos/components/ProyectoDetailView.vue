@@ -11,17 +11,17 @@
                 size="small" class="w-40" />
       </template>
       <template v-if="!isEditMode" #chips>
-        <GBadge :color="estadoSeverity(proyecto.estado)" class="text-[10px]">{{ proyecto.estado }}</GBadge>
+        <GBadge :color="estadoSeverity(proyecto.estado)" class="text-xs">{{ proyecto.estado }}</GBadge>
       </template>
       <template #acciones>
         <template v-if="isEditMode">
           <Button label="Cancelar" severity="secondary" outlined size="small" @click="cancelEdit" />
           <Button label="Guardar cambios" size="small" :loading="guardando" @click="saveEdit">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </template>
         <Button v-else label="Editar" outlined size="small" @click="enterEditMode">
-          <template #icon><PencilIcon class="size-[1em]" /></template>
+          <template #icon><PencilIcon class="size-4" /></template>
         </Button>
       </template>
       <template #default="{ tab }">
@@ -37,15 +37,15 @@
             <!-- Dirección y mapa, junto al resto de la ubicación. Estaban en la
                  pestaña Técnico, lejos de Departamento y Municipio. -->
             <div class="flex flex-col gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wide">Ubicación</p>
-              <p v-if="proyecto.direccion_vereda" class="text-gray-700">{{ proyecto.direccion_vereda }}</p>
+              <p class="text-xs text-muted-foreground uppercase tracking-wide">Ubicación</p>
+              <p v-if="proyecto.direccion_vereda" class="text-foreground">{{ proyecto.direccion_vereda }}</p>
               <a v-if="proyecto.info_tecnica?.url_ubicacion" :href="proyecto.info_tecnica.url_ubicacion"
                  target="_blank" rel="noopener"
-                 class="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs">
-                <MapPinIcon class="size-[1em]" /> Ver en Google Maps
+                 class="inline-flex items-center gap-1 text-primary hover:underline text-xs">
+                <MapPinIcon class="size-4" /> Ver en Google Maps
               </a>
               <span v-if="!proyecto.direccion_vereda && !proyecto.info_tecnica?.url_ubicacion"
-                    class="text-gray-400">—</span>
+                    class="text-muted-foreground">—</span>
             </div>
             <InfoField label="Operador de red" :value="proyecto.operador_red_legal || proyecto.operador_red" />
             <InfoField label="Clasificación" :value="proyecto.clasificacion_regulatoria" />
@@ -63,12 +63,12 @@
                  el PPA y el backend la deriva de ahí. Editarla en la planta era
                  lo que dejaba los dos datos contradiciéndose. -->
             <div class="flex flex-col gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wide">Comunidad energética</p>
+              <p class="text-xs text-muted-foreground uppercase tracking-wide">Comunidad energética</p>
               <div>
                 <GBadge v-if="proyecto.es_comunidad_energetica" color="success">{{ proyecto.nombre_comunidad ? ('🏘 ' + proyecto.nombre_comunidad) : '🏘 Sí' }}</GBadge>
-                <span v-else class="text-gray-400">—</span>
+                <span v-else class="text-muted-foreground">—</span>
               </div>
-              <p v-if="proyecto.es_comunidad_energetica" class="text-[11px] text-gray-400">
+              <p v-if="proyecto.es_comunidad_energetica" class="text-xs text-muted-foreground">
                 Se define en el PPA de comunidad.
               </p>
             </div>
@@ -133,7 +133,7 @@
             <div class="flex flex-col gap-1">
               <label class="field-label">Inicio de comercialización (pruebas)</label>
               <DatePicker v-model="editFechaComerc" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Auto (1er día con generación)" />
-              <small class="text-xs text-gray-400">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
+              <small class="text-xs text-muted-foreground">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
             </div>
             <div class="flex flex-col gap-1">
               <label class="field-label">Fecha de operación (mantenimiento)</label>
@@ -161,15 +161,15 @@
                  Municipio: es dónde está la planta, no cómo está construida. -->
             <!-- Documentación -->
             <div v-if="proyecto.info_tecnica?.retie_url">
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Documentación</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Documentación</p>
               <a :href="proyecto.info_tecnica.retie_url" target="_blank" rel="noopener"
-                 class="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs">
-                <FileIcon class="size-[1em]" /> RETIE
+                 class="inline-flex items-center gap-1 text-primary hover:underline text-xs">
+                <FileIcon class="size-4" /> RETIE
               </a>
             </div>
             <!-- Eléctrico general -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">General</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Potencia AC (kW)" :value="proyecto.info_tecnica?.potencia_ac_kw" />
                 <InfoField label="Capacidad instalada (kWp)" :value="proyecto.info_tecnica?.capacidad_instalada_kwp" />
@@ -183,7 +183,7 @@
             </div>
             <!-- Paneles -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Paneles</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Paneles</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Cantidad de paneles" :value="proyecto.info_tecnica?.cantidad_total_paneles" />
                 <InfoField label="Potencia panel (kWp)" :value="proyecto.info_tecnica?.potencia_panel_kwp" />
@@ -192,7 +192,7 @@
             </div>
             <!-- Inversores -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Inversores</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Inversores</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Cantidad inversores" :value="proyecto.info_tecnica?.cantidad_inversores" />
                 <InfoField label="Potencia inversores (kWp)" :value="proyecto.info_tecnica?.potencia_inversores_kwp" />
@@ -202,7 +202,7 @@
             </div>
             <!-- Equipos -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Marcas de equipos</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Marcas de equipos</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Transformador" :value="proyecto.info_tecnica?.marca_transformador" />
                 <InfoField label="Reconectador / Relé" :value="proyecto.info_tecnica?.marca_reconectador_rele" />
@@ -216,7 +216,7 @@
             </div>
             <!-- CCTV y seguridad -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">CCTV y seguridad</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">CCTV y seguridad</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Estado CCTV" :value="proyecto.info_tecnica?.cctv_estado" />
                 <InfoField label="Marca CCTV" :value="proyecto.info_tecnica?.marca_cctv" />
@@ -226,7 +226,7 @@
             </div>
             <!-- Almacenamiento -->
             <div v-if="proyecto.info_tecnica?.tiene_almacenamiento">
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Almacenamiento</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Almacenamiento</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InfoField label="Capacidad (kWh)" :value="proyecto.info_tecnica?.capacidad_almacenamiento_kwh" />
                 <InfoField label="Marca" :value="proyecto.info_tecnica?.marca_almacenamiento" />
@@ -239,7 +239,7 @@
           <template v-else>
             <!-- Ubicación -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Ubicación</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ubicación</p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Latitud</label>
@@ -257,7 +257,7 @@
             </div>
             <!-- Eléctrico general -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">General</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Potencia AC (kW)</label>
@@ -287,7 +287,7 @@
             </div>
             <!-- Paneles -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Paneles</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Paneles</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Cantidad de paneles</label>
@@ -305,7 +305,7 @@
             </div>
             <!-- Inversores -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Inversores</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Inversores</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Cantidad inversores</label>
@@ -327,7 +327,7 @@
             </div>
             <!-- Equipos -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Marcas de equipos</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Marcas de equipos</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="field-label">Transformador</label>
@@ -365,7 +365,7 @@
             </div>
             <!-- CCTV y seguridad -->
             <div>
-              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">CCTV y seguridad</p>
+              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">CCTV y seguridad</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1 md:col-span-2">
                   <label class="field-label">Estado CCTV</label>
@@ -388,9 +388,9 @@
             <!-- Almacenamiento -->
             <div>
               <div class="flex items-center gap-2 mb-3">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Almacenamiento</p>
+                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Almacenamiento</p>
                 <Checkbox v-model="editInfoTecnica.tiene_almacenamiento" binary />
-                <span class="text-xs text-gray-500">{{ editInfoTecnica.tiene_almacenamiento ? 'Sí' : 'No' }}</span>
+                <span class="text-xs text-muted-foreground">{{ editInfoTecnica.tiene_almacenamiento ? 'Sí' : 'No' }}</span>
               </div>
               <div v-if="editInfoTecnica.tiene_almacenamiento" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
@@ -417,16 +417,16 @@
         <div class="space-y-6">
           <div v-if="!isEditMode && hasSimulacionData" class="flex justify-end">
             <Button label="Descargar Excel" size="small" outlined severity="success" @click="descargarSimulacionExcel">
-              <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+              <template #icon><FileSpreadsheetIcon class="size-4" /></template>
             </Button>
           </div>
           <div v-for="sim in SIMULACIONES" :key="sim.key">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               {{ sim.label }} <span class="normal-case font-normal">(kWh/mes)</span>
             </p>
             <div class="grid grid-cols-6 gap-2">
               <div v-for="(mes, i) in MESES" :key="sim.key + '-' + i">
-                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">{{ mes }}</label>
+                <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
                 <InputNumber
                   v-if="isEditMode"
                   v-model="sim.editArray.value[i]"
@@ -435,7 +435,7 @@
                   class="w-full"
                   inputClass="text-center text-xs px-1 py-1"
                 />
-                <p v-else class="text-center text-sm font-semibold text-gray-800 bg-gray-50 rounded py-1.5 px-1 tabular-nums">
+                <p v-else class="text-center text-sm font-semibold text-foreground bg-muted rounded py-1.5 px-1 tabular-nums">
                   {{ sim.displayArray.value[i] != null ? Math.round(sim.displayArray.value[i]).toLocaleString('es-CO') : '—' }}
                 </p>
               </div>
@@ -460,14 +460,14 @@
                 </template>
               </template>
             </Column>
-            <Column header="Inicio" style="width:170px">
+            <Column header="Inicio">
               <template #body="{ data }">
                 <DatePicker v-if="editandoInvId === data.id" v-model="editFechaInicio" dateFormat="yy-mm-dd"
                   showIcon showClear class="w-40" placeholder="—" />
                 <span v-else>{{ fmtFecha(data.fecha_inicio) }}</span>
               </template>
             </Column>
-            <Column header="Fin" style="width:170px">
+            <Column header="Fin">
               <template #body="{ data }">
                 <DatePicker v-if="editandoInvId === data.id" v-model="editFechaFin" dateFormat="yy-mm-dd"
                   showIcon showClear class="w-40" placeholder="Vigente" />
@@ -479,30 +479,30 @@
                 <GBadge :color="data.es_patrimonio_autonomo ? 'information' : 'default'">{{ data.es_patrimonio_autonomo ? 'Sí' : 'No' }}</GBadge>
               </template>
             </Column>
-            <Column header="" style="width:110px">
+            <Column header="">
               <template #body="{ data }">
                 <div class="flex gap-1">
                   <template v-if="editandoInvId === data.id">
                     <Button text severity="success" size="small" :loading="guardando" @click="guardarEdicionInversionista(data.id)" v-tooltip="'Guardar'">
-                      <template #icon><CheckIcon class="size-[1em]" /></template>
+                      <template #icon><CheckIcon class="size-4" /></template>
                     </Button>
                     <Button text severity="secondary" size="small" @click="editandoInvId = null" v-tooltip="'Cancelar'">
-                      <template #icon><XIcon class="size-[1em]" /></template>
+                      <template #icon><XIcon class="size-4" /></template>
                     </Button>
                   </template>
                   <template v-else>
                     <Button text severity="info" size="small" @click="iniciarEdicionInversionista(data)" v-tooltip="'Editar'">
-                      <template #icon><PencilIcon class="size-[1em]" /></template>
+                      <template #icon><PencilIcon class="size-4" /></template>
                     </Button>
                     <Button text severity="danger" size="small" @click="eliminarInversionista(data.id)" v-tooltip="'Eliminar'">
-                      <template #icon><Trash2Icon class="size-[1em]" /></template>
+                      <template #icon><Trash2Icon class="size-4" /></template>
                     </Button>
                   </template>
                 </div>
               </template>
             </Column>
             <template #empty>
-              <p class="text-center text-gray-400 py-4">Sin inversionistas registrados.</p>
+              <p class="text-center text-muted-foreground py-4">Sin inversionistas registrados.</p>
             </template>
             <ColumnGroup type="footer">
               <Row>
@@ -518,59 +518,59 @@
           </DataTable>
 
           <!-- Histórico por período (cuando hay inversionistas de distintas fechas) -->
-          <div v-if="tieneVariosPeriodos" class="rounded-lg bg-gray-50 border border-gray-100 p-3 space-y-2">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <div v-if="tieneVariosPeriodos" class="rounded-lg bg-muted border border-border p-3 space-y-2">
+            <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Histórico por período
-              <span class="normal-case font-normal text-gray-400">— el 100% se valida dentro de cada período, no sobre todo el histórico</span>
+              <span class="normal-case font-normal text-muted-foreground">— el 100% se valida dentro de cada período, no sobre todo el histórico</span>
             </p>
             <div v-for="per in periodos" :key="per.key"
-              class="flex items-center justify-between text-sm border-t border-gray-100 pt-1 first:border-0 first:pt-0">
-              <span class="text-gray-600">
+              class="flex items-center justify-between text-sm border-t border-border pt-1 first:border-0 first:pt-0">
+              <span class="text-muted-foreground">
                 {{ per.label }}
                 <GBadge v-if="per.vigente" color="success" class="ml-2 scale-90">Vigente</GBadge>
-                <span class="text-gray-400 ml-1">· {{ per.count }} inversionista(s)</span>
+                <span class="text-muted-foreground ml-1">· {{ per.count }} inversionista(s)</span>
               </span>
-              <span class="font-semibold tabular-nums" :class="per.ok ? 'text-green-600' : 'text-amber-600'">
+              <span class="font-semibold tabular-nums" :class="per.ok ? 'text-success' : 'text-warning'">
                 {{ per.total.toFixed(2) }}%
-                <TriangleAlertIcon class="text-xs ml-1 size-[1em]" v-if="!per.ok" v-tooltip.left="'No suma ~100% en este período'" />
+                <TriangleAlertIcon class="ml-1 size-3" v-if="!per.ok" v-tooltip.left="'No suma ~100% en este período'" />
               </span>
             </div>
           </div>
 
           <Divider />
-          <p class="font-semibold text-gray-700">Agregar inversionista</p>
+          <p class="font-semibold text-foreground">Agregar inversionista</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500">Cliente</label>
+              <label class="text-xs text-muted-foreground">Cliente</label>
               <Select v-model="nuevoInv.cliente_id" :options="clientesDisponibles"
                 optionLabel="razon_social_nombre" optionValue="id"
                 placeholder="Seleccionar cliente" filter class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500">Porcentaje de participación (%)</label>
+              <label class="text-xs text-muted-foreground">Porcentaje de participación (%)</label>
               <InputNumber v-model="nuevoInv.porcentaje_pct" :min="0" :max="100"
                 :minFractionDigits="2" :maxFractionDigits="7" suffix="%" locale="en-US" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500">Fecha inicio</label>
+              <label class="text-xs text-muted-foreground">Fecha inicio</label>
               <DatePicker v-model="nuevoInv.fecha_inicio" dateFormat="yy-mm-dd" showIcon showClear
                 class="w-full" placeholder="—" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500">Fecha fin (opcional = vigente)</label>
+              <label class="text-xs text-muted-foreground">Fecha fin (opcional = vigente)</label>
               <DatePicker v-model="nuevoInv.fecha_fin" dateFormat="yy-mm-dd" showIcon showClear
                 class="w-full" placeholder="Vigente" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-gray-500">Patrimonio autónomo</label>
+              <label class="text-xs text-muted-foreground">Patrimonio autónomo</label>
               <div class="flex items-center gap-2 h-10">
                 <ToggleSwitch v-model="nuevoInv.es_patrimonio_autonomo" />
-                <span class="text-sm text-gray-600">{{ nuevoInv.es_patrimonio_autonomo ? 'Sí' : 'No' }}</span>
+                <span class="text-sm text-muted-foreground">{{ nuevoInv.es_patrimonio_autonomo ? 'Sí' : 'No' }}</span>
               </div>
             </div>
           </div>
           <Button label="Agregar" :loading="guardando" :disabled="!nuevoInv.cliente_id" @click="agregarInversionista" class="mt-2">
-            <template #icon><PlusIcon class="size-[1em]" /></template>
+            <template #icon><PlusIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -595,38 +595,39 @@
             <div
               v-for="srv in SERVICIOS_CARDS" :key="srv.key"
               class="relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 select-none"
-              :class="srvExpanded === srv.key ? 'ring-2 ring-offset-1 shadow-md' : (srvFlags[srv.key] ? 'shadow-sm' : '')"
-              :style="srvFlags[srv.key] || srvExpanded === srv.key
-                ? `background:${srv.bg}; border-color:${srv.color}40`
-                : 'background:#f9fafb; border-color:#e5e7eb'"
+              :class="[
+                srvExpanded === srv.key ? 'ring-2 ring-offset-1 shadow-md' : (srvFlags[srv.key] ? 'shadow-sm' : ''),
+                (srvFlags[srv.key] || srvExpanded === srv.key) ? 'bg-(--bg) border-(--bd)' : 'bg-muted border-border',
+              ]"
+              :style="{ '--c': srv.color, '--bg': srv.bg, '--bd': srv.color + '40', '--tint': srv.color + '25' }"
               @click="clickServicio(srv)"
             >
               <div class="w-12 h-12 rounded-full flex items-center justify-center"
-                :style="`background:${(srvFlags[srv.key] || srvExpanded === srv.key) ? srv.color + '25' : '#e5e7eb'}`">
-                <component :is="srv.icon" class="text-2xl size-[1em]" :style="`color:${(srvFlags[srv.key] || srvExpanded === srv.key) ? srv.color : '#9ca3af'}`" />
+                :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'bg-(--tint)' : 'bg-border'">
+                <component :is="srv.icon" class="size-6" :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'text-(--c)' : 'text-muted-foreground'" />
               </div>
               <span class="text-sm font-semibold text-center"
-                :style="`color:${(srvFlags[srv.key] || srvExpanded === srv.key) ? srv.color : '#6b7280'}`">
+                :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'text-(--c)' : 'text-muted-foreground'">
                 {{ srv.label }}
               </span>
               <span v-if="srvFlags[srv.key]"
-                class="absolute top-2 right-2 w-2 h-2 rounded-full"
-                :style="`background:${srv.color}`" />
-              <ExternalLinkIcon class="absolute bottom-2 right-2 text-xs text-gray-300 size-[1em]" v-if="srv.key === 'srv_ppa'" />
+                class="absolute top-2 right-2 w-2 h-2 rounded-full bg-(--c)" />
+              <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'srv_ppa'" />
             </div>
           </div>
 
           <!-- Panel inline de contratos -->
-          <div v-if="srvExpanded" class="rounded-xl border border-gray-100 bg-white overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div v-if="srvExpanded" class="rounded-xl border border-border bg-card overflow-hidden"
+            :style="{ '--c': SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.color }">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-border">
               <div class="flex items-center gap-2">
-                <component :is="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.icon" class="text-sm size-[1em]" :style="`color:${SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.color}`" />
-                <p class="text-sm font-semibold text-gray-700">
+                <component :is="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.icon" class="size-4 text-(--c)" />
+                <p class="text-sm font-semibold text-foreground">
                   Contratos · {{ SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.label }}
                 </p>
               </div>
-              <Button label="Nuevo contrato" size="small" :style="`background:${SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.color}; border-color:${SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.color}`" @click="showContratoWizard = true">
-                <template #icon><PlusIcon class="size-[1em]" /></template>
+              <Button label="Nuevo contrato" size="small" class="bg-(--c)! border-(--c)!" @click="showContratoWizard = true">
+                <template #icon><PlusIcon class="size-4" /></template>
               </Button>
             </div>
             <DataTable
@@ -638,9 +639,9 @@
               emptyMessage="Sin contratos registrados para este proyecto."
               @row-click="(e) => $router.push(`/contratos/${e.data.id}`)"
             >
-              <Column field="numero_contrato" header="N° contrato" style="width:140px">
+              <Column field="numero_contrato" header="N° contrato">
                 <template #body="{ data }">
-                  <span class="font-mono text-xs text-gray-500">{{ data.numero_contrato || '—' }}</span>
+                  <span class="font-mono text-xs text-muted-foreground">{{ data.numero_contrato || '—' }}</span>
                 </template>
               </Column>
               <Column header="Contratante">
@@ -649,21 +650,21 @@
               <Column header="Prestador">
                 <template #body="{ data }">{{ data.prestador_nombre || '—' }}</template>
               </Column>
-              <Column field="fecha_inicio" header="Inicio" style="width:95px">
+              <Column field="fecha_inicio" header="Inicio">
                 <template #body="{ data }">{{ formatFechaSrv(data.fecha_inicio) }}</template>
               </Column>
-              <Column field="fecha_fin" header="Fin" style="width:95px">
+              <Column field="fecha_fin" header="Fin">
                 <template #body="{ data }">{{ formatFechaSrv(data.fecha_fin) }}</template>
               </Column>
-              <Column header="Estado" style="width:120px">
+              <Column header="Estado">
                 <template #body="{ data }">
                   <GBadge :color="ESTADO_SEVERITY_SRV[data.estado]">{{ ESTADO_LABELS_SRV[data.estado] || data.estado }}</GBadge>
                 </template>
               </Column>
-              <Column style="width:50px">
+              <Column>
                 <template #body="{ data }">
                   <Button text size="small" severity="secondary" @click.stop="$router.push(`/contratos/${data.id}`)">
-                    <template #icon><ArrowRightIcon class="size-[1em]" /></template>
+                    <template #icon><ArrowRightIcon class="size-4" /></template>
                   </Button>
                 </template>
               </Column>
@@ -671,13 +672,13 @@
           </div>
 
           <!-- Activar / desactivar servicios -->
-          <div class="pt-2 border-t border-gray-100">
-            <p class="text-xs text-gray-400 mb-3">Activar / desactivar servicios</p>
+          <div class="pt-2 border-t border-border">
+            <p class="text-xs text-muted-foreground mb-3">Activar / desactivar servicios</p>
             <div class="flex flex-wrap gap-3">
               <div v-for="srv in SERVICIOS_FLAGS" :key="srv.key + '_toggle'"
-                class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                class="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
                 <ToggleSwitch v-model="srvFlags[srv.key]" @change="toggleServicio(srv.key, srvFlags[srv.key])" />
-                <span class="text-xs text-gray-600">{{ srv.label }}</span>
+                <span class="text-xs text-muted-foreground">{{ srv.label }}</span>
               </div>
             </div>
           </div>
@@ -709,7 +710,7 @@
               </template>
             </Column>
           </DataTable>
-          <p class="text-xs mt-3" style="color: #9b89b5;">
+          <p class="text-xs mt-3 text-muted-foreground">
             Ve a la pestaña Fronteras del menú si deseas reasignar el proyecto.
           </p>
         </div>
@@ -718,14 +719,13 @@
       <!-- ══ ID LIQUIDACIONES ══ -->
       <div v-if="tab === 'id-liquidaciones'">
         <div class="space-y-3 text-sm">
-          <p class="text-[11px] text-gray-400">
-            <InfoIcon class="mr-1 size-[1em]" />
+          <p class="text-xs text-muted-foreground">
+            <InfoIcon class="mr-1 size-3" />
             Estos códigos viven en la API de Liquidaciones de Unergy, no en esta base.
             <span v-if="liqConfig?.nombre_topico"> Tópico: <b>{{ liqConfig.nombre_topico }}</b>.</span>
           </p>
 
-          <div v-if="!proyecto.sub_project && !proyecto.topico_liquidaciones" class="rounded-lg px-3 py-2 text-xs"
-               style="background:#FEF3C7; color:#92400E">
+          <div v-if="!proyecto.sub_project && !proyecto.topico_liquidaciones" class="rounded-lg px-3 py-2 text-xs bg-warning/15 text-foreground">
             El proyecto no tiene <b>API ID Unergy</b> (código base), así que no se puede
             identificar en la API de Liquidaciones. Complétalo en la pestaña General.
           </div>
@@ -750,7 +750,7 @@
                 <label class="field-label">Tópico en Liquidaciones</label>
                 <InputText v-model="editForm.topico_liquidaciones" class="w-full"
                            :placeholder="proyecto.sub_project || 'ej: mgs18'" />
-                <small class="text-[11px] text-gray-400">
+                <small class="text-xs text-muted-foreground">
                   Solo si esta planta se llama distinto allá que en generación. Vacío = se
                   usa el API ID Unergy.
                 </small>
@@ -763,23 +763,22 @@
       <!-- ══ ID QUOIA ══ -->
       <div v-if="tab === 'id-quoia'">
         <div class="space-y-4 text-sm">
-          <p class="text-[11px] text-gray-400">
-            <InfoIcon class="mr-1 size-[1em]" />
+          <p class="text-xs text-muted-foreground">
+            <InfoIcon class="mr-1 size-3" />
             Estos ids viven en la API de Liquidaciones de Unergy, uno por subproyecto -- no en esta base.
           </p>
 
-          <div v-if="!proyecto.sub_project && !proyecto.topico_liquidaciones" class="rounded-lg px-3 py-2 text-xs"
-               style="background:#FEF3C7; color:#92400E">
+          <div v-if="!proyecto.sub_project && !proyecto.topico_liquidaciones" class="rounded-lg px-3 py-2 text-xs bg-warning/15 text-foreground">
             El proyecto no tiene <b>API ID Unergy</b> (código base), así que no se puede
             identificar en la API de Liquidaciones. Complétalo en la pestaña General.
           </div>
-          <div v-else-if="!isEditMode && !(liqConfig?.subproyectos?.length)" class="text-xs text-gray-400">
+          <div v-else-if="!isEditMode && !(liqConfig?.subproyectos?.length)" class="text-xs text-muted-foreground">
             Sin subproyectos registrados en la API de Liquidaciones.
           </div>
 
           <template v-else-if="!isEditMode">
             <div v-for="sub in liqConfig?.subproyectos ?? []" :key="sub.topic" class="space-y-2">
-              <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {{ sub.name || sub.topic }}
               </div>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -791,11 +790,11 @@
           </template>
 
           <template v-else>
-            <p v-if="!editSubproyectos.length" class="text-xs text-gray-400">
+            <p v-if="!editSubproyectos.length" class="text-xs text-muted-foreground">
               Sin subproyectos registrados en la API de Liquidaciones -- no hay dónde guardar estos ids.
             </p>
             <div v-for="sub in editSubproyectos" :key="sub.topic" class="space-y-2">
-              <div class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <div class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {{ sub.name || sub.topic }}
               </div>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -825,11 +824,11 @@
     <ProgressSpinner />
   </div>
 
-  <div v-else class="flex flex-col items-center py-20 gap-3 text-gray-500">
-    <CircleAlertIcon class="text-3xl text-red-400 size-[1em]" />
+  <div v-else class="flex flex-col items-center py-20 gap-3 text-muted-foreground">
+    <CircleAlertIcon class="text-destructive size-8" />
     <p class="text-sm">{{ errorMsg || 'No se pudo cargar el proyecto.' }}</p>
     <Button label="Reintentar" outlined size="small" @click="$router.go(0)">
-      <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+      <template #icon><RefreshCwIcon class="size-4" /></template>
     </Button>
   </div>
 </template>
@@ -1484,8 +1483,8 @@ const InfoField = {
   },
   template: `
     <div>
-      <p class="text-xs text-gray-400 uppercase tracking-wide">{{ props.label }}</p>
-      <p class="text-gray-800 font-medium mt-0.5">{{ props.value ?? '—' }}</p>
+      <p class="text-xs text-muted-foreground uppercase tracking-wide">{{ props.label }}</p>
+      <p class="text-foreground font-medium mt-0.5">{{ props.value ?? '—' }}</p>
     </div>
   `,
 }
@@ -1497,5 +1496,5 @@ export default { components: { InfoField } }
    ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
    le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
 @reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
+.field-label { @apply block text-xs font-medium text-muted-foreground mb-1; }
 </style>

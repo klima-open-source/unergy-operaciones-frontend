@@ -1,8 +1,8 @@
 <template>
   <div>
     <div class="mb-4">
-      <h1 class="text-xl font-bold" style="color: var(--color-unergy-deep);">Proyectos próximos a energizarse</h1>
-      <p class="text-sm mt-1" style="color: #7a6e8a;">
+      <h1 class="text-xl font-bold text-unergy-deep">Proyectos próximos a energizarse</h1>
+      <p class="text-sm mt-1 text-muted-foreground">
         Pipeline de TSF sincronizado en la base de operaciones: proyectos en construcción
         cuya fecha de energización aún no ha llegado.
       </p>

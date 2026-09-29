@@ -16,52 +16,51 @@
   confirmación pero tampoco se deshace desde acá.
 -->
 <template>
-  <div v-if="pendientes.length" class="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
-       style="background: rgba(214,68,85,0.06); border: 1.5px solid rgba(214,68,85,0.25);">
-    <span class="text-sm font-medium" style="color: #D64455;">
-      <TriangleAlertIcon class="text-xs mr-1.5 size-[1em]" />
+  <div v-if="pendientes.length" class="rounded-xl px-4 py-3 flex items-center justify-between gap-3 bg-destructive/5 border border-destructive/25">
+    <span class="text-sm font-medium text-destructive">
+      <TriangleAlertIcon class="mr-1.5 size-3" />
       Proyectos pendientes ({{ pendientes.length }})
     </span>
-    <Button label="Revisar" size="small" text style="color: #D64455;" @click="abrir" />
+    <Button label="Revisar" size="small" text class="text-destructive" @click="abrir" />
   </div>
 
   <Dialog v-model:visible="visible" header="Proyectos pendientes" modal class="w-full max-w-3xl">
-    <p class="text-sm mb-4" style="color: #6b5a8a;">
+    <p class="text-sm mb-4 text-muted-foreground">
       Sun Factory, Quoia y la API de Unergy reportan estos proyectos. Confirma
       para crearlos o actualizar el registro existente, o ignóralos si no
       aplican.
     </p>
     <div v-if="cargando" class="flex items-center justify-center py-8">
-      <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" style="color: var(--color-unergy-purple);" />
+      <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
     </div>
-    <div v-else-if="!pendientes.length" class="text-center py-8 text-sm" style="color: #9b89b5;">
+    <div v-else-if="!pendientes.length" class="text-center py-8 text-sm text-muted-foreground">
       No hay proyectos pendientes por revisar.
     </div>
-    <div v-else class="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
-      <div v-for="p in pendientes" :key="p.clave" class="rounded-xl p-3" style="border: 1.5px solid #e8e0f0;">
+    <div v-else class="space-y-3 max-h-96 overflow-y-auto pr-1">
+      <div v-for="p in pendientes" :key="p.clave" class="rounded-xl p-3 border">
         <div class="flex items-start justify-between gap-3 mb-2">
           <div class="min-w-0">
             <div class="flex items-center gap-2 mb-0.5">
               <span class="chip" :class="p.tipo_sugerencia === 'crear' ? 'chip-new' : 'chip-update'">
                 {{ p.tipo_sugerencia === 'crear' ? 'Nuevo' : 'Actualizar' }}
               </span>
-              <span class="text-xs" style="color:#9b89b5;">{{ p.fuentes.join(' + ') }}</span>
+              <span class="text-xs text-muted-foreground">{{ p.fuentes.join(' + ') }}</span>
             </div>
-            <p class="text-sm font-semibold truncate" style="color:var(--color-unergy-deep);">
+            <p class="text-sm font-semibold truncate text-unergy-deep">
               {{ p.proyecto_nombre_actual || p.nombre_sugerido }}
             </p>
-            <p v-if="p.tipo_sugerencia === 'actualizar' && p.proyecto_nombre_actual" class="text-xs" style="color:#9b89b5;">
+            <p v-if="p.tipo_sugerencia === 'actualizar' && p.proyecto_nombre_actual" class="text-xs text-muted-foreground">
               Sugerido: {{ p.nombre_sugerido }}
             </p>
           </div>
           <Button text severity="secondary" size="small" :loading="p._loading === 'ignorar'"
                   v-tooltip="'Ignorar'" @click="ignorar(p)">
-            <template #icon><XIcon class="size-[1em]" /></template>
+            <template #icon><XIcon class="size-4" /></template>
           </Button>
         </div>
 
         <!-- Cambios sugeridos -->
-        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3" style="color:#6b5a8a;">
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-3 text-muted-foreground">
           <span v-if="p.estado_sugerido && p.estado_sugerido !== p.estado_actual">
             Estado: <b>{{ p.estado_actual ? `${ESTADO_LABELS[p.estado_actual] || p.estado_actual} → ` : '' }}{{ ESTADO_LABELS[p.estado_sugerido] || p.estado_sugerido }}</b>
           </span>
@@ -84,16 +83,16 @@
             <Select v-model="p._tipo" :options="TIPOS_PROYECTO" class="w-40" placeholder="Tipo" />
           </div>
           <Button label="Crear" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._nombre"
-                  style="background:var(--color-unergy-purple); border-color:var(--color-unergy-purple);"
+                  class="bg-unergy-purple border-unergy-purple"
                   @click="confirmar(p)">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
         <div v-else class="flex justify-end">
           <Button label="Actualizar" size="small" :loading="p._loading === 'confirmar'"
-                  style="background:var(--color-unergy-purple); border-color:var(--color-unergy-purple);"
+                  class="bg-unergy-purple border-unergy-purple"
                   @click="confirmar(p)">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -104,7 +103,7 @@
        candidatos distintos (p. ej. un duplicado de Sun Factory) creen el mismo
        proyecto dos veces sin que nadie se entere. -->
   <Dialog v-model:visible="duplicadoVisible" header="Proyecto parecido ya existe" modal class="w-full max-w-sm">
-    <p class="text-sm mb-4" style="color:#6b5a8a;">
+    <p class="text-sm mb-4 text-muted-foreground">
       {{ duplicadoInfo?.mensaje }}
       <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
       (ID {{ duplicadoInfo?.candidato_id }}).
@@ -112,7 +111,7 @@
     <div class="flex justify-end gap-2">
       <Button label="Cancelar" severity="secondary" @click="duplicadoVisible = false" />
       <Button label="Crear de todos modos" :loading="forzando"
-              style="background:var(--color-unergy-purple); border-color:var(--color-unergy-purple);"
+              class="bg-unergy-purple border-unergy-purple"
               @click="duplicadoConfirmAction && duplicadoConfirmAction()" />
     </div>
   </Dialog>
@@ -244,7 +243,7 @@ onMounted(cargar)
 @reference 'tailwindcss';
 
 .chip {
-  @apply inline-block text-[10px] font-bold rounded-full px-2 py-0.5;
+  @apply inline-block text-xs font-bold rounded-full px-2 py-0.5;
 }
 .chip-new {
   background: rgba(145, 91, 216, 0.12);

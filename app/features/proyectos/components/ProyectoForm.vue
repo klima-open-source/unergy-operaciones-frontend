@@ -104,15 +104,15 @@
     </div>
 
     <!-- Simulación P50 / P90 -->
-    <div class="border border-gray-200 rounded-lg p-4 space-y-4">
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Generación simulada mensual (kWh)</p>
+    <div class="border border-border rounded-lg p-4 space-y-4">
+      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Generación simulada mensual (kWh)</p>
 
       <!-- P90 -->
       <div>
-        <p class="text-xs font-medium text-gray-600 mb-2">P90</p>
+        <p class="text-xs font-medium text-muted-foreground mb-2">P90</p>
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p90-' + i">
-            <label class="block text-[10px] text-gray-400 mb-0.5 text-center">{{ mes }}</label>
+            <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
             <InputNumber
               v-model="p90Array[i]"
               :maxFractionDigits="1"
@@ -126,10 +126,10 @@
 
       <!-- P50 -->
       <div>
-        <p class="text-xs font-medium text-gray-600 mb-2">P50</p>
+        <p class="text-xs font-medium text-muted-foreground mb-2">P50</p>
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p50-' + i">
-            <label class="block text-[10px] text-gray-400 mb-0.5 text-center">{{ mes }}</label>
+            <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
             <InputNumber
               v-model="p50Array[i]"
               :maxFractionDigits="1"
@@ -146,8 +146,8 @@
          que ir a su detalle a vincular el cliente, que es un paso que se olvida.
          Acá cabe el caso común --un inversionista al 100%--; los demás se
          agregan en el detalle, que admite fechas y patrimonio autónomo. -->
-    <div class="border-t border-gray-100 pt-4 mt-2">
-      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+    <div class="border-t border-muted pt-4 mt-2">
+      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
         Inversionista <span class="normal-case font-normal">(opcional)</span>
       </p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -172,7 +172,7 @@
       <Button type="submit" label="Crear proyecto"
         :loading="guardando" :disabled="!puedeGuardar" />
     </div>
-    <p v-if="operadorRedObligatorio && !f.operador_red_id" class="text-xs text-gray-500 text-right">
+    <p v-if="operadorRedObligatorio && !f.operador_red_id" class="text-xs text-muted-foreground text-right">
       Falta el operador de red: sin él no se puede crear la planta.
     </p>
   </form>
@@ -362,5 +362,5 @@ function submit() {
    ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
    le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
 @reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
+.field-label { @apply block text-xs font-medium text-muted-foreground mb-1; }
 </style>
