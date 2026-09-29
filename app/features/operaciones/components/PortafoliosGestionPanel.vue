@@ -59,9 +59,7 @@
               >
                 <ZapIcon class="size-4 shrink-0 text-warning" />
                 <div class="min-w-0">
-                  <div class="truncate text-xs font-bold text-foreground">
-                    {{ element.nombre }}
-                  </div>
+                  <TruncatedText :text="element.nombre" class="text-xs font-bold text-foreground" />
                   <div v-if="element.municipio" class="text-xs text-muted-foreground">
                     {{ element.municipio }}
                   </div>
@@ -108,7 +106,7 @@
           <template v-else>
             <CardTitle class="flex min-w-0 items-center gap-1.5 text-sm">
               <FolderIcon class="size-4 shrink-0 text-primary" />
-              <span class="truncate">{{ pt.nombre }}</span>
+              <TruncatedText :text="pt.nombre" class="min-w-0" />
             </CardTitle>
             <CardAction class="flex items-center gap-1">
               <Badge variant="secondary">{{ pt.proyectos.length }}</Badge>
@@ -149,9 +147,7 @@
               >
                 <ZapIcon class="size-4 shrink-0 text-warning" />
                 <div class="min-w-0">
-                  <div class="truncate text-xs font-bold text-foreground">
-                    {{ element.nombre }}
-                  </div>
+                  <TruncatedText :text="element.nombre" class="text-xs font-bold text-foreground" />
                   <div v-if="element.municipio" class="text-xs text-muted-foreground">
                     {{ element.municipio }}
                   </div>
