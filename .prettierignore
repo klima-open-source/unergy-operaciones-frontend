@@ -35,9 +35,8 @@ app/features/comercial/components
 app/features/contratos/components
 app/features/finanzas/components
 app/features/fronteras/components
-# `mem` ya migró todo salvo `CumplimientoV2View.vue` y sus 3 utils JS
-# exclusivos (ver eslint.config.mjs).
-app/features/mem/components/CumplimientoV2View.vue
+# `mem` ya migró todo, incluido `CumplimientoV2View.vue` — quedan sus 3 utils
+# JS exclusivos (ver eslint.config.mjs).
 app/features/mem/components/cumplimientoAnualExport.js
 app/features/mem/components/cumplimientoMatrizExcel.js
 app/features/mem/components/cumplimientoRevision.js
