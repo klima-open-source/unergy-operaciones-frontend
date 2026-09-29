@@ -37,7 +37,7 @@
                 type="email"
                 placeholder="tu@unergy.io"
                 required
-                class="w-full rounded-lg border-[1.5px] border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
+                class="w-full rounded-lg border border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
               />
             </div>
 
@@ -52,7 +52,7 @@
                 type="password"
                 placeholder="••••••••"
                 required
-                class="w-full rounded-lg border-[1.5px] border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
+                class="w-full rounded-lg border border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
               />
             </div>
 
@@ -69,7 +69,7 @@
               class="mt-2 w-full rounded-lg bg-unergy-purple py-3 text-sm font-bold tracking-wide text-unergy-avena transition-all enabled:hover:bg-unergy-purple-dark disabled:opacity-60"
             >
               <span v-if="loading" class="flex items-center justify-center gap-2">
-                <LoaderCircleIcon class="size-[1em] animate-spin text-xs" />
+                <LoaderCircleIcon class="size-3 animate-spin" />
                 Ingresando...
               </span>
               <span v-else>Ingresar</span>
