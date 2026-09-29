@@ -12,7 +12,6 @@
           <Input
             v-model="nuevoNombre"
             placeholder="Nombre del nuevo portafolio…"
-            class="w-56"
             @keyup.enter="crear"
           />
           <Button :disabled="!nuevoNombre.trim() || creando" @click="crear">
@@ -36,7 +35,7 @@
 
     <div v-else class="flex items-start gap-3.5 overflow-x-auto pb-2.5">
       <!-- Pool: proyectos sin portafolio -->
-      <Card class="flex max-h-160 w-68 shrink-0 flex-col border-dashed bg-muted/30">
+      <Card class="flex max-h-160 max-w-72 min-w-64 shrink-0 flex-col border-dashed bg-muted/30">
         <CardHeader>
           <CardTitle class="flex items-center gap-1.5 text-sm">
             <InboxIcon class="size-4 text-primary" /> Sin portafolio
@@ -82,7 +81,11 @@
       </Card>
 
       <!-- Capas (portafolios) -->
-      <Card v-for="pt in portafolios" :key="pt.id" class="flex max-h-160 w-68 shrink-0 flex-col">
+      <Card
+        v-for="pt in portafolios"
+        :key="pt.id"
+        class="flex max-h-160 max-w-72 min-w-64 shrink-0 flex-col"
+      >
         <CardHeader>
           <template v-if="editandoId === pt.id">
             <Input
