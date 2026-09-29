@@ -6,7 +6,7 @@
     <!-- Filtro de búsqueda -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Nombre del proyecto…" />
@@ -47,7 +47,7 @@
           <table class="w-full text-sm border-collapse">
             <thead>
               <tr class="bg-muted/50 border-b border-border">
-                <th rowspan="2" class="sticky-col text-left px-4 py-2.5 font-medium text-muted-foreground text-xs
+                <th rowspan="2" class="sticky left-0 z-20 border-r border-border bg-muted text-left px-4 py-2.5 font-medium text-muted-foreground text-xs
                                         uppercase tracking-wide align-bottom">Proyecto</th>
                 <th colspan="2" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-unergy-deep border-l border-border"
                     >ID liquidaciones</th>
@@ -67,13 +67,13 @@
               <template v-for="(row, i) in filtrados" :key="row.proyecto_id">
               <tr v-if="abreGrupo(row, i)" class="border-t border-border">
                 <td :colspan="COLUMNAS.length + 2"
-                    class="sticky-col-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide bg-muted text-muted-foreground"
+                    class="sticky left-0 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide bg-muted text-muted-foreground"
                     >
                   {{ etiquetaGrupo(row) }}
                 </td>
               </tr>
-              <tr class="border-t border-border hover:bg-muted/50 transition-colors duration-100 row-hover">
-                <td class="sticky-col px-4 py-2">
+              <tr class="border-t border-border hover:bg-muted/50 transition-colors duration-100 group">
+                <td class="sticky left-0 z-10 border-r border-border bg-card px-4 py-2 group-hover:bg-muted">
                   <span class="text-sm text-foreground font-medium">{{ row.nombre_comercial }}</span>
                   <span v-if="!row.nombre_topico" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning"
                         title="Sin código base (API ID Unergy): no se puede identificar en la API de Liquidaciones">
@@ -81,7 +81,7 @@
                   </span>
                 </td>
                 <td v-for="col in COLUMNAS" :key="col.key"
-                    class="px-3 py-2 text-center id-cell cursor-pointer"
+                    class="px-3 py-2 text-center cursor-pointer hover:bg-unergy-purple/10"
                     :class="{ 'border-l border-border': col.groupStart }"
                     @click="irAlDetalle(row.proyecto_id, col.tab)"
                     v-tooltip.bottom="tieneValor(row[col.key]) ? String(row[col.key]) : 'Sin registrar · clic para abrir el proyecto'">
@@ -110,11 +110,11 @@
         </p>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">SIC generación</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">SIC generación</label>
             <InputText v-model="f.sic_gen" class="w-full" placeholder="ej: 3A44" />
           </div>
           <div>
-            <label class="field-label">SIC consumo</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">SIC consumo</label>
             <InputText v-model="f.sic_con" class="w-full" placeholder="ej: 3A3P" />
           </div>
         </div>
@@ -294,24 +294,3 @@ async function cargar() {
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-
-.sticky-col {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: #ffffff;
-  border-right: 1px solid #E5E7EB;
-}
-thead .sticky-col { background: #F9FAFB; z-index: 3; }
-/* La fila de grupo abarca toda la tabla, así que no se congela. */
-.sticky-col-full { position: sticky; left: 0; }
-.row-hover:hover .sticky-col { background: #F8FAFC; }
-.id-cell:hover { background: #F3EEFB; }
-</style>
