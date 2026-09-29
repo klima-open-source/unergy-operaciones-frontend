@@ -49,15 +49,15 @@ export const PROCEDENCIA_SEVERITY: Record<ProcedenciaVentana, GandalfBadgeColor>
 }
 
 const FUENTE_ANCHO: Record<string, { label: string; color: string }> = {
-  ventana_candidata: { label: 'Ventana candidata', color: '#F59E0B' },
-  liquidacion: { label: 'Liquidación', color: '#915BD8' },
-  dias_sin_liquidar: { label: 'Días sin liquidar', color: '#60A5FA' },
-  precio_proyectado: { label: 'Precio proyectado', color: '#EC4899' },
+  ventana_candidata: { label: 'Ventana candidata', color: 'var(--chart-5)' },
+  liquidacion: { label: 'Liquidación', color: 'var(--primary)' },
+  dias_sin_liquidar: { label: 'Días sin liquidar', color: 'var(--chart-2)' },
+  precio_proyectado: { label: 'Precio proyectado', color: 'var(--chart-1)' },
 }
 
 /** Las cuatro fuentes que puede citar el backend son un catálogo abierto: sin match, se usa la clave cruda como label. */
 export function fuenteAncho(clave: string): { label: string; color: string } {
-  return FUENTE_ANCHO[clave] || { label: clave, color: '#9CA3AF' }
+  return FUENTE_ANCHO[clave] || { label: clave, color: 'var(--muted-foreground)' }
 }
 
 /** true cuando el dato de generación está más viejo que el umbral y compromete el margen. */
