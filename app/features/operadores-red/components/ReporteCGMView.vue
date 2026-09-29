@@ -451,7 +451,7 @@ onMounted(loadData)
                         >
                           <button
                             type="button"
-                            class="text-[11px] font-semibold text-primary underline"
+                            class="text-xs font-semibold text-primary underline"
                             @click="limpiarProyectos(row.key)"
                           >
                             Quitar selección (volver a todos)
