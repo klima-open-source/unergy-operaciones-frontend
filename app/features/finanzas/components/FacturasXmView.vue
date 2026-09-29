@@ -20,7 +20,7 @@
     <Dialog v-model:visible="subidaVisible" header="Subir facturas de XM" modal class="w-full max-w-lg"
             @hide="alCerrarSubida">
       <div class="space-y-4 pt-1">
-        <button type="button" class="dropzone" :disabled="subiendo" @click="seleccionarArchivos">
+        <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-unergy-purple-light/40 bg-unergy-purple/5 px-4 py-5.5 transition-colors duration-150 hover:border-unergy-purple hover:bg-unergy-purple/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendo" @click="seleccionarArchivos">
           <CloudUploadIcon class="size-6 text-unergy-purple" />
           <p class="text-sm font-semibold text-foreground mt-2">Seleccionar facturas</p>
           <p class="text-xs text-muted-foreground">
@@ -29,12 +29,12 @@
         </button>
 
         <div>
-          <label class="field-label">Versión</label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
           <Select v-model="versionSubida" :options="VERSIONES" class="w-full" :disabled="subiendo" />
         </div>
 
         <div>
-          <label class="field-label">Clave de Gemini <span class="text-muted-foreground font-normal">(opcional)</span></label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">Clave de Gemini <span class="text-muted-foreground font-normal">(opcional)</span></label>
           <!-- Enmascarada y sin autocompletar: es un secreto. No se guarda en
                ninguna parte — viaja con la subida y se olvida al cerrar. -->
           <Password v-model="apiKey" :feedback="false" toggleMask class="w-full" inputClass="w-full"
@@ -92,21 +92,21 @@
         </p>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Mes</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
             <Select v-model="rl.month" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
           </div>
           <div>
-            <label class="field-label">Año</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
             <InputNumber v-model="rl.year" :useGrouping="false" class="w-full" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Desde (versión actual)</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Desde (versión actual)</label>
             <Select v-model="rl.last_version" :options="VERSIONES" class="w-full" />
           </div>
           <div>
-            <label class="field-label">Hacia (versión nueva)</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Hacia (versión nueva)</label>
             <Select v-model="rl.new_version" :options="VERSIONES" class="w-full" />
           </div>
         </div>
@@ -121,21 +121,21 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Mes</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
                 showClear placeholder="Todos" @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Año</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
         <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
       </div>
       <div>
-        <label class="field-label">Versión</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
         <Select v-model="filtros.version" :options="VERSIONES" showClear
                 placeholder="Todas" @change="cargar" />
       </div>
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Código, nombre, agente…" />
@@ -482,27 +482,3 @@ function fmtFecha(v) {
 
 onMounted(cargar)
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-
-.dropzone {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 22px 16px;
-  border: 2px dashed #D9CCEE;
-  border-radius: 12px;
-  background: #FBF7FF;
-  cursor: pointer;
-  transition: border-color .15s, background .15s;
-}
-.dropzone:hover { border-color: var(--color-unergy-purple); background: #F4ECFC; }
-.dropzone:disabled { opacity: .6; cursor: default; }
-</style>

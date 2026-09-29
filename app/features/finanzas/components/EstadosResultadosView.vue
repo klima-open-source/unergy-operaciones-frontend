@@ -15,17 +15,19 @@
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
-        <label class="field-label">Documento</label>
-        <div class="er-toggle">
-          <button v-for="t in TIPOS" :key="t.key" class="er-toggle-btn"
-                  :class="{ 'er-toggle-btn--on': tipo === t.key }" @click="tipo = t.key">
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Documento</label>
+        <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
+          <button v-for="t in TIPOS" :key="t.key" class="cursor-pointer rounded-md px-3 py-1 text-xs font-bold whitespace-nowrap transition-all duration-150"
+                  :class="tipo === t.key
+                    ? 'bg-unergy-purple text-unergy-avena shadow-sm'
+                    : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'" @click="tipo = t.key">
             {{ t.label }}
           </button>
         </div>
       </div>
 
       <div>
-        <label class="field-label">Período</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Período</label>
         <Select v-model="periodoSel" :options="opcionesPeriodo" optionLabel="label" optionValue="value"
                 :loading="cargandoPeriodos" />
       </div>
@@ -33,12 +35,12 @@
       <!-- La versión (txf, tx3…tx8) solo está en el nombre del cruce de facturas;
            los estados de resultados no la llevan, así que el filtro no aplica ahí. -->
       <div v-if="versiones.length">
-        <label class="field-label">Versión</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
         <Select v-model="versionSel" :options="opcionesVersion" optionLabel="label" optionValue="value" />
       </div>
 
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Cliente o proyecto…" />
@@ -140,26 +142,26 @@
       <form @submit.prevent="generarEstado" class="space-y-4 pt-1">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Mes</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
             <InputNumber v-model="er.mes" :min="1" :max="12" :useGrouping="false" class="w-full" placeholder="1–12" />
           </div>
           <div>
-            <label class="field-label">Año</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
             <InputNumber v-model="er.anio" :useGrouping="false" class="w-full" placeholder="ej: 2026" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Desde (versión de las facturas)</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Desde (versión de las facturas)</label>
             <Select v-model="er.last_version" :options="VERSIONES" class="w-full" />
           </div>
           <div>
-            <label class="field-label">Hacia (versión nueva)</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Hacia (versión nueva)</label>
             <Select v-model="er.new_version" :options="VERSIONES" class="w-full" />
           </div>
         </div>
         <div>
-          <label class="field-label">Proyecto <span class="text-muted-foreground">(opcional)</span></label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto <span class="text-muted-foreground">(opcional)</span></label>
           <InputText v-model="er.project" class="w-full" placeholder="Tópico, ej: bayunca — vacío = todos" />
         </div>
         <p class="text-xs text-muted-foreground">
@@ -186,16 +188,16 @@
       <form @submit.prevent="generarCrudo" class="space-y-4 pt-1">
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="field-label">Mes</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
             <InputNumber v-model="cr.mes" :min="1" :max="12" :useGrouping="false" class="w-full" placeholder="1–12" />
           </div>
           <div>
-            <label class="field-label">Año</label>
+            <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
             <InputNumber v-model="cr.anio" :useGrouping="false" class="w-full" placeholder="ej: 2026" />
           </div>
         </div>
         <div>
-          <label class="field-label">Versión</label>
+          <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
           <Select v-model="cr.version" :options="VERSIONES" class="w-full" />
         </div>
         <p class="text-xs text-muted-foreground">
@@ -501,27 +503,3 @@ function generarCrudo() {
   })
 }
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-
-.er-toggle {
-  display: inline-flex;
-  background: #F4F1FA;
-  border: 1px solid #E5E2EC;
-  border-radius: 8px;
-  padding: 2px;
-}
-.er-toggle-btn {
-  background: transparent; border: none;
-  padding: 5px 11px; font-size: 12px; font-weight: 700;
-  color: #6B5A8A; border-radius: 6px; cursor: pointer; transition: all .15s;
-  white-space: nowrap;
-}
-.er-toggle-btn:hover:not(.er-toggle-btn--on) { color: var(--color-unergy-deep); background: rgba(145, 91, 216, .08); }
-.er-toggle-btn--on { background: var(--color-unergy-purple); color: var(--color-unergy-avena); box-shadow: 0 1px 4px rgba(145, 91, 216, .3); }
-</style>
