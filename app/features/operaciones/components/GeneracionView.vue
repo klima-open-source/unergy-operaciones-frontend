@@ -153,7 +153,7 @@
             <ComboboxList>
               <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
               <ComboboxItem v-for="p in proyectos" :key="p.sub_project" :value="p.sub_project">
-                <span class="min-w-0 flex-1 truncate">{{ p.nombre_comercial }}</span>
+                <TruncatedText :text="p.nombre_comercial" class="min-w-0 flex-1" />
                 <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
                 <ComboboxItemIndicator>
                   <CheckIcon />
@@ -296,9 +296,10 @@
               <TrophyIcon class="size-4" />
             </div>
             <div>
-              <div class="truncate text-sm font-extrabold text-foreground">
-                {{ topProyecto?.nombre || '—' }}
-              </div>
+              <TruncatedText
+                :text="topProyecto?.nombre || '—'"
+                class="text-sm font-extrabold text-foreground"
+              />
               <div class="text-xs font-medium text-muted-foreground uppercase">
                 Mayor generación
               </div>
@@ -541,7 +542,7 @@
                 class="flex items-center gap-1.5 py-px"
               >
                 <span class="size-2 shrink-0 rounded-full bg-(--c)" :style="{ '--c': s.color }" />
-                <span class="flex-1 truncate text-muted-foreground">{{ s.nombre }}</span>
+                <TruncatedText :text="s.nombre" class="min-w-0 flex-1 text-muted-foreground" />
                 <span class="font-bold text-foreground tabular-nums"
                   >{{ fmtNum(s.kwh, 1) }} kWh</span
                 >
@@ -631,9 +632,10 @@
                       <div class="font-medium text-foreground">
                         {{ f.tipo?.etiqueta || 'Sin tipo' }}
                       </div>
-                      <div class="line-clamp-1 max-w-90 text-xs text-muted-foreground">
-                        {{ f.descripcion }}
-                      </div>
+                      <TruncatedText
+                        :text="f.descripcion"
+                        class="max-w-90 text-xs text-muted-foreground"
+                      />
                     </TableCell>
                     <TableCell>
                       <GBadge :color="colorPrioridad(f.prioridad?.codigo)">{{
@@ -740,17 +742,18 @@ const MESES_ES = [
   'Nov',
   'Dic',
 ]
+// Tokens del tema como `var()`: las series (SVG y puntos de leyenda) siguen el modo claro/oscuro.
 const PALETTE = [
-  '#915BD8',
-  '#2563eb',
-  '#10b981',
-  '#D4A017',
-  '#dc2626',
-  '#0891b2',
-  '#7c3aed',
-  '#db2777',
-  '#65a30d',
-  '#0d9488',
+  'var(--color-unergy-purple)',
+  'var(--primary)',
+  'var(--success)',
+  'var(--warning)',
+  'var(--destructive)',
+  'var(--chart-2)',
+  'var(--chart-1)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-3)',
 ]
 
 type Granularidad = 'mensual' | 'diaria' | 'horaria'

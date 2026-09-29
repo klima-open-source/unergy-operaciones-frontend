@@ -177,12 +177,14 @@
               <GTooltipContent>{{ categoriaFalla(asFalla(row)).etiqueta }}</GTooltipContent>
             </GTooltip>
             <div class="min-w-0 flex-1">
-              <div class="truncate text-sm font-medium text-foreground">
-                {{ tituloFalla(asFalla(row)) }}
-              </div>
-              <div class="truncate text-xs text-muted-foreground">
-                {{ asFalla(row).descripcion }}
-              </div>
+              <TruncatedText
+                :text="tituloFalla(asFalla(row))"
+                class="text-sm font-medium text-foreground"
+              />
+              <TruncatedText
+                :text="asFalla(row).descripcion"
+                class="text-xs text-muted-foreground"
+              />
             </div>
           </div>
           <span v-else-if="column.key === 'proyecto'" class="text-sm text-foreground">{{
@@ -263,9 +265,10 @@
                 drawerFalla.codigo_interno
               }}</code>
               <span class="text-xs text-muted-foreground">·</span>
-              <span class="truncate text-sm font-medium text-foreground">{{
-                tituloFalla(drawerFalla)
-              }}</span>
+              <TruncatedText
+                :text="tituloFalla(drawerFalla)"
+                class="min-w-0 text-sm font-medium text-foreground"
+              />
               <span
                 v-if="navIndex >= 0"
                 class="ml-auto hidden text-xs whitespace-nowrap text-muted-foreground sm:inline-block"

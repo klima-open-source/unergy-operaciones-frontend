@@ -289,9 +289,10 @@
           class="flex shrink-0 items-start justify-between gap-2 border-b bg-muted/40 px-4 py-3"
         >
           <div class="min-w-0 flex-1">
-            <div class="truncate text-sm font-extrabold text-foreground">
-              {{ drawerInf.proyecto_nombre || drawerInf.sub_project }}
-            </div>
+            <TruncatedText
+              :text="drawerInf.proyecto_nombre || drawerInf.sub_project"
+              class="text-sm font-extrabold text-foreground"
+            />
             <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <Badge variant="outline" class="text-xs">{{ tipoLabel(drawerInf.tipo) }}</Badge>
               <span>·</span>
@@ -641,9 +642,10 @@
                 {{ i + 1 }}
               </span>
               <div class="min-w-0 flex-1">
-                <div class="truncate text-xs font-bold text-foreground">
-                  {{ inf.proyecto_nombre || inf.sub_project }}
-                </div>
+                <TruncatedText
+                  :text="inf.proyecto_nombre || inf.sub_project"
+                  class="text-xs font-bold text-foreground"
+                />
                 <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Badge variant="outline" class="text-xs">{{ tipoLabel(inf.tipo) }}</Badge>
                   {{ inf.periodo_display || formatPeriodo(inf.periodo_desde) }}
@@ -662,7 +664,10 @@
               <span class="text-sm font-extrabold text-success"
                 >{{ progBatch.hechos }} / {{ progBatch.total }}</span
               >
-              <span class="truncate text-xs text-muted-foreground">{{ progBatch.actual }}</span>
+              <TruncatedText
+                :text="progBatch.actual"
+                class="min-w-0 text-xs text-muted-foreground"
+              />
             </div>
           </div>
 
@@ -720,9 +725,10 @@
         >
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <PencilIcon class="size-3.5 text-primary" />
-            <span class="truncate text-sm font-extrabold text-background">
-              {{ editorInf?.proyecto_nombre || editorInf?.sub_project }}
-            </span>
+            <TruncatedText
+              :text="editorInf?.proyecto_nombre || editorInf?.sub_project"
+              class="min-w-0 text-sm font-extrabold text-background"
+            />
             <Badge v-if="editorInf" variant="outline" class="text-xs text-background">
               {{ tipoLabel(editorInf.tipo) }}
             </Badge>
