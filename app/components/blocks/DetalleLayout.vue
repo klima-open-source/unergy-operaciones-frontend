@@ -36,7 +36,7 @@
       <span class="text-muted-foreground/60">/</span>
 
       <slot name="titulo">
-        <span class="max-w-sm truncate text-sm font-bold text-unergy-deep">{{ titulo }}</span>
+        <TruncatedText :text="titulo" class="max-w-sm text-sm font-bold text-unergy-deep" />
       </slot>
 
       <span v-if="codigo" class="font-mono text-xs text-muted-foreground">{{ codigo }}</span>
