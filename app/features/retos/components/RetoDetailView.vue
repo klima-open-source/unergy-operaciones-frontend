@@ -716,7 +716,10 @@ async function exportarExcel() {
       </div>
 
       <div class="relative">
-        <div v-if="recargando" class="rq-barra-indeterminada" />
+        <div
+          v-if="recargando"
+          class="rq-barra-indeterminada absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden rounded-xs"
+        />
         <div :class="{ 'pointer-events-none opacity-45': recargando }">
           <MatrizSemanal
             :metricas="reto.metricas"
@@ -773,14 +776,6 @@ async function exportarExcel() {
 
 <style scoped>
 .rq-barra-indeterminada {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 5;
-  border-radius: 2px;
-  overflow: hidden;
   background: linear-gradient(
     90deg,
     transparent 0%,

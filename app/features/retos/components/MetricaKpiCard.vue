@@ -70,12 +70,17 @@ const pie2 = computed(() => {
 </script>
 
 <template>
-  <div class="rq-card rq-kpi group" @click="emit('foco', metrica)">
+  <div
+    class="group flex cursor-pointer flex-col gap-2 rounded-xl border bg-card px-3.5 py-3 shadow-xs"
+    @click="emit('foco', metrica)"
+  >
     <!-- 1. Fila título -->
-    <div class="rq-kpi-head">
+    <div class="flex min-w-0 items-center gap-1.5">
       <GTooltip>
         <GTooltipTrigger as-child>
-          <span class="rq-kpi-nombre">{{ metrica.nombre }}</span>
+          <span class="min-w-0 flex-1 truncate text-xs font-bold text-foreground">{{
+            metrica.nombre
+          }}</span>
         </GTooltipTrigger>
         <GTooltipContent v-if="metrica.descripcion">{{ metrica.descripcion }}</GTooltipContent>
       </GTooltip>
@@ -86,7 +91,7 @@ const pie2 = computed(() => {
           <Button
             variant="ghost"
             size="icon-sm"
-            class="rq-kpi-mas"
+            class="flex-none opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100"
             :aria-label="`Acciones de ${metrica.nombre}`"
             @click.stop
           >
@@ -112,17 +117,31 @@ const pie2 = computed(() => {
     </div>
 
     <!-- 2. Fila metadatos -->
-    <div v-if="metaDatos || metrica.direccion === 'menor_mejor'" class="rq-kpi-meta">
+    <div
+      v-if="metaDatos || metrica.direccion === 'menor_mejor'"
+      class="-mt-1 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-muted-foreground"
+    >
       <span v-if="metaDatos">{{ metaDatos }}</span>
-      <span v-if="metrica.direccion === 'menor_mejor'" class="rq-chip-dir">menos es mejor</span>
+      <span
+        v-if="metrica.direccion === 'menor_mejor'"
+        class="flex-none rounded-full bg-foreground/5 px-1.5 text-xs font-bold text-muted-foreground"
+        >menos es mejor</span
+      >
     </div>
 
     <!-- 3. Fila cifras -->
-    <div class="rq-kpi-cifras">
-      <span class="rq-kpi-consolidado" :class="{ 'rq-kpi-nulo': consolidadoTxt === null }">
+    <div class="flex min-w-0 items-baseline gap-1.5 [&_svg]:flex-none [&_svg]:self-center">
+      <span
+        class="text-xl leading-tight font-extrabold tabular-nums"
+        :class="consolidadoTxt === null ? 'text-muted-foreground' : 'text-foreground'"
+      >
         {{ consolidadoTxt === null ? '—' : consolidadoTxt }}
       </span>
-      <span v-if="tieneMeta" class="rq-kpi-meta-valor">/ {{ metaTxt }}</span>
+      <span
+        v-if="tieneMeta"
+        class="text-xs font-semibold whitespace-nowrap text-muted-foreground tabular-nums"
+        >/ {{ metaTxt }}</span
+      >
       <span class="flex-1" />
       <!-- `metrica.serie` es `number[]`; `RetoSparkline` espera `{ valor }[]`.
            La versión legacy pasaba los números sueltos y el componente los
@@ -145,138 +164,17 @@ const pie2 = computed(() => {
 
     <!-- 5 y 6. Pie -->
     <div>
-      <div class="rq-kpi-pie1">
+      <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-foreground">
         <template v-if="tieneMeta">
           <span>{{ fmtPct(metrica.avance_pct) }} de la meta</span>
-          <span class="rq-kpi-punto">·</span>
+          <span class="text-muted-foreground">·</span>
           <span class="text-(--c)" :style="{ '--c': estadoColor(metrica.estado) }"
             >ritmo {{ fmtPctEntero(metrica.cumplimiento_pct) }}</span
           >
         </template>
-        <span v-else class="rq-kpi-sin-meta">Sin meta definida</span>
+        <span v-else class="font-semibold text-muted-foreground">Sin meta definida</span>
       </div>
-      <div class="rq-kpi-pie2">{{ pie2 }}</div>
+      <div class="mt-0.5 text-xs text-muted-foreground">{{ pie2 }}</div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.rq-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(44, 32, 57, 0.04);
-}
-
-.rq-kpi {
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  cursor: pointer;
-}
-
-/* 1. Título */
-.rq-kpi-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.rq-kpi-nombre {
-  flex: 1;
-  min-width: 0;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--foreground);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rq-chip-dir {
-  flex: none;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted-foreground);
-  background: color-mix(in oklab, var(--foreground) 6%, transparent);
-  padding: 0 6px;
-  border-radius: 999px;
-}
-
-/* El menú solo aparece cuando la tarjeta está viva: no compite con el dato */
-.rq-kpi-mas {
-  flex: none;
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-.group:hover .rq-kpi-mas,
-.group:focus-within .rq-kpi-mas {
-  opacity: 1;
-}
-
-/* 2. Metadatos */
-.rq-kpi-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-  margin-top: -4px;
-}
-
-/* 3. Cifras */
-.rq-kpi-cifras {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-}
-.rq-kpi-consolidado {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--foreground);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.rq-kpi-nulo {
-  color: var(--muted-foreground);
-}
-.rq-kpi-meta-valor {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.rq-kpi-cifras :deep(svg) {
-  align-self: center;
-  flex: none;
-}
-
-/* 5 y 6. Pie */
-.rq-kpi-pie1 {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--foreground);
-}
-.rq-kpi-punto {
-  color: var(--muted-foreground);
-}
-.rq-kpi-sin-meta {
-  color: var(--muted-foreground);
-  font-weight: 600;
-}
-.rq-kpi-pie2 {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--muted-foreground);
-  margin-top: 2px;
-}
-</style>
