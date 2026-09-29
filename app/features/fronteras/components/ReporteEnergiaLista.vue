@@ -41,9 +41,10 @@
           @click="$emit('seleccionar', f)"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="truncate text-sm font-medium text-unergy-deep">{{
-              f.nombre_proyecto
-            }}</span>
+            <TruncatedText
+              :text="f.nombre_proyecto"
+              class="min-w-0 text-sm font-medium text-unergy-deep"
+            />
             <span class="flex-none font-mono text-xs text-muted-foreground">{{
               fmtKwh(f.energia_final_kwh)
             }}</span>
@@ -55,7 +56,10 @@
             >
               {{ f.tipo === 'generacion' ? 'Gen' : 'Con' }}
             </span>
-            <span class="truncate text-xs text-muted-foreground">{{ etiquetaFuente(f) }}</span>
+            <TruncatedText
+              :text="etiquetaFuente(f)"
+              class="min-w-0 text-xs text-muted-foreground"
+            />
           </div>
         </button>
       </li>
