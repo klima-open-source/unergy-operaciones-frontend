@@ -2,7 +2,7 @@
   <div class="space-y-4 pt-3">
 
     <!-- ── Barra superior: periodo + guardar + columnas + IPC ──────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <button type="button" @click="cambiarMes(-1)"
@@ -26,7 +26,7 @@
             <template #icon><TableIcon class="size-4" /></template>
           </Button>
           <div v-if="showColMenu"
-            class="absolute right-0 top-8 z-50 bg-white border border-border rounded-xl shadow-lg p-3 space-y-1 min-w-60">
+            class="absolute right-0 top-8 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-1 min-w-60">
             <p class="text-xs font-semibold text-muted-foreground mb-2">Mostrar columnas</p>
             <label v-for="col in columnasOpcionales" :key="col.key"
               class="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
@@ -45,7 +45,7 @@
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
@@ -95,16 +95,16 @@
     </div>
 
     <!-- ── Tabla ──────────────────────────────────────────────────────── -->
-    <div v-if="loading" class="bg-white rounded-xl shadow-sm p-10 flex justify-center border">
+    <div v-if="loading" class="bg-card rounded-xl shadow-sm p-10 flex justify-center border">
       <LoaderCircleIcon class="text-muted-foreground animate-spin size-6" />
     </div>
     <div v-else-if="!filasFiltradas.length"
-      class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
+      class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
       No se encontraron proyectos con los filtros aplicados.
     </div>
     <template v-else>
      <div v-for="sec in secciones" :key="sec.tipo"
-       class="bg-white rounded-xl shadow-sm overflow-hidden border">
+       class="bg-card rounded-xl shadow-sm overflow-hidden border">
 
       <!-- Cabecera de sección (colapsable) -->
       <button type="button"
@@ -280,7 +280,7 @@
      </div>
 
       <!-- Total general (todas las secciones) -->
-      <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
+      <div class="bg-card rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
         <span class="text-xs font-semibold text-muted-foreground">
           {{ filasSeleccionadas }} proyectos seleccionados
         </span>

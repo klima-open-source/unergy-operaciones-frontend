@@ -39,7 +39,7 @@
       <!-- D. Sub-tabs -->
       <div class="mb-3 inline-flex rounded-lg border border-border bg-muted p-0.5">
         <button v-for="t in SUBTABS" :key="t.value" class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3.5 py-1 text-xs font-bold"
-          :class="subTab === t.value ? 'bg-primary text-white' : 'text-muted-foreground'" @click="subTab = t.value">
+          :class="subTab === t.value ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'" @click="subTab = t.value">
           {{ t.label }}<span v-if="t.value === 'correcciones'" class="rounded-full px-1.5 text-xs"
             :class="subTab === t.value ? 'bg-white/30' : 'bg-primary/15 text-primary'">{{ correccionesTabCount }}</span>
         </button>
@@ -175,7 +175,7 @@ const CLS_BADGE = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-
 const CLS_BTN = 'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border text-xs font-bold disabled:cursor-not-allowed disabled:opacity-45'
 const CLS_BTN_PAD = 'px-3.5 py-2'
 const CLS_BTN_SEC = 'border-border bg-card text-muted-foreground'
-const CLS_BTN_PRI = 'border-transparent bg-primary text-white'
+const CLS_BTN_PRI = 'border-transparent bg-primary text-primary-foreground'
 const BADGE_MES = {
   correcciones: 'bg-warning/15 text-warning',
   cerrado: 'bg-success/15 text-success'

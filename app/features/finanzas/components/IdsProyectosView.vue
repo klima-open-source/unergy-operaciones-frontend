@@ -4,7 +4,7 @@
                 subtitle="Códigos SIC de liquidaciones e IDs de Quoia · GD y minigranjas en operación" />
 
     <!-- Filtro de búsqueda -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
@@ -24,11 +24,11 @@
       </div>
     </div>
 
-    <div v-if="loading" class="bg-white rounded-xl shadow-sm p-10 flex justify-center">
+    <div v-if="loading" class="bg-card rounded-xl shadow-sm p-10 flex justify-center">
       <LoaderCircleIcon class="text-muted-foreground size-6 animate-spin" />
     </div>
 
-    <div v-else-if="errorApi" class="bg-white rounded-xl shadow-sm border p-6 text-center border-border">
+    <div v-else-if="errorApi" class="bg-card rounded-xl shadow-sm border p-6 text-center border-border">
       <TriangleAlertIcon class="mb-2 block size-6 text-warning" />
       <p class="text-sm text-muted-foreground">{{ errorApi }}</p>
       <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar">
@@ -38,11 +38,11 @@
 
     <template v-else>
       <div v-if="!filtrados.length"
-           class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground">
+           class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground">
         No se encontraron proyectos GD/minigranja en operación.
       </div>
 
-      <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+      <div v-else class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
         <div class="overflow-x-auto">
           <table class="w-full text-sm border-collapse">
             <thead>
