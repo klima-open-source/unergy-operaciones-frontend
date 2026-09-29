@@ -6,14 +6,14 @@
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <button type="button" @click="cambiarMes(-1)"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+            class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
             <ChevronLeftIcon class="text-muted-foreground size-3" />
           </button>
           <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
             {{ periodoLabel }}
           </span>
           <button type="button" @click="cambiarMes(1)"
-            class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+            class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
             <ChevronRightIcon class="text-muted-foreground size-3" />
           </button>
         </div>
@@ -50,23 +50,20 @@
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="filtroTexto" placeholder="Nombre del proyecto…" class="w-56" />
+          <InputText v-model="filtroTexto" placeholder="Nombre del proyecto…" />
         </IconField>
       </div>
       <div>
         <label class="field-label">Aplica este mes</label>
-        <Select v-model="filtroAplica" :options="APLICA_OPTIONS" optionLabel="label" optionValue="value"
-                class="w-48" />
+        <Select v-model="filtroAplica" :options="APLICA_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div>
         <label class="field-label">Periodicidad</label>
-        <Select v-model="filtroPeriodicidad" :options="PERIODICIDAD_OPTIONS" optionLabel="label" optionValue="value"
-                class="w-44" />
+        <Select v-model="filtroPeriodicidad" :options="PERIODICIDAD_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div>
         <label class="field-label">Estado contrato</label>
-        <Select v-model="filtroEstadoContrato" :options="ESTADO_CONTRATO_OPTIONS" optionLabel="label" optionValue="value"
-                class="w-44" />
+        <Select v-model="filtroEstadoContrato" :options="ESTADO_CONTRATO_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div class="ml-auto pb-1.5 text-xs text-muted-foreground">
         {{ filasFiltradas.length }} de {{ filas.length }}
@@ -113,7 +110,7 @@
       <button type="button"
         class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
         @click="toggleSection(sec.tipo)">
-        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-(--c)" :style="{ '--c': sec.dot }" />
+        <span class="size-2.5 rounded-full flex-shrink-0 bg-(--c)" :style="{ '--c': sec.dot }" />
         <span class="font-semibold text-foreground text-sm flex-1">{{ sec.label }}</span>
         <span class="text-xs text-muted-foreground font-medium">({{ sec.items.length }})</span>
         <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
@@ -125,7 +122,7 @@
         <table class="w-full text-sm border-collapse min-w-225">
           <thead>
             <tr class="bg-muted border-t border-b border-border">
-              <th class="px-4 py-2.5 text-left w-10">
+              <th class="px-4 py-2.5 text-left">
                 <input type="checkbox" :checked="todosMarcadosSeccion(sec.items)"
                   @change="toggleTodosSeccion(sec.items, $event.target.checked)"
                   class="accent-unergy-purple" />

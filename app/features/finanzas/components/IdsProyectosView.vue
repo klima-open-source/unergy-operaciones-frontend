@@ -9,7 +9,7 @@
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Nombre del proyecto…" class="w-64" />
+          <InputText v-model="q" placeholder="Nombre del proyecto…" />
         </IconField>
       </div>
       <div class="flex-1" />
