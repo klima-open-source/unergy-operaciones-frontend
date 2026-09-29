@@ -233,9 +233,9 @@ async function guardar() {
         <thead>
           <tr class="text-muted-foreground">
             <th class="py-1 text-left font-medium">Planta inscrita</th>
-            <th class="w-20 py-1 text-right font-medium">Despacho</th>
-            <th class="w-28 py-1 pl-3 text-left font-medium">Fin</th>
-            <th class="w-32 py-1 text-left font-medium">Modalidad</th>
+            <th class="py-1 text-right font-medium">Despacho</th>
+            <th class="py-1 pl-3 text-left font-medium">Fin</th>
+            <th class="py-1 text-left font-medium">Modalidad</th>
           </tr>
         </thead>
         <tbody>

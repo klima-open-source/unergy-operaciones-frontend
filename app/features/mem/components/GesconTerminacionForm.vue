@@ -171,8 +171,8 @@ async function guardar() {
         <thead>
           <tr class="text-muted-foreground">
             <th class="py-1 text-left font-medium">Planta que se cierra</th>
-            <th class="w-28 py-1 text-left font-medium">Fin actual</th>
-            <th class="w-28 py-1 text-left font-medium">Queda en</th>
+            <th class="py-1 text-left font-medium">Fin actual</th>
+            <th class="py-1 text-left font-medium">Queda en</th>
           </tr>
         </thead>
         <tbody>
