@@ -700,8 +700,8 @@ function getInversorData(id: number): CurvaChartData {
       {
         label: 'Inversores (kW)',
         data,
-        borderColor: color('unergy-purple'),
-        backgroundColor: color('unergy-purple', 0.18),
+        borderColor: color('primary'),
+        backgroundColor: color('primary', 0.18),
         fill: true,
         tension: 0.35,
         pointRadius: 0,
