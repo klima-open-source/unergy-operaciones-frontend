@@ -190,15 +190,15 @@
 
         <div class="rounded-lg px-3 py-2.5 space-y-1 bg-primary/10 border border-primary/30">
           <p class="text-xs text-muted-foreground">
-            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
+            <InfoIcon class="mr-1 size-4 text-primary" />
             <b>Sin contrato</b> obliga a tipo de tarifa <b>Bolsa</b>.
           </p>
           <p class="text-xs text-muted-foreground">
-            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
+            <InfoIcon class="mr-1 size-4 text-primary" />
             <b>PPA</b> exige precio de energía; <b>Bolsa</b> no lo admite.
           </p>
           <p v-if="esPlc" class="text-xs text-muted-foreground">
-            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
+            <InfoIcon class="mr-1 size-4 text-primary" />
             Cada proyecto de un contrato <b>PLC</b> necesita piso <b>y</b> techo: 24 valores en kWh, de la hora 1 a la 24.
           </p>
         </div>
