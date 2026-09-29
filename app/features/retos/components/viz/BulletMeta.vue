@@ -63,20 +63,33 @@ const aria = computed(() => {
 
 <template>
   <!-- Sin meta no hay contra qué medir: se muestra una pista rayada, no una barra en cero -->
-  <div v-if="!tieneMeta" class="bm-wrap" role="img" aria-label="Sin meta definida">
-    <div class="bm-track bm-track--vacia" />
+  <div v-if="!tieneMeta" class="relative h-3.5 w-full" role="img" aria-label="Sin meta definida">
+    <div class="bm-track-vacia absolute top-0.75 left-0 h-2 w-full overflow-hidden rounded-sm" />
   </div>
 
-  <div v-else class="bm-wrap" role="img" :aria-label="aria">
-    <div class="bm-track">
+  <div v-else class="relative h-3.5 w-full" role="img" :aria-label="aria">
+    <div class="absolute top-0.75 left-0 h-2 w-full overflow-hidden rounded-sm bg-border">
       <!-- Zona previa al ritmo esperado: ayuda a leer "voy atrasado" de un golpe -->
-      <div v-if="posMarca !== null" class="bm-zona w-(--w)" :style="{ '--w': `${posMarca}%` }" />
-      <div class="bm-fill w-(--w) bg-(--c)" :style="{ '--w': `${anchoRelleno}%`, '--c': color }" />
-      <div v-if="hayExceso" class="bm-exceso" />
+      <div
+        v-if="posMarca !== null"
+        class="absolute top-0 left-0 h-2 w-(--w) bg-foreground/5"
+        :style="{ '--w': `${posMarca}%` }"
+      />
+      <div
+        class="absolute top-0 left-0 h-2 w-(--w) rounded-sm bg-(--c) transition-all duration-300"
+        :style="{ '--w': `${anchoRelleno}%`, '--c': color }"
+      />
+      <div
+        v-if="hayExceso"
+        class="absolute top-0 right-0 h-2 w-1.5 rounded-r-sm border-l-2 border-background bg-chart-2"
+      />
     </div>
     <GTooltip v-if="posMarca !== null">
       <GTooltipTrigger as-child>
-        <div class="bm-marca left-(--l)" :style="{ '--l': `${posMarca}%` }" />
+        <div
+          class="absolute top-0 left-(--l) h-3.5 w-0.5 -translate-x-px rounded-xs bg-foreground opacity-45"
+          :style="{ '--l': `${posMarca}%` }"
+        />
       </GTooltipTrigger>
       <GTooltipContent>{{ tooltipMarca }}</GTooltipContent>
     </GTooltip>
@@ -84,65 +97,8 @@ const aria = computed(() => {
 </template>
 
 <style scoped>
-.bm-wrap {
-  position: relative;
-  height: 14px;
-  width: 100%;
-}
-
-.bm-track {
-  position: absolute;
-  top: 3px;
-  left: 0;
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--border);
-  overflow: hidden;
-}
-.bm-track--vacia {
+/* Pista rayada de "sin meta": el degradado repetido no tiene utilidad de Tailwind. */
+.bm-track-vacia {
   background: repeating-linear-gradient(135deg, var(--border) 0 4px, transparent 4px 8px);
-}
-
-.bm-zona {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 8px;
-  background: color-mix(in oklab, var(--foreground) 5%, transparent);
-}
-
-.bm-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 8px;
-  border-radius: 4px;
-  transition:
-    width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    background-color 0.2s;
-}
-
-/* Tapa turquesa: se lee como "se pasó del borde" */
-.bm-exceso {
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 6px;
-  height: 8px;
-  border-radius: 0 4px 4px 0;
-  background: #14b8a6;
-  box-shadow: -2px 0 0 var(--background);
-}
-
-.bm-marca {
-  position: absolute;
-  top: 0;
-  height: 14px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--foreground);
-  opacity: 0.45;
-  transform: translateX(-1px);
 }
 </style>

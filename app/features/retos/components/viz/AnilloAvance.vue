@@ -60,7 +60,7 @@ const aria = computed(() => {
         stroke-width="6"
         stroke-linecap="round"
         :stroke-dasharray="dashPrincipal"
-        class="an-arco"
+        class="transition-all duration-300 ease-in-out"
       />
       <!-- Segunda vuelta: lo que se pasó del 100% -->
       <circle
@@ -74,7 +74,7 @@ const aria = computed(() => {
         stroke-linecap="round"
         :stroke-dasharray="dashExceso"
         opacity="0.9"
-        class="an-arco"
+        class="transition-all duration-300 ease-in-out"
       />
     </g>
     <text
@@ -92,11 +92,3 @@ const aria = computed(() => {
     </text>
   </svg>
 </template>
-
-<style scoped>
-.an-arco {
-  transition:
-    stroke-dasharray 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    stroke 0.2s;
-}
-</style>
