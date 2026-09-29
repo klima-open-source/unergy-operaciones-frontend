@@ -143,7 +143,7 @@
         <!-- ══ Contenido del informe ══ -->
         <div
           ref="contentRef"
-          class="inf-report-content"
+          class="outline-none [&[contenteditable=true]]:cursor-text"
           :contenteditable="editMode ? 'true' : 'false'"
           v-html="htmlContent"
         />
@@ -389,39 +389,53 @@ function estadoLabel(estado?: EstadoInforme): string {
 
 <!-- ══ CSS del INFORME (no-scoped: aplica al v-html generado por los paneles de informes) ══ -->
 <style>
-.inf-report-content {
-  outline: none;
+/* Clases del HTML del informe, inyectado con v-html: Tailwind no las ve. */
+/* Paleta del informe impreso: el documento es "papel" con marca Unergy, así que
+   no sigue el tema claro/oscuro. Todo se deriva de los tokens de marca. */
+.rpt-page,
+.fmo-page {
+  --rpt-paper: white;
+  --rpt-ink: var(--color-unergy-deep);
+  --rpt-ink-2: color-mix(in oklab, white 6%, var(--color-unergy-deep));
+  --rpt-ink-line: color-mix(in oklab, white 12%, var(--color-unergy-deep));
+  --rpt-subtle: color-mix(in oklab, var(--color-unergy-deep) 60%, white);
+  --rpt-faint: color-mix(in oklab, var(--color-unergy-deep) 40%, white);
+  --rpt-line: color-mix(in oklab, var(--color-unergy-purple) 12%, white);
+  --rpt-tint: color-mix(in oklab, var(--color-unergy-purple) 6%, white);
+  --rpt-ok-bg: color-mix(in oklab, var(--success) 8%, white);
+  --rpt-ok-ink: color-mix(in oklab, var(--success) 45%, black);
+  --rpt-ok-line: color-mix(in oklab, var(--success) 25%, transparent);
+  --rpt-multa-bg: color-mix(in oklab, var(--destructive) 6%, white);
+  --rpt-multa-ink: color-mix(in oklab, var(--destructive) 60%, black);
+  --rpt-multa-line: color-mix(in oklab, var(--destructive) 25%, transparent);
+  --rpt-shadow: color-mix(in oklab, black 25%, transparent);
 }
-.inf-report-content[contenteditable='true'] {
-  cursor: text;
-}
-
 .rpt-page {
-  background: #fff;
-  color: #1a0f2e;
+  background: var(--rpt-paper);
+  color: var(--rpt-ink);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 30px var(--rpt-shadow);
   margin-bottom: 24px;
 }
 .rpt-header {
-  background: #1a0f2e;
+  background: var(--rpt-ink);
   padding: 18px 28px;
 }
 .rpt-meta-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   margin-top: 14px;
-  border: 1px solid #2d1f45;
+  border: 1px solid var(--rpt-ink-line);
   border-radius: 8px;
   overflow: hidden;
 }
 .rpt-meta-item {
-  background: #221533;
+  background: var(--rpt-ink-2);
   padding: 10px 14px;
-  border-right: 1px solid #2d1f45;
+  border-right: 1px solid var(--rpt-ink-line);
 }
 .rpt-meta-item:last-child {
   border-right: none;
@@ -429,7 +443,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-meta-lbl {
   font-size: 9px;
   font-weight: 700;
-  color: #6b5f80;
+  color: var(--rpt-subtle);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   margin-bottom: 4px;
@@ -437,11 +451,11 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-meta-val {
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--rpt-paper);
 }
 .rpt-section {
   padding: 16px 28px;
-  border-bottom: 1px solid #ede8f5;
+  border-bottom: 1px solid var(--rpt-line);
 }
 .rpt-section:last-of-type {
   border-bottom: none;
@@ -449,7 +463,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-section-title {
   font-size: 13px;
   font-weight: 800;
-  color: #1a0f2e;
+  color: var(--rpt-ink);
   margin-bottom: 13px;
   padding-left: 10px;
   border-left: 3px solid var(--color-unergy-purple);
@@ -460,8 +474,8 @@ function estadoLabel(estado?: EstadoInforme): string {
   gap: 12px;
 }
 .rpt-kpi {
-  background: #f7f4fd;
-  border: 1px solid #ede8f5;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 10px;
   padding: 13px 15px;
 }
@@ -472,7 +486,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-kpi-lbl {
   font-size: 9px;
   font-weight: 700;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   margin-bottom: 3px;
@@ -480,7 +494,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .rpt-kpi-val {
   font-size: 20px;
   font-weight: 800;
-  color: #1a0f2e;
+  color: var(--rpt-ink);
   font-family: 'JetBrains Mono', monospace;
   line-height: 1;
 }
@@ -490,7 +504,7 @@ function estadoLabel(estado?: EstadoInforme): string {
   font-size: 11px;
 }
 .rpt-table th {
-  background: #1a0f2e;
+  background: var(--rpt-ink);
   color: var(--color-unergy-yellow);
   font-size: 9px;
   font-weight: 700;
@@ -500,82 +514,82 @@ function estadoLabel(estado?: EstadoInforme): string {
 }
 .rpt-table td {
   padding: 7px 10px;
-  border-bottom: 1px solid #f0ebf8;
+  border-bottom: 1px solid var(--rpt-line);
   vertical-align: top;
   line-height: 1.5;
 }
 .rpt-table tbody tr:nth-child(even) td {
-  background: #f9f7fd;
+  background: var(--rpt-tint);
 }
 .rpt-total-row td {
-  background: #ede8f5 !important;
+  background: var(--rpt-line) !important;
   font-weight: 700;
   border-top: 2px solid var(--color-unergy-purple);
 }
 .rpt-chart-card {
-  background: #f9f7fd;
-  border: 1px solid #ede8f5;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 10px;
   padding: 14px;
 }
 .rpt-obs-title {
   font-size: 9px;
   font-weight: 700;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   letter-spacing: 0.8px;
   text-transform: uppercase;
   margin-bottom: 9px;
 }
 .rpt-obs-text {
   font-size: 12px;
-  color: #3d2d5c;
+  color: var(--color-unergy-deep-light);
   line-height: 1.8;
-  background: #f7f4fd;
+  background: var(--rpt-tint);
   border-radius: 8px;
   padding: 13px 15px;
-  border-left: 3px solid #4ade80;
+  border-left: 3px solid var(--success);
 }
 .rpt-status-box {
-  background: #f7f4fd;
-  border: 1px solid #ede8f5;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 10px;
   padding: 15px;
   font-size: 12px;
-  color: #3d2d5c;
+  color: var(--color-unergy-deep-light);
 }
 .rpt-status-row {
   font-size: 11px;
-  color: #6b5f80;
+  color: var(--rpt-subtle);
   margin-top: 5px;
 }
 .rpt-footer {
-  background: #f7f4fd;
-  border-top: 1px solid #ede8f5;
+  background: var(--rpt-tint);
+  border-top: 1px solid var(--rpt-line);
   padding: 10px 28px;
   font-size: 10px;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   display: flex;
   justify-content: space-between;
 }
 /* FMO */
 .fmo-page {
-  background: #fff;
-  color: #1a0f2e;
+  background: var(--rpt-paper);
+  color: var(--rpt-ink);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 30px var(--rpt-shadow);
   margin-bottom: 24px;
 }
 .fmo-header {
-  background: #1a0f2e;
+  background: var(--rpt-ink);
   padding: 18px 28px;
 }
 .fmo-section-title {
   font-size: 13px;
   font-weight: 800;
-  color: #1a0f2e;
+  color: var(--rpt-ink);
   margin-bottom: 12px;
   padding-left: 10px;
   border-left: 3px solid var(--color-unergy-purple);
@@ -587,15 +601,15 @@ function estadoLabel(estado?: EstadoInforme): string {
   margin-bottom: 16px;
 }
 .fmo-kpi {
-  background: #f7f4fd;
-  border: 1px solid #ede8f5;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 10px;
   padding: 12px 14px;
 }
 .fmo-kpi-lbl {
   font-size: 9px;
   font-weight: 700;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   letter-spacing: 0.7px;
   text-transform: uppercase;
   margin-bottom: 3px;
@@ -603,23 +617,23 @@ function estadoLabel(estado?: EstadoInforme): string {
 .fmo-kpi-val {
   font-size: 18px;
   font-weight: 800;
-  color: #1a0f2e;
+  color: var(--rpt-ink);
   font-family: 'JetBrains Mono', monospace;
 }
 .fmo-ok-box {
-  background: #f0fff4;
-  border: 1px solid rgba(74, 222, 128, 0.25);
+  background: var(--rpt-ok-bg);
+  border: 1px solid var(--rpt-ok-line);
   border-radius: 10px;
   padding: 14px 18px;
-  color: #2d5a3d;
+  color: var(--rpt-ok-ink);
   font-size: 12px;
 }
 .fmo-multa-box {
-  background: #fff5f5;
-  border: 1px solid rgba(255, 87, 87, 0.25);
+  background: var(--rpt-multa-bg);
+  border: 1px solid var(--rpt-multa-line);
   border-radius: 10px;
   padding: 14px 18px;
-  color: #7a1e1e;
+  color: var(--rpt-multa-ink);
   font-size: 12px;
 }
 .fmo-inv-table,
@@ -630,7 +644,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 }
 .fmo-inv-table th,
 .fmo-mant-table th {
-  background: #1a0f2e;
+  background: var(--rpt-ink);
   color: var(--color-unergy-yellow);
   font-size: 9px;
   font-weight: 700;
@@ -641,7 +655,7 @@ function estadoLabel(estado?: EstadoInforme): string {
 .fmo-inv-table td,
 .fmo-mant-table td {
   padding: 7px 10px;
-  border-bottom: 1px solid #f0ebf8;
+  border-bottom: 1px solid var(--rpt-line);
   vertical-align: top;
   line-height: 1.5;
 }
@@ -656,7 +670,7 @@ function estadoLabel(estado?: EstadoInforme): string {
     print-color-adjust: exact !important;
   }
   body {
-    background: #fff !important;
+    background: var(--rpt-paper) !important;
   }
   /* Cada página ocupa el alto imprimible para anclar el pie abajo, sin partir estructura */
   .rpt-page,
@@ -707,19 +721,19 @@ function estadoLabel(estado?: EstadoInforme): string {
   }
   .rpt-header,
   .fmo-header {
-    background: #1a0f2e !important;
+    background: var(--rpt-ink) !important;
   }
   .rpt-meta-item {
-    background: #221533 !important;
+    background: var(--rpt-ink-2) !important;
   }
   .rpt-table th,
   .fmo-inv-table th,
   .fmo-mant-table th {
-    background: #1a0f2e !important;
-    color: #e8c840 !important;
+    background: var(--rpt-ink) !important;
+    color: var(--color-unergy-yellow) !important;
   }
   .rpt-total-row td {
-    background: #ede8f5 !important;
+    background: var(--rpt-line) !important;
   }
 }
 </style>

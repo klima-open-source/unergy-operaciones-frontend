@@ -333,8 +333,8 @@
       </Card>
 
       <!-- Reporte HTML embebido -->
-      <div class="im-report-frame">
-        <div ref="reportRef" class="im-report" v-html="htmlContent" />
+      <div class="im-report-frame mx-4 mt-2.5 mb-15 rounded-lg border bg-muted p-4.5">
+        <div ref="reportRef" class="im-report mx-auto max-w-4xl" v-html="htmlContent" />
       </div>
     </template>
   </div>
@@ -2335,26 +2335,32 @@ watch(tipo, (t) => {
 </script>
 
 <style scoped>
-/* Report frame */
-.im-report-frame {
-  margin: 10px 16px 60px;
-  background: #ece9f2;
-  border-radius: 10px;
-  padding: 18px;
-  border: 1px solid #dad3ea;
-}
+/* Fuente del informe: la marca usa Sora y no es un token del tema. */
 .im-report {
-  max-width: 920px;
-  margin: 0 auto;
   font-family: 'Sora', system-ui, sans-serif;
+
+  /* Paleta del informe: es "papel" con marca Unergy, no sigue el tema oscuro. */
+  --rpt-paper: white;
+  --rpt-line: color-mix(in oklab, var(--color-unergy-purple) 12%, white);
+  --rpt-tint: color-mix(in oklab, var(--color-unergy-purple) 6%, white);
+  --rpt-faint: color-mix(in oklab, var(--color-unergy-deep) 40%, white);
+  --rpt-header-end: color-mix(
+    in oklab,
+    var(--color-unergy-purple-dark) 60%,
+    var(--color-unergy-deep)
+  );
+  --rpt-ok-bg: color-mix(in oklab, var(--success) 8%, white);
+  --rpt-ok-line: color-mix(in oklab, var(--success) 30%, white);
+  --rpt-multa-bg: color-mix(in oklab, var(--destructive) 6%, white);
+  --rpt-multa-line: color-mix(in oklab, var(--destructive) 30%, white);
 }
 
 /* ─── Estilos del INFORME (rpt-*) — reaprovechan los estilos del legacy ─── */
 .im-report :deep(.rpt-page) {
-  background: #fff;
+  background: var(--rpt-paper);
   padding: 30px 36px;
   border-radius: 8px;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 14px color-mix(in oklab, black 8%, transparent);
   margin-bottom: 24px;
   color: var(--color-unergy-deep);
 }
@@ -2362,7 +2368,12 @@ watch(tipo, (t) => {
   height: 22px;
 }
 .im-report :deep(.rpt-header) {
-  background: linear-gradient(135deg, var(--color-unergy-deep) 0%, #3d2b52 70%, #4a2d6e 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-unergy-deep) 0%,
+    var(--color-unergy-deep-light) 70%,
+    var(--rpt-header-end) 100%
+  );
   border-radius: 8px;
   padding: 18px 22px 16px;
   color: var(--color-unergy-avena);
@@ -2375,14 +2386,14 @@ watch(tipo, (t) => {
   margin-top: 14px;
 }
 .im-report :deep(.rpt-meta-item) {
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in oklab, white 6%, transparent);
   padding: 7px 10px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in oklab, white 12%, transparent);
 }
 .im-report :deep(.rpt-meta-lbl) {
   font-size: 9px;
-  color: rgba(253, 250, 247, 0.55);
+  color: color-mix(in oklab, var(--color-unergy-avena) 55%, transparent);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -2400,11 +2411,11 @@ watch(tipo, (t) => {
 .im-report :deep(.fmo-section-title) {
   font-size: 13px;
   font-weight: 800;
-  color: #6b35c0;
+  color: var(--color-unergy-purple-dark);
   letter-spacing: 0.3px;
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 2px solid #ece7f2;
+  border-bottom: 2px solid var(--rpt-line);
 }
 .im-report :deep(.rpt-kpi-row) {
   display: grid;
@@ -2415,8 +2426,8 @@ watch(tipo, (t) => {
   grid-column: span 3;
 }
 .im-report :deep(.rpt-kpi) {
-  background: #f7f4fd;
-  border: 1px solid #ece7f2;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 9px;
   padding: 12px 14px;
   text-align: center;
@@ -2427,7 +2438,7 @@ watch(tipo, (t) => {
 }
 .im-report :deep(.rpt-kpi-lbl) {
   font-size: 9px;
-  color: #888;
+  color: var(--muted-foreground);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -2435,48 +2446,48 @@ watch(tipo, (t) => {
 .im-report :deep(.rpt-kpi-val) {
   font-size: 16px;
   font-weight: 800;
-  color: #1a1025;
+  color: var(--color-unergy-deep);
   margin-top: 4px;
 }
 .im-report :deep(.rpt-table) {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  background: #fff;
-  border: 1px solid #ece7f2;
+  background: var(--rpt-paper);
+  border: 1px solid var(--rpt-line);
   border-radius: 6px;
   overflow: hidden;
 }
 .im-report :deep(.rpt-table thead tr) {
-  background: #f7f4fd;
+  background: var(--rpt-tint);
 }
 .im-report :deep(.rpt-table thead th) {
   padding: 7px 9px;
   text-align: left;
   font-size: 9px;
   font-weight: 800;
-  color: #6b5a8a;
+  color: var(--color-unergy-deep-light);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  border-bottom: 1px solid #e5e2ec;
+  border-bottom: 1px solid var(--border);
 }
 .im-report :deep(.rpt-table tbody td) {
   padding: 7px 9px;
-  border-bottom: 1px solid #f3f0f9;
+  border-bottom: 1px solid var(--rpt-line);
   color: var(--color-unergy-deep);
 }
 .im-report :deep(.rpt-total-row) {
-  background: #faf8fe;
+  background: var(--rpt-tint);
   font-weight: 800;
-  border-top: 2px solid #6b35c0;
+  border-top: 2px solid var(--color-unergy-purple-dark);
 }
 .im-report :deep(.rpt-total-row td) {
   font-weight: 800;
 }
 
 .im-report :deep(.rpt-chart-card) {
-  background: #fcfafe;
-  border: 1px solid #ece7f2;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 9px;
   padding: 12px 14px;
 }
@@ -2494,13 +2505,13 @@ watch(tipo, (t) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   font-size: 11px;
 }
 
 .im-report :deep(.rpt-obs-title) {
   font-size: 9px;
-  color: #a89ec0;
+  color: var(--rpt-faint);
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
@@ -2519,28 +2530,28 @@ watch(tipo, (t) => {
 .im-report :deep(.rpt-obs-editable) {
   min-height: 80px;
   outline: none;
-  border-left: 3px solid #4ade80;
+  border-left: 3px solid var(--success);
   padding: 13px 15px;
   border-radius: 8px;
-  background: #f0fff4;
+  background: var(--rpt-ok-bg);
   font-size: 12px;
-  color: #3d2d5c;
+  color: var(--color-unergy-deep-light);
   line-height: 1.8;
 }
 .im-report :deep(.rpt-obs-editable:focus) {
-  background: #fffbf0;
-  border-left-color: #6b35c0;
-  box-shadow: 0 0 0 2px rgba(145, 91, 216, 0.15);
+  background: color-mix(in oklab, var(--warning) 8%, white);
+  border-left-color: var(--color-unergy-purple-dark);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-unergy-purple) 15%, transparent);
 }
 .im-report :deep(.rpt-status-box) {
-  background: #f7f4fd;
-  border: 1px solid #ece7f2;
+  background: var(--rpt-tint);
+  border: 1px solid var(--rpt-line);
   border-radius: 9px;
   padding: 14px 16px;
 }
 .im-report :deep(.rpt-status-row) {
   font-size: 11px;
-  color: #4b3a6e;
+  color: var(--color-unergy-deep-light);
   margin-bottom: 5px;
   line-height: 1.5;
 }
@@ -2551,22 +2562,22 @@ watch(tipo, (t) => {
   gap: 10px;
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid #ece7f2;
+  border-top: 1px solid var(--rpt-line);
   font-size: 10px;
-  color: #888;
+  color: var(--muted-foreground);
 }
 
 /* FMO-specific */
 .im-report :deep(.fmo-multa-box) {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--rpt-multa-bg);
+  border: 1px solid var(--rpt-multa-line);
   border-radius: 9px;
   padding: 12px 14px;
   margin-top: 10px;
 }
 .im-report :deep(.fmo-ok-box) {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--rpt-ok-bg);
+  border: 1px solid var(--rpt-ok-line);
   border-radius: 9px;
   padding: 12px 14px;
   margin-top: 10px;
@@ -2576,14 +2587,14 @@ watch(tipo, (t) => {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
-  background: #fff;
-  border: 1px solid #ece7f2;
+  background: var(--rpt-paper);
+  border: 1px solid var(--rpt-line);
   border-radius: 6px;
   overflow: hidden;
 }
 .im-report :deep(.fmo-inv-table thead),
 .im-report :deep(.fmo-mant-table thead) {
-  background: #f7f4fd;
+  background: var(--rpt-tint);
 }
 .im-report :deep(.fmo-inv-table thead th),
 .im-report :deep(.fmo-mant-table thead th) {
@@ -2591,31 +2602,31 @@ watch(tipo, (t) => {
   text-align: left;
   font-size: 9px;
   font-weight: 800;
-  color: #6b5a8a;
+  color: var(--color-unergy-deep-light);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  border-bottom: 1px solid #e5e2ec;
+  border-bottom: 1px solid var(--border);
 }
 .im-report :deep(.fmo-inv-table tbody td),
 .im-report :deep(.fmo-mant-table tbody td) {
   padding: 6px 9px;
-  border-bottom: 1px solid #f3f0f9;
+  border-bottom: 1px solid var(--rpt-line);
 }
 .im-report :deep(.fmo-status-ok) {
-  color: #2d8a4e;
+  color: var(--success);
   font-weight: 700;
 }
 .im-report :deep(.fmo-status-err) {
-  color: #cc0000;
+  color: var(--destructive);
   font-weight: 700;
 }
 .im-report :deep(.fmo-sla-ok) {
-  color: #2d8a4e;
+  color: var(--success);
   font-weight: 800;
   text-align: center;
 }
 .im-report :deep(.fmo-sla-err) {
-  color: #cc0000;
+  color: var(--destructive);
   font-weight: 800;
   text-align: center;
 }
@@ -2625,7 +2636,7 @@ watch(tipo, (t) => {
 <style>
 @media print {
   body.im-printing {
-    background: #fff !important;
+    background: white !important;
   }
   body.im-printing .im-no-print {
     display: none !important;
@@ -2642,7 +2653,7 @@ watch(tipo, (t) => {
   body.im-printing .im-report-frame {
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
+    background: white !important;
     border: none !important;
   }
   body.im-printing .im-report {
