@@ -93,26 +93,26 @@
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
-                class="w-36" @change="cargar" />
+                @change="cargar" />
       </div>
       <div>
         <label class="field-label">Año</label>
-        <InputNumber v-model="filtros.year" :useGrouping="false" class="w-28" @update:modelValue="cargar" />
+        <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
       </div>
       <div>
         <label class="field-label">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" class="w-28" @change="cargar" />
+        <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
       </div>
       <div>
         <label class="field-label">Tipo</label>
         <Select v-model="tipoSel" :options="OPCIONES_TIPO" optionLabel="label" optionValue="value"
-                class="w-40" showClear placeholder="Todos" />
+                showClear placeholder="Todos" />
       </div>
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto, contrato, fecha…" class="w-56" />
+          <InputText v-model="q" placeholder="Proyecto, contrato, fecha…" />
         </IconField>
       </div>
       <div class="flex-1" />
@@ -163,7 +163,7 @@
                   :class="col.right ? 'text-right' : 'text-left'">
                 {{ col.label }}
               </th>
-              <th class="px-4 py-2.5 w-10" />
+              <th class="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody>
