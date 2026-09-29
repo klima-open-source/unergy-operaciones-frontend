@@ -7,9 +7,7 @@
         <GTabsTrigger value="automatizacion">
           <SettingsIcon class="size-4" /> Reporte ASIC
         </GTabsTrigger>
-        <GTabsTrigger value="cgm">
-          <MailIcon class="size-4" /> Reporte CGM
-        </GTabsTrigger>
+        <GTabsTrigger value="cgm"> <MailIcon class="size-4" /> Reporte CGM </GTabsTrigger>
       </GTabsList>
     </GTabs>
 
