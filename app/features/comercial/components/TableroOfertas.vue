@@ -98,8 +98,8 @@ function soltar(col: Columna) {
     <div
       v-for="col in COLUMNAS"
       :key="col.value"
-      class="tablero-col flex flex-shrink-0 flex-col rounded-lg border bg-muted/30"
-      :class="colapsada(col) ? 'w-14' : 'w-64'"
+      class="tablero-col flex flex-col rounded-lg border bg-muted/30"
+      :class="colapsada(col) ? 'shrink-0' : 'max-w-80 min-w-64 flex-1'"
       @dragover.prevent="arrastreSobre = col.value"
       @dragleave="arrastreSobre === col.value && (arrastreSobre = null)"
       @drop="soltar(col)"
@@ -107,7 +107,7 @@ function soltar(col: Columna) {
       <!-- Columna colapsada: solo el conteo, en vertical -->
       <button
         v-if="colapsada(col)"
-        class="flex h-40 w-full flex-col items-center justify-center gap-2"
+        class="flex h-40 w-full flex-col items-center justify-center gap-2 px-4"
         @click="cerradasAbierta = true"
       >
         <span class="tablero-col-titulo text-xs font-semibold text-muted-foreground">
@@ -124,7 +124,7 @@ function soltar(col: Columna) {
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span
-                class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-(--c)"
+                class="size-1.5 shrink-0 rounded-full bg-(--c)"
                 :style="{ '--c': colorEtapa(col.estados[0]) }"
               />
               <span

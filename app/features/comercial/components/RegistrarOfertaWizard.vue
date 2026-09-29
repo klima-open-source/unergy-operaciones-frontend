@@ -401,7 +401,7 @@ async function guardar() {
               <Input v-model.trim="c.telefono" placeholder="Teléfono" class="flex-1" />
               <Input v-model.trim="c.email" placeholder="Correo *" class="flex-1" />
               <Select v-model="c.tipo">
-                <SelectTrigger class="w-32"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem v-for="t in TIPOS_CONTACTO" :key="t.value" :value="t.value">{{
                     t.label
