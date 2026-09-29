@@ -462,6 +462,12 @@ Y la comprobación final: `lint` + `typecheck` + `test` + humo del slice.
 
 Sin esto, cada slice reinventa lo mismo. No cambia nada visible para el usuario.
 
+- ✅ **Tokens de marca — hecho (2026-09-29).** `--primary` es el morado Unergy (`#915bd8`; `#b08ae2`
+  en oscuro), `--foreground` el morado profundo, `--background` la avena, y `muted`/`border`/`accent`
+  llevan el tinte lavanda del legacy; `--highlight` es el amarillo solar. Las ~830 clases
+  `*-unergy-*` y las 54 `var(--color-unergy-*)` pasaron a esos tokens y `legacy-theme.css` se
+  borró. Ya no existe `unergy-purple` ni `unergy-deep`: se escribe `primary` y `foreground`.
+  `gandalf-tokens.css` es un puente temporal hasta sincronizar el tema de Gandalf.
 - **Tokens de marca en Tailwind 4.** La paleta Unergy y los colores semánticos
   (éxito `#2e7d32`, déficit `#D64455`, exceso `#F0C040`, textos apagados, bordes) pasan a
   tokens en `@theme`. A partir de aquí, escribir un hex en un `style=` es un error de revisión.
