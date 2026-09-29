@@ -36,8 +36,8 @@ const TIPOS_IDENTIFICACION: TipoDocumentoCliente[] = [
 const TIPOS_COMERCIAL: TipoDocumentoCliente[] = ['oferta', 'contrato']
 
 const BADGE_COLOR: Record<TipoDocumentoCliente, string> = {
-  rut: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  cedula_ciudadania: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+  rut: 'bg-chart-2/10 text-chart-2',
+  cedula_ciudadania: 'bg-chart-3/10 text-chart-3',
   certificado_bancario: 'bg-success/10 text-success',
   camara_comercio: 'bg-warning/10 text-warning',
   oferta: 'bg-primary/10 text-primary',
