@@ -31,8 +31,8 @@ function toggleMode() {
               <AvatarFallback class="rounded-lg">{{ getInitials(user.name) }}</AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ user.name }}</span>
-              <span class="truncate text-xs text-muted-foreground">{{ user.roleLabel }}</span>
+              <TruncatedText :text="user.name" class="font-medium" />
+              <TruncatedText :text="user.roleLabel" class="text-xs text-muted-foreground" />
             </div>
             <ChevronsUpDownIcon class="ml-auto size-4" />
           </SidebarMenuButton>
@@ -51,8 +51,8 @@ function toggleMode() {
                 <AvatarFallback class="rounded-lg">{{ getInitials(user.name) }}</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-medium">{{ user.name }}</span>
-                <span class="truncate text-xs text-muted-foreground">{{ user.email }}</span>
+                <TruncatedText :text="user.name" class="font-medium" />
+                <TruncatedText :text="user.email" class="text-xs text-muted-foreground" />
               </div>
             </div>
           </DropdownMenuLabel>
