@@ -730,10 +730,11 @@ onMounted(() => {
                       class="size-8"
                       :class="iconoAdjunto(url).color"
                     />
-                    <span
-                      class="line-clamp-2 w-full px-1 text-center text-xs text-muted-foreground"
-                      >{{ filename(url) }}</span
-                    >
+                    <TruncatedText
+                      :text="filename(url)"
+                      class="w-full px-1 text-center text-xs text-muted-foreground"
+                      :lines="2"
+                    />
                   </div>
                   <div
                     class="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-colors group-hover:bg-black/40 group-hover:opacity-100"

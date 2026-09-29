@@ -250,9 +250,7 @@ watch(
           </div>
 
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-foreground" :title="archivo.nombre">
-              {{ archivo.nombre }}
-            </p>
+            <TruncatedText :text="archivo.nombre" class="text-sm font-semibold text-foreground" />
             <p class="flex items-center gap-1 text-xs text-muted-foreground">
               <span>{{ formatSize(archivo.tamaño) }}</span>
               <span>·</span>

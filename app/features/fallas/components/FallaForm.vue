@@ -1155,7 +1155,7 @@ onMounted(async () => {
           class="flex items-center gap-1.5 rounded-md bg-primary/5 px-2 py-1 text-xs"
         >
           <component :is="iconoArchivo(f)" class="size-3.5 text-primary" />
-          <span class="min-w-0 flex-1 truncate text-foreground">{{ f.name }}</span>
+          <TruncatedText :text="f.name" class="min-w-0 flex-1 text-foreground" />
           <span class="whitespace-nowrap text-muted-foreground">{{ formatSize(f.size) }}</span>
           <button
             type="button"
