@@ -14,36 +14,37 @@
     <PageHeader title="Proyectos" :subtitle="subtitulo">
       <template #actions>
         <IconField v-if="vista" class="ph-buscar">
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" :placeholder="placeholderBusqueda" size="small" class="w-full" />
         </IconField>
         <Button v-if="vista"
                 severity="secondary" outlined size="small"
                 v-tooltip.bottom="compacta ? 'Densidad cómoda' : 'Densidad compacta'"
                 @click="compacta = !compacta">
-          <template #icon><component :is="compacta ? MoveVerticalIcon : AlignJustifyIcon" class="size-[1em]" /></template>
+          <template #icon><component :is="compacta ? MoveVerticalIcon : AlignJustifyIcon" class="size-4" /></template>
         </Button>
         <Button v-if="vista" label="Excel" severity="secondary" outlined size="small" :disabled="!filasVisibles.length" @click="descargarExcel">
-          <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
         </Button>
         <Button v-if="vista === 'clientes'" label="Nuevo cliente" size="small" @click="dialogCliente = true">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+          <template #icon><PlusIcon class="size-4" /></template>
         </Button>
         <Button v-else-if="vista === 'proyectos'" label="Nuevo proyecto" size="small" @click="dialogProyecto = true">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+          <template #icon><PlusIcon class="size-4" /></template>
         </Button>
-        <Button v-else-if="vista === 'servicios' && servicio === 'ppa'" label="Nuevo PPA" size="small" class="bg-amber-500 border-amber-500 hover:bg-amber-600" @click="abrirWizardPPA(null)">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+        <Button v-else-if="vista === 'servicios' && servicio === 'ppa'" label="Nuevo PPA" size="small" class="bg-warning border-warning hover:bg-warning/90" @click="abrirWizardPPA(null)">
+          <template #icon><PlusIcon class="size-4" /></template>
         </Button>
         <template v-else-if="vista === 'servicios'">
           <Button :label="`Nuevo ${servicioInfo?.label}`"
                   size="small"
-                  :style="`background:${servicioInfo?.color}; border-color:${servicioInfo?.color}`"
+                  class="bg-(--c) border-(--c)"
+                  :style="{ '--c': servicioInfo?.color }"
                   @click="nuevoContrato($event)">
-            <template #icon><component :is="tiposDelServicio.length > 1 ? ChevronDownIcon : PlusIcon" class="size-[1em]" /></template>
+            <template #icon><component :is="tiposDelServicio.length > 1 ? ChevronDownIcon : PlusIcon" class="size-4" /></template>
           </Button>
           <Menu ref="menuNuevoContrato" :model="opcionesNuevoContrato" :popup="true">
-            <template #itemicon="{ item }"><component :is="item.icon" class="size-[1em]" /></template>
+            <template #itemicon="{ item }"><component :is="item.icon" class="size-4" /></template>
           </Menu>
         </template>
       </template>
@@ -53,23 +54,23 @@
     <div class="flex flex-wrap items-center gap-2">
       <button v-for="v in VISTAS" :key="v.key" type="button"
               class="svc-tab" :class="{ 'svc-tab--on': vista === v.key }"
-              :style="vista === v.key ? `background:${v.bg}; border-color:${v.color}55; color:${v.color}` : ''"
+              :style="vista === v.key ? { '--bg': v.bg, '--bd': v.color + '55', '--c': v.color } : undefined"
               @click="seleccionarVista(v.key)">
-        <component :is="v.icon" class="size-[1em]" :style="vista === v.key ? `color:${v.color}` : ''" />
+        <component :is="v.icon" class="size-4" />
         <span>{{ v.label }}</span>
         <span v-if="conteoVista(v.key) !== null" class="svc-tab-count"
-              :style="vista === v.key ? `background:${v.color}22; color:${v.color}` : ''">
+              :style="vista === v.key ? { '--bg': v.color + '22', '--c': v.color } : undefined">
           {{ conteoVista(v.key) }}
         </span>
       </button>
 
       <template v-if="vista === 'servicios'">
-        <span class="mx-1 h-6 w-px" style="background:#E5E2EC" />
+        <span class="mx-1 h-6 w-px bg-border" />
         <button v-for="s in SERVICIOS" :key="s.key" type="button"
                 class="svc-tab svc-tab--sm" :class="{ 'svc-tab--on': servicio === s.key }"
-                :style="servicio === s.key ? `background:${s.bg}; border-color:${s.color}55; color:${s.color}` : ''"
+                :style="servicio === s.key ? { '--bg': s.bg, '--bd': s.color + '55', '--c': s.color } : undefined"
                 @click="seleccionarServicio(s.key)">
-          <component :is="s.icon" class="size-[1em]" :style="servicio === s.key ? `color:${s.color}` : ''" />
+          <component :is="s.icon" class="size-4" />
           <span>{{ s.label }}</span>
         </button>
       </template>
@@ -92,28 +93,27 @@
     <ProyectosPendientesPanel v-if="vista === 'proyectos'" @cambio="cargarProyectos" />
 
     <div v-if="vista === 'proyectos'"
-         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
-         style="border-color:#ECE7F2">
+         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
-        <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+        <label class="text-xs font-semibold text-muted-foreground">Estado</label>
         <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
                 optionLabel="label" optionValue="value" placeholder="Todos" showClear
                 size="small" class="w-40" />
       </div>
       <div>
-        <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+        <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
         <Select v-model="filtrosProyectos.tipo_proyecto.value" :options="tipoOpcionesProyectos"
                 optionLabel="label" optionValue="value" placeholder="Todos" showClear
                 size="small" class="w-40" />
       </div>
       <div>
-        <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+        <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
         <Select v-model="filtrosProyectos.portafolio_id.value" :options="portafolios"
                 optionLabel="nombre" optionValue="id" filter placeholder="Todos" showClear
                 size="small" class="w-48" />
       </div>
       <div>
-        <label class="text-xs font-semibold" style="color:#6b5a8a">PPA</label>
+        <label class="text-xs font-semibold text-muted-foreground">PPA</label>
         <MultiSelect v-model="filtrosProyectos.ppa_contratos.value" :options="ppaOpcionesProyectos"
                      optionLabel="label" optionValue="value" filter display="chip"
                      placeholder="Todos" :maxSelectedLabels="1" selectedItemsLabel="{0} PPAs"
@@ -127,29 +127,28 @@
          cambian según la pestaña porque las tres tablas no comparten columnas.
          Los predicados viven en `~/features/contratos/filtrosServicios`. -->
     <div v-if="vista === 'servicios'"
-         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border"
-         style="border-color:#ECE7F2">
+         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <template v-if="servicio === 'ppa'">
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <label class="text-xs font-semibold text-muted-foreground">Estado</label>
           <Select v-model="filtrosPpa.estado" :options="VIGENCIA_OPCIONES"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-40" />
         </div>
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
           <Select v-model="filtrosPpa.tipo" :options="opcionesPpaTipo"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-36" />
         </div>
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Comprador</label>
+          <label class="text-xs font-semibold text-muted-foreground">Comprador</label>
           <Select v-model="filtrosPpa.comprador" :options="opcionesPpaComprador"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-48" />
         </div>
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Vendedor</label>
+          <label class="text-xs font-semibold text-muted-foreground">Vendedor</label>
           <Select v-model="filtrosPpa.vendedor" :options="opcionesPpaVendedor"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-48" />
@@ -160,25 +159,25 @@
 
       <template v-else>
         <div v-if="tiposDelServicio.length > 1">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo</label>
+          <label class="text-xs font-semibold text-muted-foreground">Tipo</label>
           <Select v-model="filtrosServicio.tipo" :options="opcionesServicioTipo"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-44" />
         </div>
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Estado</label>
+          <label class="text-xs font-semibold text-muted-foreground">Estado</label>
           <Select v-model="filtrosServicio.estado" :options="ESTADO_CONTRATO_OPCIONES"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-40" />
         </div>
         <div v-if="esRepresentacion">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Inversionista</label>
+          <label class="text-xs font-semibold text-muted-foreground">Inversionista</label>
           <Select v-model="filtrosServicio.inversionista" :options="opcionesInversionista"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-56" />
         </div>
         <div v-if="esRepresentacion">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Portafolio</label>
+          <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
           <Select v-model="filtrosServicio.portafolio" :options="opcionesPortafolio"
                   optionLabel="label" optionValue="value" filter placeholder="Todos" showClear
                   size="small" class="w-44" />
@@ -186,7 +185,7 @@
         <!-- Solo si hay más de una clase entre los contratos cargados: con una
              sola, el desplegable no seleccionaría nada distinto. -->
         <div v-if="opcionesTipoPlanta.length > 1">
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Tipo de planta</label>
+          <label class="text-xs font-semibold text-muted-foreground">Tipo de planta</label>
           <Select v-model="filtrosServicio.tipoPlanta" :options="opcionesTipoPlanta"
                   optionLabel="label" optionValue="value" placeholder="Todos" showClear
                   size="small" class="w-40" />
@@ -209,69 +208,68 @@
                  sortField="razon_social_nombre" :sortOrder="1" rowHover
                  @row-click="e => ir(`/clientes/${e.data.id}`)"
                  emptyMessage="No hay clientes.">
-        <Column field="razon_social_nombre" header="Razón social" sortable style="width:26%">
+        <Column field="razon_social_nombre" header="Razón social" sortable>
           <template #body="{ data }">
             <div class="flex items-center gap-1 min-w-0">
-              <span class="celda-txt font-semibold" style="color:var(--color-unergy-deep)">
+              <span class="celda-txt font-semibold text-unergy-deep">
                 {{ formatearNombre(data.razon_social_nombre) }}
               </span>
               <span v-if="data.alerta_contrato && data.alerta_contrato !== 'vigente'"
-                    class="mini-chip shrink-0"
-                    :style="{ color: SEMAFORO[data.alerta_contrato].color, background: SEMAFORO[data.alerta_contrato].bg }">
+                    class="mini-chip shrink-0 bg-(--bg) text-(--c)"
+                    :style="{ '--c': SEMAFORO[data.alerta_contrato].color, '--bg': SEMAFORO[data.alerta_contrato].bg }">
                 {{ SEMAFORO[data.alerta_contrato].label }}
               </span>
             </div>
           </template>
         </Column>
-        <Column field="nit_cedula" header="NIT" sortable style="width:9%">
+        <Column field="nit_cedula" header="NIT" sortable>
           <template #body="{ data }"><span class="mono">{{ fmt(data.nit_cedula) }}</span></template>
         </Column>
-        <Column field="num_plantas" header="Plantas" sortable style="width:6%" bodyStyle="text-align:right">
+        <Column field="num_plantas" header="Plantas" sortable bodyStyle="text-align:right">
           <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:var(--color-unergy-deep)">{{ data.num_plantas }}</span>
+            <span class="font-semibold tabular-nums text-unergy-deep">{{ data.num_plantas }}</span>
           </template>
         </Column>
-        <Column header="Servicios" style="width:15%">
+        <Column header="Servicios">
           <template #body="{ data }">
             <div class="chips-fila">
-              <span v-for="sv in data.servicios" :key="sv" class="mini-chip"
-                    style="background:#f0ebfd;color:var(--color-unergy-purple)">{{ servicioLabel(sv) }}</span>
+              <span v-for="sv in data.servicios" :key="sv" class="mini-chip bg-unergy-purple/10 text-unergy-purple">{{ servicioLabel(sv) }}</span>
               <span v-if="!data.servicios?.length" class="vacio">—</span>
             </div>
           </template>
         </Column>
-        <Column field="contacto_comercial_nombre" header="Contacto" sortable style="width:14%">
+        <Column field="contacto_comercial_nombre" header="Contacto" sortable>
           <template #body="{ data }">
             <span class="celda-txt">{{ fmt(data.contacto_comercial_nombre) }}</span>
           </template>
         </Column>
-        <Column field="contacto_comercial_correo" header="Correo" sortable style="width:15%">
+        <Column field="contacto_comercial_correo" header="Correo" sortable>
           <template #body="{ data }">
             <span class="celda-txt sutil">{{ fmt(data.contacto_comercial_correo) }}</span>
           </template>
         </Column>
-        <Column header="Falta" style="width:9%">
+        <Column header="Falta">
           <template #body="{ data }">
             <div class="falta-celda">
               <span class="falta-chip" :class="faltanCampos(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'campos')">
-                <ListIcon class="size-[1em]" />{{ faltanCampos(data).length }}
+                <ListIcon class="size-4" />{{ faltanCampos(data).length }}
               </span>
               <span class="falta-chip" :class="faltanDocs(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'docs')">
-                <PaperclipIcon class="size-[1em]" />{{ faltanDocs(data).length }}
+                <PaperclipIcon class="size-4" />{{ faltanDocs(data).length }}
               </span>
             </div>
           </template>
         </Column>
-        <Column style="width:6%">
+        <Column>
           <template #body="{ data }">
             <div class="acciones">
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="ir(`/clientes/${data.id}`)">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <Button text size="small" severity="danger" v-tooltip.bottom="'Eliminar'" @click.stop="confirmarBorrarCliente(data)">
-                <template #icon><Trash2Icon class="size-[1em]" /></template>
+                <template #icon><Trash2Icon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -288,10 +286,10 @@
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
                  sortField="nombre_comercial" :sortOrder="1" rowHover
                  emptyMessage="No se encontraron proyectos.">
-        <Column field="nombre_comercial" header="Nombre comercial" sortable style="width:14%">
+        <Column field="nombre_comercial" header="Nombre comercial" sortable>
           <template #body="{ data }">
-            <span class="block text-[9px] leading-none mono"
-                  :style="{ color: data.codigo_tsf ? '#9ca3af' : '#d1d5db' }">
+            <span class="block text-xs leading-none mono"
+                  :class="data.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground/50'">
               {{ data.codigo_tsf || '—' }}
             </span>
             <button type="button" class="nombre-link" @click="ir(`/proyectos/${data.id}`)"
@@ -300,7 +298,7 @@
             </button>
           </template>
         </Column>
-        <Column field="estado" header="Estado" sortable style="width:10%">
+        <Column field="estado" header="Estado" sortable>
           <template #body="{ data }">
             <span class="mini-chip inline-flex items-center gap-1"
                   :class="ESTADO_CLASS[data.estado] || 'estado-default'">
@@ -309,19 +307,19 @@
             </span>
           </template>
         </Column>
-        <Column field="tipo_proyecto" header="Tipo" sortable style="width:9%">
+        <Column field="tipo_proyecto" header="Tipo" sortable>
           <template #body="{ data }">
             <span class="mini-chip" :class="TIPO_BADGE_CLASS[data.tipo_proyecto] || 'badge-otro'">
               {{ TIPO_LABELS[data.tipo_proyecto] || data.tipo_proyecto || '—' }}
             </span>
           </template>
         </Column>
-        <Column field="portafolio_id" header="Portafolio" sortable style="width:14%">
+        <Column field="portafolio_id" header="Portafolio" sortable>
           <template #body="{ data }">
             <span class="celda-txt sutil">{{ nombrePortafolio(data.portafolio_id) || '—' }}</span>
           </template>
         </Column>
-        <Column field="municipio" header="Ubicación" sortable style="width:7%">
+        <Column field="municipio" header="Ubicación" sortable>
           <template #body="{ data }">
             <span v-if="data.municipio || data.departamento" class="celda-txt sutil"
                   v-tooltip.bottom="[data.municipio, data.departamento].filter(Boolean).join(', ')">
@@ -330,15 +328,14 @@
             <span v-else class="vacio">—</span>
           </template>
         </Column>
-        <Column field="info_tecnica.capacidad_instalada_kwp" header="kWp" sortable
-                style="width:7%" bodyStyle="text-align:right">
+        <Column field="info_tecnica.capacidad_instalada_kwp" header="kWp" sortable bodyStyle="text-align:right">
           <template #body="{ data }">
             <span class="mono" v-tooltip.bottom="`AC: ${num(data.info_tecnica?.potencia_ac_kw)} kW`">
               {{ num(data.info_tecnica?.capacidad_instalada_kwp) }}
             </span>
           </template>
         </Column>
-        <Column header="Servicios" style="width:11%">
+        <Column header="Servicios">
           <template #body="{ data }">
             <div class="chips-fila">
               <template v-for="srv in SERVICIOS_BADGES" :key="srv.key">
@@ -349,7 +346,7 @@
             </div>
           </template>
         </Column>
-        <Column header="PPA" style="width:13%">
+        <Column header="PPA">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="chips-fila">
               <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="ppa-chip"
@@ -360,28 +357,28 @@
             <span v-else class="vacio">—</span>
           </template>
         </Column>
-        <Column header="Falta" style="width:9%">
+        <Column header="Falta">
           <template #body="{ data }">
             <div class="falta-celda">
               <span class="falta-chip" :class="faltanCampos(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'campos')">
-                <ListIcon class="size-[1em]" />{{ faltanCampos(data).length }}
+                <ListIcon class="size-4" />{{ faltanCampos(data).length }}
               </span>
               <span class="falta-chip" :class="faltanDocs(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'docs')">
-                <PaperclipIcon class="size-[1em]" />{{ faltanDocs(data).length }}
+                <PaperclipIcon class="size-4" />{{ faltanDocs(data).length }}
               </span>
             </div>
           </template>
         </Column>
-        <Column style="width:6%">
+        <Column>
           <template #body="{ data }">
             <div class="acciones">
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="ir(`/proyectos/${data.id}?edit=true`)">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <Button text size="small" severity="danger" v-tooltip.bottom="'Eliminar'" @click.stop="confirmarBorrarProyecto(data)">
-                <template #icon><Trash2Icon class="size-[1em]" /></template>
+                <template #icon><Trash2Icon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -397,7 +394,7 @@
                  paginator :rows="filasPorPagina" :rowsPerPageOptions="[50, 100, 200]"
                  sortField="fecha_inicio" :sortOrder="1" rowHover
                  emptyMessage="No hay contratos PPA registrados.">
-        <Column field="nombre_interno" header="Nombre interno" sortable style="width:16%">
+        <Column field="nombre_interno" header="Nombre interno" sortable>
           <template #body="{ data }">
             <button type="button" class="nombre-link" @click="ir(`/contratos/${data.id}`)"
                     v-tooltip.bottom="'Ver detalle'">
@@ -405,7 +402,7 @@
             </button>
           </template>
         </Column>
-        <Column field="numero_codigo_contrato" header="N° contrato" sortable style="width:9%">
+        <Column field="numero_codigo_contrato" header="N° contrato" sortable>
           <template #body="{ data }">
             <span v-if="data.numero_codigo_contrato" class="mono celda-txt"
                   v-tooltip.bottom="data.numero_codigo_contrato">
@@ -414,89 +411,89 @@
             <span v-else class="vacio">—</span>
           </template>
         </Column>
-        <Column field="tipo_contrato" header="Tipo" sortable style="width:6%">
+        <Column field="tipo_contrato" header="Tipo" sortable>
           <template #body="{ data }">
             <span class="mini-chip"
-                  :style="data.tipo_contrato === 'compra'
-                    ? 'background:var(--color-unergy-purple);color:#fff'
-                    : 'background:var(--color-unergy-yellow);color:var(--color-unergy-deep)'">
+                  :class="data.tipo_contrato === 'compra'
+                    ? 'bg-unergy-purple text-primary-foreground'
+                    : 'bg-unergy-yellow text-unergy-deep'">
               {{ data.tipo_contrato === 'compra' ? 'Compra' : 'Venta' }}
             </span>
           </template>
         </Column>
         <!-- Estado de vigencia: derivado de las fechas, mismo cálculo que el
              detalle del contrato (utils/ppaVigencia.js). Ordena por urgencia. -->
-        <Column field="_vigencia.orden" header="Estado" sortable style="width:8%">
+        <Column field="_vigencia.orden" header="Estado" sortable>
           <template #body="{ data }">
-            <span class="mini-chip"
-                  :style="`background:${data._vigencia.bg};color:${data._vigencia.color}`"
+            <span class="mini-chip bg-(--bg) text-(--c)"
+                  :style="{ '--bg': data._vigencia.bg, '--c': data._vigencia.color }"
                   v-tooltip.bottom="data._vigencia.detalle">
               {{ data._vigencia.label }}
             </span>
           </template>
         </Column>
-        <Column field="comprador_nombre" header="Comprador" sortable style="width:14%">
+        <Column field="comprador_nombre" header="Comprador" sortable>
           <template #body="{ data }">
             <span class="celda-txt">{{ data.comprador_nombre || '—' }}</span>
           </template>
         </Column>
-        <Column field="vendedor_nombre" header="Vendedor" sortable style="width:14%">
+        <Column field="vendedor_nombre" header="Vendedor" sortable>
           <template #body="{ data }">
             <span class="celda-txt">{{ data.vendedor_nombre || '—' }}</span>
           </template>
         </Column>
-        <Column field="fecha_inicio" header="Inicio" sortable style="width:7%">
+        <Column field="fecha_inicio" header="Inicio" sortable>
           <template #body="{ data }"><span class="mono">{{ fmtFecha(data.fecha_inicio) }}</span></template>
         </Column>
         <!-- Resaltado y tooltip salen de _vigencia, no de dias_restantes: el
              listado de /ppa devuelve las filas del ORM y ese campo llega null,
              así que este aviso nunca se veía. -->
-        <Column field="fecha_fin" header="Fin" sortable style="width:7%">
+        <Column field="fecha_fin" header="Fin" sortable>
           <template #body="{ data }">
             <span class="mono"
-                  :style="['vencido', 'por_vencer'].includes(data._vigencia.clave)
-                    ? { color: data._vigencia.color, fontWeight: 700 } : null"
+                  :class="{ 'font-bold text-(--c)': ['vencido', 'por_vencer'].includes(data._vigencia.clave) }"
+                  :style="{ '--c': data._vigencia.color }"
                   v-tooltip.bottom="data._vigencia.detalle">
               {{ fmtFecha(data.fecha_fin) }}
             </span>
           </template>
         </Column>
-        <Column field="cobertura_actual_pct" header="Cobertura" sortable style="width:8%">
+        <Column field="cobertura_actual_pct" header="Cobertura" sortable>
           <template #body="{ data }">
             <div v-if="data.cobertura_actual_pct != null" class="flex items-center gap-1">
-              <div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background:#f3f0f7">
-                <div class="h-full rounded-full" :style="{
-                  width: Math.min(data.cobertura_actual_pct, 100) + '%',
-                  backgroundColor: data.cobertura_actual_pct >= 90 ? '#10B981'
-                    : data.cobertura_actual_pct >= 70 ? '#F0C040' : '#D64455' }" />
+              <div class="flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
+                <div class="h-full rounded-full w-(--w)"
+                     :class="data.cobertura_actual_pct >= 90 ? 'bg-success'
+                       : data.cobertura_actual_pct >= 70 ? 'bg-warning' : 'bg-destructive'"
+                     :style="{ '--w': Math.min(data.cobertura_actual_pct, 100) + '%' }" />
               </div>
               <span class="mono">{{ data.cobertura_actual_pct }}%</span>
             </div>
             <span v-else class="vacio">—</span>
           </template>
         </Column>
-        <Column header="Falta" style="width:6%">
+        <Column header="Falta">
           <template #body="{ data }">
             <div class="falta-celda">
               <span class="falta-chip" :class="faltanCampos(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'campos')">
-                <ListIcon class="size-[1em]" />{{ faltanCampos(data).length }}
+                <ListIcon class="size-4" />{{ faltanCampos(data).length }}
               </span>
               <span class="falta-chip" :class="faltanDocs(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'docs')">
-                <PaperclipIcon class="size-[1em]" />{{ faltanDocs(data).length }}
+                <PaperclipIcon class="size-4" />{{ faltanDocs(data).length }}
               </span>
             </div>
           </template>
         </Column>
-        <Column style="width:5%">
+        <Column>
           <template #body="{ data }">
             <div class="acciones">
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="ir(`/contratos/${data.id}`)">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <Button text size="small" severity="danger" v-tooltip.bottom="'Eliminar'" @click.stop="confirmarBorrarPpa(data)">
-                <template #icon><Trash2Icon class="size-[1em]" /></template>
+                <template #icon><Trash2Icon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -512,7 +509,7 @@
            tienen son un error de datos, no un estado válido: la barra los cuenta
            y deja aislarlos para irlos cerrando hasta llegar a cero. -->
       <div v-if="nHuerfanos" class="barra-huerfanos">
-        <TriangleAlertIcon class="size-[1em]" />
+        <TriangleAlertIcon class="size-4" />
         <span><strong>{{ nHuerfanos }}</strong> de {{ contratosServicio.length }} contratos sin proyecto asociado</span>
         <Button :label="soloHuerfanos ? 'Ver todos' : 'Ver solo estos'" text size="small"
                 class="ml-auto" @click="alternarHuerfanos" />
@@ -521,7 +518,7 @@
       <!-- Duplicados: el mismo contrato escrito por varias fuentes. Se limpian
            desde acá porque ir planta por planta no es viable con 126 contratos. -->
       <div v-if="esRepresentacion && nDuplicados" class="barra-duplicados">
-        <CopyIcon class="size-[1em]" />
+        <CopyIcon class="size-4" />
         <span>
           <strong>{{ nDuplicados }}</strong> registros duplicados en
           {{ duplicados.grupos_fusionables.length }}
@@ -535,7 +532,7 @@
         <Button label="Ver todos" text size="small" class="ml-auto"
                 @click="soloDuplicados = false" v-else />
         <Button label="Fusionar duplicados" size="small" :loading="fusionando" @click="confirmarFusion">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </div>
       <DataTable :value="contratosServicioFiltrados" :loading="loadingServicio" size="small"
@@ -550,7 +547,7 @@
              contrato quedó huérfano (proyecto_id NULL) la celda es el botón para
              arreglarlo, en vez de un "—" que no lleva a ninguna parte. -->
         <Column field="proyecto.nombre_comercial" header="Proyecto"
-                sortable :style="esRepresentacion ? 'width:26%' : 'width:24%'">
+                sortable>
           <template #body="{ data }">
             <button v-if="data.proyecto" type="button" class="celda-enlace"
                     v-tooltip.bottom="'Ver la planta'"
@@ -560,7 +557,7 @@
             <button v-else type="button" class="chip-huerfano"
                     v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
                     @click.stop="abrirAsociarProyecto(data)">
-              <LinkIcon class="size-[1em]" />Sin proyecto
+              <LinkIcon class="size-4" />Sin proyecto
             </button>
           </template>
         </Column>
@@ -571,35 +568,33 @@
              para que el encabezado entre entero: con 10% se cortaba.
              Va junto al nombre —y antes que el tipo de contrato— porque describe
              la PLANTA: las dos primeras columnas hablan de la misma cosa. -->
-        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable style="width:13%">
+        <Column field="proyecto.tipo_proyecto" header="Tipo de planta" sortable>
           <template #body="{ data }">
             <span v-if="data.proyecto" class="mini-chip"
                   :class="TIPO_BADGE_CLASS[data.proyecto.tipo_proyecto] || 'badge-otro'">
               {{ TIPO_LABELS[data.proyecto.tipo_proyecto] || data.proyecto.tipo_proyecto || 'Sin tipo' }}
             </span>
-            <span v-else style="color:#9b89b5">—</span>
+            <span v-else class="text-muted-foreground">—</span>
           </template>
         </Column>
         <!-- Un chip por subservicio: en Representación y CGM un mismo contrato
              cubre los dos, y pintar solo `servicio_aplica` ocultaba el CGM. -->
         <Column v-if="tiposDelServicio.length > 1" field="servicio_aplica" header="Tipo"
-                sortable style="width:11%">
+                sortable>
           <template #body="{ data }">
-            <span v-for="sub in subserviciosDeFila(data)" :key="sub" class="mini-chip"
+            <span v-for="sub in subserviciosDeFila(data)" :key="sub" class="mini-chip mr-1 bg-(--bg) text-(--c)"
                   :style="{
-                    color: TIPO_CONTRATO_COLOR[sub] || '#6b7280',
-                    background: (TIPO_CONTRATO_COLOR[sub] || '#6b7280') + '1f',
-                    marginRight: '4px' }">
+                    '--c': colorTipoContrato(sub),
+                    '--bg': colorTipoContrato(sub) + '1f' }">
               {{ TIPO_CONTRATO_LABELS[sub] || sub }}
             </span>
-            <span v-if="!subserviciosDeFila(data).length" class="mini-chip"
-                  style="color:#6b7280;background:#6b72801f">—</span>
+            <span v-if="!subserviciosDeFila(data).length" class="mini-chip text-muted-foreground bg-muted">—</span>
           </template>
         </Column>
         <!-- El inversionista es lo que distingue dos contratos de la misma
              planta: La Reserva tiene dos, Baraya tres. -->
         <Column v-if="esRepresentacion" field="inversionista_nombre" header="Inversionista"
-                sortable style="width:20%">
+                sortable>
           <template #body="{ data }">
             <span class="celda-txt">
               {{ data.inversionista_nombre ? formatearNombre(data.inversionista_nombre) : '—' }}
@@ -610,57 +605,56 @@
              identificar el contrato. En Operación ninguno lo trae, así que era
              una columna de 66 guiones ocupando el 15% del ancho. El buscador de
              la cabecera sigue mirando `numero_contrato` en las dos pestañas. -->
-        <Column v-if="esRepresentacion" field="numero_contrato" header="N° contrato" sortable
-                style="width:11%">
+        <Column v-if="esRepresentacion" field="numero_contrato" header="N° contrato" sortable>
           <template #body="{ data }"><span class="celda-txt mono">{{ data.numero_contrato || '—' }}</span></template>
         </Column>
         <!-- Contratante y prestador salen del cuadro en Representación: el seed
              CGM no los llena y el par real es Unergy ↔ inversionista, que ya
              tiene columna propia. El buscador sí sigue mirándolos. -->
-        <Column v-if="!esRepresentacion" field="contratante_nombre" header="Contratante" sortable style="width:21%">
+        <Column v-if="!esRepresentacion" field="contratante_nombre" header="Contratante" sortable>
           <template #body="{ data }"><span class="celda-txt">{{ data.contratante_nombre || '—' }}</span></template>
         </Column>
-        <Column v-if="!esRepresentacion" field="prestador_nombre" header="Prestador" sortable style="width:21%">
+        <Column v-if="!esRepresentacion" field="prestador_nombre" header="Prestador" sortable>
           <template #body="{ data }"><span class="celda-txt">{{ data.prestador_nombre || '—' }}</span></template>
         </Column>
-        <Column field="fecha_inicio" header="Inicio" sortable style="width:8%">
+        <Column field="fecha_inicio" header="Inicio" sortable>
           <template #body="{ data }"><span class="mono">{{ fmtFecha(data.fecha_inicio) }}</span></template>
         </Column>
-        <Column field="fecha_fin" header="Fin" sortable style="width:8%">
+        <Column field="fecha_fin" header="Fin" sortable>
           <template #body="{ data }"><span class="mono">{{ fmtFecha(data.fecha_fin) }}</span></template>
         </Column>
-        <Column field="estado" header="Estado" sortable style="width:12%">
+        <Column field="estado" header="Estado" sortable>
           <template #body="{ data }">
             <span class="mini-chip" :class="ESTADO_CONTRATO_CLASS[data.estado] || 'chip-neutral'">
               {{ ESTADO_CONTRATO_LABELS[data.estado] || data.estado || '—' }}
             </span>
           </template>
         </Column>
-        <Column header="Falta" style="width:9%">
+        <Column header="Falta">
           <template #body="{ data }">
             <div class="falta-celda">
               <span class="falta-chip" :class="faltanCampos(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'campos')">
-                <ListIcon class="size-[1em]" />{{ faltanCampos(data).length }}
+                <ListIcon class="size-4" />{{ faltanCampos(data).length }}
               </span>
               <span class="falta-chip" :class="faltanDocs(data).length ? 'falta--mal' : 'falta--ok'"
                     v-tooltip.bottom="tipFalta(data, 'docs')">
-                <PaperclipIcon class="size-[1em]" />{{ faltanDocs(data).length }}
+                <PaperclipIcon class="size-4" />{{ faltanDocs(data).length }}
               </span>
             </div>
           </template>
         </Column>
-        <Column :style="esRepresentacion ? 'width:8%' : 'width:6%'">
+        <Column>
           <template #body="{ data }">
             <div class="acciones">
               <Button text size="small" severity="secondary" v-tooltip.bottom="data.proyecto ? 'Cambiar de proyecto' : 'Asociar a un proyecto'" @click.stop="abrirAsociarProyecto(data)">
-                <template #icon><LinkIcon class="size-[1em]" /></template>
+                <template #icon><LinkIcon class="size-4" /></template>
               </Button>
               <Button text size="small" severity="secondary" v-tooltip.bottom="'Editar'" @click.stop="irAEditarContratoServicio(data)">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <Button text size="small" severity="danger" v-tooltip.bottom="'Eliminar'" @click.stop="confirmarBorrarContratoServicio(data)">
-                <template #icon><Trash2Icon class="size-[1em]" /></template>
+                <template #icon><Trash2Icon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -686,7 +680,7 @@
         <!-- Los datos que sirven de pista son distintos por tipo: un contrato de
              Operación no tiene inversionista ni código Sun Factory, y mostrarlos
              vacíos solo estorba al decidir. -->
-        <div class="rounded-lg p-3 text-xs space-y-0.5" style="background:#F7F5FB; color:#6b5a8a">
+        <div class="rounded-lg p-3 text-xs space-y-0.5 bg-muted text-muted-foreground">
           <template v-if="contratoAAsociar.servicio_aplica === 'representacion'">
             <p><span class="font-semibold">Inversionista:</span>
               {{ contratoAAsociar.inversionista_nombre || '—' }}</p>
@@ -705,11 +699,11 @@
             {{ contratoAAsociar.nombre_proyecto_ref || '—' }}</p>
         </div>
         <div>
-          <label class="text-xs font-semibold" style="color:#6b5a8a">Planta</label>
+          <label class="text-xs font-semibold text-muted-foreground">Planta</label>
           <Select v-model="proyectoElegido" :options="proyectos" optionLabel="nombre_comercial"
                   optionValue="id" filter :loading="loadingProyectos" size="small" class="w-full mt-1"
                   placeholder="Buscar planta…" filterPlaceholder="Escribe para filtrar…" />
-          <p v-if="proyectoSugerido" class="text-[11px] mt-1" style="color:#9b8fb0">
+          <p v-if="proyectoSugerido" class="text-xs mt-1 text-muted-foreground">
             Sugerido a partir del {{ proyectoSugerido }}. Verifica antes de guardar.
           </p>
         </div>
@@ -729,8 +723,8 @@
     <Dialog v-model:visible="duplicadoVisible"
       :header="duplicadoTipo === 'cliente' ? 'Cliente parecido ya existe' : 'Proyecto parecido ya existe'"
       modal class="w-full max-w-sm">
-      <p class="text-sm text-gray-600">{{ duplicadoInfo?.mensaje }}</p>
-      <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium" style="color:var(--color-unergy-deep)">
+      <p class="text-sm text-muted-foreground">{{ duplicadoInfo?.mensaje }}</p>
+      <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium text-unergy-deep">
         {{ duplicadoInfo.candidato_nombre }}
       </p>
       <template #footer>
@@ -855,6 +849,8 @@ const TIPO_CONTRATO_COLOR = {
   mantenimiento: '#f59e0b', arriendo: '#8b5cf6', internet: '#06b6d4',
   representacion: '#3b82f6', cgm: '#0ea5e9',
 }
+
+const colorTipoContrato = (sub) => TIPO_CONTRATO_COLOR[sub] || '#6b7280'
 
 const SERVICIOS_BADGES = [
   { key: 'srv_operacion',      badge: 'OP',   tooltip: 'Operación' },
@@ -2017,17 +2013,17 @@ function confirmarBorrarPpa(contrato) {
 /* ── Selector de ángulo ─────────────────────────────────────────────────────── */
 .svc-tab {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border: 1px solid #E5E2EC; border-radius: 9px;
-  background: #fff; font-size: 13px; font-weight: 700; color: #6b7280;
+  padding: 6px 12px; border: 1px solid var(--bd, #E5E2EC); border-radius: 9px;
+  background: var(--bg, #fff); font-size: 13px; font-weight: 700; color: var(--c, #6b7280);
   cursor: pointer; transition: border-color .12s, color .12s, background .12s; user-select: none;
 }
-.svc-tab:hover { border-color: #cbb8e8; color: var(--color-unergy-deep); }
-.svc-tab svg { font-size: 13px; color: #9ca3af; }
+.svc-tab:not(.svc-tab--on):hover { border-color: #cbb8e8; color: var(--color-unergy-deep); }
+.svc-tab svg { font-size: 13px; color: var(--c, #9ca3af); }
 .svc-tab--on { box-shadow: 0 1px 4px rgba(0,0,0,.06); }
 .svc-tab--sm { padding: 4px 9px; font-size: 12px; font-weight: 600; }
 .svc-tab--sm svg { font-size: 11px; }
 .svc-tab-count {
-  background: #EEF0F2; color: #6b7280; border-radius: 999px;
+  background: var(--bg, #EEF0F2); color: var(--c, #6b7280); border-radius: 999px;
   font-size: 10px; font-weight: 800; padding: 0 6px; min-width: 18px; text-align: center;
 }
 

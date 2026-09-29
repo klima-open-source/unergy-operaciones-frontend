@@ -18,24 +18,24 @@
     <!-- Migas -->
     <div class="flex items-center gap-2">
       <Button text severity="secondary" @click="$router.back()" class="-ml-1">
-        <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+        <template #icon><ArrowLeftIcon class="size-4" /></template>
       </Button>
       <div>
-        <p class="text-xs leading-none mb-0.5" style="color:#9b89b5">
+        <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
             @click="$router.push(`/proyectos/${route.params.id}`)">{{ proyectoNombre || '…' }}</span>
           <span class="mx-1.5">›</span><span>Servicios</span>
           <span class="mx-1.5">›</span>
-          <span class="font-medium" style="color:var(--color-unergy-deep)">Representación</span>
+          <span class="font-medium text-unergy-deep">Representación</span>
         </p>
-        <h2 class="text-lg font-bold" style="color:var(--color-unergy-deep)">Representación CGM</h2>
+        <h2 class="text-lg font-bold text-unergy-deep">Representación CGM</h2>
       </div>
       <div class="ml-auto flex items-center gap-2">
         <Button v-if="c" label="Eliminar" size="small" outlined severity="danger" @click="confirmarEliminar">
-          <template #icon><Trash2Icon class="size-[1em]" /></template>
+          <template #icon><Trash2Icon class="size-4" /></template>
         </Button>
         <Button label="Nuevo contrato" size="small" @click="nuevoContrato">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+          <template #icon><PlusIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
@@ -43,16 +43,16 @@
     <div v-if="loading" class="flex justify-center py-20"><ProgressSpinner /></div>
 
     <div v-else-if="!contratos.length"
-      class="rounded-xl border border-dashed p-10 text-center" style="border-color:#3b82f640">
-      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style="background:#eff6ff">
-        <FilePenIcon class="text-xl size-[1em]" style="color:#3b82f6" />
+      class="rounded-xl border border-dashed border-primary/25 p-10 text-center">
+      <div class="size-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-primary/10">
+        <FilePenIcon class="size-6 text-primary" />
       </div>
-      <p class="text-sm font-medium text-gray-600 mb-1">Sin contratos de representación</p>
-      <p class="text-xs text-gray-400">
+      <p class="text-sm font-medium text-muted-foreground mb-1">Sin contratos de representación</p>
+      <p class="text-xs text-muted-foreground">
         Esta planta no tiene contratos de representación asociados.
       </p>
       <Button label="Crear el primero" size="small" class="mt-3" @click="nuevoContrato">
-        <template #icon><PlusIcon class="size-[1em]" /></template>
+        <template #icon><PlusIcon class="size-4" /></template>
       </Button>
     </div>
 
@@ -60,11 +60,10 @@
       <!-- Selector: un contrato por inversionista. Los creados a mano pueden no
            traer inversionista, así que se rotulan con lo que tengan. -->
       <div v-if="contratos.length > 1" class="flex items-center gap-2 flex-wrap">
-        <span class="text-xs font-semibold text-gray-500">Contrato:</span>
+        <span class="text-xs font-semibold text-muted-foreground">Contrato:</span>
         <button v-for="c in contratos" :key="c.id" type="button"
           class="text-xs px-3 py-1.5 rounded-full font-medium transition-all border"
-          :class="idSeleccionado === c.id ? 'text-white border-transparent' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'"
-          :style="idSeleccionado === c.id ? 'background:#3b82f6' : ''"
+          :class="idSeleccionado === c.id ? 'bg-primary text-primary-foreground border-transparent' : 'bg-card text-muted-foreground border-border hover:border-primary/40'"
           @click="idSeleccionado = c.id">
           {{ etiquetaContrato(c) }}
         </button>
@@ -74,28 +73,28 @@
            Los sembraron tres fuentes distintas (los dos seeds y el wizard) sin
            que ninguna reconociera a las otras. -->
       <div v-if="grupoDuplicado" class="dup-aviso">
-        <CopyIcon class="size-[1em]" />
+        <CopyIcon class="size-3.5" />
         <div class="min-w-0">
           <p class="font-semibold">
             {{ grupoDuplicado.ids.length }} registros de esta planta son el mismo contrato
           </p>
-          <p class="text-[11px] opacity-80">
+          <p class="text-xs opacity-80">
             Al fusionar se conserva uno con la unión de todos los datos y se
             eliminan los demás. Ningún valor se sobreescribe.
           </p>
         </div>
         <Button label="Fusionar" size="small" class="ml-auto shrink-0" :loading="fusionando" @click="fusionar">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </div>
 
       <div v-else-if="grupoEnConflicto" class="dup-aviso dup-aviso--frena">
-        <TriangleAlertIcon class="size-[1em]" />
+        <TriangleAlertIcon class="size-3.5" />
         <div class="min-w-0">
           <p class="font-semibold">
             {{ grupoEnConflicto.ids.length }} registros parecen el mismo contrato, pero se contradicen
           </p>
-          <p class="text-[11px] opacity-80">
+          <p class="text-xs opacity-80">
             No se fusionan solos porque hay que decidir cuál valor vale:
             {{ grupoEnConflicto.conflictos.map(c => c.campo).join(', ') }}.
             Corrige el campo en los registros y el aviso pasará a ofrecer la fusión.
@@ -106,32 +105,32 @@
       <template v-if="c">
         <!-- ── Resumen ──────────────────────────────────────────────────── -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat" :style="`background:${vigencia.bg};border-color:${vigencia.borde}`">
-            <p class="cd-stat-lbl" :style="`color:${vigencia.color}`">
-              <CircleIcon class="size-[1em] fill-current" style="font-size:6px" />Estado
+          <div class="cd-stat border" :class="vigencia.tono">
+            <p class="cd-stat-lbl">
+              <CircleIcon class="size-1.5 fill-current" />Estado
             </p>
-            <p class="cd-stat-val" :style="`color:${vigencia.color}`">{{ vigencia.label }}</p>
-            <p class="cd-stat-sub" :style="`color:${vigencia.color};opacity:.7`">{{ vigencia.detalle }}</p>
+            <p class="cd-stat-val">{{ vigencia.label }}</p>
+            <p class="cd-stat-sub opacity-70">{{ vigencia.detalle }}</p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ClockIcon class="size-[1em]" style="font-size:9px" />Duración</p>
-            <p class="cd-stat-val">{{ duracion || '—' }}</p>
+          <div class="cd-stat border border-border bg-card text-muted-foreground">
+            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Duración</p>
+            <p class="cd-stat-val text-unergy-deep">{{ duracion || '—' }}</p>
             <p class="cd-stat-sub">{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}</p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-[1em]" style="font-size:9px" />Tarifa CGM</p>
-            <p class="cd-stat-val">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
-              <span class="text-[10px] font-normal" style="color:#9b89b5">$/kWh</span>
+          <div class="cd-stat border border-border bg-card text-muted-foreground">
+            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Tarifa CGM</p>
+            <p class="cd-stat-val text-unergy-deep">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
+              <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
             <p class="cd-stat-sub">{{ idxCgm.length ? `${idxCgm.length} aniversarios` : 'sin indexación' }}</p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-[1em]" style="font-size:9px" />Tarifa Repr.</p>
-            <p class="cd-stat-val">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
-              <span class="text-[10px] font-normal" style="color:#9b89b5">$/kWh</span>
+          <div class="cd-stat border border-border bg-card text-muted-foreground">
+            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Tarifa Repr.</p>
+            <p class="cd-stat-val text-unergy-deep">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
+              <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
             <p class="cd-stat-sub">{{ idxRep.length ? `${idxRep.length} aniversarios` : 'sin indexación' }}</p>
           </div>
@@ -140,11 +139,11 @@
         <!-- ── Identificación ───────────────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#915BD818"><IdCardIcon class="size-[1em]" style="color:var(--color-unergy-purple)" /></span>
+            <span class="cd-ico bg-unergy-purple/10 text-unergy-purple"><IdCardIcon class="size-3" /></span>
             <h3 class="cd-sec-title">Identificación</h3>
             <div class="cd-sec-act">
               <Button v-if="edit !== 'id'" label="Editar" size="small" text severity="secondary" @click="abrir('id')">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
@@ -153,7 +152,7 @@
                   v-tooltip="form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.'"
                   @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
                                    'codigo_sun_factory', 'nombre_proyecto_ref'])">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -167,10 +166,10 @@
               <InfoField label="Proyecto según el contrato" :value="c.nombre_proyecto_ref" />
               <div class="flex flex-col gap-0.5">
                 <span class="cd-campo-lbl">Planta asociada</span>
-                <span v-if="c.proyecto" class="text-sm" style="color:var(--color-unergy-deep)">
+                <span v-if="c.proyecto" class="text-sm text-unergy-deep">
                   {{ c.proyecto.nombre_comercial }}
                 </span>
-                <span v-else class="text-sm font-semibold" style="color:#92400E">Sin proyecto</span>
+                <span v-else class="text-sm font-semibold text-warning">Sin proyecto</span>
               </div>
             </div>
             <div v-else class="cd-grid">
@@ -203,11 +202,11 @@
         <!-- ── Partes del contrato ──────────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#3b82f618"><UsersIcon class="size-[1em]" style="color:#3b82f6" /></span>
+            <span class="cd-ico bg-primary/10 text-primary"><UsersIcon class="size-3" /></span>
             <h3 class="cd-sec-title">Partes del contrato</h3>
             <div class="cd-sec-act">
               <Button v-if="edit !== 'partes'" label="Editar" size="small" text severity="secondary" @click="abrir('partes')">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
@@ -216,7 +215,7 @@
                   v-tooltip="(form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
                   @click="guardar(['contratante_id', 'contratante_nombre', 'contratante_nit',
                                    'prestador_id', 'prestador_nombre', 'prestador_nit'])">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -224,20 +223,20 @@
           <div class="cd-sec-body">
             <div v-if="edit !== 'partes'" class="cd-partes">
               <div class="cd-parte">
-                <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Contratante</p>
+                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Contratante</p>
                 <p class="cd-parte-nom">{{ c.contratante_nombre || '—' }}</p>
                 <p class="cd-parte-nit">NIT {{ c.contratante_nit || '—' }}</p>
               </div>
-              <ArrowRightIcon class="cd-partes-flecha size-[1em]" />
+              <ArrowRightIcon class="cd-partes-flecha size-3" />
               <div class="cd-parte">
-                <p class="cd-parte-rol"><BriefcaseIcon class="size-[1em]" style="font-size:9px" />Prestador</p>
+                <p class="cd-parte-rol"><BriefcaseIcon class="size-3" />Prestador</p>
                 <p class="cd-parte-nom">{{ c.prestador_nombre || '—' }}</p>
                 <p class="cd-parte-nit">NIT {{ c.prestador_nit || '—' }}</p>
               </div>
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Contratante</p>
+                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Contratante</p>
                 <SelectorCliente
                   v-model:id="form.contratante_id"
                   v-model:nombre="form.contratante_nombre"
@@ -251,7 +250,7 @@
                 </div>
               </div>
               <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BriefcaseIcon class="size-[1em]" style="font-size:9px" />Prestador</p>
+                <p class="cd-parte-rol"><BriefcaseIcon class="size-3" />Prestador</p>
                 <SelectorCliente
                   v-model:id="form.prestador_id"
                   v-model:nombre="form.prestador_nombre"
@@ -271,17 +270,17 @@
         <!-- ── Vigencia ─────────────────────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#10b98118"><CalendarIcon class="size-[1em]" style="color:#10b981" /></span>
+            <span class="cd-ico bg-success/10 text-success"><CalendarIcon class="size-3" /></span>
             <h3 class="cd-sec-title">Vigencia</h3>
             <div class="cd-sec-act">
               <Button v-if="edit !== 'vigencia'" label="Editar" size="small" text severity="secondary" @click="abrir('vigencia')">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
                 <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['estado', 'fecha_firma_contrato', 'fecha_inicio', 'fecha_fin',
                                    'renovacion_automatica'])">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -297,7 +296,7 @@
               <div class="flex flex-col gap-0.5">
                 <span class="cd-campo-lbl">Estado</span>
                 <div>
-                  <GBadge :color="ESTADO_SEVERITY[c.estado] || 'default'" class="text-[10px]">{{ ESTADO_LABELS[c.estado] || c.estado || '—' }}</GBadge>
+                  <GBadge :color="ESTADO_SEVERITY[c.estado] || 'default'" class="text-xs">{{ ESTADO_LABELS[c.estado] || c.estado || '—' }}</GBadge>
                 </div>
               </div>
               <div class="flex flex-col gap-0.5">
@@ -305,8 +304,8 @@
                 <div>
                   <GBadge v-if="c.renovacion_automatica != null"
                     :color="c.renovacion_automatica ? 'success' : 'default'"
-                    class="text-[10px]">{{ c.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
-                  <span v-else class="text-sm" style="color:var(--color-unergy-deep)">—</span>
+                    class="text-xs">{{ c.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
+                  <span v-else class="text-sm text-unergy-deep">—</span>
                 </div>
               </div>
             </div>
@@ -343,18 +342,18 @@
         <!-- ── Condiciones comerciales ──────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#f59e0b18"><DollarSignIcon class="size-[1em]" style="color:#f59e0b" /></span>
+            <span class="cd-ico bg-warning/10 text-warning"><DollarSignIcon class="size-3" /></span>
             <h3 class="cd-sec-title">Condiciones comerciales</h3>
             <div class="cd-sec-act">
               <Button v-if="edit !== 'comercial'" label="Editar" size="small" text severity="secondary" @click="abrir('comercial')">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
                 <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['tarifa_admin', 'tarifa_cgm', 'tarifa_representacion',
                                    'indice_indexacion', 'periodicidad_pago', 'responsable_iva',
                                    'enlace_drive'])">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -371,16 +370,16 @@
                 <span class="cd-campo-lbl">Responsable de IVA</span>
                 <div>
                   <GBadge :color="c.responsable_iva ? 'success' : 'default'"
-                    class="text-[10px]">{{ c.responsable_iva ? 'Sí' : 'No' }}</GBadge>
+                    class="text-xs">{{ c.responsable_iva ? 'Sí' : 'No' }}</GBadge>
                 </div>
               </div>
               <div class="cd-ancho flex flex-col gap-0.5">
                 <span class="cd-campo-lbl">Contrato en Drive</span>
                 <a v-if="c.enlace_drive" :href="c.enlace_drive" target="_blank" rel="noopener"
-                  class="text-sm inline-flex items-center gap-1 hover:underline" style="color:#3b82f6">
-                  <ExternalLinkIcon class="text-[10px] size-[1em]" />Ver contrato
+                  class="text-sm inline-flex items-center gap-1 hover:underline text-primary">
+                  <ExternalLinkIcon class="size-3" />Ver contrato
                 </a>
-                <span v-else class="text-sm" style="color:var(--color-unergy-deep)">—</span>
+                <span v-else class="text-sm text-unergy-deep">—</span>
               </div>
             </div>
             <div v-else class="cd-grid">
@@ -425,17 +424,17 @@
         <!-- ── Indexación ───────────────────────────────────────────────── -->
         <section v-for="t in TABLAS_IDX" :key="t.clave" class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#1e40af18"><TableIcon class="size-[1em]" style="color:#1e40af" /></span>
+            <span class="cd-ico bg-primary/10 text-primary"><TableIcon class="size-3" /></span>
             <h3 class="cd-sec-title">{{ t.titulo }}</h3>
             <div class="cd-sec-act">
-              <span v-if="edit !== t.clave" class="text-xs mr-1" style="color:#9b89b5">Hoy: {{ hoy }}</span>
+              <span v-if="edit !== t.clave" class="text-xs mr-1 text-muted-foreground">Hoy: {{ hoy }}</span>
               <Button v-if="edit !== t.clave" label="Editar" size="small" text severity="secondary" @click="abrirIdx(t.clave)">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
                 <Button label="Guardar" size="small" :loading="guardando" @click="guardarIdx(t.clave)">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -464,64 +463,62 @@
                 <div class="flex items-center gap-2 h-9">
                   <Checkbox v-model="f.esBase" :binary="true" @change="marcarBase(i)" />
                   <Button text severity="danger" size="small" v-tooltip.bottom="'Quitar fila'" @click="filasEdit.splice(i, 1)">
-                    <template #icon><Trash2Icon class="size-[1em]" /></template>
+                    <template #icon><Trash2Icon class="size-4" /></template>
                   </Button>
                 </div>
               </div>
             </div>
             <Button label="Agregar año" size="small" text @click="agregarFilaIdx">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+              <template #icon><PlusIcon class="size-4" /></template>
             </Button>
-            <p class="text-[11px]" style="color:#9b89b5">
+            <p class="text-xs text-muted-foreground">
               El año marcado como base es la tarifa inicial y no lleva IPC. Los demás llevan el
               IPC con que se indexó ese aniversario.
             </p>
           </div>
 
           <div v-else class="cd-sec-body !p-0">
-            <div v-if="!t.filas.length" class="px-4 py-6 text-center text-xs" style="color:#9b89b5">
+            <div v-if="!t.filas.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
               Sin datos de indexación. Usa <strong>Editar</strong> para capturarlos.
             </div>
             <table v-else class="w-full text-sm border-collapse">
               <thead>
-                <tr style="background:#faf8fd">
-                  <th class="cd-th">{{ c.fecha_firma_contrato ? 'Fecha aniversario' : 'Año' }}</th>
-                  <th class="cd-th">IPC aplicado</th>
-                  <th class="cd-th" style="text-align:right">Valor ($/kWh)</th>
-                  <th class="cd-th" style="text-align:center">Estado</th>
+                <tr class="bg-muted/50">
+                  <th class="cd-th text-left">{{ c.fecha_firma_contrato ? 'Fecha aniversario' : 'Año' }}</th>
+                  <th class="cd-th text-left">IPC aplicado</th>
+                  <th class="cd-th text-right">Valor ($/kWh)</th>
+                  <th class="cd-th text-center">Estado</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(f, i) in t.filas" :key="i" class="border-b" style="border-color:#f4f1f9"
-                  :style="iVigente(t.filas) === i ? 'background:#fff7ed' : ''">
+                <tr v-for="(f, i) in t.filas" :key="i" class="border-b border-border"
+                  :class="iVigente(t.filas) === i ? 'bg-warning/10' : ''">
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-1.5">
                       <span class="font-mono font-semibold"
-                        :style="iVigente(t.filas) === i ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                        :class="iVigente(t.filas) === i ? 'text-warning' : 'text-unergy-deep'">
                         {{ etiquetaAnio(f) }}
                       </span>
-                      <span v-if="f.esBase" class="text-[10px] px-1.5 py-0.5 rounded font-bold"
-                        style="background:#e0f2fe;color:#0369a1">base</span>
+                      <span v-if="f.esBase" class="text-xs px-1.5 py-0.5 rounded font-bold bg-primary/10 text-primary">base</span>
                       <span v-if="iVigente(t.filas) === i && !f.esBase"
-                        class="text-[10px] px-1.5 py-0.5 rounded font-bold"
-                        style="background:#fef3c7;color:#d97706">actual</span>
+                        class="text-xs px-1.5 py-0.5 rounded font-bold bg-warning/10 text-warning">actual</span>
                     </div>
                   </td>
                   <td class="px-4 py-2.5">
                     <!-- El año base no lleva IPC por definición; en cualquier otro
                          año un IPC vacío es un dato que falta, no "base". -->
-                    <span v-if="f.ipc == null" class="text-xs" style="color:#9b89b5">
+                    <span v-if="f.ipc == null" class="text-xs text-muted-foreground">
                       {{ f.esBase ? '— (base)' : '—' }}
                     </span>
-                    <span v-else class="font-mono tabular-nums" style="color:#374151">{{ f.ipc }}%</span>
+                    <span v-else class="font-mono tabular-nums text-foreground">{{ f.ipc }}%</span>
                   </td>
                   <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                    :style="iVigente(t.filas) === i ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                    :class="iVigente(t.filas) === i ? 'text-warning' : 'text-unergy-deep'">
                     {{ fmtVal(f.valor) }}
                   </td>
                   <td class="px-4 py-2.5 text-center">
                     <span class="text-xs font-medium px-2 py-0.5 rounded-full"
-                      :style="ESTILO_FILA[estadoFila(t.filas, i)]">
+                      :class="ESTILO_FILA[estadoFila(t.filas, i)]">
                       {{ LABEL_FILA[estadoFila(t.filas, i)] }}
                     </span>
                   </td>
@@ -587,9 +584,9 @@ const PERIODICIDADES = ['mensual', 'bimestral', 'trimestral', 'semestral', 'anua
 
 const LABEL_FILA = { pagado: 'Pagado', vigente: 'Vigente', pendiente: 'Pendiente' }
 const ESTILO_FILA = {
-  pagado:    'background:#dcfce7;color:#166534',
-  vigente:   'background:#fef3c7;color:#d97706',
-  pendiente: 'background:#f3f4f6;color:#9ca3af',
+  pagado:    'bg-success/10 text-success',
+  vigente:   'bg-warning/10 text-warning',
+  pendiente: 'bg-muted text-muted-foreground',
 }
 
 const loading = ref(true)
@@ -744,26 +741,26 @@ const duracion = computed(() => {
 
 const vigencia = computed(() => {
   const x = c.value
-  const neutro = { label: '—', detalle: 'sin fechas', color: '#6b5a8a', bg: '#fff', borde: '#ECE7F2' }
+  const neutro = { label: '—', detalle: 'sin fechas', tono: 'bg-card border-border text-muted-foreground' }
   if (!x) return neutro
   if (x.estado === 'terminado') {
-    return { label: 'Terminado', detalle: 'cerrado', color: '#374151', bg: '#f9fafb', borde: '#e5e7eb' }
+    return { label: 'Terminado', detalle: 'cerrado', tono: 'bg-muted border-border text-foreground' }
   }
   if (!x.fecha_fin) {
     return { label: ESTADO_LABELS[x.estado] || x.estado || '—', detalle: 'sin fecha fin',
-             color: '#0369a1', bg: '#f0f9ff', borde: '#bae6fd' }
+             tono: 'bg-primary/10 border-primary/30 text-primary' }
   }
   const dias = Math.round((new Date(x.fecha_fin) - new Date(hoy)) / 86400000)
   if (dias < 0) {
     return { label: 'Vencido', detalle: `venció hace ${Math.abs(dias)} días`,
-             color: '#b91c1c', bg: '#fef2f2', borde: '#fecaca' }
+             tono: 'bg-destructive/10 border-destructive/30 text-destructive' }
   }
   if (dias <= 60) {
     return { label: 'Por vencer', detalle: `en ${dias} días`,
-             color: '#b45309', bg: '#fffbeb', borde: '#fde68a' }
+             tono: 'bg-warning/10 border-warning/30 text-warning' }
   }
   return { label: 'Vigente', detalle: `${dias} días restantes`,
-           color: '#15803d', bg: '#f0fdf4', borde: '#bbf7d0' }
+           tono: 'bg-success/10 border-success/30 text-success' }
 })
 
 // ── Edición por sección ──────────────────────────────────────────────────────
@@ -945,21 +942,21 @@ onMounted(async () => {
 <style scoped>
 /* Mismo lenguaje visual que el detalle de PPA (ContratoDetailView). */
 .cd-stat {
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 12px;
+  border-radius: 12px;
   padding: 11px 14px; min-width: 0;
 }
 .cd-stat-lbl {
   display: flex; align-items: center; gap: 5px;
   font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: #9b89b5; margin-bottom: 3px;
+  margin-bottom: 3px;
 }
 .cd-stat-val {
-  font-size: 15px; font-weight: 700; color: var(--color-unergy-deep); line-height: 1.25;
+  font-size: 15px; font-weight: 700; line-height: 1.25;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cd-stat-val::first-letter { text-transform: uppercase; }
 .cd-stat-sub {
-  font-size: 11px; color: #9b89b5; margin-top: 1px;
+  font-size: 11px; margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -978,7 +975,6 @@ onMounted(async () => {
   width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.cd-ico svg { font-size: 11px; }
 
 .cd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (min-width: 768px) { .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -987,7 +983,7 @@ onMounted(async () => {
 .cd-lbl { font-size: 12px; font-weight: 500; color: #4b5563; }
 
 .cd-partes { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
-.cd-partes-flecha { font-size: 12px; color: #c5b9db; }
+.cd-partes-flecha { color: #c5b9db; }
 @media (max-width: 640px) {
   .cd-partes { grid-template-columns: 1fr; }
   .cd-partes-flecha { transform: rotate(90deg); justify-self: center; }
@@ -1013,7 +1009,7 @@ onMounted(async () => {
   background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
 }
 .dup-aviso--frena { background: #fffbeb; border-color: #fde68a; color: #92400E; }
-.dup-aviso svg { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+.dup-aviso svg { margin-top: 1px; flex-shrink: 0; }
 
 .idx-fila {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
@@ -1025,12 +1021,12 @@ onMounted(async () => {
   background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
 }
 .dup-aviso--frena { background: #fffbeb; border-color: #fde68a; color: #92400E; }
-.dup-aviso svg { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+.dup-aviso svg { margin-top: 1px; flex-shrink: 0; }
 
 .idx-fila { grid-template-columns: 1fr 1fr 1fr auto; } }
 
 .cd-th {
-  padding: 8px 16px; text-align: left; font-size: 11px; font-weight: 700;
+  padding: 8px 16px; font-size: 11px; font-weight: 700;
   color: #9b89b5; border-bottom: 1px solid #f0eaf8;
 }
 </style>
