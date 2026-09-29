@@ -348,15 +348,16 @@ async function eliminarDocumento(doc: DocumentoCliente) {
                 <UploadIcon class="size-4" />
                 {{ archivoSeleccionado ? 'Cambiar' : 'Seleccionar archivo' }}
               </Button>
-              <span v-if="archivoSeleccionado" class="max-w-48 truncate text-sm">
-                {{ archivoSeleccionado.name }}
-              </span>
-              <span
+              <TruncatedText
+                v-if="archivoSeleccionado"
+                :text="archivoSeleccionado.name"
+                class="max-w-48 min-w-0 text-sm"
+              />
+              <TruncatedText
                 v-else-if="formDoc.archivo_nombre"
-                class="max-w-48 truncate text-sm text-muted-foreground"
-              >
-                Actual: {{ formDoc.archivo_nombre }}
-              </span>
+                :text="`Actual: ${formDoc.archivo_nombre}`"
+                class="max-w-48 min-w-0 text-sm text-muted-foreground"
+              />
             </div>
           </div>
 

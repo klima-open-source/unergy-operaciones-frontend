@@ -171,9 +171,10 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
                   class="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5"
                 >
                   <div class="min-w-0">
-                    <p class="truncate text-sm font-semibold">
-                      {{ c.proyecto_nombre || 'Sin planta' }}
-                    </p>
+                    <TruncatedText
+                      :text="c.proyecto_nombre || 'Sin planta'"
+                      class="text-sm font-semibold"
+                    />
                     <p class="text-xs text-muted-foreground">
                       {{ c.numero_contrato ? `N° ${c.numero_contrato} · ` : ''
                       }}{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}
