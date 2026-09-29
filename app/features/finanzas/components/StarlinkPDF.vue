@@ -9,14 +9,14 @@
         <template v-if="periodos.length">
           <div class="flex items-center gap-2">
             <button type="button" @click="irAnterior" :disabled="periodoIndex <= 0"
-              class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
+              class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronLeftIcon class="text-muted-foreground size-3" />
             </button>
             <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
               {{ periodoLabel }}
             </span>
             <button type="button" @click="irSiguiente" :disabled="periodoIndex >= periodos.length - 1"
-              class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
+              class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronRightIcon class="text-muted-foreground size-3" />
             </button>
           </div>
@@ -43,7 +43,7 @@
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="filtroTexto" placeholder="Nombre de la minigranja…" class="w-56" />
+          <InputText v-model="filtroTexto" placeholder="Nombre de la minigranja…" />
         </IconField>
       </div>
       <div class="ml-auto pb-1.5 text-xs text-muted-foreground">{{ filasFiltradas.length }} de {{ lineas.length }}</div>
@@ -92,7 +92,7 @@
           <button type="button"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
             @click="toggleSection(sec.tipo)">
-            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-(--c)" :style="{ '--c': sec.dot }" />
+            <span class="size-2.5 rounded-full flex-shrink-0 bg-(--c)" :style="{ '--c': sec.dot }" />
             <span class="font-semibold text-foreground text-sm flex-1">{{ sec.label }}</span>
             <span class="text-xs text-muted-foreground font-medium">({{ sec.items.length }})</span>
             <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
@@ -241,8 +241,7 @@
             filter
             showClear
             :loading="loadingProyectos"
-            class="w-full"
-          />
+            class="w-full" />
         </div>
 
         <p class="text-xs text-muted-foreground">

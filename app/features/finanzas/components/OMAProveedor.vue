@@ -3,14 +3,14 @@
 
     <div class="bg-white rounded-xl shadow-sm p-3 flex items-center gap-3 border">
       <button type="button" @click="cambiarMes(-1)"
-        class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+        class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
         <ChevronLeftIcon class="text-muted-foreground size-3" />
       </button>
       <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
         {{ periodoLabel }}
       </span>
       <button type="button" @click="cambiarMes(1)"
-        class="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
+        class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
         <ChevronRightIcon class="text-muted-foreground size-3" />
       </button>
       <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
