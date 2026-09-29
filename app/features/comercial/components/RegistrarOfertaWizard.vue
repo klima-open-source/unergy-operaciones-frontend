@@ -18,7 +18,14 @@
 import type { Cliente } from '~/types/cliente'
 import type { Oportunidad, PayloadRegistrarOportunidad } from '~/features/comercial/types'
 import type { UseOfertas } from './useOfertas'
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, LoaderCircleIcon, PlusIcon, Trash2Icon } from '@lucide/vue'
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  Trash2Icon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 // Import explícito: bug conocido de tipos de `blocks/DatePicker`.
 import DatePicker from '~/components/blocks/DatePicker.vue'
@@ -39,10 +46,17 @@ const props = defineProps<{
   visible: boolean
   acciones: Pick<UseOfertas, 'registrar'>
 }>()
-const emit = defineEmits<{ 'update:visible': [visible: boolean]; registrada: [oportunidad: Oportunidad] }>()
+const emit = defineEmits<{
+  'update:visible': [visible: boolean]
+  registrada: [oportunidad: Oportunidad]
+}>()
 
 const PASOS = ['Cliente', 'Ofertas', 'Confirmar']
-const SUBTITULOS = ['A quién le vendemos', 'Qué le ofrecemos — una oferta por planta × servicio', 'Revisá antes de crear']
+const SUBTITULOS = [
+  'A quién le vendemos',
+  'Qué le ofrecemos — una oferta por planta × servicio',
+  'Revisá antes de crear',
+]
 const MODOS = [
   { label: 'Cliente existente', value: 'existente' },
   { label: 'Cliente nuevo', value: 'nuevo' },
@@ -77,7 +91,8 @@ const forzarDuplicado = ref(false)
 
 /** Lo justo que el paso 1 necesita mostrar — el candidato de un 409 duplicado
  *  no trae el `Cliente` completo, solo id y nombre. */
-type ClienteResumen = Pick<Cliente, 'id' | 'razon_social_nombre'> & Pick<Partial<Cliente>, 'nit_cedula'>
+type ClienteResumen = Pick<Cliente, 'id' | 'razon_social_nombre'> &
+  Pick<Partial<Cliente>, 'nit_cedula'>
 
 const clientes = ref<Cliente[]>([])
 const clienteSel = ref<ClienteResumen | null>(null)
@@ -147,11 +162,15 @@ const opcionesProyecto = computed(() =>
 )
 
 const contactosValidos = computed(() =>
-  nuevo.contactos.filter((c) => c.email.includes('@') && !c.email.startsWith('@') && !c.email.endsWith('@')),
+  nuevo.contactos.filter(
+    (c) => c.email.includes('@') && !c.email.startsWith('@') && !c.email.endsWith('@'),
+  ),
 )
 
 const resumenCliente = computed(() =>
-  modo.value === 'existente' ? (clienteSel.value?.razon_social_nombre ?? '—') : nuevo.razon_social_nombre || '—',
+  modo.value === 'existente'
+    ? (clienteSel.value?.razon_social_nombre ?? '—')
+    : nuevo.razon_social_nombre || '—',
 )
 
 const pasoCompleto = computed(() => {
@@ -295,12 +314,14 @@ async function guardar() {
           <button
             type="button"
             class="flex items-center gap-1.5 rounded px-2 py-1 transition-colors"
-            :class="i === paso ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground'"
+            :class="
+              i === paso ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground'
+            "
             :disabled="i > paso"
             @click="paso = i"
           >
             <span
-              class="flex size-4 items-center justify-center rounded-full text-[10px] text-primary-foreground"
+              class="flex size-4 items-center justify-center rounded-full text-xs text-primary-foreground"
               :class="i <= paso ? 'bg-primary' : 'bg-muted-foreground/40'"
               >{{ i + 1 }}</span
             >
@@ -313,13 +334,19 @@ async function guardar() {
       <!-- ── Paso 1: cliente ─────────────────────────────────────────────── -->
       <div v-if="paso === 0" class="flex flex-col gap-4">
         <ToggleGroup v-model="modo" type="single" variant="outline">
-          <ToggleGroupItem v-for="m in MODOS" :key="m.value" :value="m.value">{{ m.label }}</ToggleGroupItem>
+          <ToggleGroupItem v-for="m in MODOS" :key="m.value" :value="m.value">{{
+            m.label
+          }}</ToggleGroupItem>
         </ToggleGroup>
 
         <div v-if="modo === 'existente'">
           <GLabel required>Cliente</GLabel>
-          <ComboBox v-model="clienteSelStr" :options="opcionesCliente" placeholder="Buscar por razón social o NIT…" />
-          <p v-if="clienteSel?.nit_cedula" class="mt-1 text-[11px] text-muted-foreground">
+          <ComboBox
+            v-model="clienteSelStr"
+            :options="opcionesCliente"
+            placeholder="Buscar por razón social o NIT…"
+          />
+          <p v-if="clienteSel?.nit_cedula" class="mt-1 text-xs text-muted-foreground">
             NIT {{ clienteSel.nit_cedula }}
           </p>
         </div>
@@ -336,11 +363,16 @@ async function guardar() {
             </div>
             <div>
               <GLabel>Origen del cliente</GLabel>
-              <Select :model-value="nuevo.origen_tipo ?? ''" @update:model-value="(v) => (nuevo.origen_tipo = (v as string) || null)">
+              <Select
+                :model-value="nuevo.origen_tipo ?? ''"
+                @update:model-value="(v) => (nuevo.origen_tipo = (v as string) || null)"
+              >
                 <SelectTrigger class="w-full"><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">—</SelectItem>
-                  <SelectItem v-for="o in ORIGENES_CLIENTE" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+                  <SelectItem v-for="o in ORIGENES_CLIENTE" :key="o.value" :value="o.value">{{
+                    o.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -356,24 +388,24 @@ async function guardar() {
               <Button
                 variant="ghost"
                 size="sm"
-                @click="nuevo.contactos.push({ nombre: '', telefono: '', email: '', tipo: 'comercial' })"
+                @click="
+                  nuevo.contactos.push({ nombre: '', telefono: '', email: '', tipo: 'comercial' })
+                "
               >
                 <PlusIcon class="size-4" />
                 Agregar
               </Button>
             </div>
-            <div
-              v-for="(c, i) in nuevo.contactos"
-              :key="i"
-              class="mb-2 grid grid-cols-[1fr_1fr_1.2fr_auto_auto] gap-2"
-            >
-              <Input v-model.trim="c.nombre" placeholder="Nombre" />
-              <Input v-model.trim="c.telefono" placeholder="Teléfono" />
-              <Input v-model.trim="c.email" placeholder="Correo *" />
+            <div v-for="(c, i) in nuevo.contactos" :key="i" class="mb-2 flex gap-2">
+              <Input v-model.trim="c.nombre" placeholder="Nombre" class="flex-1" />
+              <Input v-model.trim="c.telefono" placeholder="Teléfono" class="flex-1" />
+              <Input v-model.trim="c.email" placeholder="Correo *" class="flex-1" />
               <Select v-model="c.tipo">
                 <SelectTrigger class="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="t in TIPOS_CONTACTO" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                  <SelectItem v-for="t in TIPOS_CONTACTO" :key="t.value" :value="t.value">{{
+                    t.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -428,17 +460,29 @@ async function guardar() {
         <div v-for="(o, i) in ofertas" :key="i" class="rounded-lg border bg-muted/30 p-3">
           <div class="mb-2 flex items-center justify-between">
             <span class="text-xs font-semibold text-muted-foreground">Oferta {{ i + 1 }}</span>
-            <Button v-if="ofertas.length > 1" variant="ghost" size="icon-sm" @click="ofertas.splice(i, 1)">
+            <Button
+              v-if="ofertas.length > 1"
+              variant="ghost"
+              size="icon-sm"
+              @click="ofertas.splice(i, 1)"
+            >
               <Trash2Icon class="size-4 text-destructive" />
             </Button>
           </div>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <GLabel required>Tipo de oferta</GLabel>
-              <Select :model-value="o.tipo ?? undefined" @update:model-value="(v) => (o.tipo = v as string)">
-                <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar…" /></SelectTrigger>
+              <Select
+                :model-value="o.tipo ?? undefined"
+                @update:model-value="(v) => (o.tipo = v as string)"
+              >
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Seleccionar…"
+                /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+                  <SelectItem v-for="t in TIPOS_OFERTA" :key="t.value" :value="t.value">{{
+                    t.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -454,17 +498,24 @@ async function guardar() {
               <MultiComboBox
                 :model-value="o.proyecto_ids.map(String)"
                 :options="opcionesProyecto"
-                :placeholder="cargandoCatalogos ? 'Cargando…' : 'Buscá la planta por nombre, municipio o departamento…'"
+                :placeholder="
+                  cargandoCatalogos
+                    ? 'Cargando…'
+                    : 'Buscá la planta por nombre, municipio o departamento…'
+                "
                 @update:model-value="(v) => (o.proyecto_ids = v.map(Number))"
               />
-              <p class="mt-1 text-[11px]" :class="o.proyecto_ids.length ? 'text-muted-foreground' : 'text-destructive'">
+              <p
+                class="mt-1 text-xs"
+                :class="o.proyecto_ids.length ? 'text-muted-foreground' : 'text-destructive'"
+              >
                 <template v-if="o.proyecto_ids.length">
                   {{ o.proyecto_ids.length }} planta(s) vinculadas: la oferta va a traer su
                   ubicación, operador de red y ficha técnica.
                 </template>
                 <template v-else>
-                  Sin vincular, la oferta queda con el nombre y nada más. Si la planta
-                  todavía no existe, se crea desde el panel de la oferta después de registrar.
+                  Sin vincular, la oferta queda con el nombre y nada más. Si la planta todavía no
+                  existe, se crea desde el panel de la oferta después de registrar.
                 </template>
               </p>
             </div>
@@ -473,7 +524,9 @@ async function guardar() {
               <Select v-model="o.estado">
                 <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="e in ETAPAS_INICIALES" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+                  <SelectItem v-for="e in ETAPAS_INICIALES" :key="e.value" :value="e.value">{{
+                    e.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -490,9 +543,15 @@ async function guardar() {
               <DatePicker v-model="o.fecha_tentativa_inicio" clearable />
             </div>
           </div>
-          <p v-if="ayudaPrecio(o.tipo)" class="mt-2 text-[11px] text-muted-foreground">{{ ayudaPrecio(o.tipo) }}</p>
-          <p v-if="o.tipo && o.fecha_oferta && o.estado === 'oportunidad'" class="mt-1 text-[11px] text-muted-foreground">
-            Tiene fecha de envío pero la etapa dice «Oportunidad». Si ya se envió, movela a «Oferta».
+          <p v-if="ayudaPrecio(o.tipo)" class="mt-2 text-xs text-muted-foreground">
+            {{ ayudaPrecio(o.tipo) }}
+          </p>
+          <p
+            v-if="o.tipo && o.fecha_oferta && o.estado === 'oportunidad'"
+            class="mt-1 text-xs text-muted-foreground"
+          >
+            Tiene fecha de envío pero la etapa dice «Oportunidad». Si ya se envió, movela a
+            «Oferta».
           </p>
         </div>
 
@@ -500,9 +559,9 @@ async function guardar() {
           <PlusIcon class="size-4" />
           Agregar otra oferta
         </Button>
-        <p class="text-[11px] text-muted-foreground">
-          Una oferta por planta × servicio. Es la unidad del tablero: sin al menos una,
-          el registro no aparecería en ninguna vista.
+        <p class="text-xs text-muted-foreground">
+          Una oferta por planta × servicio. Es la unidad del tablero: sin al menos una, el registro
+          no aparecería en ninguna vista.
         </p>
       </div>
 
@@ -517,7 +576,9 @@ async function guardar() {
         </div>
 
         <div class="rounded-lg border bg-muted/30 p-3">
-          <div class="mb-2 text-xs font-semibold text-muted-foreground">{{ ofertas.length }} OFERTA(S)</div>
+          <div class="mb-2 text-xs font-semibold text-muted-foreground">
+            {{ ofertas.length }} OFERTA(S)
+          </div>
           <div
             v-for="(o, i) in ofertas"
             :key="i"
@@ -531,13 +592,13 @@ async function guardar() {
                 <span v-if="o.proyecto_ids.length">· {{ o.proyecto_ids.length }} proyecto(s)</span>
               </div>
             </div>
-            <span class="flex-shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary"
+            <span class="flex-shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
               >OP.{{ segmentoTipo(o.tipo) }} No.…</span
             >
           </div>
-          <p class="mt-2 text-[11px] text-muted-foreground">
-            El código de seguimiento lo genera el backend con el consecutivo global y el
-            mes de la fecha de envío.
+          <p class="mt-2 text-xs text-muted-foreground">
+            El código de seguimiento lo genera el backend con el consecutivo global y el mes de la
+            fecha de envío.
           </p>
         </div>
 

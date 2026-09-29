@@ -57,11 +57,11 @@ function claseSegmento(tipo: string | undefined): string {
   return (
     (
       {
-        servicios_operacionales: 'bg-blue-50 text-blue-700',
-        compra_energia: 'bg-amber-50 text-amber-700',
-        comunidad_energetica: 'bg-emerald-50 text-emerald-700',
+        servicios_operacionales: 'bg-primary/10 text-primary',
+        compra_energia: 'bg-warning/10 text-warning',
+        comunidad_energetica: 'bg-success/10 text-success',
       } as Record<string, string>
-    )[tipo ?? ''] ?? 'bg-gray-100 text-gray-600'
+    )[tipo ?? ''] ?? 'bg-muted text-muted-foreground'
   )
 }
 
@@ -99,7 +99,7 @@ function soltar(col: Columna) {
       v-for="col in COLUMNAS"
       :key="col.value"
       class="tablero-col flex flex-shrink-0 flex-col rounded-lg border bg-muted/30"
-      :class="colapsada(col) ? 'w-14' : 'w-[85vw] sm:w-[16.5rem]'"
+      :class="colapsada(col) ? 'w-14' : 'w-64'"
       @dragover.prevent="arrastreSobre = col.value"
       @dragleave="arrastreSobre === col.value && (arrastreSobre = null)"
       @drop="soltar(col)"
@@ -110,10 +110,7 @@ function soltar(col: Columna) {
         class="flex h-40 w-full flex-col items-center justify-center gap-2"
         @click="cerradasAbierta = true"
       >
-        <span
-          class="text-xs font-semibold text-muted-foreground"
-          style="writing-mode: vertical-rl"
-        >
+        <span class="tablero-col-titulo text-xs font-semibold text-muted-foreground">
           {{ col.label }}
         </span>
         <span class="text-xs font-semibold text-muted-foreground">{{ resumen(col).n }}</span>
@@ -127,17 +124,22 @@ function soltar(col: Columna) {
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span
-                class="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                :style="{ background: colorEtapa(col.estados[0]) }"
+                class="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-(--c)"
+                :style="{ '--c': colorEtapa(col.estados[0]) }"
               />
-              <span class="truncate text-[11px] font-semibold tracking-wide text-foreground uppercase">{{
-                col.label
-              }}</span>
-              <span class="text-[11px] text-muted-foreground">{{ resumen(col).n }}</span>
+              <span
+                class="truncate text-xs font-semibold tracking-wide text-foreground uppercase"
+                >{{ col.label }}</span
+              >
+              <span class="text-xs text-muted-foreground">{{ resumen(col).n }}</span>
             </div>
-            <div class="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span v-if="resumen(col).energiaMwhMes">{{ fmtMwh(resumen(col).energiaMwhMes) }}</span>
-              <span v-if="resumen(col).alertas" class="text-destructive">⚠ {{ resumen(col).alertas }}</span>
+            <div class="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <span v-if="resumen(col).energiaMwhMes">{{
+                fmtMwh(resumen(col).energiaMwhMes)
+              }}</span>
+              <span v-if="resumen(col).alertas" class="text-destructive"
+                >⚠ {{ resumen(col).alertas }}</span
+              >
             </div>
           </div>
           <Button
@@ -157,17 +159,17 @@ function soltar(col: Columna) {
             :key="of.id"
             draggable="true"
             class="cursor-pointer rounded-md border bg-card p-2.5 transition-shadow hover:shadow-md"
-            :class="of.id === ofertaAbiertaId ? 'ring-2 ring-primary' : ''"
-            :style="{
-              borderColor: of.alerta ? 'color-mix(in oklab, var(--destructive) 35%, transparent)' : undefined,
-              opacity: arrastrando === of.id ? 0.45 : 1,
-            }"
+            :class="[
+              of.id === ofertaAbiertaId ? 'ring-2 ring-primary' : '',
+              of.alerta ? 'border-destructive/35' : '',
+              arrastrando === of.id ? 'opacity-45' : '',
+            ]"
             @dragstart="arrastrando = of.id"
             @dragend="arrastrando = null"
             @click="emit('abrir', of)"
           >
             <div class="flex items-start justify-between gap-1.5">
-              <span class="truncate font-mono text-[10px] text-muted-foreground">
+              <span class="truncate font-mono text-xs text-muted-foreground">
                 {{ of.codigo_seguimiento || of.numero_oferta || '—' }}
               </span>
               <GTooltip v-if="of.alerta">
@@ -176,7 +178,9 @@ function soltar(col: Columna) {
                     >{{ of.dias_sin_respuesta }}d</GBadge
                   >
                 </GTooltipTrigger>
-                <GTooltipContent>{{ of.dias_sin_respuesta }} días sin movimiento en esta etapa</GTooltipContent>
+                <GTooltipContent
+                  >{{ of.dias_sin_respuesta }} días sin movimiento en esta etapa</GTooltipContent
+                >
               </GTooltip>
             </div>
 
@@ -189,25 +193,27 @@ function soltar(col: Columna) {
               <GTooltip>
                 <GTooltipTrigger as-child>
                   <span
-                    class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                    class="rounded px-1.5 py-0.5 text-xs font-semibold"
                     :class="claseSegmento(of.tipo)"
                     >{{ segmentoTipo(of.tipo) }}</span
                   >
                 </GTooltipTrigger>
                 <GTooltipContent>{{ labelTipo(of.tipo) }}</GTooltipContent>
               </GTooltip>
-              <span v-if="mwhMes(of)" class="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">{{
-                fmtMwh(mwhMes(of))
-              }}</span>
+              <span
+                v-if="mwhMes(of)"
+                class="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary"
+                >{{ fmtMwh(mwhMes(of)) }}</span
+              >
               <GTooltip v-if="of.ppa_contrato_id">
                 <GTooltipTrigger as-child>
-                  <span class="rounded bg-success/10 px-1.5 py-0.5 text-[10px] text-success">PPA</span>
+                  <span class="rounded bg-success/10 px-1.5 py-0.5 text-xs text-success">PPA</span>
                 </GTooltipTrigger>
                 <GTooltipContent>Tiene contrato PPA</GTooltipContent>
               </GTooltip>
               <GTooltip v-if="(of.plantas?.length ?? 0) > 1">
                 <GTooltipTrigger as-child>
-                  <span class="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                  <span class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
                     >{{ of.plantas!.length }} plantas</span
                   >
                 </GTooltipTrigger>
@@ -217,12 +223,17 @@ function soltar(col: Columna) {
               </GTooltip>
             </div>
 
-            <div v-if="sinRespuesta(of) || of.seguimientos" class="mt-1.5 flex items-center gap-2 text-[10px]">
+            <div
+              v-if="sinRespuesta(of) || of.seguimientos"
+              class="mt-1.5 flex items-center gap-2 text-xs"
+            >
               <GTooltip v-if="of.seguimientos">
                 <GTooltipTrigger as-child>
                   <span
                     class="inline-flex items-center gap-0.5"
-                    :class="alarmante(of) ? 'font-semibold text-destructive' : 'text-muted-foreground'"
+                    :class="
+                      alarmante(of) ? 'font-semibold text-destructive' : 'text-muted-foreground'
+                    "
                   >
                     <SendIcon class="size-3" /> {{ of.seguimientos }}
                   </span>
@@ -259,5 +270,10 @@ function soltar(col: Columna) {
   .tablero-col {
     max-height: calc(100vh - 20rem);
   }
+}
+
+/* Tailwind no trae utilidad de writing-mode. */
+.tablero-col-titulo {
+  writing-mode: vertical-rl;
 }
 </style>

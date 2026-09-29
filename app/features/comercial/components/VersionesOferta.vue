@@ -104,7 +104,9 @@ async function guardar() {
       periodo_indexacion_base: nueva.periodo_indexacion_base || null,
       que_cambio: nueva.que_cambio || null,
       precios: nueva.precios
-        .filter((p): p is { anio: number; precio: number } => !!p.anio && !!p.precio && p.precio > 0)
+        .filter(
+          (p): p is { anio: number; precio: number } => !!p.anio && !!p.precio && p.precio > 0,
+        )
         .map((p) => ({ anio: p.anio, precio: p.precio })),
     }
     await servicio.agregarVersion(props.ofertaId, payload)
@@ -122,7 +124,11 @@ async function aceptar(version: VersionOferta) {
   aceptando.value = version.numero
   error.value = ''
   try {
-    await servicio.aceptarVersion(props.ofertaId, version.numero, new Date().toISOString().slice(0, 10))
+    await servicio.aceptarVersion(
+      props.ofertaId,
+      version.numero,
+      new Date().toISOString().slice(0, 10),
+    )
     await cargar()
     toast.success(`Propuesta v${version.numero} aceptada`, {
       description: 'Es la que se usará para crear el contrato al firmar.',
@@ -140,19 +146,24 @@ watch(() => props.ofertaId, cargar, { immediate: true })
 <template>
   <section>
     <div class="mb-2 flex items-baseline justify-between gap-3">
-      <h3 class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Propuestas</h3>
+      <h3 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        Propuestas
+      </h3>
       <Button v-if="!agregando" variant="ghost" size="sm" @click="abrir">
         <PlusIcon class="size-4" />
         Nueva propuesta
       </Button>
     </div>
 
-    <p v-if="!cargando && !versiones.length && !agregando" class="mb-2 text-[11px] text-muted-foreground">
-      Esta oferta no tiene propuestas registradas. Al agregar la primera, el
-      documento y el precio dejan de sobrescribirse cada vez que se reoferta.
+    <p
+      v-if="!cargando && !versiones.length && !agregando"
+      class="mb-2 text-xs text-muted-foreground"
+    >
+      Esta oferta no tiene propuestas registradas. Al agregar la primera, el documento y el precio
+      dejan de sobrescribirse cada vez que se reoferta.
     </p>
 
-    <p v-if="cargando" class="text-[11px] text-muted-foreground">Cargando propuestas…</p>
+    <p v-if="cargando" class="text-xs text-muted-foreground">Cargando propuestas…</p>
     <p v-if="error" class="text-xs text-destructive">{{ error }}</p>
 
     <!-- ── Formulario de una propuesta nueva ─────────────────────────────── -->
@@ -161,7 +172,7 @@ watch(() => props.ofertaId, cargar, { immediate: true })
         <div>
           <GLabel>Fecha de envío</GLabel>
           <DatePicker v-model="nueva.fecha_envio" clearable />
-          <p class="mt-1 text-[11px] text-muted-foreground">
+          <p class="mt-1 text-xs text-muted-foreground">
             Sin fecha queda como borrador y no se puede aceptar.
           </p>
         </div>
@@ -171,18 +182,24 @@ watch(() => props.ofertaId, cargar, { immediate: true })
         </div>
         <div>
           <GLabel>Índice de indexación</GLabel>
-          <Input v-model.trim="nueva.indice_indexacion" placeholder="IPP serie Oferta Interna provisional" />
+          <Input
+            v-model.trim="nueva.indice_indexacion"
+            placeholder="IPP serie Oferta Interna provisional"
+          />
         </div>
         <div>
           <GLabel>Mes base (YYYY-MM)</GLabel>
           <Input v-model.trim="nueva.periodo_indexacion_base" placeholder="2026-05" />
-          <p class="mt-1 text-[11px] text-muted-foreground">
+          <p class="mt-1 text-xs text-muted-foreground">
             La fila «Precio Base» del PDF: los precios son pesos constantes de ese mes.
           </p>
         </div>
         <div class="sm:col-span-2">
           <GLabel>Qué cambió</GLabel>
-          <Input v-model.trim="nueva.que_cambio" placeholder="Ej: bajamos el precio del primer año" />
+          <Input
+            v-model.trim="nueva.que_cambio"
+            placeholder="Ej: bajamos el precio del primer año"
+          />
         </div>
       </div>
 
@@ -193,7 +210,11 @@ watch(() => props.ofertaId, cargar, { immediate: true })
           <NumberField v-model="fila.anio" :format-options="{ useGrouping: false }" class="w-28">
             <NumberFieldContent><NumberFieldInput placeholder="2026" /></NumberFieldContent>
           </NumberField>
-          <NumberField v-model="fila.precio" :format-options="{ maximumFractionDigits: 4 }" class="w-36">
+          <NumberField
+            v-model="fila.precio"
+            :format-options="{ maximumFractionDigits: 4 }"
+            class="w-36"
+          >
             <NumberFieldContent><NumberFieldInput placeholder="330" /></NumberFieldContent>
           </NumberField>
           <Button variant="ghost" size="icon-sm" @click="nueva.precios.splice(i, 1)">
@@ -207,7 +228,9 @@ watch(() => props.ofertaId, cargar, { immediate: true })
       </div>
 
       <div class="mt-3 flex justify-end gap-2">
-        <Button variant="ghost" size="sm" :disabled="guardando" @click="agregando = false">Cancelar</Button>
+        <Button variant="ghost" size="sm" :disabled="guardando" @click="agregando = false"
+          >Cancelar</Button
+        >
         <Button size="sm" :disabled="guardando" @click="guardar">
           <LoaderCircleIcon v-if="guardando" class="animate-spin" />
           Guardar propuesta
@@ -227,18 +250,23 @@ watch(() => props.ofertaId, cargar, { immediate: true })
           <span class="text-sm font-semibold text-foreground">v{{ v.numero }}</span>
           <span
             v-if="v.fecha_aceptacion"
-            class="rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium text-success"
+            class="rounded bg-success/15 px-1.5 py-0.5 text-xs font-medium text-success"
             >Aceptada {{ v.fecha_aceptacion }}</span
           >
           <span
             v-else-if="!v.fecha_envio"
-            class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+            class="rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
             >Borrador</span
           >
-          <span v-else class="text-[11px] text-muted-foreground">Enviada {{ v.fecha_envio }}</span>
+          <span v-else class="text-xs text-muted-foreground">Enviada {{ v.fecha_envio }}</span>
         </div>
         <div class="flex items-center gap-1">
-          <a v-if="v.documento_url" :href="v.documento_url" target="_blank" rel="noopener" class="text-xs text-primary underline"
+          <a
+            v-if="v.documento_url"
+            :href="v.documento_url"
+            target="_blank"
+            rel="noopener"
+            class="text-xs text-primary underline"
             >Documento</a
           >
           <Button
@@ -260,13 +288,14 @@ watch(() => props.ofertaId, cargar, { immediate: true })
         <span
           v-for="p in v.precios"
           :key="p.anio"
-          class="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-[11px] text-blue-700"
+          class="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs text-primary"
           >{{ p.anio }}: {{ p.precio }}</span
         >
       </div>
 
-      <p v-if="v.indice_indexacion" class="mt-1.5 text-[11px] text-muted-foreground">
-        {{ v.indice_indexacion }}<span v-if="v.periodo_indexacion_base"> · base {{ v.periodo_indexacion_base }}</span>
+      <p v-if="v.indice_indexacion" class="mt-1.5 text-xs text-muted-foreground">
+        {{ v.indice_indexacion
+        }}<span v-if="v.periodo_indexacion_base"> · base {{ v.periodo_indexacion_base }}</span>
       </p>
     </div>
   </section>

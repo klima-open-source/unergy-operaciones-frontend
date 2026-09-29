@@ -4,7 +4,11 @@
   ficha del cliente y perdías de vista la oferta que habías clickeado.
 -->
 <script setup lang="ts">
-import type { DataTableColumn, DataTableRow, DataTableSort } from '~/components/blocks/DataTable.vue'
+import type {
+  DataTableColumn,
+  DataTableRow,
+  DataTableSort,
+} from '~/components/blocks/DataTable.vue'
 import type { Oferta } from '~/features/comercial/types'
 import { FileSpreadsheetIcon, LoaderCircleIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -88,7 +92,10 @@ const ordenadas = computed(() => {
 })
 
 const paginadas = computed(() =>
-  ordenadas.value.slice(pagination.offset.value, pagination.offset.value + pagination.pageSize.value),
+  ordenadas.value.slice(
+    pagination.offset.value,
+    pagination.offset.value + pagination.pageSize.value,
+  ),
 )
 
 watch(
@@ -100,7 +107,10 @@ watch(
 )
 
 // Un cambio en los filtros de arriba puede dejar la página actual vacía.
-watch(() => props.ofertas, () => pagination.reset())
+watch(
+  () => props.ofertas,
+  () => pagination.reset(),
+)
 
 const exportando = ref(false)
 
@@ -180,15 +190,19 @@ async function exportar() {
         </template>
         <template v-else-if="column.key === 'planta_nombre'">
           <div class="flex items-center gap-1.5">
-            <span>{{ asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—' }}</span>
+            <span>{{
+              asOferta(row).planta_nombre || asOferta(row).ficha?.proyecto_nombre || '—'
+            }}</span>
             <GTooltip v-if="(asOferta(row).plantas?.length ?? 0) > 1">
               <GTooltipTrigger as-child>
-                <span class="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
+                <span class="rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                   +{{ asOferta(row).plantas!.length - 1 }}
                 </span>
               </GTooltipTrigger>
               <GTooltipContent>{{
-                asOferta(row).plantas!.map((p) => p.nombre_comercial).join(' · ')
+                asOferta(row)
+                  .plantas!.map((p) => p.nombre_comercial)
+                  .join(' · ')
               }}</GTooltipContent>
             </GTooltip>
           </div>
@@ -219,15 +233,14 @@ async function exportar() {
               <span class="text-muted-foreground/60">≈ {{ mesDelCodigo(asOferta(row)) }}</span>
             </GTooltipTrigger>
             <GTooltipContent
-              >Aproximado: sale del mes que trae el código, no de una fecha registrada</GTooltipContent
+              >Aproximado: sale del mes que trae el código, no de una fecha
+              registrada</GTooltipContent
             >
           </GTooltip>
           <span v-else class="text-muted-foreground/60">—</span>
         </template>
         <template v-else-if="column.key === 'seguimientos'">
-          <span
-            :class="alarmante(asOferta(row)) ? 'font-semibold text-destructive' : ''"
-          >
+          <span :class="alarmante(asOferta(row)) ? 'font-semibold text-destructive' : ''">
             {{ asOferta(row).seguimientos || 0 }}
           </span>
         </template>
@@ -235,7 +248,9 @@ async function exportar() {
           <span v-if="asOferta(row).fecha_ultima_respuesta">{{
             fmtFecha(asOferta(row).fecha_ultima_respuesta)
           }}</span>
-          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive">sin respuesta</span>
+          <span v-else-if="asOferta(row).fecha_oferta" class="text-xs text-destructive"
+            >sin respuesta</span
+          >
           <span v-else class="text-muted-foreground/60">—</span>
         </template>
         <template v-else-if="column.key === 'contrato'">

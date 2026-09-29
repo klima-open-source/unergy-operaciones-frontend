@@ -133,15 +133,18 @@ export interface Fuente {
 // ven igual, y en una herramienta comercial eso lleva a decisiones sobre datos
 // inventados.
 export const FUENTES: Record<string, Fuente> = {
-  proyecto: { label: 'del proyecto', clase: 'bg-purple-50 text-purple-700' },
-  oferta: { label: 'declarado en la oferta', clase: 'bg-amber-50 text-amber-700' },
-  contrato: { label: 'del contrato', clase: 'bg-teal-50 text-teal-700' },
-  estimada: { label: 'estimada', clase: 'bg-gray-100 text-gray-600' },
-  generacion: { label: 'medida', clase: 'bg-green-50 text-green-700' },
+  proyecto: { label: 'del proyecto', clase: 'bg-primary/10 text-primary' },
+  oferta: { label: 'declarado en la oferta', clase: 'bg-warning/10 text-warning' },
+  contrato: { label: 'del contrato', clase: 'bg-chart-2/10 text-chart-2' },
+  estimada: { label: 'estimada', clase: 'bg-muted text-muted-foreground' },
+  generacion: { label: 'medida', clase: 'bg-success/10 text-success' },
 }
 
 // ── Etiquetas ────────────────────────────────────────────────────────────────
-function buscar<T extends { value: string }>(lista: T[], v: string | null | undefined): T | undefined {
+function buscar<T extends { value: string }>(
+  lista: T[],
+  v: string | null | undefined,
+): T | undefined {
   return lista.find((x) => x.value === v)
 }
 
@@ -187,7 +190,9 @@ export function puedeFirmarPPA(oferta: Oferta | null | undefined): boolean {
  * también desemboca en un PPA.
  */
 export function etiquetaPrecio(tipo: string | null | undefined): string {
-  return TIPOS_ENERGIA.includes(tipo ?? '') ? 'Tarifa de energía ($/kWh)' : 'Comisión del servicio (%)'
+  return TIPOS_ENERGIA.includes(tipo ?? '')
+    ? 'Tarifa de energía ($/kWh)'
+    : 'Comisión del servicio (%)'
 }
 
 export function placeholderPrecio(tipo: string | null | undefined): string {
@@ -226,7 +231,10 @@ export function fmtFecha(v: string | Date | null | undefined): string {
     : '—'
 }
 
-export function diasDesde(v: string | Date | null | undefined, hoy: number = Date.now()): number | null {
+export function diasDesde(
+  v: string | Date | null | undefined,
+  hoy: number = Date.now(),
+): number | null {
   const d = aFecha(v)
   if (!d || Number.isNaN(d.getTime())) return null
   return Math.max(0, Math.floor((hoy - d.getTime()) / 86400000))
@@ -237,7 +245,9 @@ export function diasDesde(v: string | Date | null | undefined, hoy: number = Dat
 // exacta inventada es peor que ninguna en una herramienta comercial.
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
-export function mesDelCodigo(oferta: Pick<Oferta, 'codigo_seguimiento' | 'numero_oferta'> | null | undefined): string | null {
+export function mesDelCodigo(
+  oferta: Pick<Oferta, 'codigo_seguimiento' | 'numero_oferta'> | null | undefined,
+): string | null {
   const codigo = oferta?.codigo_seguimiento || oferta?.numero_oferta || ''
   const m = /No\.?\s*\d{1,4}\s*-\s*(\d{1,2})\s*-\s*(\d{4})/.exec(codigo)
   const mes = m ? MESES[Number(m[1]) - 1] : undefined
@@ -245,12 +255,16 @@ export function mesDelCodigo(oferta: Pick<Oferta, 'codigo_seguimiento' | 'numero
 }
 
 // Se envió y el cliente nunca contestó: es la señal fuerte del tablero.
-export function sinRespuesta(oferta: Pick<Oferta, 'fecha_oferta' | 'fecha_ultima_respuesta'> | null | undefined): boolean {
+export function sinRespuesta(
+  oferta: Pick<Oferta, 'fecha_oferta' | 'fecha_ultima_respuesta'> | null | undefined,
+): boolean {
   return !!oferta?.fecha_oferta && !oferta?.fecha_ultima_respuesta
 }
 
 // Cuatro toques sin una sola respuesta: el negocio se enfrió.
-export function alarmante(oferta: Pick<Oferta, 'seguimientos' | 'fecha_ultima_respuesta'> | null | undefined): boolean {
+export function alarmante(
+  oferta: Pick<Oferta, 'seguimientos' | 'fecha_ultima_respuesta'> | null | undefined,
+): boolean {
   return (oferta?.seguimientos || 0) >= 4 && !oferta?.fecha_ultima_respuesta
 }
 
@@ -359,7 +373,10 @@ export function filtrar(ofertas: Oferta[] | null | undefined, f: FiltrosOfertas 
 
 export type CriterioOrden = 'reciente' | 'antiguo' | 'rezagadas' | 'energia' | 'cliente'
 
-export function ordenar(ofertas: Oferta[] | null | undefined, criterio: string = 'reciente'): Oferta[] {
+export function ordenar(
+  ofertas: Oferta[] | null | undefined,
+  criterio: string = 'reciente',
+): Oferta[] {
   const ts = (v: string | null | undefined) => (v ? new Date(v).getTime() : 0)
   const copia = [...(ofertas || [])]
   const comparadores: Record<string, (a: Oferta, b: Oferta) => number> = {
@@ -405,7 +422,8 @@ export function validarFirma(form: FormularioFirma | null | undefined): string[]
   if (form?.modo_precio === 'tabla') {
     if (!filas.length) errores.push('La tabla de precios está vacía.')
     const anios = filas.map((p) => p.anio)
-    if (new Set(anios).size !== anios.length) errores.push('La tabla de precios tiene años repetidos.')
+    if (new Set(anios).size !== anios.length)
+      errores.push('La tabla de precios tiene años repetidos.')
   } else if (!(form?.tarifa_base && form.tarifa_base > 0)) {
     errores.push('Falta la tarifa ($/kWh).')
   }
