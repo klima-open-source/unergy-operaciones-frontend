@@ -1,11 +1,11 @@
 <template>
   <div class="rp-card">
     <button class="rp-head" @click="open = !open">
-      <ZapIcon class="rp-ico size-[1em]" />
+      <ZapIcon class="rp-ico size-4" />
       <span class="rp-title">Reconectador</span>
       <span :class="['rp-badge', badgeClass]">{{ badgeText }}</span>
-      <ChevronUpIcon v-if="open" class="rp-caret size-[1em]" />
-      <ChevronDownIcon v-else class="rp-caret size-[1em]" />
+      <ChevronUpIcon v-if="open" class="rp-caret size-3" />
+      <ChevronDownIcon v-else class="rp-caret size-3" />
     </button>
 
     <!-- Resumen: siempre visible -->
@@ -70,7 +70,7 @@
         >
       </div>
 
-      <div class="rp-time"><ClockIcon class="size-[1em]" /> {{ tiempo }}</div>
+      <div class="rp-time"><ClockIcon class="size-3" /> {{ tiempo }}</div>
     </div>
   </div>
 </template>

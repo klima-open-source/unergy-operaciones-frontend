@@ -6,19 +6,19 @@
           <div class="ns-grab" />
 
           <div class="ns-header">
-            <span class="ns-title"><BellIcon class="size-[1em]" /> Notificaciones</span>
+            <span class="ns-title"><BellIcon class="size-4" /> Notificaciones</span>
             <button v-if="items.length" class="ns-readall" @click="marcarTodas">
               Marcar todas
             </button>
-            <button class="ns-close" @click="close"><XIcon class="size-[1em]" /></button>
+            <button class="ns-close" @click="close"><XIcon class="size-4" /></button>
           </div>
 
           <div class="ns-body">
             <div v-if="loading" class="ns-state">
-              <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando…
+              <LoaderCircleIcon class="size-6 animate-spin" /> Cargando…
             </div>
             <div v-else-if="!items.length" class="ns-state">
-              <CircleCheckIcon class="size-[1em]" style="font-size: 30px; color: #22c55e" />
+              <CircleCheckIcon class="size-8 text-success!" />
               <span>Sin notificaciones hoy</span>
             </div>
             <button
@@ -27,11 +27,7 @@
               :class="['ns-item', !n.leida && 'ns-item--unread']"
               @click="leer(n)"
             >
-              <component
-                :is="iconFor(n.tipo)"
-                class="size-[1em]"
-                :style="{ color: colorFor(n.tipo) }"
-              />
+              <component :is="iconFor(n.tipo)" class="size-6" :class="colorFor(n.tipo)" />
               <div class="ns-item-text">
                 <span class="ns-item-title">{{ n.titulo }}</span>
                 <span class="ns-item-msg">{{ n.mensaje }}</span>
@@ -118,10 +114,10 @@ function iconFor(tipo: string | null | undefined): Component {
 }
 function colorFor(tipo: string | null | undefined): string {
   return tipo === 'alerta'
-    ? '#dc2626'
+    ? 'text-destructive'
     : tipo === 'accion'
-      ? 'var(--color-unergy-purple)'
-      : '#0ea5e9'
+      ? 'text-unergy-purple'
+      : 'text-primary'
 }
 function timeAgo(s: string | null | undefined): string {
   if (!s) return ''

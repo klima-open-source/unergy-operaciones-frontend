@@ -8,7 +8,7 @@
       :plugins="[nowLinePlugin]"
     />
     <div v-else class="plc-empty">
-      <ChartLineIcon class="size-[1em]" />
+      <ChartLineIcon class="size-8" />
       <span>Sin datos de potencia hoy</span>
     </div>
   </div>

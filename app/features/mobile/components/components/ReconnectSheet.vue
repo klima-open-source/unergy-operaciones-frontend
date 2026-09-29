@@ -10,7 +10,7 @@
               accion
             }}</span>
             <span class="rs-title">Reconectador · {{ nombre }}</span>
-            <button class="rs-close" @click="close"><XIcon class="size-[1em]" /></button>
+            <button class="rs-close" @click="close"><XIcon class="size-4" /></button>
           </div>
 
           <!-- Selector de acción (siempre disponible para que puedas encender o apagar) -->
@@ -19,13 +19,13 @@
               :class="['rs-action-btn', accion === 'ON' && 'rs-action-btn--on']"
               @click="accion = 'ON'"
             >
-              <PowerIcon class="size-[1em]" /> Encender
+              <PowerIcon class="size-4" /> Encender
             </button>
             <button
               :class="['rs-action-btn', accion === 'OFF' && 'rs-action-btn--off']"
               @click="accion = 'OFF'"
             >
-              <CircleStopIcon class="size-[1em]" /> Apagar
+              <CircleStopIcon class="size-4" /> Apagar
             </button>
           </div>
 
@@ -57,18 +57,16 @@
             />
           </label>
 
-          <div v-if="error" class="rs-error">
-            <TriangleAlertIcon class="size-[1em]" /> {{ error }}
-          </div>
+          <div v-if="error" class="rs-error"><TriangleAlertIcon class="size-4" /> {{ error }}</div>
 
           <button
             :class="['rs-submit', accion === 'ON' ? 'rs-submit--on' : 'rs-submit--off']"
             :disabled="loading || !username || !password"
             @click="submit"
           >
-            <LoaderCircleIcon class="size-[1em] animate-spin" v-if="loading" />
-            <PowerIcon class="size-[1em]" v-else-if="accion === 'ON'" />
-            <CircleStopIcon class="size-[1em]" v-else />
+            <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
+            <PowerIcon class="size-4" v-else-if="accion === 'ON'" />
+            <CircleStopIcon class="size-4" v-else />
             {{ loading ? 'Enviando…' : `Confirmar ${accion}` }}
           </button>
         </div>
