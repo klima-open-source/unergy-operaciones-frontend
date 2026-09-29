@@ -98,7 +98,7 @@ function soltar(col: Columna) {
     <div
       v-for="col in COLUMNAS"
       :key="col.value"
-      class="tablero-col flex flex-col rounded-lg border bg-muted/30"
+      class="flex max-h-[calc(100dvh-14rem)] flex-col rounded-lg border bg-muted/30 lg:max-h-[calc(100dvh-20rem)]"
       :class="colapsada(col) ? 'shrink-0' : 'max-w-80 min-w-64 flex-1'"
       @dragover.prevent="arrastreSobre = col.value"
       @dragleave="arrastreSobre === col.value && (arrastreSobre = null)"
@@ -110,7 +110,7 @@ function soltar(col: Columna) {
         class="flex h-40 w-full flex-col items-center justify-center gap-2 px-4"
         @click="cerradasAbierta = true"
       >
-        <span class="tablero-col-titulo text-xs font-semibold text-muted-foreground">
+        <span class="text-xs font-semibold text-muted-foreground writing-vertical-rl">
           {{ col.label }}
         </span>
         <span class="text-xs font-semibold text-muted-foreground">{{ resumen(col).n }}</span>
@@ -252,28 +252,3 @@ function soltar(col: Columna) {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* La altura de la columna se mide contra el chrome que tiene encima, y ese
-   chrome no mide lo mismo en las dos puntas: en escritorio son el header, la
-   banda de indicadores y UNA fila de filtros; en pantalla chica todo eso va
-   apilado. Con el valor de escritorio fijo (20rem), en celular la columna
-   quedaba como una ventanita con scroll dentro de una página que también
-   scrollea — dos barras compitiendo por el mismo gesto.
-   `dvh` en vez de `vh` para que la barra de direcciones del navegador móvil,
-   que aparece y desaparece, no deje la columna cortada. */
-.tablero-col {
-  max-height: calc(100vh - 14rem);
-  max-height: calc(100dvh - 14rem);
-}
-@media (min-width: 1024px) {
-  .tablero-col {
-    max-height: calc(100vh - 20rem);
-  }
-}
-
-/* Tailwind no trae utilidad de writing-mode. */
-.tablero-col-titulo {
-  writing-mode: vertical-rl;
-}
-</style>
