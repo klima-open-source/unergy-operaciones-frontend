@@ -59,15 +59,13 @@ const deficits = computed(() => props.data?.contratos?.filter((c) => c.estado ==
             <p class="text-lg font-bold text-foreground">
               {{ (totales.gen_proyectada_mwh ?? totales.gen_total_mwh)?.toFixed(1) }}
             </p>
-            <p class="text-[10px] font-semibold text-muted-foreground uppercase">MWh generados</p>
+            <p class="text-xs font-semibold text-muted-foreground uppercase">MWh generados</p>
           </div>
           <div class="rounded-lg bg-muted p-2.5">
             <p class="text-lg font-bold text-foreground">
               {{ totales.energia_minima_mwh?.toFixed(1) ?? '—' }}
             </p>
-            <p class="text-[10px] font-semibold text-muted-foreground uppercase">
-              MWh comprometidos
-            </p>
+            <p class="text-xs font-semibold text-muted-foreground uppercase">MWh comprometidos</p>
           </div>
         </div>
 
@@ -79,7 +77,7 @@ const deficits = computed(() => props.data?.contratos?.filter((c) => c.estado ==
         </p>
 
         <div v-if="deficits.length > 0" class="space-y-1">
-          <p class="text-[10px] font-bold text-destructive uppercase">Contratos en déficit:</p>
+          <p class="text-xs font-bold text-destructive uppercase">Contratos en déficit:</p>
           <p v-for="d in deficits" :key="d.id" class="text-xs text-muted-foreground">
             <span class="font-semibold text-foreground">{{
               d.nombre_interno || d.comprador_nombre
