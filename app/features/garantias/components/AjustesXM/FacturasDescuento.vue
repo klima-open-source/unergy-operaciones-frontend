@@ -142,20 +142,20 @@ function warnText(f: FilaFactura): string {
     <!-- Pie -->
     <div class="grid grid-cols-3 gap-3 border-t bg-primary/5 px-4 py-3">
       <div class="text-center">
-        <p class="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Disponible original
         </p>
         <p class="text-sm font-bold text-foreground">{{ formatCOP(disponible) }}</p>
       </div>
       <div class="text-center">
-        <p class="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Total a descontar (neto)
         </p>
         <p class="text-sm font-bold text-destructive">{{ formatCOP(totalDescontado) }}</p>
-        <p class="text-[9px] text-muted-foreground">débitos suman · crédito/favor restan</p>
+        <p class="text-xs text-muted-foreground">débitos suman · crédito/favor restan</p>
       </div>
       <div class="text-center">
-        <p class="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        <p class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Disponible ajustado
         </p>
         <p

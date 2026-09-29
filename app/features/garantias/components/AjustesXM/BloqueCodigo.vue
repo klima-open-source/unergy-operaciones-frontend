@@ -29,7 +29,7 @@ const headerClass = computed(() => {
           class="border-t"
           :class="row.label === 'TIE' ? 'bg-muted' : ''"
         >
-          <td class="w-[60%] px-4 py-1.5 text-xs text-muted-foreground">
+          <td class="px-4 py-1.5 text-xs text-muted-foreground">
             <span v-if="row.label === 'TIE'" class="font-semibold text-primary">TIE</span>
             <span v-else>{{ row.label }}</span>
           </td>
