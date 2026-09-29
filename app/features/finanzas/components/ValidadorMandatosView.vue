@@ -1,9 +1,9 @@
 <template>
-  <div class="gf-page">
+  <div>
     <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
     <div class="mon-tab-bar">
-      <FileCheckIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-      <span class="text-base font-bold text-gray-800 whitespace-nowrap mr-2">Validador de Mandatos</span>
+      <FileCheckIcon class="size-4 text-unergy-purple" />
+      <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Validador de Mandatos</span>
       <span class="vm-version">v8.0</span>
     </div>
 
