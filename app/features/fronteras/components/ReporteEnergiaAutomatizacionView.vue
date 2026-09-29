@@ -2,7 +2,9 @@
   <div class="space-y-5">
     <!-- Barra de acciones (el título ya lo pone el wrapper ReporteEnergiaView) -->
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <DatePicker v-model="fecha" :max-value="maxFecha" class="w-40" />
+      <div class="shrink-0">
+        <DatePicker v-model="fecha" :max-value="maxFecha" />
+      </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="ejecutando" @click="ejecutarClasificacion">
           <LoaderCircleIcon v-if="ejecutando" class="animate-spin" />
@@ -164,7 +166,9 @@
       <GTabsContent value="1" class="pt-1">
         <div class="mb-4 flex flex-wrap items-center gap-3">
           <span class="text-sm text-muted-foreground">Ver el reporte de otro día:</span>
-          <DatePicker v-model="fechaHistorial" :max-value="maxFecha" class="w-40" />
+          <div class="shrink-0">
+            <DatePicker v-model="fechaHistorial" :max-value="maxFecha" />
+          </div>
           <Button size="sm" @click="cargarHistorial()">Ver</Button>
         </div>
         <div v-if="loadingHistorial" class="flex items-center justify-center py-12">
@@ -198,16 +202,11 @@
         <div class="mb-4 flex flex-wrap items-end gap-3">
           <div>
             <label class="mb-1 block text-xs font-semibold text-muted-foreground">Desde</label>
-            <DatePicker v-model="resumenDesde" :max-value="resumenHasta" class="w-40" />
+            <DatePicker v-model="resumenDesde" :max-value="resumenHasta" />
           </div>
           <div>
             <label class="mb-1 block text-xs font-semibold text-muted-foreground">Hasta</label>
-            <DatePicker
-              v-model="resumenHasta"
-              :min-value="resumenDesde"
-              :max-value="maxFecha"
-              class="w-40"
-            />
+            <DatePicker v-model="resumenHasta" :min-value="resumenDesde" :max-value="maxFecha" />
           </div>
           <div>
             <label class="mb-1 block text-xs font-semibold text-muted-foreground">Frontera</label>
@@ -215,7 +214,6 @@
               v-model="fronteraResumenStr"
               :options="opcionesFronterasResumen"
               placeholder="Todas"
-              class="w-64"
               :disabled="!fronterasDelResumen.length"
             />
           </div>
@@ -285,7 +283,7 @@
                           }"
                         />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold"
+                      <span class="text-right text-xs font-bold"
                         >{{
                           pctDe(
                             asDetalleFuente(rawRow).dias_grupo,
@@ -364,7 +362,7 @@
                           }"
                         />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold"
+                      <span class="text-right text-xs font-bold"
                         >{{
                           pctDe(
                             asDetalleFuente(rawRow).dias_grupo,
@@ -421,7 +419,7 @@
                           }"
                         />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold"
+                      <span class="text-right text-xs font-bold"
                         >{{ Math.round(asPorFrontera(rawRow).tasa) }}%</span
                       >
                     </div>

@@ -20,10 +20,10 @@
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="flex flex-nowrap items-end gap-3 overflow-x-auto rounded-xl border bg-card p-3">
+    <div class="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3">
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <InputGroup class="w-48">
+        <InputGroup>
           <InputGroupAddon><SearchIcon /></InputGroupAddon>
           <InputGroupInput v-model="search" placeholder="Buscar frontera..." />
         </InputGroup>
@@ -34,7 +34,7 @@
           :model-value="estadoFilter ?? ''"
           @update:model-value="(v) => (estadoFilter = (v as string) || null)"
         >
-          <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
             <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{
@@ -45,12 +45,7 @@
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
-        <ComboBox
-          v-model="proyectoFilterStr"
-          :options="proyectoOpciones"
-          placeholder="Todos"
-          class="w-48"
-        />
+        <ComboBox v-model="proyectoFilterStr" :options="proyectoOpciones" placeholder="Todos" />
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Operador</label>
@@ -58,7 +53,7 @@
           :model-value="operadorFilter ?? ''"
           @update:model-value="(v) => (operadorFilter = (v as string) || null)"
         >
-          <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
             <SelectItem v-for="op in operadorOptions" :key="op.value" :value="op.value">{{
@@ -74,7 +69,7 @@
             :model-value="mesFilter != null ? String(mesFilter) : ''"
             @update:model-value="(v) => (mesFilter = v ? Number(v) : null)"
           >
-            <SelectTrigger class="w-44"><SelectValue placeholder="Mes" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Mes</SelectItem>
               <SelectItem v-for="op in mesOptions" :key="op.value" :value="String(op.value)">{{
@@ -86,7 +81,7 @@
             :model-value="anioFilter != null ? String(anioFilter) : ''"
             @update:model-value="(v) => (anioFilter = v ? Number(v) : null)"
           >
-            <SelectTrigger class="w-32"><SelectValue placeholder="Año" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Año</SelectItem>
               <SelectItem v-for="op in anioOptions" :key="op.value" :value="String(op.value)">{{
@@ -598,7 +593,6 @@
               :model-value="p.proyectoId != null ? String(p.proyectoId) : null"
               :options="proyectosAllOptions"
               placeholder="Proyecto..."
-              class="w-64"
               @update:model-value="(v) => (p.proyectoId = v ? Number(v) : null)"
             />
             <Button
