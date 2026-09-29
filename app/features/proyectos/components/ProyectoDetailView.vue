@@ -6,9 +6,9 @@
                    :tabs="TABS" v-model="activeTab">
       <!-- En modo edicion, nombre y estado se editan en la misma miga -->
       <template v-if="isEditMode" #titulo>
-        <InputText v-model="editForm.nombre_comercial" size="small" class="w-64" />
+        <InputText v-model="editForm.nombre_comercial" size="small" />
         <Select v-model="editForm.estado" :options="ESTADOS" optionLabel="label" optionValue="value"
-                size="small" class="w-40" />
+                size="small" />
       </template>
       <template v-if="!isEditMode" #chips>
         <GBadge :color="estadoSeverity(proyecto.estado)" class="text-xs">{{ proyecto.estado }}</GBadge>
@@ -433,8 +433,7 @@
                   :maxFractionDigits="1"
                   locale="en-US"
                   class="w-full"
-                  inputClass="text-center text-xs px-1 py-1"
-                />
+                  inputClass="text-center text-xs px-1 py-1" />
                 <p v-else class="text-center text-sm font-semibold text-foreground bg-muted rounded py-1.5 px-1 tabular-nums">
                   {{ sim.displayArray.value[i] != null ? Math.round(sim.displayArray.value[i]).toLocaleString('es-CO') : '—' }}
                 </p>
@@ -453,7 +452,7 @@
               <template #body="{ data }">
                 <template v-if="editandoInvId === data.id">
                   <InputNumber v-model="editPct" :min="0" :max="100" :minFractionDigits="2" :maxFractionDigits="7"
-                    suffix="%" locale="en-US" class="w-32" />
+                    suffix="%" locale="en-US" />
                 </template>
                 <template v-else>
                   {{ data.porcentaje_participacion != null ? (data.porcentaje_participacion * 100).toFixed(4) + '%' : '—' }}
@@ -463,14 +462,14 @@
             <Column header="Inicio">
               <template #body="{ data }">
                 <DatePicker v-if="editandoInvId === data.id" v-model="editFechaInicio" dateFormat="yy-mm-dd"
-                  showIcon showClear class="w-40" placeholder="—" />
+                  showIcon showClear placeholder="—" />
                 <span v-else>{{ fmtFecha(data.fecha_inicio) }}</span>
               </template>
             </Column>
             <Column header="Fin">
               <template #body="{ data }">
                 <DatePicker v-if="editandoInvId === data.id" v-model="editFechaFin" dateFormat="yy-mm-dd"
-                  showIcon showClear class="w-40" placeholder="Vigente" />
+                  showIcon showClear placeholder="Vigente" />
                 <span v-else>{{ data.fecha_fin ? fmtFecha(data.fecha_fin) : 'Vigente' }}</span>
               </template>
             </Column>
@@ -581,8 +580,7 @@
           <ProyectoAreaContactosPanel
             :proyecto-id="proyecto.id"
             :inversionistas="proyecto.inversionistas"
-            :clientes-options="clientes"
-          />
+            :clientes-options="clientes" />
         </div>
       </div>
 
@@ -602,7 +600,7 @@
               :style="{ '--c': srv.color, '--bg': srv.bg, '--bd': srv.color + '40', '--tint': srv.color + '25' }"
               @click="clickServicio(srv)"
             >
-              <div class="w-12 h-12 rounded-full flex items-center justify-center"
+              <div class="size-12 rounded-full flex items-center justify-center"
                 :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'bg-(--tint)' : 'bg-border'">
                 <component :is="srv.icon" class="size-6" :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'text-(--c)' : 'text-muted-foreground'" />
               </div>
@@ -611,7 +609,7 @@
                 {{ srv.label }}
               </span>
               <span v-if="srvFlags[srv.key]"
-                class="absolute top-2 right-2 w-2 h-2 rounded-full bg-(--c)" />
+                class="absolute top-2 right-2 size-2 rounded-full bg-(--c)" />
               <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'srv_ppa'" />
             </div>
           </div>
@@ -691,8 +689,7 @@
           :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'representacion'"
           :proyecto-id-default="Number(route.params.id)"
           @cerrar="showContratoWizard = false"
-          @creado="onContratoServicioCreado"
-        />
+          @creado="onContratoServicioCreado" />
       </div>
 
       <!-- ══ FRONTERAS ══ -->

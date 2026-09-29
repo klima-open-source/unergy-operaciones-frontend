@@ -19,7 +19,7 @@
     </div>
 
     <div v-for="tipo in TIPOS" :key="tipo.value" class="flex items-center gap-2 py-1.5">
-      <span class="w-32 text-sm font-medium text-unergy-deep">{{ tipo.label }}</span>
+      <span class="shrink-0 text-sm font-medium text-unergy-deep">{{ tipo.label }}</span>
 
       <template v-if="overrides[tipo.value] && editando !== tipo.value">
         <span class="text-sm flex-1 text-muted-foreground">
