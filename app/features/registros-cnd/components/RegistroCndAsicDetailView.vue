@@ -527,7 +527,9 @@ onMounted(cargar)
             <ArrowLeftIcon class="size-4" />
           </Button>
           <div class="min-w-0 flex-1">
-            <h1 class="truncate text-lg font-bold text-foreground">{{ reg.nombre_comercial }}</h1>
+            <h1 class="text-lg font-bold text-foreground">
+              <TruncatedText :text="reg.nombre_comercial" />
+            </h1>
             <p class="mt-0.5 text-xs text-muted-foreground">
               {{
                 [reg.codigo_cnd, reg.clasificacion_regulatoria, reg.tecnologia, reg.operador_red]
