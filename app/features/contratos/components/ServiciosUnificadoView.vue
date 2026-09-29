@@ -13,7 +13,7 @@
   <div class="space-y-3">
     <PageHeader title="Proyectos" :subtitle="subtitulo">
       <template #actions>
-        <IconField v-if="vista" class="w-full! sm:w-48!">
+        <IconField v-if="vista" class="w-full! sm:max-w-48!">
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" :placeholder="placeholderBusqueda" size="small" class="w-full" />
         </IconField>
