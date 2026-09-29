@@ -411,7 +411,7 @@ async function confirmarAgregarFuente() {
               <GTableRow class="bg-muted/30 hover:bg-muted/30">
                 <GTableCell
                   colspan="5"
-                  class="text-[11px] font-semibold tracking-wide text-primary uppercase"
+                  class="text-xs font-semibold tracking-wide text-primary uppercase"
                   >{{ blk.label }}</GTableCell
                 >
               </GTableRow>
@@ -429,7 +429,7 @@ async function confirmarAgregarFuente() {
                     </GTooltipTrigger>
                     <GTooltipContent>{{ fuenteTitle(ln.fuente) }}</GTooltipContent>
                   </GTooltip>
-                  <span v-else-if="!ln.derivada" class="text-[11px] text-muted-foreground">ER</span>
+                  <span v-else-if="!ln.derivada" class="text-xs text-muted-foreground">ER</span>
                 </GTableCell>
                 <GTableCell
                   class="text-right tabular-nums"
@@ -443,7 +443,7 @@ async function confirmarAgregarFuente() {
                   <template v-if="ln.derivada" />
                   <template v-else-if="ln.soporte">
                     <a
-                      class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
+                      class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"
                       :href="ln.soporte.archivo_url"
                       target="_blank"
                       rel="noopener"
@@ -552,7 +552,7 @@ async function confirmarAgregarFuente() {
                       :class="{ 'rotate-90': secAbierta }"
                     />
                     <span
-                      class="flex-1 text-[11px] font-semibold tracking-wide text-foreground uppercase"
+                      class="flex-1 text-xs font-semibold tracking-wide text-foreground uppercase"
                       >{{ sec.label }}</span
                     >
                     <span
@@ -617,10 +617,7 @@ async function confirmarAgregarFuente() {
                               </GTooltip>
                             </div>
                             <!-- Valor de módulo (O&M / Arriendos): no viene de una celda del ER. -->
-                            <p
-                              v-if="!ln.derivada && ln.fuente"
-                              class="mt-0.5 text-[10px] text-emerald-600"
-                            >
+                            <p v-if="!ln.derivada && ln.fuente" class="mt-0.5 text-xs text-success">
                               ↳ {{ fuenteOrigen(ln.fuente) }}
                             </p>
                           </GTableCell>
@@ -660,7 +657,7 @@ async function confirmarAgregarFuente() {
                             <template v-if="ln.derivada" />
                             <template v-else-if="ln.soporte">
                               <a
-                                class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
+                                class="inline-flex items-center gap-1 text-xs font-medium text-success hover:underline"
                                 :href="ln.soporte.archivo_url"
                                 target="_blank"
                                 rel="noopener"
@@ -783,7 +780,7 @@ async function confirmarAgregarFuente() {
           <SaveIcon />
           Guardar cambios
         </Button>
-        <span v-if="savedAt" class="inline-flex items-center gap-1 text-xs text-emerald-600"
+        <span v-if="savedAt" class="inline-flex items-center gap-1 text-xs text-success"
           ><CheckIcon class="size-3.5" /> guardado</span
         >
       </div>

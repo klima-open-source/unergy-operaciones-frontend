@@ -683,7 +683,7 @@ async function exportarExcel() {
          parecería que el período quedó completo. -->
     <div
       v-if="resultado"
-      class="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"
+      class="space-y-2 rounded-xl border border-success/30 bg-success/10 p-3 text-xs text-foreground"
     >
       <div class="flex items-center gap-2 font-semibold">
         <CircleCheckIcon class="size-4" />
@@ -691,7 +691,7 @@ async function exportarExcel() {
         <Button
           variant="ghost"
           size="icon-xs"
-          class="ml-auto text-emerald-900/60 hover:text-emerald-900"
+          class="ml-auto text-foreground/60 hover:text-foreground"
           @click="resultado = null"
         >
           <XIcon class="size-4" />
@@ -702,19 +702,19 @@ async function exportarExcel() {
         <span
           v-for="(o, i) in resultado.omitidos"
           :key="i"
-          class="ml-1 inline-block rounded-md border border-emerald-200 bg-white px-1.5 py-0.5"
+          class="ml-1 inline-block rounded-md border border-success/30 bg-card px-1.5 py-0.5"
         >
           {{ o.proyecto }}
-          <em class="font-bold text-emerald-700 uppercase not-italic">{{ o.motivo }}</em>
+          <em class="font-bold text-success uppercase not-italic">{{ o.motivo }}</em>
         </span>
       </div>
       <div v-if="resultado.sin_cruce.length">
         <b>{{ resultado.sin_cruce.length }} sin cruce</b> — están en la API pero no en esta base:
         <span class="font-mono">{{ resultado.sin_cruce.join(', ') }}</span>
       </div>
-      <div v-if="resultado.avisos.length" class="text-amber-700">
+      <div v-if="resultado.avisos.length" class="text-warning">
         <b>{{ resultado.avisos.length }} con avisos</b> de la API (cifras incompletas):
-        <div v-for="(a, i) in resultado.avisos" :key="i" class="ml-3 text-[11px]">
+        <div v-for="(a, i) in resultado.avisos" :key="i" class="ml-3 text-xs">
           <b>{{ a.proyecto }}</b> — {{ a.avisos[0] }}
         </div>
       </div>
@@ -737,7 +737,7 @@ async function exportarExcel() {
       </div>
       <div v-for="(p, i) in proyectosConDiferencias" :key="i">
         <div class="mb-1 font-semibold text-foreground">{{ p.proyecto }}</div>
-        <table class="w-full text-[11px]">
+        <table class="w-full text-xs">
           <tr v-for="(d, j) in p.diferencias" :key="j" class="border-t">
             <td class="py-0.5 pr-2 font-mono text-muted-foreground">{{ d.grupo }}</td>
             <td class="py-0.5 pr-2">{{ d.concepto }}</td>
@@ -749,7 +749,7 @@ async function exportarExcel() {
             </td>
             <td
               class="py-0.5 text-right tabular-nums"
-              :class="d.diferencia < 0 ? 'text-destructive' : 'text-emerald-600'"
+              :class="d.diferencia < 0 ? 'text-destructive' : 'text-success'"
             >
               {{ fmt(d.diferencia) }}
             </td>
@@ -785,7 +785,7 @@ async function exportarExcel() {
           · {{ resultadoCarga.sin_match.length }} sin match:
           {{ resultadoCarga.sin_match.join(', ') }}
         </span>
-        <span v-if="resultadoCarga.rechazados?.length" class="text-amber-700">
+        <span v-if="resultadoCarga.rechazados?.length" class="text-warning">
           · {{ resultadoCarga.rechazados.length }} rechazados por clasificación
         </span>
         <span v-if="resultadoCarga.errores?.length" class="text-destructive">
@@ -796,7 +796,7 @@ async function exportarExcel() {
       <!-- ER rechazados por clasificación cruzada -->
       <div
         v-if="rechazados.length"
-        class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900"
+        class="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-xs text-warning"
       >
         <div class="flex items-center gap-2 font-semibold">
           <TriangleAlertIcon class="size-4" />

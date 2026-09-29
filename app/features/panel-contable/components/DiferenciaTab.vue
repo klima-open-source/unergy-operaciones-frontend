@@ -80,7 +80,7 @@ watch(() => props.periodo, cargar, { immediate: true })
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="rounded-xl border bg-card p-4">
-          <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Utilidad estimada
           </p>
           <p class="mt-1 text-lg font-semibold text-foreground tabular-nums">
@@ -88,7 +88,7 @@ watch(() => props.periodo, cargar, { immediate: true })
           </p>
         </div>
         <div class="rounded-xl border bg-card p-4">
-          <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Utilidad real
           </p>
           <p class="mt-1 text-lg font-semibold text-foreground tabular-nums">
@@ -96,7 +96,7 @@ watch(() => props.periodo, cargar, { immediate: true })
           </p>
         </div>
         <div class="rounded-xl border bg-card p-4">
-          <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             Diferencia
           </p>
           <p
@@ -133,7 +133,7 @@ watch(() => props.periodo, cargar, { immediate: true })
                   <GTableRow class="bg-muted/30 hover:bg-muted/30">
                     <GTableCell
                       colspan="5"
-                      class="text-[11px] font-semibold tracking-wide text-primary uppercase"
+                      class="text-xs font-semibold tracking-wide text-primary uppercase"
                       >{{ g.label }}</GTableCell
                     >
                   </GTableRow>
@@ -164,7 +164,7 @@ watch(() => props.periodo, cargar, { immediate: true })
               <GTableRow class="bg-muted/30 hover:bg-muted/30">
                 <GTableCell
                   colspan="5"
-                  class="text-[11px] font-semibold tracking-wide text-primary uppercase"
+                  class="text-xs font-semibold tracking-wide text-primary uppercase"
                   >RESULTADO</GTableCell
                 >
               </GTableRow>
