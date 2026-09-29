@@ -110,35 +110,35 @@
       <div>
         <label class="field-label">Proyecto</label>
         <Select v-model="filtros.project" :options="proyectosOptions" optionLabel="label"
-                optionValue="value" class="w-52" showClear filter placeholder="Todos"
+                optionValue="value" showClear filter placeholder="Todos"
                 @change="recargar" />
       </div>
       <div>
         <label class="field-label">Tipo de costo</label>
         <Select v-model="filtros.payment_type" :options="tiposOptions" optionLabel="label"
-                optionValue="value" class="w-56" showClear filter placeholder="Todos"
+                optionValue="value" showClear filter placeholder="Todos"
                 @change="recargar" />
       </div>
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.mes" :options="MESES" optionLabel="label" optionValue="value"
-                class="w-32" showClear placeholder="Todos" @change="recargar" />
+                showClear placeholder="Todos" @change="recargar" />
       </div>
       <div>
         <label class="field-label">Año</label>
-        <Select v-model="filtros.anio" :options="aniosOptions" class="w-28" showClear
+        <Select v-model="filtros.anio" :options="aniosOptions" showClear
                 placeholder="Todos" @change="recargar" />
       </div>
       <div>
         <label class="field-label">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" class="w-24" showClear
+        <Select v-model="filtros.version" :options="VERSIONES" showClear
                 placeholder="Todas" @change="recargar" />
       </div>
       <div>
         <label class="field-label">Buscar en la página</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto, costo…" class="w-48" />
+          <InputText v-model="q" placeholder="Proyecto, costo…" />
         </IconField>
       </div>
       <div class="flex-1" />

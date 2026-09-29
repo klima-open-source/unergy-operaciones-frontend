@@ -61,7 +61,7 @@
           <!-- Elegir agente (solo tipos que filtran por agente, ej. tgrl) -->
           <div class="col-span-2 flex items-center gap-2 pl-6" v-if="tipoFiltraPorAgente && form.enriquecer">
             <label class="text-xs font-medium text-muted-foreground">Agente</label>
-            <Select v-model="form.agenteFiltro" :options="AGENTES" class="w-40" />
+            <Select v-model="form.agenteFiltro" :options="AGENTES" />
             <span class="text-xs text-muted-foreground">UNGG = generador · UNGC = comercializador</span>
           </div>
         </div>
