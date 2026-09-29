@@ -414,10 +414,9 @@ onMounted(load)
                       class="border-b hover:bg-muted/20"
                     >
                       <td
-                        class="sticky left-0 max-w-40 truncate border-r bg-card px-2 py-1.5 whitespace-nowrap text-foreground"
-                        :title="row.nombre"
+                        class="sticky left-0 max-w-40 border-r bg-card px-2 py-1.5 whitespace-nowrap text-foreground"
                       >
-                        {{ row.nombre }}
+                        <TruncatedText :text="row.nombre" />
                       </td>
                       <td
                         v-for="(val, mi) in row.meses"

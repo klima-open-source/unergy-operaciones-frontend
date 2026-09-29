@@ -159,13 +159,11 @@ const grupos = computed<GrupoConsolidado[]>(() => {
               :class="c.es_total ? 'bg-primary/5' : 'bg-muted/40'"
             >
               <div class="flex flex-col items-end gap-0.5">
-                <span
-                  class="max-w-40 truncate font-bold"
+                <TruncatedText
+                  :text="c.nombre"
+                  class="max-w-40 font-bold"
                   :class="c.es_total ? 'text-primary' : 'text-foreground'"
-                  :title="c.nombre"
-                >
-                  {{ c.nombre }}
-                </span>
+                />
                 <span class="font-mono text-xs text-muted-foreground/70 tabular-nums">{{
                   c.pct
                 }}</span>

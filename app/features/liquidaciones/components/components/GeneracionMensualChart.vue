@@ -45,20 +45,22 @@ function fmtKwh(v: number): string {
   return Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)} MWh` : `${v.toFixed(0)} kWh`
 }
 
+const { color } = useThemeColors()
+
 const chartData = computed<ChartData<'bar'>>(() => ({
   labels: dias.value.map((d) => Number(d.date.split('-')[2])),
   datasets: [
     {
       label: 'Generación',
       data: dias.value.map((d) => d.kwh),
-      backgroundColor: '#915BD8',
+      backgroundColor: color('unergy-purple'),
       borderRadius: 3,
       maxBarThickness: 16,
     },
   ],
 }))
 
-const chartOptions: ChartOptions<'bar'> = {
+const chartOptions = computed<ChartOptions<'bar'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -72,16 +74,16 @@ const chartOptions: ChartOptions<'bar'> = {
   },
   scales: {
     x: {
-      ticks: { font: { size: 9 }, color: '#9ca3af', maxTicksLimit: 16 },
+      ticks: { font: { size: 9 }, color: color('muted-foreground'), maxTicksLimit: 16 },
       grid: { display: false },
     },
     y: {
-      ticks: { font: { size: 9 }, color: '#9ca3af' },
-      grid: { color: 'rgba(0,0,0,0.05)' },
+      ticks: { font: { size: 9 }, color: color('muted-foreground') },
+      grid: { color: color('foreground', 0.05) },
       beginAtZero: true,
     },
   },
-}
+}))
 
 function ultimoDiaMes(periodo: string): string {
   const [y, m] = periodo.split('-').map(Number)
