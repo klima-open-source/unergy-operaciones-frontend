@@ -768,8 +768,8 @@ const ResumenFila = {
   },
   template: `
     <div v-if="props.value">
-      <span class="text-gray-400">{{ props.label }}:</span>
-      <span class="font-medium text-gray-700">{{ props.value }}</span>
+      <span class="text-muted-foreground">{{ props.label }}:</span>
+      <span class="font-medium text-foreground">{{ props.value }}</span>
     </div>
   `,
 }

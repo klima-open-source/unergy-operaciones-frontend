@@ -100,7 +100,7 @@
     <ProyectosPendientesPanel v-if="vista === 'proyectos'" @cambio="cargarProyectos" />
 
     <div v-if="vista === 'proyectos'"
-         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+         class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="text-xs font-semibold text-muted-foreground">Estado</label>
         <Select v-model="filtrosProyectos.estado.value" :options="estadoOpcionesProyectos"
@@ -134,7 +134,7 @@
          cambian según la pestaña porque las tres tablas no comparten columnas.
          Los predicados viven en `~/features/contratos/filtrosServicios`. -->
     <div v-if="vista === 'servicios'"
-         class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+         class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <template v-if="servicio === 'ppa'">
         <div>
           <label class="text-xs font-semibold text-muted-foreground">Estado</label>
@@ -350,7 +350,7 @@
         <Column header="PPA">
           <template #body="{ data }">
             <div v-if="ppaVigentes(data).length" class="flex gap-0.5 overflow-hidden min-w-0">
-              <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="min-w-0 truncate bg-primary/10 text-primary text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-primary hover:text-white"
+              <button v-for="c in ppaVigentes(data)" :key="c.id" type="button" class="min-w-0 truncate bg-primary/10 text-primary text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-primary hover:text-primary-foreground"
                       v-tooltip.bottom="ppaTooltip(c)" @click="ir(`/proyectos/${data.id}/ppa`)">
                 {{ ppaLabel(c) }}
               </button>

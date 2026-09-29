@@ -41,7 +41,7 @@
 
           <!-- Info card -->
           <template v-if="contratos.mantenimiento">
-            <div class="rounded-xl border bg-white p-5 border-warning/25">
+            <div class="rounded-xl border bg-card p-5 border-warning/25">
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
@@ -337,7 +337,7 @@
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.arriendo">
-            <div class="rounded-xl border bg-white p-5 border-primary/25">
+            <div class="rounded-xl border bg-card p-5 border-primary/25">
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
@@ -685,7 +685,7 @@
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.internet">
-            <div class="rounded-xl border bg-white p-5 border-chart-2/25">
+            <div class="rounded-xl border bg-card p-5 border-chart-2/25">
               <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-2.5">
                   <div class="size-8 rounded-lg flex items-center justify-center bg-chart-2/10">
@@ -1804,7 +1804,7 @@ const Acordeon = {
     return { ...toRefs(props), abierto }
   },
   template: `
-    <div class="rounded-xl border bg-white overflow-hidden border-border">
+    <div class="rounded-xl border bg-card overflow-hidden border-border">
       <button type="button"
         class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors text-left"
         @click="abierto = !abierto">
