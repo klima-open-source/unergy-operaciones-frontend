@@ -1087,7 +1087,10 @@ function onProyectosChange(): void {
 // ── Validación (sin límites de tamaño: sólo coherencia) ───────────────
 const rangoDias = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 0
-  return Math.max(0, Math.ceil((fechaHasta.value - fechaDesde.value) / 86400000) + 1)
+  return Math.max(
+    0,
+    Math.ceil((fechaHasta.value.getTime() - fechaDesde.value.getTime()) / 86400000) + 1,
+  )
 })
 const rangoError = computed(() => {
   if (!fechaDesde.value || !fechaHasta.value) return 'Selecciona un rango'
