@@ -1,41 +1,61 @@
 <template>
   <Teleport to="body">
     <Transition name="isheet">
-      <div v-if="open" class="is-root">
+      <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-muted font-sans text-unergy-deep">
         <!-- Encabezado -->
-        <header class="is-head">
-          <button class="is-back" @click="close"><ChevronLeftIcon class="size-4" /></button>
-          <div class="is-titles">
-            <span class="is-title">Potencia por inversor</span>
-            <span class="is-sub">{{ nombre || '—' }}</span>
+        <header
+          class="is-head flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3 pb-2 text-white"
+        >
+          <button class="size-9 shrink-0 rounded-lg bg-white/10 text-white" @click="close">
+            <ChevronLeftIcon class="size-4" />
+          </button>
+          <div class="flex min-w-0 flex-1 flex-col">
+            <span class="text-base font-bold">Potencia por inversor</span>
+            <span class="truncate text-xs text-white/60">{{ nombre || '—' }}</span>
           </div>
-          <button class="is-icon-btn" :disabled="loading" @click="cargar(true)" title="Actualizar">
+          <button
+            class="size-9 shrink-0 rounded-lg bg-white/10 text-white disabled:opacity-50"
+            :disabled="loading"
+            @click="cargar(true)"
+            title="Actualizar"
+          >
             <LoaderCircleIcon v-if="loading" class="size-4 animate-spin" />
             <RefreshCwIcon v-else class="size-4" />
           </button>
         </header>
 
         <!-- Selector de líneas -->
-        <div v-if="inversores.length" class="is-chips">
+        <div
+          v-if="inversores.length"
+          class="flex shrink-0 flex-wrap gap-1.5 border-b border-border bg-card px-3 py-2"
+        >
           <button
             v-for="inv in inversores"
             :key="inv.dev_name"
             :class="[
-              'is-chip',
-              ocultos.has(inv.dev_name) ? 'is-chip--off' : 'border-(--c)! bg-(--c)/8!',
+              CHIP,
+              ocultos.has(inv.dev_name)
+                ? 'border-border bg-muted text-muted-foreground'
+                : 'border-(--c) bg-(--c)/8 text-unergy-deep',
             ]"
             :style="{ '--c': inv.color }"
             @click="toggle(inv.dev_name)"
           >
             <span
-              class="is-chip-dot"
+              class="size-2 shrink-0 rounded-full"
               :class="ocultos.has(inv.dev_name) ? 'bg-border' : 'bg-(--c)'"
               :style="{ '--c': inv.color }"
             />
-            <span class="is-chip-name">{{ inv.dev_name }}</span>
-            <span class="is-chip-peak">{{ fmtKw(inv.peak_kw) }}</span>
+            <span class="max-w-40 truncate">{{ inv.dev_name }}</span>
+            <span
+              class="text-xs font-bold tabular-nums"
+              :class="
+                ocultos.has(inv.dev_name) ? 'text-muted-foreground/60' : 'text-muted-foreground'
+              "
+              >{{ fmtKw(inv.peak_kw) }}</span
+            >
           </button>
-          <button class="is-chip is-chip--all" @click="todos">
+          <button :class="[CHIP, 'border-border bg-muted text-unergy-purple']" @click="todos">
             <EyeIcon v-if="ocultos.size" class="size-3" />
             <EyeOffIcon v-else class="size-3" />
             {{ ocultos.size ? 'Todos' : 'Ninguno' }}
@@ -43,31 +63,39 @@
         </div>
 
         <!-- Gráfica -->
-        <main class="is-chart">
-          <div v-if="loading" class="is-state">
-            <LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando inversores…</span>
+        <main class="relative min-h-0 flex-1 bg-card px-2.5 pt-3 pb-1.5">
+          <div v-if="loading" :class="STATE">
+            <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+            <span>Cargando inversores…</span>
           </div>
-          <div v-else-if="error" class="is-state">
-            <TriangleAlertIcon class="size-8 text-warning!" />
+          <div v-else-if="error" :class="STATE">
+            <TriangleAlertIcon class="size-8 text-warning" />
             <span>{{ error }}</span>
-            <button class="is-retry" @click="cargar(true)">Reintentar</button>
+            <button
+              class="mt-0.5 rounded-xl bg-unergy-purple px-5 py-2.5 text-sm font-semibold text-white"
+              @click="cargar(true)"
+            >
+              Reintentar
+            </button>
           </div>
-          <div v-else-if="!inversores.length" class="is-state">
-            <ChartLineIcon class="size-8 text-muted-foreground!" />
+          <div v-else-if="!inversores.length" :class="STATE">
+            <ChartLineIcon class="size-8 text-muted-foreground" />
             <span>Sin datos de inversores hoy</span>
           </div>
-          <div v-else-if="!datasetsVisibles.length" class="is-state">
-            <EyeOffIcon class="size-8 text-muted-foreground!" />
+          <div v-else-if="!datasetsVisibles.length" :class="STATE">
+            <EyeOffIcon class="size-8 text-muted-foreground" />
             <span>Todas las líneas están ocultas</span>
           </div>
           <Line v-else :data="chartData" :options="chartOptions" />
         </main>
 
         <!-- Pie -->
-        <footer class="is-foot">
-          <span><CalendarIcon class="size-3" /> {{ fecha }}</span>
+        <footer
+          class="is-foot flex shrink-0 items-center gap-3 border-t border-border bg-card px-3 pt-2 text-xs text-muted-foreground"
+        >
+          <span class="flex items-center gap-1"><CalendarIcon class="size-3" /> {{ fecha }}</span>
           <span v-if="granularidad">{{ granularidad === 'hour' ? 'por hora' : 'cada 5 min' }}</span>
-          <span v-if="actualizado" class="is-foot-upd"
+          <span v-if="actualizado" class="ml-auto flex items-center gap-1"
             ><ClockIcon class="size-3" /> {{ actualizado }}</span
           >
         </footer>
@@ -103,6 +131,10 @@ import {
 import type { PotenciaInversor } from '~/features/solar/types'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { isFetchError, normalizeError } from '~/core/errors'
+
+const CHIP = 'flex items-center gap-1.5 rounded-lg border-2 px-2 py-1.5 text-xs font-semibold'
+const STATE =
+  'absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Legend, Tooltip)
 
@@ -293,170 +325,12 @@ function close(): void {
 </script>
 
 <style scoped>
-.is-root {
-  position: fixed;
-  inset: 0;
-  z-index: 110;
-  display: flex;
-  flex-direction: column;
-  background: #f3f4f6;
-  color: var(--color-unergy-deep);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-/* Encabezado */
+/* safe-area del dispositivo: env() no tiene utilidad */
 .is-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: calc(9px + env(safe-area-inset-top)) 12px 9px;
-  background: var(--color-unergy-deep);
-  color: #fff;
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
 }
-.is-back,
-.is-icon-btn {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 15px;
-}
-.is-icon-btn:disabled {
-  opacity: 0.5;
-}
-.is-titles {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.is-title {
-  font-size: clamp(14px, 3.9vw, 16px);
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-.is-sub {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.6);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Chips de inversores */
-.is-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 9px 11px;
-  background: #fff;
-  border-bottom: 1px solid #eceaf2;
-}
-.is-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 9px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 10px;
-  background: #fff;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-unergy-deep);
-}
-.is-chip--off {
-  color: #9ca3af;
-  background: #f9fafb;
-  border-color: #eceaf2;
-}
-.is-chip-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.is-chip-name {
-  max-width: 42vw;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.is-chip-peak {
-  font-size: 10.5px;
-  color: #787774;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.is-chip--off .is-chip-peak {
-  color: #b6bec9;
-}
-.is-chip--all {
-  color: var(--color-unergy-purple);
-  border-color: #e2d5f5;
-  background: #faf8fd;
-}
-
-/* Gráfica */
-.is-chart {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  padding: 12px 10px 6px;
-  background: #fff;
-}
-.is-state {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 11px;
-  padding: 0 24px;
-  text-align: center;
-  color: #6b5a8a;
-  font-size: 14px;
-}
-.is-state svg {
-  font-size: 24px;
-  color: var(--color-unergy-purple);
-}
-.is-retry {
-  margin-top: 2px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 11px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-/* Pie */
 .is-foot {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  padding: 9px 13px calc(9px + env(safe-area-inset-bottom));
-  background: #fff;
-  border-top: 1px solid #eceaf2;
-  font-size: 11px;
-  color: #9ca3af;
-}
-.is-foot svg {
-  margin-right: 4px;
-}
-.is-foot-upd {
-  margin-left: auto;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
 }
 
 .isheet-enter-active,

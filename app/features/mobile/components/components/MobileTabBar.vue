@@ -1,25 +1,25 @@
 <template>
-  <nav class="mtb">
+  <nav class="mtb flex shrink-0 border-t border-border bg-card">
     <!-- Coordinador y técnico no tienen acceso a generación/resumen -->
     <template v-if="esCoordinadorOTecnico">
-      <RouterLink :to="fallasPath" class="mtb-item" active-class="mtb-item--active">
+      <RouterLink :to="fallasPath" :class="itemClass" active-class="text-unergy-purple!">
         <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
-      <button class="mtb-item" @click="logout">
+      <button :class="itemClass" @click="logout">
         <LogOutIcon class="size-5" /><span>Salir</span>
       </button>
     </template>
     <template v-else>
-      <RouterLink to="/m/solar" class="mtb-item" active-class="mtb-item--active">
+      <RouterLink to="/m/solar" :class="itemClass" active-class="text-unergy-purple!">
         <SunIcon class="size-5" /><span>Generación</span>
       </RouterLink>
-      <RouterLink to="/m/fallas" class="mtb-item" active-class="mtb-item--active">
+      <RouterLink to="/m/fallas" :class="itemClass" active-class="text-unergy-purple!">
         <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
-      <RouterLink to="/m/reporte-cgm" class="mtb-item" active-class="mtb-item--active">
+      <RouterLink to="/m/reporte-cgm" :class="itemClass" active-class="text-unergy-purple!">
         <MailIcon class="size-5" /><span>CGM</span>
       </RouterLink>
-      <RouterLink to="/m/resumen" class="mtb-item" active-class="mtb-item--active">
+      <RouterLink to="/m/resumen" :class="itemClass" active-class="text-unergy-purple!">
         <ChartColumnIcon class="size-5" /><span>Resumen</span>
       </RouterLink>
     </template>
@@ -42,6 +42,9 @@ const fallasPath = computed(() =>
   rol.value === UserRole.COORDINADOR ? '/m/coordinador' : '/m/tecnico',
 )
 
+const itemClass =
+  'flex flex-1 flex-col items-center justify-center gap-1 pt-2 pb-2 text-xs font-semibold text-muted-foreground no-underline'
+
 function logout(): void {
   signOut()
   router.push('/m/login')
@@ -49,30 +52,8 @@ function logout(): void {
 </script>
 
 <style scoped>
+/* safe-area del dispositivo: env() no tiene utilidad */
 .mtb {
-  display: flex;
-  flex-shrink: 0;
-  background: #fff;
-  border-top: 1px solid #eceaf2;
   padding-bottom: env(safe-area-inset-bottom);
-}
-.mtb-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 9px 0 7px;
-  text-decoration: none;
-  color: #9b8db5;
-  font-size: 11px;
-  font-weight: 600;
-}
-.mtb-item svg {
-  font-size: 20px;
-}
-.mtb-item--active {
-  color: var(--color-unergy-purple);
 }
 </style>
