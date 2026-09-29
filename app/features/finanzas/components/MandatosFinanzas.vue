@@ -24,7 +24,7 @@
     </div>
 
     <div class="mb-2.5 flex items-center gap-3">
-      <input v-model="q" class="w-70 rounded-lg border border-border px-2.5 py-1.5 text-sm" placeholder="Buscar proyecto / tercero / CMU" />
+      <input v-model="q" class="w-full max-w-xs rounded-lg border border-border px-2.5 py-1.5 text-sm" placeholder="Buscar proyecto / tercero / CMU" />
       <label class="inline-flex cursor-pointer items-center gap-1.5 text-xs text-unergy-deep"><input type="checkbox" v-model="soloFalta" /> Solo falta firma</label>
       <span class="ml-auto text-xs text-muted-foreground">{{ filtrados.length }} / {{ mandatos.length }}</span>
     </div>
