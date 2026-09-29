@@ -145,7 +145,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
     {
       label: 'Este mes',
       data: ITEMS.map((i) => a[i.key]),
-      backgroundColor: color('unergy-purple'),
+      backgroundColor: color('primary'),
       borderRadius: 4,
       maxBarThickness: 46,
     },
@@ -154,7 +154,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
     ds.push({
       label: 'Promedio proyecto',
       data: ITEMS.map((i) => p[i.key]),
-      backgroundColor: color('unergy-purple', 0.3),
+      backgroundColor: color('primary', 0.3),
       borderRadius: 4,
       maxBarThickness: 46,
     })
