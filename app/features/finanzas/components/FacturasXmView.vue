@@ -20,8 +20,8 @@
     <Dialog v-model:visible="subidaVisible" header="Subir facturas de XM" modal class="w-full max-w-lg"
             @hide="alCerrarSubida">
       <div class="space-y-4 pt-1">
-        <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-unergy-purple-light/40 bg-unergy-purple/5 px-4 py-5.5 transition-colors duration-150 hover:border-unergy-purple hover:bg-unergy-purple/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendo" @click="seleccionarArchivos">
-          <CloudUploadIcon class="size-6 text-unergy-purple" />
+        <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-5.5 transition-colors duration-150 hover:border-primary hover:bg-primary/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendo" @click="seleccionarArchivos">
+          <CloudUploadIcon class="size-6 text-primary" />
           <p class="text-sm font-semibold text-foreground mt-2">Seleccionar facturas</p>
           <p class="text-xs text-muted-foreground">
             Solo PDF · máximo {{ MAX_FACTURAS_POR_LOTE }} por lote, {{ MAX_MB_POR_FACTURA }} MB cada una
