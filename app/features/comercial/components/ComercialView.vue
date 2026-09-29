@@ -275,10 +275,10 @@ onMounted(cargar)
          Los anchos fijos no encogían: debajo de ~1100px cada control caía en
          su propia fila y en celular eran cinco filas apiladas que empujaban la
          primera fila de datos una pantalla entera hacia abajo. Ahora: a ancho
-         completo debajo de `sm`, con anchos fijos desde `sm`, y debajo de `lg`
+         completo debajo de `sm`, con ancho repartido por el layout desde `sm`, y debajo de `lg`
          los secundarios se pliegan detrás del botón "Filtros". -->
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <InputGroup class="w-full sm:w-72">
+      <InputGroup class="w-full sm:max-w-xs sm:flex-1">
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
         <InputGroupInput
           v-model.trim="filtros.texto"
@@ -303,7 +303,7 @@ onMounted(cargar)
         v-model="filtros.tipos"
         :options="TIPOS_OFERTA.map((t) => ({ label: t.label, value: t.value }))"
         placeholder="Tipo de oferta"
-        class="w-full sm:w-52"
+        class="w-full sm:max-w-56 sm:min-w-40 sm:flex-1"
       />
       <MultiComboBox
         v-show="filtrosVisibles"
@@ -315,7 +315,7 @@ onMounted(cargar)
           }))
         "
         placeholder="Cliente"
-        class="w-full sm:w-52"
+        class="w-full sm:max-w-56 sm:min-w-40 sm:flex-1"
         @update:model-value="(v) => (filtros.clientes = v.map(Number))"
       />
       <MultiComboBox
@@ -324,10 +324,12 @@ onMounted(cargar)
         v-model="filtros.etapas"
         :options="ETAPAS.map((e) => ({ label: e.label, value: e.value }))"
         placeholder="Etapa"
-        class="w-full sm:w-48"
+        class="w-full sm:max-w-56 sm:min-w-40 sm:flex-1"
       />
       <Select v-if="vista === 'tabla'" v-show="filtrosVisibles" v-model="orden">
-        <SelectTrigger class="w-full sm:w-48"><SelectValue /></SelectTrigger>
+        <SelectTrigger class="w-full sm:max-w-56 sm:min-w-40 sm:flex-1"
+          ><SelectValue
+        /></SelectTrigger>
         <SelectContent>
           <SelectItem v-for="o in ORDENES" :key="o.value" :value="o.value">{{
             o.label

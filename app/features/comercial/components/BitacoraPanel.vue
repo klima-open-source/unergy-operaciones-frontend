@@ -93,7 +93,7 @@ async function registrar() {
             :model-value="nueva.tipo ?? undefined"
             @update:model-value="(v) => (nueva.tipo = v as string)"
           >
-            <SelectTrigger class="w-44"><SelectValue placeholder="Tipo *" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Tipo *" /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="t in TIPOS_GESTION" :key="t.value" :value="t.value">{{
                 t.label
@@ -104,7 +104,7 @@ async function registrar() {
             :model-value="nueva.oferta_id !== null ? String(nueva.oferta_id) : ''"
             @update:model-value="(v) => (nueva.oferta_id = v ? Number(v) : null)"
           >
-            <SelectTrigger class="w-64"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="o in opcionesOferta" :key="o.value" :value="o.value">{{
                 o.label
