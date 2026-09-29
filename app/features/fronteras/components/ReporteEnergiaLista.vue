@@ -1,23 +1,32 @@
 <template>
-  <div class="list-pane bg-white rounded-xl shadow-sm overflow-hidden flex flex-col" style="border: 1px solid #e8e0f0;">
-    <div class="p-3 space-y-2" style="border-bottom: 1px solid #f1ecf7;">
+  <div
+    class="list-pane flex flex-col overflow-hidden rounded-xl bg-white shadow-sm"
+    style="border: 1px solid #e8e0f0"
+  >
+    <div class="space-y-2 p-3" style="border-bottom: 1px solid #f1ecf7">
       <InputGroup>
         <InputGroupAddon><SearchIcon /></InputGroupAddon>
         <InputGroupInput v-model="search" placeholder="Buscar proyecto..." />
       </InputGroup>
       <div class="flex gap-2">
-        <button class="filter-pill" :class="{ on: genOn }" @click="genOn = !genOn">Generación</button>
+        <button class="filter-pill" :class="{ on: genOn }" @click="genOn = !genOn">
+          Generación
+        </button>
         <button class="filter-pill" :class="{ on: conOn }" @click="conOn = !conOn">Consumo</button>
       </div>
-      <Select :model-value="filtroFuente ?? ''" @update:model-value="(v) => (filtroFuente = (v as string) || null)">
-        <SelectTrigger size="sm" class="w-full"><SelectValue placeholder="Todas las fuentes" /></SelectTrigger>
+      <Select v-model="filtroFuente">
+        <SelectTrigger size="sm" class="w-full"
+          ><SelectValue placeholder="Todas las fuentes"
+        /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todas las fuentes</SelectItem>
-          <SelectItem v-for="op in opcionesFuente" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+          <SelectItem :value="TODAS_LAS_FUENTES">Todas las fuentes</SelectItem>
+          <SelectItem v-for="op in opcionesFuente" :key="op.value" :value="op.value">{{
+            op.label
+          }}</SelectItem>
         </SelectContent>
       </Select>
     </div>
-    <ul class="list-scroll flex-1 overflow-y-auto" style="list-style: none; margin: 0; padding: 0;">
+    <ul class="list-scroll flex-1 overflow-y-auto" style="list-style: none; margin: 0; padding: 0">
       <li v-for="f in filtradas" :key="f.frontera_id">
         <button
           class="row w-full text-left"
@@ -26,22 +35,32 @@
           @click="$emit('seleccionar', f)"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="font-medium text-sm truncate" style="color: var(--color-unergy-deep);">{{ f.nombre_proyecto }}</span>
-            <span class="font-mono text-xs flex-none" style="color: #6b5a8a;">{{ fmtKwh(f.energia_final_kwh) }}</span>
+            <span class="truncate text-sm font-medium" style="color: var(--color-unergy-deep)">{{
+              f.nombre_proyecto
+            }}</span>
+            <span class="flex-none font-mono text-xs" style="color: #6b5a8a">{{
+              fmtKwh(f.energia_final_kwh)
+            }}</span>
           </div>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="tipo-tag" :style="{ color: f.tipo === 'generacion' ? '#10B981' : '#3B82F6', borderColor: f.tipo === 'generacion' ? '#10B981' : '#3B82F6' }">
+          <div class="mt-1 flex items-center gap-2">
+            <span
+              class="tipo-tag"
+              :style="{
+                color: f.tipo === 'generacion' ? '#10B981' : '#3B82F6',
+                borderColor: f.tipo === 'generacion' ? '#10B981' : '#3B82F6',
+              }"
+            >
               {{ f.tipo === 'generacion' ? 'Gen' : 'Con' }}
             </span>
-            <span class="text-xs truncate" style="color: #9b89b5;">{{ etiquetaFuente(f) }}</span>
+            <span class="truncate text-xs" style="color: #9b89b5">{{ etiquetaFuente(f) }}</span>
           </div>
         </button>
       </li>
-      <li v-if="!filtradas.length" class="text-sm text-center py-8" style="color: #9b89b5;">
+      <li v-if="!filtradas.length" class="py-8 text-center text-sm" style="color: #9b89b5">
         Sin resultados con estos filtros.
       </li>
     </ul>
-    <div class="text-xs px-3 py-2" style="border-top: 1px solid #f1ecf7; color: #9b89b5;">
+    <div class="px-3 py-2 text-xs" style="border-top: 1px solid #f1ecf7; color: #9b89b5">
       Mostrando {{ filtradas.length }} de {{ filas.length }} fronteras
     </div>
   </div>
@@ -63,7 +82,10 @@ defineEmits<{ seleccionar: [fila: FilaReporteEnergia] }>()
 const search = ref('')
 const genOn = ref(true)
 const conOn = ref(true)
-const filtroFuente = ref<string | null>(null)
+// Reka UI no admite `value=""` en un SelectItem (reservado para limpiar la
+// selección), así que "todas" necesita un valor propio que no filtra.
+const TODAS_LAS_FUENTES = '__todas__'
+const filtroFuente = ref(TODAS_LAS_FUENTES)
 
 // Solo las fuentes que de verdad aparecen ese día, con su conteo: el catálogo
 // completo (ETIQUETAS_FUENTE) tiene ~20 entradas y la mayoría no aplica en un
@@ -91,14 +113,14 @@ const filtradas = computed(() => {
   // Si se apagan las dos (o están las dos prendidas), no filtra por tipo --
   // apagar ambas por error nunca debería dejar la lista vacía.
   if (genOn.value !== conOn.value) {
-    list = list.filter(f => (f.tipo === 'generacion') === genOn.value)
+    list = list.filter((f) => (f.tipo === 'generacion') === genOn.value)
   }
-  if (filtroFuente.value) {
-    list = list.filter(f => etiquetaFuente(f) === filtroFuente.value)
+  if (filtroFuente.value !== TODAS_LAS_FUENTES) {
+    list = list.filter((f) => etiquetaFuente(f) === filtroFuente.value)
   }
   if (search.value) {
     const s = search.value.toLowerCase()
-    list = list.filter(f => (f.nombre_proyecto || '').toLowerCase().includes(s))
+    list = list.filter((f) => (f.nombre_proyecto || '').toLowerCase().includes(s))
   }
   return list
 })
@@ -111,20 +133,36 @@ function semaforo(f: FilaReporteEnergia): Semaforo {
   return 'warning'
 }
 function semaforoColor(f: FilaReporteEnergia): string {
-  const map: Record<Semaforo, string> = { critical: '#D64455', warning: '#F0C040', success: '#10B981' }
+  const map: Record<Semaforo, string> = {
+    critical: '#D64455',
+    warning: '#F0C040',
+    success: '#10B981',
+  }
   return map[semaforo(f)]
 }
 
 const ETIQUETAS_FUENTE: Record<string, string> = {
-  cgm: 'CGM', principal: 'Medidor principal', respaldo: 'Medidor respaldo',
-  inversores: 'Inversores × FP', crudos: 'Datos crudos', crudos_parcial: 'Datos crudos (parcial)',
-  reconectador: 'Reconectador', solenium_power: 'Solenium (power)', ninguno: 'Apagado',
-  revisar: 'Sin fuente', relleno_horario: 'Relleno horario',
-  externo: 'Reporta otra empresa', historico: 'Histórico propio',
+  cgm: 'CGM',
+  principal: 'Medidor principal',
+  respaldo: 'Medidor respaldo',
+  inversores: 'Inversores × FP',
+  crudos: 'Datos crudos',
+  crudos_parcial: 'Datos crudos (parcial)',
+  reconectador: 'Reconectador',
+  solenium_power: 'Solenium (power)',
+  ninguno: 'Apagado',
+  revisar: 'Sin fuente',
+  relleno_horario: 'Relleno horario',
+  externo: 'Reporta otra empresa',
+  historico: 'Histórico propio',
   historico_vecino: 'Histórico (vecino de predio)',
-  principal_sin_historico: 'Medidor principal', respaldo_sin_historico: 'Medidor respaldo',
-  principal_sin_cgm: 'Medidor principal', respaldo_sin_cgm: 'Medidor respaldo',
-  excluida: 'Excluida', excel_terceros: 'Excel de terceros', editado_manualmente: 'Editado manualmente',
+  principal_sin_historico: 'Medidor principal',
+  respaldo_sin_historico: 'Medidor respaldo',
+  principal_sin_cgm: 'Medidor principal',
+  respaldo_sin_cgm: 'Medidor respaldo',
+  excluida: 'Excluida',
+  excel_terceros: 'Excel de terceros',
+  editado_manualmente: 'Editado manualmente',
 }
 function etiquetaFuente(f: FilaReporteEnergia): string {
   const clave = typeof f.medidor_usado === 'string' ? f.medidor_usado : null
@@ -137,7 +175,9 @@ function fmtKwh(v: unknown): string {
 </script>
 
 <style scoped>
-.list-scroll { max-height: 32rem; }
+.list-scroll {
+  max-height: 32rem;
+}
 .row {
   display: block;
   width: 100%;
@@ -148,8 +188,12 @@ function fmtKwh(v: unknown): string {
   border-left: 3px solid transparent;
   cursor: pointer;
 }
-.row:hover { background: #faf8fd; }
-.row-selected { background: #f5eefc; }
+.row:hover {
+  background: #faf8fd;
+}
+.row-selected {
+  background: #f5eefc;
+}
 .filter-pill {
   font-size: 12px;
   font-weight: 600;
@@ -160,7 +204,11 @@ function fmtKwh(v: unknown): string {
   color: #9b89b5;
   cursor: pointer;
 }
-.filter-pill.on { background: #f5eefc; border-color: var(--color-unergy-purple); color: var(--color-unergy-purple-dark); }
+.filter-pill.on {
+  background: #f5eefc;
+  border-color: var(--color-unergy-purple);
+  color: var(--color-unergy-purple-dark);
+}
 .tipo-tag {
   font-size: 10px;
   font-weight: 700;
