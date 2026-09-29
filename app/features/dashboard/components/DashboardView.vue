@@ -383,12 +383,9 @@ onMounted(loadKpis)
                       }}</span>
                       <div class="h-5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
-                          class="h-full rounded-full transition-all duration-500"
-                          :class="bar.barClass"
-                          :style="{
-                            width: `${bar.pct}%`,
-                            minWidth: bar.count > 0 ? '1.5rem' : '0',
-                          }"
+                          class="h-full w-(--bar-w) rounded-full transition-all duration-500"
+                          :class="[bar.barClass, bar.count > 0 ? 'min-w-6' : 'min-w-0']"
+                          :style="{ '--bar-w': `${bar.pct}%` }"
                         />
                       </div>
                       <span class="w-8 text-sm font-bold text-foreground">{{ bar.count }}</span>
