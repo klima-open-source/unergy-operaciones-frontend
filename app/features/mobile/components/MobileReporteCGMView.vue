@@ -1,10 +1,10 @@
 <template>
   <div class="cgm-root">
     <header class="cgm-topbar">
-      <span class="cgm-brand"><MailIcon class="size-[1em]" /> Reporte CGM</span>
+      <span class="cgm-brand"><MailIcon class="size-4" /> Reporte CGM</span>
       <button class="cgm-icon-btn" :disabled="loading" @click="loadData" title="Actualizar">
-        <LoaderCircleIcon v-if="loading" class="size-[1em] animate-spin" />
-        <RefreshCwIcon v-else class="size-[1em]" />
+        <LoaderCircleIcon v-if="loading" class="size-4 animate-spin" />
+        <RefreshCwIcon v-else class="size-4" />
       </button>
     </header>
 
@@ -36,7 +36,7 @@
       <input v-model="busqueda" type="text" placeholder="Buscar destinatario…" class="cgm-search" />
 
       <div v-if="loading" class="cgm-loading">
-        <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando…
+        <LoaderCircleIcon class="size-4 animate-spin" /> Cargando…
       </div>
 
       <template v-else>
@@ -64,7 +64,7 @@
               </span>
               <span class="cgm-proj-count">
                 <ChevronDownIcon
-                  class="cgm-chev size-[1em]"
+                  class="cgm-chev size-3"
                   :class="{ 'cgm-chev--open': expanded.has(row.key) }"
                 />
                 {{ labelProyectos(row) }}
@@ -131,8 +131,8 @@
         :disabled="!totalSeleccionados || enviando"
         @click="enviarSeleccionados"
       >
-        <LoaderCircleIcon v-if="enviando" class="size-[1em] animate-spin" />
-        <SendIcon v-else class="size-[1em]" />
+        <LoaderCircleIcon v-if="enviando" class="size-4 animate-spin" />
+        <SendIcon v-else class="size-4" />
         {{ enviando ? 'Enviando…' : `Enviar a ${totalSeleccionados}` }}
       </button>
     </div>

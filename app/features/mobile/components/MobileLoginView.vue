@@ -30,13 +30,11 @@
           />
         </label>
 
-        <div v-if="error" class="ml-error">
-          <TriangleAlertIcon class="size-[1em]" /> {{ error }}
-        </div>
+        <div v-if="error" class="ml-error"><TriangleAlertIcon class="size-4" /> {{ error }}</div>
 
         <button class="ml-submit" type="submit" :disabled="loading || !email || !password">
-          <LoaderCircleIcon class="size-[1em] animate-spin" v-if="loading" />
-          <SunIcon class="size-[1em]" v-else />
+          <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
+          <SunIcon class="size-4" v-else />
           {{ loading ? 'Ingresando…' : 'Ingresar' }}
         </button>
       </form>
@@ -50,10 +48,10 @@
           class="ml-preview-btn ml-preview-btn--coord"
           @click="previsualizarComo('coordinador')"
         >
-          <BriefcaseIcon class="size-[1em]" /> Ver como Coordinador
+          <BriefcaseIcon class="size-3" /> Ver como Coordinador
         </button>
         <button class="ml-preview-btn ml-preview-btn--tec" @click="previsualizarComo('tecnico')">
-          <WrenchIcon class="size-[1em]" /> Ver como Técnico
+          <WrenchIcon class="size-4" /> Ver como Técnico
         </button>
       </div>
     </div>

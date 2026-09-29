@@ -2,10 +2,10 @@
   <div class="rs-root">
     <!-- ══ TOP BAR ══ -->
     <header class="rs-topbar">
-      <span class="rs-brand"><ChartColumnIcon class="size-[1em]" /> Resumen del día</span>
+      <span class="rs-brand"><ChartColumnIcon class="size-4" /> Resumen del día</span>
       <button class="rs-icon-btn" :disabled="loading" @click="cargar()" title="Actualizar">
-        <LoaderCircleIcon v-if="loading" class="size-[1em] animate-spin" />
-        <RefreshCwIcon v-else class="size-[1em]" />
+        <LoaderCircleIcon v-if="loading" class="size-4 animate-spin" />
+        <RefreshCwIcon v-else class="size-4" />
       </button>
     </header>
 
@@ -15,14 +15,14 @@
       <!-- Totales del día -->
       <div class="rs-totals">
         <div class="rs-total">
-          <span class="rs-total-dot" style="background: #14b8a6" />
+          <span class="rs-total-dot bg-chart-2" />
           <div class="rs-total-text">
             <span class="rs-total-label">Medidores hoy</span>
             <span class="rs-total-val">{{ fmtKwh(gen.medidor?.total) }}</span>
           </div>
         </div>
         <div class="rs-total">
-          <span class="rs-total-dot" style="background: var(--color-unergy-purple)" />
+          <span class="rs-total-dot bg-unergy-purple" />
           <div class="rs-total-text">
             <span class="rs-total-label">Inversores hoy</span>
             <span class="rs-total-val">{{ fmtKwh(gen.inversor?.total) }}</span>
@@ -53,18 +53,18 @@
       <!-- Fallas de hoy -->
       <section class="rs-card">
         <div class="rs-card-head">
-          <WrenchIcon class="size-[1em]" style="color: #f59e0b" />
+          <WrenchIcon class="size-4 text-warning" />
           <h3 class="rs-card-title">Fallas de hoy</h3>
         </div>
 
         <div v-if="loadingFallas" class="rs-loading">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando…
+          <LoaderCircleIcon class="size-4 animate-spin" /> Cargando…
         </div>
 
         <template v-else>
           <!-- Creadas -->
           <div class="rs-group-label">
-            <CirclePlusIcon class="size-[1em]" /> Creadas
+            <CirclePlusIcon class="size-4" /> Creadas
             <span class="rs-group-count">{{ fallas.creadas?.length || 0 }}</span>
           </div>
           <div v-if="(fallas.creadas?.length || 0) === 0" class="rs-empty-row">
@@ -76,19 +76,21 @@
             class="rs-falla"
             @click="openFalla(f)"
           >
-            <span class="rs-falla-estado" :style="estadoStyle(f.estado)">{{
-              f.estado?.etiqueta || '—'
-            }}</span>
+            <span
+              class="rs-falla-estado bg-(--c)/15 text-(--c)"
+              :style="{ '--c': colorEstado(f.estado?.codigo) }"
+              >{{ f.estado?.etiqueta || '—' }}</span
+            >
             <span class="rs-falla-main">
               <span class="rs-falla-proj">{{ f.proyecto?.nombre_comercial || '—' }}</span>
               <span class="rs-falla-tipo">{{ f.tipo?.etiqueta || f.tipo_libre || 'Falla' }}</span>
             </span>
-            <ChevronRightIcon class="rs-falla-arrow size-[1em]" />
+            <ChevronRightIcon class="rs-falla-arrow size-3" />
           </button>
 
           <!-- Cambios de estado -->
           <div class="rs-group-label rs-group-label--mt">
-            <RefreshCwIcon class="size-[1em]" /> Cambiaron de estado
+            <RefreshCwIcon class="size-4" /> Cambiaron de estado
             <span class="rs-group-count">{{ fallas.cambios_estado?.length || 0 }}</span>
           </div>
           <div v-if="(fallas.cambios_estado?.length || 0) === 0" class="rs-empty-row">
@@ -103,17 +105,21 @@
             <span class="rs-falla-main">
               <span class="rs-falla-proj">{{ c.falla?.proyecto?.nombre_comercial || '—' }}</span>
               <span class="rs-falla-transition">
-                <span class="rs-falla-estado rs-sm" :style="estadoStyle(c.estado_anterior)">{{
-                  c.estado_anterior?.etiqueta || '—'
-                }}</span>
-                <ArrowRightIcon class="rs-trans-arrow size-[1em]" />
-                <span class="rs-falla-estado rs-sm" :style="estadoStyle(c.estado_nuevo)">{{
-                  c.estado_nuevo?.etiqueta || '—'
-                }}</span>
+                <span
+                  class="rs-falla-estado rs-sm bg-(--c)/15 text-(--c)"
+                  :style="{ '--c': colorEstado(c.estado_anterior?.codigo) }"
+                  >{{ c.estado_anterior?.etiqueta || '—' }}</span
+                >
+                <ArrowRightIcon class="rs-trans-arrow size-3" />
+                <span
+                  class="rs-falla-estado rs-sm bg-(--c)/15 text-(--c)"
+                  :style="{ '--c': colorEstado(c.estado_nuevo?.codigo) }"
+                  >{{ c.estado_nuevo?.etiqueta || '—' }}</span
+                >
               </span>
             </span>
             <span class="rs-falla-hora">{{ horaCorta(c.hora) }}</span>
-            <ChevronRightIcon class="rs-falla-arrow size-[1em]" />
+            <ChevronRightIcon class="rs-falla-arrow size-3" />
           </button>
         </template>
       </section>
@@ -147,12 +153,7 @@ import {
   WrenchIcon,
   ZapIcon,
 } from '@lucide/vue'
-import type {
-  CambioEstadoFalla,
-  CatalogoItemFalla,
-  CatalogosFalla,
-  Falla,
-} from '~/features/fallas/types'
+import type { CambioEstadoFalla, CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { ResumenGeneracionDiaFuente, TopGeneracionProyecto } from '~/features/solar/types'
 import { logger } from '~/core/logger'
 import { FallasService } from '~/features/fallas/services/fallas'
@@ -180,14 +181,12 @@ const TopCard = defineComponent({
     return () =>
       h('section', { class: 'rs-card' }, [
         h('div', { class: 'rs-card-head' }, [
-          props.icon
-            ? h(props.icon, { class: 'size-[1em]', style: { color: props.accent } })
-            : null,
+          props.icon ? h(props.icon, { class: 'size-4', style: { '--c': props.accent } }) : null,
           h('h3', { class: 'rs-card-title' }, props.title),
         ]),
         props.loading
           ? h('div', { class: 'rs-loading' }, [
-              h(LoaderCircleIcon, { class: 'size-[1em] animate-spin' }),
+              h(LoaderCircleIcon, { class: 'size-4 animate-spin' }),
               ' Cargando…',
             ])
           : props.items.length === 0
@@ -200,8 +199,8 @@ const TopCard = defineComponent({
                     h(
                       'span',
                       {
-                        class: 'rs-rank',
-                        style: medal(i) ? { background: medal(i), color: '#2C2039' } : {},
+                        class: ['rs-rank', medal(i) && 'bg-(--c)! text-unergy-deep!'],
+                        style: { '--c': medal(i) },
                       },
                       String(i + 1),
                     ),
@@ -209,13 +208,13 @@ const TopCard = defineComponent({
                       h('span', { class: 'rs-top-name' }, it.nombre || '—'),
                       h('div', { class: 'rs-bar-track' }, [
                         h('div', {
-                          class: 'rs-bar-fill',
+                          class: 'rs-bar-fill w-(--w) bg-(--c)',
                           style: {
-                            width:
+                            '--w':
                               ((props.max ?? 0) > 0
                                 ? Math.max(3, (it.kwh / props.max!) * 100)
                                 : 0) + '%',
-                            background: props.accent,
+                            '--c': props.accent,
                           },
                         }),
                       ]),
@@ -277,11 +276,6 @@ function horaCorta(iso: string | null | undefined): string {
   if (isNaN(d.getTime())) return ''
   return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
 }
-function estadoStyle(estado: CatalogoItemFalla | null | undefined) {
-  const c = colorEstado(estado?.codigo)
-  return { background: c + '22', color: c }
-}
-
 // ── Carga ───────────────────────────────────────────────────────────────────
 async function cargarGen(): Promise<void> {
   loadingGen.value = true

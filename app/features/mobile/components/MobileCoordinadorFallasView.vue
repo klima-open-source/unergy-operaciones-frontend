@@ -4,25 +4,25 @@
     <header class="cf-topbar">
       <div class="cf-topbar-left">
         <span class="cf-role-badge">Coordinador</span>
-        <span class="cf-brand"><WrenchIcon class="size-[1em]" /> Fallas</span>
+        <span class="cf-brand"><WrenchIcon class="size-4" /> Fallas</span>
       </div>
-      <button class="cf-icon-btn cf-bell" @click="notifOpen = true" title="Notificaciones">
-        <BellIcon class="size-[1em]" />
+      <button class="cf-icon-btn" @click="notifOpen = true" title="Notificaciones">
+        <BellIcon class="size-4" />
         <span v-if="unreadCount > 0" class="cf-bell-badge">{{
           unreadCount > 9 ? '9+' : unreadCount
         }}</span>
       </button>
       <button class="cf-icon-btn cf-add" @click="createOpen = true" title="Registrar falla">
-        <PlusIcon class="size-[1em]" />
+        <PlusIcon class="size-4" />
       </button>
     </header>
 
     <!-- FILTROS -->
     <div class="cf-filters">
       <div class="cf-search">
-        <SearchIcon class="size-[1em]" />
+        <SearchIcon class="size-4" />
         <input v-model="search" placeholder="Código, descripción, proyecto…" />
-        <XIcon class="cf-clear size-[1em]" v-if="search" @click="search = ''" />
+        <XIcon class="cf-clear size-4" v-if="search" @click="search = ''" />
       </div>
       <div class="cf-chips">
         <button
@@ -37,8 +37,11 @@
         <button
           v-for="e in catalogos.estados"
           :key="e.id"
-          :class="['cf-fchip', filtro === e.id && 'cf-fchip--on']"
-          :style="filtro === e.id ? chipStyle(colorEstado(e.codigo)) : {}"
+          :class="[
+            'cf-fchip',
+            filtro === e.id && 'cf-fchip--on border-(--c)! bg-(--c)! text-white!',
+          ]"
+          :style="{ '--c': colorEstado(e.codigo) }"
           @click="filtro = e.id"
         >
           {{ e.etiqueta }}
@@ -61,38 +64,40 @@
     <!-- LISTA -->
     <main class="cf-list">
       <div v-if="loading" class="cf-state">
-        <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando…
+        <LoaderCircleIcon class="size-6 animate-spin" /> Cargando…
       </div>
       <div v-else-if="!filtradas.length" class="cf-state">
-        <CircleCheckIcon class="size-[1em]" style="font-size: 32px; color: #22c55e" />
+        <CircleCheckIcon class="size-8 text-success!" />
         <span>{{
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
         <button class="cf-empty-add" @click="createOpen = true">
-          <PlusIcon class="size-[1em]" /> Registrar falla
+          <PlusIcon class="size-4" /> Registrar falla
         </button>
       </div>
       <template v-else>
         <button v-for="f in filtradas" :key="f.id" class="cf-card" @click="openDetail(f)">
           <span
-            class="cf-stripe"
-            :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
+            class="cf-stripe bg-(--c)"
+            :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
           />
           <div class="cf-card-main">
             <div class="cf-card-top">
               <code class="cf-card-code">{{ f.codigo_interno }}</code>
-              <span class="cf-card-estado" :style="estadoStyle(f.estado)">{{
-                f.estado?.etiqueta
-              }}</span>
+              <span
+                class="cf-card-estado bg-(--c)/15 text-(--c)"
+                :style="{ '--c': colorEstado(f.estado?.codigo) }"
+                >{{ f.estado?.etiqueta }}</span
+              >
             </div>
             <div class="cf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
             <div class="cf-card-proj">
-              <ZapIcon class="size-[1em]" /> {{ f.proyecto?.nombre_comercial || '—' }}
+              <ZapIcon class="size-3" /> {{ f.proyecto?.nombre_comercial || '—' }}
             </div>
             <div class="cf-card-foot">
               <span
-                class="cf-prio"
-                :style="{ color: colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
+                class="cf-prio text-(--c)"
+                :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
                 >{{ f.prioridad?.etiqueta }}</span
               >
               <span class="cf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
@@ -135,7 +140,7 @@ import {
   XIcon,
   ZapIcon,
 } from '@lucide/vue'
-import type { CatalogoItemFalla, CatalogosFalla, Falla } from '~/features/fallas/types'
+import type { CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { ProyectoConDetalle } from '~/features/proyectos/types'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { FallasService } from '~/features/fallas/services/fallas'
@@ -197,14 +202,6 @@ const filtradas = computed(() => {
   })
 })
 
-function chipStyle(color: string | undefined) {
-  const c = color || 'var(--color-unergy-purple)'
-  return { background: c, borderColor: c, color: '#fff' }
-}
-function estadoStyle(estado: CatalogoItemFalla | null | undefined) {
-  const c = colorEstado(estado?.codigo)
-  return { background: c + '22', color: c }
-}
 function relativeTime(s: string | null | undefined): string {
   if (!s) return ''
   const dias = Math.floor((Date.now() - new Date(s + 'T00:00:00').getTime()) / 86400000)

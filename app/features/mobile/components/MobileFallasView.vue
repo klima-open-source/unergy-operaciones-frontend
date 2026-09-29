@@ -2,24 +2,24 @@
   <div class="mf-root">
     <!-- TOP BAR -->
     <header class="mf-topbar">
-      <span class="mf-brand"><WrenchIcon class="size-[1em]" /> Fallas</span>
-      <button class="mf-icon-btn mf-bell" @click="notifOpen = true" title="Notificaciones">
-        <BellIcon class="size-[1em]" />
+      <span class="mf-brand"><WrenchIcon class="size-4" /> Fallas</span>
+      <button class="mf-icon-btn" @click="notifOpen = true" title="Notificaciones">
+        <BellIcon class="size-4" />
         <span v-if="unreadCount > 0" class="mf-bell-badge">{{
           unreadCount > 9 ? '9+' : unreadCount
         }}</span>
       </button>
       <button class="mf-icon-btn mf-add" @click="createOpen = true" title="Registrar falla">
-        <PlusIcon class="size-[1em]" />
+        <PlusIcon class="size-4" />
       </button>
     </header>
 
     <!-- FILTROS -->
     <div class="mf-filters">
       <div class="mf-search">
-        <SearchIcon class="size-[1em]" />
+        <SearchIcon class="size-4" />
         <input v-model="search" placeholder="Buscar código, descripción, proyecto…" />
-        <XIcon class="mf-clear size-[1em]" v-if="search" @click="search = ''" />
+        <XIcon class="mf-clear size-4" v-if="search" @click="search = ''" />
       </div>
       <div class="mf-chips">
         <button
@@ -40,16 +40,11 @@
         <button
           v-for="e in catalogos.estados"
           :key="e.id"
-          :class="['mf-fchip', filtro === e.id && 'mf-fchip--on']"
-          :style="
-            filtro === e.id
-              ? {
-                  background: colorEstado(e.codigo),
-                  borderColor: colorEstado(e.codigo),
-                  color: '#fff',
-                }
-              : {}
-          "
+          :class="[
+            'mf-fchip',
+            filtro === e.id && 'mf-fchip--on border-(--c)! bg-(--c)! text-white!',
+          ]"
+          :style="{ '--c': colorEstado(e.codigo) }"
           @click="filtro = e.id"
         >
           {{ e.etiqueta }}
@@ -60,43 +55,40 @@
     <!-- LISTA -->
     <main class="mf-list">
       <div v-if="loading" class="mf-state">
-        <LoaderCircleIcon class="size-[1em] animate-spin" /> Cargando fallas…
+        <LoaderCircleIcon class="size-6 animate-spin" /> Cargando fallas…
       </div>
       <div v-else-if="!filtradas.length" class="mf-state">
-        <CircleCheckIcon class="size-[1em]" style="font-size: 34px; color: #22c55e" />
+        <CircleCheckIcon class="size-8 text-success!" />
         <span>{{
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
         <button class="mf-empty-add" @click="createOpen = true">
-          <PlusIcon class="size-[1em]" /> Registrar falla
+          <PlusIcon class="size-4" /> Registrar falla
         </button>
       </div>
       <template v-else>
         <button v-for="f in filtradas" :key="f.id" class="mf-card" @click="openDetail(f)">
           <span
-            class="mf-stripe"
-            :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
+            class="mf-stripe bg-(--c)"
+            :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
           />
           <div class="mf-card-main">
             <div class="mf-card-top">
               <code class="mf-card-code">{{ f.codigo_interno }}</code>
               <span
-                class="mf-card-estado"
-                :style="{
-                  background: colorEstado(f.estado?.codigo) + '22',
-                  color: colorEstado(f.estado?.codigo),
-                }"
+                class="mf-card-estado bg-(--c)/15 text-(--c)"
+                :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
             </div>
             <div class="mf-card-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</div>
             <div class="mf-card-proj">
-              <ZapIcon class="size-[1em]" /> {{ f.proyecto?.nombre_comercial || '—' }}
+              <ZapIcon class="size-3" /> {{ f.proyecto?.nombre_comercial || '—' }}
             </div>
             <div class="mf-card-foot">
               <span
-                class="mf-prio"
-                :style="{ color: colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
+                class="mf-prio text-(--c)"
+                :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#6b5a8a') }"
                 >{{ f.prioridad?.etiqueta }}</span
               >
               <span class="mf-time">{{ relativeTime(f.fecha_identificacion) }}</span>
