@@ -65,7 +65,7 @@
               }
             "
           >
-            <SelectTrigger class="w-28">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

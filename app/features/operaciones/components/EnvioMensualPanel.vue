@@ -25,7 +25,7 @@
       </Button>
 
       <div class="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
-        <InputGroup class="h-8 w-48">
+        <InputGroup class="h-8 min-w-40 flex-1">
           <InputGroupAddon><SearchIcon /></InputGroupAddon>
           <InputGroupInput v-model="busqueda" placeholder="Buscar…" />
           <InputGroupAddon v-if="busqueda" align="inline-end">
@@ -88,13 +88,13 @@
       <GTable v-else>
         <GTableHeader>
           <GTableRow>
-            <GTableHead class="w-32">Estado</GTableHead>
+            <GTableHead>Estado</GTableHead>
             <GTableHead>Proyecto</GTableHead>
             <GTableHead>Tipo</GTableHead>
             <GTableHead>Editado</GTableHead>
             <GTableHead>Verificado por</GTableHead>
             <GTableHead>Enviado</GTableHead>
-            <GTableHead class="w-36 text-right">Acciones</GTableHead>
+            <GTableHead class="text-right">Acciones</GTableHead>
           </GTableRow>
         </GTableHeader>
         <GTableBody>
