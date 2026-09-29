@@ -47,22 +47,22 @@
     <!-- ── Filtros ──────────────────────────────────────────────────────── -->
     <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
-        <label class="field-label">Buscar</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="filtroTexto" placeholder="Nombre del proyecto…" />
         </IconField>
       </div>
       <div>
-        <label class="field-label">Aplica este mes</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Aplica este mes</label>
         <Select v-model="filtroAplica" :options="APLICA_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div>
-        <label class="field-label">Periodicidad</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Periodicidad</label>
         <Select v-model="filtroPeriodicidad" :options="PERIODICIDAD_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div>
-        <label class="field-label">Estado contrato</label>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Estado contrato</label>
         <Select v-model="filtroEstadoContrato" :options="ESTADO_CONTRATO_OPTIONS" optionLabel="label" optionValue="value" />
       </div>
       <div class="ml-auto pb-1.5 text-xs text-muted-foreground">
@@ -117,7 +117,7 @@
       </button>
 
       <!-- Tabla colapsable de la sección -->
-      <div class="section-collapse" :class="{ open: openSections.has(sec.tipo) }">
+      <div class="overflow-hidden transition-all" :class="openSections.has(sec.tipo) ? 'max-h-5000 duration-450 ease-in' : 'max-h-0 duration-350 ease-out'">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse min-w-225">
           <thead>
@@ -158,7 +158,7 @@
           </thead>
           <tbody>
             <tr v-for="fila in sec.items" :key="fila.contrato_id"
-              class="border-t border-border hover:bg-muted/50 transition-colors duration-100 row-hover">
+              class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2 text-center" :class="(!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)) ? 'opacity-40' : ''">
                 <input type="checkbox"
                   :disabled="!fila.habilitado || !fila.aplica_este_mes || !conContrato(fila)"
@@ -925,26 +925,3 @@ onBeforeUnmount(() => {
   }
 })
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-/* Coincide con la estética de la vista Proyectos */
-.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
-
-/* Realce suave de fila al pasar el cursor (paralelo a Proyectos) */
-.row-hover { transition: background 0.1s; }
-
-/* Secciones colapsables por tipo (igual que Proyectos) */
-.section-collapse {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.35s ease-out;
-}
-.section-collapse.open {
-  max-height: 20000px;
-  transition: max-height 0.45s ease-in;
-}
-</style>

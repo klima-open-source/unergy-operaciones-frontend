@@ -1,16 +1,16 @@
 <template>
-  <div class="mand-root">
+  <div class="px-4 pt-3.5 pb-7">
     <!-- B. Navegador de período -->
-    <div class="mand-periodo-bar">
+    <div class="mb-3.5 flex flex-wrap items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2">
       <CalendarIcon class="size-4 text-primary" />
-      <button class="mand-nav-btn" @click="cambiarMes(-1)"><ChevronLeftIcon class="size-4" /></button>
-      <span class="mand-periodo-label">{{ periodoLargo }}</span>
-      <button class="mand-nav-btn" @click="cambiarMes(1)"><ChevronRightIcon class="size-4" /></button>
-      <span class="mand-periodo-code">{{ periodo }}</span>
-      <span v-if="badgeMes === 'correcciones' || badgeMes === 'cerrado'" class="mand-badge-mes" :class="`mand-badge-mes--${badgeMes}`">
+      <button :class="CLS_NAV_BTN" @click="cambiarMes(-1)"><ChevronLeftIcon class="size-4" /></button>
+      <span class="min-w-32 text-center text-sm font-bold text-unergy-deep">{{ periodoLargo }}</span>
+      <button :class="CLS_NAV_BTN" @click="cambiarMes(1)"><ChevronRightIcon class="size-4" /></button>
+      <span class="text-xs font-semibold text-muted-foreground">{{ periodo }}</span>
+      <span v-if="badgeMes === 'correcciones' || badgeMes === 'cerrado'" class="rounded-full px-2.5 py-0.5 text-xs font-bold" :class="BADGE_MES[badgeMes]">
         {{ badgeMes === 'correcciones' ? 'Correcciones pendientes' : 'Mes cerrado' }}
       </span>
-      <span class="mand-sync">Gmail no conectado</span>
+      <span class="ml-auto text-xs text-muted-foreground">Gmail no conectado</span>
     </div>
 
     <div v-if="cargando" class="flex justify-center py-10">
@@ -19,111 +19,110 @@
 
     <div v-else>
       <!-- C. Banner de correcciones -->
-      <div v-if="hayBanner" class="mand-banner">
+      <div v-if="hayBanner" class="mb-3.5 flex items-center gap-3 rounded-xl border border-warning/30 bg-warning/15 px-3.5 py-2.5 text-warning">
         <MailIcon class="size-4" />
-        <div class="mand-banner-txt">
+        <div class="flex-1 text-sm">
           <strong>Vanessa (revisoría)</strong> reportó {{ correcciones.length }} mandato(s) con novedad.
-          <span class="mand-banner-obs">{{ obsBanner }}</span>
+          <span class="block text-xs opacity-85">{{ obsBanner }}</span>
         </div>
-        <button class="mand-banner-btn" disabled title="Disponible al conectar Gmail (Fase B)">Ver correo</button>
+        <button class="cursor-pointer rounded-lg border border-warning/40 bg-card px-3 py-1 text-xs font-bold text-warning disabled:cursor-not-allowed disabled:opacity-50" disabled title="Disponible al conectar Gmail (Fase B)">Ver correo</button>
       </div>
 
       <!-- E. Tarjetas de métricas -->
-      <div class="mand-metricas">
-        <div class="mand-metrica"><span class="mand-metrica-num">{{ resumen.total }}</span><span class="mand-metrica-lbl">Total</span></div>
-        <div class="mand-metrica mand-metrica--amb"><span class="mand-metrica-num">{{ resumen.correcciones }}</span><span class="mand-metrica-lbl">Correcciones</span></div>
-        <div class="mand-metrica mand-metrica--ver"><span class="mand-metrica-num">{{ resumen.firmados }}</span><span class="mand-metrica-lbl">Firmados</span></div>
-        <div class="mand-metrica mand-metrica--mor"><span class="mand-metrica-num">{{ resumen.enviados_inversionista }}</span><span class="mand-metrica-lbl">Enviados inv.</span></div>
-        <div class="mand-metrica"><span class="mand-metrica-num">{{ resumen.pendientes }}</span><span class="mand-metrica-lbl">Pendientes</span></div>
+      <div class="mb-3.5 grid grid-cols-2 gap-2.5 md:grid-cols-5">
+        <div v-for="m in metricas" :key="m.label" class="flex flex-col gap-0.5 rounded-xl border border-border bg-card px-3.5 py-3">
+          <span class="text-2xl font-extrabold" :class="m.color">{{ m.valor }}</span>
+          <span class="text-xs font-semibold text-muted-foreground">{{ m.label }}</span>
+        </div>
       </div>
 
       <!-- D. Sub-tabs -->
-      <div class="mand-subtabs">
-        <button v-for="t in SUBTABS" :key="t.value" class="mand-subtab"
-          :class="{ 'mand-subtab--active': subTab === t.value }" @click="subTab = t.value">
-          {{ t.label }}<span v-if="t.value === 'correcciones'" class="mand-subtab-count">{{ correccionesTabCount }}</span>
+      <div class="mb-3 inline-flex rounded-lg border border-border bg-muted p-0.5">
+        <button v-for="t in SUBTABS" :key="t.value" class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3.5 py-1 text-xs font-bold"
+          :class="subTab === t.value ? 'bg-unergy-purple text-white' : 'text-muted-foreground'" @click="subTab = t.value">
+          {{ t.label }}<span v-if="t.value === 'correcciones'" class="rounded-full px-1.5 text-xs"
+            :class="subTab === t.value ? 'bg-white/30' : 'bg-unergy-purple/15 text-unergy-purple'">{{ correccionesTabCount }}</span>
         </button>
       </div>
 
       <!-- F. Filtros -->
-      <div class="mand-filtros">
+      <div class="mb-3 flex flex-wrap items-center gap-2.5">
         <Select v-model="filtroEstado" :options="ESTADOS_OPCIONES" optionLabel="label" optionValue="value"
-          placeholder="Estado" showClear class="mand-filtro-sel" />
+          placeholder="Estado" showClear class="min-w-50" />
         <Select v-model="filtroTercero" :options="tercerosOpciones" placeholder="Tercero / inversionista"
-          showClear filter class="mand-filtro-sel" />
-        <span class="mand-buscar"><SearchIcon class="size-4" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" /></span>
+          showClear filter class="min-w-50" />
+        <span class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5"><SearchIcon class="size-4 text-muted-foreground" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" class="border-0 text-sm outline-none" /></span>
       </div>
 
       <!-- G. Tabla principal -->
-      <div class="mand-tabla-wrap">
-        <table class="mand-tabla">
+      <div class="rounded-xl border border-border bg-card">
+        <table class="w-full border-collapse text-sm">
           <thead>
             <tr>
-              <th>Certificado</th><th>Tercero / proyecto</th><th>Período</th><th>Estado</th>
-              <th>Observación</th><th>Doc. firmado</th><th>Enviado inv.</th><th>Adj.</th>
+              <th v-for="h in COLUMNAS" :key="h" class="border-b border-border px-3 py-2.5 text-left text-xs font-bold whitespace-nowrap text-muted-foreground">{{ h }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="m in mandatosFiltrados" :key="m.id" :class="{ 'mand-fila-resalt': filaResaltada(m.estado) }">
-              <td class="mand-cmu">{{ m.cmu }}</td>
-              <td>
-                <div class="mand-tercero">{{ m.tercero || '—' }}</div>
-                <div class="mand-proyecto">{{ m.proyecto || '' }}</div>
+            <tr v-for="m in mandatosFiltrados" :key="m.id" :class="{ 'bg-warning/5': filaResaltada(m.estado) }">
+              <td :class="[CLS_TD, 'font-bold text-unergy-deep']">{{ m.cmu }}</td>
+              <td :class="CLS_TD">
+                <div class="font-semibold text-unergy-deep">{{ m.tercero || '—' }}</div>
+                <div class="text-xs text-muted-foreground">{{ m.proyecto || '' }}</div>
               </td>
-              <td>{{ m.periodo }}</td>
-              <td><span class="mand-badge" :class="`mand-badge--${estadoMeta(m.estado).cls}`">
+              <td :class="CLS_TD">{{ m.periodo }}</td>
+              <td :class="CLS_TD"><span :class="[CLS_BADGE, BADGE_ESTADO[estadoMeta(m.estado).cls]]">
                 <TriangleAlertIcon class="size-3" v-if="estadoMeta(m.estado).cls === 'neutro-alerta'" />
                 {{ estadoMeta(m.estado).label }}</span></td>
-              <td class="mand-obs">{{ m.observacion || '—' }}</td>
-              <td><span v-if="m.tiene_pdf" class="mand-doc-ok">Disponible</span><span v-else class="mand-guion">—</span></td>
-              <td>
-                <span v-if="m.fecha_envio_inversionista" class="mand-badge mand-badge--morado">{{ m.fecha_envio_inversionista }}</span>
-                <span v-else-if="m.estado === 'firmado'" class="mand-pend-envio">Pendiente envío</span>
-                <span v-else-if="m.estado === 'sin_inversionista'" class="mand-sin-inv">Sin inversionista</span>
-                <span v-else class="mand-guion">—</span>
+              <td :class="[CLS_TD, 'max-w-55 text-muted-foreground']">{{ m.observacion || '—' }}</td>
+              <td :class="CLS_TD"><span v-if="m.tiene_pdf" class="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">Disponible</span><span v-else class="text-muted-foreground/60">—</span></td>
+              <td :class="CLS_TD">
+                <span v-if="m.fecha_envio_inversionista" :class="[CLS_BADGE, BADGE_ESTADO.morado]">{{ m.fecha_envio_inversionista }}</span>
+                <span v-else-if="m.estado === 'firmado'" class="text-xs text-muted-foreground">Pendiente envío</span>
+                <span v-else-if="m.estado === 'sin_inversionista'" class="text-xs text-muted-foreground">Sin inversionista</span>
+                <span v-else class="text-muted-foreground/60">—</span>
               </td>
-              <td>
-                <button v-if="m.tiene_pdf_zip || m.tiene_pdf" class="mand-clip-btn" title="Ver PDF" @click="descargarPdf(m)">
+              <td :class="CLS_TD">
+                <button v-if="m.tiene_pdf_zip || m.tiene_pdf" class="cursor-pointer p-0" title="Ver PDF" @click="descargarPdf(m)">
                   <PaperclipIcon class="size-4 text-primary" />
                 </button>
                 <PaperclipIcon class="size-4 text-muted-foreground" v-else  />
               </td>
             </tr>
             <tr v-if="mandatosFiltrados.length === 0">
-              <td colspan="8" class="mand-vacio">No hay mandatos para este filtro.</td>
+              <td colspan="8" class="p-7 text-center text-muted-foreground">No hay mandatos para este filtro.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <!-- H. Barra de acciones -->
-      <div class="mand-acciones">
-        <button class="mand-btn mand-btn--sec" @click="exportarCsv"><DownloadIcon class="size-4" /> Exportar</button>
-        <button class="mand-btn mand-btn--sec" disabled title="Acción interna (Fase B)"><SendIcon class="size-4" /> Correo a revisoría</button>
-        <span class="mand-acciones-sep" />
-        <label class="mand-btn mand-btn--pri">
+      <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
+        <button :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_SEC]" @click="exportarCsv"><DownloadIcon class="size-4" /> Exportar</button>
+        <button :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_SEC]" disabled title="Acción interna (Fase B)"><SendIcon class="size-4" /> Correo a revisoría</button>
+        <span class="flex-1" />
+        <label :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_PRI]">
           <LoaderCircleIcon v-if="subiendoPdf" class="size-4 animate-spin" />
           <UploadIcon v-else class="size-4" /> Subir firmados
           <input type="file" accept=".pdf" class="hidden" @change="onSubirFirmado" />
         </label>
-        <label class="mand-btn mand-btn--pri">
+        <label :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_PRI]">
           <LoaderCircleIcon v-if="subiendoZip" class="size-4 animate-spin" />
           <FileInputIcon v-else class="size-4" /> Cargar ZIP de mandatos
           <input type="file" accept=".zip" class="hidden" @change="abrirDialogoZip" />
         </label>
-        <button class="mand-btn mand-btn--pri" disabled title="Acción interna (Fase B)"><Share2Icon class="size-4" /> Enviar a inversionistas</button>
+        <button :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_PRI]" disabled title="Acción interna (Fase B)"><Share2Icon class="size-4" /> Enviar a inversionistas</button>
       </div>
     </div>
 
     <!-- Diálogo selector de período del ZIP -->
-    <div v-if="mostrarDialogoZip" class="mand-modal-overlay" @click.self="mostrarDialogoZip = false">
-      <div class="mand-modal">
-        <h3 class="mand-modal-titulo">¿A qué período corresponde este ZIP?</h3>
-        <p class="mand-modal-sub">{{ archivoZip?.name }}</p>
-        <input type="month" v-model="periodoZip" class="mand-modal-month" />
-        <div class="mand-modal-acciones">
-          <button class="mand-btn mand-btn--sec" @click="mostrarDialogoZip = false">Cancelar</button>
-          <button class="mand-btn mand-btn--pri" :disabled="subiendoZip || !periodoZip" @click="confirmarCargaZip">
+    <div v-if="mostrarDialogoZip" class="fixed inset-0 z-50 flex items-center justify-center bg-unergy-deep/35" @click.self="mostrarDialogoZip = false">
+      <div class="w-95 max-w-11/12 rounded-xl bg-card p-5 shadow-lg">
+        <h3 class="m-0 mb-1 text-base font-bold text-unergy-deep">¿A qué período corresponde este ZIP?</h3>
+        <p class="m-0 mb-3 text-xs break-all text-muted-foreground">{{ archivoZip?.name }}</p>
+        <input type="month" v-model="periodoZip" class="mb-3.5 w-full rounded-lg border border-border px-2.5 py-2 text-sm" />
+        <div class="flex justify-end gap-2">
+          <button :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_SEC]" @click="mostrarDialogoZip = false">Cancelar</button>
+          <button :class="[CLS_BTN, CLS_BTN_PAD, CLS_BTN_PRI]" :disabled="subiendoZip || !periodoZip" @click="confirmarCargaZip">
             <LoaderCircleIcon v-if="subiendoZip" class="size-4 animate-spin" />
             <CheckIcon v-else class="size-4" /> Confirmar
           </button>
@@ -132,26 +131,26 @@
     </div>
 
     <!-- Panel de resumen de la carga -->
-    <div v-if="resumenZip" class="mand-resumen">
-      <div class="mand-resumen-head">
+    <div v-if="resumenZip" class="mt-3.5 rounded-xl border border-border bg-card px-3.5 py-3">
+      <div class="flex flex-wrap items-center gap-3.5 text-sm text-unergy-deep">
         <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.detectados }} mandatos detectados</span>
         <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.identificados_auto }} inversionistas identificados</span>
         <span v-if="resumenZip.sin_inversionista"><TriangleAlertIcon class="size-4 text-warning" /> {{ resumenZip.sin_inversionista }} sin inversionista</span>
         <span v-if="resumenZip.omitidos">· {{ resumenZip.omitidos }} omitidos (ya existían)</span>
-        <button class="mand-resumen-x" @click="resumenZip = null"><XIcon class="size-4" /></button>
+        <button class="ml-auto cursor-pointer text-muted-foreground" @click="resumenZip = null"><XIcon class="size-4" /></button>
       </div>
-      <div v-if="resumenZip.sugerencias?.length" class="mand-sugerencias">
-        <p class="mand-sug-titulo">Sugerencias de inversionista (confirma cada una):</p>
-        <div v-for="s in resumenZip.sugerencias" :key="s.mandato_id" class="mand-sug-fila">
-          <span class="mand-sug-cmu">{{ s.cmu }}</span>
-          <span class="mand-sug-txt">"{{ s.nombre_extraido }}" → <strong>{{ s.sugerido_nombre }}</strong> ({{ Math.round(s.score * 100) }}%)</span>
-          <button class="mand-btn mand-btn--sec mand-sug-btn" @click="asignarSugerencia(s)">Asignar</button>
+      <div v-if="resumenZip.sugerencias?.length" class="mt-2.5 border-t border-border pt-2.5">
+        <p class="m-0 mb-1.5 text-xs font-bold text-warning">Sugerencias de inversionista (confirma cada una):</p>
+        <div v-for="s in resumenZip.sugerencias" :key="s.mandato_id" class="flex flex-wrap items-center gap-2.5 py-1 text-xs">
+          <span class="font-bold text-unergy-deep">{{ s.cmu }}</span>
+          <span class="flex-1 text-muted-foreground">"{{ s.nombre_extraido }}" → <strong>{{ s.sugerido_nombre }}</strong> ({{ Math.round(s.score * 100) }}%)</span>
+          <button :class="[CLS_BTN, 'px-2.5 py-1', CLS_BTN_SEC]" @click="asignarSugerencia(s)">Asignar</button>
         </div>
       </div>
-      <p v-if="resumenZip.no_parseables?.length" class="mand-noparse">
+      <p v-if="resumenZip.no_parseables?.length" class="m-0 mt-2 text-xs text-muted-foreground">
         {{ resumenZip.no_parseables.length }} archivo(s) no reconocido(s): {{ resumenZip.no_parseables.join(', ') }}
       </p>
-      <p class="mand-resumen-nota">El cruce con Gmail se activará al conectar la cuenta (Fase B).</p>
+      <p class="m-0 mt-2 text-xs italic text-muted-foreground">El cruce con Gmail se activará al conectar la cuenta (Fase B).</p>
     </div>
   </div>
 </template>
@@ -169,6 +168,28 @@ const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 
 const mandatosService = new MandatosService()
 
+const COLUMNAS = ['Certificado', 'Tercero / proyecto', 'Período', 'Estado', 'Observación', 'Doc. firmado', 'Enviado inv.', 'Adj.']
+const CLS_NAV_BTN = 'inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-purple'
+const CLS_TD = 'border-b border-border px-3 py-2.5 align-top'
+const CLS_BADGE = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap'
+const CLS_BTN = 'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border text-xs font-bold disabled:cursor-not-allowed disabled:opacity-45'
+const CLS_BTN_PAD = 'px-3.5 py-2'
+const CLS_BTN_SEC = 'border-border bg-card text-muted-foreground'
+const CLS_BTN_PRI = 'border-transparent bg-unergy-purple text-white'
+const BADGE_MES = {
+  correcciones: 'bg-warning/15 text-warning',
+  cerrado: 'bg-success/15 text-success'
+}
+const BADGE_ESTADO = {
+  ambar: 'bg-warning/15 text-warning',
+  'verde-suave': 'bg-chart-2/15 text-chart-2',
+  verde: 'bg-success/15 text-success',
+  azul: 'bg-chart-3/15 text-chart-3',
+  morado: 'bg-unergy-purple/10 text-unergy-purple-dark',
+  neutro: 'bg-muted text-muted-foreground',
+  'neutro-alerta': 'bg-muted text-muted-foreground'
+}
+
 // Período inicial: mayo 2025 (donde viven los datos de prueba).
 const anio = ref(2025)
 const mes = ref(5)   // 1-12
@@ -181,6 +202,14 @@ const mandatos = ref([])
 const periodosInfo = ref([])
 const resumen = ref({ total: 0, correcciones: 0, firmados: 0, enviados_inversionista: 0, pendientes: 0 })
 const inversionistas = ref([])
+
+const metricas = computed(() => [
+  { label: 'Total', valor: resumen.value.total, color: 'text-unergy-deep' },
+  { label: 'Correcciones', valor: resumen.value.correcciones, color: 'text-warning' },
+  { label: 'Firmados', valor: resumen.value.firmados, color: 'text-success' },
+  { label: 'Enviados inv.', valor: resumen.value.enviados_inversionista, color: 'text-unergy-purple-dark' },
+  { label: 'Pendientes', valor: resumen.value.pendientes, color: 'text-unergy-deep' }
+])
 
 const subiendoPdf = ref(false)
 
@@ -374,95 +403,3 @@ async function cargar() {
 onMounted(cargar)
 defineExpose({ cargar })
 </script>
-
-<style scoped>
-.mand-root { padding: 14px 16px 28px; }
-.mand-periodo-bar {
-  display: flex; align-items: center; gap: 10px;
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 12px;
-  padding: 8px 14px; margin-bottom: 14px; flex-wrap: wrap;
-}
-.mand-nav-btn {
-  background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 8px;
-  width: 28px; height: 28px; cursor: pointer; color: #6B5A8A;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.mand-nav-btn:hover { background: rgba(109,74,232,.1); color: #6D4AE8; }
-.mand-periodo-label { font-size: 14px; font-weight: 700; color: var(--color-unergy-deep); min-width: 130px; text-align: center; }
-.mand-periodo-code { font-size: 12px; color: #8B7BA8; font-weight: 600; }
-.mand-badge-mes { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
-.mand-badge-mes--correcciones { background: #FAEEDA; color: #854F0B; }
-.mand-badge-mes--cerrado { background: #EAF3DE; color: #3B6D11; }
-.mand-sync { margin-left: auto; font-size: 11px; color: #B0A8C0; }
-.mand-tabla-wrap { background: #fff; border: 1px solid #ECE7F2; border-radius: 12px; }
-.mand-metricas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
-.mand-metrica { background: #fff; border: 1px solid #ECE7F2; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
-.mand-metrica-num { font-size: 22px; font-weight: 800; color: var(--color-unergy-deep); }
-.mand-metrica-lbl { font-size: 11px; color: #8B7BA8; font-weight: 600; }
-.mand-metrica--amb .mand-metrica-num { color: #854F0B; }
-.mand-metrica--ver .mand-metrica-num { color: #3B6D11; }
-.mand-metrica--mor .mand-metrica-num { color: #534AB7; }
-.mand-subtabs { display: inline-flex; background: #F4F1FA; border: 1px solid #E5E2EC; border-radius: 8px; padding: 2px; margin-bottom: 12px; }
-.mand-subtab { background: transparent; border: none; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #6B5A8A; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-.mand-subtab--active { background: #6D4AE8; color: #fff; }
-.mand-subtab-count { background: rgba(255,255,255,.3); border-radius: 999px; padding: 0 6px; font-size: 10px; }
-.mand-subtab:not(.mand-subtab--active) .mand-subtab-count { background: #E1D7F5; color: #6D4AE8; }
-.mand-filtros { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-.mand-filtro-sel { min-width: 200px; }
-.mand-buscar { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #E5E2EC; border-radius: 8px; padding: 6px 10px; }
-.mand-buscar input { border: none; outline: none; font-size: 13px; }
-.mand-buscar svg { color: #B0A8C0; font-size: 12px; }
-@media (max-width: 720px) { .mand-metricas { grid-template-columns: repeat(2, 1fr); } }
-.mand-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
-.mand-tabla thead th { text-align: left; font-size: 11px; font-weight: 700; color: #8B7BA8; padding: 10px 12px; border-bottom: 1px solid #ECE7F2; white-space: nowrap; }
-.mand-tabla tbody td { padding: 10px 12px; border-bottom: 0.5px solid #F1EEF7; vertical-align: top; }
-.mand-fila-resalt { background: #FFFBF4; }
-.mand-cmu { font-weight: 700; color: var(--color-unergy-deep); }
-.mand-tercero { font-weight: 600; color: var(--color-unergy-deep); }
-.mand-proyecto { font-size: 11px; color: #8B7BA8; }
-.mand-obs { max-width: 220px; color: #5A5468; }
-.mand-guion { color: #C9C2D6; }
-.mand-doc-ok { font-size: 11px; font-weight: 700; color: #3B6D11; background: #EAF3DE; padding: 2px 8px; border-radius: 999px; }
-.mand-pend-envio { font-size: 11px; color: #8B7BA8; }
-.mand-sin-inv { font-size: 11px; color: #8B7BA8; }
-.mand-vacio { text-align: center; color: #B0A8C0; padding: 28px; }
-.mand-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
-.mand-badge--ambar { background: #FAEEDA; color: #854F0B; }
-.mand-badge--verde-suave { background: #E1F5EE; color: #0F6E56; }
-.mand-badge--verde { background: #EAF3DE; color: #3B6D11; }
-.mand-badge--azul { background: #E6F1FB; color: #185FA5; }
-.mand-badge--morado { background: #EEEDFE; color: #534AB7; }
-.mand-badge--neutro { background: #F0EEF4; color: #8B7BA8; }
-.mand-badge--neutro-alerta { background: #F0EEF4; color: #8B7BA8; }
-.mand-banner { display: flex; align-items: center; gap: 12px; background: #FAEEDA; border: 1px solid #F0DDB8; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; color: #854F0B; }
-.mand-banner > svg { font-size: 16px; }
-.mand-banner-txt { font-size: 13px; flex: 1; }
-.mand-banner-obs { display: block; font-size: 12px; opacity: .85; }
-.mand-banner-btn { background: #fff; border: 1px solid #E6CF9E; color: #854F0B; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
-.mand-banner-btn:disabled { opacity: .5; cursor: not-allowed; }
-.mand-acciones { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.mand-acciones-sep { flex: 1; }
-.mand-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
-.mand-btn--sec { background: #fff; border-color: #E5E2EC; color: #6B5A8A; }
-.mand-btn--pri { background: #6D4AE8; color: #fff; }
-.mand-btn:disabled { opacity: .45; cursor: not-allowed; }
-.hidden { display: none; }
-.mand-clip-btn { background: none; border: none; cursor: pointer; padding: 0; }
-.mand-modal-overlay { position: fixed; inset: 0; background: rgba(28,18,50,.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.mand-modal { background: #fff; border-radius: 12px; padding: 20px; width: 380px; max-width: 92vw; box-shadow: 0 8px 30px rgba(28,18,50,.2); }
-.mand-modal-titulo { font-size: 15px; font-weight: 700; color: var(--color-unergy-deep); margin: 0 0 4px; }
-.mand-modal-sub { font-size: 12px; color: #8B7BA8; margin: 0 0 12px; word-break: break-all; }
-.mand-modal-month { width: 100%; font-size: 14px; border: 1px solid #E5E2EC; border-radius: 8px; padding: 8px 10px; margin-bottom: 14px; }
-.mand-modal-acciones { display: flex; justify-content: flex-end; gap: 8px; }
-.mand-resumen { background: #fff; border: 1px solid #ECE7F2; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
-.mand-resumen-head { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--color-unergy-deep); flex-wrap: wrap; }
-.mand-resumen-x { margin-left: auto; background: none; border: none; cursor: pointer; color: #B0A8C0; }
-.mand-sugerencias { margin-top: 10px; border-top: 1px solid #F1EEF7; padding-top: 10px; }
-.mand-sug-titulo { font-size: 12px; font-weight: 700; color: #854F0B; margin: 0 0 6px; }
-.mand-sug-fila { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 12px; flex-wrap: wrap; }
-.mand-sug-cmu { font-weight: 700; color: var(--color-unergy-deep); }
-.mand-sug-txt { color: #5A5468; flex: 1; }
-.mand-sug-btn { padding: 3px 10px; }
-.mand-noparse { font-size: 12px; color: #8B7BA8; margin: 8px 0 0; }
-.mand-resumen-nota { font-size: 11px; color: #B0A8C0; margin: 8px 0 0; font-style: italic; }
-</style>
