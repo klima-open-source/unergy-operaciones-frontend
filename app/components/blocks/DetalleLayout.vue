@@ -26,35 +26,47 @@
 <template>
   <div class="space-y-3">
     <!-- Migas: volver / titulo / codigo / chips ............ acciones -->
-    <div class="dl-cabecera">
-      <button type="button" class="dl-volver" @click="router.push(volver.to)">
+    <div class="flex min-h-8 flex-wrap items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-unergy-purple hover:underline hover:underline-offset-2"
+        @click="router.push(volver.to)">
         <ArrowLeftIcon class="size-3" /> {{ volver.label }}
       </button>
-      <span class="dl-sep">/</span>
+      <span class="text-muted-foreground/60">/</span>
 
       <slot name="titulo">
-        <span class="dl-titulo">{{ titulo }}</span>
+        <span class="max-w-sm truncate text-sm font-bold text-unergy-deep">{{ titulo }}</span>
       </slot>
 
-      <span v-if="codigo" class="dl-codigo">{{ codigo }}</span>
+      <span v-if="codigo" class="font-mono text-xs text-muted-foreground">{{ codigo }}</span>
       <slot name="chips" />
 
-      <div class="dl-acciones"><slot name="acciones" /></div>
+      <div class="ml-auto flex items-center gap-1.5"><slot name="acciones" /></div>
     </div>
 
     <!-- Tarjeta unica: barra de pestañas + cuerpo -->
-    <div class="dl-card">
-      <div class="dl-tabs">
+    <div class="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div
+        class="flex scrollbar-thin overflow-x-auto border-b [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border"
+      >
         <button v-for="t in tabsVisibles" :key="t.key" type="button"
-                class="dl-tab" :class="{ 'dl-tab--on': tabActiva === t.key }"
+                class="-mb-px inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors duration-150 sm:px-4 sm:py-2.5 sm:text-sm"
+                :class="tabActiva === t.key
+                  ? 'border-unergy-purple text-unergy-purple'
+                  : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-unergy-deep'"
                 @click="seleccionar(t.key)">
           <component :is="t.icon" class="size-3" v-if="t.icon" />
           <span>{{ t.label }}</span>
-          <span v-if="t.badge != null && t.badge !== ''" class="dl-badge">{{ t.badge }}</span>
+          <span
+            v-if="t.badge != null && t.badge !== ''"
+            class="min-w-4.5 rounded-full px-1.5 text-center text-xs font-extrabold"
+            :class="tabActiva === t.key ? 'bg-primary/10 text-unergy-purple' : 'bg-muted text-muted-foreground'"
+          >{{ t.badge }}</span>
         </button>
       </div>
 
-      <div class="dl-cuerpo">
+      <div class="p-3 sm:p-4">
         <slot :tab="tabActiva" />
       </div>
     </div>
@@ -135,65 +147,3 @@ watch(() => props.modelValue, (v) => {
   if (v && esValida(v) && v !== tabActiva.value) seleccionar(v)
 })
 </script>
-
-<style scoped>
-/* ── Cabecera ─────────────────────────────────────────────────────────────── */
-.dl-cabecera {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 30px;
-}
-.dl-volver {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 13px; font-weight: 600; color: var(--color-unergy-purple); cursor: pointer;
-}
-.dl-volver:hover { text-decoration: underline; text-underline-offset: 2px; }
-.dl-volver svg { font-size: 10px; }
-.dl-sep { color: #c5b9db; }
-.dl-titulo {
-  font-size: 14px; font-weight: 700; color: var(--color-unergy-deep);
-  max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.dl-codigo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px; color: #9b8fb0;
-}
-.dl-acciones { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-
-/* ── Tarjeta ──────────────────────────────────────────────────────────────── */
-.dl-card {
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 12px; overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
-}
-
-/* ── Barra de pestañas ────────────────────────────────────────────────────────
-   Subrayado morado en la activa, igual que el detalle de Cliente. Con muchas
-   pestañas la barra scrollea en horizontal: acá sí es aceptable, porque es
-   navegacion y no una tabla de datos. */
-.dl-tabs {
-  display: flex; border-bottom: 1px solid #ECE7F2;
-  overflow-x: auto; scrollbar-width: thin;
-}
-.dl-tabs::-webkit-scrollbar { height: 4px; }
-.dl-tabs::-webkit-scrollbar-thumb { background: #E5E2EC; border-radius: 999px; }
-.dl-tab {
-  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
-  padding: 9px 16px; margin-bottom: -1px;
-  font-size: 13px; font-weight: 600; color: #6b5a8a; white-space: nowrap;
-  border-bottom: 2px solid transparent; cursor: pointer;
-  transition: color .12s, border-color .12s, background .12s;
-}
-.dl-tab:hover { color: var(--color-unergy-deep); background: #FAF9FC; }
-.dl-tab svg { font-size: 11px; }
-.dl-tab--on { color: var(--color-unergy-purple); border-bottom-color: var(--color-unergy-purple); }
-.dl-tab--on svg { color: var(--color-unergy-purple); }
-.dl-badge {
-  background: #EEF0F2; color: #6b7280; border-radius: 999px;
-  font-size: 10px; font-weight: 800; padding: 0 6px; min-width: 18px; text-align: center;
-}
-.dl-tab--on .dl-badge { background: #f0ebfd; color: var(--color-unergy-purple); }
-
-.dl-cuerpo { padding: 18px; }
-@media (max-width: 640px) {
-  .dl-cuerpo { padding: 12px; }
-  .dl-tab { padding: 8px 12px; font-size: 12px; }
-}
-</style>
