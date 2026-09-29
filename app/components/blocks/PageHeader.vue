@@ -1,64 +1,24 @@
 <template>
-  <div class="ph-header">
-    <div class="ph-lead">
+  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
+    <div class="flex items-center gap-2.5 min-w-0">
       <slot name="lead" />
       <div class="min-w-0">
-        <h1 class="ph-title">{{ title }}</h1>
-        <p v-if="subtitle || $slots.subtitle" class="ph-subtitle">
+        <h1
+          class="text-base font-extrabold whitespace-normal text-unergy-deep sm:text-lg sm:leading-[1.15] sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
+        >
+          {{ title }}
+        </h1>
+        <p v-if="subtitle || $slots.subtitle" class="mt-px text-xs text-muted-foreground">
           <slot name="subtitle">{{ subtitle }}</slot>
         </p>
       </div>
     </div>
-    <div v-if="$slots.actions" class="ph-actions">
+    <div v-if="$slots.actions" class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
       <slot name="actions" />
     </div>
   </div>
 </template>
 
-<script setup>
-defineProps({
-  title: { type: String, required: true },
-  subtitle: { type: String, default: '' },
-})
+<script setup lang="ts">
+withDefaults(defineProps<{ title: string; subtitle?: string }>(), { subtitle: '' })
 </script>
-
-<style scoped>
-.ph-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 12px;
-  flex-wrap: wrap;
-}
-.ph-lead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.ph-title {
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--color-unergy-deep);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ph-subtitle {
-  font-size: 12px;
-  color: #9b8fb0;
-  margin-top: 1px;
-}
-.ph-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-/* En pantallas chicas, las acciones ocupan todo el ancho y se alinean a la izquierda */
-@media (max-width: 640px) {
-  .ph-title { font-size: 16px; white-space: normal; }
-  .ph-actions { width: 100%; }
-}
-</style>

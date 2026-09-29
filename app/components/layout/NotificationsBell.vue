@@ -1,4 +1,5 @@
-<script setup>
+<script setup lang="ts">
+import type { Notificacion } from '~/features/notificaciones/types'
 import { BellIcon, BellOffIcon, InfoIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const {
@@ -14,26 +15,26 @@ const {
 // esto leía `n.severidad` (un campo que el backend nunca envía) contra un
 // mapa de 4 valores ('critica'/'alta'/'media'/'baja') que tampoco existen,
 // así que toda notificación caía siempre al ícono/color genérico.
-function tipoBg(tipo) {
-  const map = {
-    alerta: 'rgba(220,38,38,0.12)',
-    accion: 'rgba(145,91,216,0.12)',
+const TIPO_CLASES: Record<string, string> = {
+  alerta: 'bg-destructive/10 text-destructive',
+  accion: 'bg-primary/10 text-primary',
+}
+const TIPO_CLASE_DEFAULT = 'bg-sky-600/10 text-sky-600'
+
+function tipoClase(tipo?: string | null): string {
+  return (tipo && TIPO_CLASES[tipo]) || TIPO_CLASE_DEFAULT
+}
+function tipoIcon(tipo?: string | null) {
+  const map: Record<string, typeof TriangleAlertIcon> = {
+    alerta: TriangleAlertIcon,
+    accion: ZapIcon,
   }
-  return map[tipo] || 'rgba(14,165,233,0.12)'
-}
-function tipoColor(tipo) {
-  const map = { alerta: '#dc2626', accion: '#915BD8' }
-  return map[tipo] || '#0ea5e9'
-}
-function tipoIcon(tipo) {
-  const map = { alerta: TriangleAlertIcon, accion: ZapIcon }
-  return map[tipo] || InfoIcon
+  return (tipo && map[tipo]) || InfoIcon
 }
 
-function formatTimeAgo(dateStr) {
+function formatTimeAgo(dateStr?: string | null): string {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const diffMs = Date.now() - d
+  const diffMs = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diffMs / 60000)
   if (mins < 1) return 'Ahora'
   if (mins < 60) return `Hace ${mins} min`
@@ -45,7 +46,7 @@ function formatTimeAgo(dateStr) {
 }
 
 /** `preventDefault` en `@select` es lo que evita que marcar una notificación cierre el menú. */
-function onSelectNotificacion(e, n) {
+function onSelectNotificacion(e: Event, n: Notificacion) {
   e.preventDefault()
   marcarLeida(n)
 }
@@ -56,7 +57,10 @@ function onSelectNotificacion(e, n) {
     <DropdownMenuTrigger as-child>
       <Button variant="ghost" size="icon" class="relative" title="Notificaciones" @click="cargar">
         <BellIcon />
-        <span v-if="unreadCount > 0" class="nb-badge">
+        <span
+          v-if="unreadCount > 0"
+          class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-[3px] text-[10px] leading-none font-bold text-white"
+        >
           {{ unreadCount > 99 ? '99+' : unreadCount }}
         </span>
       </Button>
@@ -89,7 +93,7 @@ function onSelectNotificacion(e, n) {
         >
           <div
             class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full"
-            :style="{ backgroundColor: tipoBg(n.tipo), color: tipoColor(n.tipo) }"
+            :class="tipoClase(n.tipo)"
           >
             <component :is="tipoIcon(n.tipo)" class="size-3.5" />
           </div>
@@ -115,23 +119,3 @@ function onSelectNotificacion(e, n) {
     </DropdownMenuContent>
   </DropdownMenu>
 </template>
-
-<style scoped>
-.nb-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border-radius: 8px;
-  background: #d64455;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-</style>
