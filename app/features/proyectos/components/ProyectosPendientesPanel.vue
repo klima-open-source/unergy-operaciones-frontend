@@ -31,7 +31,7 @@
       aplican.
     </p>
     <div v-if="cargando" class="flex items-center justify-center py-8">
-      <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+      <LoaderCircleIcon class="size-6 animate-spin text-primary" />
     </div>
     <div v-else-if="!pendientes.length" class="text-center py-8 text-sm text-muted-foreground">
       No hay proyectos pendientes por revisar.
@@ -43,13 +43,13 @@
             <div class="flex items-center gap-2 mb-0.5">
               <span
                 class="inline-block text-xs font-bold rounded-full px-2 py-0.5"
-                :class="p.tipo_sugerencia === 'crear' ? 'bg-unergy-purple/10 text-unergy-purple' : 'bg-destructive/10 text-destructive'"
+                :class="p.tipo_sugerencia === 'crear' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'"
               >
                 {{ p.tipo_sugerencia === 'crear' ? 'Nuevo' : 'Actualizar' }}
               </span>
               <span class="text-xs text-muted-foreground">{{ p.fuentes.join(' + ') }}</span>
             </div>
-            <TruncatedText :text="p.proyecto_nombre_actual || p.nombre_sugerido" class="text-sm font-semibold text-unergy-deep" />
+            <TruncatedText :text="p.proyecto_nombre_actual || p.nombre_sugerido" class="text-sm font-semibold text-foreground" />
             <p v-if="p.tipo_sugerencia === 'actualizar' && p.proyecto_nombre_actual" class="text-xs text-muted-foreground">
               Sugerido: {{ p.nombre_sugerido }}
             </p>
@@ -84,14 +84,14 @@
             <Select v-model="p._tipo" :options="TIPOS_PROYECTO" placeholder="Tipo" />
           </div>
           <Button label="Crear" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._nombre"
-                  class="bg-unergy-purple border-unergy-purple"
+                  class="bg-primary border-primary"
                   @click="confirmar(p)">
             <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
         <div v-else class="flex justify-end">
           <Button label="Actualizar" size="small" :loading="p._loading === 'confirmar'"
-                  class="bg-unergy-purple border-unergy-purple"
+                  class="bg-primary border-primary"
                   @click="confirmar(p)">
             <template #icon><CheckIcon class="size-4" /></template>
           </Button>
@@ -112,7 +112,7 @@
     <div class="flex justify-end gap-2">
       <Button label="Cancelar" severity="secondary" @click="duplicadoVisible = false" />
       <Button label="Crear de todos modos" :loading="forzando"
-              class="bg-unergy-purple border-unergy-purple"
+              class="bg-primary border-primary"
               @click="duplicadoConfirmAction && duplicadoConfirmAction()" />
     </div>
   </Dialog>

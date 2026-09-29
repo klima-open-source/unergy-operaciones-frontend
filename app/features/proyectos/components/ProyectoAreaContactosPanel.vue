@@ -9,7 +9,7 @@
       <div v-if="inversionistasConId.length" class="flex flex-wrap gap-1.5 mt-2">
         <RouterLink v-for="inv in inversionistasConId" :key="inv.cliente_id"
           :to="`/clientes/${inv.cliente_id}?tab=contactos`"
-          class="text-xs font-medium px-2.5 py-1 rounded-full no-underline bg-secondary text-unergy-purple">
+          class="text-xs font-medium px-2.5 py-1 rounded-full no-underline bg-secondary text-primary">
           {{ inv.cliente_nombre }}
         </RouterLink>
       </div>
@@ -19,17 +19,17 @@
     </div>
 
     <div v-for="tipo in TIPOS" :key="tipo.value" class="flex items-center gap-2 py-1.5">
-      <span class="shrink-0 text-sm font-medium text-unergy-deep">{{ tipo.label }}</span>
+      <span class="shrink-0 text-sm font-medium text-foreground">{{ tipo.label }}</span>
 
       <template v-if="overrides[tipo.value] && editando !== tipo.value">
         <span class="text-sm flex-1 text-muted-foreground">
-          <ArrowRightLeftIcon class="mr-1 size-3 text-unergy-purple" />
-          <RouterLink :to="`/clientes/${overrides[tipo.value].cliente_id}?tab=contactos`" class="underline text-unergy-purple">
+          <ArrowRightLeftIcon class="mr-1 size-3 text-primary" />
+          <RouterLink :to="`/clientes/${overrides[tipo.value].cliente_id}?tab=contactos`" class="underline text-primary">
             {{ overrides[tipo.value].cliente_nombre }}
           </RouterLink>
         </span>
         <button type="button" @click="editando = tipo.value"
-          class="text-xs px-2 py-1 rounded hover:bg-muted text-unergy-purple">Cambiar</button>
+          class="text-xs px-2 py-1 rounded hover:bg-muted text-primary">Cambiar</button>
         <button type="button" @click="quitarOverride(tipo.value)"
           class="p-1.5 rounded-lg transition-colors hover:bg-destructive/10">
           <Trash2Icon class="size-3 text-destructive" />
@@ -51,7 +51,7 @@
       <template v-else>
         <span class="flex-1"></span>
         <button type="button" @click="editando = tipo.value; clienteSeleccionado = null"
-          class="text-xs px-2 py-1 rounded hover:bg-muted text-unergy-purple">Usar otro cliente</button>
+          class="text-xs px-2 py-1 rounded hover:bg-muted text-primary">Usar otro cliente</button>
       </template>
     </div>
   </div>
