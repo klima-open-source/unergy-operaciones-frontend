@@ -70,13 +70,13 @@ const aria = computed(() => {
   <div v-else class="bm-wrap" role="img" :aria-label="aria">
     <div class="bm-track">
       <!-- Zona previa al ritmo esperado: ayuda a leer "voy atrasado" de un golpe -->
-      <div v-if="posMarca !== null" class="bm-zona" :style="{ width: `${posMarca}%` }" />
-      <div class="bm-fill" :style="{ width: `${anchoRelleno}%`, background: color }" />
+      <div v-if="posMarca !== null" class="bm-zona w-(--w)" :style="{ '--w': `${posMarca}%` }" />
+      <div class="bm-fill w-(--w) bg-(--c)" :style="{ '--w': `${anchoRelleno}%`, '--c': color }" />
       <div v-if="hayExceso" class="bm-exceso" />
     </div>
     <GTooltip v-if="posMarca !== null">
       <GTooltipTrigger as-child>
-        <div class="bm-marca" :style="{ left: `${posMarca}%` }" />
+        <div class="bm-marca left-(--l)" :style="{ '--l': `${posMarca}%` }" />
       </GTooltipTrigger>
       <GTooltipContent>{{ tooltipMarca }}</GTooltipContent>
     </GTooltip>
