@@ -85,8 +85,8 @@
           class="flex items-center gap-3 p-2.5 rounded-lg bg-success/10 border border-success/30">
           <ExternalLinkIcon class="flex-shrink-0 size-4 text-success" />
           <a :href="soporte.enlace" target="_blank" rel="noopener"
-            class="flex-1 text-xs font-medium truncate hover:underline text-success">
-            {{ soporte.enlace }}
+            class="flex-1 min-w-0 text-xs font-medium hover:underline text-success">
+            <TruncatedText :text="soporte.enlace" />
           </a>
           <button type="button" @click="soporte.enlace = ''; persistSoporte()"
             class="text-muted-foreground hover:text-destructive text-xs">

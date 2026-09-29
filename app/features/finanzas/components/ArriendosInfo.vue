@@ -94,8 +94,8 @@
                   </td>
                   <td class="px-3 py-2.5 text-xs text-muted-foreground">{{ fmtFecha(fila.anticipo_pagado_hasta) }}</td>
                   <td class="px-3 py-2.5 text-xs text-muted-foreground">{{ proximaFecha(fila.anticipo_pagado_hasta) }}</td>
-                  <td class="px-3 py-2.5 text-xs text-muted-foreground max-w-xs truncate" :title="fila.observaciones_arrendador">
-                    {{ fila.observaciones_arrendador || '—' }}
+                  <td class="px-3 py-2.5 text-xs text-muted-foreground max-w-xs">
+                    <TruncatedText :text="fila.observaciones_arrendador || '—'" />
                   </td>
                 </tr>
               </tbody>

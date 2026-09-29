@@ -167,9 +167,7 @@
                       <MessageSquareIcon class="text-xs size-4" />excluido
                     </span>
                   </span>
-                  <span v-if="fila.nombre_arrendador" class="text-xs text-muted-foreground truncate" :title="fila.nombre_arrendador">
-                    {{ fila.nombre_arrendador }}
-                  </span>
+                  <TruncatedText v-if="fila.nombre_arrendador" :text="fila.nombre_arrendador" class="text-xs text-muted-foreground min-w-0" />
                 </div>
               </td>
               <!-- Estado contrato -->
