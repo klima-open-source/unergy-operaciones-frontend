@@ -46,6 +46,8 @@ const inv = computed(() => inverterSeries(props.detail))
 const med = computed(() => meterSeries(props.detail))
 const hasData = computed(() => !!(inv.value || med.value))
 
+const { color } = useThemeColors()
+
 const chartData = computed(() => {
   const datasets: {
     label: string
@@ -62,8 +64,8 @@ const chartData = computed(() => {
     datasets.push({
       label: 'Inversores',
       data: inv.value,
-      borderColor: '#915BD8',
-      backgroundColor: 'rgba(145,91,216,0.12)',
+      borderColor: color('unergy-purple'),
+      backgroundColor: color('unergy-purple', 0.12),
       fill: true,
       tension: 0.35,
       pointRadius: 0,
@@ -75,8 +77,8 @@ const chartData = computed(() => {
     datasets.push({
       label: 'Medidor',
       data: med.value,
-      borderColor: '#14B8A6',
-      backgroundColor: 'rgba(20,184,166,0.10)',
+      borderColor: color('chart-2'),
+      backgroundColor: color('chart-2', 0.1),
       fill: true,
       tension: 0.35,
       pointRadius: 0,
@@ -135,7 +137,7 @@ const nowLinePlugin: Plugin<'line'> = {
     ctx.moveTo(px, top)
     ctx.lineTo(px, bottom)
     ctx.lineWidth = 1.5
-    ctx.strokeStyle = '#EAB308' // amarillo, visible sobre el fondo blanco
+    ctx.strokeStyle = color('warning')
     ctx.stroke()
 
     // etiqueta "ahora HH:MM" — solo tras un toque del usuario
@@ -146,13 +148,13 @@ const nowLinePlugin: Plugin<'line'> = {
       let bx = px - tw / 2
       bx = Math.max(xScale.left, Math.min(bx, xScale.right - tw))
       const by = top + 2
-      ctx.fillStyle = '#EAB308'
+      ctx.fillStyle = color('warning')
       if (ctx.roundRect) {
         ctx.beginPath()
         ctx.roundRect(bx, by, tw, 18, 6)
         ctx.fill()
       } else ctx.fillRect(bx, by, tw, 18)
-      ctx.fillStyle = '#2C2039' // var(--color-unergy-deep): canvas 2D no resuelve custom properties
+      ctx.fillStyle = color('unergy-deep')
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(text, bx + tw / 2, by + 9)
@@ -161,7 +163,7 @@ const nowLinePlugin: Plugin<'line'> = {
   },
 }
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   // sin tooltip: tocar la gráfica solo muestra la etiqueta "ahora" 3 s
@@ -178,7 +180,7 @@ const chartOptions: ChartOptions<'line'> = {
         usePointStyle: true,
         pointStyle: 'circle',
         font: { size: 11.5, weight: 500 },
-        color: '#787774',
+        color: color('muted-foreground'),
         padding: 12,
       },
     },
@@ -188,7 +190,7 @@ const chartOptions: ChartOptions<'line'> = {
     x: {
       ticks: {
         font: { size: 10 },
-        color: '#9b9a97',
+        color: color('muted-foreground'),
         maxTicksLimit: 6,
         autoSkip: true,
         maxRotation: 0,
@@ -198,10 +200,10 @@ const chartOptions: ChartOptions<'line'> = {
     },
     y: {
       beginAtZero: true,
-      ticks: { font: { size: 10 }, color: '#9b9a97', maxTicksLimit: 5, padding: 6 },
-      grid: { color: 'rgba(28,18,50,0.045)' },
+      ticks: { font: { size: 10 }, color: color('muted-foreground'), maxTicksLimit: 5, padding: 6 },
+      grid: { color: color('foreground', 0.05) },
       border: { display: false },
     },
   },
-}
+}))
 </script>
