@@ -293,8 +293,8 @@ const trendData = computed<ChartData<'line'>>(() => {
       {
         label: 'Valor a pagar',
         data: mesesVentana.value.map((p) => byMes[p]!.vap),
-        borderColor: color('unergy-purple'),
-        backgroundColor: color('unergy-purple', 0.1),
+        borderColor: color('primary'),
+        backgroundColor: color('primary', 0.1),
         tension: 0.3,
         fill: true,
       },
