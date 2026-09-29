@@ -89,7 +89,10 @@ defineExpose({ reset })
 
     <div v-else class="space-y-1">
       <CircleCheckIcon class="mx-auto block size-6 text-success" />
-      <p class="mx-auto max-w-xs truncate text-sm font-medium text-foreground">{{ file!.name }}</p>
+      <TruncatedText
+        :text="file!.name"
+        class="mx-auto max-w-xs text-sm font-medium text-foreground"
+      />
       <p class="text-xs text-success">Archivo cargado</p>
     </div>
   </div>

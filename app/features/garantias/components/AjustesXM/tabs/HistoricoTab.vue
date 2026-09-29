@@ -174,14 +174,16 @@ const puntosGrafica = computed(() =>
   }, [] as PuntoGrafica[]),
 )
 
+const { color } = useThemeColors()
+
 const chartData = computed<ChartData<'line'>>(() => ({
   labels: puntosGrafica.value.map((p) => p.label),
   datasets: [
     {
       label: 'Total a consignar (semanal)',
       data: puntosGrafica.value.map((p) => p.totalConsignar),
-      borderColor: '#10B981',
-      backgroundColor: 'rgba(16,185,129,0.12)',
+      borderColor: color('success'),
+      backgroundColor: color('success', 0.12),
       fill: true,
       tension: 0.4,
       pointRadius: 4,
@@ -190,8 +192,8 @@ const chartData = computed<ChartData<'line'>>(() => ({
     {
       label: 'Precio de bolsa (PB)',
       data: puntosGrafica.value.map((p) => p.pb),
-      borderColor: '#915BD8',
-      backgroundColor: 'rgba(145,91,216,0.08)',
+      borderColor: color('unergy-purple'),
+      backgroundColor: color('unergy-purple', 0.08),
       fill: false,
       tension: 0.4,
       pointRadius: 4,

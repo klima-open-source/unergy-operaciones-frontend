@@ -97,8 +97,8 @@ function warnText(f: FilaFactura): string {
             <GTableCell class="text-center">
               <Checkbox v-model="f.marcado" />
             </GTableCell>
-            <GTableCell class="max-w-28 truncate text-foreground" :title="f.numero ?? ''">
-              {{ f.numero ?? '—' }}
+            <GTableCell class="max-w-28 text-foreground">
+              <TruncatedText :text="f.numero ?? '—'" />
             </GTableCell>
             <GTableCell>
               <GBadge :color="f.descuenta ? 'destructive' : 'information'">{{ f.tipo }}</GBadge>
