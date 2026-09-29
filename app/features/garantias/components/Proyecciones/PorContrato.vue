@@ -53,7 +53,7 @@ async function calcular() {
     <div class="mb-2 flex items-center justify-between">
       <div>
         <span class="text-sm font-semibold text-foreground">Garantía por contrato</span>
-        <p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+        <p class="mt-0.5 text-xs leading-snug text-muted-foreground">
           Reparte la garantía del mes siguiente entre los contratos que la generan: los PLC que no
           cubren su mínimo y los que tienen duplicado. Los demás (PLG sin duplicado) no aportan.
         </p>

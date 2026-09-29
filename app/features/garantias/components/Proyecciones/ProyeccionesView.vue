@@ -167,7 +167,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <p class="text-[11px] leading-snug text-muted-foreground">
+    <p class="text-xs leading-snug text-muted-foreground">
       La garantía = (ventas − compras en bolsa) × precio de bolsa (prom. 7 días SIMEM) + costo
       regulatorio del mes anterior. El "mes siguiente" usa la proyección de cierre del mes actual
       como aproximación. El costo regulatorio sale del Cruce de facturas del Drive de Estados de
@@ -176,11 +176,7 @@ onMounted(() => {
 
     <!-- Tarjetas de las dos ventanas -->
     <div v-if="cargando" class="text-sm text-muted-foreground">Calculando…</div>
-    <div
-      v-else-if="data"
-      class="grid gap-4"
-      style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))"
-    >
+    <div v-else-if="data" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <div v-for="v in data.ventanas" :key="v.clave" class="rounded-xl border bg-card p-5">
         <div class="mb-3 flex items-center justify-between">
           <span class="text-sm font-semibold text-foreground">{{ tituloVentana(v) }}</span>
