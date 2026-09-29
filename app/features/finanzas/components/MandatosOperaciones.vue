@@ -4,7 +4,7 @@
     <div class="mb-3.5 flex flex-wrap items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2">
       <CalendarIcon class="size-4 text-primary" />
       <button :class="CLS_NAV_BTN" @click="cambiarMes(-1)"><ChevronLeftIcon class="size-4" /></button>
-      <span class="min-w-32 text-center text-sm font-bold text-unergy-deep">{{ periodoLargo }}</span>
+      <span class="min-w-32 text-center text-sm font-bold text-foreground">{{ periodoLargo }}</span>
       <button :class="CLS_NAV_BTN" @click="cambiarMes(1)"><ChevronRightIcon class="size-4" /></button>
       <span class="text-xs font-semibold text-muted-foreground">{{ periodo }}</span>
       <span v-if="badgeMes === 'correcciones' || badgeMes === 'cerrado'" class="rounded-full px-2.5 py-0.5 text-xs font-bold" :class="BADGE_MES[badgeMes]">
@@ -39,9 +39,9 @@
       <!-- D. Sub-tabs -->
       <div class="mb-3 inline-flex rounded-lg border border-border bg-muted p-0.5">
         <button v-for="t in SUBTABS" :key="t.value" class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3.5 py-1 text-xs font-bold"
-          :class="subTab === t.value ? 'bg-unergy-purple text-white' : 'text-muted-foreground'" @click="subTab = t.value">
+          :class="subTab === t.value ? 'bg-primary text-white' : 'text-muted-foreground'" @click="subTab = t.value">
           {{ t.label }}<span v-if="t.value === 'correcciones'" class="rounded-full px-1.5 text-xs"
-            :class="subTab === t.value ? 'bg-white/30' : 'bg-unergy-purple/15 text-unergy-purple'">{{ correccionesTabCount }}</span>
+            :class="subTab === t.value ? 'bg-white/30' : 'bg-primary/15 text-primary'">{{ correccionesTabCount }}</span>
         </button>
       </div>
 
@@ -64,9 +64,9 @@
           </thead>
           <tbody>
             <tr v-for="m in mandatosFiltrados" :key="m.id" :class="{ 'bg-warning/5': filaResaltada(m.estado) }">
-              <td :class="[CLS_TD, 'font-bold text-unergy-deep']">{{ m.cmu }}</td>
+              <td :class="[CLS_TD, 'font-bold text-foreground']">{{ m.cmu }}</td>
               <td :class="CLS_TD">
-                <div class="font-semibold text-unergy-deep">{{ m.tercero || '—' }}</div>
+                <div class="font-semibold text-foreground">{{ m.tercero || '—' }}</div>
                 <div class="text-xs text-muted-foreground">{{ m.proyecto || '' }}</div>
               </td>
               <td :class="CLS_TD">{{ m.periodo }}</td>
@@ -115,9 +115,9 @@
     </div>
 
     <!-- Diálogo selector de período del ZIP -->
-    <div v-if="mostrarDialogoZip" class="fixed inset-0 z-50 flex items-center justify-center bg-unergy-deep/35" @click.self="mostrarDialogoZip = false">
+    <div v-if="mostrarDialogoZip" class="fixed inset-0 z-50 flex items-center justify-center bg-foreground/35" @click.self="mostrarDialogoZip = false">
       <div class="w-95 max-w-11/12 rounded-xl bg-card p-5 shadow-lg">
-        <h3 class="m-0 mb-1 text-base font-bold text-unergy-deep">¿A qué período corresponde este ZIP?</h3>
+        <h3 class="m-0 mb-1 text-base font-bold text-foreground">¿A qué período corresponde este ZIP?</h3>
         <p class="m-0 mb-3 text-xs break-all text-muted-foreground">{{ archivoZip?.name }}</p>
         <input type="month" v-model="periodoZip" class="mb-3.5 w-full rounded-lg border border-border px-2.5 py-2 text-sm" />
         <div class="flex justify-end gap-2">
@@ -132,7 +132,7 @@
 
     <!-- Panel de resumen de la carga -->
     <div v-if="resumenZip" class="mt-3.5 rounded-xl border border-border bg-card px-3.5 py-3">
-      <div class="flex flex-wrap items-center gap-3.5 text-sm text-unergy-deep">
+      <div class="flex flex-wrap items-center gap-3.5 text-sm text-foreground">
         <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.detectados }} mandatos detectados</span>
         <span><CircleCheckIcon class="size-4 text-success" /> {{ resumenZip.identificados_auto }} inversionistas identificados</span>
         <span v-if="resumenZip.sin_inversionista"><TriangleAlertIcon class="size-4 text-warning" /> {{ resumenZip.sin_inversionista }} sin inversionista</span>
@@ -142,7 +142,7 @@
       <div v-if="resumenZip.sugerencias?.length" class="mt-2.5 border-t border-border pt-2.5">
         <p class="m-0 mb-1.5 text-xs font-bold text-warning">Sugerencias de inversionista (confirma cada una):</p>
         <div v-for="s in resumenZip.sugerencias" :key="s.mandato_id" class="flex flex-wrap items-center gap-2.5 py-1 text-xs">
-          <span class="font-bold text-unergy-deep">{{ s.cmu }}</span>
+          <span class="font-bold text-foreground">{{ s.cmu }}</span>
           <span class="flex-1 text-muted-foreground">"{{ s.nombre_extraido }}" → <strong>{{ s.sugerido_nombre }}</strong> ({{ Math.round(s.score * 100) }}%)</span>
           <button :class="[CLS_BTN, 'px-2.5 py-1', CLS_BTN_SEC]" @click="asignarSugerencia(s)">Asignar</button>
         </div>
@@ -169,13 +169,13 @@ const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 const mandatosService = new MandatosService()
 
 const COLUMNAS = ['Certificado', 'Tercero / proyecto', 'Período', 'Estado', 'Observación', 'Doc. firmado', 'Enviado inv.', 'Adj.']
-const CLS_NAV_BTN = 'inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-purple'
+const CLS_NAV_BTN = 'inline-flex size-7 cursor-pointer items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
 const CLS_TD = 'border-b border-border px-3 py-2.5 align-top'
 const CLS_BADGE = 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap'
 const CLS_BTN = 'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border text-xs font-bold disabled:cursor-not-allowed disabled:opacity-45'
 const CLS_BTN_PAD = 'px-3.5 py-2'
 const CLS_BTN_SEC = 'border-border bg-card text-muted-foreground'
-const CLS_BTN_PRI = 'border-transparent bg-unergy-purple text-white'
+const CLS_BTN_PRI = 'border-transparent bg-primary text-white'
 const BADGE_MES = {
   correcciones: 'bg-warning/15 text-warning',
   cerrado: 'bg-success/15 text-success'
@@ -185,7 +185,7 @@ const BADGE_ESTADO = {
   'verde-suave': 'bg-chart-2/15 text-chart-2',
   verde: 'bg-success/15 text-success',
   azul: 'bg-chart-3/15 text-chart-3',
-  morado: 'bg-unergy-purple/10 text-unergy-purple-dark',
+  morado: 'bg-primary/10 text-primary',
   neutro: 'bg-muted text-muted-foreground',
   'neutro-alerta': 'bg-muted text-muted-foreground'
 }
@@ -204,11 +204,11 @@ const resumen = ref({ total: 0, correcciones: 0, firmados: 0, enviados_inversion
 const inversionistas = ref([])
 
 const metricas = computed(() => [
-  { label: 'Total', valor: resumen.value.total, color: 'text-unergy-deep' },
+  { label: 'Total', valor: resumen.value.total, color: 'text-foreground' },
   { label: 'Correcciones', valor: resumen.value.correcciones, color: 'text-warning' },
   { label: 'Firmados', valor: resumen.value.firmados, color: 'text-success' },
-  { label: 'Enviados inv.', valor: resumen.value.enviados_inversionista, color: 'text-unergy-purple-dark' },
-  { label: 'Pendientes', valor: resumen.value.pendientes, color: 'text-unergy-deep' }
+  { label: 'Enviados inv.', valor: resumen.value.enviados_inversionista, color: 'text-primary' },
+  { label: 'Pendientes', valor: resumen.value.pendientes, color: 'text-foreground' }
 ])
 
 const subiendoPdf = ref(false)

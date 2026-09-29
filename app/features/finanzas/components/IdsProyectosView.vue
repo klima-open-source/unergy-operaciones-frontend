@@ -49,9 +49,9 @@
               <tr class="bg-muted/50 border-b border-border">
                 <th rowspan="2" class="sticky left-0 z-20 border-r border-border bg-muted text-left px-4 py-2.5 font-medium text-muted-foreground text-xs
                                         uppercase tracking-wide align-bottom">Proyecto</th>
-                <th colspan="2" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-unergy-deep border-l border-border"
+                <th colspan="2" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-foreground border-l border-border"
                     >ID liquidaciones</th>
-                <th colspan="3" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-unergy-purple border-l border-border"
+                <th colspan="3" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-primary border-l border-border"
                     >ID Quoia</th>
                 <th rowspan="2" class="px-3 py-2.5"></th>
               </tr>
@@ -81,7 +81,7 @@
                   </span>
                 </td>
                 <td v-for="col in COLUMNAS" :key="col.key"
-                    class="px-3 py-2 text-center cursor-pointer hover:bg-unergy-purple/10"
+                    class="px-3 py-2 text-center cursor-pointer hover:bg-primary/10"
                     :class="{ 'border-l border-border': col.groupStart }"
                     @click="irAlDetalle(row.proyecto_id, col.tab)"
                     v-tooltip.bottom="tieneValor(row[col.key]) ? String(row[col.key]) : 'Sin registrar · clic para abrir el proyecto'">
