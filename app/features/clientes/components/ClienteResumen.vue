@@ -64,9 +64,7 @@ watch(() => props.clienteId, cargar, { immediate: true })
           <Card size="sm">
             <CardContent>
               <p class="text-2xl font-extrabold">{{ panel.kpis.num_plantas }}</p>
-              <p
-                class="mt-0.5 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-              >
+              <p class="mt-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Plantas con nosotros
               </p>
             </CardContent>
@@ -74,9 +72,7 @@ watch(() => props.clienteId, cargar, { immediate: true })
           <Card size="sm">
             <CardContent>
               <p class="text-2xl font-extrabold">{{ panel.kpis.contratos_activos }}</p>
-              <p
-                class="mt-0.5 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-              >
+              <p class="mt-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Contratos activos
               </p>
             </CardContent>
@@ -84,9 +80,7 @@ watch(() => props.clienteId, cargar, { immediate: true })
           <Card size="sm">
             <CardContent>
               <p class="text-2xl font-extrabold">{{ panel.kpis.servicios.length }}</p>
-              <p
-                class="mt-0.5 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-              >
+              <p class="mt-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Servicios
               </p>
             </CardContent>
@@ -96,9 +90,7 @@ watch(() => props.clienteId, cargar, { immediate: true })
               <p class="pt-1.5 text-base font-extrabold">
                 {{ fmtFecha(panel.kpis.proximo_vencimiento) }}
               </p>
-              <p
-                class="mt-0.5 text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-              >
+              <p class="mt-0.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 Próximo vencimiento
               </p>
             </CardContent>
@@ -181,7 +173,7 @@ watch(() => props.clienteId, cargar, { immediate: true })
             </GTable>
 
             <div v-if="historicoPorProyecto.length" class="space-y-1.5">
-              <p class="text-[0.65rem] font-bold tracking-wide text-muted-foreground uppercase">
+              <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 Histórico % de participación
               </p>
               <Collapsible
