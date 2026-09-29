@@ -1,16 +1,20 @@
 <template>
-  <div class="ml-root">
-    <div class="ml-card">
-      <img src="/logos/Logo_avena.png" alt="Unergy" class="ml-logo" />
-      <h1 class="ml-title">Solar</h1>
-      <p class="ml-sub">Monitoreo en tiempo real</p>
+  <div
+    class="flex min-h-dvh w-full max-w-full items-center justify-center overflow-x-hidden bg-linear-160 from-unergy-deep from-0% via-unergy-purple-dark via-60% to-unergy-purple to-100% p-4"
+  >
+    <div
+      class="w-full max-w-90 rounded-3xl border border-white/12 bg-white/6 px-6 pt-8 pb-6 text-center shadow-lg backdrop-blur-md"
+    >
+      <img src="/logos/Logo_avena.png" alt="Unergy" class="mx-auto mb-5 block h-8" />
+      <h1 class="text-3xl font-extrabold tracking-tight text-white">Solar</h1>
+      <p class="mt-1 mb-6 text-sm text-white/60">Monitoreo en tiempo real</p>
 
-      <form class="ml-form" @submit.prevent="onSubmit">
-        <label class="ml-label"
+      <form class="text-left" @submit.prevent="onSubmit">
+        <label class="mb-4 block text-xs font-semibold text-white/70"
           >Correo
           <input
             v-model="email"
-            class="ml-input"
+            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-unergy-yellow focus:bg-white/12 focus:outline-none"
             type="email"
             inputmode="email"
             autocomplete="username"
@@ -18,11 +22,11 @@
             required
           />
         </label>
-        <label class="ml-label"
+        <label class="mb-4 block text-xs font-semibold text-white/70"
           >Contraseña
           <input
             v-model="password"
-            class="ml-input"
+            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-unergy-yellow focus:bg-white/12 focus:outline-none"
             type="password"
             autocomplete="current-password"
             placeholder="••••••••"
@@ -30,27 +34,41 @@
           />
         </label>
 
-        <div v-if="error" class="ml-error"><TriangleAlertIcon class="size-4" /> {{ error }}</div>
+        <div
+          v-if="error"
+          class="mb-3.5 flex items-center gap-2 rounded-lg bg-destructive/20 px-3 py-2.5 text-sm text-white/90"
+        >
+          <TriangleAlertIcon class="size-4" /> {{ error }}
+        </div>
 
-        <button class="ml-submit" type="submit" :disabled="loading || !email || !password">
+        <button
+          class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-unergy-yellow p-4 text-base font-bold text-unergy-deep disabled:opacity-50"
+          type="submit"
+          :disabled="loading || !email || !password"
+        >
           <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
           <SunIcon class="size-4" v-else />
           {{ loading ? 'Ingresando…' : 'Ingresar' }}
         </button>
       </form>
 
-      <p class="ml-hint">La sesión se mantiene activa en este dispositivo.</p>
+      <p class="mt-4 text-xs text-white/45">La sesión se mantiene activa en este dispositivo.</p>
 
       <!-- Botones de preview solo en desarrollo -->
-      <div v-if="isDev" class="ml-preview">
-        <p class="ml-preview-label">— Vista previa local —</p>
+      <div v-if="isDev" class="mt-5 border-t border-white/10 pt-4">
+        <p class="mb-2.5 text-center text-xs tracking-widest text-white/35">
+          — Vista previa local —
+        </p>
         <button
-          class="ml-preview-btn ml-preview-btn--coord"
+          class="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-chart-2 bg-chart-2/10 p-3 text-sm font-semibold text-chart-2"
           @click="previsualizarComo('coordinador')"
         >
           <BriefcaseIcon class="size-3" /> Ver como Coordinador
         </button>
-        <button class="ml-preview-btn ml-preview-btn--tec" @click="previsualizarComo('tecnico')">
+        <button
+          class="mb-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-success bg-success/10 p-3 text-sm font-semibold text-success"
+          @click="previsualizarComo('tecnico')"
+        >
           <WrenchIcon class="size-4" /> Ver como Técnico
         </button>
       </div>
@@ -107,153 +125,3 @@ onMounted(() => {
   register()
 })
 </script>
-
-<style scoped>
-.ml-root {
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  box-sizing: border-box;
-  background: linear-gradient(
-    160deg,
-    var(--color-unergy-deep) 0%,
-    #4c1d95 60%,
-    var(--color-unergy-purple) 130%
-  );
-}
-.ml-card {
-  width: 100%;
-  max-width: 360px;
-  box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding: 30px 22px 24px;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-}
-.ml-logo {
-  height: 34px;
-  margin: 0 auto 18px;
-  display: block;
-}
-.ml-title {
-  font-size: 30px;
-  font-weight: 800;
-  color: #fff;
-  margin: 0;
-  letter-spacing: -0.5px;
-}
-.ml-sub {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 4px 0 26px;
-}
-
-.ml-form {
-  text-align: left;
-}
-.ml-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 16px;
-}
-.ml-input {
-  width: 100%;
-  margin-top: 7px;
-  padding: 14px 15px;
-  font-size: 16px;
-  border-radius: 13px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-.ml-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-.ml-input:focus {
-  outline: none;
-  border-color: var(--color-unergy-yellow);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.ml-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #fecaca;
-  background: rgba(220, 38, 38, 0.18);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
-}
-.ml-submit {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 15px;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  background: var(--color-unergy-yellow);
-  margin-top: 4px;
-}
-.ml-submit:disabled {
-  opacity: 0.5;
-}
-.ml-hint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
-  margin: 18px 0 0;
-}
-
-.ml-preview {
-  margin-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 16px;
-}
-.ml-preview-label {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
-  text-align: center;
-  margin: 0 0 10px;
-  letter-spacing: 1px;
-}
-.ml-preview-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px;
-  border: 1.5px solid;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.ml-preview-btn--coord {
-  border-color: #93c5fd;
-  color: #93c5fd;
-  background: rgba(147, 197, 253, 0.1);
-}
-.ml-preview-btn--tec {
-  border-color: #6ee7b7;
-  color: #6ee7b7;
-  background: rgba(110, 231, 183, 0.1);
-}
-</style>

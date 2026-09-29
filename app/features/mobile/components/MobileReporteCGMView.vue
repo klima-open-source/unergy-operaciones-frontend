@@ -1,83 +1,137 @@
 <template>
-  <div class="cgm-root">
-    <header class="cgm-topbar">
-      <span class="cgm-brand"><MailIcon class="size-4" /> Reporte CGM</span>
-      <button class="cgm-icon-btn" :disabled="loading" @click="loadData" title="Actualizar">
+  <div class="relative flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+    <header
+      class="cgm-topbar flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+    >
+      <span class="flex-1 text-base font-bold tracking-wide"
+        ><MailIcon class="mr-1.5 inline size-4 text-unergy-yellow" /> Reporte CGM</span
+      >
+      <button
+        class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
+        :disabled="loading"
+        @click="loadData"
+        title="Actualizar"
+      >
         <LoaderCircleIcon v-if="loading" class="size-4 animate-spin" />
         <RefreshCwIcon v-else class="size-4" />
       </button>
     </header>
 
-    <main class="cgm-scroll">
-      <div class="cgm-dates">
-        <label class="cgm-date-field">
+    <main class="flex-1 overflow-y-auto px-3 py-3">
+      <div class="mb-2.5 flex gap-2.5">
+        <label
+          class="flex flex-1 flex-col gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+        >
           <span>Desde</span>
-          <input type="date" v-model="fechaDesdeStr" :max="fechaHastaStr || ayerStr" />
+          <input
+            type="date"
+            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-unergy-deep normal-case"
+            v-model="fechaDesdeStr"
+            :max="fechaHastaStr || ayerStr"
+          />
         </label>
-        <label class="cgm-date-field">
+        <label
+          class="flex flex-1 flex-col gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+        >
           <span>Hasta</span>
-          <input type="date" v-model="fechaHastaStr" :min="fechaDesdeStr" :max="ayerStr" />
+          <input
+            type="date"
+            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-unergy-deep normal-case"
+            v-model="fechaHastaStr"
+            :min="fechaDesdeStr"
+            :max="ayerStr"
+          />
         </label>
       </div>
 
-      <div class="cgm-filters">
+      <div class="mb-2.5 flex gap-1.5">
         <button
           v-for="opt in tipoOpciones"
           :key="opt.value"
           type="button"
-          class="cgm-filter-pill"
-          :class="{ 'cgm-filter-pill--on': filtroTipo === opt.value }"
+          :class="[
+            'h-10 flex-1 rounded-lg border-2 text-xs font-bold',
+            filtroTipo === opt.value
+              ? 'border-unergy-purple bg-unergy-purple text-white'
+              : 'border-border bg-card text-muted-foreground',
+          ]"
           @click="filtroTipo = opt.value"
         >
           {{ opt.label }}
         </button>
       </div>
 
-      <input v-model="busqueda" type="text" placeholder="Buscar destinatario…" class="cgm-search" />
+      <input
+        v-model="busqueda"
+        type="text"
+        placeholder="Buscar destinatario…"
+        class="mb-3 w-full rounded-lg border-2 border-border bg-card px-3 py-2.5 text-sm text-unergy-deep placeholder:text-muted-foreground"
+      />
 
-      <div v-if="loading" class="cgm-loading">
-        <LoaderCircleIcon class="size-4 animate-spin" /> Cargando…
+      <div v-if="loading" class="flex items-center gap-2 px-1 py-3.5 text-sm text-muted-foreground">
+        <LoaderCircleIcon class="size-4 animate-spin text-unergy-purple" /> Cargando…
       </div>
 
       <template v-else>
-        <div v-if="!destinatariosFiltrados.length" class="cgm-empty">
+        <div
+          v-if="!destinatariosFiltrados.length"
+          class="px-1 py-5 text-center text-sm text-muted-foreground"
+        >
           Ningún destinatario coincide con el filtro.
         </div>
 
-        <div v-for="row in destinatariosFiltrados" :key="row.key" class="cgm-card">
-          <label class="cgm-check" @click.stop>
+        <div
+          v-for="row in destinatariosFiltrados"
+          :key="row.key"
+          class="mb-2 flex items-start gap-2.5 rounded-xl border border-border bg-card px-3 py-3"
+        >
+          <label class="shrink-0 pt-0.5" @click.stop>
             <input
               type="checkbox"
+              class="size-4.5 accent-unergy-purple"
               :checked="seleccionados.has(row.key)"
               :disabled="!row.correos.length"
               @change="toggleSeleccion(row.key)"
             />
           </label>
 
-          <div class="cgm-card-main" @click="toggle(row.key)">
-            <div class="cgm-card-top">
+          <div class="min-w-0 flex-1" @click="toggle(row.key)">
+            <div class="mb-1 flex items-center justify-between gap-2">
               <span
-                class="cgm-pill"
-                :class="row.tipo === 'Operador de Red' ? 'cgm-pill--or' : 'cgm-pill--cliente'"
+                :class="[
+                  'rounded-full px-2 py-0.5 text-xs font-extrabold whitespace-nowrap',
+                  row.tipo === 'Operador de Red'
+                    ? 'bg-unergy-purple/10 text-unergy-purple-dark'
+                    : 'bg-success/15 text-success',
+                ]"
               >
                 {{ row.tipo }}
               </span>
-              <span class="cgm-proj-count">
+              <span
+                class="flex shrink-0 items-center gap-1 text-xs font-bold text-muted-foreground"
+              >
                 <ChevronDownIcon
-                  class="cgm-chev size-3"
-                  :class="{ 'cgm-chev--open': expanded.has(row.key) }"
+                  class="size-3 transition-transform duration-150"
+                  :class="{ 'rotate-180': expanded.has(row.key) }"
                 />
                 {{ labelProyectos(row) }}
               </span>
             </div>
-            <div class="cgm-nombre" :class="{ 'cgm-nombre--muted': !row.nombre }">
+            <div
+              :class="[
+                'mb-1 text-sm',
+                row.nombre
+                  ? 'font-bold text-unergy-deep'
+                  : 'font-medium text-muted-foreground italic',
+              ]"
+            >
               {{ row.nombre ? formatearNombre(row.nombre) : row.sinVinculo }}
             </div>
 
             <RouterLink
               v-if="row.linkCorregir && row.correos.length"
               :to="row.linkCorregir"
-              class="cgm-correos"
+              class="inline-block text-xs font-semibold text-unergy-purple-dark underline"
               @click.stop
             >
               {{ row.correos.length }} correo{{ row.correos.length > 1 ? 's' : '' }}
@@ -85,33 +139,37 @@
             <RouterLink
               v-else-if="row.linkCorregir"
               :to="row.linkCorregir"
-              class="cgm-correos cgm-correos--bad"
+              class="inline-block text-xs font-semibold text-destructive underline"
               @click.stop
             >
               {{ row.textoCorregir }}
             </RouterLink>
-            <span v-else class="cgm-correos cgm-correos--muted">—</span>
+            <span v-else class="inline-block text-xs font-semibold text-muted-foreground italic"
+              >—</span
+            >
 
             <div v-if="expanded.has(row.key)">
               <button
                 v-if="proyectosDeFila(row.key).size"
                 type="button"
-                class="cgm-clear-sel"
+                class="mb-1.5 ml-auto block text-xs font-bold text-unergy-purple underline"
                 @click.stop="limpiarProyectos(row.key)"
               >
                 Quitar selección (volver a todos)
               </button>
-              <div class="cgm-chips">
+              <div class="mt-2 flex flex-wrap gap-1.5">
                 <button
                   v-for="p in row.proyectos"
                   :key="p.id"
                   type="button"
-                  class="cgm-chip"
-                  :class="{
-                    'cgm-chip--on': proyectosDeFila(row.key).has(p.id),
-                    'cgm-chip--dim':
-                      proyectosDeFila(row.key).size && !proyectosDeFila(row.key).has(p.id),
-                  }"
+                  :class="[
+                    'rounded-md border px-2 py-1 text-xs transition-opacity duration-150',
+                    proyectosDeFila(row.key).has(p.id)
+                      ? 'border-unergy-purple bg-unergy-purple text-white'
+                      : proyectosDeFila(row.key).size
+                        ? 'border-border bg-muted/30 text-muted-foreground/50'
+                        : 'border-border bg-muted/30 text-muted-foreground',
+                  ]"
                   @click.stop="toggleProyecto(row.key, p.id)"
                 >
                   {{ formatearNombre(p.nombre) }}
@@ -122,12 +180,14 @@
         </div>
       </template>
 
-      <div class="cgm-bottom-space" />
+      <div class="h-18" />
     </main>
 
-    <div class="cgm-send-bar">
+    <div
+      class="cgm-send-bar absolute inset-x-0 bg-linear-to-t from-muted from-70% to-transparent px-3 py-2.5"
+    >
       <button
-        class="cgm-send-btn"
+        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-unergy-purple text-sm font-bold text-white shadow-md disabled:opacity-40 disabled:shadow-none"
         :disabled="!totalSeleccionados || enviando"
         @click="enviarSeleccionados"
       >
@@ -401,296 +461,11 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.cgm-root {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  background: #f3f4f6;
-  color: var(--color-unergy-deep);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
+/* safe-area: notch superior e inferior en la PWA */
 .cgm-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: var(--color-unergy-deep);
-  color: #fff;
+  padding-top: calc(0.625rem + env(safe-area-inset-top));
 }
-.cgm-brand {
-  flex: 1;
-  font-size: clamp(15px, 4.2vw, 17px);
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-.cgm-brand svg {
-  color: var(--color-unergy-yellow);
-  margin-right: 6px;
-}
-.cgm-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.cgm-icon-btn:disabled {
-  opacity: 0.5;
-}
-
-.cgm-scroll {
-  flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 12px 13px;
-}
-
-.cgm-dates {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.cgm-date-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b5a8a;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.cgm-date-field input {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-unergy-deep);
-  border: 1.5px solid #e8e0f0;
-  border-radius: 10px;
-  padding: 8px 10px;
-  background: #fff;
-}
-
-.cgm-filters {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-.cgm-filter-pill {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 8px 0;
-  border-radius: 10px;
-  border: 1.5px solid #e8e0f0;
-  background: #fff;
-  color: #6b5a8a;
-}
-.cgm-filter-pill--on {
-  border-color: var(--color-unergy-purple);
-  background: var(--color-unergy-purple);
-  color: #fff;
-}
-
-.cgm-search {
-  width: 100%;
-  font-family: inherit;
-  font-size: 14px;
-  margin-bottom: 12px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 10px;
-  padding: 9px 12px;
-  background: #fff;
-  color: var(--color-unergy-deep);
-}
-.cgm-search::placeholder {
-  color: #c4b8d4;
-}
-
-.cgm-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6b5a8a;
-  font-size: 13.5px;
-  padding: 14px 4px;
-}
-.cgm-loading svg {
-  color: var(--color-unergy-purple);
-}
-.cgm-empty {
-  color: #9ca3af;
-  font-size: 13px;
-  padding: 20px 4px;
-  text-align: center;
-}
-
-.cgm-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 14px;
-  padding: 11px 12px;
-  margin-bottom: 9px;
-}
-.cgm-check {
-  flex-shrink: 0;
-  padding-top: 2px;
-}
-.cgm-check input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-unergy-purple);
-}
-.cgm-card-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.cgm-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-.cgm-pill {
-  font-size: 10.5px;
-  font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.cgm-pill--or {
-  background: rgba(145, 91, 216, 0.12);
-  color: var(--color-unergy-purple-dark);
-}
-.cgm-pill--cliente {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-}
-.cgm-proj-count {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #9b8db5;
-  flex-shrink: 0;
-}
-.cgm-chev {
-  font-size: 9px;
-  transition: transform 0.12s ease;
-}
-.cgm-chev--open {
-  transform: rotate(180deg);
-}
-
-.cgm-nombre {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  margin-bottom: 4px;
-}
-.cgm-nombre--muted {
-  font-style: italic;
-  font-weight: 500;
-  color: #c4b8d4;
-}
-
-.cgm-correos {
-  display: inline-block;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-unergy-purple-dark);
-  text-decoration: underline;
-}
-.cgm-correos--bad {
-  color: #d64455;
-}
-.cgm-correos--muted {
-  color: #c4b8d4;
-  text-decoration: none;
-  font-style: italic;
-}
-
-.cgm-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 8px;
-}
-.cgm-chip {
-  font-family: inherit;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 7px;
-  background: #f9f7ff;
-  border: 1px solid #eceaf2;
-  color: #6b5a8a;
-  transition: opacity 0.12s ease;
-}
-.cgm-chip--on {
-  background: var(--color-unergy-purple);
-  border-color: var(--color-unergy-purple);
-  color: #fff;
-}
-.cgm-chip--dim {
-  color: #c4b8d4;
-}
-.cgm-clear-sel {
-  display: block;
-  margin: 0 0 6px auto;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-unergy-purple);
-  text-decoration: underline;
-}
-
-.cgm-bottom-space {
-  height: 74px;
-}
-
 .cgm-send-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(56px + env(safe-area-inset-bottom));
-  padding: 10px 13px;
-  background: linear-gradient(to top, #f3f4f6 70%, transparent);
-}
-.cgm-send-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  border: none;
-  border-radius: 12px;
-  padding: 13px 0;
-  box-shadow: 0 4px 14px rgba(145, 91, 216, 0.35);
-}
-.cgm-send-btn:disabled {
-  opacity: 0.4;
-  box-shadow: none;
+  bottom: calc(3.5rem + env(safe-area-inset-bottom));
 }
 </style>
