@@ -68,9 +68,10 @@
           class="size-2 shrink-0 rounded-full bg-(--c)"
           :style="{ '--c': statusColor(current?.status) }"
         />
-        <span class="min-w-0 flex-1 truncate text-left text-base font-bold">{{
-          current?.nombre || '—'
-        }}</span>
+        <TruncatedText
+          :text="current?.nombre || '—'"
+          class="min-w-0 flex-1 text-left text-base font-bold"
+        />
         <ChevronDownIcon class="size-3 text-muted-foreground" />
       </button>
       <button
@@ -110,7 +111,7 @@
               class="size-2 shrink-0 rounded-full bg-(--c)"
               :style="{ '--c': statusColor(p.status) }"
             />
-            <span class="min-w-0 flex-1 truncate">{{ p.nombre }}</span>
+            <TruncatedText :text="p.nombre" class="min-w-0 flex-1" />
             <ZapIcon
               class="size-4 text-warning"
               v-if="rcnMap[p.proyecto_id]"
@@ -228,9 +229,10 @@
                 :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
-              <span class="min-w-0 flex-1 truncate text-xs font-semibold text-unergy-deep">{{
-                f.tipo?.etiqueta || 'Falla'
-              }}</span>
+              <TruncatedText
+                :text="f.tipo?.etiqueta || 'Falla'"
+                class="min-w-0 flex-1 text-xs font-semibold text-unergy-deep"
+              />
               <ChevronRightIcon class="size-3 shrink-0 text-muted-foreground" />
             </button>
             <span

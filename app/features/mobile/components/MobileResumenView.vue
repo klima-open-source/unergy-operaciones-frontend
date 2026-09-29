@@ -108,12 +108,14 @@
               >{{ f.estado?.etiqueta || '—' }}</span
             >
             <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="truncate text-sm font-bold text-unergy-deep">{{
-                f.proyecto?.nombre_comercial || '—'
-              }}</span>
-              <span class="truncate text-xs text-muted-foreground">{{
-                f.tipo?.etiqueta || f.tipo_libre || 'Falla'
-              }}</span>
+              <TruncatedText
+                :text="f.proyecto?.nombre_comercial || '—'"
+                class="text-sm font-bold text-unergy-deep"
+              />
+              <TruncatedText
+                :text="f.tipo?.etiqueta || f.tipo_libre || 'Falla'"
+                class="text-xs text-muted-foreground"
+              />
             </span>
             <ChevronRightIcon class="size-3 shrink-0 text-muted-foreground" />
           </button>
@@ -138,9 +140,10 @@
             @click="openFalla(c.falla)"
           >
             <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="truncate text-sm font-bold text-unergy-deep">{{
-                c.falla?.proyecto?.nombre_comercial || '—'
-              }}</span>
+              <TruncatedText
+                :text="c.falla?.proyecto?.nombre_comercial || '—'"
+                class="text-sm font-bold text-unergy-deep"
+              />
               <span class="flex flex-wrap items-center gap-1.5">
                 <span
                   class="shrink-0 rounded-md bg-(--c)/15 px-1.5 py-0.5 text-xs font-extrabold whitespace-nowrap text-(--c)"

@@ -11,7 +11,7 @@
           </button>
           <div class="flex min-w-0 flex-1 flex-col">
             <span class="text-base font-bold">Potencia por inversor</span>
-            <span class="truncate text-xs text-white/60">{{ nombre || '—' }}</span>
+            <TruncatedText :text="nombre || '—'" class="text-xs text-white/60" />
           </div>
           <button
             class="size-9 shrink-0 rounded-lg bg-white/10 text-white disabled:opacity-50"
@@ -46,7 +46,7 @@
               :class="ocultos.has(inv.dev_name) ? 'bg-border' : 'bg-(--c)'"
               :style="{ '--c': inv.color }"
             />
-            <span class="max-w-40 truncate">{{ inv.dev_name }}</span>
+            <TruncatedText :text="inv.dev_name" class="max-w-40" />
             <span
               class="text-xs font-bold tabular-nums"
               :class="
@@ -131,6 +131,7 @@ import {
 import type { PotenciaInversor } from '~/features/solar/types'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { isFetchError, normalizeError } from '~/core/errors'
+import type { TokenColor } from '~/composables/useThemeColors'
 
 const CHIP = 'flex items-center gap-1.5 rounded-lg border-2 px-2 py-1.5 text-xs font-semibold'
 const STATE =
@@ -140,20 +141,21 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Legend, 
 
 const generacionSolarService = new GeneracionSolarService()
 
-// Misma paleta que la "Comparativa de inversores" del escritorio.
-// Ojo: alimenta directo el canvas de Chart.js (`borderColor`), que no
-// resuelve custom properties CSS — se queda en hex, a propósito.
-const PALETA = [
-  '#915BD8',
-  '#16a34a',
-  '#d97706',
-  '#0ea5e9',
-  '#dc2626',
-  '#14b8a6',
-  '#a855f7',
-  '#f59e0b',
-  '#2563eb',
-  '#65a30d',
+const { color } = useThemeColors()
+
+// Misma paleta que la "Comparativa de inversores" del escritorio, con tokens del tema.
+// Es una función: Chart.js necesita el color resuelto, que depende del modo claro/oscuro.
+const PALETA: TokenColor[] = [
+  'unergy-purple',
+  'success',
+  'warning',
+  'chart-2',
+  'destructive',
+  'chart-1',
+  'primary',
+  'chart-4',
+  'chart-5',
+  'chart-3',
 ]
 
 const props = withDefaults(
@@ -190,7 +192,7 @@ watch(
 )
 
 const inversores = computed(() =>
-  crudos.value.map((inv, i) => ({ ...inv, color: PALETA[i % PALETA.length]! })),
+  crudos.value.map((inv, i) => ({ ...inv, color: color(PALETA[i % PALETA.length]!) })),
 )
 
 // Eje X: unión de los tiempos de todos los inversores, ordenada.
@@ -244,7 +246,7 @@ const chartData = computed<ChartData<'line'>>(() => ({
   datasets: datasetsVisibles.value,
 }))
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   // En el celular el toque debe mostrar todas las potencias de esa hora.
@@ -252,7 +254,7 @@ const chartOptions: ChartOptions<'line'> = {
   plugins: {
     legend: { display: false }, // las líneas se prenden y apagan con los chips
     tooltip: {
-      backgroundColor: 'rgba(44,32,57,0.95)',
+      backgroundColor: color('unergy-deep', 0.95),
       padding: 10,
       titleFont: { size: 12 },
       bodyFont: { size: 11.5 },
@@ -263,7 +265,7 @@ const chartOptions: ChartOptions<'line'> = {
     x: {
       ticks: {
         font: { size: 9.5 },
-        color: '#9ca3af',
+        color: color('muted-foreground'),
         maxTicksLimit: 7,
         autoSkip: true,
         maxRotation: 0,
@@ -273,13 +275,23 @@ const chartOptions: ChartOptions<'line'> = {
     },
     y: {
       beginAtZero: true,
-      title: { display: true, text: 'Potencia (kW)', font: { size: 10 }, color: '#9ca3af' },
-      ticks: { font: { size: 9.5 }, color: '#9ca3af', maxTicksLimit: 6, padding: 4 },
-      grid: { color: 'rgba(28,18,50,0.05)' },
+      title: {
+        display: true,
+        text: 'Potencia (kW)',
+        font: { size: 10 },
+        color: color('muted-foreground'),
+      },
+      ticks: {
+        font: { size: 9.5 },
+        color: color('muted-foreground'),
+        maxTicksLimit: 6,
+        padding: 4,
+      },
+      grid: { color: color('foreground', 0.05) },
       border: { display: false },
     },
   },
-}
+}))
 
 function toggle(devName: string): void {
   const next = new Set(ocultos.value)
