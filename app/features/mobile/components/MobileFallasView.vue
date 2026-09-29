@@ -2,7 +2,7 @@
   <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- TOP BAR -->
     <header
-      class="mf-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-white"
+      class="mf-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex flex-1 items-center gap-1.5 text-base font-bold"
         ><WrenchIcon class="size-4 text-highlight" /> Fallas</span
@@ -20,7 +20,7 @@
         >
       </button>
       <button
-        class="relative size-9 rounded-lg bg-primary text-white"
+        class="relative size-9 rounded-lg bg-primary text-primary-foreground"
         @click="createOpen = true"
         title="Registrar falla"
       >
@@ -78,7 +78,7 @@
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
         <button
-          class="mt-1.5 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-base font-bold text-white"
+          class="mt-1.5 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-base font-bold text-primary-foreground"
           @click="createOpen = true"
         >
           <PlusIcon class="size-4" /> Registrar falla
@@ -173,7 +173,7 @@ import FallaCreateSheet from '~/features/mobile/components/components/FallaCreat
 import NotificationsSheet from '~/features/mobile/components/components/NotificationsSheet.vue'
 
 const FCHIP = 'shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-sm font-semibold'
-const FCHIP_ON = 'border-foreground bg-foreground text-white'
+const FCHIP_ON = 'border-foreground bg-foreground text-background'
 const FCHIP_OFF = 'border-border bg-card text-muted-foreground'
 const STATE =
   'flex flex-col items-center justify-center gap-3 px-5 py-15 text-center text-base text-muted-foreground'

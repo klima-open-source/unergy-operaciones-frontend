@@ -2,7 +2,7 @@
   <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- ══ TOP BAR ══ -->
     <header
-      class="rs-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-white"
+      class="rs-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex-1 text-base font-bold tracking-wide"
         ><ChartColumnIcon class="mr-1.5 inline size-4 text-highlight" /> Resumen del día</span

@@ -1,7 +1,7 @@
 <template>
   <div class="relative flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <header
-      class="cgm-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-white"
+      class="cgm-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex-1 text-base font-bold tracking-wide"
         ><MailIcon class="mr-1.5 inline size-4 text-highlight" /> Reporte CGM</span
@@ -52,7 +52,7 @@
           :class="[
             'h-10 flex-1 rounded-lg border-2 text-xs font-bold',
             filtroTipo === opt.value
-              ? 'border-primary bg-primary text-white'
+              ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-muted-foreground',
           ]"
           @click="filtroTipo = opt.value"
@@ -165,7 +165,7 @@
                   :class="[
                     'rounded-md border px-2 py-1 text-xs transition-opacity duration-150',
                     proyectosDeFila(row.key).has(p.id)
-                      ? 'border-primary bg-primary text-white'
+                      ? 'border-primary bg-primary text-primary-foreground'
                       : proyectosDeFila(row.key).size
                         ? 'border-border bg-muted/30 text-muted-foreground/50'
                         : 'border-border bg-muted/30 text-muted-foreground',
@@ -187,7 +187,7 @@
       class="cgm-send-bar absolute inset-x-0 bg-linear-to-t from-muted from-70% to-transparent px-3 py-2.5"
     >
       <button
-        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white shadow-md disabled:opacity-40 disabled:shadow-none"
+        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-md disabled:opacity-40 disabled:shadow-none"
         :disabled="!totalSeleccionados || enviando"
         @click="enviarSeleccionados"
       >
