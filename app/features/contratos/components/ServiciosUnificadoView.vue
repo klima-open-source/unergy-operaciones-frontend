@@ -57,13 +57,13 @@
               :class="vista === v.key
                 ? 'bg-(--bg) border-(--bd) text-(--c) shadow-xs [&>svg]:text-(--c)'
                 : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-unergy-purple/30 hover:text-unergy-deep'"
-              :style="vista === v.key ? { '--bg': v.bg, '--bd': v.color + '55', '--c': v.color } : undefined"
+              :style="vista === v.key ? { '--bg': tinte(v.color, 10), '--bd': tinte(v.color, 33), '--c': v.color } : undefined"
               @click="seleccionarVista(v.key)">
         <component :is="v.icon" class="size-4" />
         <span>{{ v.label }}</span>
         <span v-if="conteoVista(v.key) !== null" class="rounded-full text-xs font-extrabold px-1.5 min-w-4.5 text-center"
               :class="vista === v.key ? 'bg-(--bg) text-(--c)' : 'bg-muted text-muted-foreground'"
-              :style="vista === v.key ? { '--bg': v.color + '22', '--c': v.color } : undefined">
+              :style="vista === v.key ? { '--bg': tinte(v.color, 13), '--c': v.color } : undefined">
           {{ conteoVista(v.key) }}
         </span>
       </button>
@@ -75,7 +75,7 @@
                 :class="servicio === s.key
                   ? 'bg-(--bg) border-(--bd) text-(--c) shadow-xs [&>svg]:text-(--c)'
                   : 'bg-card border-border text-muted-foreground [&>svg]:text-muted-foreground/60 hover:border-unergy-purple/30 hover:text-unergy-deep'"
-                :style="servicio === s.key ? { '--bg': s.bg, '--bd': s.color + '55', '--c': s.color } : undefined"
+                :style="servicio === s.key ? { '--bg': tinte(s.color, 10), '--bd': tinte(s.color, 33), '--c': s.color } : undefined"
                 @click="seleccionarServicio(s.key)">
           <component :is="s.icon" class="size-4" />
           <span>{{ s.label }}</span>
@@ -218,9 +218,7 @@
         <Column field="razon_social_nombre" header="Razón social" sortable>
           <template #body="{ data }">
             <div class="flex items-center gap-1 min-w-0">
-              <span class="block min-w-0 max-w-full truncate font-semibold text-unergy-deep">
-                {{ formatearNombre(data.razon_social_nombre) }}
-              </span>
+              <TruncatedText :text="formatearNombre(data.razon_social_nombre)" class="min-w-0 max-w-full font-semibold text-unergy-deep" />
               <span v-if="data.alerta_contrato && data.alerta_contrato !== 'vigente'"
                     class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap bg-(--bg) text-(--c)"
                     :style="{ '--c': SEMAFORO[data.alerta_contrato].color, '--bg': SEMAFORO[data.alerta_contrato].bg }">
@@ -247,12 +245,12 @@
         </Column>
         <Column field="contacto_comercial_nombre" header="Contacto" sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate">{{ fmt(data.contacto_comercial_nombre) }}</span>
+            <TruncatedText :text="fmt(data.contacto_comercial_nombre)" class="min-w-0 max-w-full" />
           </template>
         </Column>
         <Column field="contacto_comercial_correo" header="Correo" sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate text-xs text-muted-foreground">{{ fmt(data.contacto_comercial_correo) }}</span>
+            <TruncatedText :text="fmt(data.contacto_comercial_correo)" class="min-w-0 max-w-full text-xs text-muted-foreground" />
           </template>
         </Column>
         <Column header="Falta">
@@ -299,9 +297,8 @@
                   :class="data.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground/50'">
               {{ data.codigo_tsf || '—' }}
             </span>
-            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep truncate cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/proyectos/${data.id}`)"
-                    v-tooltip.bottom="'Ver detalle'">
-              {{ formatearNombre(data.nombre_comercial) }}
+            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/proyectos/${data.id}`)">
+              <TruncatedText :text="formatearNombre(data.nombre_comercial)" class="min-w-0" />
             </button>
           </template>
         </Column>
@@ -323,15 +320,12 @@
         </Column>
         <Column field="portafolio_id" header="Portafolio" sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate text-xs text-muted-foreground">{{ nombrePortafolio(data.portafolio_id) || '—' }}</span>
+            <TruncatedText :text="nombrePortafolio(data.portafolio_id) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
           </template>
         </Column>
         <Column field="municipio" header="Ubicación" sortable>
           <template #body="{ data }">
-            <span v-if="data.municipio || data.departamento" class="block min-w-0 max-w-full truncate text-xs text-muted-foreground"
-                  v-tooltip.bottom="[data.municipio, data.departamento].filter(Boolean).join(', ')">
-              {{ [data.municipio, data.departamento].filter(Boolean).join(', ') }}
-            </span>
+            <TruncatedText v-if="data.municipio || data.departamento" :text="[data.municipio, data.departamento].filter(Boolean).join(', ')" class="min-w-0 max-w-full text-xs text-muted-foreground" />
             <span v-else class="text-xs text-muted-foreground/50">—</span>
           </template>
         </Column>
@@ -403,18 +397,14 @@
                  emptyMessage="No hay contratos PPA registrados.">
         <Column field="nombre_interno" header="Nombre interno" sortable>
           <template #body="{ data }">
-            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep truncate cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/contratos/${data.id}`)"
-                    v-tooltip.bottom="'Ver detalle'">
-              {{ data.nombre_interno || data.numero_codigo_contrato || '—' }}
+            <button type="button" class="block max-w-full text-left text-xs font-semibold text-unergy-deep cursor-pointer transition-colors duration-150 hover:text-unergy-purple hover:underline underline-offset-2" @click="ir(`/contratos/${data.id}`)">
+              <TruncatedText :text="data.nombre_interno || data.numero_codigo_contrato || '—'" class="min-w-0" />
             </button>
           </template>
         </Column>
         <Column field="numero_codigo_contrato" header="N° contrato" sortable>
           <template #body="{ data }">
-            <span v-if="data.numero_codigo_contrato" class="font-mono text-xs text-muted-foreground block min-w-0 max-w-full truncate"
-                  v-tooltip.bottom="data.numero_codigo_contrato">
-              {{ data.numero_codigo_contrato }}
-            </span>
+            <TruncatedText v-if="data.numero_codigo_contrato" :text="data.numero_codigo_contrato" class="font-mono text-xs text-muted-foreground min-w-0 max-w-full" />
             <span v-else class="text-xs text-muted-foreground/50">—</span>
           </template>
         </Column>
@@ -441,12 +431,12 @@
         </Column>
         <Column field="comprador_nombre" header="Comprador" sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate">{{ data.comprador_nombre || '—' }}</span>
+            <TruncatedText :text="data.comprador_nombre || '—'" class="min-w-0 max-w-full" />
           </template>
         </Column>
         <Column field="vendedor_nombre" header="Vendedor" sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate">{{ data.vendedor_nombre || '—' }}</span>
+            <TruncatedText :text="data.vendedor_nombre || '—'" class="min-w-0 max-w-full" />
           </template>
         </Column>
         <Column field="fecha_inicio" header="Inicio" sortable>
@@ -559,7 +549,7 @@
             <button v-if="data.proyecto" type="button" class="group flex items-center gap-1 min-w-0 w-full text-left cursor-pointer text-unergy-deep"
                     v-tooltip.bottom="'Ver la planta'"
                     @click.stop="ir(rutaDeLaPlanta(data))">
-              <span class="block min-w-0 max-w-full truncate text-sm font-semibold group-hover:text-unergy-purple group-hover:underline">{{ data.proyecto.nombre_comercial }}</span>
+              <TruncatedText :text="data.proyecto.nombre_comercial" class="min-w-0 max-w-full text-sm font-semibold group-hover:text-unergy-purple group-hover:underline" />
             </button>
             <button v-else type="button" class="inline-flex items-center gap-1 text-xs font-bold leading-normal px-2 rounded-full cursor-pointer bg-warning/10 text-warning border border-dashed border-warning/50 transition-colors duration-150 hover:bg-warning/20"
                     v-tooltip.bottom="'Este contrato no está asociado a ninguna planta. Click para asociarlo.'"
@@ -592,7 +582,7 @@
             <span v-for="sub in subserviciosDeFila(data)" :key="sub" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap mr-1 bg-(--bg) text-(--c)"
                   :style="{
                     '--c': colorTipoContrato(sub),
-                    '--bg': colorTipoContrato(sub) + '1f' }">
+                    '--bg': tinte(colorTipoContrato(sub), 12) }">
               {{ TIPO_CONTRATO_LABELS[sub] || sub }}
             </span>
             <span v-if="!subserviciosDeFila(data).length" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap text-muted-foreground bg-muted">—</span>
@@ -603,9 +593,7 @@
         <Column v-if="esRepresentacion" field="inversionista_nombre" header="Inversionista"
                 sortable>
           <template #body="{ data }">
-            <span class="block min-w-0 max-w-full truncate">
-              {{ data.inversionista_nombre ? formatearNombre(data.inversionista_nombre) : '—' }}
-            </span>
+            <TruncatedText :text="data.inversionista_nombre ? formatearNombre(data.inversionista_nombre) : '—'" class="min-w-0 max-w-full" />
           </template>
         </Column>
         <!-- Solo en Representación: ahí el número está cargado y sirve para
@@ -613,16 +601,16 @@
              una columna de 66 guiones ocupando el 15% del ancho. El buscador de
              la cabecera sigue mirando `numero_contrato` en las dos pestañas. -->
         <Column v-if="esRepresentacion" field="numero_contrato" header="N° contrato" sortable>
-          <template #body="{ data }"><span class="block min-w-0 max-w-full truncate font-mono text-xs text-muted-foreground">{{ data.numero_contrato || '—' }}</span></template>
+          <template #body="{ data }"><TruncatedText :text="data.numero_contrato || '—'" class="min-w-0 max-w-full font-mono text-xs text-muted-foreground" /></template>
         </Column>
         <!-- Contratante y prestador salen del cuadro en Representación: el seed
              CGM no los llena y el par real es Unergy ↔ inversionista, que ya
              tiene columna propia. El buscador sí sigue mirándolos. -->
         <Column v-if="!esRepresentacion" field="contratante_nombre" header="Contratante" sortable>
-          <template #body="{ data }"><span class="block min-w-0 max-w-full truncate">{{ data.contratante_nombre || '—' }}</span></template>
+          <template #body="{ data }"><TruncatedText :text="data.contratante_nombre || '—'" class="min-w-0 max-w-full" /></template>
         </Column>
         <Column v-if="!esRepresentacion" field="prestador_nombre" header="Prestador" sortable>
-          <template #body="{ data }"><span class="block min-w-0 max-w-full truncate">{{ data.prestador_nombre || '—' }}</span></template>
+          <template #body="{ data }"><TruncatedText :text="data.prestador_nombre || '—'" class="min-w-0 max-w-full" /></template>
         </Column>
         <Column field="fecha_inicio" header="Inicio" sortable>
           <template #body="{ data }"><span class="font-mono text-xs text-muted-foreground">{{ fmtFecha(data.fecha_inicio) }}</span></template>
@@ -815,17 +803,17 @@ const confirm = useConfirm()
 const VISTAS = [
   // Proyectos va primero y es el que abre: la planta es la base, y clientes y
   // contratos son formas de mirar ese mismo portafolio.
-  { key: 'proyectos', label: 'Proyectos', icon: ZapIcon,      color: '#10b981', bg: '#f0fdf4' },
-  { key: 'clientes',  label: 'Clientes',  icon: BuildingIcon,  color: '#915BD8', bg: '#f5f0fd' },
-  { key: 'servicios', label: 'Servicios', icon: FilePenIcon, color: '#0C447C', bg: '#eff6ff' },
+  { key: 'proyectos', label: 'Proyectos', icon: ZapIcon,      color: 'var(--success)' },
+  { key: 'clientes',  label: 'Clientes',  icon: BuildingIcon,  color: 'var(--color-unergy-purple)' },
+  { key: 'servicios', label: 'Servicios', icon: FilePenIcon, color: 'var(--primary)' },
 ]
 
 const SERVICIOS = [
-  { key: 'ppa',            label: 'PPA',            icon: ZapIcon,      color: '#f59e0b', bg: '#fffbeb' },
+  { key: 'ppa',            label: 'PPA',            icon: ZapIcon,      color: 'var(--warning)' },
   // La clave sigue siendo `representacion` porque viaja en la URL (`?srv=`);
   // la etiqueta sí nombra los dos subservicios que la pestaña muestra.
-  { key: 'representacion', label: 'Representación y CGM', icon: FilePenIcon, color: '#3b82f6', bg: '#eff6ff' },
-  { key: 'operacion',      label: 'Operación',      icon: ChartColumnIcon, color: '#10b981', bg: '#f0fdf4' },
+  { key: 'representacion', label: 'Representación y CGM', icon: FilePenIcon, color: 'var(--chart-3)' },
+  { key: 'operacion',      label: 'Operación',      icon: ChartColumnIcon, color: 'var(--success)' },
 ]
 
 // El enum `servicio_aplica` del backend NO tiene un valor "operacion": lo que
@@ -853,11 +841,14 @@ const TIPO_CONTRATO_LABELS = {
   representacion: 'Representación', cgm: 'CGM',
 }
 const TIPO_CONTRATO_COLOR = {
-  mantenimiento: '#f59e0b', arriendo: '#8b5cf6', internet: '#06b6d4',
-  representacion: '#3b82f6', cgm: '#0ea5e9',
+  mantenimiento: 'var(--warning)', arriendo: 'var(--color-unergy-purple)', internet: 'var(--chart-2)',
+  representacion: 'var(--chart-3)', cgm: 'var(--chart-1)',
 }
 
-const colorTipoContrato = (sub) => TIPO_CONTRATO_COLOR[sub] || '#6b7280'
+// Tinte translúcido de un color del tema (fondos de píldoras y chips activos).
+const tinte = (c, pct) => `color-mix(in oklab, ${c} ${pct}%, transparent)`
+
+const colorTipoContrato = (sub) => TIPO_CONTRATO_COLOR[sub] || 'var(--muted-foreground)'
 
 const SERVICIOS_BADGES = [
   { key: 'srv_operacion',      badge: 'OP',   tooltip: 'Operación' },
