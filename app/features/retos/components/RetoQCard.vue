@@ -131,9 +131,10 @@ const pieTxt = computed(() => {
     <!-- b) Identidad + anillo -->
     <div class="flex items-start justify-between gap-2.5">
       <div class="min-w-0">
-        <div class="truncate text-base leading-tight font-extrabold">
-          {{ reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}` }}
-        </div>
+        <TruncatedText
+          :text="reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}`"
+          class="text-base leading-tight font-extrabold"
+        />
         <div class="mt-0.5 text-xs text-muted-foreground">{{ rangoTxt }}</div>
         <div class="text-xs text-muted-foreground">{{ semanasTxt }}</div>
       </div>
@@ -163,7 +164,7 @@ const pieTxt = computed(() => {
       <!-- e) Lista de métricas (máx. 3) -->
       <div class="flex flex-col gap-1.5">
         <div v-for="m in metricasVisibles" :key="m.id" class="min-w-0">
-          <div class="truncate text-xs font-semibold">{{ m.nombre }}</div>
+          <TruncatedText :text="m.nombre" class="text-xs font-semibold" />
           <div class="flex items-center gap-2">
             <!-- `m.serie` es `number[]`; `Sparkline` espera `{ valor }[]`. -->
             <RetoSparkline :serie="m.serie?.map((valor) => ({ valor })) ?? []" :estado="m.estado" />

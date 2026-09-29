@@ -212,22 +212,53 @@ function esInusual(m: MetricaReto, s: SemanaReto) {
 }
 
 // ── Clases de columna / celda ───────────────────────────────────────────────
-function columnaClases(s: SemanaReto, c: number) {
-  return {
-    'rq-col-actual': !!s.es_actual,
-    'rq-col-futura': !!s.es_futura,
-    'rq-col-hover': hoverCol.value === c,
-  }
+// Las celdas sticky se superponen al scroll: su fondo tiene que ser opaco. Los
+// tintes de estado se apilan como gradiente plano (`from-X/n to-X/n`) sobre un
+// color sólido; en las celdas de valor (no sticky) basta el fondo con alfa.
+const TINTE_HOVER_PRIMARIO = 'bg-linear-to-r hover:from-primary/8 hover:to-primary/8'
+
+const CELDA_ERROR = 'bg-destructive/7 ring-2 ring-inset ring-destructive'
+const CELDA_EDITANDO = 'bg-background ring-2 ring-inset ring-primary'
+
+function editandoEn(r: number, c: number) {
+  return !!editando.value && editando.value.r === r && editando.value.c === c
 }
 
-function estadoCelda(m: MetricaReto, s: SemanaReto) {
-  const e = estados[clave(m, s)]
-  return {
-    'rq-cell-guardando': e === 'guardando',
-    'rq-cell-ok': e === 'ok',
-    'rq-cell-error': e === 'error',
-    'rq-cell-inusual': esInusual(m, s),
-  }
+function enFoco(r: number, c: number) {
+  return activa.value && foco.fila === r && foco.col === c
+}
+
+/**
+ * Fondo de la celda de valor. Prioridad de mayor a menor: error, edición, foco,
+ * guardando, hover de celda, columna futura, columna actual, hover de fila.
+ */
+function fondoCelda(m: MetricaReto, s: SemanaReto, r: number, c: number) {
+  if (estados[clave(m, s)] === 'error') return CELDA_ERROR
+  if (editandoEn(r, c)) return CELDA_EDITANDO
+  if (enFoco(r, c)) return 'bg-background'
+  if (estados[clave(m, s)] === 'guardando') return 'bg-primary/5'
+  if (hoverCol.value === c && hoverFila.value === r) return 'bg-primary/6'
+  if (s.es_futura) return 'bg-muted/60'
+  if (s.es_actual) return 'bg-primary/5'
+  if (hoverFila.value === r) return 'bg-foreground/3'
+  return ''
+}
+
+function claseCelda(m: MetricaReto, s: SemanaReto, r: number, c: number) {
+  return [
+    fondoCelda(m, s, r, c),
+    editandoEn(r, c) && 'z-2',
+    estados[clave(m, s)] === 'ok' && 'rq-cell-ok',
+    esInicioMes(c) && 'border-l',
+  ]
+}
+
+/** El valor se atenúa en columnas futuras (salvo con foco) y se pinta de aviso si es inusual. */
+function claseNum(m: MetricaReto, s: SemanaReto, r: number, c: number) {
+  return [
+    esInusual(m, s) ? 'text-warning' : s.es_futura && 'text-muted-foreground',
+    s.es_futura && !enFoco(r, c) && 'opacity-70',
+  ]
 }
 
 function metaLinea(m: MetricaReto) {
@@ -377,7 +408,7 @@ function asegurarVisible(el: HTMLElement) {
   const rw = wrap.getBoundingClientRect()
   const re = el.getBoundingClientRect()
 
-  const izq = (wrap.querySelector('.rq-sticky-l') as HTMLElement | null)?.offsetWidth || 240
+  const izq = (wrap.querySelector('tbody th') as HTMLElement | null)?.offsetWidth || 240
   const der = 238
   if (re.left < rw.left + izq) wrap.scrollLeft -= rw.left + izq - re.left
   else if (re.right > rw.right - der) wrap.scrollLeft += re.right - (rw.right - der)
@@ -947,34 +978,62 @@ defineExpose({ enfocarMetrica })
 
         <thead>
           <!-- banda de mes -->
-          <tr class="rq-meses">
-            <th class="rq-sticky-l rq-esquina" rowspan="2" scope="col">MÉTRICA</th>
+          <tr>
+            <th
+              class="sticky top-0 left-0 z-6 border-r border-b bg-muted px-2.5 pb-1.25 text-center align-bottom text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+              rowspan="2"
+              scope="col"
+            >
+              MÉTRICA
+            </th>
             <th
               v-for="(g, i) in gruposMes"
               :key="`g${i}`"
               :colspan="g.n"
               scope="colgroup"
-              :class="{ 'rq-mes-inicio': i > 0 }"
+              class="sticky top-0 z-4 h-4.5 border-b bg-muted text-center text-xs font-extrabold tracking-wider text-muted-foreground"
+              :class="{ 'border-l': i > 0 }"
             >
               {{ g.label }}
             </th>
-            <th class="rq-sticky-r-3" rowspan="2" scope="col">CONSOLIDADO</th>
-            <th class="rq-sticky-r-2" rowspan="2" scope="col">META</th>
-            <th class="rq-sticky-r-1" rowspan="2" scope="col">%</th>
+            <th
+              class="sticky top-0 right-36.5 z-6 border-b border-l bg-muted text-center text-xs font-extrabold tracking-wider text-muted-foreground"
+              rowspan="2"
+              scope="col"
+            >
+              CONSOLIDADO
+            </th>
+            <th
+              class="sticky top-0 right-17 z-6 border-b bg-muted text-center text-xs font-extrabold tracking-wider text-muted-foreground"
+              rowspan="2"
+              scope="col"
+            >
+              META
+            </th>
+            <th
+              class="sticky top-0 right-0 z-6 border-b bg-muted text-center text-xs font-extrabold tracking-wider text-muted-foreground"
+              rowspan="2"
+              scope="col"
+            >
+              %
+            </th>
           </tr>
 
           <!-- semanas -->
-          <tr class="rq-semanas">
+          <tr>
             <template v-for="(s, c) in semanasVisibles" :key="`h${s.numero}`">
               <GTooltip>
                 <GTooltipTrigger as-child>
                   <th
                     :ref="(el) => setCelda(-1, c, el as Element | null)"
                     scope="col"
-                    class="rq-th-semana"
+                    class="sticky top-4.5 z-4 h-8.5 cursor-pointer border-b bg-muted px-0.5 text-center focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                     :class="[
-                      columnaClases(s, c),
-                      { 'rq-parcial': s.parcial, 'rq-mes-inicio': esInicioMes(c) },
+                      TINTE_HOVER_PRIMARIO,
+                      hoverCol === c && 'from-primary/8 to-primary/8',
+                      s.es_actual && 'border-t-2 border-t-primary',
+                      s.parcial && 'border-dashed',
+                      esInicioMes(c) && 'border-l',
                     ]"
                     :tabindex="foco.fila === -1 && foco.col === c ? 0 : -1"
                     :aria-label="`Abrir semana ${s.numero}, ${s.rango_label}`"
@@ -983,8 +1042,16 @@ defineExpose({ enfocarMetrica })
                     @focus="onFocoCelda(-1, c)"
                     @mouseenter="hoverCol = c"
                   >
-                    <span class="rq-th-num">{{ s.etiqueta || `S${s.numero}` }}</span>
-                    <small class="rq-th-rango">{{ s.rango_label }}</small>
+                    <span
+                      class="block text-xs leading-3 font-extrabold"
+                      :class="s.es_futura && 'text-muted-foreground opacity-70'"
+                      >{{ s.etiqueta || `S${s.numero}` }}</span
+                    >
+                    <small
+                      class="block text-xs leading-3 whitespace-nowrap text-muted-foreground"
+                      :class="s.es_futura && 'opacity-70'"
+                      >{{ s.rango_label }}</small
+                    >
                   </th>
                 </GTooltipTrigger>
                 <GTooltipContent>{{ tooltipSemana(s) }}</GTooltipContent>
@@ -999,32 +1066,29 @@ defineExpose({ enfocarMetrica })
             :key="m.id"
             :data-metrica-id="m.id"
             class="group/fila"
-            :class="{
-              'rq-fila-inactiva opacity-50': m.activa === false,
-              'rq-fila-hover': hoverFila === r,
-            }"
+            :class="{ 'opacity-50': m.activa === false }"
             @mouseenter="hoverFila = r"
           >
             <!-- columna de métrica (sticky izquierda) -->
             <th
               scope="row"
-              class="group/metrica rq-sticky-l rq-td-metrica h-9.5 border-b pr-1 pl-2.5 text-left font-normal"
+              class="group/metrica sticky left-0 z-3 h-9.5 border-r border-b bg-background pr-1 pl-2.5 text-left font-normal"
+              :class="hoverFila === r && 'bg-linear-to-r from-foreground/3 to-foreground/3'"
             >
               <div class="flex items-center gap-1">
                 <div class="flex min-w-0 flex-1 flex-col justify-center">
-                  <span class="truncate text-xs leading-4 font-semibold" :title="m.nombre">
+                  <TruncatedText :text="m.nombre" class="text-xs leading-4 font-semibold">
                     {{ m.nombre }}
                     <span
                       v-if="m.activa === false"
                       class="ml-1 rounded-full bg-foreground/5 px-1.25 text-xs font-bold text-muted-foreground"
                       >Inactiva</span
                     >
-                  </span>
-                  <span
-                    class="truncate text-xs leading-3 text-muted-foreground"
-                    :title="metaLinea(m)"
-                    >{{ metaLinea(m) }}</span
-                  >
+                  </TruncatedText>
+                  <TruncatedText
+                    :text="metaLinea(m)"
+                    class="text-xs leading-3 text-muted-foreground"
+                  />
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger as-child>
@@ -1058,21 +1122,13 @@ defineExpose({ enfocarMetrica })
               v-for="(s, c) in semanasVisibles"
               :key="`${m.id}-${s.inicio}`"
               class="relative h-9.5 border-b p-0"
-              :class="[
-                columnaClases(s, c),
-                estadoCelda(m, s),
-                {
-                  'rq-cell-hover': hoverCol === c && hoverFila === r,
-                  'rq-cell-foco': activa && foco.fila === r && foco.col === c,
-                  'rq-cell-editando': !!editando && editando.r === r && editando.c === c,
-                  'rq-mes-inicio': esInicioMes(c),
-                },
-              ]"
+              :class="claseCelda(m, s, r, c)"
               @mouseenter="onHoverCelda(r, c)"
             >
               <div
                 :ref="(el) => setCelda(r, c, el as Element | null)"
-                class="rq-cell-inner relative flex h-9.5 cursor-cell items-center justify-end gap-0.75 px-2 text-right text-xs tabular-nums outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                class="relative flex h-9.5 items-center justify-end gap-0.75 px-2 text-right text-xs tabular-nums outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+                :class="m.activa === false ? 'cursor-default' : 'cursor-cell'"
                 :tabindex="foco.fila === r && foco.col === c ? 0 : -1"
                 :aria-label="ariaCelda(m, s)"
                 @focus="onFocoCelda(r, c)"
@@ -1104,7 +1160,7 @@ defineExpose({ enfocarMetrica })
                     class="mx-auto text-sm text-muted-foreground opacity-60"
                     >·</span
                   >
-                  <span v-else class="rq-num truncate">{{
+                  <span v-else class="truncate" :class="claseNum(m, s, r, c)">{{
                     fmtNumero(valorDe(m, s), m.decimales)
                   }}</span>
                 </template>
@@ -1126,25 +1182,30 @@ defineExpose({ enfocarMetrica })
                   </GTooltipTrigger>
                   <GTooltipContent>{{ errores[clave(m, s)] }}</GTooltipContent>
                 </GTooltip>
-                <span v-if="estados[clave(m, s)] === 'guardando'" class="rq-progress" />
+                <span
+                  v-if="estados[clave(m, s)] === 'guardando'"
+                  class="rq-progress absolute inset-x-0 bottom-0 h-0.5"
+                />
               </div>
             </td>
 
             <!-- columnas finales (sticky derecha, §5.6) -->
             <td
-              class="rq-res rq-sticky-r-3 px-2.5 text-right text-xs font-bold tabular-nums transition-colors duration-300 ease-out motion-reduce:transition-none"
+              class="sticky right-36.5 z-3 h-9.5 border-b border-l bg-background bg-linear-to-r from-muted/40 to-muted/40 px-2.5 text-right text-xs font-bold tabular-nums transition-colors duration-300 ease-out motion-reduce:transition-none"
               :class="{ 'text-primary': pulsos[m.id] }"
             >
               {{ fmtNumero(m.consolidado, m.decimales) ?? '—' }}
             </td>
             <td
-              class="rq-res rq-sticky-r-2 px-2.5 text-right text-xs text-muted-foreground tabular-nums"
+              class="sticky right-17 z-3 h-9.5 border-b bg-background bg-linear-to-r from-muted/40 to-muted/40 px-2.5 text-right text-xs text-muted-foreground tabular-nums"
             >
               {{ fmtNumero(m.meta, m.decimales) ?? '—' }}
             </td>
             <GTooltip>
               <GTooltipTrigger as-child>
-                <td class="rq-res rq-sticky-r-1 px-1.5 text-center">
+                <td
+                  class="sticky right-0 z-3 h-9.5 border-b bg-background bg-linear-to-r from-muted/40 to-muted/40 px-1.5 text-center"
+                >
                   <span
                     class="block text-xs font-extrabold text-(--c) tabular-nums"
                     :style="{ '--c': estadoColor(m.estado) }"
@@ -1173,18 +1234,18 @@ defineExpose({ enfocarMetrica })
 
         <!-- ── Llenado (§5.7) ─────────────────────────────────────────────── -->
         <tfoot>
-          <tr class="rq-llenado">
+          <tr>
             <th
               scope="row"
-              class="rq-sticky-l px-2.5 text-left text-xs font-bold tracking-wider text-muted-foreground uppercase"
+              class="sticky left-0 z-3 h-7.5 border-t border-r bg-muted px-2.5 text-left text-xs font-bold tracking-wider text-muted-foreground uppercase"
             >
               Llenado
             </th>
             <td
               v-for="(s, c) in semanasVisibles"
               :key="`f${s.numero}`"
-              class="rq-llenado-td cursor-pointer px-1 text-center"
-              :class="{ 'rq-mes-inicio': esInicioMes(c) }"
+              class="h-7.5 cursor-pointer border-t bg-muted px-1 text-center"
+              :class="[TINTE_HOVER_PRIMARIO, esInicioMes(c) && 'border-l']"
               @click="emit('abrir-semana', s)"
             >
               <span
@@ -1202,9 +1263,9 @@ defineExpose({ enfocarMetrica })
                 />
               </span>
             </td>
-            <td class="rq-sticky-r-3" />
-            <td class="rq-sticky-r-2" />
-            <td class="rq-sticky-r-1" />
+            <td class="sticky right-36.5 z-3 h-7.5 border-t border-l bg-muted" />
+            <td class="sticky right-17 z-3 h-7.5 border-t bg-muted" />
+            <td class="sticky right-0 z-3 h-7.5 border-t bg-muted" />
           </tr>
         </tfoot>
       </table>
@@ -1217,183 +1278,11 @@ defineExpose({ enfocarMetrica })
 
 <style scoped>
 /*
- * Todo el color de fondo pasa por --rq-bg. Con `position: sticky` las celdas se
- * superponen, así que ninguna puede quedar transparente; y así el orden de las
- * reglas (todas de una clase) define la prioridad sin peleas de especificidad.
- * Esa cascada, los sticky y los estados de celda son lo que se queda aquí.
+ * Lo único que Tailwind no expresa: el gradiente animado de la barra de
+ * guardado (dos paradas centrales + background-size) y el flash de guardado,
+ * que anima background-color con un color-mix.
  */
-.rq-matriz th,
-.rq-matriz td {
-  background: var(--rq-bg, var(--background));
-}
-
-/* banda de mes */
-.rq-meses th {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  height: 18px;
-  --rq-bg: var(--muted);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
-  text-align: center;
-}
-/* fila de semanas */
-.rq-semanas th {
-  position: sticky;
-  top: 18px;
-  z-index: 4;
-  height: 34px;
-  --rq-bg: var(--muted);
-  border-bottom: 1px solid var(--border);
-  padding: 0 2px;
-}
-
-.rq-sticky-l {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  box-shadow: 1px 0 0 var(--border);
-}
-.rq-sticky-r-1 {
-  position: sticky;
-  right: 0;
-  z-index: 3;
-}
-.rq-sticky-r-2 {
-  position: sticky;
-  right: 68px;
-  z-index: 3;
-}
-.rq-sticky-r-3 {
-  position: sticky;
-  right: 146px;
-  z-index: 3;
-  box-shadow: -1px 0 0 var(--border);
-}
-
-thead .rq-sticky-l,
-thead .rq-sticky-r-1,
-thead .rq-sticky-r-2,
-thead .rq-sticky-r-3 {
-  z-index: 6;
-  --rq-bg: var(--muted);
-}
-
-.rq-esquina {
-  text-align: left;
-  vertical-align: bottom;
-  padding: 0 10px 5px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted-foreground);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.rq-mes-inicio {
-  border-left: 1px solid var(--border);
-}
-
-/* ── Encabezado de semana ──────────────────────────────────────────────── */
-.rq-th-semana {
-  cursor: pointer;
-  text-align: center;
-  line-height: 1.05;
-}
-.rq-th-semana:hover,
-.rq-th-semana.rq-col-hover {
-  --rq-bg: color-mix(in oklab, var(--primary) 8%, var(--muted));
-}
-.rq-th-semana:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
-}
-.rq-th-num {
-  display: block;
-  font-size: 11px;
-  font-weight: 800;
-}
-.rq-th-rango {
-  display: block;
-  font-size: 9px;
-  font-weight: 400;
-  color: var(--muted-foreground);
-  white-space: nowrap;
-}
-.rq-th-semana.rq-col-futura .rq-th-num,
-.rq-th-semana.rq-col-futura .rq-th-rango {
-  color: var(--muted-foreground);
-  opacity: 0.7;
-}
-.rq-th-semana.rq-col-actual {
-  border-top: 2px solid var(--primary);
-}
-.rq-th-semana.rq-parcial {
-  border-bottom: 1px dashed var(--border);
-}
-
-/* ── Fondos por estado ─────────────────────────────────────────────────── */
-.rq-td-metrica {
-  --rq-bg: var(--background);
-}
-tr.rq-fila-hover .rq-td-metrica {
-  --rq-bg: color-mix(in oklab, var(--foreground) 3%, var(--background));
-}
-.rq-fila-inactiva .rq-cell-inner {
-  cursor: default;
-}
-
-/* Prioridad de fondo, de menor a mayor: el orden de estas reglas ES la regla. */
-tr.rq-fila-hover {
-  --rq-bg: color-mix(in oklab, var(--foreground) 2.5%, var(--background));
-}
-.rq-col-actual {
-  --rq-bg: color-mix(in oklab, var(--primary) 4.5%, var(--background));
-}
-.rq-col-futura {
-  --rq-bg: color-mix(in oklab, var(--muted) 60%, var(--background));
-}
-.rq-cell-hover {
-  --rq-bg: color-mix(in oklab, var(--primary) 6%, var(--background));
-}
-.rq-cell-guardando {
-  --rq-bg: color-mix(in oklab, var(--primary) 5%, var(--background));
-}
-.rq-cell-foco {
-  --rq-bg: var(--background);
-}
-.rq-cell-editando {
-  --rq-bg: var(--background);
-  box-shadow: inset 0 0 0 2px var(--primary);
-  z-index: 2;
-}
-.rq-cell-error {
-  --rq-bg: color-mix(in oklab, var(--destructive) 7%, var(--background));
-  box-shadow: inset 0 0 0 2px var(--destructive);
-}
-
-/* El valor cambia de color según el estado de la celda (columna futura, foco, inusual). */
-.rq-col-futura .rq-num {
-  color: var(--muted-foreground);
-  opacity: 0.7;
-}
-.rq-cell-foco .rq-num {
-  opacity: 1;
-}
-.rq-cell-inusual .rq-num {
-  color: var(--warning);
-}
-
 .rq-progress {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
   background: linear-gradient(
     90deg,
     transparent 0%,
@@ -1424,22 +1313,6 @@ tr.rq-fila-hover {
   100% {
     background-color: transparent;
   }
-}
-
-/* ── Columnas de resultado y llenado ───────────────────────────────────── */
-.rq-res {
-  --rq-bg: color-mix(in oklab, var(--muted) 40%, var(--background));
-  height: 38px;
-  border-bottom: 1px solid var(--border);
-}
-.rq-llenado th,
-.rq-llenado td {
-  --rq-bg: var(--muted);
-  border-top: 1px solid var(--border);
-  height: 30px;
-}
-.rq-llenado-td:hover {
-  --rq-bg: color-mix(in oklab, var(--primary) 8%, var(--muted));
 }
 
 @media (prefers-reduced-motion: reduce) {
