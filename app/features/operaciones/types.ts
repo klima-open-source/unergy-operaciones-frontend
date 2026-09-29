@@ -49,6 +49,8 @@ export interface RespuestaGeneracionLegacy {
     p50_monthly?: number | null
     /** P90 a nivel diario (no mensual) — usado para la línea de referencia del gráfico diario. */
     p90_daily?: number | null
+    /** Los 12 valores mensuales de P90 (kWh del mes) — meta de `GeneracionView.vue`. */
+    curva_p90_kwh?: (number | null)[]
     [clave: string]: unknown
   }
   /**
@@ -57,6 +59,8 @@ export interface RespuestaGeneracionLegacy {
    * tiene ninguna, el backend cae a las crudas. No son el mismo dato.
    */
   fuente?: 'verificada' | 'cruda' | 'sin_datos'
+  /** Motivo de `ok === false` — `GeneracionView.vue` lo muestra en el error del proyecto. */
+  error?: string
   [clave: string]: unknown
 }
 

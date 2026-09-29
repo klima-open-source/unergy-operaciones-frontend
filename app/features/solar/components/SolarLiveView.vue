@@ -132,7 +132,10 @@
         @end="saveOrder"
       >
         <template #item="{ element: proy }">
-          <div v-show="matchesFiltro(proy)" :ref="(el) => observarTarjeta(el, proy.proyecto_id)">
+          <div
+            v-show="matchesFiltro(proy)"
+            :ref="(el) => observarTarjeta(el as Element | null, proy.proyecto_id)"
+          >
             <Card size="sm">
               <CardContent class="flex flex-col gap-3">
                 <!-- Nombre + estado -->
@@ -178,7 +181,6 @@
                       "
                     >
                       {{ getDiffPct(proy.proyecto_id)! > 0 ? '+' : ''
-
                       }}{{ getDiffPct(proy.proyecto_id) }}%
                     </span>
                   </div>
@@ -281,7 +283,7 @@
                         <div v-if="panelesMedidor[proy.proyecto_id]!.chart" class="relative h-45">
                           <Line
                             :key="'med-' + proy.proyecto_id"
-                            :data="panelesMedidor[proy.proyecto_id]!.chart"
+                            :data="panelesMedidor[proy.proyecto_id]!.chart!"
                             :options="chartOptionsMed(proy.proyecto_id)"
                             :plugins="[crosshairPlugin]"
                           />
@@ -362,7 +364,7 @@
                       <div
                         class="h-full rounded-full transition-all duration-500"
                         :class="
-                          getGenHoy(proy.proyecto_id).pct >= 100
+                          getGenHoy(proy.proyecto_id).pct! >= 100
                             ? 'bg-success'
                             : getGenHoy(proy.proyecto_id).real > 0
                               ? 'bg-primary/40'
@@ -399,7 +401,9 @@
   <!-- /root -->
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Chart, ChartOptions, Plugin } from 'chart.js'
+import type { Component } from 'vue'
 import { ref, reactive, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import {
   Chart as ChartJS,
@@ -428,6 +432,7 @@ import {
   inverterSeries,
   meterSeries,
 } from '~/features/solar/serieSolar'
+import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
 import {
   ChartLineIcon,
   ClockIcon,
@@ -459,21 +464,32 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const STORAGE_KEY = 'solar_project_order'
 
 // ── Tab ────────────────────────────────────────────────────────────────────
-const tab = ref('live')
+const tab = ref<'live' | 'hist'>('live')
+
+// ── Columnas del grid ──────────────────────────────────────────────────────
+type ColumnasGrid = 1 | 2 | 4
+interface OpcionColumnas {
+  value: ColumnasGrid
+  icon: Component
+}
+const OPCIONES_COLUMNAS: OpcionColumnas[] = [
+  { value: 1, icon: LayoutListIcon },
+  { value: 2, icon: Columns2Icon },
+  { value: 4, icon: Columns4Icon },
+]
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const loading = ref(false)
-const proyectos = ref([])
-const detailMap = reactive({})
+const proyectos = ref<ProyectoMonitoreoSolar[]>([])
+const detailMap = reactive<Record<number, DetalleMonitoreoSolar>>({})
 const lastUpdated = ref('')
-const cols = ref(1)
-const COLUMNAS_ICONS = { 1: LayoutListIcon, 2: Columns2Icon, 4: Columns4Icon }
-let refreshTimer = null
+const cols = ref<ColumnasGrid>(1)
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 // ── Filtro por proyecto ────────────────────────────────────────────────────
 const filtro = ref('')
 
-function matchesFiltro(proy) {
+function matchesFiltro(proy: ProyectoMonitoreoSolar): boolean {
   const q = filtro.value.trim().toLowerCase()
   if (!q) return true
   return (proy.nombre || '').toLowerCase().includes(q)
@@ -490,7 +506,7 @@ const sinCoincidencias = computed(
 // proyectos (~188, con las cinco relaciones anidadas del serializer de
 // /proyectos) para leer un array de 12 numeros de las ~47 plantas que muestra.
 // Era la peticion mas pesada de la pantalla y existia solo para eso.
-function dailyP90(proyectoId) {
+function dailyP90(proyectoId: number): number {
   const p = proyectos.value.find((x) => x.proyecto_id === proyectoId)
   return p?.p90_diario_kwh ?? 0
 }
@@ -507,17 +523,25 @@ function dailyP90(proyectoId) {
  * El criterio de la fuente es el mismo que usaba el backend: mandan los
  * inversores y el medidor es el respaldo cuando dan cero.
  */
-function getGenHoy(id) {
+type FuenteGenHoy = 'inversor' | 'medidor' | 'sin_dato'
+interface GeneracionHoyResultado {
+  real: number
+  p90: number
+  fuente: FuenteGenHoy
+  pct: number | null
+}
+
+function getGenHoy(id: number): GeneracionHoyResultado {
   const d = detailMap[id]
   const inv = acumuladoInversores(d)
   const med = acumuladoMedidor(d)
 
   let real = 0
-  let fuente = 'sin_dato'
-  if (inv > 0) {
+  let fuente: FuenteGenHoy = 'sin_dato'
+  if (inv != null && inv > 0) {
     real = inv
     fuente = 'inversor'
-  } else if (med > 0) {
+  } else if (med != null && med > 0) {
     real = med
     fuente = 'medidor'
   }
@@ -530,15 +554,19 @@ function getGenHoy(id) {
 
 // ── Auto-refresh ───────────────────────────────────────────────────────────
 const AUTO_KEY = 'solar_auto_refresh'
-const autoOptions = [
+interface OpcionAutoRefresh {
+  ms: number
+  label: string
+}
+const autoOptions: OpcionAutoRefresh[] = [
   { ms: 60000, label: '1 min' },
   { ms: 300000, label: '5 min' },
   { ms: 900000, label: '15 min' },
   { ms: 1800000, label: '30 min' },
 ]
-const autoInterval = ref(parseInt(localStorage.getItem(AUTO_KEY) || '0'))
+const autoInterval = ref<number>(parseInt(localStorage.getItem(AUTO_KEY) || '0'))
 
-function setAuto(ms) {
+function setAuto(ms: number): void {
   autoInterval.value = ms
   localStorage.setItem(AUTO_KEY, String(ms))
   if (refreshTimer) clearInterval(refreshTimer)
@@ -552,6 +580,11 @@ const STATUS_COLORS = {
   sin_comunicacion: '#9ca3af',
   sin_datos: '#d1d5db',
   offline: '#d1d5db',
+}
+
+/** Color de fondo del punto de estado de una tarjeta, `#9ca3af` si no se reconoce. */
+function statusColor(status: string | undefined): string {
+  return (status ? STATUS_COLORS[status as keyof typeof STATUS_COLORS] : undefined) || '#9ca3af'
 }
 
 // ── Resumen de estado ──────────────────────────────────────────────────────
@@ -568,29 +601,37 @@ const STATUS_META = {
   offline: { label: 'Offline', color: 'default' },
 }
 
+/** Etiqueta/color de una tarjeta, cae a `offline` si el estado no se reconoce. */
+function statusMeta(status: string | undefined): { label: string; color: string } {
+  return (
+    (status ? STATUS_META[status as keyof typeof STATUS_META] : undefined) || STATUS_META.offline
+  )
+}
+
 const resumenEstados = computed(() => {
-  const counts = {}
+  const counts: Partial<Record<keyof typeof STATUS_META, number>> = {}
   for (const p of proyectos.value) {
-    const key = p.status in STATUS_META ? p.status : 'offline'
+    const key: keyof typeof STATUS_META =
+      p.status && p.status in STATUS_META ? (p.status as keyof typeof STATUS_META) : 'offline'
     counts[key] = (counts[key] || 0) + 1
   }
-  return Object.keys(STATUS_META)
+  return (Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
     .filter((key) => counts[key])
-    .map((key) => ({ key, count: counts[key], ...STATUS_META[key] }))
+    .map((key) => ({ key, count: counts[key] as number, ...STATUS_META[key] }))
 })
 
 // ── Orden persistido ───────────────────────────────────────────────────────
-function saveOrder() {
+function saveOrder(): void {
   const order = proyectos.value.map((p) => p.proyecto_id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(order))
 }
 
-function applyOrder(list) {
+function applyOrder(list: ProyectoMonitoreoSolar[]): ProyectoMonitoreoSolar[] {
   try {
-    const order = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const order: number[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
     if (!order.length) return list
     const map = Object.fromEntries(list.map((p) => [p.proyecto_id, p]))
-    const sorted = order.map((id) => map[id]).filter(Boolean)
+    const sorted = order.map((id) => map[id]).filter((p): p is ProyectoMonitoreoSolar => !!p)
     const rest = list.filter((p) => !order.includes(p.proyecto_id))
     return [...sorted, ...rest]
   } catch {
@@ -599,11 +640,15 @@ function applyOrder(list) {
 }
 
 // ── Crosshair plugin ───────────────────────────────────────────────────────
-const crosshairPlugin = {
+const crosshairPlugin: Plugin<'line'> = {
   id: 'crosshair',
-  afterDraw(chart) {
-    if (!chart.tooltip?._active?.length) return
-    const x = chart.tooltip._active[0].element.x
+  afterDraw(chart: Chart) {
+    // `_active` es interno de Chart.js (no está en el tipo público `TooltipModel`),
+    // pero es el único lugar donde vive qué punto está activo bajo el cursor.
+    const tooltip = chart.tooltip as unknown as
+      { _active?: { element: { x: number } }[] } | undefined
+    if (!tooltip?._active?.length) return
+    const x = tooltip._active[0]!.element.x
     const {
       ctx,
       chartArea: { top, bottom },
@@ -625,7 +670,23 @@ const crosshairPlugin = {
 // configuracion de Chart.js, que si es propia del escritorio. Antes esta funcion
 // repetia el bucketeo literalmente -- el mismo copiar-pegar que hizo divergir
 // las dos vistas dos veces esta semana.
-function getInversorData(id) {
+interface CurvaChartDataset {
+  label: string
+  data: (number | null)[]
+  borderColor: string
+  backgroundColor: string
+  fill: boolean
+  tension: number
+  pointRadius: number
+  borderWidth: number
+  spanGaps: boolean
+}
+interface CurvaChartData {
+  labels: string[]
+  datasets: CurvaChartDataset[]
+}
+
+function getInversorData(id: number): CurvaChartData {
   const data = inverterSeries(detailMap[id])
   if (!data) return { labels: [], datasets: [] }
   return {
@@ -653,13 +714,20 @@ function getInversorData(id) {
 // nada: se formatea. Antes esto eran seis funciones sueltas y una septima que
 // re-elegia el medidor con un criterio duplicado del backend (2026-09-03).
 // Se calcula una vez por proyecto y no en cada interpolacion del template.
-const panelesMedidor = computed(() =>
+interface PanelMedidor {
+  tipo: string | null
+  energiaKwh: number | null
+  energiaHasta: string | null
+  chart: CurvaChartData | null
+}
+
+const panelesMedidor = computed<Record<number, PanelMedidor | null>>(() =>
   Object.fromEntries(
     (proyectos.value ?? []).map((p) => [p.proyecto_id, medidorPanel(p.proyecto_id)]),
   ),
 )
 
-function medidorPanel(id) {
+function medidorPanel(id: number): PanelMedidor | null {
   const d = detailMap[id]
   const m = d?.medidor
   if (!m) return null
@@ -695,7 +763,7 @@ function medidorPanel(id) {
 // vista los descartaba, en una pestana cuyo proposito es el tiempo real.
 
 // ── % diferencia ─────────────────────────────────────────────────────────
-function getDiffPct(id) {
+function getDiffPct(id: number): number | null {
   const inv = acumuladoInversores(detailMap[id])
   const med = medidorPanel(id)?.energiaKwh ?? null
   if (inv == null || med == null || med === 0) return null
@@ -703,7 +771,7 @@ function getDiffPct(id) {
 }
 
 // ── Chart options ─────────────────────────────────────────────────────────
-function makeOptions(color, maxY) {
+function makeOptions(color: string, maxY: number | undefined): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -745,10 +813,10 @@ function makeOptions(color, maxY) {
 // distintas pueden verse "igual de altas" aunque haya una diferencia real
 // grande (ej. +44%). Con un máximo compartido, la diferencia se ve a simple
 // vista en vez de quedar escondida por el autoescalado independiente.
-function getChartMax(id) {
+function getChartMax(id: number): number | undefined {
   const invValores = getInversorData(id).datasets?.[0]?.data ?? []
   const medValores = medidorPanel(id)?.chart?.datasets?.[0]?.data ?? []
-  const valores = [...invValores, ...medValores].filter((v) => v != null)
+  const valores = [...invValores, ...medValores].filter((v): v is number => v != null)
   if (!valores.length) return undefined
   const max = Math.max(...valores)
   // Redondeado al múltiplo de 50 más cercano, +10% de aire para que el pico
@@ -756,10 +824,10 @@ function getChartMax(id) {
   return Math.ceil((max * 1.1) / 50) * 50
 }
 
-function chartOptionsInv(id) {
+function chartOptionsInv(id: number): ChartOptions<'line'> {
   return makeOptions('#915BD8', getChartMax(id))
 }
-function chartOptionsMed(id) {
+function chartOptionsMed(id: number): ChartOptions<'line'> {
   return makeOptions('#D4A017', getChartMax(id))
 }
 
@@ -773,10 +841,10 @@ function chartOptionsMed(id) {
 // El esqueleto por tarjeta ("Cargando datos...") ya existia, asi que las que
 // aun no llegaron no se ven rotas: se ven cargando, que es lo que estan.
 
-const tarjetasVisibles = new Set()
-const idDeTarjeta = new WeakMap()
-const detalleEnVuelo = new Set()
-let observador = null
+const tarjetasVisibles = new Set<number>()
+const idDeTarjeta = new WeakMap<Element, number>()
+const detalleEnVuelo = new Set<number>()
+let observador: IntersectionObserver | null = null
 
 /** Un poco antes de que entre: para cuando el usuario llega, ya esta. */
 const MARGEN_PRECARGA = '400px'
@@ -789,17 +857,17 @@ const MARGEN_PRECARGA = '400px'
  * anchos de columna que ofrece el selector, y el observador se encarga del
  * resto apenas se pinta.
  */
-function tamanoPrimeraOla() {
+function tamanoPrimeraOla(): number {
   return Math.min(12, Math.max(4, cols.value * 3))
 }
 
-function observarTarjeta(el, id) {
+function observarTarjeta(el: Element | null, id: number): void {
   if (!el) return
   idDeTarjeta.set(el, id)
   observador?.observe(el) // observar dos veces el mismo nodo no hace nada
 }
 
-function alCambiarVisibilidad(entradas) {
+function alCambiarVisibilidad(entradas: IntersectionObserverEntry[]): void {
   for (const entrada of entradas) {
     const id = idDeTarjeta.get(entrada.target)
     if (id == null) continue
@@ -813,7 +881,7 @@ function alCambiarVisibilidad(entradas) {
 }
 
 // ── Carga ─────────────────────────────────────────────────────────────────
-async function cargar() {
+async function cargar(): Promise<void> {
   loading.value = true
   try {
     const res = await generacionSolarService.obtenerMonitoreo()
@@ -856,7 +924,7 @@ async function cargar() {
  * dispara cada vez que entra y sale de pantalla, y sin esta guarda scrollear
  * arriba y abajo pedia lo mismo una y otra vez.
  */
-async function loadDetail(id, refrescar = false) {
+async function loadDetail(id: number, refrescar = false): Promise<void> {
   if (!refrescar && detailMap[id] !== undefined) return
   if (detalleEnVuelo.has(id)) return
   detalleEnVuelo.add(id)

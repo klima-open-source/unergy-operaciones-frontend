@@ -689,13 +689,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { Component } from 'vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
+import { normalizeError } from '~/core/errors'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { useRouter } from 'vue-router'
 import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
+import type { Falla } from '~/features/fallas/types'
+import type {
+  ProyectoMonitoreoLegacy,
+  RespuestaGeneracionLegacy,
+} from '~/features/operaciones/types'
 import {
   CalendarClockIcon,
   CalendarIcon,
