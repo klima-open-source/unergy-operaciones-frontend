@@ -66,7 +66,7 @@ function onSelectNotificacion(e: Event, n: Notificacion) {
       </Button>
     </DropdownMenuTrigger>
 
-    <DropdownMenuContent class="w-80" align="end">
+    <DropdownMenuContent class="max-w-sm min-w-72" align="end">
       <div class="flex items-center justify-between px-2 py-1.5">
         <span class="text-sm font-semibold">Notificaciones</span>
         <button
