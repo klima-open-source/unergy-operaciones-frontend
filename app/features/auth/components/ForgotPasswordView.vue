@@ -26,7 +26,7 @@
             <div
               class="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10"
             >
-              <CheckIcon class="size-[1em] text-2xl text-success" />
+              <CheckIcon class="size-6 text-success" />
             </div>
             <p class="text-sm text-unergy-deep">
               Si existe una cuenta con <strong>{{ email }}</strong
@@ -54,7 +54,7 @@
                 type="email"
                 placeholder="tu@unergy.io"
                 required
-                class="w-full rounded-lg border-[1.5px] border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
+                class="w-full rounded-lg border border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
               />
             </div>
 
@@ -64,7 +64,7 @@
               class="mt-2 w-full rounded-lg bg-unergy-purple py-3 text-sm font-bold tracking-wide text-unergy-avena transition-all enabled:hover:bg-unergy-purple-dark disabled:opacity-60"
             >
               <span v-if="loading" class="flex items-center justify-center gap-2">
-                <LoaderCircleIcon class="size-[1em] animate-spin text-xs" />
+                <LoaderCircleIcon class="size-3 animate-spin" />
                 Enviando...
               </span>
               <span v-else>Enviar enlace</span>
