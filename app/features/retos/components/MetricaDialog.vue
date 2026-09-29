@@ -213,7 +213,7 @@ function enviar() {
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <GLabel>Decimales</GLabel>
-            <NumberField v-model="f.decimales" :min="0" :max="4" class="w-28">
+            <NumberField v-model="f.decimales" :min="0" :max="4">
               <NumberFieldContent>
                 <NumberFieldDecrement />
                 <NumberFieldInput />

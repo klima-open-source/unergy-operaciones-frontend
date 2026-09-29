@@ -629,8 +629,8 @@ async function exportarExcel() {
       <div v-else-if="!errorCarga" class="flex items-center gap-2.5">
         <Skeleton class="size-10 rounded-xl" />
         <div class="min-w-0 flex-1">
-          <Skeleton class="h-4.5 w-55" />
-          <Skeleton class="mt-2 h-3 w-80" />
+          <Skeleton class="h-4.5 w-full max-w-56" />
+          <Skeleton class="mt-2 h-3 w-full max-w-xs" />
         </div>
       </div>
     </div>
