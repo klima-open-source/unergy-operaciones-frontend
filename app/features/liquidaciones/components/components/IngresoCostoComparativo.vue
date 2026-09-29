@@ -100,36 +100,36 @@ const kpis = computed<Kpi[]>(() => {
       value: generado.actual,
       kwh: true,
       delta: delta(generado.actual, generado.promedio),
-      color: '#6E3FB8',
-      bg: '#f4f1fa',
+      color: 'var(--primary)',
+      bg: 'color-mix(in oklab, var(--primary) 10%, transparent)',
     },
     {
       label: 'Ingresos',
       value: a.ingresos,
       delta: delta(a.ingresos, p?.ingresos),
-      color: '#15803d',
-      bg: '#ecfdf3',
+      color: 'var(--success)',
+      bg: 'color-mix(in oklab, var(--success) 10%, transparent)',
     },
     {
       label: 'Costos totales',
       value: costosTot,
       delta: delta(costosTot, costosTotProm),
-      color: '#b3324a',
-      bg: '#fef2f3',
+      color: 'var(--destructive)',
+      bg: 'color-mix(in oklab, var(--destructive) 10%, transparent)',
     },
     {
       label: 'Ingreso neto',
       value: a.neto,
       delta: delta(a.neto, p?.neto),
-      color: '#915BD8',
-      bg: '#faf7ff',
+      color: 'var(--primary)',
+      bg: 'color-mix(in oklab, var(--primary) 10%, transparent)',
     },
     {
       label: 'Margen',
       value: a.ingresos ? (a.neto / a.ingresos) * 100 : 0,
       delta: null,
-      color: '#6E3FB8',
-      bg: '#faf7ff',
+      color: 'var(--primary)',
+      bg: 'color-mix(in oklab, var(--primary) 10%, transparent)',
       pct: true,
     },
   ]
@@ -309,7 +309,7 @@ onMounted(cargar)
     <div class="flex items-center gap-2 border-b px-3 py-2">
       <ChartColumnIcon class="size-4 text-primary" />
       <h3 class="text-sm font-bold text-foreground">Este mes vs promedio del proyecto</h3>
-      <span v-if="mesesHist" class="ml-auto text-[10px] text-muted-foreground"
+      <span v-if="mesesHist" class="ml-auto text-xs text-muted-foreground"
         >promedio de {{ mesesHist }} mes(es) anteriores</span
       >
     </div>
@@ -319,11 +319,19 @@ onMounted(cargar)
     <div v-else-if="actual" class="p-3">
       <!-- KPIs del mes actual + variación vs promedio -->
       <div class="grid grid-cols-2 gap-2 md:grid-cols-5" :class="showChart ? 'mb-3' : ''">
-        <div v-for="k in kpis" :key="k.label" class="rounded-lg p-2" :style="{ background: k.bg }">
-          <p class="text-[10px] font-semibold tracking-wide uppercase" :style="{ color: k.color }">
+        <div
+          v-for="k in kpis"
+          :key="k.label"
+          class="rounded-lg bg-(--bg) p-2"
+          :style="{ '--bg': k.bg }"
+        >
+          <p
+            class="text-xs font-semibold tracking-wide text-(--c) uppercase"
+            :style="{ '--c': k.color }"
+          >
             {{ k.label }}
           </p>
-          <p class="text-sm font-bold tabular-nums" :style="{ color: k.color }">
+          <p class="text-sm font-bold text-(--c) tabular-nums" :style="{ '--c': k.color }">
             {{
               k.value == null
                 ? '—'
@@ -336,7 +344,7 @@ onMounted(cargar)
           </p>
           <p
             v-if="k.delta != null"
-            class="text-[10px] font-medium"
+            class="text-xs font-medium"
             :class="k.delta >= 0 ? 'text-success' : 'text-destructive'"
           >
             {{ k.delta >= 0 ? '▲' : '▼' }} {{ Math.abs(k.delta).toFixed(0) }}% vs prom.
@@ -344,7 +352,7 @@ onMounted(cargar)
         </div>
       </div>
 
-      <div v-if="showChart" style="height: 240px">
+      <div v-if="showChart" class="h-60">
         <Bar :data="chartData" :options="chartOptions" />
       </div>
     </div>

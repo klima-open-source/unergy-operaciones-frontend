@@ -138,7 +138,7 @@ const grupos = computed<GrupoConsolidado[]>(() => {
     <div class="flex items-center gap-2 border-b px-3 py-2">
       <UsersIcon class="size-4 text-primary" />
       <h3 class="text-sm font-bold text-foreground">Estado de Resultados por inversionista</h3>
-      <span class="ml-auto text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+      <span class="ml-auto text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         Espejo del Panel Contable
       </span>
     </div>
@@ -148,26 +148,25 @@ const grupos = computed<GrupoConsolidado[]>(() => {
         <thead>
           <tr class="bg-muted/40">
             <th
-              class="sticky left-0 z-10 min-w-[160px] bg-muted/40 px-3 py-1.5 text-left text-[10px] font-bold tracking-wide text-primary uppercase"
+              class="sticky left-0 z-10 min-w-40 bg-muted/40 px-3 py-1.5 text-left text-xs font-bold tracking-wide text-primary uppercase"
             >
               Concepto
             </th>
             <th
               v-for="c in columnas"
               :key="c.id"
-              class="px-3 py-1.5 text-right align-bottom whitespace-nowrap"
+              class="min-w-27 px-3 py-1.5 text-right align-bottom whitespace-nowrap"
               :class="c.es_total ? 'bg-primary/5' : 'bg-muted/40'"
-              style="min-width: 108px"
             >
               <div class="flex flex-col items-end gap-0.5">
                 <span
-                  class="max-w-[160px] truncate font-bold"
+                  class="max-w-40 truncate font-bold"
                   :class="c.es_total ? 'text-primary' : 'text-foreground'"
                   :title="c.nombre"
                 >
                   {{ c.nombre }}
                 </span>
-                <span class="font-mono text-[10px] text-muted-foreground/70 tabular-nums">{{
+                <span class="font-mono text-xs text-muted-foreground/70 tabular-nums">{{
                   c.pct
                 }}</span>
               </div>
@@ -179,7 +178,7 @@ const grupos = computed<GrupoConsolidado[]>(() => {
           <template v-for="g in grupos" :key="g.key">
             <tr class="bg-muted/20">
               <td
-                class="sticky left-0 z-10 bg-muted/20 px-3 py-1 text-[11px] font-bold tracking-wide text-primary uppercase"
+                class="sticky left-0 z-10 bg-muted/20 px-3 py-1 text-xs font-bold tracking-wide text-primary uppercase"
               >
                 {{ g.label }}
               </td>
@@ -206,13 +205,13 @@ const grupos = computed<GrupoConsolidado[]>(() => {
                   {{ l.concepto }}
                   <span
                     v-if="l.origen"
-                    class="rounded bg-primary/10 px-1 py-0.5 font-mono text-[9px] text-primary"
+                    class="rounded bg-primary/10 px-1 py-0.5 font-mono text-xs text-primary"
                     title="Celda de origen en el ER"
                     >{{ l.origen }}</span
                   >
                   <span
                     v-if="l.comprobante"
-                    class="bg-information-muted text-information rounded px-1 py-0.5 text-[9px]"
+                    class="rounded bg-primary/10 px-1 py-0.5 text-xs text-primary"
                     title="Comprobante contable"
                     >{{ l.comprobante }}</span
                   >

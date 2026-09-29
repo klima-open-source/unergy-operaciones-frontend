@@ -204,19 +204,19 @@ onMounted(cargar)
 <template>
   <div class="flex h-full flex-col overflow-hidden rounded-xl border bg-card">
     <div class="flex items-center gap-2 border-b px-3 py-2">
-      <SunIcon class="size-4" style="color: #f0c040" />
+      <SunIcon class="size-4 text-warning" />
       <h3 class="text-sm font-bold text-foreground">Generación del mes</h3>
-      <span class="text-[10px] text-muted-foreground">kWh por día · datos en vivo</span>
+      <span class="text-xs text-muted-foreground">kWh por día · datos en vivo</span>
     </div>
 
     <div class="flex-1 p-3">
       <Spinner v-if="loading" class="mx-auto my-6 block size-6 text-muted-foreground" />
 
       <template v-else-if="dias.length">
-        <div style="height: 150px">
+        <div class="h-37.5">
           <Bar :data="chartData" :options="chartOptions" />
         </div>
-        <p class="mt-1.5 text-[10px] text-muted-foreground">
+        <p class="mt-1.5 text-xs text-muted-foreground">
           Fuente: API de monitoreo Unergy (en vivo)
         </p>
       </template>
@@ -231,12 +231,12 @@ onMounted(cargar)
 
     <!-- Tarifas de servicio del cliente para ese mes -->
     <div class="border-t bg-muted/20 px-3 py-2">
-      <p class="mb-1.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+      <p class="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         Tarifas de servicio · {{ periodoLabel }}
       </p>
       <div class="grid grid-cols-3 gap-2">
         <div class="rounded-lg bg-primary/5 px-2 py-1.5 text-center">
-          <p class="text-[10px] font-semibold tracking-wide text-primary uppercase">
+          <p class="text-xs font-semibold tracking-wide text-primary uppercase">
             Representación ($/kWh)
           </p>
           <p class="text-sm font-bold text-foreground tabular-nums">
@@ -244,11 +244,11 @@ onMounted(cargar)
           </p>
         </div>
         <div class="rounded-lg bg-primary/5 px-2 py-1.5 text-center">
-          <p class="text-[10px] font-semibold tracking-wide text-primary uppercase">CGM ($/kWh)</p>
+          <p class="text-xs font-semibold tracking-wide text-primary uppercase">CGM ($/kWh)</p>
           <p class="text-sm font-bold text-foreground tabular-nums">{{ fmtCOP(tarifas.cgm) }}</p>
         </div>
         <div class="rounded-lg bg-primary/5 px-2 py-1.5 text-center">
-          <p class="text-[10px] font-semibold tracking-wide text-primary uppercase">
+          <p class="text-xs font-semibold tracking-wide text-primary uppercase">
             Administración (%)
           </p>
           <p class="text-sm font-bold text-foreground tabular-nums">

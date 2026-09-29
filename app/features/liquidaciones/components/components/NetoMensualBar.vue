@@ -45,7 +45,7 @@ const options: ChartOptions<'bar'> = {
 </script>
 
 <template>
-  <div style="height: 200px">
+  <div class="h-50">
     <Bar :data="data" :options="options" />
   </div>
 </template>
