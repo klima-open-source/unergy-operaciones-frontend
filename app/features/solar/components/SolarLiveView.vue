@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-full flex-col overflow-hidden">
     <!-- ══ TAB BAR ══ -->
-    <GTabs :model-value="tab" @update:model-value="(v) => (tab = v)">
+    <GTabs v-model="tab">
       <GTabsList variant="outline">
         <GTabsTrigger value="live" variant="outline">
           <ZapIcon class="size-4" /> Tiempo Real
@@ -48,15 +48,15 @@
             <!-- Toggle columnas -->
             <ButtonGroup>
               <Button
-                v-for="c in [1, 2, 4]"
-                :key="c"
+                v-for="c in OPCIONES_COLUMNAS"
+                :key="c.value"
                 type="button"
-                :variant="cols === c ? 'secondary' : 'outline'"
+                :variant="cols === c.value ? 'secondary' : 'outline'"
                 size="sm"
-                :title="`${c} columna${c > 1 ? 's' : ''}`"
-                @click="cols = c"
+                :title="`${c.value} columna${c.value > 1 ? 's' : ''}`"
+                @click="cols = c.value"
               >
-                <component :is="COLUMNAS_ICONS[c]" class="size-4" />
+                <component :is="c.icon" class="size-4" />
               </Button>
             </ButtonGroup>
             <!-- Botón actualizar + auto-refresh -->
@@ -143,13 +143,13 @@
                   />
                   <span
                     class="size-2 shrink-0 rounded-full"
-                    :style="{ background: STATUS_COLORS[proy.status] || '#9ca3af' }"
+                    :style="{ background: statusColor(proy.status) }"
                   />
                   <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
                   <span
                     class="shrink-0 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase"
                   >
-                    {{ (STATUS_META[proy.status] || STATUS_META.offline).label }}
+                    {{ statusMeta(proy.status).label }}
                   </span>
                 </div>
 
@@ -172,12 +172,13 @@
                     <span
                       class="rounded-full px-2 py-0.5 text-xs font-bold"
                       :class="
-                        Math.abs(getDiffPct(proy.proyecto_id)) > 5
+                        Math.abs(getDiffPct(proy.proyecto_id)!) > 5
                           ? 'bg-warning/10 text-warning'
                           : 'bg-success/10 text-success'
                       "
                     >
-                      {{ getDiffPct(proy.proyecto_id) > 0 ? '+' : ''
+                      {{ getDiffPct(proy.proyecto_id)! > 0 ? '+' : ''
+
                       }}{{ getDiffPct(proy.proyecto_id) }}%
                     </span>
                   </div>
@@ -247,8 +248,8 @@
                         >
                           <span class="size-2 shrink-0 rounded-full bg-warning" />
                           Medidores
-                          <Badge v-if="panelesMedidor[proy.proyecto_id].tipo" variant="outline">{{
-                            panelesMedidor[proy.proyecto_id].tipo
+                          <Badge v-if="panelesMedidor[proy.proyecto_id]!.tipo" variant="outline">{{
+                            panelesMedidor[proy.proyecto_id]!.tipo
                           }}</Badge>
                         </div>
                         <!-- El numero grande es la generacion del dia: es lo que alguien
@@ -258,29 +259,29 @@
                           <span
                             class="text-xl font-bold tabular-nums"
                             :class="
-                              panelesMedidor[proy.proyecto_id].energiaKwh === null
+                              panelesMedidor[proy.proyecto_id]!.energiaKwh === null
                                 ? 'text-muted-foreground'
                                 : 'text-foreground'
                             "
                           >
-                            {{ fmtKwh(panelesMedidor[proy.proyecto_id].energiaKwh) }}
+                            {{ fmtKwh(panelesMedidor[proy.proyecto_id]!.energiaKwh) }}
                           </span>
                           <span
-                            v-if="panelesMedidor[proy.proyecto_id].energiaHasta"
+                            v-if="panelesMedidor[proy.proyecto_id]!.energiaHasta"
                             class="text-[10px] text-muted-foreground"
                           >
-                            hasta {{ panelesMedidor[proy.proyecto_id].energiaHasta }}
+                            hasta {{ panelesMedidor[proy.proyecto_id]!.energiaHasta }}
                             <template
-                              v-if="haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta)"
+                              v-if="haceCuanto(panelesMedidor[proy.proyecto_id]!.energiaHasta)"
                             >
-                              · {{ haceCuanto(panelesMedidor[proy.proyecto_id].energiaHasta) }}
+                              · {{ haceCuanto(panelesMedidor[proy.proyecto_id]!.energiaHasta) }}
                             </template>
                           </span>
                         </div>
-                        <div v-if="panelesMedidor[proy.proyecto_id].chart" class="relative h-45">
+                        <div v-if="panelesMedidor[proy.proyecto_id]!.chart" class="relative h-45">
                           <Line
                             :key="'med-' + proy.proyecto_id"
-                            :data="panelesMedidor[proy.proyecto_id].chart"
+                            :data="panelesMedidor[proy.proyecto_id]!.chart"
                             :options="chartOptionsMed(proy.proyecto_id)"
                             :plugins="[crosshairPlugin]"
                           />
@@ -316,9 +317,9 @@
                           :class="
                             getGenHoy(proy.proyecto_id).pct === null
                               ? 'text-muted-foreground'
-                              : getGenHoy(proy.proyecto_id).pct >= 100
+                              : getGenHoy(proy.proyecto_id).pct! >= 100
                                 ? 'text-success'
-                                : getGenHoy(proy.proyecto_id).pct >= 75
+                                : getGenHoy(proy.proyecto_id).pct! >= 75
                                   ? 'text-warning'
                                   : 'text-destructive'
                           "
@@ -333,9 +334,9 @@
                           v-if="getGenHoy(proy.proyecto_id).pct !== null"
                           class="text-xs font-bold"
                           :class="
-                            getGenHoy(proy.proyecto_id).pct >= 100
+                            getGenHoy(proy.proyecto_id).pct! >= 100
                               ? 'text-success'
-                              : getGenHoy(proy.proyecto_id).pct >= 75
+                              : getGenHoy(proy.proyecto_id).pct! >= 75
                                 ? 'text-warning'
                                 : 'text-destructive'
                           "

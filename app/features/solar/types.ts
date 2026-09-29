@@ -21,6 +21,8 @@ export interface ProyectoMonitoreoSolar {
   power_kw?: number | null
   utilization_pct?: number | null
   availability_pct?: number | null
+  /** P90 del día, en kWh — meta contra la que `SolarLiveView.vue` compara lo generado hoy. */
+  p90_diario_kwh?: number | null
   [clave: string]: unknown
 }
 
@@ -51,6 +53,18 @@ export interface MedidorMonitoreoSolar {
   curva?: PuntoPotenciaSolar[]
   energia_kwh?: number | null
   energia_hasta?: string | null
+  /** Id del nodo Gaia de este medidor — se compara contra `medidor_principal`/`medidor_respaldo` para saber cuál ganó. */
+  node_id?: string | number | null
+  [clave: string]: unknown
+}
+
+/**
+ * El medidor PRINCIPAL o RESPALDO tal como Solenium los expone, antes de que
+ * el backend elija cuál mostrar en `medidor` — `SolarLiveView.vue` solo lo usa
+ * para saber cuál de los dos ganó, comparando `node_id`.
+ */
+export interface MedidorReferenciaSolar {
+  node_id?: string | number | null
   [clave: string]: unknown
 }
 
@@ -85,6 +99,12 @@ export interface DetalleMonitoreoSolar {
   gaia_node_principal?: string | number | null
   gaia_snapshot_respaldo?: GaiaSnapshot | null
   gaia_node_respaldo?: string | number | null
+  /** Tipo del medidor mostrado en `medidor` (según lo resuelva el backend). */
+  medidor_tipo?: string | null
+  /** El medidor PRINCIPAL sin resolver — ver `MedidorReferenciaSolar`. */
+  medidor_principal?: MedidorReferenciaSolar | null
+  /** El medidor de RESPALDO sin resolver, si el proyecto tiene dos. */
+  medidor_respaldo?: MedidorReferenciaSolar | null
   [clave: string]: unknown
 }
 
