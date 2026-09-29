@@ -1,16 +1,18 @@
 <template>
-  <div class="gf-page">
+  <div class="flex min-h-full flex-col bg-muted">
 
     <!-- ══ TAB BAR ══════════════════════════════════════════════════════════ -->
-    <div class="mon-tab-bar">
+    <div class="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-border bg-card px-3.5 py-1.5 shadow-xs">
       <CreditCardIcon class="size-4 text-unergy-purple" />
       <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Costos</span>
-      <div class="mon-tab-group">
+      <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
         <button
           v-for="(tab, i) in TABS"
           :key="i"
-          class="mon-tab"
-          :class="{ 'mon-tab--active': activeTab === i }"
+          class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
+          :class="activeTab === i
+            ? 'bg-unergy-purple text-unergy-avena shadow-sm'
+            : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
           @click="activeTab = i"
         >
           <component :is="tab.icon" class="size-3" />
@@ -29,22 +31,24 @@
     </div>
 
     <!-- ══ TAB 0 — MANTENIMIENTO ══════════════════════════════════════════ -->
-    <div v-if="activeTab === 0" class="mon-tab-view">
+    <div v-if="activeTab === 0" class="bg-muted px-5 pt-4 pb-8 max-sm:p-3">
 
       <!-- ── 1. Panel O&M Mensual — contenedor con borde propio ──────────── -->
-      <div class="om-panel-card">
+      <div class="overflow-hidden rounded-xl border border-border bg-card">
         <!-- Header del panel — NO sticky, no hereda mon-tab-bar -->
-        <div class="om-panel-header">
+        <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
             <CalculatorIcon class="size-4 text-unergy-purple" />
             <span class="text-sm font-semibold text-unergy-deep">Panel O&amp;M Mensual</span>
           </div>
-          <div class="mon-tab-group">
+          <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
             <button
               v-for="(tab, i) in SUBTABS_OM"
               :key="i"
-              class="mon-tab"
-              :class="{ 'mon-tab--active': activeSubTabOM === i }"
+              class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
+              :class="activeSubTabOM === i
+                ? 'bg-unergy-purple text-unergy-avena shadow-sm'
+                : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
               @click="activeSubTabOM = i"
             >
               <component :is="tab.icon" class="size-3" />
@@ -54,7 +58,7 @@
         </div>
 
         <!-- Contenido del panel — tabla queda dentro del card -->
-        <div class="om-panel-body">
+        <div class="bg-muted">
           <OMAOperaciones v-if="activeSubTabOM === 0" />
           <OMAProveedor   v-if="activeSubTabOM === 1" />
         </div>
@@ -71,7 +75,7 @@
       </div>
 
       <!-- ── 3. Selector de proyecto ────────────────────────────────────── -->
-      <div class="costos-selector-bar">
+      <div class="mb-3 flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2">
         <ZapIcon class="flex-shrink-0 size-4 text-unergy-purple" />
         <span class="text-sm font-semibold whitespace-nowrap text-unergy-deep">Proyecto</span>
         <Select
@@ -83,7 +87,7 @@
           filter
           showClear
           :loading="loadingProyectos"
-          class="costos-selector-select"
+          class="min-w-50 max-w-95 sm:min-w-65"
           @change="onProyectoChange"
         />
         <span v-if="proyectoSeleccionado && proyectoNombre"
@@ -226,19 +230,21 @@
     </div>
 
     <!-- ══ TAB 1 — ARRIENDOS ══════════════════════════════════════════════ -->
-    <div v-if="activeTab === 1" class="mon-tab-view">
-      <div class="om-panel-card">
-        <div class="om-panel-header">
+    <div v-if="activeTab === 1" class="bg-muted px-5 pt-4 pb-8 max-sm:p-3">
+      <div class="overflow-hidden rounded-xl border border-border bg-card">
+        <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
             <BuildingIcon class="size-4 text-unergy-purple" />
             <span class="text-sm font-semibold text-unergy-deep">Panel Arriendos Mensual</span>
           </div>
-          <div class="mon-tab-group">
+          <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
             <button
               v-for="(tab, i) in SUBTABS_ARR"
               :key="i"
-              class="mon-tab"
-              :class="{ 'mon-tab--active': activeSubTabArr === i }"
+              class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
+              :class="activeSubTabArr === i
+                ? 'bg-unergy-purple text-unergy-avena shadow-sm'
+                : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
               @click="activeSubTabArr = i"
             >
               <component :is="tab.icon" class="size-3" />
@@ -246,7 +252,7 @@
             </button>
           </div>
         </div>
-        <div class="om-panel-body">
+        <div class="bg-muted">
           <ArriendosOperaciones v-if="activeSubTabArr === 0" />
           <ArriendosInfo        v-if="activeSubTabArr === 1" />
         </div>
@@ -254,22 +260,22 @@
     </div>
 
     <!-- ══ TAB 2 — SERVICIOS DE INTERNET ══════════════════════════════════ -->
-    <div v-if="activeTab === 2" class="mon-tab-view">
-      <div class="om-panel-card">
-        <div class="om-panel-header">
+    <div v-if="activeTab === 2" class="bg-muted px-5 pt-4 pb-8 max-sm:p-3">
+      <div class="overflow-hidden rounded-xl border border-border bg-card">
+        <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
             <WifiIcon class="size-4 text-unergy-purple" />
             <span class="text-sm font-semibold text-unergy-deep">Starlink — Procesador de facturas PDF</span>
           </div>
         </div>
-        <div class="om-panel-body">
+        <div class="bg-muted">
           <StarlinkPDF />
         </div>
       </div>
     </div>
 
     <!-- ══ TAB 3 — MANDATOS ══════════════════════════════════════════════ -->
-    <div v-if="activeTab === 3" class="mon-tab-view">
+    <div v-if="activeTab === 3" class="bg-muted px-5 pt-4 pb-8 max-sm:p-3">
       <MandatosOperaciones />
     </div>
 
@@ -487,116 +493,3 @@ async function onProyectoChange() {
   }
 }
 </script>
-
-<style scoped>
-.gf-page {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background: #f5f4f8;
-}
-
-/* ── Tab bar ── */
-.mon-tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: #fff;
-  border-bottom: 1px solid #ECE7F2;
-  box-shadow: 0 1px 3px rgba(28, 18, 50, 0.04);
-  flex-shrink: 0;
-  position: sticky;
-  top: 0;
-  z-index: 25;
-}
-.mon-tab-group {
-  display: inline-flex;
-  background: #F4F1FA;
-  border: 1px solid #E5E2EC;
-  border-radius: 8px;
-  padding: 2px;
-  gap: 0;
-}
-.mon-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: none;
-  padding: 5px 12px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6B5A8A;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.mon-tab svg { font-size: 12px; }
-.mon-tab:hover:not(.mon-tab--active) { color: var(--color-unergy-deep); background: rgba(145,91,216,.08); }
-.mon-tab--active {
-  background: var(--color-unergy-purple);
-  color: var(--color-unergy-avena);
-  box-shadow: 0 1px 4px rgba(145,91,216,.3);
-}
-.mon-tab--active:hover { color: var(--color-unergy-avena); }
-
-/* ── Selector de proyecto ── */
-.costos-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: #fff;
-  border: 1px solid #ECE7F2;
-  border-radius: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.costos-selector-select {
-  min-width: 260px;
-  max-width: 380px;
-}
-
-/* ── Panel O&M — contenedor aislado, sin sticky ── */
-.om-panel-card {
-  background: #ffffff;
-  border: 1px solid #E5E2EC;
-  border-radius: 12px;
-  overflow: hidden;          /* tabla no se desborda fuera del card */
-  margin-bottom: 0;
-}
-.om-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 14px;
-  background: #FDFCFF;
-  border-bottom: 1px solid #ECE7F2;
-  /* sin position:sticky — el header queda fijo dentro del card, no de la página */
-}
-.om-panel-body {
-  padding: 0;               /* OMAOperaciones y OMAProveedor manejan su propio padding */
-  background: #f9f8fc;
-}
-
-/* ── Contenido ── */
-.mon-tab-view {
-  padding: 16px 20px 32px;
-  background: #f5f4f8;
-}
-.mon-tab-empty {
-  text-align: center;
-  padding: 80px 20px;
-}
-.space-y-4 > * + * { margin-top: 1rem; }
-
-@media (max-width: 640px) {
-  .mon-tab-view { padding: 12px; }
-  .costos-selector-select { min-width: 200px; }
-}
-</style>
