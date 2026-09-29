@@ -2,7 +2,7 @@
   <div>
     <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
     <div class="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5">
-      <FileCheckIcon class="size-4 text-unergy-purple" />
+      <FileCheckIcon class="size-4 text-primary" />
       <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Validador de Mandatos</span>
       <span class="font-mono text-xs text-muted-foreground">v8.0</span>
     </div>
@@ -75,25 +75,25 @@ const TEXTO_ESTADO = {
 
 const CLS = {
   tabBar: 'mb-4.5 flex gap-2.5 rounded-lg bg-border p-1',
-  tab: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-3 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-unergy-purple data-active:shadow-sm',
+  tab: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-3 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-primary data-active:shadow-sm',
   modeBar: 'mb-4 flex gap-2.5 rounded-lg bg-border p-1',
-  modeBtn: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-2.5 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-unergy-purple data-active:shadow-sm',
-  dropZone: 'group mb-3.5 cursor-pointer rounded-xl border-2 border-dashed border-border bg-card text-center transition hover:border-unergy-purple hover:bg-muted data-loaded:border-solid data-loaded:border-success data-loaded:bg-success/10',
+  modeBtn: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-2.5 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-primary data-active:shadow-sm',
+  dropZone: 'group mb-3.5 cursor-pointer rounded-xl border-2 border-dashed border-border bg-card text-center transition hover:border-primary hover:bg-muted data-loaded:border-solid data-loaded:border-success data-loaded:bg-success/10',
   dzIcon: 'group-data-loaded:text-success',
-  btnPrimary: 'cursor-pointer rounded-lg border-0 bg-unergy-purple px-5 py-3.5 text-base font-semibold text-card transition enabled:hover:bg-unergy-purple-dark disabled:cursor-not-allowed disabled:opacity-40',
+  btnPrimary: 'cursor-pointer rounded-lg border-0 bg-primary px-5 py-3.5 text-base font-semibold text-card transition enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40',
   btnSecondary: 'cursor-pointer whitespace-nowrap rounded-lg border-0 bg-chart-2 px-5 py-3.5 text-sm font-semibold text-card disabled:cursor-not-allowed disabled:opacity-40',
   stats: 'mb-4.5 flex-wrap gap-3',
   stat: 'min-w-25 flex-1 rounded-lg border border-border bg-card p-3.5 text-center',
   statVal: 'block text-xl font-bold',
   panel: 'mb-4.5 rounded-xl border border-border bg-card p-5 shadow-sm',
-  h3: 'text-base font-semibold text-unergy-deep',
+  h3: 'text-base font-semibold text-foreground',
   table: 'w-full border-collapse text-sm',
   th: 'border-b-2 border-border bg-muted px-3 py-2.5 text-left text-xs font-semibold',
   thR: 'border-b-2 border-border bg-muted px-3 py-2.5 text-right text-xs font-semibold',
   td: 'border-b border-muted px-3 py-2.5 group-last:border-b-0',
   tol: 'rounded-lg border border-border px-2.5 py-1.5 text-sm',
   toggle: 'flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm',
-  step: 'mr-2 inline-block size-5.5 shrink-0 rounded-full bg-unergy-purple text-center text-xs font-bold leading-5.5 text-card',
+  step: 'mr-2 inline-block size-5.5 shrink-0 rounded-full bg-primary text-center text-xs font-bold leading-5.5 text-card',
   badgeOk: 'rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success',
   badgeErr: 'rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-bold text-destructive',
   badgeWarn: 'rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-bold text-warning',
@@ -606,7 +606,7 @@ function initValidador(el) {
       const flagsHtml = r.flags.map(f => `<li class="my-0.5 text-xs ${TEXTO_NIVEL[f.lvl]}">${f.txt}</li>`).join('')
       return `<div id="costoRow${idx}" class="mb-2.5 rounded-xl border border-border p-3">
         <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <div><b class="text-unergy-purple">${r.mandato.cmu || '-'}</b>
+          <div><b class="text-primary">${r.mandato.cmu || '-'}</b>
             <span class="ml-2 text-xs">${r.mandato.mandante || '<span class="text-warning">mandante no detectado</span>'}</span></div>
           ${stBadge(r.status)}
         </div>
@@ -787,12 +787,12 @@ function initValidador(el) {
         const conc = r.conceptos || []
         const hasConc = conc.length > 0
         const caret = hasConc
-          ? `<span id="concCaret-${idx}" class="inline-block w-3 text-unergy-purple">▶</span> `
+          ? `<span id="concCaret-${idx}" class="inline-block w-3 text-primary">▶</span> `
           : '<span class="inline-block w-3"></span> '
         const rowCls = hasConc ? 'group cursor-pointer' : 'group'
         const onclickAttr = hasConc ? ` onclick="toggleConcRow(${idx})"` : ''
         tbody.innerHTML += `<tr class="${rowCls}"${onclickAttr}>
-          <td class="${CLS.td} font-mono font-semibold text-unergy-purple">${caret}${r.cmu||'-'}</td>
+          <td class="${CLS.td} font-mono font-semibold text-primary">${caret}${r.cmu||'-'}</td>
           <td class="${CLS.td} max-w-45 break-words text-xs">${r.inversionista||'<span class="text-warning">No detectado</span>'}</td>
           <td class="${CLS.td} max-w-40 break-words text-xs">${r.planta||'<span class="text-warning">No detectado</span>'}</td>
           <td class="${CLS.td} text-right font-mono">$${Math.round(r.valorPagar).toLocaleString('es-CO')}</td>
@@ -902,7 +902,7 @@ function initValidador(el) {
     for (const file of files) {
       const card = document.createElement('div')
       card.className = 'relative rounded-lg border border-border bg-card p-4'
-      card.innerHTML = `<b class="text-xs">${file.name}</b><div class="mt-2 inline-block size-4.5 animate-spin rounded-full border-3 border-muted border-t-unergy-purple"></div>`
+      card.innerHTML = `<b class="text-xs">${file.name}</b><div class="mt-2 inline-block size-4.5 animate-spin rounded-full border-3 border-muted border-t-primary"></div>`
       container.appendChild(card)
 
       const res = await processPdf(file)
@@ -929,7 +929,7 @@ function initValidador(el) {
 
       card.innerHTML = `
         <span class="absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-extrabold uppercase ${res.approved?'bg-success/15 text-success':'bg-destructive/10 text-destructive'}">${res.approved?'CUMPLE':'RECHAZADO'}</span>
-        <b class="mr-16 block text-xs text-unergy-purple">${cmuInName||'Sin CMU'}</b>
+        <b class="mr-16 block text-xs text-primary">${cmuInName||'Sin CMU'}</b>
         <div class="mt-1 truncate text-xs text-muted-foreground">${file.name}</div>
         <div class="mt-2.5 grid grid-cols-2 border-t border-muted pt-2 text-xs">
           <div>Matemática: ${res.mathOk?'✅':'❌'}</div>
@@ -1051,7 +1051,7 @@ onBeforeUnmount(() => {
    por JS a un nodo del HTML inyectado, de ahí el :deep. */
 .vm-root :deep(.flash-highlight) { animation: vm-flash 2s ease-out; }
 @keyframes vm-flash {
-  0%, 40% { background-color: color-mix(in oklab, var(--color-unergy-purple) 15%, transparent); border-color: var(--color-unergy-purple); }
+  0%, 40% { background-color: color-mix(in oklab, var(--primary) 15%, transparent); border-color: var(--primary); }
   100% { background-color: transparent; }
 }
 </style>

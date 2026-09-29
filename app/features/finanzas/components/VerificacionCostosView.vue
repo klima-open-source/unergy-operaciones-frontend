@@ -31,7 +31,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-xs text-muted-foreground">AC Power generador</p>
-          <p class="text-xl font-bold text-unergy-deep">
+          <p class="text-xl font-bold text-foreground">
             {{ fmtNum(generador.acPower) }}
             <span class="text-xs font-normal text-muted-foreground">kW</span>
           </p>
@@ -45,12 +45,12 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3">
-        <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-unergy-purple/10">
-          <BriefcaseIcon class="size-5 text-unergy-purple" />
+        <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
+          <BriefcaseIcon class="size-5 text-primary" />
         </div>
         <div class="min-w-0">
           <p class="text-xs text-muted-foreground">AC Power comercializador</p>
-          <p class="text-xl font-bold text-unergy-deep">
+          <p class="text-xl font-bold text-foreground">
             {{ fmtNum(comercializador.acPower) }}
             <span class="text-xs font-normal text-muted-foreground">kW</span>
           </p>
