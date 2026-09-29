@@ -583,7 +583,7 @@ async function confirmarAgregarFuente() {
                           <GTableCell>
                             <div v-if="sec.key === 'ingresos'" class="flex items-center gap-1">
                               <Input
-                                class="h-7 w-48"
+                                class="h-7"
                                 :model-value="ln.concepto"
                                 @change="
                                   renombrarFuente(ln, ($event.target as HTMLInputElement).value)
@@ -624,7 +624,7 @@ async function confirmarAgregarFuente() {
                           <GTableCell class="text-right">
                             <Input
                               v-if="!ln.derivada"
-                              class="h-7 w-32 text-right tabular-nums"
+                              class="h-7 text-right tabular-nums"
                               :class="{ 'text-destructive': (ln.valor_cop ?? 0) < 0 }"
                               type="text"
                               inputmode="decimal"
@@ -648,7 +648,7 @@ async function confirmarAgregarFuente() {
                             <Input
                               v-if="!ln.derivada"
                               v-model="ln.comprobante_contable"
-                              class="h-7 w-28"
+                              class="h-7"
                               placeholder="comprob."
                               @change="markDirty"
                             />

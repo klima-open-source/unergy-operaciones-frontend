@@ -96,7 +96,7 @@ watch(() => props.periodo, cargar, { immediate: true })
         Clasificación de liquidación · {{ periodoLabel }}
       </h3>
       <div class="flex flex-wrap items-center gap-2">
-        <Input v-model="busqueda" class="w-52" placeholder="Buscar proyecto…" />
+        <Input v-model="busqueda" class="min-w-0 flex-1" placeholder="Buscar proyecto…" />
         <Button :disabled="guardando || !sucio" @click="guardar">
           <SaveIcon class="size-4" />
           Guardar clasificación
