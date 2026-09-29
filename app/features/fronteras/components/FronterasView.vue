@@ -31,12 +31,12 @@
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Estado</label>
         <Select
-          :model-value="estadoFilter ?? ''"
-          @update:model-value="(v) => (estadoFilter = (v as string) || null)"
+          :model-value="aValorSelect(estadoFilter)"
+          @update:model-value="(v) => (estadoFilter = deValorSelect(v) || null)"
         >
           <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
             <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{
               op.label
             }}</SelectItem>
@@ -50,12 +50,12 @@
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Operador</label>
         <Select
-          :model-value="operadorFilter ?? ''"
-          @update:model-value="(v) => (operadorFilter = (v as string) || null)"
+          :model-value="aValorSelect(operadorFilter)"
+          @update:model-value="(v) => (operadorFilter = deValorSelect(v) || null)"
         >
           <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
             <SelectItem v-for="op in operadorOptions" :key="op.value" :value="op.value">{{
               op.label
             }}</SelectItem>
@@ -66,24 +66,24 @@
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Registro ASIC</label>
         <div class="flex gap-2">
           <Select
-            :model-value="mesFilter != null ? String(mesFilter) : ''"
-            @update:model-value="(v) => (mesFilter = v ? Number(v) : null)"
+            :model-value="mesFilter != null ? String(mesFilter) : VALOR_SELECT_VACIO"
+            @update:model-value="(v) => (mesFilter = deValorSelect(v) ? Number(v) : null)"
           >
             <SelectTrigger><SelectValue placeholder="Mes" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Mes</SelectItem>
+              <SelectItem :value="VALOR_SELECT_VACIO">Mes</SelectItem>
               <SelectItem v-for="op in mesOptions" :key="op.value" :value="String(op.value)">{{
                 op.label
               }}</SelectItem>
             </SelectContent>
           </Select>
           <Select
-            :model-value="anioFilter != null ? String(anioFilter) : ''"
-            @update:model-value="(v) => (anioFilter = v ? Number(v) : null)"
+            :model-value="anioFilter != null ? String(anioFilter) : VALOR_SELECT_VACIO"
+            @update:model-value="(v) => (anioFilter = deValorSelect(v) ? Number(v) : null)"
           >
             <SelectTrigger><SelectValue placeholder="Año" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Año</SelectItem>
+              <SelectItem :value="VALOR_SELECT_VACIO">Año</SelectItem>
               <SelectItem v-for="op in anioOptions" :key="op.value" :value="String(op.value)">{{
                 op.label
               }}</SelectItem>
