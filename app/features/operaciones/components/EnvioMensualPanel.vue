@@ -15,7 +15,7 @@
         size="sm"
         :disabled="enviandoBatch"
         title="Enviar todos los informes verificados al cliente"
-        class="text-success-foreground bg-success hover:bg-success/90"
+        class="bg-success text-primary-foreground hover:bg-success/90"
         @click="abrirConfirmEnvio"
       >
         <SendIcon />
@@ -136,7 +136,7 @@
                 </div>
               </GTableCell>
               <GTableCell>
-                <Badge variant="outline" class="text-[10px]">{{ tipoLabel(row.tipo) }}</Badge>
+                <Badge variant="outline" class="text-xs">{{ tipoLabel(row.tipo) }}</Badge>
               </GTableCell>
               <GTableCell class="text-xs">
                 <div>{{ row.editado_en ? formatFecha(row.editado_en) : '—' }}</div>
@@ -188,7 +188,7 @@
                   <MessagesSquareIcon />
                   <span
                     v-if="comentariosTotales(row) > 0"
-                    class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    class="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-xs font-bold text-white"
                     :class="comentariosPendientes(row) > 0 ? 'bg-destructive' : 'bg-primary'"
                   >
                     {{ comentariosPendientes(row) || comentariosTotales(row) }}
@@ -280,7 +280,7 @@
 
     <!-- ══ PANEL DETALLE (overlay) ═══════════════════════════════════════ -->
     <div v-if="drawerInf" class="fixed inset-0 z-30 flex justify-end">
-      <div class="absolute inset-0 bg-black/35 backdrop-blur-[2px]" @click="cerrarDrawer" />
+      <div class="absolute inset-0 bg-black/35 backdrop-blur-xs" @click="cerrarDrawer" />
       <div
         class="relative flex h-full w-full max-w-xl flex-col overflow-hidden bg-background shadow-2xl"
       >
@@ -293,7 +293,7 @@
               {{ drawerInf.proyecto_nombre || drawerInf.sub_project }}
             </div>
             <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              <Badge variant="outline" class="text-[10px]">{{ tipoLabel(drawerInf.tipo) }}</Badge>
+              <Badge variant="outline" class="text-xs">{{ tipoLabel(drawerInf.tipo) }}</Badge>
               <span>·</span>
               <span>{{ drawerInf.periodo_display || formatPeriodo(drawerInf.periodo_desde) }}</span>
               <span>·</span>
@@ -376,10 +376,10 @@
                   </Button>
                 </div>
               </div>
-              <div class="min-h-[420px] flex-1 overflow-hidden rounded-lg border bg-muted">
+              <div class="min-h-96 flex-1 overflow-hidden rounded-lg border bg-muted">
                 <iframe
                   :key="previewKey"
-                  class="size-full min-h-[420px] border-0"
+                  class="size-full min-h-96 border-0"
                   :srcdoc="previewDoc"
                   sandbox="allow-same-origin"
                 />
@@ -417,8 +417,8 @@
                 <div class="mb-1.5 flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <div
-                      class="flex size-6.5 items-center justify-center rounded-full text-[11px] font-extrabold text-white"
-                      :style="{ background: avatarColor(c.autor_email) }"
+                      class="flex size-6.5 items-center justify-center rounded-full bg-(--c) text-xs font-extrabold text-white"
+                      :style="{ '--c': avatarColor(c.autor_email) }"
                     >
                       {{ (c.autor_nombre || c.autor_email || '?').charAt(0).toUpperCase() }}
                     </div>
@@ -426,15 +426,13 @@
                       <div class="text-xs font-bold text-foreground">
                         {{ c.autor_nombre || c.autor_email }}
                       </div>
-                      <div class="text-[10px] text-muted-foreground">
+                      <div class="text-xs text-muted-foreground">
                         {{ formatFechaCorta(c.created_at) }}
                       </div>
                     </div>
                   </div>
-                  <span v-if="c.resuelto" class="text-[10px] font-bold text-success"
-                    >✅ Subsanado</span
-                  >
-                  <span v-else class="text-[10px] font-bold text-destructive">⚠️ Pendiente</span>
+                  <span v-if="c.resuelto" class="text-xs font-bold text-success">✅ Subsanado</span>
+                  <span v-else class="text-xs font-bold text-destructive">⚠️ Pendiente</span>
                 </div>
                 <div class="mb-1.5 text-sm whitespace-pre-wrap text-foreground">
                   {{ c.mensaje }}
@@ -443,11 +441,11 @@
                   v-if="c.resuelto && c.respuesta"
                   class="mt-1.5 rounded-r-lg border-l-3 border-success bg-background/60 px-2.5 py-2"
                 >
-                  <div class="mb-0.5 text-[9px] font-bold tracking-wide text-success uppercase">
+                  <div class="mb-0.5 text-xs font-bold tracking-wide text-success uppercase">
                     Respuesta de quien subsanó:
                   </div>
                   <div class="text-sm text-foreground">{{ c.respuesta }}</div>
-                  <div class="mt-1 text-[10px] text-muted-foreground">
+                  <div class="mt-1 text-xs text-muted-foreground">
                     {{ c.resuelto_por_nombre || c.resuelto_por_email }} ·
                     {{ formatFechaCorta(c.resuelto_en) }}
                   </div>
@@ -455,7 +453,7 @@
                 <div v-if="!c.resuelto" class="mt-2 flex gap-1.5">
                   <Button
                     size="sm"
-                    class="text-success-foreground bg-success hover:bg-success/90"
+                    class="bg-success text-primary-foreground hover:bg-success/90"
                     :disabled="actuandoComentarioId === c.id"
                     @click="abrirResolver(c)"
                   >
@@ -474,9 +472,7 @@
                 </div>
                 <!-- Inline form para subsanar -->
                 <div v-if="resolviendoId === c.id" class="mt-2 rounded-lg bg-background/70 p-2.5">
-                  <label
-                    class="mb-1 block text-[10px] font-bold tracking-wide text-success uppercase"
-                  >
+                  <label class="mb-1 block text-xs font-bold tracking-wide text-success uppercase">
                     ¿Cómo se subsanó? (opcional)
                   </label>
                   <Textarea
@@ -490,7 +486,7 @@
                     >
                     <Button
                       size="sm"
-                      class="text-success-foreground bg-success hover:bg-success/90"
+                      class="bg-success text-primary-foreground hover:bg-success/90"
                       :disabled="actuandoComentarioId === c.id"
                       @click="resolverComentario(c)"
                     >
@@ -583,7 +579,7 @@
                 <Button
                   v-if="drawerInf.estado !== 'aprobado'"
                   :disabled="comentariosPendientes(drawerInf) > 0 || verificando"
-                  class="text-success-foreground bg-success hover:bg-success/90"
+                  class="bg-success text-primary-foreground hover:bg-success/90"
                   @click="verificarYAprobar"
                 >
                   <LoaderCircleIcon v-if="verificando" class="animate-spin" />
@@ -615,7 +611,7 @@
     <!-- ══ DIALOG: CONFIRMAR ENVÍO MASIVO ═══════════════════════════════ -->
     <Dialog v-model:open="confirmEnvio">
       <DialogContent
-        class="max-h-[85dvh] max-w-lg grid-rows-[auto_minmax(0,1fr)_auto]"
+        class="flex max-h-11/12 max-w-lg flex-col"
         :show-close-button="!enviandoBatch"
         @escape-key-down="(e) => enviandoBatch && e.preventDefault()"
         @pointer-down-outside="(e) => enviandoBatch && e.preventDefault()"
@@ -632,7 +628,7 @@
           </DialogDescription>
         </DialogHeader>
 
-        <div class="min-h-0 overflow-y-auto">
+        <div class="min-h-0 flex-1 overflow-y-auto">
           <div v-if="!enviandoBatch && !resultadoBatch" class="flex flex-col gap-2">
             <div
               v-for="(inf, i) in puedeEnviarBatch"
@@ -640,7 +636,7 @@
               class="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-2.5 py-2"
             >
               <span
-                class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-extrabold text-primary-foreground"
+                class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-extrabold text-primary-foreground"
               >
                 {{ i + 1 }}
               </span>
@@ -648,8 +644,8 @@
                 <div class="truncate text-xs font-bold text-foreground">
                   {{ inf.proyecto_nombre || inf.sub_project }}
                 </div>
-                <div class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <Badge variant="outline" class="text-[9px]">{{ tipoLabel(inf.tipo) }}</Badge>
+                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Badge variant="outline" class="text-xs">{{ tipoLabel(inf.tipo) }}</Badge>
                   {{ inf.periodo_display || formatPeriodo(inf.periodo_desde) }}
                 </div>
               </div>
@@ -658,12 +654,10 @@
           </div>
 
           <div v-else-if="enviandoBatch" class="py-2">
-            <div class="mb-2 h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                class="h-full rounded-full bg-success transition-all"
-                :style="{ width: `${(progBatch.hechos / progBatch.total) * 100}%` }"
-              />
-            </div>
+            <Progress
+              :model-value="(progBatch.hechos / progBatch.total) * 100"
+              class="mb-2 *:bg-success"
+            />
             <div class="flex justify-between gap-2">
               <span class="text-sm font-extrabold text-success"
                 >{{ progBatch.hechos }} / {{ progBatch.total }}</span
@@ -690,7 +684,7 @@
               <span>{{ d.ok ? '✅' : '⚠️' }}</span>
               <div>
                 <div class="text-xs font-bold text-foreground">{{ d.nombre }}</div>
-                <div class="text-[10px] text-muted-foreground">{{ d.msg }}</div>
+                <div class="text-xs text-muted-foreground">{{ d.msg }}</div>
               </div>
             </div>
           </div>
@@ -708,7 +702,7 @@
           <Button
             v-if="!enviandoBatch && !resultadoBatch"
             size="sm"
-            class="text-success-foreground bg-success hover:bg-success/90"
+            class="bg-success text-primary-foreground hover:bg-success/90"
             @click="ejecutarEnvioBatch"
           >
             <SendIcon /> Confirmar envío de {{ puedeEnviarBatch.length }}
@@ -729,7 +723,7 @@
             <span class="truncate text-sm font-extrabold text-background">
               {{ editorInf?.proyecto_nombre || editorInf?.sub_project }}
             </span>
-            <Badge v-if="editorInf" variant="outline" class="text-[10px] text-background">
+            <Badge v-if="editorInf" variant="outline" class="text-xs text-background">
               {{ tipoLabel(editorInf.tipo) }}
             </Badge>
             <span v-if="editorInf" class="text-xs text-background/60">
@@ -756,7 +750,7 @@
             </Button>
             <Button
               size="sm"
-              class="text-success-foreground bg-success hover:bg-success/90"
+              class="bg-success text-primary-foreground hover:bg-success/90"
               :disabled="guardandoEditor"
               @click="guardarEditor"
             >
@@ -776,7 +770,7 @@
           />
         </div>
         <div
-          class="flex shrink-0 items-center gap-1.5 bg-foreground px-4 py-1.5 text-[11px] text-background/55"
+          class="flex shrink-0 items-center gap-1.5 bg-foreground px-4 py-1.5 text-xs text-background/55"
         >
           <InfoIcon class="size-3.5 text-primary" />
           Haz clic en cualquier texto para editarlo directamente · Los cambios no se guardan hasta
@@ -1079,14 +1073,14 @@ function formatPeriodo(iso?: string): string {
 }
 function avatarColor(email?: string): string {
   const colors = [
-    '#915BD8',
-    '#F97316',
-    '#16A34A',
-    '#2563EB',
-    '#DC2626',
-    '#D97706',
-    '#9333EA',
-    '#0891B2',
+    'var(--primary)',
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
+    'var(--success)',
+    'var(--warning)',
   ]
   let h = 0
   for (const c of email || '') h = ((h << 5) - h + c.charCodeAt(0)) | 0

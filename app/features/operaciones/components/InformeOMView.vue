@@ -130,7 +130,7 @@
             </div>
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Cliente
                 </span>
                 <span class="text-sm font-semibold text-foreground">
@@ -138,13 +138,13 @@
                 </span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Ubicación
                 </span>
                 <span class="text-sm font-semibold text-foreground">{{ ubicacion || '—' }}</span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Potencia AC instalada
                 </span>
                 <span class="text-sm font-semibold text-foreground">
@@ -152,7 +152,7 @@
                 </span>
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Puesta en marcha
                 </span>
                 <span class="text-sm font-semibold text-foreground">
@@ -160,7 +160,7 @@
                 </span>
               </div>
               <div class="flex flex-col gap-1">
-                <Label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <Label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Versión
                 </Label>
                 <Input
@@ -170,13 +170,13 @@
                 />
               </div>
               <div class="flex flex-col gap-1">
-                <Label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <Label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Elaborado por
                 </Label>
                 <Input v-model="ficha.elaborado_por" @update:model-value="marcar" />
               </div>
               <div class="flex flex-col gap-1">
-                <Label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+                <Label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Estado
                 </Label>
                 <Select v-model="ficha.estado" @update:model-value="marcar">
@@ -201,7 +201,7 @@
                 <p class="text-lg font-extrabold text-foreground">
                   {{ detalle.kpis.pruebas_ejecutadas }}
                 </p>
-                <p class="text-[11px] font-semibold text-muted-foreground">Pruebas ejecutadas</p>
+                <p class="text-xs font-semibold text-muted-foreground">Pruebas ejecutadas</p>
               </div>
             </CardContent>
           </Card>
@@ -212,7 +212,7 @@
                 <p class="text-lg font-extrabold text-foreground">
                   {{ detalle.kpis.pruebas_conformes }}
                 </p>
-                <p class="text-[11px] font-semibold text-muted-foreground">Conformes</p>
+                <p class="text-xs font-semibold text-muted-foreground">Conformes</p>
               </div>
             </CardContent>
           </Card>
@@ -226,7 +226,7 @@
                 <p class="text-lg font-extrabold text-foreground">
                   {{ detalle.kpis.pruebas_no_conformes }}
                 </p>
-                <p class="text-[11px] font-semibold text-muted-foreground">No conformidades</p>
+                <p class="text-xs font-semibold text-muted-foreground">No conformidades</p>
               </div>
             </CardContent>
           </Card>
@@ -240,7 +240,7 @@
                 <p class="text-lg font-extrabold text-foreground">
                   {{ detalle.kpis.eventos_total }}
                 </p>
-                <p class="text-[11px] font-semibold text-muted-foreground">Eventos registrados</p>
+                <p class="text-xs font-semibold text-muted-foreground">Eventos registrados</p>
               </div>
             </CardContent>
           </Card>
@@ -473,7 +473,7 @@
 
               <!-- Fusion Solar -->
               <div class="flex flex-col gap-2 rounded-lg border p-3">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Fusion Solar
                 </p>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -535,7 +535,7 @@
 
               <!-- Frontera -->
               <div class="flex flex-col gap-2 rounded-lg border p-3">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Frontera
                 </p>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -574,7 +574,7 @@
 
               <!-- Estación meteorológica -->
               <div class="flex flex-col gap-2 rounded-lg border p-3">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Estación meteorológica
                 </p>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -598,7 +598,7 @@
 
               <!-- Reconectador -->
               <div class="flex flex-col gap-2 rounded-lg border p-3">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Reconectador
                 </p>
                 <div class="flex items-center gap-2">
@@ -873,7 +873,7 @@
             </GAccordionTrigger>
             <GAccordionContent class="flex flex-col gap-4 px-4">
               <div class="flex flex-col gap-2">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Usuarios y destinatarios de notificación
                 </p>
                 <GTable>
@@ -946,7 +946,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                   Umbrales de alarma
                 </p>
                 <GTable>

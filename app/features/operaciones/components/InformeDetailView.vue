@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto flex max-w-[1100px] flex-col pb-20 print:max-w-none print:p-0">
+  <div class="mx-auto flex max-w-6xl flex-col pb-20 print:max-w-none print:p-0">
     <!-- Breadcrumb -->
     <div
       class="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground print:hidden"

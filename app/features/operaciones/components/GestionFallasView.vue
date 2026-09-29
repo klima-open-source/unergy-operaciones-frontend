@@ -12,7 +12,7 @@
         <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v as BucketKey)">
           <GTabsList variant="outline">
             <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
-              <component :is="b.icon" class="size-4" :style="{ color: b.color }" />
+              <component :is="b.icon" class="size-4 text-(--c)" :style="{ '--c': b.color }" />
               {{ b.label }} · {{ counts[b.key] }}
             </GTabsTrigger>
           </GTabsList>
@@ -121,8 +121,8 @@
           <div class="flex flex-col items-center gap-2 py-14 text-muted-foreground">
             <component
               :is="bucketActual.icon"
-              class="size-8"
-              :style="{ color: bucketActual.color }"
+              class="size-8 text-(--c)"
+              :style="{ '--c': bucketActual.color }"
             />
             <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
             <p class="text-xs">{{ emptySubtitulo }}</p>
@@ -150,8 +150,8 @@
         <template #cell="{ row, column }">
           <span
             v-if="column.key === 'stripe'"
-            class="block h-8 w-1 rounded-full"
-            :style="{ background: prioColor(asFalla(row).prioridad?.codigo) }"
+            class="block h-8 w-1 rounded-full bg-(--c)"
+            :style="{ '--c': prioColor(asFalla(row).prioridad?.codigo) }"
           />
           <code
             v-else-if="column.key === 'codigo'"
@@ -162,8 +162,8 @@
             <GTooltip>
               <GTooltipTrigger as-child>
                 <span
-                  class="mt-1.5 size-2 shrink-0 rounded-full"
-                  :style="{ background: categoriaFalla(asFalla(row)).color }"
+                  class="mt-1.5 size-2 shrink-0 rounded-full bg-(--c)"
+                  :style="{ '--c': categoriaFalla(asFalla(row)).color }"
                 />
               </GTooltipTrigger>
               <GTooltipContent>{{ categoriaFalla(asFalla(row)).etiqueta }}</GTooltipContent>
@@ -235,10 +235,7 @@
 
     <!-- ══ PANEL DETALLE (overlay) ═══════════════════════════════════════ -->
     <div v-if="drawerVisible && drawerFalla" class="fixed inset-0 z-30 flex justify-end">
-      <div
-        class="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
-        @click="drawerVisible = false"
-      />
+      <div class="absolute inset-0 bg-black/35 backdrop-blur-xs" @click="drawerVisible = false" />
       <div
         class="relative flex h-full w-full max-w-lg flex-col overflow-hidden bg-background shadow-2xl"
       >
@@ -263,7 +260,7 @@
               }}</span>
               <span
                 v-if="navIndex >= 0"
-                class="ml-auto hidden text-[10px] whitespace-nowrap text-muted-foreground sm:inline-block"
+                class="ml-auto hidden text-xs whitespace-nowrap text-muted-foreground sm:inline-block"
               >
                 {{ navIndex + 1 }} / {{ filtradas.length }}
               </span>
@@ -334,7 +331,7 @@
             <dl class="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-primary/20 pt-3">
               <div class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <BuildingIcon class="size-3" /> Proyecto
                 </dt>
@@ -344,7 +341,7 @@
               </div>
               <div class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <CalendarIcon class="size-3" /> Identificada
                 </dt>
@@ -360,7 +357,7 @@
               </div>
               <div class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <UserPenIcon class="size-3" /> Registrado por
                 </dt>
@@ -370,7 +367,7 @@
               </div>
               <div v-if="drawerFalla.fecha_resolucion" class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <CircleCheckIcon class="size-3" /> Resuelta
                 </dt>
@@ -380,7 +377,7 @@
               </div>
               <div v-if="drawerFalla.tiempo_afectacion_horas != null" class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <ClockIcon class="size-3" /> Tiempo de afectación
                 </dt>
@@ -390,7 +387,7 @@
               </div>
               <div v-if="drawerFalla.kwh_perdidos_estimado != null" class="flex flex-col gap-0.5">
                 <dt
-                  class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase"
+                  class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
                 >
                   <ZapIcon class="size-3" /> Energía perdida
                 </dt>
@@ -483,19 +480,21 @@
                 }}</GBadge>
               </header>
               <div class="mt-1 flex items-baseline gap-2">
-                <span class="text-2xl font-extrabold" :style="{ color: slaTextColor(drawerFalla) }">
+                <span
+                  class="text-2xl font-extrabold text-(--c)"
+                  :style="{ '--c': slaTextColor(drawerFalla) }"
+                >
                   {{ horasTranscurridas(drawerFalla) }}h
                 </span>
                 <span class="text-sm font-semibold text-muted-foreground">
                   de {{ drawerFalla.sla_limite_horas_efectivo }}h
                 </span>
               </div>
-              <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                <div
-                  class="h-full rounded-full transition-all"
-                  :style="slaFillStyle(drawerFalla)"
-                />
-              </div>
+              <Progress
+                :model-value="slaFillPct(drawerFalla)"
+                class="mt-1 *:bg-(--c)"
+                :style="{ '--c': slaTextColor(drawerFalla) }"
+              />
             </section>
           </div>
 
@@ -510,7 +509,7 @@
               <LightbulbIcon class="size-4" />
             </div>
             <div>
-              <p class="text-[11px] font-bold text-warning uppercase">Acción sugerida</p>
+              <p class="text-xs font-bold text-warning uppercase">Acción sugerida</p>
               <p class="text-sm text-foreground">{{ drawerFalla.tipo.accion_sugerida }}</p>
             </div>
           </aside>
@@ -525,13 +524,13 @@
               <h3 class="text-sm font-bold text-foreground">Análisis</h3>
             </header>
             <div v-if="drawerFalla.causa_raiz">
-              <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+              <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 Causa raíz
               </p>
               <p class="text-sm text-foreground">{{ drawerFalla.causa_raiz }}</p>
             </div>
             <div v-if="drawerFalla.acciones_correctivas">
-              <p class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+              <p class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 Acciones correctivas
               </p>
               <p class="text-sm text-foreground">{{ drawerFalla.acciones_correctivas }}</p>
@@ -589,8 +588,8 @@
             <div v-else-if="sortedSeguimientos.length" class="flex flex-col gap-3">
               <div v-for="seg in sortedSeguimientos" :key="seg.id" class="flex gap-2.5">
                 <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  :style="avatarStyle(seg.usuario)"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-full bg-(--c) text-xs font-bold text-white"
+                  :style="{ '--c': avatarColor(seg.usuario) }"
                 >
                   {{ initials(seg.usuario?.nombre) }}
                 </div>
@@ -624,7 +623,7 @@
             </Button>
             <Button
               v-if="!drawerFalla.estado?.es_estado_final"
-              class="text-success-foreground flex-1 bg-success hover:bg-success/90"
+              class="flex-1 bg-success text-primary-foreground hover:bg-success/90"
               :disabled="resolvingFalla"
               @click="quickResolve(drawerFalla)"
             >
@@ -648,7 +647,7 @@
     <!-- ══ DIALOG CREAR / EDITAR ══════════════════════════════════════════ -->
     <Dialog v-model:open="formDialogVisible">
       <DialogContent
-        class="max-h-[90dvh] max-w-2xl grid-rows-[auto_minmax(0,1fr)]"
+        class="flex max-h-11/12 max-w-2xl flex-col"
         :show-close-button="!savingForm"
         @escape-key-down="(e) => savingForm && e.preventDefault()"
         @pointer-down-outside="(e) => savingForm && e.preventDefault()"
@@ -658,7 +657,7 @@
             editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
           }}</DialogTitle>
         </DialogHeader>
-        <div class="-mx-6 min-h-0 overflow-y-auto px-6">
+        <div class="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
           <FallaForm
             :initial="editingFalla"
             :catalogos="catalogos"
@@ -706,7 +705,7 @@
             Cancelar
           </Button>
           <Button
-            class="text-success-foreground bg-success hover:bg-success/90"
+            class="bg-success text-primary-foreground hover:bg-success/90"
             :disabled="resolvingFalla"
             @click="confirmarResolver"
           >
@@ -783,21 +782,21 @@ interface Bucket {
   color: string
 }
 const BUCKETS: Bucket[] = [
-  { key: 'activas', label: 'Activas', icon: ZapIcon, color: '#dc2626' },
-  { key: 'programadas', label: 'Programadas', icon: CalendarClockIcon, color: '#2563eb' },
-  { key: 'resueltas', label: 'Resueltas', icon: CircleCheckIcon, color: '#16a34a' },
-  { key: 'todas', label: 'Todas', icon: ListIcon, color: '#915BD8' },
+  { key: 'activas', label: 'Activas', icon: ZapIcon, color: 'var(--destructive)' },
+  { key: 'programadas', label: 'Programadas', icon: CalendarClockIcon, color: 'var(--primary)' },
+  { key: 'resueltas', label: 'Resueltas', icon: CircleCheckIcon, color: 'var(--success)' },
+  { key: 'todas', label: 'Todas', icon: ListIcon, color: 'var(--chart-4)' },
 ]
 
 const AVATAR_PALETTE = [
-  '#915BD8',
-  '#2563eb',
-  '#16a34a',
-  '#d97706',
-  '#dc2626',
-  '#0891b2',
-  '#7c3aed',
-  '#db2777',
+  'var(--primary)',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--success)',
+  'var(--warning)',
 ]
 
 // ── Estado base ──────────────────────────────────────────────────────────
@@ -1350,11 +1349,10 @@ function initials(nombre?: string): string {
   return (parts[0]?.[0] || '?').toUpperCase() + (parts[1]?.[0] || '').toUpperCase()
 }
 
-function avatarStyle(user?: { id?: number; nombre?: string } | null) {
-  if (!user) return { background: '#9ca3af' }
+function avatarColor(user?: { id?: number; nombre?: string } | null): string {
+  if (!user) return 'var(--muted-foreground)'
   const id = user.id ?? hashCode(user.nombre || '')
-  const color = AVATAR_PALETTE[Math.abs(id) % AVATAR_PALETTE.length]
-  return { background: color }
+  return AVATAR_PALETTE[Math.abs(id) % AVATAR_PALETTE.length] ?? 'var(--primary)'
 }
 
 function hashCode(str: string): number {
@@ -1375,18 +1373,17 @@ function slaVencido(falla: Falla): boolean {
   const p = slaPct(falla)
   return p != null && p >= 100
 }
-function slaFillStyle(falla: Falla) {
-  const p = Math.min(slaPct(falla) ?? 0, 100)
-  return { width: `${p}%`, background: slaTextColor(falla) }
+function slaFillPct(falla: Falla): number {
+  return Math.min(slaPct(falla) ?? 0, 100)
 }
 function slaTextColor(falla: Falla): string {
-  if (falla.sla_cumplido === true) return '#16a34a'
-  if (falla.sla_cumplido === false) return '#dc2626'
+  if (falla.sla_cumplido === true) return 'var(--success)'
+  if (falla.sla_cumplido === false) return 'var(--destructive)'
   const p = slaPct(falla)
-  if (p == null) return '#9ca3af'
-  if (p >= 100) return '#dc2626'
-  if (p >= 70) return '#d97706'
-  return '#16a34a'
+  if (p == null) return 'var(--muted-foreground)'
+  if (p >= 100) return 'var(--destructive)'
+  if (p >= 70) return 'var(--warning)'
+  return 'var(--success)'
 }
 function slaText(falla: Falla): string {
   if (falla.sla_cumplido === true) return 'OK'
@@ -1398,9 +1395,9 @@ function slaText(falla: Falla): string {
 }
 function slaSeverity(falla: Falla): GandalfBadgeColor {
   const c = slaTextColor(falla)
-  if (c === '#16a34a') return 'success'
-  if (c === '#dc2626') return 'destructive'
-  if (c === '#d97706') return 'warning'
+  if (c === 'var(--success)') return 'success'
+  if (c === 'var(--destructive)') return 'destructive'
+  if (c === 'var(--warning)') return 'warning'
   return 'default'
 }
 

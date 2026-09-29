@@ -365,7 +365,7 @@
               :class="ds.hidden ? 'opacity-40' : ''"
               @click="ds.hidden = !ds.hidden"
             >
-              <span class="size-2 shrink-0 rounded-full" :style="{ background: ds.color }" />
+              <span class="size-2 shrink-0 rounded-full bg-(--c)" :style="{ '--c': ds.color }" />
               <span class="font-medium text-foreground">{{ ds.nombre }}</span>
               <Badge v-if="ds.fuente === 'cruda'" variant="outline" :title="TITULO_CRUDA"
                 >sin verificar</Badge
@@ -408,7 +408,7 @@
                   <text
                     :x="paddingL - 6"
                     :y="yToPx(y) + 3.5"
-                    class="fill-muted-foreground text-[9px]"
+                    class="fill-muted-foreground text-xs"
                     text-anchor="end"
                   >
                     {{ fmtYTick(y) }}
@@ -422,7 +422,7 @@
                   :key="'x' + i"
                   :x="xToPx(p.idx)"
                   :y="chartH - paddingB / 2 + 4"
-                  class="fill-muted-foreground text-[9px]"
+                  class="fill-muted-foreground text-xs"
                   :text-anchor="i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'"
                 >
                   {{ p.label }}
@@ -470,8 +470,9 @@
               <polyline
                 v-if="hayMetaP90"
                 :points="metaP90Points"
+                class="text-warning"
                 fill="none"
-                stroke="#f59e0b"
+                stroke="currentColor"
                 stroke-width="2"
                 stroke-dasharray="6 4"
                 stroke-linejoin="round"
@@ -518,8 +519,9 @@
                   :cx="hover.gx"
                   :cy="yToPx(s.kwh)"
                   r="4"
+                  class="text-background"
                   :fill="s.color"
-                  stroke="#fff"
+                  stroke="currentColor"
                   stroke-width="1.5"
                 />
               </g>
@@ -528,14 +530,9 @@
             <!-- Tooltip: valor de X (período) y de Y (kWh) bajo el cursor -->
             <div
               v-if="hover"
-              class="absolute z-10 max-w-60 min-w-36 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
-              :style="{
-                left: `${hover.tipLeft}px`,
-                top: `${hover.tipTop}px`,
-                transform: hover.flip
-                  ? 'translate(calc(-100% - 12px), -50%)'
-                  : 'translate(12px, -50%)',
-              }"
+              class="absolute top-(--t) left-(--l) z-10 max-w-60 min-w-36 -translate-y-1/2 rounded-lg border border-border bg-popover p-2.5 text-xs shadow-md"
+              :class="hover.flip ? '-ml-3 -translate-x-full' : 'ml-3'"
+              :style="{ '--l': `${hover.tipLeft}px`, '--t': `${hover.tipTop}px` }"
             >
               <div class="mb-1 font-bold whitespace-nowrap text-foreground">{{ hover.label }}</div>
               <div
@@ -543,7 +540,7 @@
                 :key="'t' + s.proyectoId"
                 class="flex items-center gap-1.5 py-px"
               >
-                <span class="size-2 shrink-0 rounded-full" :style="{ background: s.color }" />
+                <span class="size-2 shrink-0 rounded-full bg-(--c)" :style="{ '--c': s.color }" />
                 <span class="flex-1 truncate text-muted-foreground">{{ s.nombre }}</span>
                 <span class="font-bold text-foreground tabular-nums"
                   >{{ fmtNum(s.kwh, 1) }} kWh</span
