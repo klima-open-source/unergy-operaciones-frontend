@@ -59,7 +59,7 @@ function onSelectNotificacion(e: Event, n: Notificacion) {
         <BellIcon />
         <span
           v-if="unreadCount > 0"
-          class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-[3px] text-[10px] leading-none font-bold text-white"
+          class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-0.75 text-xs leading-none font-bold text-white"
         >
           {{ unreadCount > 99 ? '99+' : unreadCount }}
         </span>
@@ -104,7 +104,7 @@ function onSelectNotificacion(e: Event, n: Notificacion) {
             <p v-if="n.titulo && n.mensaje" class="mt-0.5 text-xs text-muted-foreground">
               {{ n.mensaje }}
             </p>
-            <p class="mt-1 text-[10px] text-muted-foreground">{{ formatTimeAgo(n.created_at) }}</p>
+            <p class="mt-1 text-xs text-muted-foreground">{{ formatTimeAgo(n.created_at) }}</p>
           </div>
           <div v-if="!n.leida" class="mt-2 size-2 shrink-0 rounded-full bg-primary" />
         </DropdownMenuItem>
