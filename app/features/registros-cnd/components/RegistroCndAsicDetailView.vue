@@ -830,10 +830,15 @@ onMounted(cargar)
                 </div>
                 <div class="space-y-1.5">
                   <GLabel>Tipo visita protecciones</GLabel>
-                  <Select v-model="general.tipo_visita_protecciones">
+                  <Select
+                    :model-value="aValorSelect(general.tipo_visita_protecciones)"
+                    @update:model-value="
+                      (v) => (general.tipo_visita_protecciones = deValorSelect(v))
+                    "
+                  >
                     <SelectTrigger class="w-full"><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">—</SelectItem>
+                      <SelectItem :value="VALOR_SELECT_VACIO">—</SelectItem>
                       <SelectItem v-for="t in cat.tipos_visita" :key="t" :value="t">{{
                         t
                       }}</SelectItem>
