@@ -364,12 +364,12 @@ async function guardar() {
             <div>
               <GLabel>Origen del cliente</GLabel>
               <Select
-                :model-value="nuevo.origen_tipo ?? ''"
-                @update:model-value="(v) => (nuevo.origen_tipo = (v as string) || null)"
+                :model-value="aValorSelect(nuevo.origen_tipo)"
+                @update:model-value="(v) => (nuevo.origen_tipo = deValorSelect(v) || null)"
               >
                 <SelectTrigger class="w-full"><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">—</SelectItem>
+                  <SelectItem :value="VALOR_SELECT_VACIO">—</SelectItem>
                   <SelectItem v-for="o in ORIGENES_CLIENTE" :key="o.value" :value="o.value">{{
                     o.label
                   }}</SelectItem>
