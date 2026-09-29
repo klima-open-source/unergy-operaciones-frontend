@@ -182,9 +182,7 @@
                 <label class="text-xs font-medium text-muted-foreground">Archivo (PDF / imagen)</label>
                 <label class="flex items-center gap-2 text-sm border border-dashed border-border rounded-lg px-2.5 py-1.5 cursor-pointer hover:border-primary/50 transition-colors">
                   <PaperclipIcon class="text-muted-foreground size-3" />
-                  <span class="text-xs text-muted-foreground truncate">
-                    {{ facturaForm.archivo ? facturaForm.archivo.name : 'Seleccionar archivo…' }}
-                  </span>
+                  <TruncatedText :text="facturaForm.archivo ? facturaForm.archivo.name : 'Seleccionar archivo…'" class="text-xs text-muted-foreground min-w-0" />
                   <input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,.webp"

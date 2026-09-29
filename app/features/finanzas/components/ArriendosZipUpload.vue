@@ -122,9 +122,7 @@
                     {{ predio.valor != null ? formatCOP(predio.valor) : '—' }}
                   </td>
                   <td class="px-3 py-2 text-xs font-mono text-primary">
-                    <span class="truncate block" :title="nombrePredio(grupo, predio)">
-                      {{ nombrePredio(grupo, predio) }}
-                    </span>
+                    <TruncatedText :text="nombrePredio(grupo, predio)" />
                   </td>
                   <td class="px-3 py-2 text-center">
                     <span v-if="predio.proyectoId"

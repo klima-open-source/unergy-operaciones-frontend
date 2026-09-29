@@ -25,7 +25,7 @@
 
         <div v-if="excel" class="flex items-center gap-3 rounded-lg border px-3 py-2 border-border">
           <FileSpreadsheetIcon class="shrink-0 size-4 text-muted-foreground" />
-          <span class="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{{ excel.nombre }}</span>
+          <TruncatedText :text="excel.nombre" class="flex-1 min-w-0 text-xs font-medium text-foreground" />
           <span class="text-xs text-muted-foreground shrink-0">{{ fmtTamano(excel.tamano) }}</span>
         </div>
 
