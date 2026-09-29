@@ -192,8 +192,8 @@ const chartData = computed<ChartData<'line'>>(() => ({
     {
       label: 'Precio de bolsa (PB)',
       data: puntosGrafica.value.map((p) => p.pb),
-      borderColor: color('unergy-purple'),
-      backgroundColor: color('unergy-purple', 0.08),
+      borderColor: color('primary'),
+      backgroundColor: color('primary', 0.08),
       fill: false,
       tension: 0.4,
       pointRadius: 4,
