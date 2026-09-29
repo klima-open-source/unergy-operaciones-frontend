@@ -207,13 +207,13 @@ watch(() => props.ofertaId, cargar, { immediate: true })
       <div class="mt-3">
         <GLabel>Precio por año ($COP/kWh)</GLabel>
         <div v-for="(fila, i) in nueva.precios" :key="i" class="mb-1.5 flex items-center gap-2">
-          <NumberField v-model="fila.anio" :format-options="{ useGrouping: false }" class="w-28">
+          <NumberField v-model="fila.anio" :format-options="{ useGrouping: false }" class="flex-1">
             <NumberFieldContent><NumberFieldInput placeholder="2026" /></NumberFieldContent>
           </NumberField>
           <NumberField
             v-model="fila.precio"
             :format-options="{ maximumFractionDigits: 4 }"
-            class="w-36"
+            class="flex-1"
           >
             <NumberFieldContent><NumberFieldInput placeholder="330" /></NumberFieldContent>
           </NumberField>
