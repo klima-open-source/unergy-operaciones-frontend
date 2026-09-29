@@ -756,15 +756,27 @@ const PALETTE = [
   '#0d9488',
 ]
 
-const GRANULARIDADES = [
+type Granularidad = 'mensual' | 'diaria' | 'horaria'
+type ModoGeneracion = 'actual' | 'pasado' | 'anio' | 'intervalo' | 'mes' | 'ayer' | 'dia'
+
+interface OpcionGranularidad {
+  key: Granularidad
+  label: string
+  icon: Component
+}
+const GRANULARIDADES: OpcionGranularidad[] = [
   { key: 'mensual', label: 'Mensual', icon: CalendarIcon },
   { key: 'diaria', label: 'Diaria', icon: ListIcon },
   { key: 'horaria', label: 'Horaria', icon: ClockIcon },
 ]
 
+interface OpcionModo {
+  key: ModoGeneracion
+  label: string
+}
 // Modos de selección por granularidad: presets rápidos + intervalo libre.
 // La unidad natural de cada granularidad: año (mensual), mes (diaria), día (horaria).
-const MODOS = {
+const MODOS: Record<Granularidad, OpcionModo[]> = {
   mensual: [
     { key: 'actual', label: 'Este año' },
     { key: 'pasado', label: 'Año pasado' },
@@ -782,7 +794,11 @@ const MODOS = {
     { key: 'intervalo', label: 'Intervalo' },
   ],
 }
-const MODO_DEFAULT = { mensual: 'actual', diaria: 'actual', horaria: 'ayer' }
+const MODO_DEFAULT: Record<Granularidad, ModoGeneracion> = {
+  mensual: 'actual',
+  diaria: 'actual',
+  horaria: 'ayer',
+}
 
 const hoy = new Date()
 hoy.setHours(0, 0, 0, 0)
@@ -792,19 +808,19 @@ const hoyDia = isoDate(hoy)
 
 // ── Estado ───────────────────────────────────────────────────────────
 const loading = ref(false)
-const error = ref(null)
-const proyectos = ref([])
-const proyectosSel = ref([])
+const error = ref<string | null>(null)
+const proyectos = ref<ProyectoMonitoreoLegacy[]>([])
+const proyectosSel = ref<string[]>([])
 
-const granularidad = ref('diaria')
-const modo = ref('actual')
+const granularidad = ref<Granularidad>('diaria')
+const modo = ref<ModoGeneracion>('actual')
 const fechaDesde = ref(new Date())
 const fechaHasta = ref(new Date())
 // Selectores específicos por modo:
 const anioSel = ref(new Date().getFullYear()) // mensual · "Año…"
 const mesSel = ref(new Date()) // diaria  · "Mes…"  (cualquier día del mes)
 const diaSel = ref(new Date()) // horaria · "Día…"
-const rango = ref(null) // modo intervalo: UN solo picker de rango [desde, hasta]
+const rango = ref<[Date, Date] | null>(null) // modo intervalo: UN solo picker de rango [desde, hasta]
 
 /**
  * Solo se marca la CRUDA, no la verificada.
@@ -819,14 +835,38 @@ const TITULO_CRUDA =
   'Unergy, asi que se muestran todas tal como llegaron del medidor. No es ' +
   'estrictamente comparable con las curvas verificadas ni con la meta P90.'
 
-const datasets = ref([])
-const tipoGrafico = ref('line')
-const chartWrapRef = ref(null)
-const chartSvgRef = ref(null)
+interface PuntoGeneracionPeriodo {
+  key: string
+  kwh: number
+  label: string
+}
+interface DatasetGeneracion {
+  proyectoId: string
+  nombre: string
+  color: string
+  points: PuntoGeneracionPeriodo[]
+  total: number
+  hidden: boolean
+  sim: RespuestaGeneracionLegacy['simulation'] | null
+  fuente: RespuestaGeneracionLegacy['fuente'] | null
+}
+
+const datasets = ref<DatasetGeneracion[]>([])
+const tipoGrafico = ref<'line' | 'bar'>('line')
+const chartWrapRef = ref<HTMLDivElement | null>(null)
+const chartSvgRef = ref<SVGSVGElement | null>(null)
 const chartContainerWidth = ref(900)
 
+interface HoverChart {
+  idx: number
+  gx: number
+  tipLeft: number
+  tipTop: number
+  flip: boolean
+  label: string
+}
 // Hover sobre la gráfica: período (X) + valor kWh (Y) de cada serie bajo el cursor.
-const hover = ref(null) // { idx, gx, tipLeft, tipTop, flip, label } | null
+const hover = ref<HoverChart | null>(null)
 
 // Consulta manual: hasQueried distingue "aún no consultado" de "sin datos";
 // pendiente resalta el botón Consultar cuando hay cambios sin aplicar.
@@ -838,39 +878,39 @@ const modosActuales = computed(() => MODOS[granularidad.value] || [])
 
 const aniosDisponibles = computed(() => {
   const y = new Date().getFullYear()
-  const arr = []
+  const arr: { label: string; value: number }[] = []
   for (let a = y; a >= 2019; a--) arr.push({ label: String(a), value: a })
   return arr
 })
 
 // Mapa sub_project → nombre comercial (para etiquetar cada serie).
-const nombrePorSub = computed(() => {
-  const m = {}
+const nombrePorSub = computed<Record<string, string | undefined>>(() => {
+  const m: Record<string, string | undefined> = {}
   for (const p of proyectos.value) if (p.sub_project) m[p.sub_project] = p.nombre_comercial
   return m
 })
 
-function onProyectosSelChange(v) {
-  proyectosSel.value = v ?? []
+function onProyectosSelChange(v: unknown): void {
+  proyectosSel.value = (v as string[]) ?? []
   onProyectosChange()
 }
 
 // ── Adaptadores para <input type="month"|"date"> ──────────────────────
-function toMonthInput(d) {
+function toMonthInput(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
-function fromMonthInput(v) {
-  const [y, m] = v.split('-').map(Number)
+function fromMonthInput(v: string): Date {
+  const [y, m] = v.split('-').map(Number) as [number, number]
   return new Date(y, m - 1, 1)
 }
-function fromDateInput(v) {
-  const [y, m, d] = v.split('-').map(Number)
+function fromDateInput(v: string): Date {
+  const [y, m, d] = v.split('-').map(Number) as [number, number, number]
   return new Date(y, m - 1, d)
 }
 
 const mesSelInput = computed({
   get: () => toMonthInput(mesSel.value),
-  set: (v) => {
+  set: (v: string) => {
     if (!v) return
     mesSel.value = fromMonthInput(v)
     aplicarModo()
@@ -878,7 +918,7 @@ const mesSelInput = computed({
 })
 const diaSelInput = computed({
   get: () => isoDate(diaSel.value),
-  set: (v) => {
+  set: (v: string) => {
     if (!v) return
     diaSel.value = fromDateInput(v)
     aplicarModo()
@@ -894,19 +934,19 @@ const rangoDesdeInput = computed({
     const d = rango.value?.[0] ?? fechaDesde.value
     return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
   },
-  set: (v) => setRango(0, v),
+  set: (v: string) => setRango(0, v),
 })
 const rangoHastaInput = computed({
   get: () => {
     const d = rango.value?.[1] ?? rango.value?.[0] ?? fechaHasta.value
     return rangoEsMensual.value ? toMonthInput(d) : isoDate(d)
   },
-  set: (v) => setRango(1, v),
+  set: (v: string) => setRango(1, v),
 })
-function setRango(idx, v) {
+function setRango(idx: 0 | 1, v: string): void {
   if (!v) return
   const d = rangoEsMensual.value ? fromMonthInput(v) : fromDateInput(v)
-  const current = rango.value ? [...rango.value] : [d, d]
+  const current: [Date, Date] = rango.value ? [...rango.value] : [d, d]
   current[idx] = d
   rango.value = current
   aplicarModo()
