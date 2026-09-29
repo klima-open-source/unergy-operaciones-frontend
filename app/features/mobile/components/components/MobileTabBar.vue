@@ -3,24 +3,24 @@
     <!-- Coordinador y técnico no tienen acceso a generación/resumen -->
     <template v-if="esCoordinadorOTecnico">
       <RouterLink :to="fallasPath" class="mtb-item" active-class="mtb-item--active">
-        <WrenchIcon class="size-[1em]" /><span>Fallas</span>
+        <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
-      <button class="mtb-item mtb-item--logout" @click="logout">
-        <LogOutIcon class="size-[1em]" /><span>Salir</span>
+      <button class="mtb-item" @click="logout">
+        <LogOutIcon class="size-5" /><span>Salir</span>
       </button>
     </template>
     <template v-else>
       <RouterLink to="/m/solar" class="mtb-item" active-class="mtb-item--active">
-        <SunIcon class="size-[1em]" /><span>Generación</span>
+        <SunIcon class="size-5" /><span>Generación</span>
       </RouterLink>
       <RouterLink to="/m/fallas" class="mtb-item" active-class="mtb-item--active">
-        <WrenchIcon class="size-[1em]" /><span>Fallas</span>
+        <WrenchIcon class="size-5" /><span>Fallas</span>
       </RouterLink>
       <RouterLink to="/m/reporte-cgm" class="mtb-item" active-class="mtb-item--active">
-        <MailIcon class="size-[1em]" /><span>CGM</span>
+        <MailIcon class="size-5" /><span>CGM</span>
       </RouterLink>
       <RouterLink to="/m/resumen" class="mtb-item" active-class="mtb-item--active">
-        <ChartColumnIcon class="size-[1em]" /><span>Resumen</span>
+        <ChartColumnIcon class="size-5" /><span>Resumen</span>
       </RouterLink>
     </template>
   </nav>

@@ -3,11 +3,11 @@
     <!-- ══ TOP BAR ══ -->
     <header class="ms-topbar">
       <button class="ms-icon-btn" @click="menuOpen = !menuOpen" title="Menú">
-        <MenuIcon class="size-[1em]" />
+        <MenuIcon class="size-4" />
       </button>
-      <span class="ms-brand"><SunIcon class="size-[1em]" /> Unergy Solar</span>
+      <span class="ms-brand"><SunIcon class="size-4" /> Unergy Solar</span>
       <button class="ms-icon-btn ms-bell" @click="notifOpen = true" title="Notificaciones">
-        <BellIcon class="size-[1em]" />
+        <BellIcon class="size-4" />
         <span v-if="unreadCount > 0" class="ms-bell-badge">{{
           unreadCount > 9 ? '9+' : unreadCount
         }}</span>
@@ -18,21 +18,21 @@
         @click="refrescar"
         title="Actualizar"
       >
-        <LoaderCircleIcon v-if="loadingDetail" class="size-[1em] animate-spin" />
-        <RefreshCwIcon v-else class="size-[1em]" />
+        <LoaderCircleIcon v-if="loadingDetail" class="size-4 animate-spin" />
+        <RefreshCwIcon v-else class="size-4" />
       </button>
 
       <div v-if="menuOpen" class="ms-menu" @click.self="menuOpen = false">
         <div class="ms-menu-card">
           <div class="ms-menu-user">
-            <UserIcon class="size-[1em]" />
+            <UserIcon class="size-6" />
             <div>
               <div class="ms-menu-name">{{ user?.name || 'Usuario' }}</div>
               <div class="ms-menu-email">{{ user?.email }}</div>
             </div>
           </div>
           <button class="ms-menu-item" @click="cerrarSesion">
-            <LogOutIcon class="size-[1em]" /> Cerrar sesión
+            <LogOutIcon class="size-4" /> Cerrar sesión
           </button>
         </div>
       </div>
@@ -41,12 +41,12 @@
     <!-- ══ SELECTOR (sin flechas — se cambia con swipe) ══ -->
     <div v-if="proyectos.length" class="ms-selector">
       <button class="ms-current" @click="pickerOpen = !pickerOpen">
-        <span class="ms-dot" :style="{ background: statusColor(current?.status) }" />
+        <span class="ms-dot bg-(--c)" :style="{ '--c': statusColor(current?.status) }" />
         <span class="ms-name">{{ current?.nombre || '—' }}</span>
-        <ChevronDownIcon class="ms-caret size-[1em]" />
+        <ChevronDownIcon class="ms-caret size-3" />
       </button>
       <button class="ms-add-falla" @click="openCreate" title="Reportar falla en esta planta">
-        <PlusIcon class="size-[1em]" />
+        <PlusIcon class="size-5" />
       </button>
       <span class="ms-count">{{ idx + 1 }}/{{ proyectos.length }}</span>
 
@@ -59,10 +59,10 @@
             :class="['ms-picker-item', i === idx && 'ms-picker-item--active']"
             @click="selectIdx(i)"
           >
-            <span class="ms-dot" :style="{ background: statusColor(p.status) }" />
+            <span class="ms-dot bg-(--c)" :style="{ '--c': statusColor(p.status) }" />
             <span class="ms-picker-name">{{ p.nombre }}</span>
             <ZapIcon
-              class="ms-picker-relay size-[1em]"
+              class="ms-picker-relay size-4"
               v-if="rcnMap[p.proyecto_id]"
               title="Tiene reconectador"
             />
@@ -80,12 +80,16 @@
       @touchmove.passive="onTouchMove"
       @touchend="onTouchEnd"
     >
-      <div class="ms-track" :style="trackStyle">
+      <div
+        class="ms-track translate-x-(--x)"
+        :class="dragging ? 'transition-none' : 'transition-transform duration-300 ease-out'"
+        :style="{ '--x': -idx * slideW + dragX + 'px' }"
+      >
         <section v-for="p in proyectos" :key="p.proyecto_id" class="ms-slide">
           <!-- Chips "ahora" -->
           <div class="ms-now">
             <div class="ms-now-chip">
-              <span class="ms-now-dot" style="background: var(--color-unergy-purple)" />
+              <span class="ms-now-dot bg-unergy-purple" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Inversores</span>
                 <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
@@ -98,7 +102,7 @@
               </div>
             </div>
             <div class="ms-now-chip">
-              <span class="ms-now-dot" style="background: #14b8a6" />
+              <span class="ms-now-dot bg-chart-2" />
               <div class="ms-now-text">
                 <span class="ms-now-label">Medidor</span>
                 <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span>
@@ -115,10 +119,10 @@
           <!-- Gráfica — al tocarla se abre la potencia por inversor -->
           <div class="ms-chart" @click="onChartTap(p)">
             <div v-if="loadingDetail && !detailMap[p.proyecto_id]" class="ms-chart-loading">
-              <LoaderCircleIcon class="size-[1em] animate-spin" /> <span>Cargando datos…</span>
+              <LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando datos…</span>
             </div>
             <ProjectLiveChart v-else :detail="detailMap[p.proyecto_id]" />
-            <span class="ms-chart-expand"><MoveIcon class="size-[1em]" /> Inversores</span>
+            <span class="ms-chart-expand"><MoveIcon class="size-3" /> Inversores</span>
           </div>
 
           <!-- Reconectador: estado + telemetría en vivo de Solenium -->
@@ -133,19 +137,16 @@
               @click="openFalla(f)"
             >
               <span
-                class="ms-falla-stripe"
-                :style="{ background: colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
+                class="ms-falla-stripe bg-(--c)"
+                :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
               />
               <span
-                class="ms-falla-estado"
-                :style="{
-                  background: colorEstado(f.estado?.codigo) + '22',
-                  color: colorEstado(f.estado?.codigo),
-                }"
+                class="ms-falla-estado bg-(--c)/15 text-(--c)"
+                :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
               <span class="ms-falla-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</span>
-              <ChevronRightIcon class="ms-falla-arrow size-[1em]" />
+              <ChevronRightIcon class="ms-falla-arrow size-3" />
             </button>
             <span v-if="(fallasMap[p.proyecto_id] || []).length > 2" class="ms-falla-more">
               +{{ (fallasMap[p.proyecto_id] || []).length - 2 }} fallas más
@@ -154,12 +155,10 @@
 
           <!-- Pie -->
           <div class="ms-footer">
-            <span class="ms-updated"
-              ><ClockIcon class="size-[1em]" /> {{ lastUpdated || '—' }}</span
-            >
+            <span class="ms-updated"><ClockIcon class="size-3" /> {{ lastUpdated || '—' }}</span>
             <button v-if="rcnMap[p.proyecto_id]" class="ms-reconnect" @click="openSheet(p)">
               <span :class="['ms-relay-badge', relayBadgeClass(p)]">{{ relayBadgeText(p) }}</span>
-              <PowerIcon class="size-[1em]" /> Reconectar
+              <PowerIcon class="size-4" /> Reconectar
             </button>
           </div>
         </section>
@@ -169,11 +168,10 @@
     <!-- ══ ESTADOS sin proyectos ══ -->
     <div v-else class="ms-state">
       <template v-if="loadingList"
-        ><LoaderCircleIcon class="size-[1em] animate-spin" />
-        <span>Cargando proyectos…</span></template
+        ><LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando proyectos…</span></template
       >
       <template v-else>
-        <SunIcon class="size-[1em]" style="font-size: 34px; color: #cbd5e1" />
+        <SunIcon class="size-8 text-muted-foreground!" />
         <span>Sin proyectos disponibles</span>
         <button class="ms-retry" @click="cargarLista">Reintentar</button>
       </template>
@@ -393,11 +391,6 @@ let startX = 0
 let startY = 0
 let horizontal: boolean | null = null
 let tapMoved = false // true si el dedo se movió: entonces no fue un toque
-
-const trackStyle = computed(() => ({
-  transform: `translate3d(${-idx.value * slideW.value + dragX.value}px, 0, 0)`,
-  transition: dragging.value ? 'none' : 'transform .34s cubic-bezier(.22,.61,.36,1)',
-}))
 
 function measure(): void {
   slideW.value = deckRef.value?.clientWidth || window.innerWidth

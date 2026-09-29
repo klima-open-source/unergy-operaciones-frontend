@@ -4,14 +4,14 @@
       <div v-if="open" class="is-root">
         <!-- Encabezado -->
         <header class="is-head">
-          <button class="is-back" @click="close"><ChevronLeftIcon class="size-[1em]" /></button>
+          <button class="is-back" @click="close"><ChevronLeftIcon class="size-4" /></button>
           <div class="is-titles">
             <span class="is-title">Potencia por inversor</span>
             <span class="is-sub">{{ nombre || '—' }}</span>
           </div>
           <button class="is-icon-btn" :disabled="loading" @click="cargar(true)" title="Actualizar">
-            <LoaderCircleIcon v-if="loading" class="size-[1em] animate-spin" />
-            <RefreshCwIcon v-else class="size-[1em]" />
+            <LoaderCircleIcon v-if="loading" class="size-4 animate-spin" />
+            <RefreshCwIcon v-else class="size-4" />
           </button>
         </header>
 
@@ -20,24 +20,24 @@
           <button
             v-for="inv in inversores"
             :key="inv.dev_name"
-            :class="['is-chip', ocultos.has(inv.dev_name) && 'is-chip--off']"
-            :style="
-              ocultos.has(inv.dev_name)
-                ? {}
-                : { borderColor: inv.color, background: inv.color + '14' }
-            "
+            :class="[
+              'is-chip',
+              ocultos.has(inv.dev_name) ? 'is-chip--off' : 'border-(--c)! bg-(--c)/8!',
+            ]"
+            :style="{ '--c': inv.color }"
             @click="toggle(inv.dev_name)"
           >
             <span
               class="is-chip-dot"
-              :style="{ background: ocultos.has(inv.dev_name) ? '#cbd5e1' : inv.color }"
+              :class="ocultos.has(inv.dev_name) ? 'bg-border' : 'bg-(--c)'"
+              :style="{ '--c': inv.color }"
             />
             <span class="is-chip-name">{{ inv.dev_name }}</span>
             <span class="is-chip-peak">{{ fmtKw(inv.peak_kw) }}</span>
           </button>
           <button class="is-chip is-chip--all" @click="todos">
-            <EyeIcon v-if="ocultos.size" class="size-[1em]" />
-            <EyeOffIcon v-else class="size-[1em]" />
+            <EyeIcon v-if="ocultos.size" class="size-3" />
+            <EyeOffIcon v-else class="size-3" />
             {{ ocultos.size ? 'Todos' : 'Ninguno' }}
           </button>
         </div>
@@ -45,19 +45,19 @@
         <!-- Gráfica -->
         <main class="is-chart">
           <div v-if="loading" class="is-state">
-            <LoaderCircleIcon class="size-[1em] animate-spin" /> <span>Cargando inversores…</span>
+            <LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando inversores…</span>
           </div>
           <div v-else-if="error" class="is-state">
-            <TriangleAlertIcon class="size-[1em]" style="font-size: 30px; color: #f59e0b" />
+            <TriangleAlertIcon class="size-8 text-warning!" />
             <span>{{ error }}</span>
             <button class="is-retry" @click="cargar(true)">Reintentar</button>
           </div>
           <div v-else-if="!inversores.length" class="is-state">
-            <ChartLineIcon class="size-[1em]" style="font-size: 32px; color: #d1d5db" />
+            <ChartLineIcon class="size-8 text-muted-foreground!" />
             <span>Sin datos de inversores hoy</span>
           </div>
           <div v-else-if="!datasetsVisibles.length" class="is-state">
-            <EyeOffIcon class="size-[1em]" style="font-size: 30px; color: #d1d5db" />
+            <EyeOffIcon class="size-8 text-muted-foreground!" />
             <span>Todas las líneas están ocultas</span>
           </div>
           <Line v-else :data="chartData" :options="chartOptions" />
@@ -65,10 +65,10 @@
 
         <!-- Pie -->
         <footer class="is-foot">
-          <span><CalendarIcon class="size-[1em]" /> {{ fecha }}</span>
+          <span><CalendarIcon class="size-3" /> {{ fecha }}</span>
           <span v-if="granularidad">{{ granularidad === 'hour' ? 'por hora' : 'cada 5 min' }}</span>
           <span v-if="actualizado" class="is-foot-upd"
-            ><ClockIcon class="size-[1em]" /> {{ actualizado }}</span
+            ><ClockIcon class="size-3" /> {{ actualizado }}</span
           >
         </footer>
       </div>

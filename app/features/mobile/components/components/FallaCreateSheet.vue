@@ -5,8 +5,8 @@
         <div class="fc-sheet">
           <div class="fc-grab" />
           <div class="fc-header">
-            <span class="fc-title"><CirclePlusIcon class="size-[1em]" /> Registrar falla</span>
-            <button class="fc-close" @click="close"><XIcon class="size-[1em]" /></button>
+            <span class="fc-title"><CirclePlusIcon class="size-4" /> Registrar falla</span>
+            <button class="fc-close" @click="close"><XIcon class="size-4" /></button>
           </div>
 
           <div class="fc-body">
@@ -33,11 +33,11 @@
                   v-for="c in estructura"
                   :key="c.codigo"
                   type="button"
-                  :class="['fc-chip', f.categoria === c.codigo && 'fc-chip--on']"
-                  :style="f.categoria === c.codigo ? chipOn(c.color_hex) : {}"
+                  :class="['fc-chip', f.categoria === c.codigo && CHIP_ACTIVO]"
+                  :style="{ '--c': c.color_hex || 'var(--color-unergy-purple)' }"
                   @click="seleccionarCategoria(c.codigo)"
                 >
-                  <component :is="iconoCategoriaFalla(c.codigo)" class="size-[1em]" />
+                  <component :is="iconoCategoriaFalla(c.codigo)" class="size-3" />
                   {{ c.etiqueta }}
                 </button>
               </div>
@@ -121,10 +121,7 @@
                     v-for="inv in inversores"
                     :key="inv.id"
                     type="button"
-                    :class="['fc-chip', f.inversores_ids.includes(inv.id) && 'fc-chip--on']"
-                    :style="
-                      f.inversores_ids.includes(inv.id) ? chipOn('var(--color-unergy-purple)') : {}
-                    "
+                    :class="['fc-chip', f.inversores_ids.includes(inv.id) && CHIP_ACTIVO_PURPURA]"
                     @click="toggleInv(inv.id)"
                   >
                     {{ inv.nombre || 'Inversor' }} · {{ inv.potencia_nominal_kw || '?' }}kW
@@ -148,12 +145,12 @@
                     placeholder="kW"
                   />
                   <button type="button" class="fc-invaddbtn" @click="agregarInv">
-                    <PlusIcon class="size-[1em]" />
+                    <PlusIcon class="size-3" />
                   </button>
                 </div>
                 <small v-if="invError" class="fc-fielderr">{{ invError }}</small>
 
-                <span class="fc-label-txt" style="margin-top: 8px; display: block"
+                <span class="fc-label-txt mt-2 block"
                   >Tipo(s) de falla <span class="fc-req">*</span></span
                 >
                 <div class="fc-chips">
@@ -161,12 +158,10 @@
                     v-for="t in catActual.tipos_falla"
                     :key="t.codigo"
                     type="button"
-                    :class="['fc-chip', f.inversores_tipos.includes(t.codigo) && 'fc-chip--on']"
-                    :style="
-                      f.inversores_tipos.includes(t.codigo)
-                        ? chipOn('var(--color-unergy-purple)')
-                        : {}
-                    "
+                    :class="[
+                      'fc-chip',
+                      f.inversores_tipos.includes(t.codigo) && CHIP_ACTIVO_PURPURA,
+                    ]"
                     @click="toggleTipo(t.codigo)"
                   >
                     {{ t.etiqueta }}
@@ -190,8 +185,8 @@
                   v-for="p in catalogos.prioridades"
                   :key="p.id"
                   type="button"
-                  :class="['fc-chip', f.prioridad_id === p.id && 'fc-chip--on']"
-                  :style="f.prioridad_id === p.id ? chipOn(colorPrioridad(p.codigo)) : {}"
+                  :class="['fc-chip', f.prioridad_id === p.id && CHIP_ACTIVO]"
+                  :style="{ '--c': colorPrioridad(p.codigo) }"
                   @click="f.prioridad_id = p.id"
                 >
                   {{ p.etiqueta }}
@@ -207,8 +202,8 @@
                   v-for="e in catalogos.estados"
                   :key="e.id"
                   type="button"
-                  :class="['fc-chip', f.estado_id === e.id && 'fc-chip--on']"
-                  :style="f.estado_id === e.id ? chipOn(colorEstado(e.codigo)) : {}"
+                  :class="['fc-chip', f.estado_id === e.id && CHIP_ACTIVO]"
+                  :style="{ '--c': colorEstado(e.codigo) }"
                   @click="f.estado_id = e.id"
                 >
                   {{ e.etiqueta }}
@@ -255,13 +250,13 @@
             </label>
 
             <div v-if="error" class="fc-error">
-              <TriangleAlertIcon class="size-[1em]" /> {{ error }}
+              <TriangleAlertIcon class="size-4" /> {{ error }}
             </div>
           </div>
 
           <button class="fc-submit" :disabled="saving" @click="submit">
-            <LoaderCircleIcon class="size-[1em] animate-spin" v-if="saving" /><CheckIcon
-              class="size-[1em]"
+            <LoaderCircleIcon class="size-4 animate-spin" v-if="saving" /><CheckIcon
+              class="size-4"
               v-else
             />
             {{ saving ? 'Registrando…' : 'Registrar falla' }}
@@ -374,10 +369,10 @@ const labelOpciones = computed(
     (catActual.value?.codigo === 'red' ? 'Evento de red' : 'Evento'),
 )
 
-function chipOn(color: string | undefined) {
-  const c = color || 'var(--color-unergy-purple)'
-  return { background: c, borderColor: c, color: '#fff' }
-}
+// Chip activo: el color llega por la variable `--c` del propio botón. Con `!`
+// porque `.fc-chip` (CSS del componente) fija fondo/borde/color y le ganaría.
+const CHIP_ACTIVO = 'border-(--c)! bg-(--c)! text-white!'
+const CHIP_ACTIVO_PURPURA = 'border-unergy-purple! bg-unergy-purple! text-white!'
 
 function seleccionarCategoria(codigo: string): void {
   f.categoria = codigo

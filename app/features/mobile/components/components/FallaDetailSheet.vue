@@ -12,9 +12,9 @@
               <span class="fd-type">{{ titulo }}</span>
             </div>
             <span v-if="saving" class="fd-saving"
-              ><LoaderCircleIcon class="size-[1em] animate-spin"
+              ><LoaderCircleIcon class="size-4 animate-spin"
             /></span>
-            <button class="fd-close" @click="close"><XIcon class="size-[1em]" /></button>
+            <button class="fd-close" @click="close"><XIcon class="size-4" /></button>
           </div>
 
           <div class="fd-body">
@@ -24,13 +24,10 @@
             <div v-if="clasif" class="fd-clasif">
               <div class="fd-clasif-head">
                 <span
-                  class="fd-clasif-cat"
-                  :style="{
-                    background: clasif.categoriaColor + '1a',
-                    color: clasif.categoriaColor,
-                  }"
+                  class="fd-clasif-cat bg-(--c)/10 text-(--c)"
+                  :style="{ '--c': clasif.categoriaColor }"
                 >
-                  <component :is="clasif.icono" class="size-[1em]" /> {{ clasif.categoriaEtiqueta }}
+                  <component :is="clasif.icono" class="size-3" /> {{ clasif.categoriaEtiqueta }}
                 </span>
                 <span v-if="clasif.subtitulo" class="fd-clasif-sub">{{ clasif.subtitulo }}</span>
                 <span v-if="clasif.pendienteReclasificar" class="fd-clasif-pend"
@@ -68,7 +65,7 @@
               <div v-if="clasif.inversores.length" class="fd-inv-list">
                 <div v-for="(inv, idx) in clasif.inversores" :key="idx" class="fd-inv">
                   <div class="fd-inv-top">
-                    <ServerIcon class="size-[1em]" />
+                    <ServerIcon class="size-3" />
                     <b>{{ inv.nombre }}</b>
                     <span v-if="inv.potenciaKw != null" class="fd-inv-pot"
                       >{{ inv.potenciaKw }} kW</span
@@ -89,8 +86,8 @@
                   v-for="e in catalogos.estados"
                   :key="e.id"
                   type="button"
-                  :class="['fd-chip', fa.estado?.id === e.id && 'fd-chip--on']"
-                  :style="fa.estado?.id === e.id ? chipOn(colorEstado(e.codigo)) : {}"
+                  :class="['fd-chip', fa.estado?.id === e.id && CHIP_ACTIVO]"
+                  :style="{ '--c': colorEstado(e.codigo) }"
                   @click="cambiar({ estado_id: e.id })"
                 >
                   {{ e.etiqueta }}
@@ -106,8 +103,8 @@
                   v-for="p in catalogos.prioridades"
                   :key="p.id"
                   type="button"
-                  :class="['fd-chip', fa.prioridad?.id === p.id && 'fd-chip--on']"
-                  :style="fa.prioridad?.id === p.id ? chipOn(colorPrioridad(p.codigo)) : {}"
+                  :class="['fd-chip', fa.prioridad?.id === p.id && CHIP_ACTIVO]"
+                  :style="{ '--c': colorPrioridad(p.codigo) }"
                   @click="cambiar({ prioridad_id: p.id })"
                 >
                   {{ p.etiqueta }}
@@ -178,8 +175,8 @@
                     :disabled="addingSeg || (!nota.trim() && !notaEstadoId)"
                     @click="agregarSeg"
                   >
-                    <LoaderCircleIcon class="size-[1em] animate-spin" v-if="addingSeg" /><SendIcon
-                      class="size-[1em]"
+                    <LoaderCircleIcon class="size-4 animate-spin" v-if="addingSeg" /><SendIcon
+                      class="size-4"
                       v-else
                     />
                   </button>
@@ -193,8 +190,8 @@
                 <p v-if="s.nota" class="fd-seg-nota">{{ s.nota }}</p>
                 <span
                   v-if="s.estado_nuevo"
-                  class="fd-seg-estado"
-                  :style="chipOn(colorEstado(s.estado_nuevo.codigo))"
+                  class="fd-seg-estado bg-(--c) text-white"
+                  :style="{ '--c': colorEstado(s.estado_nuevo.codigo) }"
                   >{{ s.estado_nuevo.etiqueta }}</span
                 >
               </div>
@@ -208,10 +205,10 @@
             :disabled="saving"
             @click="resolver"
           >
-            <CircleCheckIcon class="size-[1em]" /> Marcar resuelta
+            <CircleCheckIcon class="size-4" /> Marcar resuelta
           </button>
           <button v-else class="fd-reopen" :disabled="saving" @click="reabrir">
-            <RotateCcwIcon class="size-[1em]" /> Reabrir falla
+            <RotateCcwIcon class="size-4" /> Reabrir falla
           </button>
         </div>
       </div>
@@ -279,10 +276,9 @@ watch(
   },
 )
 
-function chipOn(color: string | undefined) {
-  const c = color || 'var(--color-unergy-purple)'
-  return { background: c, borderColor: c, color: '#fff' }
-}
+// Chip activo: el color llega por la variable `--c` del propio botón. Con `!`
+// porque `.fd-chip` (CSS del componente) fija fondo/borde/color y le ganaría.
+const CHIP_ACTIVO = 'border-(--c)! bg-(--c)! text-white!'
 function fmtFecha(d: string | null | undefined): string {
   if (!d) return '—'
   try {
