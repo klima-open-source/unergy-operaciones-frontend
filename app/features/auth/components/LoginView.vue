@@ -1,102 +1,7 @@
-<template>
-  <div class="flex min-h-screen items-center justify-center bg-unergy-deep">
-    <!-- Background accent -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div
-        class="absolute -top-40 -right-40 size-96 rounded-full bg-unergy-purple opacity-10"
-      ></div>
-      <div
-        class="absolute -bottom-40 -left-40 size-96 rounded-full bg-unergy-purple opacity-10"
-      ></div>
-    </div>
-
-    <div class="relative mx-4 w-full max-w-sm">
-      <!-- Card -->
-      <div class="overflow-hidden rounded-2xl bg-unergy-avena shadow-2xl">
-        <!-- Header with logo -->
-        <div class="px-10 pt-10 pb-6 text-center">
-          <img
-            src="/logos/Stacked_Logo_pupura_energico.png"
-            alt="Unergy"
-            class="mx-auto h-16 w-auto object-contain"
-          />
-          <p class="mt-3 text-sm text-unergy-deep/60">Plataforma de Operaciones</p>
-        </div>
-
-        <!-- Form -->
-        <div class="px-10 pb-10">
-          <form class="space-y-4" @submit.prevent="submit">
-            <div>
-              <label
-                class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase"
-              >
-                Correo
-              </label>
-              <input
-                v-model="email"
-                type="email"
-                placeholder="tu@unergy.io"
-                required
-                class="w-full rounded-lg border border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
-              />
-            </div>
-
-            <div>
-              <label
-                class="mb-1.5 block text-xs font-semibold tracking-wide text-unergy-deep uppercase"
-              >
-                Contraseña
-              </label>
-              <input
-                v-model="password"
-                type="password"
-                placeholder="••••••••"
-                required
-                class="w-full rounded-lg border border-unergy-purple/30 bg-white px-4 py-2.5 text-sm text-unergy-deep transition-all outline-none focus:border-unergy-purple"
-              />
-            </div>
-
-            <div
-              v-if="error"
-              class="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive"
-            >
-              {{ error }}
-            </div>
-
-            <button
-              type="submit"
-              :disabled="loading"
-              class="mt-2 w-full rounded-lg bg-unergy-purple py-3 text-sm font-bold tracking-wide text-unergy-avena transition-all enabled:hover:bg-unergy-purple-dark disabled:opacity-60"
-            >
-              <span v-if="loading" class="flex items-center justify-center gap-2">
-                <LoaderCircleIcon class="size-3 animate-spin" />
-                Ingresando...
-              </span>
-              <span v-else>Ingresar</span>
-            </button>
-          </form>
-
-          <div class="mt-4 text-center">
-            <RouterLink to="/forgot-password" class="text-xs text-unergy-purple hover:underline">
-              ¿Olvidaste tu contraseña?
-            </RouterLink>
-          </div>
-        </div>
-      </div>
-
-      <p class="mt-6 text-center text-xs text-unergy-avena/35">
-        © {{ new Date().getFullYear() }} Unergy · Operaciones
-      </p>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { LoaderCircleIcon } from '@lucide/vue'
-import { useRouter } from 'vue-router'
 import { normalizeError } from '~/core/errors'
 
-const router = useRouter()
 const { signIn } = useAuth()
 
 const email = ref('')
@@ -109,7 +14,7 @@ async function submit() {
   error.value = ''
   try {
     await signIn({ email: email.value, password: password.value })
-    router.push('/dashboard')
+    await navigateTo('/dashboard')
   } catch (e) {
     error.value = normalizeError(e).message
   } finally {
@@ -117,3 +22,54 @@ async function submit() {
   }
 }
 </script>
+
+<template>
+  <form class="flex flex-col gap-6" @submit.prevent="submit">
+    <div class="flex flex-col items-center gap-2 text-center">
+      <h1 class="text-2xl font-bold">Inicia sesión en tu cuenta</h1>
+      <p class="text-sm text-balance text-muted-foreground">
+        Ingresa tu correo y contraseña para iniciar sesión.
+      </p>
+    </div>
+
+    <Alert v-if="error" variant="destructive">
+      <AlertDescription>{{ error }}</AlertDescription>
+    </Alert>
+
+    <FieldGroup>
+      <Field>
+        <FieldLabel for="email">Correo electrónico</FieldLabel>
+        <Input
+          id="email"
+          v-model="email"
+          type="email"
+          placeholder="tu@unergy.io"
+          autocomplete="email"
+          required
+        />
+      </Field>
+      <Field>
+        <div class="flex items-center">
+          <FieldLabel for="password">Contraseña</FieldLabel>
+          <NuxtLink
+            to="/forgot-password"
+            class="ml-auto text-sm underline-offset-4 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </NuxtLink>
+        </div>
+        <Input
+          id="password"
+          v-model="password"
+          type="password"
+          autocomplete="current-password"
+          required
+        />
+      </Field>
+      <Button type="submit" class="w-full" :disabled="loading">
+        <LoaderCircleIcon v-if="loading" class="animate-spin" />
+        Iniciar sesión
+      </Button>
+    </FieldGroup>
+  </form>
+</template>

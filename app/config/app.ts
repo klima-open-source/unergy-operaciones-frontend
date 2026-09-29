@@ -23,3 +23,19 @@ export const APP_BRANDING = {
 /** Where an anonymous visitor is sent, and where a completed sign-in lands. */
 export const AUTH_LOGIN_PATH = '/login'
 export const AUTH_DEFAULT_REDIRECT_PATH = '/'
+
+/** Colors of the animated gradient on the auth layout's hero panel. */
+export const AUTH_HERO_GRADIENT_COLORS = {
+  from: '#ffb1c1',
+  via: '#271f9d',
+  to: '#caff98',
+} as const
+
+/** Wordmark shown on the auth layout's hero panel. */
+export const AUTH_LOGO = '/logos/Logo_avena.png'
+
+/** The "U" icon shown at the top left of the auth layout, per color mode. */
+export const AUTH_ICON = {
+  light: '/logos/Icono_purpura_profundo.png',
+  dark: '/logos/Icono_purpura_energico.png',
+} as const
