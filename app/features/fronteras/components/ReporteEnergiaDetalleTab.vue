@@ -271,7 +271,7 @@
               f.estado === 'ok' ? '✓' : f.estado === 'na' ? '–' : f.estado === 'error' ? '!' : '✕'
             }}
           </div>
-          <span class="w-40 flex-none text-sm font-semibold text-foreground">{{ f.nombre }}</span>
+          <span class="flex-none text-sm font-semibold text-foreground">{{ f.nombre }}</span>
           <span class="min-w-0 flex-1 text-xs text-muted-foreground">{{ f.detalle }}</span>
           <span class="min-w-22.5 flex-none text-right font-mono text-xs text-foreground">
             {{ f.valor != null ? fmtKwh(f.valor) : f.estado === 'na' ? 'n/a' : '—' }}
@@ -431,7 +431,7 @@
             ></div>
             <div
               v-if="mostrarMenuReportar"
-              class="absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-popover shadow-lg"
+              class="absolute bottom-full left-0 z-20 mb-2 w-max max-w-xs overflow-hidden rounded-xl border bg-popover shadow-lg"
             >
               <div
                 v-for="op in opcionesReportarCon"
@@ -513,12 +513,9 @@
               placeholder="Motivo"
               class="flex-1 text-xs"
             />
-            <DatePicker
-              v-model="nuevaExclusionFechaFin"
-              placeholder="Hasta"
-              clearable
-              class="w-48"
-            />
+            <div class="shrink-0">
+              <DatePicker v-model="nuevaExclusionFechaFin" placeholder="Hasta" clearable />
+            </div>
           </div>
           <div class="flex gap-2">
             <Button
@@ -546,7 +543,9 @@
               placeholder="Motivo"
               class="flex-1 text-xs"
             />
-            <DatePicker v-model="nuevaExclusionFechaFin" placeholder="Hasta" class="w-48" />
+            <div class="shrink-0">
+              <DatePicker v-model="nuevaExclusionFechaFin" placeholder="Hasta" />
+            </div>
           </div>
           <Button
             variant="destructive"
