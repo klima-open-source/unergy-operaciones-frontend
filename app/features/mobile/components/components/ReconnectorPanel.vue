@@ -1,76 +1,104 @@
 <template>
-  <div class="rp-card">
-    <button class="rp-head" @click="open = !open">
-      <ZapIcon class="rp-ico size-4" />
-      <span class="rp-title">Reconectador</span>
-      <span :class="['rp-badge', badgeClass]">{{ badgeText }}</span>
-      <ChevronUpIcon v-if="open" class="rp-caret size-3" />
-      <ChevronDownIcon v-else class="rp-caret size-3" />
+  <div class="mt-2 shrink-0 rounded-xl border border-border bg-card px-3 pt-2 pb-2">
+    <button class="flex w-full items-center gap-2 pt-0.5 pb-2 text-left" @click="open = !open">
+      <ZapIcon class="size-4 text-warning" />
+      <span class="flex-1 text-xs font-bold text-unergy-deep">Reconectador</span>
+      <span :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', badgeClass]">{{
+        badgeText
+      }}</span>
+      <ChevronUpIcon v-if="open" class="size-3 text-muted-foreground" />
+      <ChevronDownIcon v-else class="size-3 text-muted-foreground" />
     </button>
 
     <!-- Resumen: siempre visible -->
-    <div class="rp-kpis">
-      <div class="rp-kpi">
-        <span class="rp-kpi-lbl">Activa</span>
-        <b class="rp-kpi-val">{{ fmt(relay.potencia_kw, 1) }} <i>kW</i></b>
+    <div class="flex gap-1.5">
+      <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
+        <span class="text-xs font-medium text-muted-foreground">Activa</span>
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+          >{{ fmt(relay.potencia_kw, 1) }} <i>kW</i></b
+        >
       </div>
-      <div class="rp-kpi">
-        <span class="rp-kpi-lbl">Reactiva</span>
-        <b class="rp-kpi-val">{{ fmt(relay.reactiva_kva, 1) }} <i>kVA</i></b>
+      <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
+        <span class="text-xs font-medium text-muted-foreground">Reactiva</span>
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+          >{{ fmt(relay.reactiva_kva, 1) }} <i>kVA</i></b
+        >
       </div>
-      <div class="rp-kpi">
-        <span class="rp-kpi-lbl">PF</span>
-        <b class="rp-kpi-val">{{ fmt(relay.factor_potencia, 2) }}</b>
+      <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
+        <span class="text-xs font-medium text-muted-foreground">PF</span>
+        <b
+          class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+          >{{ fmt(relay.factor_potencia, 2) }}</b
+        >
       </div>
-      <div class="rp-kpi">
-        <span class="rp-kpi-lbl">F_ABC</span>
-        <b class="rp-kpi-val">{{ fmt(relay.frecuencia_hz, 1) }} <i>Hz</i></b>
+      <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
+        <span class="text-xs font-medium text-muted-foreground">F_ABC</span>
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+          >{{ fmt(relay.frecuencia_hz, 1) }} <i>Hz</i></b
+        >
       </div>
     </div>
 
     <!-- Detalle por fase: las columnas del panel de Solenium -->
-    <div v-if="open" class="rp-detail">
-      <table class="rp-table">
+    <div v-if="open" class="mt-2 border-t border-border pt-2">
+      <table class="w-full table-fixed border-collapse">
         <thead>
           <tr>
-            <th class="rp-th-first"></th>
-            <th>A</th>
-            <th>B</th>
-            <th>C</th>
-            <th>N</th>
+            <th class="w-1/5"></th>
+            <th :class="thColClass">A</th>
+            <th :class="thColClass">B</th>
+            <th :class="thColClass">C</th>
+            <th :class="thColClass">N</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <th class="rp-th-first">I <span>(A)</span></th>
-            <td>{{ fmt(relay.corriente_a, 1) }}</td>
-            <td>{{ fmt(relay.corriente_b, 1) }}</td>
-            <td>{{ fmt(relay.corriente_c, 1) }}</td>
-            <td>{{ fmt(relay.corriente_n, 1) }}</td>
+            <th :class="thRowClass">
+              I <span class="font-medium text-muted-foreground/70">(A)</span>
+            </th>
+            <td :class="tdClass">{{ fmt(relay.corriente_a, 1) }}</td>
+            <td :class="tdClass">{{ fmt(relay.corriente_b, 1) }}</td>
+            <td :class="tdClass">{{ fmt(relay.corriente_c, 1) }}</td>
+            <td :class="tdClass">{{ fmt(relay.corriente_n, 1) }}</td>
           </tr>
           <tr>
-            <th class="rp-th-first">U <span>(V)</span></th>
-            <td>{{ fmt(relay.voltaje_a, 0) }}</td>
-            <td>{{ fmt(relay.voltaje_b, 0) }}</td>
-            <td>{{ fmt(relay.voltaje_c, 0) }}</td>
-            <td class="rp-na">—</td>
+            <th :class="thRowClass">
+              U <span class="font-medium text-muted-foreground/70">(V)</span>
+            </th>
+            <td :class="tdClass">{{ fmt(relay.voltaje_a, 0) }}</td>
+            <td :class="tdClass">{{ fmt(relay.voltaje_b, 0) }}</td>
+            <td :class="tdClass">{{ fmt(relay.voltaje_c, 0) }}</td>
+            <td class="py-0.5 text-right text-xs font-medium text-muted-foreground/60 tabular-nums">
+              —
+            </td>
           </tr>
         </tbody>
       </table>
 
-      <div class="rp-urst">
-        <span
-          >U_R <b>{{ fmt(relay.voltaje_r, 0) }} V</b></span
+      <div class="mt-1.5 flex justify-between gap-1.5 border-t border-border pt-1.5">
+        <span class="text-xs font-semibold text-muted-foreground"
+          >U_R
+          <b class="font-bold text-unergy-deep tabular-nums"
+            >{{ fmt(relay.voltaje_r, 0) }} V</b
+          ></span
         >
-        <span
-          >U_S <b>{{ fmt(relay.voltaje_s, 0) }} V</b></span
+        <span class="text-xs font-semibold text-muted-foreground"
+          >U_S
+          <b class="font-bold text-unergy-deep tabular-nums"
+            >{{ fmt(relay.voltaje_s, 0) }} V</b
+          ></span
         >
-        <span
-          >U_T <b>{{ fmt(relay.voltaje_t, 0) }} V</b></span
+        <span class="text-xs font-semibold text-muted-foreground"
+          >U_T
+          <b class="font-bold text-unergy-deep tabular-nums"
+            >{{ fmt(relay.voltaje_t, 0) }} V</b
+          ></span
         >
       </div>
 
-      <div class="rp-time"><ClockIcon class="size-3" /> {{ tiempo }}</div>
+      <div class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <ClockIcon class="size-3" /> {{ tiempo }}
+      </div>
     </div>
   </div>
 </template>
@@ -87,15 +115,19 @@ const props = defineProps<{
 
 const open = ref(true)
 
+const thColClass = 'pb-1 text-right text-xs font-bold text-muted-foreground'
+const thRowClass = 'w-1/5 text-left text-xs font-bold text-muted-foreground'
+const tdClass = 'py-0.5 text-right text-xs font-semibold text-unergy-deep tabular-nums'
+
 const badgeText = computed(() =>
   props.relay.active === true ? 'ON' : props.relay.active === false ? 'OFF' : '—',
 )
 const badgeClass = computed(() =>
   props.relay.active === true
-    ? 'rp-badge--on'
+    ? 'bg-success/10 text-success'
     : props.relay.active === false
-      ? 'rp-badge--off'
-      : 'rp-badge--unk',
+      ? 'bg-destructive/10 text-destructive'
+      : 'bg-muted text-muted-foreground',
 )
 
 /** Solenium puede no reportar una medida: null se muestra como guion. */
@@ -122,165 +154,3 @@ const tiempo = computed(() => {
   })
 })
 </script>
-
-<style scoped>
-.rp-card {
-  flex-shrink: 0;
-  margin-top: 8px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 14px;
-  padding: 8px 11px 9px;
-}
-
-.rp-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 2px 0 7px;
-  border: none;
-  background: none;
-  text-align: left;
-}
-.rp-ico {
-  color: #eab308;
-  font-size: 13px;
-}
-.rp-title {
-  flex: 1;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.rp-badge {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 6px;
-}
-.rp-badge--on {
-  background: #dcfce7;
-  color: #15803d;
-}
-.rp-badge--off {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.rp-badge--unk {
-  background: #f3f4f6;
-  color: #9ca3af;
-}
-.rp-caret {
-  font-size: 10px;
-  color: #c4b8d8;
-}
-
-/* Resumen */
-.rp-kpis {
-  display: flex;
-  gap: 6px;
-}
-.rp-kpi {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: #faf8fd;
-  border-radius: 9px;
-  padding: 5px 6px;
-}
-.rp-kpi-lbl {
-  font-size: clamp(8.5px, 2.4vw, 9.5px);
-  color: #787774;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-}
-.rp-kpi-val {
-  font-size: clamp(11px, 3.4vw, 14px);
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  line-height: 1.2;
-  white-space: nowrap;
-  letter-spacing: -0.2px;
-}
-.rp-kpi-val svg {
-  font-style: normal;
-  font-size: 0.72em;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-
-/* Detalle por fase */
-.rp-detail {
-  margin-top: 8px;
-  border-top: 1px solid #f3f0f9;
-  padding-top: 7px;
-}
-.rp-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.rp-table thead th {
-  font-size: clamp(9px, 2.5vw, 10px);
-  font-weight: 700;
-  color: #9ca3af;
-  padding-bottom: 3px;
-  text-align: right;
-}
-.rp-table tbody th {
-  font-size: clamp(10px, 2.8vw, 11px);
-  font-weight: 700;
-  color: #6b5a8a;
-  text-align: left;
-}
-.rp-table tbody th span {
-  font-weight: 500;
-  color: #b3a8c6;
-}
-.rp-th-first {
-  width: 21%;
-}
-.rp-table tbody td {
-  font-size: clamp(11px, 3.1vw, 12.5px);
-  font-weight: 600;
-  color: var(--color-unergy-deep);
-  text-align: right;
-  padding: 2.5px 0;
-  font-variant-numeric: tabular-nums;
-}
-.rp-na {
-  color: #cbc4d8 !important;
-  font-weight: 500 !important;
-}
-
-.rp-urst {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  margin-top: 6px;
-  border-top: 1px solid #f8f6fc;
-  padding-top: 6px;
-}
-.rp-urst span {
-  font-size: clamp(9.5px, 2.6vw, 10.5px);
-  color: #9ca3af;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-.rp-urst b {
-  color: var(--color-unergy-deep);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.rp-time {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  font-size: clamp(9.5px, 2.6vw, 10.5px);
-  color: #9ca3af;
-}
-</style>

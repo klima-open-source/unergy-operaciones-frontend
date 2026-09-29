@@ -1,55 +1,67 @@
 <template>
   <Teleport to="body">
     <Transition name="sheet">
-      <div v-if="open" class="rs-backdrop" @click.self="close">
-        <div class="rs-sheet">
-          <div class="rs-grab" />
+      <div
+        v-if="open"
+        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        @click.self="close"
+      >
+        <div class="rs-sheet w-full rounded-t-3xl bg-card px-5 pt-2.5 shadow-lg">
+          <div class="mx-auto mt-1 mb-3.5 h-1 w-10 rounded-full bg-border" />
 
-          <div class="rs-header">
-            <span :class="['rs-badge', accion === 'ON' ? 'rs-badge--on' : 'rs-badge--off']">{{
-              accion
-            }}</span>
-            <span class="rs-title">Reconectador · {{ nombre }}</span>
-            <button class="rs-close" @click="close"><XIcon class="size-4" /></button>
+          <div class="mb-4 flex items-center gap-2.5">
+            <span
+              :class="[
+                'rounded-md px-2 py-0.5 text-xs font-extrabold tracking-wider',
+                TONE_SOFT[accion],
+              ]"
+              >{{ accion }}</span
+            >
+            <span class="flex-1 text-base font-bold text-unergy-deep"
+              >Reconectador · {{ nombre }}</span
+            >
+            <button class="p-1 text-muted-foreground" @click="close">
+              <XIcon class="size-4" />
+            </button>
           </div>
 
           <!-- Selector de acción (siempre disponible para que puedas encender o apagar) -->
-          <div class="rs-action-sel">
+          <div class="mb-3.5 flex gap-2.5">
             <button
-              :class="['rs-action-btn', accion === 'ON' && 'rs-action-btn--on']"
+              :class="[ACTION_BTN, accion === 'ON' ? TONE_ACTIVE.ON : ACTION_BTN_IDLE]"
               @click="accion = 'ON'"
             >
               <PowerIcon class="size-4" /> Encender
             </button>
             <button
-              :class="['rs-action-btn', accion === 'OFF' && 'rs-action-btn--off']"
+              :class="[ACTION_BTN, accion === 'OFF' ? TONE_ACTIVE.OFF : ACTION_BTN_IDLE]"
               @click="accion = 'OFF'"
             >
               <CircleStopIcon class="size-4" /> Apagar
             </button>
           </div>
 
-          <p class="rs-desc">
+          <p class="mb-3.5 text-sm leading-snug text-muted-foreground">
             Ingresa tus credenciales de Solenium para
             <strong>{{ accion === 'ON' ? 'activar' : 'desactivar' }}</strong> el reconectador.
           </p>
 
-          <label class="rs-label"
+          <label class="mb-3 block text-xs font-semibold text-muted-foreground"
             >Usuario
             <input
               v-model="username"
-              class="rs-input"
+              class="mt-1.5 w-full rounded-xl border-2 border-border bg-card px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
               type="text"
               inputmode="email"
               placeholder="usuario.solenium"
               autocomplete="username"
             />
           </label>
-          <label class="rs-label"
+          <label class="mb-3 block text-xs font-semibold text-muted-foreground"
             >Contraseña
             <input
               v-model="password"
-              class="rs-input"
+              class="mt-1.5 w-full rounded-xl border-2 border-border bg-card px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
               type="password"
               placeholder="••••••••"
               autocomplete="current-password"
@@ -57,10 +69,18 @@
             />
           </label>
 
-          <div v-if="error" class="rs-error"><TriangleAlertIcon class="size-4" /> {{ error }}</div>
+          <div
+            v-if="error"
+            class="mb-3 flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          >
+            <TriangleAlertIcon class="size-4" /> {{ error }}
+          </div>
 
           <button
-            :class="['rs-submit', accion === 'ON' ? 'rs-submit--on' : 'rs-submit--off']"
+            :class="[
+              'mt-1 flex w-full items-center justify-center gap-2 rounded-xl p-4 text-base font-bold text-white disabled:opacity-50',
+              TONE_SOLID[accion],
+            ]"
             :disabled="loading || !username || !password"
             @click="submit"
           >
@@ -101,6 +121,19 @@ const emit = defineEmits<{
 const RCN_CREDS_KEY = 'sl_rcn_creds_v1' // solo guarda { [proyecto_id]: username } — nunca la contraseña
 
 type Accion = 'ON' | 'OFF'
+
+const TONE_SOFT: Record<Accion, string> = {
+  ON: 'bg-success/10 text-success',
+  OFF: 'bg-destructive/10 text-destructive',
+}
+const TONE_ACTIVE: Record<Accion, string> = {
+  ON: 'border-success bg-success/10 text-success',
+  OFF: 'border-destructive bg-destructive/10 text-destructive',
+}
+const TONE_SOLID: Record<Accion, string> = { ON: 'bg-success', OFF: 'bg-destructive' }
+const ACTION_BTN =
+  'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 p-3 text-sm font-semibold'
+const ACTION_BTN_IDLE = 'border-border bg-card text-muted-foreground'
 
 const accion = ref<Accion>('ON')
 const username = ref('')
@@ -168,154 +201,9 @@ async function submit(): Promise<void> {
 </script>
 
 <style scoped>
-.rs-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(28, 18, 50, 0.45);
-  display: flex;
-  align-items: flex-end;
-}
+/* safe-area del dispositivo: env() no tiene utilidad */
 .rs-sheet {
-  width: 100%;
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  padding: 10px 20px calc(22px + env(safe-area-inset-bottom)) 20px;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-}
-.rs-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: #e5e7eb;
-  margin: 4px auto 14px;
-}
-.rs-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.rs-badge {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 7px;
-  letter-spacing: 0.5px;
-}
-.rs-badge--on {
-  background: #dcfce7;
-  color: #15803d;
-}
-.rs-badge--off {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.rs-title {
-  flex: 1;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.rs-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  padding: 4px;
-}
-
-.rs-action-sel {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-.rs-action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 13px;
-  border-radius: 12px;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-.rs-action-btn--on {
-  border-color: #16a34a;
-  background: #f0fdf4;
-  color: #15803d;
-}
-.rs-action-btn--off {
-  border-color: #dc2626;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.rs-desc {
-  font-size: 13px;
-  color: #6b5a8a;
-  margin: 0 0 14px;
-  line-height: 1.4;
-}
-.rs-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b5a8a;
-  margin-bottom: 12px;
-}
-.rs-input {
-  width: 100%;
-  margin-top: 6px;
-  padding: 13px 14px;
-  font-size: 16px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 12px;
-  color: var(--color-unergy-deep);
-  background: #fff;
-}
-.rs-input:focus {
-  outline: none;
-  border-color: var(--color-unergy-purple);
-}
-
-.rs-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #b91c1c;
-  background: #fef2f2;
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
-.rs-submit {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 15px;
-  border: none;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  margin-top: 4px;
-}
-.rs-submit--on {
-  background: #16a34a;
-}
-.rs-submit--off {
-  background: #dc2626;
-}
-.rs-submit:disabled {
-  opacity: 0.5;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
 }
 
 .sheet-enter-active,
