@@ -43,7 +43,7 @@ const nueva = reactive({
 const guardando = ref(false)
 
 const opcionesOferta = computed(() => [
-  { label: 'Todo el cliente', value: '' },
+  { label: 'Todo el cliente', value: VALOR_SELECT_VACIO },
   ...props.ofertas.map((o) => ({
     label: o.planta_nombre || o.codigo_seguimiento || `Oferta #${o.id}`,
     value: String(o.id),
@@ -101,8 +101,8 @@ async function registrar() {
             </SelectContent>
           </Select>
           <Select
-            :model-value="nueva.oferta_id !== null ? String(nueva.oferta_id) : ''"
-            @update:model-value="(v) => (nueva.oferta_id = v ? Number(v) : null)"
+            :model-value="nueva.oferta_id !== null ? String(nueva.oferta_id) : VALOR_SELECT_VACIO"
+            @update:model-value="(v) => (nueva.oferta_id = deValorSelect(v) ? Number(v) : null)"
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>

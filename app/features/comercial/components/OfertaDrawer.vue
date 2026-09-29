@@ -735,10 +735,12 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                 />
                 <Select
                   v-else-if="c.editor === 'operador'"
-                  :model-value="f.operador_red_id !== null ? String(f.operador_red_id) : ''"
+                  :model-value="
+                    f.operador_red_id !== null ? String(f.operador_red_id) : VALOR_SELECT_VACIO
+                  "
                   @update:model-value="
                     (v) => {
-                      f.operador_red_id = v ? Number(v) : null
+                      f.operador_red_id = deValorSelect(v) ? Number(v) : null
                       autosave()
                     }
                   "
@@ -747,7 +749,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                     ><SelectValue placeholder="Del catálogo…"
                   /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin operador</SelectItem>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin operador</SelectItem>
                     <SelectItem v-for="o in operadores" :key="o.id" :value="String(o.id)">{{
                       o.nombre
                     }}</SelectItem>
@@ -836,10 +838,14 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             <div class="mt-2">
               <GLabel>O vincular uno ya creado</GLabel>
               <Select
-                :model-value="f.contrato_servicio_id !== null ? String(f.contrato_servicio_id) : ''"
+                :model-value="
+                  f.contrato_servicio_id !== null
+                    ? String(f.contrato_servicio_id)
+                    : VALOR_SELECT_VACIO
+                "
                 @update:model-value="
                   (v) => {
-                    f.contrato_servicio_id = v ? Number(v) : null
+                    f.contrato_servicio_id = deValorSelect(v) ? Number(v) : null
                     autosave()
                   }
                 "
@@ -848,7 +854,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
                   ><SelectValue placeholder="Buscar contrato de representación existente…"
                 /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Ninguno</SelectItem>
+                  <SelectItem :value="VALOR_SELECT_VACIO">Ninguno</SelectItem>
                   <SelectItem v-for="c in contratosServicio" :key="c.id" :value="String(c.id)">
                     {{ c.contratante_nombre || '—' }} —
                     {{ c.numero_contrato || 'Sin N° de contrato' }}
