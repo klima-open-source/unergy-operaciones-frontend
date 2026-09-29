@@ -139,3 +139,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Utilidades que Tailwind no trae: evitan `[scrollbar-width:thin]` y `[writing-mode:…]` arbitrarios. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+@utility writing-vertical-rl {
+  writing-mode: vertical-rl;
+}
