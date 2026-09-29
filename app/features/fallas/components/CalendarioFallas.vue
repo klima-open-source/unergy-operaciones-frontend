@@ -312,7 +312,7 @@ onMounted(cargar)
 
       <div class="flex flex-1 flex-wrap items-center gap-2">
         <Select v-model="filtroProyecto">
-          <SelectTrigger size="sm" class="w-44">
+          <SelectTrigger size="sm">
             <SelectValue placeholder="Proyecto" />
           </SelectTrigger>
           <SelectContent>
@@ -322,7 +322,7 @@ onMounted(cargar)
           </SelectContent>
         </Select>
         <Select v-model="filtroEstado">
-          <SelectTrigger size="sm" class="w-40">
+          <SelectTrigger size="sm">
             <SelectValue placeholder="Estado" />
           </SelectTrigger>
           <SelectContent>

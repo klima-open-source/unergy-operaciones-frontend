@@ -776,7 +776,7 @@ onMounted(() => {
               <div class="mb-4 space-y-3 rounded-lg bg-muted/40 p-3">
                 <div class="flex flex-col gap-1">
                   <GLabel>Cambiar estado (opcional)</GLabel>
-                  <ButtonGroup class="w-full md:w-72">
+                  <ButtonGroup class="w-full md:max-w-sm">
                     <Select v-model="nuevaNota.estado_id">
                       <SelectTrigger class="w-full">
                         <SelectValue placeholder="Mantener estado actual" />
