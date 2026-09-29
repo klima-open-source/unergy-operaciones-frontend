@@ -59,9 +59,9 @@
               <tr class="bg-muted/50 border-b border-border">
                 <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Código predio</th>
                 <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Proyecto identificado</th>
-                <th class="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground w-32">Valor (COP)</th>
+                <th class="px-3 py-2.5 text-right text-xs font-semibold text-muted-foreground">Valor (COP)</th>
                 <th class="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground">Archivo resultante</th>
-                <th class="px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground w-20">Match</th>
+                <th class="px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground">Match</th>
               </tr>
             </thead>
             <tbody>
@@ -82,8 +82,7 @@
                       <span class="text-muted-foreground">Arrendatario:</span>
                       <input v-model="grupo.nombreArrendatario" type="text"
                         placeholder="(vacío)"
-                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20"
-                         />
+                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20" />
                       <span class="ml-auto text-muted-foreground">{{ grupo.predios.length }} predio(s)</span>
                     </div>
                   </td>
