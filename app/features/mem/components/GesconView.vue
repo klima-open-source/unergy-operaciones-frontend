@@ -183,19 +183,19 @@ function limpiar() {
 }
 
 const columns: DataTableColumn[] = [
-  { key: 'codigo_sic_contrato', header: 'SIC', class: 'w-24' },
+  { key: 'codigo_sic_contrato', header: 'SIC' },
   { key: 'contrato_interno', header: 'Contrato', class: 'min-w-40' },
   { key: 'nombre_interno', header: 'Nombre interno', class: 'min-w-36' },
   { key: 'planta', header: 'Planta', class: 'min-w-40' },
-  { key: 'tipo_solicitud', header: 'Tipo', class: 'w-32' },
-  { key: 'requerimiento_asic', header: 'Req.', class: 'w-28' },
-  { key: 'fecha_inicio', header: 'Inicio', class: 'w-24' },
-  { key: 'fecha_fin', header: 'Fin', class: 'w-24' },
-  { key: 'estado_solicitud', header: 'Estado', class: 'w-28' },
-  { key: 'porcentaje_despacho', header: 'Desp.', class: 'w-16' },
-  { key: 'coexiste', header: 'Coex.', class: 'w-12' },
-  { key: 'modalidad', header: 'Modalidad', class: 'w-24' },
-  { key: 'acciones', header: '', class: 'w-24' },
+  { key: 'tipo_solicitud', header: 'Tipo' },
+  { key: 'requerimiento_asic', header: 'Req.' },
+  { key: 'fecha_inicio', header: 'Inicio' },
+  { key: 'fecha_fin', header: 'Fin' },
+  { key: 'estado_solicitud', header: 'Estado' },
+  { key: 'porcentaje_despacho', header: 'Desp.' },
+  { key: 'coexiste', header: 'Coex.' },
+  { key: 'modalidad', header: 'Modalidad' },
+  { key: 'acciones', header: '' },
 ]
 
 function asRow(row: DataTableRow): RegistroAsic {
@@ -1031,7 +1031,7 @@ onMounted(() => {
       </ToggleGroup>
 
       <Select v-model="filtroTipo">
-        <SelectTrigger class="w-40 shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
+        <SelectTrigger class="shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="">Todos</SelectItem>
           <SelectItem v-for="op in opcionesTipo" :key="op.value" :value="op.value">{{
@@ -1041,9 +1041,7 @@ onMounted(() => {
       </Select>
 
       <Select v-model="filtroMes">
-        <SelectTrigger class="w-40 shrink-0"
-          ><SelectValue placeholder="Mes (vigencia)"
-        /></SelectTrigger>
+        <SelectTrigger class="shrink-0"><SelectValue placeholder="Mes (vigencia)" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="">Mes</SelectItem>
           <SelectItem v-for="op in opcionesMes" :key="op.value" :value="op.value">{{
@@ -1053,9 +1051,7 @@ onMounted(() => {
       </Select>
 
       <Select v-model="filtroAnio">
-        <SelectTrigger class="w-28 shrink-0"
-          ><SelectValue placeholder="Año (vigencia)"
-        /></SelectTrigger>
+        <SelectTrigger class="shrink-0"><SelectValue placeholder="Año (vigencia)" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="">Año</SelectItem>
           <SelectItem v-for="op in opcionesAnio" :key="op.value" :value="op.value">{{
