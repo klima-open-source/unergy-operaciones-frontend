@@ -149,7 +149,7 @@ const pie2 = computed(() => {
         <template v-if="tieneMeta">
           <span>{{ fmtPct(metrica.avance_pct) }} de la meta</span>
           <span class="rq-kpi-punto">·</span>
-          <span :style="{ color: estadoColor(metrica.estado) }"
+          <span class="text-(--c)" :style="{ '--c': estadoColor(metrica.estado) }"
             >ritmo {{ fmtPctEntero(metrica.cumplimiento_pct) }}</span
           >
         </template>

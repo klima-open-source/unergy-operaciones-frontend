@@ -902,7 +902,7 @@ defineExpose({ enfocarMetrica })
       >
         <span class="rq-angosto-s">{{ s.etiqueta || `S${s.numero}` }}</span>
         <span class="rq-angosto-rango">{{ s.rango_label }}</span>
-        <span class="rq-angosto-llenado" :style="{ color: colorLlenado(s) }">{{
+        <span class="rq-angosto-llenado text-(--c)" :style="{ '--c': colorLlenado(s) }">{{
           textoLlenado(s)
         }}</span>
         <ChevronRightIcon class="size-3.5" />
@@ -1093,18 +1093,18 @@ defineExpose({ enfocarMetrica })
             <GTooltip>
               <GTooltipTrigger as-child>
                 <td class="rq-res rq-pct rq-sticky-r-1">
-                  <span class="rq-pct-num" :style="{ color: estadoColor(m.estado) }">
+                  <span class="rq-pct-num text-(--c)" :style="{ '--c': estadoColor(m.estado) }">
                     {{ fmtPctEntero(m.cumplimiento_pct) }}
                   </span>
                   <span class="rq-micro">
                     <span
-                      class="rq-micro-fill"
-                      :style="{ width: `${anchoAvance(m)}%`, background: estadoColor(m.estado) }"
+                      class="rq-micro-fill w-(--w) bg-(--c)"
+                      :style="{ '--w': `${anchoAvance(m)}%`, '--c': estadoColor(m.estado) }"
                     />
                     <span
                       v-if="posEsperada(m) !== null"
-                      class="rq-micro-marca"
-                      :style="{ left: `${posEsperada(m)}%` }"
+                      class="rq-micro-marca left-(--l)"
+                      :style="{ '--l': `${posEsperada(m)}%` }"
                     />
                   </span>
                 </td>
@@ -1125,13 +1125,13 @@ defineExpose({ enfocarMetrica })
               :class="{ 'rq-mes-inicio': esInicioMes(c) }"
               @click="emit('abrir-semana', s)"
             >
-              <span class="rq-llenado-txt" :style="{ color: colorLlenado(s) }">{{
+              <span class="rq-llenado-txt text-(--c)" :style="{ '--c': colorLlenado(s) }">{{
                 textoLlenado(s)
               }}</span>
               <span v-if="!(s.es_futura && conDato(s) === 0)" class="rq-llenado-bar">
                 <span
-                  class="rq-llenado-bar-fill"
-                  :style="{ width: `${pctLlenado(s)}%`, background: colorLlenado(s) }"
+                  class="rq-llenado-bar-fill w-(--w) bg-(--c)"
+                  :style="{ '--w': `${pctLlenado(s)}%`, '--c': colorLlenado(s) }"
                 />
               </span>
             </td>

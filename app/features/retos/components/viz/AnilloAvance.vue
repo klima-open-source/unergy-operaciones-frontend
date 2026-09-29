@@ -84,8 +84,9 @@ const aria = computed(() => {
       dominant-baseline="central"
       font-size="13"
       font-weight="800"
-      :class="pctSeguro === null ? 'fill-muted-foreground' : 'fill-foreground'"
-      style="font-variant-numeric: tabular-nums"
+      :class="
+        pctSeguro === null ? 'fill-muted-foreground tabular-nums' : 'fill-foreground tabular-nums'
+      "
     >
       {{ etiquetaCentro }}
     </text>

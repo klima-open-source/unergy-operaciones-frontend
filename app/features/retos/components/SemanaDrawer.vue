@@ -468,9 +468,9 @@ watch(
           </p>
           <div class="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
-              class="h-full rounded-full transition-[width] duration-150"
+              class="h-full w-(--w) rounded-full transition-all duration-150"
               :class="completa ? 'bg-success' : 'bg-primary'"
-              :style="{ width: `${pctLlenado}%` }"
+              :style="{ '--w': `${pctLlenado}%` }"
             />
           </div>
         </div>
@@ -492,7 +492,7 @@ watch(
               </GTooltip>
               <span
                 v-if="m.responsable"
-                class="shrink-0 text-[10px] font-semibold text-muted-foreground"
+                class="shrink-0 text-xs font-semibold text-muted-foreground"
               >
                 {{ m.responsable }}
               </span>
@@ -572,7 +572,7 @@ watch(
               />
               <p
                 v-if="(campos[m.id]?.nota || '').length >= 400"
-                class="mt-0.5 text-right text-[10px] text-muted-foreground"
+                class="mt-0.5 text-right text-xs text-muted-foreground"
               >
                 {{ (campos[m.id]?.nota || '').length }}/500
               </p>
@@ -582,7 +582,7 @@ watch(
       </div>
 
       <SheetFooter class="flex-row items-center border-t">
-        <span class="min-w-0 text-[10px] text-muted-foreground">{{ ultimaEdicion }}</span>
+        <span class="min-w-0 text-xs text-muted-foreground">{{ ultimaEdicion }}</span>
         <span class="flex-1" />
         <Button variant="secondary" size="sm" @click="intentarCerrar(false)">Cancelar</Button>
         <Button size="sm" :disabled="!hayCambios || guardando" @click="guardarSemana()">

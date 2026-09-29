@@ -170,7 +170,7 @@ const pieTxt = computed(() => {
               <span class="rq-q-m-valor">{{ consolidadoDe(m) }}</span>
               <span
                 v-if="m.unidad"
-                class="text-[10px] font-semibold text-muted-foreground"
+                class="text-xs font-semibold text-muted-foreground"
                 :class="m.unidad === '%' ? '' : 'ml-0.5'"
               >
                 {{ m.unidad }}
@@ -178,13 +178,13 @@ const pieTxt = computed(() => {
             </template>
           </div>
         </div>
-        <div v-if="metricasRestantes > 0" class="text-[10px] font-semibold text-primary">
+        <div v-if="metricasRestantes > 0" class="text-xs font-semibold text-primary">
           +{{ metricasRestantes }} {{ metricasRestantes === 1 ? 'métrica más' : 'métricas más' }}
         </div>
       </div>
 
       <!-- f) Pie -->
-      <div class="text-[10px] font-semibold text-muted-foreground">{{ pieTxt }}</div>
+      <div class="text-xs font-semibold text-muted-foreground">{{ pieTxt }}</div>
     </template>
   </Card>
 </template>
