@@ -4,7 +4,7 @@
                 subtitle="Conceptos que recibe cada proyecto y su AC Power · GD y minigranjas en operación" />
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
@@ -25,7 +25,7 @@
          conceptos. Es el denominador de la prorrata que pide el reparto de XM,
          por eso manda el total en kW y no el conteo de proyectos. -->
     <div v-if="!loading && !error" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <div class="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3">
+      <div class="bg-card rounded-xl shadow-sm border p-4 flex items-center gap-3">
         <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-success/10">
           <ZapIcon class="size-5 text-success" />
         </div>
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3">
+      <div class="bg-card rounded-xl shadow-sm border p-4 flex items-center gap-3">
         <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-primary/10">
           <BriefcaseIcon class="size-5 text-primary" />
         </div>
@@ -80,11 +80,11 @@
       lo usa como divisor de la prorrata y falla si falta.
     </div>
 
-    <div v-if="loading" class="bg-white rounded-xl shadow-sm p-10 flex justify-center">
+    <div v-if="loading" class="bg-card rounded-xl shadow-sm p-10 flex justify-center">
       <LoaderCircleIcon class="text-muted-foreground animate-spin size-6" />
     </div>
 
-    <div v-else-if="error" class="bg-white rounded-xl shadow-sm border p-6 text-center">
+    <div v-else-if="error" class="bg-card rounded-xl shadow-sm border p-6 text-center">
       <TriangleAlertIcon class="mb-2 block size-6 text-warning" />
       <p class="text-sm text-muted-foreground">{{ error }}</p>
       <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar">
@@ -92,7 +92,7 @@
       </Button>
     </div>
 
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border">
+    <div v-else class="bg-card rounded-xl shadow-sm overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>

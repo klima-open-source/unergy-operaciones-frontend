@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4 pt-3">
 
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center gap-3 border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center gap-3 border">
       <button type="button" @click="cambiarMes(-1)"
         class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
         <ChevronLeftIcon class="text-muted-foreground size-3" />
@@ -16,16 +16,16 @@
       <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
     </div>
 
-    <div v-if="loading" class="bg-white rounded-xl shadow-sm p-10 flex justify-center border">
+    <div v-if="loading" class="bg-card rounded-xl shadow-sm p-10 flex justify-center border">
       <LoaderCircleIcon class="text-muted-foreground animate-spin size-6" />
     </div>
     <div v-else-if="!filas.length"
-      class="bg-white rounded-xl shadow-sm p-10 text-center border">
+      class="bg-card rounded-xl shadow-sm p-10 text-center border">
       <InboxIcon class="mb-2 block size-6 text-muted-foreground" />
       <p class="text-sm text-muted-foreground">No hay proyectos guardados para este período.</p>
       <p class="text-xs text-muted-foreground mt-1">Operaciones aún no guardó la selección del mes.</p>
     </div>
-    <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border">
+    <div v-else class="bg-card rounded-xl shadow-sm overflow-hidden border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse min-w-175">
           <thead>
@@ -69,7 +69,7 @@
     </div>
 
     <!-- ── Factura consolidada del mes ───────────────────────────────── -->
-    <div class="rounded-xl border bg-white shadow-sm overflow-hidden">
+    <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
         <div class="flex items-center gap-2">
           <FileTextIcon class="size-3 text-primary" />

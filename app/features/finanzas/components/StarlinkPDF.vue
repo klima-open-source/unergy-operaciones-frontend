@@ -2,7 +2,7 @@
   <div class="space-y-5 pt-3">
 
     <!-- ── Barra superior: navegación + upload + descarga ──────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
 
       <!-- Navegación por período (solo si hay datos) -->
       <div class="flex items-center gap-3">
@@ -38,7 +38,7 @@
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div v-if="facturaActual" class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+    <div v-if="facturaActual" class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
@@ -88,7 +88,7 @@
       <!-- Tabla por proyecto, agrupada por tipo (igual que Arriendos) -->
       <template v-if="secciones.length">
         <div v-for="sec in secciones" :key="sec.tipo"
-          class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          class="bg-card rounded-xl shadow-sm border overflow-hidden">
           <button type="button"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
             @click="toggleSection(sec.tipo)">
@@ -146,7 +146,7 @@
         </div>
 
         <!-- Total general -->
-        <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
+        <div class="bg-card rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
           <span class="text-xs font-semibold text-muted-foreground">Total del período</span>
           <div class="flex items-center gap-6 ml-auto">
             <div class="text-right">
@@ -164,7 +164,7 @@
           </div>
         </div>
       </template>
-      <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
+      <div v-else class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
         {{ filtroTexto ? 'No se encontraron minigranjas con ese nombre.' : 'Sin líneas para este período.' }}
       </div>
     </template>
