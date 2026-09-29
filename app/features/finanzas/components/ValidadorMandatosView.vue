@@ -51,162 +51,210 @@ function loadScript(src) {
   })
 }
 
-// ── Markup del validador (idéntico al HTML standalone, sin <html>/<head>/<body>) ──
+// ── Clases Tailwind del HTML inyectado ──
+// Siempre completas y literales en este archivo: Tailwind las detecta al escanear el fuente.
+// Las pestañas y las zonas de carga cambian de estado con data-active / data-loaded.
+
+/** Display real que se alterna junto con `hidden` (ver `mostrar`). */
+/** @typedef {'block' | 'flex' | 'table-row'} Display */
+
+/** Clases de cada estado del cálculo por concepto / conciliación. */
+const TEXTO_CONCEPTO = {
+  OK: 'text-success',
+  DIFERENCIA: 'text-destructive',
+  FALTA_CONTAB: 'text-warning',
+  SOBRA_CONTAB: 'text-warning',
+}
+const TEXTO_NIVEL = { ok: 'text-success', warn: 'text-warning', bad: 'text-destructive' }
+const TEXTO_ESTADO = {
+  OK: 'text-success',
+  DIFERENCIA: 'text-destructive',
+  SIN_CONTAB: 'text-warning',
+  ERROR_PDF: 'text-warning',
+}
+
+const CLS = {
+  tabBar: 'mb-4.5 flex gap-2.5 rounded-lg bg-border p-1',
+  tab: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-3 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-unergy-purple data-active:shadow-sm',
+  modeBar: 'mb-4 flex gap-2.5 rounded-lg bg-border p-1',
+  modeBtn: 'flex-1 cursor-pointer rounded-lg border-0 bg-transparent p-2.5 text-sm font-semibold text-muted-foreground transition data-active:bg-card data-active:text-unergy-purple data-active:shadow-sm',
+  dropZone: 'group mb-3.5 cursor-pointer rounded-xl border-2 border-dashed border-border bg-card text-center transition hover:border-unergy-purple hover:bg-muted data-loaded:border-solid data-loaded:border-success data-loaded:bg-success/10',
+  dzIcon: 'group-data-loaded:text-success',
+  btnPrimary: 'cursor-pointer rounded-lg border-0 bg-unergy-purple px-5 py-3.5 text-base font-semibold text-card transition enabled:hover:bg-unergy-purple-dark disabled:cursor-not-allowed disabled:opacity-40',
+  btnSecondary: 'cursor-pointer whitespace-nowrap rounded-lg border-0 bg-chart-2 px-5 py-3.5 text-sm font-semibold text-card disabled:cursor-not-allowed disabled:opacity-40',
+  stats: 'mb-4.5 flex-wrap gap-3',
+  stat: 'min-w-25 flex-1 rounded-lg border border-border bg-card p-3.5 text-center',
+  statVal: 'block text-xl font-bold',
+  panel: 'mb-4.5 rounded-xl border border-border bg-card p-5 shadow-sm',
+  h3: 'text-base font-semibold text-unergy-deep',
+  table: 'w-full border-collapse text-sm',
+  th: 'border-b-2 border-border bg-muted px-3 py-2.5 text-left text-xs font-semibold',
+  thR: 'border-b-2 border-border bg-muted px-3 py-2.5 text-right text-xs font-semibold',
+  td: 'border-b border-muted px-3 py-2.5 group-last:border-b-0',
+  tol: 'w-22 rounded-lg border border-border px-2.5 py-1.5 text-sm',
+  toggle: 'flex cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm',
+  step: 'mr-2 inline-block size-5.5 shrink-0 rounded-full bg-unergy-purple text-center text-xs font-bold leading-5.5 text-card',
+  badgeOk: 'rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success',
+  badgeErr: 'rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-bold text-destructive',
+  badgeWarn: 'rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-bold text-warning',
+}
+
+// ── Markup del validador (sin <html>/<head>/<body>) ──
 const MARKUP = `
   <!-- TABS PRINCIPALES -->
-  <div class="tab-bar">
-    <button class="tab-btn active" id="tabAudit" onclick="switchTab('audit')">🔍 Auditoría PDFs</button>
-    <button class="tab-btn" id="tabConc"  onclick="switchTab('conc')">⚖️ Conciliación Contable</button>
+  <div class="${CLS.tabBar}">
+    <button class="${CLS.tab}" data-active id="tabAudit" onclick="switchTab('audit')">🔍 Auditoría PDFs</button>
+    <button class="${CLS.tab}" id="tabConc"  onclick="switchTab('conc')">⚖️ Conciliación Contable</button>
   </div>
 
   <!-- ==================== SECCIÓN AUDITORÍA ==================== -->
   <div id="sectionAudit">
-    <div class="mode-selector">
-      <button class="mode-btn active" id="btnModeIngresos"    onclick="setMode('ingresos')">INGRESOS (Exige **)</button>
-      <button class="mode-btn"        id="btnModeCostos"       onclick="setMode('costos')">COSTOS (Sin **)</button>
-      <button class="mode-btn"        id="btnModeAutoconsumo"  onclick="setMode('autoconsumo')">AUTOCONSUMO (Exige **)</button>
+    <div class="${CLS.modeBar}">
+      <button class="${CLS.modeBtn}" data-active id="btnModeIngresos"    onclick="setMode('ingresos')">INGRESOS (Exige **)</button>
+      <button class="${CLS.modeBtn}"        id="btnModeCostos"       onclick="setMode('costos')">COSTOS (Sin **)</button>
+      <button class="${CLS.modeBtn}"        id="btnModeAutoconsumo"  onclick="setMode('autoconsumo')">AUTOCONSUMO (Exige **)</button>
     </div>
 
-    <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-      <input type="file" id="fileInput" accept=".pdf" multiple style="display:none" onchange="updateAuditUI()">
-      <div class="dz-icon" style="font-size:28px;margin-bottom:6px">📄</div>
+    <div class="${CLS.dropZone} p-8" id="dzAudit" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".pdf" multiple class="hidden" onchange="updateAuditUI()">
+      <div class="${CLS.dzIcon} mb-1.5 text-3xl">📄</div>
       <div id="dropText">Cargar PDFs para Auditoría Masiva</div>
     </div>
 
-    <button class="btn-primary" id="btnRun" disabled onclick="startAudit()" style="width:100%;margin-bottom:16px">Iniciar Validación</button>
+    <button class="${CLS.btnPrimary} mb-4 w-full" id="btnRun" disabled onclick="startAudit()">Iniciar Validación</button>
 
-    <div class="stats" id="statsBar" style="display:none">
-      <div class="stat-card"><span class="stat-val" id="sTotal">0</span><small>PROCESADOS</small></div>
-      <div class="stat-card" style="color:var(--ok)"><span class="stat-val" id="sOk">0</span><small>PASAN</small></div>
-      <div class="stat-card" style="color:var(--err)"><span class="stat-val" id="sErr">0</span><small>RECHAZADOS</small></div>
+    <div class="${CLS.stats} hidden" id="statsBar">
+      <div class="${CLS.stat}"><span class="${CLS.statVal}" id="sTotal">0</span><small>PROCESADOS</small></div>
+      <div class="${CLS.stat} text-success"><span class="${CLS.statVal}" id="sOk">0</span><small>PASAN</small></div>
+      <div class="${CLS.stat} text-destructive"><span class="${CLS.statVal}" id="sErr">0</span><small>RECHAZADOS</small></div>
     </div>
 
-    <div class="results-grid" id="results"></div>
+    <div class="mb-6 grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3" id="results"></div>
 
-    <div id="reportContainer" class="panel" style="display:none">
-      <h3 style="margin-top:0">Hallazgos y Rechazos</h3>
-      <table class="report-table">
-        <thead><tr><th>Archivo / CMU</th><th>Doc ($)</th><th>Cálculo ($)</th><th>Motivo</th></tr></thead>
+    <div id="reportContainer" class="${CLS.panel} hidden">
+      <h3 class="${CLS.h3} mt-0">Hallazgos y Rechazos</h3>
+      <table class="${CLS.table}">
+        <thead><tr><th class="${CLS.th}">Archivo / CMU</th><th class="${CLS.th}">Doc ($)</th><th class="${CLS.th}">Cálculo ($)</th><th class="${CLS.th}">Motivo</th></tr></thead>
         <tbody id="reportContent"></tbody>
       </table>
     </div>
   </div>
 
   <!-- ==================== SECCIÓN CONCILIACIÓN ==================== -->
-  <div id="sectionConc" style="display:none">
+  <div id="sectionConc" class="hidden">
 
-    <div class="panel">
-      <h3 style="margin:0 0 4px 0">Conciliación: Contabilidad vs. Mandatos PDF</h3>
-      <p style="margin:0 0 18px 0; color:#64748b; font-size:13px;">
+    <div class="${CLS.panel}">
+      <h3 class="${CLS.h3} mb-1">Conciliación: Contabilidad vs. Mandatos PDF</h3>
+      <p class="mb-4.5 text-sm text-muted-foreground">
         Carga el soporte contable (exportación Odoo en <b>.xlsx</b>) y luego los PDFs del lote.
         El sistema cruza el <b>Valor a Pagar</b> de cada mandato contra la sumatoria contable por inversionista + planta.
       </p>
 
       <!-- Sub-tipo -->
-      <div class="mode-selector" style="margin-bottom:18px">
-        <button class="mode-btn active" id="cTabIngresos"    onclick="setConcMode('ingresos')">INGRESOS (**)</button>
-        <button class="mode-btn"        id="cTabCostos"       onclick="setConcMode('costos')">COSTOS</button>
-        <button class="mode-btn"        id="cTabAutoconsumo"  onclick="setConcMode('autoconsumo')">AUTOCONSUMO (**)</button>
+      <div class="${CLS.modeBar} mb-4.5">
+        <button class="${CLS.modeBtn}" data-active id="cTabIngresos"    onclick="setConcMode('ingresos')">INGRESOS (**)</button>
+        <button class="${CLS.modeBtn}"        id="cTabCostos"       onclick="setConcMode('costos')">COSTOS</button>
+        <button class="${CLS.modeBtn}"        id="cTabAutoconsumo"  onclick="setConcMode('autoconsumo')">AUTOCONSUMO (**)</button>
       </div>
 
       <!-- PASO 1: Excel -->
-      <div class="step-row">
-        <span class="step-badge">1</span>
-        <div style="flex:1">
-          <div style="font-weight:600; margin-bottom:6px; font-size:14px">Soporte contable (exportación Odoo .xlsx)</div>
-          <div class="drop-zone" id="dzExcel" onclick="document.getElementById('xlsxInput').click()" style="padding:20px">
-            <input type="file" id="xlsxInput" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this)">
-            <div class="dz-icon" style="font-size:22px;margin-bottom:4px">📊</div>
-            <div id="xlsxLabel" style="font-size:13px;color:#64748b">Clic para cargar el <b>.xlsx</b> exportado de Odoo</div>
+      <div class="mb-3.5 flex items-start">
+        <span class="${CLS.step}">1</span>
+        <div class="flex-1">
+          <div class="mb-1.5 text-sm font-semibold">Soporte contable (exportación Odoo .xlsx)</div>
+          <div class="${CLS.dropZone} p-5" id="dzExcel" onclick="document.getElementById('xlsxInput').click()">
+            <input type="file" id="xlsxInput" accept=".xlsx,.xls" class="hidden" onchange="loadExcel(this)">
+            <div class="${CLS.dzIcon} mb-1 text-2xl">📊</div>
+            <div id="xlsxLabel" class="text-sm text-muted-foreground">Clic para cargar el <b>.xlsx</b> exportado de Odoo</div>
           </div>
-          <div id="xlsxStatus" style="font-size:12px;color:#64748b;margin-top:-8px;margin-bottom:4px"></div>
+          <div id="xlsxStatus" class="-mt-2 mb-1 text-xs text-muted-foreground"></div>
         </div>
       </div>
 
       <!-- PASO 2: PDFs -->
-      <div class="step-row">
-        <span class="step-badge">2</span>
-        <div style="flex:1">
-          <div style="font-weight:600; margin-bottom:6px; font-size:14px">Mandatos PDFs del mismo lote</div>
-          <div class="drop-zone" id="dzPdfs" onclick="document.getElementById('concFileInput').click()" style="padding:20px">
-            <input type="file" id="concFileInput" accept=".pdf" multiple style="display:none" onchange="updateConcUI()">
-            <div class="dz-icon" style="font-size:22px;margin-bottom:4px">📁</div>
-            <div id="concDropText" style="font-size:13px;color:#64748b">Clic para cargar los PDFs del lote</div>
+      <div class="mb-3.5 flex items-start">
+        <span class="${CLS.step}">2</span>
+        <div class="flex-1">
+          <div class="mb-1.5 text-sm font-semibold">Mandatos PDFs del mismo lote</div>
+          <div class="${CLS.dropZone} p-5" id="dzPdfs" onclick="document.getElementById('concFileInput').click()">
+            <input type="file" id="concFileInput" accept=".pdf" multiple class="hidden" onchange="updateConcUI()">
+            <div class="${CLS.dzIcon} mb-1 text-2xl">📁</div>
+            <div id="concDropText" class="text-sm text-muted-foreground">Clic para cargar los PDFs del lote</div>
           </div>
         </div>
       </div>
 
       <!-- PASO 3: Ejecutar -->
-      <div style="display:flex; gap:10px; margin-top:4px">
-        <button class="btn-primary" id="btnConc" disabled onclick="startConciliation()" style="flex:1">
+      <div class="mt-1 flex gap-2.5">
+        <button class="${CLS.btnPrimary} flex-1" id="btnConc" disabled onclick="startConciliation()">
           ⚖️ Ejecutar Conciliación
         </button>
-        <button class="btn-secondary" id="btnExportCSV" disabled onclick="exportConcCSV()">
+        <button class="${CLS.btnSecondary}" id="btnExportCSV" disabled onclick="exportConcCSV()">
           ⬇ Exportar CSV
         </button>
       </div>
     </div>
 
     <!-- Stats -->
-    <div class="stats" id="concStatsBar" style="display:none">
-      <div class="stat-card"><span class="stat-val" id="csTotal">0</span><small>PDFs</small></div>
-      <div class="stat-card" style="color:var(--ok)"><span class="stat-val" id="csMatch">0</span><small>COINCIDEN</small></div>
-      <div class="stat-card" style="color:var(--err)"><span class="stat-val" id="csDiff">0</span><small>DIFERENCIAS</small></div>
-      <div class="stat-card" style="color:var(--warn)"><span class="stat-val" id="csNoCont">0</span><small>SIN CONTAB.</small></div>
-      <div class="stat-card" style="color:#6366f1;cursor:pointer" title="Clic para ubicar el registro" onclick="focusSinPdfOrEtiqueta()"><span class="stat-val" id="csNoPdf">0</span><small id="csNoPdfLabel">SIN PDF</small></div>
+    <div class="${CLS.stats} hidden" id="concStatsBar">
+      <div class="${CLS.stat}"><span class="${CLS.statVal}" id="csTotal">0</span><small>PDFs</small></div>
+      <div class="${CLS.stat} text-success"><span class="${CLS.statVal}" id="csMatch">0</span><small>COINCIDEN</small></div>
+      <div class="${CLS.stat} text-destructive"><span class="${CLS.statVal}" id="csDiff">0</span><small>DIFERENCIAS</small></div>
+      <div class="${CLS.stat} text-warning"><span class="${CLS.statVal}" id="csNoCont">0</span><small>SIN CONTAB.</small></div>
+      <div class="${CLS.stat} cursor-pointer text-primary" title="Clic para ubicar el registro" onclick="focusSinPdfOrEtiqueta()"><span class="${CLS.statVal}" id="csNoPdf">0</span><small id="csNoPdfLabel">SIN PDF</small></div>
     </div>
 
     <!-- Tabla resultados -->
-    <div id="concTableContainer" class="panel" style="display:none">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px">
-        <h3 style="margin:0">Resultado de Conciliación</h3>
-        <div class="conc-controls">
-          <label class="toggle-label">
+    <div id="concTableContainer" class="${CLS.panel} hidden">
+      <div class="mb-3.5 flex flex-wrap items-center justify-between gap-2.5">
+        <h3 class="${CLS.h3} m-0">Resultado de Conciliación</h3>
+        <div class="mb-3.5 flex flex-wrap items-center gap-2.5">
+          <label class="${CLS.toggle}">
             <input type="checkbox" id="filterDiffOnly" onchange="renderConcTable()"> Solo diferencias/alertas
           </label>
-          <div style="display:flex;align-items:center;gap:6px;font-size:13px">
-            <span style="color:#64748b">Tolerancia:</span>
-            <input type="number" class="tol-input" id="toleranceInput" value="200" min="0" step="100" onchange="renderConcTable()">
-            <span style="color:#64748b">$</span>
+          <div class="flex items-center gap-1.5 text-sm">
+            <span class="text-muted-foreground">Tolerancia:</span>
+            <input type="number" class="${CLS.tol}" id="toleranceInput" value="200" min="0" step="100" onchange="renderConcTable()">
+            <span class="text-muted-foreground">$</span>
           </div>
         </div>
       </div>
-      <div style="overflow-x:auto">
-        <table class="report-table">
+      <div class="overflow-x-auto">
+        <table class="${CLS.table}">
           <thead>
             <tr>
-              <th>CMU</th>
-              <th>Inversionista</th>
-              <th>Planta</th>
-              <th style="text-align:right">Valor PDF</th>
-              <th style="text-align:right">Valor Contab.</th>
-              <th style="text-align:right">Diferencia</th>
-              <th>Estado</th>
-              <th>Detalle</th>
+              <th class="${CLS.th}">CMU</th>
+              <th class="${CLS.th}">Inversionista</th>
+              <th class="${CLS.th}">Planta</th>
+              <th class="${CLS.thR}">Valor PDF</th>
+              <th class="${CLS.thR}">Valor Contab.</th>
+              <th class="${CLS.thR}">Diferencia</th>
+              <th class="${CLS.th}">Estado</th>
+              <th class="${CLS.th}">Detalle</th>
             </tr>
           </thead>
           <tbody id="concTableBody"></tbody>
         </table>
       </div>
       <!-- Registros contables sin PDF -->
-      <div id="sinPdfSection" style="margin-top:20px;display:none">
-        <h4 style="color:var(--warn);margin:0 0 10px 0">⚠️ Registros contables sin PDF correspondiente</h4>
-        <table class="report-table">
-          <thead><tr><th>Inversionista (Contabilidad)</th><th>Planta</th><th style="text-align:right">Valor Contab.</th></tr></thead>
+      <div id="sinPdfSection" class="mt-5 hidden">
+        <h4 class="mb-2.5 text-base font-semibold text-warning">⚠️ Registros contables sin PDF correspondiente</h4>
+        <table class="${CLS.table}">
+          <thead><tr><th class="${CLS.th}">Inversionista (Contabilidad)</th><th class="${CLS.th}">Planta</th><th class="${CLS.thR}">Valor Contab.</th></tr></thead>
           <tbody id="sinPdfBody"></tbody>
         </table>
       </div>
     </div>
 
     <!-- Resultado DETALLADO por concepto (modo COSTOS) -->
-    <div id="concCostosContainer" class="panel" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
-        <h3 style="margin:0">Conciliación detallada por concepto · Costos</h3>
-        <label class="toggle-label">
+    <div id="concCostosContainer" class="${CLS.panel} hidden">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2.5">
+        <h3 class="${CLS.h3} m-0">Conciliación detallada por concepto · Costos</h3>
+        <label class="${CLS.toggle}">
           <input type="checkbox" id="costosOnlyProblem" onchange="renderConcTable()"> Solo con hallazgos
         </label>
       </div>
-      <p style="margin:0 0 14px 0;color:#64748b;font-size:12px">
+      <p class="mb-3.5 text-xs text-muted-foreground">
         Empareja por <b>palabra completa</b> del mandante + etiqueta analítica, y valida concepto por concepto
         (mantenimiento, IVA, internet, arriendo), conceptos faltantes/sobrantes y montos en cuenta equivocada.
       </p>
@@ -225,6 +273,15 @@ function initValidador(el) {
 
   // getElementById acotado al contenedor del componente (evita colisiones globales)
   const $ = (id) => el.querySelector('#' + id)
+
+  /** Muestra u oculta un elemento alternando `hidden` con su display real.
+   *  @param {HTMLElement} nodo
+   *  @param {boolean} visible
+   *  @param {Display} display */
+  function mostrar(nodo, visible, display) {
+    nodo.classList.toggle('hidden', !visible)
+    nodo.classList.toggle(display, visible)
+  }
 
   // ====== ESTADO GLOBAL ======
   let currentMode     = 'ingresos'
@@ -249,24 +306,24 @@ function initValidador(el) {
 
   // ====== TABS ======
   function switchTab(tab) {
-    $('sectionAudit').style.display = tab === 'audit' ? '' : 'none'
-    $('sectionConc').style.display  = tab === 'conc'  ? '' : 'none'
-    $('tabAudit').classList.toggle('active', tab === 'audit')
-    $('tabConc').classList.toggle('active', tab === 'conc')
+    mostrar($('sectionAudit'), tab === 'audit', 'block')
+    mostrar($('sectionConc'), tab === 'conc', 'block')
+    $('tabAudit').toggleAttribute('data-active', tab === 'audit')
+    $('tabConc').toggleAttribute('data-active', tab === 'conc')
   }
 
   // ====== AUDITORÍA: modo ======
   function setMode(m) {
     currentMode = m
     ;['Ingresos','Costos','Autoconsumo'].forEach(x =>
-      $('btnMode'+x).classList.toggle('active', m === x.toLowerCase()))
+      $('btnMode'+x).toggleAttribute('data-active', m === x.toLowerCase()))
   }
 
   function updateAuditUI() {
     const n = $('fileInput').files.length
     $('btnRun').disabled = n === 0
     $('dropText').innerHTML = `<b>${n} PDF${n!==1?'s':''} cargados</b>`
-    el.querySelector('#sectionAudit .drop-zone').classList.toggle('loaded', n > 0)
+    $('dzAudit').toggleAttribute('data-loaded', n > 0)
   }
 
   // ====== CARGA XLSX (SheetJS — todo en cliente) ======
@@ -306,8 +363,8 @@ function initValidador(el) {
 
     const esCostos = currentConcMode === 'costos'
     const cuenta = esCostos ? asientosDetalle.length : contabilidadData.length
-    $('xlsxLabel').innerHTML = `<b style="color:var(--ok)">✅ ${nombreXlsx}</b> — <span style="color:#64748b">${cuenta} ${esCostos ? 'líneas de detalle' : 'grupos inversionista+planta'} cargados</span>`
-    $('dzExcel').classList.add('loaded')
+    $('xlsxLabel').innerHTML = `<b class="text-success">✅ ${nombreXlsx}</b> — <span class="text-muted-foreground">${cuenta} ${esCostos ? 'líneas de detalle' : 'grupos inversionista+planta'} cargados</span>`
+    $('dzExcel').toggleAttribute('data-loaded', true)
     $('xlsxStatus').textContent = esCostos
       ? `Periodo: ${periodoXlsx} · ${asientosDetalle.length} líneas · ${tagsAnaliticos.length} proyectos (etiquetas analíticas)`
       : `Periodo: ${periodoXlsx} · ${etiquetaCuentas()} (neto inversionista) · ${contabilidadData.length} grupos (inversionista + planta)`
@@ -331,7 +388,7 @@ function initValidador(el) {
         periodoXlsx = detectPeriodo(XLSX.utils.sheet_to_json(ws, {defval:''}))
         procesarMatriz()
       } catch(err) {
-        $('xlsxLabel').innerHTML = `<span style="color:var(--err)">❌ Error leyendo el archivo: ${err.message}</span>`
+        $('xlsxLabel').innerHTML = `<span class="text-destructive">❌ Error leyendo el archivo: ${err.message}</span>`
       }
     }
     reader.readAsArrayBuffer(file)
@@ -355,11 +412,11 @@ function initValidador(el) {
   function setConcMode(m) {
     currentConcMode = m
     ;['Ingresos','Costos','Autoconsumo'].forEach(x =>
-      $('cTab'+x).classList.toggle('active', m === x.toLowerCase()))
+      $('cTab'+x).toggleAttribute('data-active', m === x.toLowerCase()))
     // Ocultar resultados previos de otro modo para no mezclar vistas
-    $('concTableContainer').style.display = 'none'
-    $('concCostosContainer').style.display = 'none'
-    $('concStatsBar').style.display = 'none'
+    mostrar($('concTableContainer'), false, 'block')
+    mostrar($('concCostosContainer'), false, 'block')
+    mostrar($('concStatsBar'), false, 'flex')
     // En COSTOS esta métrica cuenta mandatos SIN ETIQUETA ANALÍTICA asignada
     // (no un registro contable sin PDF, que es lo que mide en INGRESOS).
     $('csNoPdfLabel').textContent = m === 'costos' ? 'SIN ETIQUETA' : 'SIN PDF'
@@ -373,9 +430,9 @@ function initValidador(el) {
   function updateConcUI() {
     const n = $('concFileInput').files.length
     $('concDropText').innerHTML = n
-      ? `<b style="color:var(--ok)">✅ ${n} PDF${n!==1?'s':''} cargados</b>`
+      ? `<b class="text-success">✅ ${n} PDF${n!==1?'s':''} cargados</b>`
       : 'Clic para cargar los PDFs del lote'
-    $('dzPdfs').classList.toggle('loaded', n > 0)
+    $('dzPdfs').toggleAttribute('data-loaded', n > 0)
     updateConcBtn()
   }
 
@@ -501,9 +558,9 @@ function initValidador(el) {
   async function startConciliationCostos() {
     const files = [...$('concFileInput').files]
     costosResults = []
-    $('concStatsBar').style.display = 'flex'
-    $('concTableContainer').style.display = 'none'
-    $('concCostosContainer').style.display = 'none'
+    mostrar($('concStatsBar'), true, 'flex')
+    mostrar($('concTableContainer'), false, 'block')
+    mostrar($('concCostosContainer'), false, 'block')
     $('btnExportCSV').disabled = true
 
     for (const file of files) {
@@ -520,7 +577,7 @@ function initValidador(el) {
     }
 
     recalcCostosStats()
-    $('concCostosContainer').style.display = 'block'
+    mostrar($('concCostosContainer'), true, 'block')
     $('btnExportCSV').disabled = false
     renderConcCostos()
   }
@@ -529,33 +586,32 @@ function initValidador(el) {
     const body = $('concCostosBody')
     if (!body) return
     const onlyProb = $('costosOnlyProblem') && $('costosOnlyProblem').checked
-    const lvlColor = { ok: '#10b981', warn: '#f59e0b', bad: '#e11d48' }
     const stBadge = s => s === 'ok'
-      ? '<span class="badge badge-ok">✅ OK</span>'
+      ? `<span class="${CLS.badgeOk}">✅ OK</span>`
       : s === 'warn'
-        ? '<span class="badge badge-warn">⚠️ Revisar</span>'
-        : '<span class="badge badge-err">❌ Hallazgos</span>'
+        ? `<span class="${CLS.badgeWarn}">⚠️ Revisar</span>`
+        : `<span class="${CLS.badgeErr}">❌ Hallazgos</span>`
     const visible = onlyProb ? costosResults.filter(r => r.status !== 'ok') : costosResults
-    if (!visible.length) { body.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:20px">Sin registros</div>'; return }
+    if (!visible.length) { body.innerHTML = '<div class="p-5 text-center text-muted-foreground">Sin registros</div>'; return }
     body.innerHTML = visible.map(r => {
       const idx = costosResults.indexOf(r)
       let tagControl
       if (r.tag && (r.sugStatus === 'recordado' || r.sugStatus === 'auto')) {
-        tagControl = `<span style="color:#64748b;font-size:12px">Etiqueta analítica: <b>${r.tag}</b> <small>(${r.sugStatus})</small></span>`
+        tagControl = `<span class="text-xs text-muted-foreground">Etiqueta analítica: <b>${r.tag}</b> <small>(${r.sugStatus})</small></span>`
       } else {
         const opts = ['<option value="">— elegir etiqueta —</option>']
           .concat(tagsAnaliticos.map(t => `<option value="${t}" ${t === r.tag ? 'selected' : ''}>${t}</option>`)).join('')
-        tagControl = `<span style="color:#64748b;font-size:12px">Etiqueta analítica: </span><select class="tol-input" style="width:auto;min-width:220px" onchange="setCostoTag(${idx}, this.value)">${opts}</select>`
+        tagControl = `<span class="text-xs text-muted-foreground">Etiqueta analítica: </span><select class="${CLS.tol} w-auto min-w-55" onchange="setCostoTag(${idx}, this.value)">${opts}</select>`
       }
-      const flagsHtml = r.flags.map(f => `<li style="color:${lvlColor[f.lvl]};font-size:12px;margin:2px 0">${f.txt}</li>`).join('')
-      return `<div id="costoRow${idx}" style="border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
-          <div><b style="color:var(--accent)">${r.mandato.cmu || '-'}</b>
-            <span style="font-size:12px;margin-left:8px">${r.mandato.mandante || '<span style="color:var(--warn)">mandante no detectado</span>'}</span></div>
+      const flagsHtml = r.flags.map(f => `<li class="my-0.5 text-xs ${TEXTO_NIVEL[f.lvl]}">${f.txt}</li>`).join('')
+      return `<div id="costoRow${idx}" class="mb-2.5 rounded-xl border border-border p-3">
+        <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+          <div><b class="text-unergy-purple">${r.mandato.cmu || '-'}</b>
+            <span class="ml-2 text-xs">${r.mandato.mandante || '<span class="text-warning">mandante no detectado</span>'}</span></div>
           ${stBadge(r.status)}
         </div>
-        <div style="margin-bottom:6px">${tagControl}</div>
-        <ul style="margin:0;padding-left:18px">${flagsHtml || '<li style="font-size:12px;color:#64748b">Sin detalle</li>'}</ul>
+        <div class="mb-1.5">${tagControl}</div>
+        <ul class="m-0 pl-4.5">${flagsHtml || '<li class="text-xs text-muted-foreground">Sin detalle</li>'}</ul>
       </div>`
     }).join('')
   }
@@ -616,8 +672,8 @@ function initValidador(el) {
     if (currentConcMode === 'costos') return startConciliationCostos()
     const files = [...$('concFileInput').files]
     concResults  = []
-    $('concStatsBar').style.display = 'flex'
-    $('concTableContainer').style.display = 'none'
+    mostrar($('concStatsBar'), true, 'flex')
+    mostrar($('concTableContainer'), false, 'block')
     $('btnExportCSV').disabled = true
 
     // Marcar todos como no-encontrados inicialmente
@@ -662,7 +718,7 @@ function initValidador(el) {
     $('csNoCont').textContent = noContN
     $('csNoPdf').textContent  = sinPdf.length
 
-    $('concTableContainer').style.display = 'block'
+    mostrar($('concTableContainer'), true, 'block')
     $('btnExportCSV').disabled = false
     renderConcTable(sinPdf)
   }
@@ -689,17 +745,18 @@ function initValidador(el) {
 
     const visible = onlyDiff ? rows.filter(r => r.estado !== 'OK') : rows
     if (!visible.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px">Sin registros</td></tr>'
+      tbody.innerHTML = '<tr><td colspan="8" class="p-5 text-center text-muted-foreground">Sin registros</td></tr>'
     } else {
       for (const r of visible) {
-        const [color, badge] = r.estado === 'OK'
-          ? ['#10b981','<span class="badge badge-ok">✅ OK</span>']
+        const color = TEXTO_ESTADO[r.estado]
+        const badge = r.estado === 'OK'
+          ? `<span class="${CLS.badgeOk}">✅ OK</span>`
           : r.estado === 'DIFERENCIA'
-          ? ['#e11d48','<span class="badge badge-err">❌ Diferencia</span>']
-          : ['#f59e0b','<span class="badge badge-warn">⚠️ '+r.estado+'</span>']
+          ? `<span class="${CLS.badgeErr}">❌ Diferencia</span>`
+          : `<span class="${CLS.badgeWarn}">⚠️ ${r.estado}</span>`
 
         const difStr = r.diferencia !== null
-          ? `<span style="color:${color};font-weight:700">${r.diferencia>=0?'+':''}${r.diferencia.toLocaleString('es-CO')}</span>`
+          ? `<span class="font-bold ${color}">${r.diferencia>=0?'+':''}${r.diferencia.toLocaleString('es-CO')}</span>`
           : '—'
 
         // Detalle de diferencia: qué concepto falta o sobra
@@ -714,54 +771,54 @@ function initValidador(el) {
           })
           if (relRows.length > 1) {
             detalle = relRows.map(cr =>
-              `<div style="white-space:nowrap;font-size:10px;color:#475569">${cr.planta.replace(/^(MINIGRANJA SOLAR |GD )/,'')}: <b>$${Math.round(Math.abs(cr.valor_contabilidad)).toLocaleString('es-CO')}</b></div>`
+              `<div class="whitespace-nowrap text-xs text-muted-foreground">${cr.planta.replace(/^(MINIGRANJA SOLAR |GD )/,'')}: <b>$${Math.round(Math.abs(cr.valor_contabilidad)).toLocaleString('es-CO')}</b></div>`
             ).join('')
           } else {
             // Intentar identificar si es diferencia de redondeo, comercialización, etc.
             const pctDif = r.contVal ? (dAbs / r.contVal * 100) : 0
-            if (pctDif < 1) detalle = '<span style="font-size:10px;color:#94a3b8">Posible redondeo</span>'
-            else detalle = `<span style="font-size:10px;color:var(--err)">Dif: $${dAbs.toLocaleString('es-CO')}</span>`
+            if (pctDif < 1) detalle = '<span class="text-xs text-muted-foreground">Posible redondeo</span>'
+            else detalle = `<span class="text-xs text-destructive">Dif: $${dAbs.toLocaleString('es-CO')}</span>`
           }
         } else if (r.estado === 'SIN_CONTAB') {
-          detalle = `<span style="font-size:10px;color:var(--warn)">Planta: "${r.planta||'?'}"</span>`
+          detalle = `<span class="text-xs text-warning">Planta: "${r.planta||'?'}"</span>`
         }
 
         const idx = r._idx
         const conc = r.conceptos || []
         const hasConc = conc.length > 0
         const caret = hasConc
-          ? `<span id="concCaret-${idx}" style="display:inline-block;width:12px;color:var(--accent)">▶</span> `
-          : '<span style="display:inline-block;width:12px"></span> '
-        const rowAttrs = hasConc ? ` onclick="toggleConcRow(${idx})" style="cursor:pointer"` : ''
-        tbody.innerHTML += `<tr${rowAttrs}>
-          <td class="mono" style="color:var(--accent);font-weight:600">${caret}${r.cmu||'-'}</td>
-          <td style="font-size:12px;max-width:180px;word-break:break-word">${r.inversionista||'<span style="color:var(--warn)">No detectado</span>'}</td>
-          <td style="font-size:12px;max-width:160px;word-break:break-word">${r.planta||'<span style="color:var(--warn)">No detectado</span>'}</td>
-          <td class="mono" style="text-align:right">$${Math.round(r.valorPagar).toLocaleString('es-CO')}</td>
-          <td class="mono" style="text-align:right">${r.contVal!==null?'$'+Math.round(r.contVal).toLocaleString('es-CO'):'<span style="color:var(--warn)">—</span>'}</td>
-          <td class="mono" style="text-align:right">${difStr}</td>
-          <td>${badge}</td>
-          <td style="font-size:11px;min-width:120px">${detalle}</td>
+          ? `<span id="concCaret-${idx}" class="inline-block w-3 text-unergy-purple">▶</span> `
+          : '<span class="inline-block w-3"></span> '
+        const rowCls = hasConc ? 'group cursor-pointer' : 'group'
+        const onclickAttr = hasConc ? ` onclick="toggleConcRow(${idx})"` : ''
+        tbody.innerHTML += `<tr class="${rowCls}"${onclickAttr}>
+          <td class="${CLS.td} font-mono font-semibold text-unergy-purple">${caret}${r.cmu||'-'}</td>
+          <td class="${CLS.td} max-w-45 break-words text-xs">${r.inversionista||'<span class="text-warning">No detectado</span>'}</td>
+          <td class="${CLS.td} max-w-40 break-words text-xs">${r.planta||'<span class="text-warning">No detectado</span>'}</td>
+          <td class="${CLS.td} text-right font-mono">$${Math.round(r.valorPagar).toLocaleString('es-CO')}</td>
+          <td class="${CLS.td} text-right font-mono">${r.contVal!==null?'$'+Math.round(r.contVal).toLocaleString('es-CO'):'<span class="text-warning">—</span>'}</td>
+          <td class="${CLS.td} text-right font-mono">${difStr}</td>
+          <td class="${CLS.td}">${badge}</td>
+          <td class="${CLS.td} min-w-30 text-xs">${detalle}</td>
         </tr>`
         if (hasConc) {
-          const cColor = { OK:'#10b981', DIFERENCIA:'#e11d48', FALTA_CONTAB:'#f59e0b', SOBRA_CONTAB:'#f59e0b' }
           const cLabel = { OK:'✅ OK', DIFERENCIA:'❌ Diferencia', FALTA_CONTAB:'⚠️ Falta en contab.', SOBRA_CONTAB:'⚠️ Sobra en contab.' }
           const filasConc = conc.map(c => `<tr>
-            <td style="padding:3px 10px">${c.concepto} <span style="color:#94a3b8">(${c.rol})</span></td>
-            <td class="mono" style="text-align:right;padding:3px 10px">${c.pdf!==null?'$'+Math.round(c.pdf).toLocaleString('es-CO'):'—'}</td>
-            <td class="mono" style="text-align:right;padding:3px 10px">${c.contab!==null?'$'+Math.round(c.contab).toLocaleString('es-CO'):'—'}</td>
-            <td class="mono" style="text-align:right;padding:3px 10px;color:${cColor[c.estado]};font-weight:600">${c.dif!==null?(c.dif>=0?'+':'')+c.dif.toLocaleString('es-CO'):'—'}</td>
-            <td style="padding:3px 10px;color:${cColor[c.estado]};font-size:11px">${cLabel[c.estado]}</td>
+            <td class="px-2.5 py-0.5">${c.concepto} <span class="text-muted-foreground">(${c.rol})</span></td>
+            <td class="px-2.5 py-0.5 text-right font-mono">${c.pdf!==null?'$'+Math.round(c.pdf).toLocaleString('es-CO'):'—'}</td>
+            <td class="px-2.5 py-0.5 text-right font-mono">${c.contab!==null?'$'+Math.round(c.contab).toLocaleString('es-CO'):'—'}</td>
+            <td class="px-2.5 py-0.5 text-right font-mono font-semibold ${TEXTO_CONCEPTO[c.estado]}">${c.dif!==null?(c.dif>=0?'+':'')+c.dif.toLocaleString('es-CO'):'—'}</td>
+            <td class="px-2.5 py-0.5 text-xs ${TEXTO_CONCEPTO[c.estado]}">${cLabel[c.estado]}</td>
           </tr>`).join('')
-          tbody.innerHTML += `<tr id="concDetail-${idx}" style="display:none"><td colspan="8" style="background:#f8fafc;padding:8px 16px">
-            <div style="font-size:11px;color:#64748b;margin-bottom:4px">Conciliación por concepto (cuenta 28150505)</div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px">
-              <thead><tr style="color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0">
-                <th style="padding:3px 10px">Concepto</th>
-                <th style="padding:3px 10px;text-align:right">Valor PDF</th>
-                <th style="padding:3px 10px;text-align:right">Valor Contab.</th>
-                <th style="padding:3px 10px;text-align:right">Diferencia</th>
-                <th style="padding:3px 10px">Estado</th></tr></thead>
+          tbody.innerHTML += `<tr id="concDetail-${idx}" class="hidden"><td colspan="8" class="bg-muted/50 px-4 py-2">
+            <div class="mb-1 text-xs text-muted-foreground">Conciliación por concepto (cuenta 28150505)</div>
+            <table class="w-full border-collapse text-xs">
+              <thead><tr class="border-b border-border text-left text-muted-foreground">
+                <th class="px-2.5 py-0.5">Concepto</th>
+                <th class="px-2.5 py-0.5 text-right">Valor PDF</th>
+                <th class="px-2.5 py-0.5 text-right">Valor Contab.</th>
+                <th class="px-2.5 py-0.5 text-right">Diferencia</th>
+                <th class="px-2.5 py-0.5">Estado</th></tr></thead>
               <tbody>${filasConc}</tbody>
             </table></td></tr>`
         }
@@ -776,14 +833,14 @@ function initValidador(el) {
     const sinPdfBody    = $('sinPdfBody')
     $('csNoPdf').textContent = sinPdf.length
     if (sinPdf.length && !onlyDiff) {
-      sinPdfSection.style.display = 'block'
-      sinPdfBody.innerHTML = sinPdf.map(r => `<tr>
-        <td style="font-size:12px">${r.asociado}</td>
-        <td style="font-size:12px">${r.planta}</td>
-        <td class="mono" style="text-align:right;color:var(--warn)">$${Math.round(Math.abs(r.valor_contabilidad)).toLocaleString('es-CO')}</td>
+      mostrar(sinPdfSection, true, 'block')
+      sinPdfBody.innerHTML = sinPdf.map(r => `<tr class="group">
+        <td class="${CLS.td} text-xs">${r.asociado}</td>
+        <td class="${CLS.td} text-xs">${r.planta}</td>
+        <td class="${CLS.td} text-right font-mono text-warning">$${Math.round(Math.abs(r.valor_contabilidad)).toLocaleString('es-CO')}</td>
       </tr>`).join('')
     } else {
-      sinPdfSection.style.display = 'none'
+      mostrar(sinPdfSection, false, 'block')
     }
   }
 
@@ -791,8 +848,8 @@ function initValidador(el) {
   function toggleConcRow(idx) {
     const row = $('concDetail-' + idx); const caret = $('concCaret-' + idx)
     if (!row) return
-    const abrir = row.style.display === 'none'
-    row.style.display = abrir ? 'table-row' : 'none'
+    const abrir = row.classList.contains('hidden')
+    mostrar(row, abrir, 'table-row')
     if (caret) caret.textContent = abrir ? '▼' : '▶'
   }
 
@@ -837,15 +894,15 @@ function initValidador(el) {
     const reportContainer = $('reportContainer')
     container.innerHTML = ''
     reportBody.innerHTML = ''
-    reportContainer.style.display = 'none'
-    $('statsBar').style.display = 'flex'
+    mostrar(reportContainer, false, 'block')
+    mostrar($('statsBar'), true, 'flex')
     const processedCmuIds = new Set()
     let ok=0, err=0
 
     for (const file of files) {
       const card = document.createElement('div')
-      card.className = 'card'
-      card.innerHTML = `<b style="font-size:12px">${file.name}</b><div class="spinner" style="margin-top:8px"></div>`
+      card.className = 'relative rounded-lg border border-border bg-card p-4'
+      card.innerHTML = `<b class="text-xs">${file.name}</b><div class="mt-2 inline-block size-4.5 animate-spin rounded-full border-3 border-muted border-t-unergy-purple"></div>`
       container.appendChild(card)
 
       const res = await processPdf(file)
@@ -861,23 +918,23 @@ function initValidador(el) {
       if (res.approved) ok++
       else {
         err++
-        reportContainer.style.display = 'block'
-        reportBody.innerHTML += `<tr>
-          <td>${cmuInName||'S/N'}<br><small style="color:#94a3b8;font-size:10px">${file.name}</small></td>
-          <td class="mono">$${res.reported.toLocaleString()}</td>
-          <td class="mono">$${res.expected.toLocaleString()}</td>
-          <td class="txt-err">${res.msg}</td>
+        mostrar(reportContainer, true, 'block')
+        reportBody.innerHTML += `<tr class="group">
+          <td class="${CLS.td}">${cmuInName||'S/N'}<br><small class="text-xs text-muted-foreground">${file.name}</small></td>
+          <td class="${CLS.td} font-mono">$${res.reported.toLocaleString()}</td>
+          <td class="${CLS.td} font-mono">$${res.expected.toLocaleString()}</td>
+          <td class="${CLS.td} font-semibold text-destructive">${res.msg}</td>
         </tr>`
       }
 
       card.innerHTML = `
-        <span class="pill ${res.approved?'pill-ok':'pill-err'}">${res.approved?'CUMPLE':'RECHAZADO'}</span>
-        <b style="font-size:12px;display:block;margin-right:65px;color:var(--accent)">${cmuInName||'Sin CMU'}</b>
-        <div style="font-size:11px;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${file.name}</div>
-        <div style="font-size:12px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #f1f5f9;padding-top:8px">
+        <span class="absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-xs font-extrabold uppercase ${res.approved?'bg-success/15 text-success':'bg-destructive/10 text-destructive'}">${res.approved?'CUMPLE':'RECHAZADO'}</span>
+        <b class="mr-16 block text-xs text-unergy-purple">${cmuInName||'Sin CMU'}</b>
+        <div class="mt-1 truncate text-xs text-muted-foreground">${file.name}</div>
+        <div class="mt-2.5 grid grid-cols-2 border-t border-muted pt-2 text-xs">
           <div>Matemática: ${res.mathOk?'✅':'❌'}</div>
           ${(currentMode==='ingresos'||currentMode==='autoconsumo')?`<div>Marca (**): ${res.starOk?'✅':'❌'}</div>`:'<div></div>'}
-          <div style="font-weight:700;grid-column:span 2;margin-top:6px" class="mono">Total: $${res.reported.toLocaleString()}</div>
+          <div class="col-span-2 mt-1.5 font-mono font-bold">Total: $${res.reported.toLocaleString()}</div>
         </div>`
 
       $('sTotal').textContent = files.length
@@ -990,78 +1047,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ── Variables del validador: --accent adaptado a la marca (var(--color-unergy-purple)) ──── */
-.vm-root {
-  --bg: var(--muted); --accent: var(--color-unergy-purple); --text: var(--foreground);
-  --err: var(--destructive); --ok: var(--success); --warn: var(--warning); --radius: 0.75rem;
-  font-family: 'IBM Plex Sans', 'Sora', system-ui, sans-serif;
-  color: var(--text);
-}
-
-/* Las reglas siguientes son ::v-deep para alcanzar el HTML inyectado en onMounted */
-.vm-root :deep(*) { box-sizing: border-box; }
-
-.vm-root :deep(.tab-bar) { display: flex; gap: 0.625rem; margin-bottom: 1.125rem; background: var(--border); padding: 0.3rem; border-radius: 0.625rem; }
-.vm-root :deep(.tab-btn) { flex: 1; padding: 0.75rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: .3s; color: var(--muted-foreground); font-size: 0.875rem; background:transparent; }
-.vm-root :deep(.tab-btn.active) { background: var(--card); color: var(--accent); box-shadow: 0 2px 0.25rem color-mix(in oklab, var(--foreground) 10%, transparent); }
-
-.vm-root :deep(.mode-selector) { display: flex; gap: 0.625rem; margin-bottom: 1rem; background: var(--border); padding: 0.3rem; border-radius: 0.625rem; }
-.vm-root :deep(.mode-btn) { flex: 1; padding: 0.625rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: .3s; color: var(--muted-foreground); font-size: 0.8125rem; background:transparent; }
-.vm-root :deep(.mode-btn.active) { background: var(--card); color: var(--accent); box-shadow: 0 2px 0.25rem color-mix(in oklab, var(--foreground) 10%, transparent); }
-
-.vm-root :deep(.drop-zone) { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; background: var(--card); cursor: pointer; margin-bottom: 0.875rem; transition:.2s; }
-.vm-root :deep(.drop-zone:hover) { border-color: var(--accent); background: var(--muted); }
-.vm-root :deep(.drop-zone.loaded) { border-color: var(--ok); border-style: solid; background: color-mix(in oklab, var(--success) 10%, transparent); }
-.vm-root :deep(.drop-zone.loaded .dz-icon) { color: var(--ok); }
-
-.vm-root :deep(.btn-primary) { background: var(--accent); color: var(--card); border: none; padding: 0.875rem 1.25rem; border-radius: 0.625rem; font-weight: 600; cursor: pointer; font-size: 0.9375rem; transition:.2s; }
-.vm-root :deep(.btn-primary:disabled) { opacity: .4; cursor: not-allowed; }
-.vm-root :deep(.btn-primary:not(:disabled):hover) { background: var(--color-unergy-purple-dark); }
-.vm-root :deep(.btn-secondary) { background: var(--chart-2); color: var(--card); border: none; padding: 0.875rem 1.25rem; border-radius: 0.625rem; font-weight: 600; cursor: pointer; font-size: 0.875rem; white-space:nowrap; }
-.vm-root :deep(.btn-secondary:disabled) { opacity:.4; cursor:not-allowed; }
-
-.vm-root :deep(.stats) { display: flex; gap: 0.75rem; margin-bottom: 1.125rem; flex-wrap:wrap; }
-.vm-root :deep(.stat-card) { flex: 1; min-width: 6.25rem; background: var(--card); padding: 0.875rem; border-radius: 0.625rem; text-align: center; border: 1px solid var(--border); }
-.vm-root :deep(.stat-val) { font-size: 1.375rem; font-weight: 700; display: block; }
-
-.vm-root :deep(.results-grid) { display: grid; grid-template-columns: repeat(auto-fill, minmax(19.375rem, 1fr)); gap: 0.875rem; margin-bottom: 1.5rem; }
-.vm-root :deep(.card) { background: var(--card); border-radius: 0.625rem; border: 1px solid var(--border); padding: 0.9375rem; position: relative; }
-.vm-root :deep(.pill) { position: absolute; top: 0.8125rem; right: 0.8125rem; font-size: 0.625rem; font-weight: 800; padding: 3px 0.625rem; border-radius: 3.125rem; text-transform: uppercase; }
-.vm-root :deep(.pill-ok)  { background: color-mix(in oklab, var(--success) 15%, transparent); color: var(--success); }
-.vm-root :deep(.pill-err) { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); }
-
-.vm-root :deep(.panel) { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.125rem; box-shadow: 0 2px 0.375rem color-mix(in oklab, var(--foreground) 6%, transparent); }
-.vm-root :deep(.report-table) { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
-.vm-root :deep(.report-table th) { text-align: left; padding: 0.625rem 0.75rem; background: var(--muted); border-bottom: 2px solid var(--border); font-size:0.75rem; }
-.vm-root :deep(.report-table td) { padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--muted); }
-.vm-root :deep(.report-table tr:last-child td) { border-bottom: none; }
-.vm-root :deep(.mono) { font-family: 'IBM Plex Mono', monospace; }
-.vm-root :deep(.txt-err) { color: var(--err); font-weight: 600; }
-.vm-root :deep(.txt-ok)  { color: var(--ok); font-weight: 600; }
-.vm-root :deep(.txt-warn){ color: var(--warn); font-weight: 600; }
-
-.vm-root :deep(.spinner) { border: 3px solid var(--muted); border-top: 3px solid var(--accent); border-radius: 50%; width: 1.125rem; height: 1.125rem; animation: vm-spin 1s linear infinite; display:inline-block; }
-@keyframes vm-spin { to { transform: rotate(360deg); } }
-
+/* Único CSS imposible con utilidades: el @keyframes del resaltado. La clase se aplica
+   por JS a un nodo del HTML inyectado, de ahí el :deep. */
 .vm-root :deep(.flash-highlight) { animation: vm-flash 2s ease-out; }
 @keyframes vm-flash {
   0%, 40% { background-color: color-mix(in oklab, var(--color-unergy-purple) 15%, transparent); border-color: var(--color-unergy-purple); }
   100% { background-color: transparent; }
 }
-
-.vm-root :deep(.step-badge) { display:inline-block; background:var(--accent); color:var(--card); border-radius:50%; width:1.375rem; height:1.375rem; line-height:1.375rem; text-align:center; font-size:0.75rem; font-weight:700; margin-right:0.5rem; flex-shrink:0; }
-.vm-root :deep(.step-row) { display:flex; align-items:flex-start; gap:0; margin-bottom:0.875rem; }
-
-.vm-root :deep(.conc-controls) { display:flex; gap:0.625rem; align-items:center; flex-wrap:wrap; margin-bottom:0.875rem; }
-.vm-root :deep(.toggle-label) { display:flex; align-items:center; gap:0.3125rem; cursor:pointer; font-size:0.8125rem; white-space:nowrap; }
-.vm-root :deep(.tol-input) { width:5.625rem; padding:0.375rem 0.625rem; border:1px solid var(--border); border-radius:0.5rem; font-size:0.8125rem; }
-
-.vm-root :deep(.badge) { padding:2px 0.625rem; border-radius:3.125rem; font-size:0.6875rem; font-weight:700; }
-.vm-root :deep(.badge-ok)   { background:color-mix(in oklab, var(--success) 15%, transparent); color:var(--success); }
-.vm-root :deep(.badge-err)  { background:color-mix(in oklab, var(--destructive) 10%, transparent); color:var(--destructive); }
-.vm-root :deep(.badge-warn) { background:color-mix(in oklab, var(--warning) 15%, transparent); color:var(--warning); }
-
-.vm-root :deep(h2),
-.vm-root :deep(h3),
-.vm-root :deep(h4) { color: var(--color-unergy-deep); }
 </style>

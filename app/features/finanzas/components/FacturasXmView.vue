@@ -50,7 +50,7 @@
           <div v-for="a in archivos" :key="a.nombre"
                class="flex items-center gap-3 rounded-lg border px-3 py-2 border-border">
             <FileTextIcon class="shrink-0 size-4 text-muted-foreground" />
-            <span class="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{{ a.nombre }}</span>
+            <TruncatedText :text="a.nombre" class="flex-1 min-w-0 text-xs font-medium text-foreground" />
             <span class="text-xs text-muted-foreground shrink-0">{{ fmtTamano(a.tamano) }}</span>
             <Button v-if="!subiendo" text rounded size="small" @click="quitarArchivo(a.nombre)">
               <template #icon><XIcon class="size-4" /></template>

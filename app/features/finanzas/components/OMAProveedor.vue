@@ -90,7 +90,7 @@
           class="flex items-center gap-3 p-2.5 rounded-lg bg-success/10 border border-success/30">
           <FileTextIcon class="flex-shrink-0 size-4 text-success" />
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold truncate text-success">{{ factura.nombre_archivo }}</p>
+            <TruncatedText :text="factura.nombre_archivo" class="text-xs font-semibold text-success" />
             <p v-if="factura.subido_en" class="text-xs text-muted-foreground mt-0.5">
               Subida: {{ fmtFecha(factura.subido_en) }}
             </p>
@@ -118,10 +118,8 @@
           <!-- Opción A: subir archivo -->
           <label class="flex items-center gap-2 text-xs border border-dashed rounded-lg px-3 py-2 cursor-pointer hover:border-unergy-purple transition-colors"
             :class="archivoSeleccionado ? 'border-unergy-purple bg-unergy-purple/10' : 'border-border'">
-            <PaperclipIcon class="size-3" :class="archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground'" />
-            <span :class="archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground'" class="truncate">
-              {{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar PDF…' }}
-            </span>
+            <PaperclipIcon class="size-3" :class="['min-w-0', archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground']" />
+            <TruncatedText :text="archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar PDF…'" :class="archivoSeleccionado ? 'text-unergy-purple' : 'text-muted-foreground'" />
             <input type="file" accept=".pdf,.PDF" class="hidden" @change="onFacturaChange" />
           </label>
 
@@ -167,7 +165,7 @@
             <div v-for="(item, i) in splitResult.detalle" :key="i"
               class="flex items-center gap-2 text-xs text-muted-foreground">
               <FileTextIcon class="flex-shrink-0 size-3 text-success" />
-              <span class="font-medium truncate max-w-40" :title="item.nombre">{{ item.nombre }}</span>
+              <TruncatedText :text="item.nombre" class="font-medium max-w-40 min-w-0" />
               <span v-if="item.numero_factura" class="font-mono text-muted-foreground">{{ item.numero_factura }}</span>
               <span v-if="item.total_pagar" class="ml-auto font-semibold tabular-nums text-unergy-purple">
                 {{ formatCOP(item.total_pagar) }}
