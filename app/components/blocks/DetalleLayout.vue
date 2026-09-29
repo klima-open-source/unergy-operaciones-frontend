@@ -28,7 +28,7 @@
     <!-- Migas: volver / titulo / codigo / chips ............ acciones -->
     <div class="dl-cabecera">
       <button type="button" class="dl-volver" @click="router.push(volver.to)">
-        <ArrowLeftIcon class="size-[1em]" /> {{ volver.label }}
+        <ArrowLeftIcon class="size-3" /> {{ volver.label }}
       </button>
       <span class="dl-sep">/</span>
 
@@ -48,7 +48,7 @@
         <button v-for="t in tabsVisibles" :key="t.key" type="button"
                 class="dl-tab" :class="{ 'dl-tab--on': tabActiva === t.key }"
                 @click="seleccionar(t.key)">
-          <component :is="t.icon" class="size-[1em]" v-if="t.icon" />
+          <component :is="t.icon" class="size-3" v-if="t.icon" />
           <span>{{ t.label }}</span>
           <span v-if="t.badge != null && t.badge !== ''" class="dl-badge">{{ t.badge }}</span>
         </button>

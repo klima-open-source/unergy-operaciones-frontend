@@ -1,84 +1,76 @@
 <template>
   <div class="space-y-5">
-    <p class="text-sm" style="color: #6b5a8a;">
+    <p class="text-sm text-muted-foreground">
       Contactos de esta razón social, por área. Cada área puede tener los contactos que necesites.
       Los correos aplican a todos sus proyectos salvo que uno apunte a otro cliente para ese tipo.
     </p>
 
-    <div v-for="tipo in TIPOS" :key="tipo.value" class="rounded-xl p-4 space-y-2" style="background:#f9f7ff;border:1.5px solid #e8e0f0;">
+    <div v-for="tipo in TIPOS" :key="tipo.value" class="rounded-xl border bg-muted/30 p-4 space-y-2">
       <div class="flex items-center justify-between">
-        <p class="text-xs font-bold uppercase tracking-wide flex items-center gap-2" style="color:var(--color-unergy-purple);">
-          <component :is="tipo.icon" class="text-xs size-[1em]" />{{ tipo.label }}
-          <span v-if="porTipo[tipo.value].length" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style="background:#f0ebfd;color:var(--color-unergy-purple);">
+        <p class="text-xs font-bold uppercase tracking-wide flex items-center gap-2 text-primary">
+          <component :is="tipo.icon" class="size-3" />{{ tipo.label }}
+          <Badge v-if="porTipo[tipo.value].length" variant="secondary">
             {{ porTipo[tipo.value].length }}
-          </span>
+          </Badge>
         </p>
-        <button v-if="nuevoTipo !== tipo.value" type="button" @click="nuevoTipo = tipo.value; nuevo = { email: '', nombre: '', telefono: '' }"
-          class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
-          style="background:var(--color-unergy-purple);color:#fff;">
-          <PlusIcon class="text-xs size-[1em]" /> Agregar
-        </button>
+        <Button v-if="nuevoTipo !== tipo.value" type="button" size="xs" @click="nuevoTipo = tipo.value; nuevo = { email: '', nombre: '', telefono: '' }">
+          <PlusIcon /> Agregar
+        </Button>
       </div>
 
-      <div v-if="!porTipo[tipo.value].length && nuevoTipo !== tipo.value" class="text-xs italic py-1" style="color:#c4b3df;">
+      <div v-if="!porTipo[tipo.value].length && nuevoTipo !== tipo.value" class="text-xs italic py-1 text-muted-foreground">
         Sin contactos configurados
       </div>
 
       <div v-for="c in porTipo[tipo.value]" :key="c.id" class="flex flex-wrap items-center gap-2">
-        <input v-model="c.nombre" type="text" placeholder="Nombre (opcional)"
-          @blur="guardarContacto(c)"
-          class="flex-1 min-w-32 px-3 py-2 text-sm rounded-lg outline-none"
-          style="border:1.5px solid #e8e0f0;background:#fff;" />
-        <div class="flex-[2] min-w-48 relative">
-          <MailIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-xs size-[1em]" style="color: #9b89b5;" />
-          <input v-model="c.email" type="email" placeholder="correo@empresa.com"
-            @blur="guardarContacto(c)"
-            class="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none transition-colors"
-            :style="emailValido(c.email) ? 'border:1.5px solid #e8e0f0;background:#fff;' : 'border:1.5px solid #fca5a5;background:#fff5f5;'" />
+        <Input v-model="c.nombre" type="text" placeholder="Nombre (opcional)"
+          class="flex-1 min-w-32"
+          @blur="guardarContacto(c)" />
+        <div class="flex-1 min-w-48 relative">
+          <MailIcon class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input v-model="c.email" type="email" placeholder="correo@empresa.com"
+            class="pl-8"
+            :aria-invalid="!emailValido(c.email)"
+            @blur="guardarContacto(c)" />
         </div>
         <div class="flex-1 min-w-36 relative">
-          <PhoneIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-xs size-[1em]" style="color: #9b89b5;" />
-          <input v-model="c.telefono" type="text" placeholder="Teléfono"
-            @blur="guardarContacto(c)"
-            class="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none"
-            style="border:1.5px solid #e8e0f0;background:#fff;" />
+          <PhoneIcon class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input v-model="c.telefono" type="text" placeholder="Teléfono"
+            class="pl-8"
+            @blur="guardarContacto(c)" />
         </div>
-        <button type="button" @click="enviarPrueba(c.email)" :disabled="!emailValido(c.email)"
-          title="Enviar correo de prueba"
-          class="p-1.5 rounded-lg transition-colors hover:bg-gray-50 disabled:opacity-40">
-          <SendIcon class="text-xs size-[1em]" style="color: var(--color-unergy-purple);" />
-        </button>
-        <button type="button" @click="eliminarContacto(c)"
-          class="p-1.5 rounded-lg transition-colors hover:bg-red-50">
-          <Trash2Icon class="text-xs size-[1em]" style="color: #ef4444;" />
-        </button>
+        <Button type="button" variant="ghost" size="icon-sm" title="Enviar correo de prueba"
+          :disabled="!emailValido(c.email)"
+          @click="enviarPrueba(c.email)">
+          <SendIcon class="text-primary" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" @click="eliminarContacto(c)">
+          <Trash2Icon class="text-destructive" />
+        </Button>
       </div>
 
       <div v-if="nuevoTipo === tipo.value" class="flex flex-wrap items-center gap-2">
-        <input v-model="nuevo.nombre" type="text" placeholder="Nombre (opcional)"
-          @keyup.enter="crearContacto"
-          class="flex-1 min-w-32 px-3 py-2 text-sm rounded-lg outline-none"
-          style="border:1.5px solid #e8e0f0;background:#fff;" />
-        <div class="flex-[2] min-w-48 relative">
-          <MailIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-xs size-[1em]" style="color: #9b89b5;" />
-          <input v-model="nuevo.email" type="email" placeholder="correo@empresa.com" autofocus
-            @keyup.enter="crearContacto"
-            class="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none transition-colors"
-            style="border:1.5px solid #e8e0f0;background:#fff;" />
+        <Input v-model="nuevo.nombre" type="text" placeholder="Nombre (opcional)"
+          class="flex-1 min-w-32"
+          @keyup.enter="crearContacto" />
+        <div class="flex-1 min-w-48 relative">
+          <MailIcon class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input v-model="nuevo.email" type="email" placeholder="correo@empresa.com" autofocus
+            class="pl-8"
+            @keyup.enter="crearContacto" />
         </div>
         <div class="flex-1 min-w-36 relative">
-          <PhoneIcon class="absolute left-3 top-1/2 -translate-y-1/2 text-xs size-[1em]" style="color: #9b89b5;" />
-          <input v-model="nuevo.telefono" type="text" placeholder="Teléfono"
-            @keyup.enter="crearContacto"
-            class="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none"
-            style="border:1.5px solid #e8e0f0;background:#fff;" />
+          <PhoneIcon class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+          <Input v-model="nuevo.telefono" type="text" placeholder="Teléfono"
+            class="pl-8"
+            @keyup.enter="crearContacto" />
         </div>
-        <button type="button" @click="crearContacto" class="p-1.5 rounded-lg hover:bg-green-50">
-          <CheckIcon class="text-xs size-[1em]" style="color: #16a34a;" />
-        </button>
-        <button type="button" @click="nuevoTipo = null; nuevo = null" class="p-1.5 rounded-lg hover:bg-gray-50">
-          <XIcon class="text-xs size-[1em]" style="color: #9b89b5;" />
-        </button>
+        <Button type="button" variant="ghost" size="icon-sm" @click="crearContacto">
+          <CheckIcon class="text-success" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" @click="nuevoTipo = null; nuevo = null">
+          <XIcon class="text-muted-foreground" />
+        </Button>
       </div>
     </div>
   </div>

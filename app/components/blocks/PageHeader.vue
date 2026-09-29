@@ -1,10 +1,10 @@
 <template>
   <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2.5">
-    <div class="flex items-center gap-2.5 min-w-0">
+    <div class="flex min-w-0 items-center gap-2.5">
       <slot name="lead" />
       <div class="min-w-0">
         <h1
-          class="text-base font-extrabold whitespace-normal text-unergy-deep sm:text-lg sm:leading-[1.15] sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
+          class="text-base font-extrabold whitespace-normal text-unergy-deep sm:overflow-hidden sm:text-lg sm:leading-tight sm:text-ellipsis sm:whitespace-nowrap"
         >
           {{ title }}
         </h1>
