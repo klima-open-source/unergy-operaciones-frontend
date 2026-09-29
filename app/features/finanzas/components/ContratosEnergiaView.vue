@@ -27,27 +27,27 @@
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Comercializador, proyecto, código…" class="w-72" />
+          <InputText v-model="q" placeholder="Comercializador, proyecto, código…" />
         </IconField>
       </div>
       <div>
         <label class="field-label">Planta</label>
         <Select v-model="plantaSel" :options="proyectosOptions" optionLabel="label" optionValue="value"
-                class="w-52" showClear filter placeholder="Todas" />
+                showClear filter placeholder="Todas" />
       </div>
       <div>
         <label class="field-label">Tipo de contrato</label>
         <Select v-model="tipoSel" :options="TIPOS_CONTRATO" optionLabel="label" optionValue="value"
-                class="w-52" showClear placeholder="Todos" />
+                showClear placeholder="Todos" />
       </div>
       <div>
         <label class="field-label">Tipo de tarifa</label>
         <Select v-model="tarifaSel" :options="TIPOS_TARIFA" optionLabel="label" optionValue="value"
-                class="w-44" showClear placeholder="Todas" />
+                showClear placeholder="Todas" />
       </div>
       <div>
         <label class="field-label">Año</label>
-        <Select v-model="anioSel" :options="aniosOptions" class="w-28" showClear placeholder="Todos"
+        <Select v-model="anioSel" :options="aniosOptions" showClear placeholder="Todos"
                 v-tooltip.top="'Contratos cuya vigencia toca ese año'" />
       </div>
       <div>

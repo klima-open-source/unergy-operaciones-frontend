@@ -15,28 +15,28 @@
       <div>
         <label class="field-label">Proyecto</label>
         <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
-                class="w-52" showClear filter placeholder="Todos" />
+                showClear filter placeholder="Todos" />
       </div>
       <!-- Mes, año y versión definen el período que se le pide a XM: no se
            filtran en pantalla, se recarga. Por eso no admiten "todos". -->
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.mes" :options="MESES" optionLabel="label" optionValue="value"
-                class="w-32" @change="cargar" />
+                @change="cargar" />
       </div>
       <div>
         <label class="field-label">Año</label>
-        <Select v-model="filtros.anio" :options="aniosOptions" class="w-28" @change="cargar" />
+        <Select v-model="filtros.anio" :options="aniosOptions" @change="cargar" />
       </div>
       <div>
         <label class="field-label">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" class="w-24" @change="cargar" />
+        <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
       </div>
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto…" class="w-48" />
+          <InputText v-model="q" placeholder="Proyecto…" />
         </IconField>
       </div>
       <div class="flex-1" />
