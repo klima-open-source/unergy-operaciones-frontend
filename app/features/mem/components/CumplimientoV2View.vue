@@ -1028,7 +1028,7 @@
             <!-- Plant drop zone (collapsible) -->
             <div
               v-show="expandedContratos.includes(c.id)"
-              class="sim-plant-zone max-h-55 min-h-16 space-y-1.5 overflow-y-auto p-3"
+              class="max-h-55 min-h-16 space-y-1.5 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-xs [&::-webkit-scrollbar-thumb]:bg-unergy-purple/20 [&::-webkit-scrollbar-track]:bg-transparent"
             >
               <div
                 v-for="p in simAssignments[c.id] || []"
@@ -2080,23 +2080,43 @@
         <AlertDescription>{{ anualMatrizError }}</AlertDescription>
       </Alert>
       <div v-if="anualMatrizData" class="overflow-x-auto rounded-lg border border-unergy-deep/8">
-        <table class="cv-matriz text-sm">
+        <table class="w-full border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th class="sticky-col px-3 py-2 text-left">Contrato / Proyecto</th>
-              <th v-for="(mes, i) in MESES" :key="i" class="px-2 py-2 text-right">
+              <th
+                class="sticky left-0 z-30 min-w-60 border-b bg-muted px-3 py-2 text-left font-semibold text-unergy-deep"
+              >
+                Contrato / Proyecto
+              </th>
+              <th
+                v-for="(mes, i) in MESES"
+                :key="i"
+                class="sticky top-0 z-20 border-b bg-muted px-2 py-2 text-right font-semibold text-unergy-deep"
+              >
                 {{ mes.slice(0, 3) }}
               </th>
-              <th class="px-3 py-2 text-right">Total</th>
-              <th class="px-3 py-2 text-center">Estado</th>
-              <th class="px-3 py-2 text-center">Energía</th>
+              <th
+                class="sticky top-0 z-20 border-b bg-muted px-3 py-2 text-right font-semibold text-unergy-deep"
+              >
+                Total
+              </th>
+              <th
+                class="sticky top-0 z-20 border-b bg-muted px-3 py-2 text-center font-semibold text-unergy-deep"
+              >
+                Estado
+              </th>
+              <th
+                class="sticky top-0 z-20 border-b bg-muted px-3 py-2 text-center font-semibold text-unergy-deep"
+              >
+                Energía
+              </th>
             </tr>
           </thead>
           <tbody>
             <template v-for="c in matrizFiltrada" :key="c.id">
               <!-- Fila contrato -->
-              <tr class="cv-matriz-contrato cursor-pointer" @click="toggleMatriz(c.id)">
-                <td class="sticky-col px-3 py-1.5">
+              <tr class="cursor-pointer hover:bg-accent" @click="toggleMatriz(c.id)">
+                <td class="sticky left-0 z-10 min-w-60 bg-card px-3 py-1.5">
                   <ChevronDownIcon v-if="expandedMatriz.includes(c.id)" class="mr-1 size-3" />
                   <ChevronRightIcon v-else class="mr-1 size-3" />
                   <span class="font-semibold">{{
@@ -2178,8 +2198,8 @@
               </tr>
               <!-- Filas proyecto (expandidas) -->
               <template v-if="expandedMatriz.includes(c.id)">
-                <tr v-for="p in c.proyectos" :key="c.id + '-' + p.id" class="cv-matriz-proyecto">
-                  <td class="sticky-col px-3 py-1 pl-8">
+                <tr v-for="p in c.proyectos" :key="c.id + '-' + p.id" class="bg-muted">
+                  <td class="sticky left-0 z-10 min-w-60 bg-muted px-3 py-1 pl-8">
                     <span>{{ p.nombre }}</span>
                     <span class="ml-1 text-xs text-muted-foreground"
                       >{{ Math.round((p.pct_despacho_rep || 0) * 100) }}% part.</span
@@ -2197,16 +2217,20 @@
               </template>
             </template>
             <!-- Total general -->
-            <tr class="cv-matriz-total">
-              <td class="sticky-col px-3 py-2 font-bold">TOTAL ({{ matrizFiltrada.length }})</td>
+            <tr class="bg-secondary">
+              <td
+                class="sticky left-0 z-10 min-w-60 border-t-2 border-foreground/15 bg-secondary px-3 py-2 font-bold"
+              >
+                TOTAL ({{ matrizFiltrada.length }})
+              </td>
               <td
                 v-for="(t, i) in matrizTotalesMensuales"
                 :key="i"
-                class="px-2 py-2 text-right font-mono font-bold"
+                class="border-t-2 border-foreground/15 px-2 py-2 text-right font-mono font-bold"
               >
                 {{ fmtNum(t) }}
               </td>
-              <td colspan="3"></td>
+              <td colspan="3" class="border-t-2 border-foreground/15"></td>
             </tr>
           </tbody>
         </table>
@@ -8386,70 +8410,3 @@ onMounted(async () => {
   loadSimulator()
 })
 </script>
-
-<style scoped>
-/* ── Matriz anual: encabezado y primera columna fijos (sticky) al hacer scroll
-   horizontal, con una celda "sticky" siempre opaca (para tapar el contenido
-   que pasa por debajo) independiente del hover de su fila. Esa combinación de
-   sticky + hover + capas opacas por celda no se expresa con utilidades de
-   Tailwind sin duplicar clases condicionales en cada celda — es la única regla
-   de layout que se queda aquí. Nombres de clase sin cambios respecto al resto
-   del archivo (ya migrado a Tailwind). ── */
-.cv-matriz {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-.cv-matriz thead th {
-  position: sticky;
-  top: 0;
-  background: #faf8fd;
-  z-index: 2;
-  font-weight: 600;
-  color: var(--color-unergy-deep);
-  border-bottom: 1px solid rgba(44, 32, 57, 0.1);
-}
-.cv-matriz .sticky-col {
-  position: sticky;
-  left: 0;
-  background: #fff;
-  z-index: 1;
-  min-width: 240px;
-}
-.cv-matriz thead .sticky-col {
-  z-index: 3;
-  background: #faf8fd;
-}
-.cv-matriz-contrato:hover {
-  background: #f6f2fb;
-}
-.cv-matriz-contrato .sticky-col {
-  background: #fff;
-}
-.cv-matriz-proyecto {
-  background: #fbfafd;
-}
-.cv-matriz-proyecto .sticky-col {
-  background: #fbfafd;
-}
-.cv-matriz-total td {
-  border-top: 2px solid rgba(44, 32, 57, 0.15);
-  background: #f3eefb;
-}
-.cv-matriz-total .sticky-col {
-  background: #f3eefb;
-}
-
-/* Scrollbar angosta del panel de plantas arrastrables del simulador — Tailwind
-   no tiene utilidades para pseudo-elementos ::-webkit-scrollbar. */
-.sim-plant-zone::-webkit-scrollbar {
-  width: 4px;
-}
-.sim-plant-zone::-webkit-scrollbar-thumb {
-  background: rgba(145, 91, 216, 0.2);
-  border-radius: 2px;
-}
-.sim-plant-zone::-webkit-scrollbar-track {
-  background: transparent;
-}
-</style>
