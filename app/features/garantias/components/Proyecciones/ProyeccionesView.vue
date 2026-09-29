@@ -126,7 +126,7 @@ onMounted(() => {
     <div class="flex flex-wrap items-end gap-4 rounded-xl bg-primary/5 p-4">
       <div class="flex flex-col gap-1">
         <GLabel>Plantas nuevas</GLabel>
-        <NumberField v-model="plantasNuevas" :min="0" class="w-36" @update:model-value="cargar">
+        <NumberField v-model="plantasNuevas" :min="0" @update:model-value="cargar">
           <NumberFieldContent>
             <NumberFieldDecrement />
             <NumberFieldInput />
@@ -136,19 +136,13 @@ onMounted(() => {
       </div>
       <div class="flex flex-col gap-1">
         <GLabel>kWh por planta nueva</GLabel>
-        <NumberField
-          v-model="kwhPlantaNueva"
-          :min="0"
-          :step="10"
-          class="w-44"
-          @update:model-value="cargar"
-        >
+        <NumberField v-model="kwhPlantaNueva" :min="0" :step="10" @update:model-value="cargar">
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div class="flex flex-col gap-1">
         <GLabel>Fecha de corte (opcional)</GLabel>
-        <DatePicker v-model="corte" clearable class="w-40" @update:model-value="cargar" />
+        <DatePicker v-model="corte" clearable @update:model-value="cargar" />
       </div>
       <Button variant="outline" :disabled="cargando" @click="cargar">
         <LoaderCircleIcon v-if="cargando" class="size-4 animate-spin" />
@@ -214,7 +208,7 @@ onMounted(() => {
               v-model="v.pagado"
               :min="0"
               :format-options="{ maximumFractionDigits: 0 }"
-              class="w-44"
+              class="min-w-0 flex-1"
             >
               <NumberFieldContent
                 ><NumberFieldInput @keyup.enter="guardarPagado(v)"
