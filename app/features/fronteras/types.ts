@@ -253,82 +253,79 @@ export interface EstadoQuoiaReporte {
   fallidas: FronteraFallidaQuoia[]
 }
 
-/** `GET /resumen-historico`: patrones agregados de fuente/calidad de dato en un rango de fechas. */
-export interface ResumenHistoricoReporteEnergia {
-  distribucion_fuente_generacion: { etiqueta: string; total: number }[]
-  distribucion_fuente_consumo: { etiqueta: string; total: number }[]
-  detalle_fuente_generacion: {
-    grupo: string
-    frontera_id: number
-    dias_grupo: number
-    [clave: string]: unknown
-  }[]
-  detalle_fuente_consumo: {
-    grupo: string
-    frontera_id: number
-    dias_grupo: number
-    [clave: string]: unknown
-  }[]
-  /** Cuánto del reporte salió automático por CGM — generación y consumo juntos. */
-  distribucion_automatico: { etiqueta: string; total: number }[]
-  detalle_automatico: {
-    grupo: string
-    frontera_id: number
-    dias_grupo: number
-    [clave: string]: unknown
-  }[]
-  /**
-   * Tasa de reporte automático, día a día y del rango.
-   *
-   * El denominador (`fronteras`) son las que el clasificador PROCESÓ ese día.
-   *
-   * `registradas` y `sin_reportar` van al lado, no como divisor: son la alarma.
-   * Una frontera registrada en ASIC que no aparece en el reporte es el peor
-   * caso posible, y así pasaron desapercibidas las 9 que se borraron el
-   * 2026-09-15 (BAYUNCA I, SAN ONOFRE, DELTA 2, NAOS 2 y 3, con sus consumos).
-   *
-   * `dias` los trae todos, incluidos los que no cuentan. Un día `excluido` es
-   * uno en que el clasificador no hizo su trabajo, y su `motivo` dice cuál de
-   * las tres formas fue: no corrió (5 y 6 de septiembre de 2026, la migración
-   * del servidor), corrió a medias (4 de septiembre, 19 fronteras de consumo
-   * sin clasificar) o clasificó sin usar CGM en ninguna (9 de agosto, que no
-   * pasa nunca). Quedan fuera de `tasa` pero se siguen viendo.
-   */
-  serie_automatico: {
-    dias: {
-      fecha: string
-      automaticas: number
-      fronteras: number
-      registradas: number
-      sin_reportar: number
-      /** Fuera de la tasa: el clasificador no hizo su trabajo ese día. */
-      excluido: boolean
-      /** `sin_corrida` | `corrida_parcial` | `clasificacion_fallida` | null. */
-      motivo: string | null
-      tasa: number
-    }[]
-    dias_contados: number
-    dias_excluidos: number
-    automaticas: number
-    fronteras: number
-    tasa: number
-    /** Cada frontera con su % de días automáticos, la peor primero. */
-    por_frontera: {
-      frontera_id: number
-      nombre_proyecto: string
-      dias: number
-      automaticos: number
-      tasa: number
-    }[]
-  }
-  /**
-   * La frontera a la que está recortada la vista, o `null` si las trae todas.
-   *
-   * Recorta los CONTEOS, nunca los días excluidos: las tres reglas que sacan un
-   * día de la tasa describen la corrida completa, no una frontera. Sin eso,
-   * `clasificacion_fallida` (nadie usó CGM ese día) leería un día normal de una
-   * sola frontera como un fallo del programa y lo borraría de la tasa, que
-   * daría casi 100% siempre.
-   */
-  frontera_id: number | null
+export enum TipoFronteraReporte {
+  GENERACION = 'generacion',
+  CONSUMO = 'consumo',
+}
+
+/**
+ * Grupo de fuente de un día NO automático, como lo agrupa el backend
+ * (`_GRUPO_FUENTE_GENERACION` / `_GRUPO_FUENTE_CONSUMO`). `CGM` no aparece en
+ * un día no automático, pero el backend puede mandarlo en `fuente_dominante`
+ * si el vocabulario cambia -- por eso está.
+ */
+export enum GrupoFuenteReporte {
+  CGM = 'cgm',
+  MEDIDOR = 'medidor',
+  INVERSOR = 'inversor',
+  TERCEROS = 'terceros',
+  ESTIMACION = 'estimacion',
+  APAGADO = 'apagado',
+  SIN_FUENTE = 'sin_fuente',
+  OTRO = 'otro',
+}
+
+export interface DiaResumenVentana {
+  fecha: string
+  automatico: boolean
+  /** Fuera de la tasa: el clasificador no hizo su trabajo ese día, o se excluyó a mano. */
+  excluido: boolean
+  /** Solo cuando no fue automático ni excluido. */
+  grupo_fuente: GrupoFuenteReporte | null
+  etiqueta_fuente: string | null
+}
+
+export interface DesgloseFuenteResumen {
+  grupo: GrupoFuenteReporte
+  etiqueta: string
+  dias: number
+}
+
+export interface FilaResumenVentana {
+  frontera_id: number
+  tipo: TipoFronteraReporte
+  nombre_proyecto: string
+  codigo_frontera: string | null
+  dias_automaticos: number
+  dias_no_automaticos: number
+  tasa: number
+  /** Tuvo filas en el período anterior y ninguna en este: dejó de aparecer. */
+  nunca_clasificado: boolean
+  fuente_dominante: GrupoFuenteReporte | null
+  fuente_dominante_etiqueta: string | null
+  desglose_fuente: DesgloseFuenteResumen[]
+  fechas_excluidas: string[]
+  dias: DiaResumenVentana[]
+}
+
+export interface KpisResumenVentana {
+  tasa_general: number
+  dias_automaticos_totales: number
+  dias_totales: number
+  siempre_automatico: number
+  nunca_automatico: number
+  /** Contra el período anterior de igual duración, por más de 2 días automáticos. */
+  mejoraron: number
+  empeoraron: number
+}
+
+/**
+ * `GET /resumen-historico`: una fila por frontera+tipo en `[desde, hasta]`, la
+ * peor primero, más los KPIs del período.
+ */
+export interface ResumenVentanaReporteEnergia {
+  desde: string
+  hasta: string
+  filas: FilaResumenVentana[]
+  kpis: KpisResumenVentana
 }
