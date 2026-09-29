@@ -19,11 +19,6 @@ export interface KpisOperativos {
     [clave: string]: unknown
   }
   mwh_mes?: number
-  fleet_power_kw?: number
-  fleet_online?: number
-  fleet_total?: number
-  gen_solenium_last_date?: string
-  gen_solenium_projects?: number
   precio_bolsa_cop_kwh?: number
   alarmas_mgs?: number
   alarmas_mgs_criticas?: number

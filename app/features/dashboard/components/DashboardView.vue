@@ -6,10 +6,8 @@ import {
   BellIcon,
   BuildingIcon,
   CircleAlertIcon,
-  DatabaseIcon,
   DollarSignIcon,
   FilePenIcon,
-  PowerIcon,
   RefreshCwIcon,
   ShieldIcon,
   SunIcon,
@@ -63,14 +61,6 @@ const cumplimientoStatus = computed<'idle' | 'loading' | 'error' | 'ready'>(() =
   return 'idle'
 })
 
-const fleetPowerDisplay = computed(() => {
-  const kw = kpis.value?.fleet_power_kw
-  if (kw == null) return null
-  return kw > 1000
-    ? { value: (kw / 1000).toFixed(1), unit: 'MW' }
-    : { value: String(kw), unit: 'kW' }
-})
-
 const fallasBreakdown = computed(() => {
   const fp = kpis.value?.fallas_por_prioridad ?? {}
   const total = kpis.value?.fallas_abiertas || 1
@@ -118,20 +108,6 @@ const criticalAlerts = computed<DashboardAlert[]>(() => {
       tone: 'destructive',
       to: '/mem/cumplimiento',
     })
-  }
-
-  if (k.fleet_total && k.fleet_online != null) {
-    const offline = k.fleet_total - k.fleet_online
-    if (offline > 0 && offline / k.fleet_total > 0.2) {
-      alerts.push({
-        key: 'fleet-offline',
-        title: `${offline} planta${offline > 1 ? 's' : ''} sin generación`,
-        detail: `${k.fleet_online}/${k.fleet_total} plantas reportando generación`,
-        icon: PowerIcon,
-        tone: 'warning',
-        to: '/generacion-solar',
-      })
-    }
   }
 
   if ((k.liquidaciones_pendientes ?? 0) > 0) {
@@ -250,51 +226,9 @@ onMounted(loadKpis)
 
           <div class="space-y-3">
             <h2 class="text-sm font-bold tracking-wide text-muted-foreground uppercase">
-              Flota, mercado y alarmas
+              Mercado y alarmas
             </h2>
-            <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle class="flex items-center gap-1.5">
-                    <PowerIcon class="size-4 text-muted-foreground" />
-                    Generación flota
-                  </CardTitle>
-                  <CardAction>
-                    <NuxtLink
-                      to="/generacion-solar"
-                      class="text-xs font-medium text-primary hover:underline"
-                    >
-                      Ver detalle →
-                    </NuxtLink>
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  <div v-if="fleetPowerDisplay" class="flex items-baseline gap-2">
-                    <span
-                      class="text-3xl font-bold"
-                      :class="
-                        (kpis?.fleet_power_kw ?? 0) > 0 ? 'text-success' : 'text-muted-foreground'
-                      "
-                    >
-                      {{ fleetPowerDisplay.value }}
-                    </span>
-                    <span class="text-sm text-muted-foreground">{{ fleetPowerDisplay.unit }}</span>
-                    <GBadge v-if="kpis?.fleet_online != null" color="success" class="ml-2">
-                      {{ kpis.fleet_online }}/{{ kpis.fleet_total || '?' }} online
-                    </GBadge>
-                  </div>
-                  <p v-else class="text-sm text-muted-foreground">Solenium no disponible</p>
-                  <div
-                    v-if="kpis?.gen_solenium_last_date"
-                    class="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
-                  >
-                    <DatabaseIcon class="size-3 text-success" />
-                    {{ kpis.gen_solenium_projects }} plantas sincronizadas · último dato
-                    {{ kpis.gen_solenium_last_date }}
-                  </div>
-                </CardContent>
-              </Card>
-
+            <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <Card>
                 <CardHeader>
                   <CardTitle class="flex items-center gap-1.5">
