@@ -32,7 +32,7 @@
         <!-- ── Barra de acciones ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
           <!-- Filtro por proyecto -->
-          <InputGroup class="w-64">
+          <InputGroup class="min-w-0 flex-1 sm:max-w-xs">
             <InputGroupAddon>
               <SearchIcon />
             </InputGroupAddon>
@@ -70,7 +70,7 @@
                 :model-value="String(autoInterval)"
                 @update:model-value="(v) => setAuto(Number(v))"
               >
-                <SelectTrigger size="sm" class="w-36">
+                <SelectTrigger size="sm">
                   <ClockIcon />
                   <SelectValue />
                 </SelectTrigger>
