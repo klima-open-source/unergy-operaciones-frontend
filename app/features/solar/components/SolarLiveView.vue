@@ -148,7 +148,7 @@
                     class="size-2 shrink-0 rounded-full bg-(--status-color)"
                     :style="{ '--status-color': statusColor(proy.status) }"
                   />
-                  <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
+                  <TruncatedText :text="proy.nombre" class="min-w-0 flex-1" />
                   <span
                     class="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                   >
@@ -573,22 +573,27 @@ function setAuto(ms: number): void {
   refreshTimer = ms ? setInterval(cargar, ms) : null
 }
 
-const STATUS_COLORS = {
-  online: '#16a34a',
-  degradado: '#d97706',
-  caido: '#dc2626',
-  sin_comunicacion: '#9ca3af',
-  sin_datos: '#d1d5db',
-  offline: '#d1d5db',
-}
+const { color } = useThemeColors()
 
-/** Color de fondo del punto de estado de una tarjeta, `#9ca3af` si no se reconoce. */
+/** Color de fondo del punto de estado de una tarjeta; gris si no se reconoce. */
 function statusColor(status: string | undefined): string {
-  return (status ? STATUS_COLORS[status as keyof typeof STATUS_COLORS] : undefined) || '#9ca3af'
+  switch (status) {
+    case 'online':
+      return color('success')
+    case 'degradado':
+      return color('warning')
+    case 'caido':
+      return color('destructive')
+    case 'sin_datos':
+    case 'offline':
+      return color('muted-foreground', 0.4)
+    default:
+      return color('muted-foreground')
+  }
 }
 
 // ── Resumen de estado ──────────────────────────────────────────────────────
-// Mismo criterio de severidad que STATUS_COLORS (caido es lo unico realmente
+// Mismo criterio de severidad que statusColor (caido es lo unico realmente
 // rojo; sin_comunicacion/sin_datos/offline son variantes de "no hay dato", no
 // una falla confirmada), pero en colores semanticos para la franja de resumen
 // y la etiqueta de cada tarjeta.
@@ -658,7 +663,7 @@ const crosshairPlugin: Plugin<'line'> = {
     ctx.moveTo(x, top)
     ctx.lineTo(x, bottom)
     ctx.lineWidth = 1
-    ctx.strokeStyle = 'rgba(28,18,50,0.18)'
+    ctx.strokeStyle = color('foreground', 0.18)
     ctx.setLineDash([4, 3])
     ctx.stroke()
     ctx.restore()
@@ -695,8 +700,8 @@ function getInversorData(id: number): CurvaChartData {
       {
         label: 'Inversores (kW)',
         data,
-        borderColor: '#915BD8',
-        backgroundColor: 'rgba(145,91,216,0.18)',
+        borderColor: color('unergy-purple'),
+        backgroundColor: color('unergy-purple', 0.18),
         fill: true,
         tension: 0.35,
         pointRadius: 0,
@@ -745,8 +750,8 @@ function medidorPanel(id: number): PanelMedidor | null {
             {
               label: 'Medidores (kW)',
               data,
-              borderColor: '#D4A017',
-              backgroundColor: 'rgba(212,160,23,0.15)',
+              borderColor: color('warning'),
+              backgroundColor: color('warning', 0.15),
               fill: true,
               tension: 0.35,
               pointRadius: 0,
@@ -771,7 +776,7 @@ function getDiffPct(id: number): number | null {
 }
 
 // ── Chart options ─────────────────────────────────────────────────────────
-function makeOptions(color: string, maxY: number | undefined): ChartOptions<'line'> {
+function makeOptions(maxY: number | undefined): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -779,10 +784,10 @@ function makeOptions(color: string, maxY: number | undefined): ChartOptions<'lin
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#ffffff',
-        titleColor: '#374151',
-        bodyColor: '#4b5563',
-        borderColor: '#e5e7eb',
+        backgroundColor: color('card'),
+        titleColor: color('foreground'),
+        bodyColor: color('muted-foreground'),
+        borderColor: color('border'),
         borderWidth: 1,
         padding: 10,
         displayColors: true,
@@ -794,14 +799,14 @@ function makeOptions(color: string, maxY: number | undefined): ChartOptions<'lin
     },
     scales: {
       x: {
-        ticks: { font: { size: 9 }, color: '#9ca3af', maxTicksLimit: 9 },
-        grid: { color: 'rgba(28,18,50,0.06)' },
+        ticks: { font: { size: 9 }, color: color('muted-foreground'), maxTicksLimit: 9 },
+        grid: { color: color('foreground', 0.06) },
       },
       y: {
         beginAtZero: true,
-        ticks: { font: { size: 9 }, color: '#9ca3af' },
-        grid: { color: 'rgba(28,18,50,0.06)' },
-        title: { display: true, text: 'kW', font: { size: 9 }, color: '#9ca3af' },
+        ticks: { font: { size: 9 }, color: color('muted-foreground') },
+        grid: { color: color('foreground', 0.06) },
+        title: { display: true, text: 'kW', font: { size: 9 }, color: color('muted-foreground') },
         ...(maxY ? { max: maxY } : {}),
       },
     },
@@ -825,10 +830,10 @@ function getChartMax(id: number): number | undefined {
 }
 
 function chartOptionsInv(id: number): ChartOptions<'line'> {
-  return makeOptions('#915BD8', getChartMax(id))
+  return makeOptions(getChartMax(id))
 }
 function chartOptionsMed(id: number): ChartOptions<'line'> {
-  return makeOptions('#D4A017', getChartMax(id))
+  return makeOptions(getChartMax(id))
 }
 
 // ── Carga perezosa del detalle ──────────────────────────────────────────────
