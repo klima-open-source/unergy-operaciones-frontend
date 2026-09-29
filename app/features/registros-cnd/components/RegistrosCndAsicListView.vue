@@ -97,12 +97,10 @@ onMounted(cargar)
               </div>
 
               <div v-else-if="column.key === 'avance'" class="flex items-center gap-2">
-                <div class="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    class="h-full rounded-full bg-primary"
-                    :style="{ width: `${Math.min(100, asResumen(row).avance_pct)}%` }"
-                  />
-                </div>
+                <Progress
+                  :model-value="Math.min(100, asResumen(row).avance_pct)"
+                  class="h-2 flex-1"
+                />
                 <span class="w-10 text-right text-xs font-semibold text-primary">
                   {{ asResumen(row).avance_pct }}%
                 </span>

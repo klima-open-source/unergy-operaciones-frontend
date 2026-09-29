@@ -158,22 +158,13 @@ const campos93: Array<{ k: CampoCreg93; label: string }> = [
 // ── Mapa: estado visual de cada etapa ───────────────────────────────────────
 type EtapaStatus = 'completa' | 'progreso' | 'pendiente' | 'bloqueada'
 
-const STATUS_STYLE: Record<EtapaStatus, { fill: string; stroke: string; text: string }> = {
-  completa: {
-    fill: 'var(--primary)',
-    stroke: 'color-mix(in oklab, var(--primary) 70%, black)',
-    text: 'var(--primary-foreground)',
-  },
-  progreso: { fill: 'var(--card)', stroke: 'var(--primary)', text: 'var(--primary)' },
-  pendiente: {
-    fill: 'color-mix(in oklab, var(--primary) 6%, var(--muted))',
-    stroke: 'var(--border)',
-    text: 'var(--muted-foreground)',
-  },
+const STATUS_CLASS: Record<EtapaStatus, { circle: string; text: string }> = {
+  completa: { circle: 'fill-primary stroke-primary', text: 'fill-primary-foreground' },
+  progreso: { circle: 'fill-card stroke-primary', text: 'fill-primary' },
+  pendiente: { circle: 'fill-muted stroke-border', text: 'fill-muted-foreground' },
   bloqueada: {
-    fill: 'color-mix(in oklab, var(--destructive) 12%, var(--background))',
-    stroke: 'var(--destructive)',
-    text: 'var(--destructive)',
+    circle: 'fill-destructive/10 stroke-destructive',
+    text: 'fill-destructive',
   },
 }
 
@@ -551,18 +542,13 @@ onMounted(cargar)
           </div>
         </div>
 
-        <div class="h-2.5 overflow-hidden rounded-full bg-muted">
-          <div
-            class="h-full rounded-full bg-primary transition-all duration-500"
-            :style="{ width: `${Math.min(100, reg.avance_pct)}%` }"
-          />
-        </div>
+        <Progress :model-value="Math.min(100, reg.avance_pct)" class="h-2.5" />
 
         <!-- ── Mapa del proceso ──────────────────────────────────────────── -->
         <div class="rounded-xl border bg-card p-3.5 pb-4.5">
           <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
             <span class="text-sm font-bold text-foreground">Mapa del proceso de conexión</span>
-            <div class="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+            <div class="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span class="inline-flex items-center gap-1"
                 ><i class="size-3 rounded-full bg-primary" />Completada</span
               >
@@ -583,18 +569,14 @@ onMounted(cargar)
           <div class="overflow-x-auto">
             <svg
               viewBox="0 0 1040 320"
-              class="block h-auto w-full min-w-[880px]"
+              class="block h-auto w-full min-w-220"
               preserveAspectRatio="xMidYMid meet"
             >
               <!-- lanes -->
-              <text
-                x="16"
-                y="46"
-                class="fill-muted-foreground text-[11px] font-bold tracking-widest"
-              >
+              <text x="16" y="46" class="fill-muted-foreground text-xs font-bold tracking-widest">
                 PROCESO PRINCIPAL
               </text>
-              <text x="16" y="300" class="fill-success text-[11px] font-bold tracking-widest">
+              <text x="16" y="300" class="fill-success text-xs font-bold tracking-widest">
                 FRONTERA · línea paralela
               </text>
 
@@ -613,7 +595,7 @@ onMounted(cargar)
                 <path d="M646,250 C800,250 915,215 976,178" class="stroke-success/50" />
               </g>
 
-              <text x="150" y="185" class="fill-success text-[10px] italic">
+              <text x="150" y="185" class="fill-success text-xs italic">
                 se puede iniciar desde CREG 174 / 9.1
               </text>
 
@@ -630,7 +612,7 @@ onMounted(cargar)
                   :cy="n.y"
                   r="34"
                   fill="none"
-                  :style="{ stroke: 'var(--warning)' }"
+                  class="stroke-warning"
                   stroke-width="4"
                 />
                 <circle
@@ -639,18 +621,14 @@ onMounted(cargar)
                   :cy="n.y"
                   r="33"
                   fill="none"
-                  :style="{ stroke: 'var(--primary)' }"
+                  class="animate-pulse stroke-primary"
                   stroke-width="3"
-                  class="animate-pulse"
                 />
                 <circle
                   :cx="n.x"
                   :cy="n.y"
                   r="26"
-                  :style="{
-                    fill: STATUS_STYLE[n.status].fill,
-                    stroke: STATUS_STYLE[n.status].stroke,
-                  }"
+                  :class="STATUS_CLASS[n.status].circle"
                   stroke-width="3"
                 />
                 <text
@@ -658,7 +636,7 @@ onMounted(cargar)
                   :y="n.y + 6"
                   text-anchor="middle"
                   class="text-lg font-extrabold"
-                  :style="{ fill: STATUS_STYLE[n.status].text }"
+                  :class="STATUS_CLASS[n.status].text"
                 >
                   {{ n.num }}
                 </text>
@@ -690,7 +668,7 @@ onMounted(cargar)
                   :x="n.x"
                   :y="n.y + (n.y > 150 ? 46 : -38)"
                   text-anchor="middle"
-                  class="fill-muted-foreground text-[11px] font-semibold"
+                  class="fill-muted-foreground text-xs font-semibold"
                 >
                   {{ n.label }}
                 </text>
@@ -704,7 +682,7 @@ onMounted(cargar)
                   :x="GOAL.x"
                   :y="GOAL.y + 46"
                   text-anchor="middle"
-                  class="fill-foreground text-[11px] font-bold"
+                  class="fill-foreground text-xs font-bold"
                 >
                   Energización
                 </text>
@@ -1074,7 +1052,7 @@ onMounted(cargar)
                 >
                   <TriangleAlertIcon class="mt-0.5 size-4 shrink-0 text-warning" />
                   <div>
-                    <p class="text-[11px] font-bold text-warning uppercase">{{ a.tipo }}</p>
+                    <p class="text-xs font-bold text-warning uppercase">{{ a.tipo }}</p>
                     <p class="text-sm text-foreground">{{ a.mensaje }}</p>
                   </div>
                 </div>
