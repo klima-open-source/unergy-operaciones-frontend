@@ -702,27 +702,27 @@
                 </Button>
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
-                <InfoIcon :icon="BuildingIcon" color="#06b6d4" label="Proveedor"
+                <InfoIcon :icon="BuildingIcon" color="var(--chart-2)" label="Proveedor"
                   :value="contratos.internet.prestador_nombre" />
-                <InfoIcon :icon="DatabaseIcon" color="#06b6d4" label="Plan de datos"
+                <InfoIcon :icon="DatabaseIcon" color="var(--chart-2)" label="Plan de datos"
                   :value="contratos.internet.plan_datos_gb" />
-                <InfoIcon :icon="GaugeIcon" color="#06b6d4" label="Velocidad"
+                <InfoIcon :icon="GaugeIcon" color="var(--chart-2)" label="Velocidad"
                   :value="contratos.internet.velocidad_mbps != null ? `${contratos.internet.velocidad_mbps} Mbps` : null" />
-                <InfoIcon :icon="WifiIcon" color="#06b6d4" label="Tipo de conexión"
+                <InfoIcon :icon="WifiIcon" color="var(--chart-2)" label="Tipo de conexión"
                   :value="contratos.internet.tipo_conexion" />
-                <InfoIcon :icon="NetworkIcon" color="#06b6d4" label="Línea de servicio"
+                <InfoIcon :icon="NetworkIcon" color="var(--chart-2)" label="Línea de servicio"
                   :value="contratos.internet.linea_servicio" />
-                <InfoIcon :icon="MonitorIcon" color="#06b6d4" label="ID del router"
+                <InfoIcon :icon="MonitorIcon" color="var(--chart-2)" label="ID del router"
                   :value="contratos.internet.id_router" />
-                <InfoIcon :icon="BoxIcon" color="#06b6d4" label="Número de kit"
+                <InfoIcon :icon="BoxIcon" color="var(--chart-2)" label="Número de kit"
                   :value="contratos.internet.numero_kit" />
-                <InfoIcon :icon="ZapIcon" color="#06b6d4" label="Latencia"
+                <InfoIcon :icon="ZapIcon" color="var(--chart-2)" label="Latencia"
                   :value="contratos.internet.latencia_ms != null ? `${contratos.internet.latencia_ms} ms` : null" />
-                <InfoIcon :icon="ShieldIcon" color="#06b6d4" label="Seguridad del wifi"
+                <InfoIcon :icon="ShieldIcon" color="var(--chart-2)" label="Seguridad del wifi"
                   :value="contratos.internet.wifi_seguridad" />
-                <InfoSecret color="#06b6d4" label="Contraseña wifi"
+                <InfoSecret color="var(--chart-2)" label="Contraseña wifi"
                   :value="contratos.internet.wifi_password" />
-                <InfoLink color="#06b6d4" label="Factura / Contrato en Drive"
+                <InfoLink color="var(--chart-2)" label="Factura / Contrato en Drive"
                   :href="contratos.internet.enlace_drive" />
               </div>
 
@@ -1144,7 +1144,7 @@ async function initInternetMap(c) {
     attributionControl: false,
     interactive: false,
   })
-  new maplibregl.Marker({ color: '#06b6d4' }).setLngLat([c.ubicacion_lng, c.ubicacion_lat]).addTo(internetMap)
+  new maplibregl.Marker({ color: 'var(--chart-2)' }).setLngLat([c.ubicacion_lng, c.ubicacion_lat]).addTo(internetMap)
 
   // El contenedor puede tener tamaño 0 si la pestaña Internet no está visible
   // todavía al crear el mapa (p.ej. TabView oculto con display:none); sin este
@@ -1190,7 +1190,7 @@ async function initDialogEditMap() {
 
   dialogEditMarker = null
   if (dialogEdit.form.ubicacion_lat != null && dialogEdit.form.ubicacion_lng != null) {
-    dialogEditMarker = new maplibregl.Marker({ color: '#06b6d4' }).setLngLat(centro).addTo(dialogEditMap)
+    dialogEditMarker = new maplibregl.Marker({ color: 'var(--chart-2)' }).setLngLat(centro).addTo(dialogEditMap)
   }
 
   dialogEditMap.on('click', (e) => {
@@ -1198,7 +1198,7 @@ async function initDialogEditMap() {
     dialogEdit.form.ubicacion_lat = Number(lat.toFixed(6))
     dialogEdit.form.ubicacion_lng = Number(lng.toFixed(6))
     if (dialogEditMarker) dialogEditMarker.setLngLat([lng, lat])
-    else dialogEditMarker = new maplibregl.Marker({ color: '#06b6d4' }).setLngLat([lng, lat]).addTo(dialogEditMap)
+    else dialogEditMarker = new maplibregl.Marker({ color: 'var(--chart-2)' }).setLngLat([lng, lat]).addTo(dialogEditMap)
   })
 
   dialogEditMapRO = new ResizeObserver(() => dialogEditMap?.resize())
@@ -1690,7 +1690,7 @@ const InfoIcon = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': 'color-mix(in oklab, ' + color + ' 10%, transparent)' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <component :style="{ '--c': color }" :is="icon" class="size-3 text-(--c)" />
       </div>
@@ -1711,7 +1711,7 @@ const InfoBadge = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': 'color-mix(in oklab, ' + color + ' 10%, transparent)' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <CreditCardIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1734,7 +1734,7 @@ const InfoSecret = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': 'color-mix(in oklab, ' + color + ' 10%, transparent)' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <LockIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1763,7 +1763,7 @@ const InfoLink = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': 'color-mix(in oklab, ' + color + ' 10%, transparent)' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <LinkIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1795,7 +1795,7 @@ const Acordeon = {
     titulo: String,
     /** Componente de `@lucide/vue`. */
     icono: { type: [Object, Function], default: null },
-    color: { type: String, default: '#f59e0b' },
+    color: { type: String, default: 'var(--warning)' },
     count: { type: Number, default: 0 },
   },
   components: { ChevronDownIcon },
@@ -1809,12 +1809,12 @@ const Acordeon = {
         class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors text-left"
         @click="abierto = !abierto">
         <div class="flex items-center gap-2.5">
-          <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-(--c)"
+          <div :style="{ '--c': 'color-mix(in oklab, ' + color + ' 10%, transparent)' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-(--c)"
            >
             <component :style="{ '--c': color }" :is="icono" class="size-3 text-(--c)" />
           </div>
           <span class="text-sm font-semibold text-foreground">{{ titulo }}</span>
-          <span :style="{ '--c': color, '--bg': color + '15' }" class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none bg-(--bg) text-(--c)"
+          <span :style="{ '--c': color, '--bg': 'color-mix(in oklab, ' + color + ' 8%, transparent)' }" class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none bg-(--bg) text-(--c)"
            >{{ count }}</span>
         </div>
         <ChevronDownIcon :class="abierto ? 'rotate-180' : ''" class="text-muted-foreground transition-transform duration-200 size-3" />
@@ -1869,7 +1869,7 @@ const FacturasCobradas = {
     }
   },
   template: `
-    <Acordeon titulo="Facturas cobradas" :icono="FileInputIcon" color="#f59e0b" :count="datos.length">
+    <Acordeon titulo="Facturas cobradas" :icono="FileInputIcon" color="var(--warning)" :count="datos.length">
       <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-muted/60 border-b border-border">
         <div class="flex items-center gap-1.5">
           <FilterIcon class="text-muted-foreground size-3" />
@@ -1963,7 +1963,7 @@ const FacturasEmitidas = {
     }
   },
   template: `
-    <Acordeon titulo="Facturas emitidas" :icono="FileOutputIcon" color="#f59e0b" :count="datos.length">
+    <Acordeon titulo="Facturas emitidas" :icono="FileOutputIcon" color="var(--warning)" :count="datos.length">
       <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-muted/60 border-b border-border">
         <div class="flex items-center gap-1.5">
           <FilterIcon class="text-muted-foreground size-3" />

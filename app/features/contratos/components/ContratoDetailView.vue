@@ -256,9 +256,7 @@
                 <button v-else type="button" class="inline-flex items-center gap-1 cursor-pointer text-sm font-semibold text-warning hover:underline" @click="iniciarEdicionEnlace">
                   <CirclePlusIcon class="size-3" />Agregar enlace
                 </button>
-                <p v-if="enlaceContrato" class="text-xs truncate mt-0.5 text-warning">
-                  {{ enlaceContrato }}
-                </p>
+                <TruncatedText v-if="enlaceContrato" :text="enlaceContrato" class="text-xs mt-0.5 text-warning" />
               </div>
             </div>
             <!-- Modo edición -->
@@ -747,7 +745,7 @@
           <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="group flex items-center gap-2.5 px-3 py-3 rounded-lg border border-border bg-card transition-colors duration-150 hover:border-unergy-purple/30 hover:bg-muted/30">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10"><ZapIcon class="size-3 text-unergy-purple" /></span>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-unergy-deep truncate">{{ p.nombre_comercial }}</p>
+              <TruncatedText :text="p.nombre_comercial" class="text-sm font-semibold text-unergy-deep" />
               <p class="font-mono text-xs text-muted-foreground">ID {{ p.id }}</p>
             </div>
             <ChevronRightIcon class="text-muted-foreground/50 shrink-0 group-hover:text-unergy-purple size-2.5" />

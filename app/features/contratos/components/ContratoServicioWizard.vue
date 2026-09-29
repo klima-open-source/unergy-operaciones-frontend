@@ -24,7 +24,7 @@
             </span>
           </div>
           <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
-            :style="{ '--c': tipoColor + '60' }"
+            :style="{ '--c': tipoColorSuave }"
             :class="step > i ? 'bg-(--c)' : 'bg-muted'" />
         </template>
       </div>
@@ -495,13 +495,14 @@ const guardando = ref(false)
 const todosProyectos = ref([])
 
 const TIPO_CONFIG = {
-  representacion: { label: 'Representación', color: '#3b82f6' },
-  mantenimiento:  { label: 'Mantenimiento',   color: '#f59e0b' },
-  arriendo:       { label: 'Arriendo',        color: '#8b5cf6' },
-  internet:       { label: 'Internet',        color: '#06b6d4' },
+  representacion: { label: 'Representación', color: 'var(--chart-3)' },
+  mantenimiento:  { label: 'Mantenimiento',   color: 'var(--warning)' },
+  arriendo:       { label: 'Arriendo',        color: 'var(--color-unergy-purple)' },
+  internet:       { label: 'Internet',        color: 'var(--chart-2)' },
 }
 
-const tipoColor = computed(() => TIPO_CONFIG[props.tipo]?.color ?? '#6b7280')
+const tipoColor = computed(() => TIPO_CONFIG[props.tipo]?.color ?? 'var(--muted-foreground)')
+const tipoColorSuave = computed(() => `color-mix(in oklab, ${tipoColor.value} 38%, transparent)`)
 const tipoLabel = computed(() => TIPO_CONFIG[props.tipo]?.label ?? props.tipo)
 
 const STEPS = computed(() => {
@@ -630,7 +631,7 @@ async function initUbicacionMap() {
   })
 
   if (form.ubicacion_lat != null && form.ubicacion_lng != null) {
-    ubicacionMarker = new maplibregl.Marker({ color: '#06b6d4' })
+    ubicacionMarker = new maplibregl.Marker({ color: 'var(--chart-2)' })
       .setLngLat([form.ubicacion_lng, form.ubicacion_lat])
       .addTo(ubicacionMap)
   }
@@ -643,7 +644,7 @@ async function initUbicacionMap() {
     if (ubicacionMarker) {
       ubicacionMarker.setLngLat([lng, lat])
     } else {
-      ubicacionMarker = new maplibregl.Marker({ color: '#06b6d4' }).setLngLat([lng, lat]).addTo(ubicacionMap)
+      ubicacionMarker = new maplibregl.Marker({ color: 'var(--chart-2)' }).setLngLat([lng, lat]).addTo(ubicacionMap)
     }
   })
 
