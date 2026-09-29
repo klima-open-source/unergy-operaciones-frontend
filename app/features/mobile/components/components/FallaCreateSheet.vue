@@ -160,7 +160,7 @@
                   <input
                     v-model.number="nuevoInv.potencia_nominal_kw"
                     type="number"
-                    :class="[CONTROL, CONTROL_OK, 'w-22']"
+                    :class="[CONTROL, CONTROL_OK]"
                     placeholder="kW"
                   />
                   <button

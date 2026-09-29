@@ -41,10 +41,10 @@
 
     <!-- Detalle por fase: las columnas del panel de Solenium -->
     <div v-if="open" class="mt-2 border-t border-border pt-2">
-      <table class="w-full table-fixed border-collapse">
+      <table class="w-full border-collapse">
         <thead>
           <tr>
-            <th class="w-1/5"></th>
+            <th></th>
             <th :class="thColClass">A</th>
             <th :class="thColClass">B</th>
             <th :class="thColClass">C</th>
@@ -116,7 +116,7 @@ const props = defineProps<{
 const open = ref(true)
 
 const thColClass = 'pb-1 text-right text-xs font-bold text-muted-foreground'
-const thRowClass = 'w-1/5 text-left text-xs font-bold text-muted-foreground'
+const thRowClass = 'text-left text-xs font-bold text-muted-foreground'
 const tdClass = 'py-0.5 text-right text-xs font-semibold text-unergy-deep tabular-nums'
 
 const badgeText = computed(() =>
