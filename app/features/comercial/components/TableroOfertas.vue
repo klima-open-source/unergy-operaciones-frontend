@@ -169,9 +169,10 @@ function soltar(col: Columna) {
             @click="emit('abrir', of)"
           >
             <div class="flex items-start justify-between gap-1.5">
-              <span class="truncate font-mono text-xs text-muted-foreground">
-                {{ of.codigo_seguimiento || of.numero_oferta || '—' }}
-              </span>
+              <TruncatedText
+                :text="of.codigo_seguimiento || of.numero_oferta || '—'"
+                class="min-w-0 font-mono text-xs text-muted-foreground"
+              />
               <GTooltip v-if="of.alerta">
                 <GTooltipTrigger as-child>
                   <GBadge color="destructive" class="flex-shrink-0 scale-90"
@@ -187,7 +188,7 @@ function soltar(col: Columna) {
             <h3 class="mt-1 text-sm leading-snug font-medium text-foreground">
               {{ of.planta_nombre || of.ficha?.proyecto_nombre || 'Sin planta' }}
             </h3>
-            <p class="truncate text-xs text-muted-foreground">{{ of.cliente_razon_social }}</p>
+            <TruncatedText :text="of.cliente_razon_social" class="text-xs text-muted-foreground" />
 
             <div class="mt-2 flex flex-wrap items-center gap-1.5">
               <GTooltip>

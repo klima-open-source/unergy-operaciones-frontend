@@ -457,9 +457,11 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             >⚠ {{ oferta.dias_sin_respuesta }}d</GBadge
           >
         </div>
-        <SheetTitle class="truncate">{{
-          oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta'
-        }}</SheetTitle>
+        <SheetTitle>
+          <TruncatedText
+            :text="oferta.planta_nombre || oferta.ficha?.proyecto_nombre || 'Sin planta'"
+          />
+        </SheetTitle>
         <SheetDescription>
           <NuxtLink
             :to="`/comercial/oportunidades/${oferta.oportunidad_id}`"
