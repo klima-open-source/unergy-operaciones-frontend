@@ -126,8 +126,8 @@
         v-model="proyectos"
         item-key="proyecto_id"
         handle=".sl-drag-handle"
-        class="grid gap-4"
-        :style="{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }"
+        class="grid grid-cols-(--cols) gap-4"
+        :style="{ '--cols': cols }"
         :disabled="!!filtro.trim()"
         @end="saveOrder"
       >
@@ -145,12 +145,12 @@
                     title="Arrastrar para reorganizar"
                   />
                   <span
-                    class="size-2 shrink-0 rounded-full"
-                    :style="{ background: statusColor(proy.status) }"
+                    class="size-2 shrink-0 rounded-full bg-(--status-color)"
+                    :style="{ '--status-color': statusColor(proy.status) }"
                   />
                   <span class="min-w-0 flex-1 truncate">{{ proy.nombre }}</span>
                   <span
-                    class="shrink-0 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    class="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
                   >
                     {{ statusMeta(proy.status).label }}
                   </span>
@@ -213,7 +213,7 @@
                         </span>
                         <span
                           v-if="hastaInversores(detailMap[proy.proyecto_id])"
-                          class="text-[10px] text-muted-foreground"
+                          class="text-xs text-muted-foreground"
                         >
                           hasta {{ hastaInversores(detailMap[proy.proyecto_id]) }}
                           <template v-if="haceCuanto(hastaInversores(detailMap[proy.proyecto_id]))">
@@ -270,7 +270,7 @@
                           </span>
                           <span
                             v-if="panelesMedidor[proy.proyecto_id]!.energiaHasta"
-                            class="text-[10px] text-muted-foreground"
+                            class="text-xs text-muted-foreground"
                           >
                             hasta {{ panelesMedidor[proy.proyecto_id]!.energiaHasta }}
                             <template
@@ -362,7 +362,7 @@
                     </div>
                     <div class="h-1.5 overflow-hidden rounded-full bg-muted">
                       <div
-                        class="h-full rounded-full transition-all duration-500"
+                        class="h-full w-(--bar-w) rounded-full transition-all duration-500"
                         :class="
                           getGenHoy(proy.proyecto_id).pct! >= 100
                             ? 'bg-success'
@@ -371,7 +371,7 @@
                               : 'bg-muted'
                         "
                         :style="{
-                          width:
+                          '--bar-w':
                             getGenHoy(proy.proyecto_id).p90 > 0
                               ? Math.min(
                                   100,
