@@ -1,28 +1,28 @@
 <template>
-  <Dialog :visible="visible" @update:visible="$emit('update:visible', $event)" modal :style="{ width: '820px' }" :breakpoints="{ '900px': '95vw' }"
+  <Dialog :visible="visible" @update:visible="$emit('update:visible', $event)" modal class="w-full max-w-3xl"
     :header="editandoId ? 'Editar contrato PPA' : 'Nuevo contrato PPA'" :closable="true" @hide="$emit('cerrar')">
 
     <!-- Step indicator -->
-    <div class="px-6 pt-5 pb-4 border-b border-gray-100">
+    <div class="px-6 pt-5 pb-4 border-b border-muted">
       <div class="flex items-start">
         <template v-for="(s, i) in STEPS" :key="i">
-          <div class="flex flex-col items-center gap-1.5" style="flex:1">
+          <div class="flex flex-col items-center gap-1.5 flex-1">
             <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
               :class="{
-                'bg-amber-500 text-white shadow-sm shadow-amber-200': step === i,
-                'bg-amber-400 text-white': step > i,
-                'bg-gray-100 text-gray-400': step < i,
+                'bg-warning text-white shadow-sm ': step === i,
+                'bg-warning/80 text-white': step > i,
+                'bg-muted text-muted-foreground': step < i,
               }">
-              <CheckIcon class="text-xs size-[1em]" v-if="step > i" />
+              <CheckIcon class="size-3" v-if="step > i" />
               <span v-else>{{ i + 1 }}</span>
             </div>
-            <span class="text-[10px] text-center leading-tight px-0.5"
-              :class="step === i ? 'text-amber-600 font-semibold' : step > i ? 'text-gray-500' : 'text-gray-300'">
+            <span class="text-xs text-center leading-tight px-0.5"
+              :class="step === i ? 'text-warning font-semibold' : step > i ? 'text-muted-foreground' : 'text-muted-foreground/60'">
               {{ s.label }}
             </span>
           </div>
-          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all" style="flex:1"
-            :class="step > i ? 'bg-amber-400' : 'bg-gray-100'" />
+          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
+            :class="step > i ? 'bg-warning/80' : 'bg-muted'" />
         </template>
       </div>
     </div>
@@ -35,7 +35,7 @@
         <p class="step-title">Proyectos e identificación</p>
         <div class="space-y-4">
           <div class="flex flex-col gap-1">
-            <label class="field-label">Proyectos asociados <span class="text-gray-400">(opcional)</span></label>
+            <label class="field-label">Proyectos asociados <span class="text-muted-foreground">(opcional)</span></label>
             <MultiSelect
               v-model="proyectosSeleccionados"
               :options="todosProyectos"
@@ -64,7 +64,7 @@
             <Select v-model="form.responsable_id" :options="responsablesOpts"
               optionLabel="label" optionValue="value" showClear
               placeholder="Empresa responsable del PPA" class="w-full" />
-            <span class="text-xs text-gray-400">
+            <span class="text-xs text-muted-foreground">
               Empresa que gestiona este PPA. Los responsables marcados como no relevantes
               no aparecen en la Matriz anual de Cumplimiento.
             </span>
@@ -79,7 +79,7 @@
           <label class="field-label">Tipo de contrato</label>
           <SelectButton v-model="form.tipo_contrato" :options="TIPOS_CONTRATO"
             optionLabel="label" optionValue="value" :allowEmpty="false" />
-          <span class="text-xs text-gray-400">
+          <span class="text-xs text-muted-foreground">
             <strong>Venta:</strong> Unergy vende energía a la contraparte ·
             <strong>Compra:</strong> Unergy compra energía (ej. a un generador).
           </span>
@@ -92,9 +92,9 @@
           <label class="field-label">Comunidad energética</label>
           <div class="flex items-center gap-2">
             <ToggleSwitch v-model="form.es_comunidad_energetica" inputId="ppa-comunidad" />
-            <span class="text-sm text-gray-500">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
+            <span class="text-sm text-muted-foreground">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
           </div>
-          <span class="text-xs text-gray-400">
+          <span class="text-xs text-muted-foreground">
             A las plantas de este contrato dejan de prestárseles representación y
             CGM desde la fecha de entrada.
           </span>
@@ -108,16 +108,16 @@
             <label class="field-label">Fecha de entrada a la comunidad</label>
             <DatePicker v-model="form.fecha_entrada_comunidad" dateFormat="yy-mm-dd"
               showIcon class="w-full" />
-            <span class="text-xs text-gray-400">
+            <span class="text-xs text-muted-foreground">
               Si se deja vacía, la exclusión aplica desde siempre.
             </span>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-1 mb-1 px-1">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Comprador</span>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Vendedor</span>
+          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comprador</span>
+          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vendedor</span>
         </div>
-        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-gray-50">
+        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
           <!-- Comprador -->
           <div class="space-y-3">
             <SelectorCliente
@@ -204,8 +204,8 @@
 
       <!-- ── PASO 3: Tarifas ────────────────────────────────────────────── -->
       <template v-if="step === 3">
-        <p class="step-title">Tabla de tarifas <span class="normal-case font-normal text-gray-400">(opcional)</span></p>
-        <p class="text-xs text-gray-400 mb-3">
+        <p class="step-title">Tabla de tarifas <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-xs text-muted-foreground mb-3">
           Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas aquí.
           Acepta tabulaciones o comas como separador. El mes puede ser nombre en español o número.
         </p>
@@ -218,33 +218,33 @@
         />
         <div class="flex items-center gap-2 mt-2">
           <Button label="Procesar" size="small" severity="secondary" outlined @click="parseTarifas">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+            <template #icon><RefreshCwIcon class="size-4" /></template>
           </Button>
           <Button v-if="tarifasRows.length" label="Limpiar" size="small" severity="danger" text @click="tarifasRows = []; tarifasPaste = ''">
-            <template #icon><XIcon class="size-[1em]" /></template>
+            <template #icon><XIcon class="size-4" /></template>
           </Button>
-          <span v-if="tarifasRows.length" class="text-xs text-green-600 font-medium">
+          <span v-if="tarifasRows.length" class="text-xs text-success font-medium">
             ✓ {{ tarifasRows.length }} filas listas
           </span>
-          <span v-if="tarifasError" class="text-xs text-red-400">{{ tarifasError }}</span>
+          <span v-if="tarifasError" class="text-xs text-destructive">{{ tarifasError }}</span>
         </div>
-        <div v-if="tarifasRows.length" class="mt-3 border border-gray-100 rounded-lg overflow-hidden">
+        <div v-if="tarifasRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50">
+            <thead class="bg-muted">
               <tr>
-                <th class="px-3 py-1.5 text-left text-gray-500 font-medium">Año</th>
-                <th class="px-3 py-1.5 text-left text-gray-500 font-medium">Mes</th>
-                <th class="px-3 py-1.5 text-right text-gray-500 font-medium">Tarifa ($/kWh)</th>
+                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
+                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
+                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Tarifa ($/kWh)</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, i) in tarifasPreview" :key="i" class="border-t border-gray-50">
-                <td class="px-3 py-1 text-gray-700">{{ r.año }}</td>
-                <td class="px-3 py-1 text-gray-700">{{ r.mes }}</td>
-                <td class="px-3 py-1 text-right text-gray-700">{{ r.tarifa }}</td>
+              <tr v-for="(r, i) in tarifasPreview" :key="i" class="border-t border-muted">
+                <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
+                <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
+                <td class="px-3 py-1 text-right text-foreground">{{ r.tarifa }}</td>
               </tr>
-              <tr v-if="tarifasRows.length > PREVIEW_ROWS" class="border-t border-gray-50">
-                <td colspan="3" class="px-3 py-1 text-gray-300 italic">… y {{ tarifasRows.length - PREVIEW_ROWS }} filas más</td>
+              <tr v-if="tarifasRows.length > PREVIEW_ROWS" class="border-t border-muted">
+                <td colspan="3" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ tarifasRows.length - PREVIEW_ROWS }} filas más</td>
               </tr>
             </tbody>
           </table>
@@ -253,8 +253,8 @@
 
       <!-- ── PASO 4: Compromisos de energía ────────────────────────────── -->
       <template v-if="step === 4">
-        <p class="step-title">Compromisos de energía <span class="normal-case font-normal text-gray-400">(opcional)</span></p>
-        <p class="text-xs text-gray-400 mb-3">
+        <p class="step-title">Compromisos de energía <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-xs text-muted-foreground mb-3">
           Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas aquí
           (Mín/Máx en MWh/mes; <strong>Plantas contrato</strong> = nº de plantas que el contrato exige ese mes).
           Las columnas <strong>Máx</strong> y <strong>Plantas contrato</strong> son opcionales. Usa
@@ -269,40 +269,40 @@
         />
         <div class="flex items-center gap-2 mt-2 flex-wrap">
           <Button label="Procesar" size="small" severity="secondary" outlined @click="parseEnergia">
-            <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+            <template #icon><RefreshCwIcon class="size-4" /></template>
           </Button>
           <Button label="Descargar plantilla" size="small" severity="secondary" text @click="descargarPlantillaEnergia">
-            <template #icon><DownloadIcon class="size-[1em]" /></template>
+            <template #icon><DownloadIcon class="size-4" /></template>
           </Button>
           <Button v-if="energiaRows.length" label="Limpiar" size="small" severity="danger" text @click="energiaRows = []; energiaPaste = ''">
-            <template #icon><XIcon class="size-[1em]" /></template>
+            <template #icon><XIcon class="size-4" /></template>
           </Button>
-          <span v-if="energiaRows.length" class="text-xs text-green-600 font-medium">
+          <span v-if="energiaRows.length" class="text-xs text-success font-medium">
             ✓ {{ energiaRows.length }} filas listas
           </span>
-          <span v-if="energiaError" class="text-xs text-red-400">{{ energiaError }}</span>
+          <span v-if="energiaError" class="text-xs text-destructive">{{ energiaError }}</span>
         </div>
-        <div v-if="energiaRows.length" class="mt-3 border border-gray-100 rounded-lg overflow-hidden">
+        <div v-if="energiaRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
           <table class="w-full text-xs">
-            <thead class="bg-gray-50">
+            <thead class="bg-muted">
               <tr>
-                <th class="px-3 py-1.5 text-left text-gray-500 font-medium">Año</th>
-                <th class="px-3 py-1.5 text-left text-gray-500 font-medium">Mes</th>
-                <th class="px-3 py-1.5 text-right text-gray-500 font-medium">Mín (MWh)</th>
-                <th class="px-3 py-1.5 text-right text-gray-500 font-medium">Máx (MWh)</th>
-                <th class="px-3 py-1.5 text-right text-gray-500 font-medium">Plantas contrato</th>
+                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
+                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
+                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Mín (MWh)</th>
+                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Máx (MWh)</th>
+                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Plantas contrato</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(r, i) in energiaPreview" :key="i" class="border-t border-gray-50">
-                <td class="px-3 py-1 text-gray-700">{{ r.año }}</td>
-                <td class="px-3 py-1 text-gray-700">{{ r.mes }}</td>
-                <td class="px-3 py-1 text-right text-gray-700">{{ r.energia_minima }}</td>
-                <td class="px-3 py-1 text-right text-gray-700">{{ r.energia_maxima }}</td>
-                <td class="px-3 py-1 text-right text-gray-700">{{ r.cantidad_proyectos ?? '—' }}</td>
+              <tr v-for="(r, i) in energiaPreview" :key="i" class="border-t border-muted">
+                <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
+                <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
+                <td class="px-3 py-1 text-right text-foreground">{{ r.energia_minima }}</td>
+                <td class="px-3 py-1 text-right text-foreground">{{ r.energia_maxima }}</td>
+                <td class="px-3 py-1 text-right text-foreground">{{ r.cantidad_proyectos ?? '—' }}</td>
               </tr>
-              <tr v-if="energiaRows.length > PREVIEW_ROWS" class="border-t border-gray-50">
-                <td colspan="5" class="px-3 py-1 text-gray-300 italic">… y {{ energiaRows.length - PREVIEW_ROWS }} filas más</td>
+              <tr v-if="energiaRows.length > PREVIEW_ROWS" class="border-t border-muted">
+                <td colspan="5" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ energiaRows.length - PREVIEW_ROWS }} filas más</td>
               </tr>
             </tbody>
           </table>
@@ -314,19 +314,19 @@
         <p class="step-title">Resumen</p>
 
         <!-- Resumen -->
-        <div class="rounded-lg border border-amber-100 bg-amber-50 p-4">
-          <p class="text-xs font-semibold text-amber-700 mb-3">Resumen</p>
+        <div class="rounded-lg border border-warning/20 bg-warning/10 p-4">
+          <p class="text-xs font-semibold text-warning mb-3">Resumen</p>
           <div class="mb-2">
-            <span class="text-xs text-gray-400">Proyectos:</span>
+            <span class="text-xs text-muted-foreground">Proyectos:</span>
             <div class="flex flex-wrap gap-1 mt-1">
               <span v-for="p in proyectosSeleccionados" :key="p.id"
-                class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                class="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
                 {{ p.nombre_comercial }}
               </span>
-              <span v-if="!proyectosSeleccionados.length" class="text-xs text-gray-300">—</span>
+              <span v-if="!proyectosSeleccionados.length" class="text-xs text-muted-foreground/60">—</span>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-gray-600 mt-3">
+          <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground mt-3">
             <ResumenFila label="Tipo" :value="form.tipo_contrato === 'compra' ? 'Compra' : 'Venta'" />
             <ResumenFila label="Número" :value="form.numero_codigo_contrato" />
             <ResumenFila label="Nombre interno" :value="form.nombre_interno" />
@@ -346,9 +346,9 @@
     </div>
 
     <!-- Footer -->
-    <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+    <div class="px-6 py-4 border-t border-muted flex justify-between items-center">
       <Button v-if="step > 0" label="Anterior" severity="secondary" outlined @click="step--">
-        <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+        <template #icon><ArrowLeftIcon class="size-4" /></template>
       </Button>
       <span v-else />
       <div class="flex gap-2">
@@ -357,11 +357,11 @@
           :disabled="step === 1 && partesPendientes.length > 0"
           v-tooltip="avisoPartes"
           @click="avanzar">
-          <template #icon><ArrowRightIcon class="size-[1em]" /></template>
+          <template #icon><ArrowRightIcon class="size-4" /></template>
         </Button>
         <Button v-else label="Guardar contrato" :loading="guardando"
           :disabled="partesPendientes.length > 0" v-tooltip="avisoPartes" @click="guardar">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
@@ -371,8 +371,8 @@
          reales. Mismo diálogo que en el wizard de servicios. -->
     <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
       header="Ya existe un contrato PPA para esto" modal class="w-full max-w-sm">
-      <p class="text-sm text-gray-600">{{ duplicadoContrato?.mensaje }}</p>
-      <p class="text-xs text-gray-400 mt-2">
+      <p class="text-sm text-muted-foreground">{{ duplicadoContrato?.mensaje }}</p>
+      <p class="text-xs text-muted-foreground mt-2">
         Si es una renovación o un contrato distinto, podés crearlo igual.
       </p>
       <template #footer>

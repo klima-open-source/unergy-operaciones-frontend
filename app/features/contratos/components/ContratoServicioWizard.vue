@@ -1,29 +1,31 @@
 <template>
   <Dialog :visible="visible" @update:visible="$emit('update:visible', $event)" modal
-    :style="{ width: '800px' }" :breakpoints="{ '860px': '95vw' }"
+    class="w-full max-w-3xl"
     :header="null" :closable="true" @hide="$emit('cerrar')">
 
     <!-- Step indicator -->
-    <div class="px-6 pt-5 pb-4 border-b border-gray-100">
-      <p class="text-sm font-bold mb-4" :style="`color:${tipoColor}`">
+    <div class="px-6 pt-5 pb-4 border-b border-muted">
+      <p class="text-sm font-bold mb-4 text-(--c)" :style="{ '--c': tipoColor }">
         Nuevo contrato · {{ tipoLabel }}
       </p>
       <div class="flex items-start">
         <template v-for="(s, i) in STEPS" :key="i">
-          <div class="flex flex-col items-center gap-1.5" style="flex:1">
+          <div class="flex flex-col items-center gap-1.5 flex-1">
             <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-              :style="step >= i ? `background:${tipoColor}; color:white` : 'background:#f3f4f6; color:#9ca3af'">
-              <CheckIcon class="text-xs size-[1em]" v-if="step > i" />
+              :style="{ '--c': tipoColor }"
+              :class="step >= i ? 'bg-(--c) text-white' : 'bg-muted text-muted-foreground'">
+              <CheckIcon class="size-3" v-if="step > i" />
               <span v-else>{{ i + 1 }}</span>
             </div>
-            <span class="text-[10px] text-center leading-tight px-0.5 font-medium"
-              :style="step === i ? `color:${tipoColor}` : ''"
-              :class="step < i ? 'text-gray-300' : step > i ? 'text-gray-500' : ''">
+            <span class="text-xs text-center leading-tight px-0.5 font-medium"
+              :style="{ '--c': tipoColor }"
+              :class="step === i ? 'text-(--c)' : step < i ? 'text-muted-foreground/60' : 'text-muted-foreground'">
               {{ s.label }}
             </span>
           </div>
-          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all" style="flex:1"
-            :style="step > i ? `background:${tipoColor}60` : 'background:#f3f4f6'" />
+          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
+            :style="{ '--c': tipoColor + '60' }"
+            :class="step > i ? 'bg-(--c)' : 'bg-muted'" />
         </template>
       </div>
     </div>
@@ -84,11 +86,11 @@
           </div>
 
           <!-- Ubicación del servicio -->
-          <div class="rounded-lg border border-gray-200 p-3">
+          <div class="rounded-lg border border-border p-3">
             <div class="flex items-center justify-between mb-2">
               <div>
-                <p class="text-xs font-semibold text-gray-500">Ubicación del servicio</p>
-                <p class="text-sm text-gray-700">Ubicación: {{ ubicacionLabel }}</p>
+                <p class="text-xs font-semibold text-muted-foreground">Ubicación del servicio</p>
+                <p class="text-sm text-foreground">Ubicación: {{ ubicacionLabel }}</p>
               </div>
               <Button type="button" :label="editandoUbicacion ? 'Listo' : 'Editar'" text size="small"
                 @click="editandoUbicacion = !editandoUbicacion" />
@@ -103,10 +105,10 @@
                 <InputNumber v-model="form.ubicacion_lng" :minFractionDigits="4" :maxFractionDigits="6" class="w-full" />
               </div>
             </div>
-            <p v-if="editandoUbicacion" class="text-xs text-gray-400 mb-2">
+            <p v-if="editandoUbicacion" class="text-xs text-muted-foreground mb-2">
               Haz clic en el mapa para ubicar el servicio.
             </p>
-            <div ref="ubicacionMapEl" class="rounded-md overflow-hidden" style="height:220px; background:#e5e3df"></div>
+            <div ref="ubicacionMapEl" class="rounded-md overflow-hidden h-55 bg-muted"></div>
           </div>
         </div>
       </template>
@@ -116,7 +118,7 @@
         <p class="step-title">Identificación del contrato</p>
         <div class="space-y-4">
           <div class="flex flex-col gap-1">
-            <label class="field-label">Proyecto asociado <span class="text-gray-400">(opcional)</span></label>
+            <label class="field-label">Proyecto asociado <span class="text-muted-foreground">(opcional)</span></label>
             <Select
               v-model="form.proyecto_id"
               :options="todosProyectos"
@@ -141,17 +143,17 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha firma <span class="text-gray-400">(opcional)</span></label>
+              <label class="field-label">Fecha firma <span class="text-muted-foreground">(opcional)</span></label>
               <DatePicker v-model="form.fecha_firma_contrato" dateFormat="yy-mm-dd" class="w-full" showClear />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Estado del pago <span class="text-gray-400">(opcional)</span></label>
+              <label class="field-label">Estado del pago <span class="text-muted-foreground">(opcional)</span></label>
               <Select v-model="form.estado_pago" :options="[{label:'Pendiente',value:'pendiente'},{label:'Revisado',value:'revisado'},{label:'Aprobado',value:'aprobado'}]"
                 optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Enlace contrato en Drive <span class="text-gray-400">(opcional)</span></label>
+            <label class="field-label">Enlace contrato en Drive <span class="text-muted-foreground">(opcional)</span></label>
             <InputText v-model="form.enlace_drive" placeholder="https://drive.google.com/…" class="w-full" />
           </div>
         </div>
@@ -161,10 +163,10 @@
       <template v-if="step === 1 && tipo !== 'internet'">
         <p class="step-title">Partes del contrato</p>
         <div class="grid grid-cols-2 gap-1 mb-1 px-1">
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Contratante</span>
-          <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Prestador</span>
+          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contratante</span>
+          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prestador</span>
         </div>
-        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-gray-50">
+        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
           <!-- Contratante -->
           <div class="space-y-3">
             <SelectorCliente
@@ -201,9 +203,9 @@
              puede saber qué tarifa cobrarle a cada quien. -->
         <template v-if="tipo === 'representacion'">
           <div class="grid grid-cols-1 gap-1 mb-1 mt-4 px-1">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Inversionista</span>
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Inversionista</span>
           </div>
-          <div class="p-4 rounded-lg bg-gray-50">
+          <div class="p-4 rounded-lg bg-muted">
             <SelectorCliente
               v-model:id="form.inversionista_id"
               v-model:nombre="form.inversionista_nombre"
@@ -271,10 +273,10 @@
           </div>
 
           <!-- Detalles operacionales y contractuales -->
-          <div class="border-t border-gray-100 pt-3">
-            <p class="text-xs font-semibold uppercase tracking-wide mb-3" :style="`color:${tipoColor}`">
+          <div class="border-t border-muted pt-3">
+            <p class="text-xs font-semibold uppercase tracking-wide mb-3 text-(--c)" :style="{ '--c': tipoColor }">
               Detalles operacionales y contractuales
-              <span class="normal-case font-normal text-gray-400">(opcional)</span>
+              <span class="normal-case font-normal text-muted-foreground">(opcional)</span>
             </p>
             <div class="space-y-4">
               <div class="flex flex-col gap-1">
@@ -305,36 +307,35 @@
       <!-- PASO 3: Arrendadores (solo ARRIENDO) -->
       <template v-if="tipo === 'arriendo' && step === STEPS.length - 1">
         <p class="step-title">Arrendadores</p>
-        <p class="text-xs text-gray-400 mb-3">
+        <p class="text-xs text-muted-foreground mb-3">
           El contrato ya se creó. Agrega al menos un arrendador (persona/entidad que recibe el pago) antes de finalizar.
         </p>
-        <div class="rounded-xl border" style="border-color:#ddd6fe">
-          <div class="flex items-center justify-between px-4 py-2.5" style="background:#f5f3ff">
-            <span class="text-xs font-semibold flex items-center gap-1.5" style="color:#5b21b6">
-              <UsersIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Arrendadores
+        <div class="rounded-xl border border-primary/20">
+          <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+            <span class="text-xs font-semibold flex items-center gap-1.5 text-primary">
+              <UsersIcon class="size-3 text-primary" />Arrendadores
             </span>
-            <Button label="Agregar arrendador" size="small" text style="color:#8b5cf6" @click="openArrendadorDialog('crear')">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+            <Button label="Agregar arrendador" size="small" text class="text-primary" @click="openArrendadorDialog('crear')">
+              <template #icon><PlusIcon class="size-4" /></template>
             </Button>
           </div>
-          <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-gray-400">
+          <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
             Sin arrendadores registrados.
           </div>
-          <div v-else class="divide-y divide-gray-100">
+          <div v-else class="divide-y divide-muted">
             <div v-for="a in arrendadores" :key="a.id"
               class="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
               <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-semibold" style="color:#1c1917">{{ a.nombre }}</span>
-                <span class="text-sm font-mono tabular-nums" style="color:#7c3aed">{{ formatCOP(a.valor_base) }}</span>
-                <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                  style="background:#ede9fe;color:#7c3aed">Responsable IVA</span>
+                <span class="text-sm font-semibold text-foreground">{{ a.nombre }}</span>
+                <span class="text-sm font-mono tabular-nums text-primary">{{ formatCOP(a.valor_base) }}</span>
+                <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary">Responsable IVA</span>
               </div>
               <div class="flex items-center gap-1 flex-shrink-0">
                 <Button size="small" text severity="secondary" @click="openArrendadorDialog('editar', a)">
-                  <template #icon><PencilIcon class="size-[1em]" /></template>
+                  <template #icon><PencilIcon class="size-4" /></template>
                 </Button>
                 <Button size="small" text severity="danger" @click="eliminarArrendadorWizard(a)">
-                  <template #icon><Trash2Icon class="size-[1em]" /></template>
+                  <template #icon><Trash2Icon class="size-4" /></template>
                 </Button>
               </div>
             </div>
@@ -344,7 +345,7 @@
         <!-- Dialog Arrendador (crear/editar) -->
         <Dialog v-model:visible="arrendadorDialog.visible" modal
           :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
-          style="width: 26rem">
+          class="w-full max-w-md">
           <div class="flex flex-col gap-3 pt-2">
             <!-- El arrendador FACTURA, así que necesita NIT y razón social: por
                  eso se vincula a un cliente en vez de escribirse a mano. -->
@@ -355,26 +356,26 @@
               requerido
             />
             <div>
-              <label class="text-xs font-medium text-gray-600">Valor base</label>
+              <label class="text-xs font-medium text-muted-foreground">Valor base</label>
               <InputNumber v-model="arrendadorDialog.form.valor_base" class="w-full" mode="currency"
                 currency="COP" locale="es-CO" :maxFractionDigits="0" />
             </div>
             <div>
-              <label class="text-xs font-medium text-gray-600">Responsable IVA</label>
+              <label class="text-xs font-medium text-muted-foreground">Responsable IVA</label>
               <Select v-model="arrendadorDialog.form.responsable_iva"
                 :options="[{label:'Sí',value:true},{label:'No',value:false}]"
                 optionLabel="label" optionValue="value" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Anticipo pagado desde</label>
+              <label class="text-xs font-medium text-muted-foreground">Anticipo pagado desde</label>
               <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Anticipo pagado hasta</label>
+              <label class="text-xs font-medium text-muted-foreground">Anticipo pagado hasta</label>
               <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Observaciones</label>
+              <label class="text-xs font-medium text-muted-foreground">Observaciones</label>
               <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" class="w-full" />
             </div>
           </div>
@@ -387,14 +388,14 @@
 
       <!-- PASO 3: CGM (solo REPRESENTACIÓN) -->
       <template v-if="step === 3 && tipo === 'representacion'">
-        <p class="step-title">CGM <span class="normal-case font-normal text-gray-400">(opcional)</span></p>
+        <p class="step-title">CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
         <div class="space-y-4">
           <!-- CGM -->
-          <div class="rounded-lg border border-gray-200 p-4 space-y-3">
+          <div class="rounded-lg border border-border p-4 space-y-3">
             <div class="flex items-center gap-3">
               <ToggleSwitch v-model="form.incluye_cgm" />
-              <span class="text-sm font-semibold text-gray-700">Incluye CGM</span>
-              <span class="text-xs text-gray-400">(Comercializador Generador Minorista)</span>
+              <span class="text-sm font-semibold text-foreground">Incluye CGM</span>
+              <span class="text-xs text-muted-foreground">(Comercializador Generador Minorista)</span>
             </div>
             <template v-if="form.incluye_cgm">
               <div class="pt-1 max-w-xs">
@@ -411,33 +412,33 @@
     </div>
 
     <!-- Footer -->
-    <div class="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+    <div class="px-6 py-4 border-t border-muted flex justify-between items-center">
       <Button v-if="step > 0 && !contratoIdCreado" label="Anterior" severity="secondary" outlined @click="step--">
-        <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+        <template #icon><ArrowLeftIcon class="size-4" /></template>
       </Button>
       <span v-else />
       <div class="flex gap-2">
         <Button label="Cancelar" severity="secondary" text @click="$emit('cerrar')" />
-        <Button v-if="tipo === 'arriendo' && step === STEPS.length - 2" label="Crear y continuar" class="flex-row-reverse"
+        <Button v-if="tipo === 'arriendo' && step === STEPS.length - 2" label="Crear y continuar" class="flex-row-reverse bg-(--c) border-(--c)"
           :loading="guardando"
-          :style="`background:${tipoColor}; border-color:${tipoColor}`"
+          :style="{ '--c': tipoColor }"
           @click="crearYContinuarArriendo">
-          <template #icon><ArrowRightIcon class="size-[1em]" /></template>
+          <template #icon><ArrowRightIcon class="size-4" /></template>
         </Button>
-        <Button v-else-if="tipo === 'arriendo' && step === STEPS.length - 1" label="Finalizar" :style="`background:${tipoColor}; border-color:${tipoColor}`" @click="finalizarArriendo">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+        <Button v-else-if="tipo === 'arriendo' && step === STEPS.length - 1" label="Finalizar" class="bg-(--c) border-(--c)" :style="{ '--c': tipoColor }" @click="finalizarArriendo">
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
-        <Button v-else-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse"
-          :style="`background:${tipoColor}; border-color:${tipoColor}`"
+        <Button v-else-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse bg-(--c) border-(--c)"
+          :style="{ '--c': tipoColor }"
           :disabled="step === 1 && partesPendientes.length > 0"
           v-tooltip="avisoPartes"
           @click="step++">
-          <template #icon><ArrowRightIcon class="size-[1em]" /></template>
+          <template #icon><ArrowRightIcon class="size-4" /></template>
         </Button>
-        <Button v-else label="Crear contrato" :loading="guardando" :disabled="partesPendientes.length > 0"
+        <Button v-else label="Crear contrato" class="bg-(--c) border-(--c)" :loading="guardando" :disabled="partesPendientes.length > 0"
           v-tooltip="avisoPartes"
-          :style="`background:${tipoColor}; border-color:${tipoColor}`" @click="guardar">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+          :style="{ '--c': tipoColor }" @click="guardar">
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
@@ -448,8 +449,8 @@
          contrato). -->
     <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
       header="Ya existe un contrato para este servicio" modal class="w-full max-w-sm">
-      <p class="text-sm text-gray-600">{{ duplicadoContrato?.mensaje }}</p>
-      <p class="text-xs text-gray-400 mt-2">
+      <p class="text-sm text-muted-foreground">{{ duplicadoContrato?.mensaje }}</p>
+      <p class="text-xs text-muted-foreground mt-2">
         Si es una renovación o un contrato distinto, podés crearlo igual.
       </p>
       <template #footer>

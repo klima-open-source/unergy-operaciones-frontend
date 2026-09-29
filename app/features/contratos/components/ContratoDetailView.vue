@@ -5,17 +5,17 @@
                    :codigo="contrato.numero_codigo_contrato || ''"
                    :tabs="TABS" v-model="activeTab">
       <template #chips>
-        <GBadge color="warning" class="text-[10px]">PPA</GBadge>
-        <GBadge :color="(contrato.tipo_contrato === 'compra') ? '#915BD8' : '#F6FF72'" class="text-[10px]">{{ (contrato.tipo_contrato === 'compra') ? 'Compra' : 'Venta' }}</GBadge>
+        <GBadge color="warning" class="text-xs">PPA</GBadge>
+        <GBadge :color="(contrato.tipo_contrato === 'compra') ? '#915BD8' : '#F6FF72'" class="text-xs">{{ (contrato.tipo_contrato === 'compra') ? 'Compra' : 'Venta' }}</GBadge>
       </template>
       <template #acciones>
         <!-- Atajo al contrato: el enlace se guarda en la pestaña Datos -->
         <a v-if="enlaceContrato" :href="enlaceContrato" target="_blank" rel="noopener noreferrer"
           class="cd-head-link" v-tooltip.bottom="'Abrir el contrato en Drive'">
-          <ExternalLinkIcon class="size-[1em]" />Contrato
+          <ExternalLinkIcon class="size-4" />Contrato
         </a>
         <Button label="Editar contrato" severity="secondary" outlined size="small" @click="abrirEdicionCompleta">
-          <template #icon><PencilIcon class="size-[1em]" /></template>
+          <template #icon><PencilIcon class="size-4" /></template>
         </Button>
       </template>
       <template #default="{ tab }">
@@ -24,17 +24,17 @@
 
         <!-- ── Resumen: lo que se quiere saber de un vistazo ─────────── -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat"
-            :style="`background:${estadoVigencia.bg};border-color:${estadoVigencia.borde}`">
-            <p class="cd-stat-lbl" :style="`color:${estadoVigencia.color}`">
-              <CircleIcon class="size-[1em] fill-current" style="font-size:6px" />Estado
+          <div class="cd-stat bg-(--bg)! border-(--bd)!"
+            :style="{ '--c': estadoVigencia.color, '--bg': estadoVigencia.bg, '--bd': estadoVigencia.borde }">
+            <p class="cd-stat-lbl text-(--c)!">
+              <CircleIcon class="size-1.5 fill-current" />Estado
             </p>
-            <p class="cd-stat-val" :style="`color:${estadoVigencia.color}`">{{ estadoVigencia.label }}</p>
-            <p class="cd-stat-sub" :style="`color:${estadoVigencia.color};opacity:.7`">{{ estadoVigencia.detalle }}</p>
+            <p class="cd-stat-val text-(--c)!">{{ estadoVigencia.label }}</p>
+            <p class="cd-stat-sub text-(--c)! opacity-70">{{ estadoVigencia.detalle }}</p>
           </div>
 
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><ClockIcon class="size-[1em]" style="font-size:9px" />Duración</p>
+            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Duración</p>
             <p class="cd-stat-val">{{ duracion || '—' }}</p>
             <p class="cd-stat-sub">
               {{ formatFecha(contrato.fecha_inicio) || '—' }} → {{ formatFecha(contrato.fecha_fin) || '—' }}
@@ -42,7 +42,7 @@
           </div>
 
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-[1em]" style="font-size:9px" />Indexación</p>
+            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Indexación</p>
             <p class="cd-stat-val">{{ contrato.indice_indexacion || '—' }}</p>
             <p class="cd-stat-sub">
               {{ contrato.periodicidad_indexacion || 'sin periodicidad' }}<template v-if="contrato.periodo_indexacion_base"> · base {{ contrato.periodo_indexacion_base }}</template>
@@ -50,7 +50,7 @@
           </div>
 
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><FileIcon class="size-[1em]" style="font-size:9px" />Facturación</p>
+            <p class="cd-stat-lbl"><FileIcon class="size-3" />Facturación</p>
             <p class="cd-stat-val">{{ contrato.periodicidad_facturacion || '—' }}</p>
             <p class="cd-stat-sub">
               {{ contrato.tiempo_pago != null ? ('pago a ' + contrato.tiempo_pago + ' días') : 'sin plazo de pago' }}
@@ -61,16 +61,16 @@
         <!-- ── Identificación ────────────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#915BD818"><IdCardIcon class="size-[1em]" style="color:var(--color-unergy-purple)" /></span>
+            <span class="cd-ico bg-unergy-purple/10"><IdCardIcon class="size-3 text-unergy-purple" /></span>
             <h3 class="cd-sec-title">Identificación</h3>
             <div class="cd-sec-act">
               <Button v-if="!editandoId" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionId">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="cancelarEdicionId" />
                 <Button label="Guardar" size="small" :loading="guardandoId" @click="guardarId">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -85,8 +85,8 @@
               <div class="flex flex-col gap-0.5">
                 <span class="cd-campo-lbl">Comunidad energética</span>
                 <div>
-                  <GBadge v-if="contrato.es_comunidad_energetica" color="success" class="text-[10px]">🏘 Sí</GBadge>
-                  <span v-else class="text-sm" style="color:var(--color-unergy-deep)">{{ contrato.es_comunidad_energetica === false ? 'No' : '—' }}</span>
+                  <GBadge v-if="contrato.es_comunidad_energetica" color="success" class="text-xs">🏘 Sí</GBadge>
+                  <span v-else class="text-sm text-unergy-deep">{{ contrato.es_comunidad_energetica === false ? 'No' : '—' }}</span>
                 </div>
               </div>
             </div>
@@ -107,11 +107,11 @@
         <!-- ── Partes del contrato ───────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#3b82f618"><UsersIcon class="size-[1em]" style="color:#3b82f6" /></span>
+            <span class="cd-ico bg-primary/10"><UsersIcon class="size-3 text-primary" /></span>
             <h3 class="cd-sec-title">Partes del contrato</h3>
             <div class="cd-sec-act">
               <Button v-if="!editandoPartes" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionPartes">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="cancelarEdicionPartes" />
@@ -119,7 +119,7 @@
                   :disabled="!formPartes.comprador_id || !formPartes.vendedor_id"
                   v-tooltip="(formPartes.comprador_id && formPartes.vendedor_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
                   @click="guardarPartes">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -128,13 +128,13 @@
             <!-- Modo lectura: la energía va del vendedor al comprador -->
             <div v-if="!editandoPartes" class="cd-partes">
               <div class="cd-parte">
-                <p class="cd-parte-rol"><SunIcon class="size-[1em]" style="font-size:9px" />Vendedor</p>
+                <p class="cd-parte-rol"><SunIcon class="size-3" />Vendedor</p>
                 <p class="cd-parte-nom">{{ contrato.vendedor_nombre || '—' }}</p>
                 <p class="cd-parte-nit">NIT {{ contrato.vendedor_nit || '—' }}</p>
               </div>
-              <ArrowRightIcon class="cd-partes-flecha size-[1em]" />
+              <ArrowRightIcon class="cd-partes-flecha size-3" />
               <div class="cd-parte">
-                <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Comprador</p>
+                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Comprador</p>
                 <p class="cd-parte-nom">{{ contrato.comprador_nombre || '—' }}</p>
                 <p class="cd-parte-nit">NIT {{ contrato.comprador_nit || '—' }}</p>
               </div>
@@ -142,7 +142,7 @@
             <!-- Modo edición -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><SunIcon class="size-[1em]" style="font-size:9px" />Vendedor</p>
+                <p class="cd-parte-rol"><SunIcon class="size-3" />Vendedor</p>
                 <SelectorCliente
                   v-model:id="formPartes.vendedor_id"
                   v-model:nombre="formPartes.vendedor_nombre"
@@ -156,7 +156,7 @@
                 </div>
               </div>
               <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BuildingIcon class="size-[1em]" style="font-size:9px" />Comprador</p>
+                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Comprador</p>
                 <SelectorCliente
                   v-model:id="formPartes.comprador_id"
                   v-model:nombre="formPartes.comprador_nombre"
@@ -176,7 +176,7 @@
         <!-- ── Vigencia ──────────────────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#10b98118"><CalendarIcon class="size-[1em]" style="color:#10b981" /></span>
+            <span class="cd-ico bg-success/10"><CalendarIcon class="size-3 text-success" /></span>
             <h3 class="cd-sec-title">Vigencia</h3>
           </header>
           <div class="cd-sec-body">
@@ -189,8 +189,8 @@
                 <div>
                   <GBadge v-if="contrato.renovacion_automatica != null"
                     :color="contrato.renovacion_automatica ? 'success' : 'default'"
-                    class="text-[10px]">{{ contrato.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
-                  <span v-else class="text-sm" style="color:var(--color-unergy-deep)">—</span>
+                    class="text-xs">{{ contrato.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
+                  <span v-else class="text-sm text-unergy-deep">—</span>
                 </div>
               </div>
             </div>
@@ -200,7 +200,7 @@
         <!-- ── Condiciones comerciales ───────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#f59e0b18"><DollarSignIcon class="size-[1em]" style="color:#f59e0b" /></span>
+            <span class="cd-ico bg-warning/10"><DollarSignIcon class="size-3 text-warning" /></span>
             <h3 class="cd-sec-title">Condiciones comerciales</h3>
           </header>
           <div class="cd-sec-body">
@@ -216,7 +216,7 @@
                 :value="contrato.tiempo_pago != null ? String(contrato.tiempo_pago) : null" />
               <div v-if="contrato.condiciones_pago" class="cd-ancho flex flex-col gap-0.5">
                 <span class="cd-campo-lbl">Condiciones de pago</span>
-                <span class="text-sm whitespace-pre-line" style="color:var(--color-unergy-deep)">{{ contrato.condiciones_pago }}</span>
+                <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.condiciones_pago }}</span>
               </div>
             </div>
           </div>
@@ -225,18 +225,18 @@
         <!-- ── Documentos y enlaces ──────────────────────────────────── -->
         <section class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#d9770618"><LinkIcon class="size-[1em]" style="color:#d97706" /></span>
+            <span class="cd-ico bg-warning/10"><LinkIcon class="size-3 text-warning" /></span>
             <h3 class="cd-sec-title">Documentos y enlaces</h3>
             <div class="cd-sec-act">
               <Button v-if="!editandoEnlace"
                 :label="enlaceContrato ? 'Editar' : 'Agregar enlace'"
                 size="small" text severity="secondary" @click="iniciarEdicionEnlace">
-                <template #icon><component :is="enlaceContrato ? PencilIcon : PlusIcon" class="size-[1em]" /></template>
+                <template #icon><component :is="enlaceContrato ? PencilIcon : PlusIcon" class="size-4" /></template>
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="editandoEnlace = false" />
                 <Button label="Guardar" size="small" :loading="guardandoEnlace" @click="guardarEnlace">
-                  <template #icon><CheckIcon class="size-[1em]" /></template>
+                  <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
             </div>
@@ -244,19 +244,19 @@
           <div class="cd-sec-body">
             <!-- Modo lectura -->
             <div v-if="!editandoEnlace" class="cd-link" :class="{ 'cd-link--vacio': !enlaceContrato }">
-              <span class="cd-ico" style="background:#fef3c7">
-                <FileTextIcon class="size-[1em]" style="color:#d97706" />
+              <span class="cd-ico bg-warning/15">
+                <FileTextIcon class="size-3 text-warning" />
               </span>
               <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium mb-0.5" style="color:#92400e">Contrato en Drive</p>
+                <p class="text-xs font-medium mb-0.5 text-warning">Contrato en Drive</p>
                 <a v-if="enlaceContrato" :href="enlaceContrato" target="_blank" rel="noopener noreferrer"
-                  class="text-sm font-semibold inline-flex items-center gap-1.5 hover:underline" style="color:#d97706">
-                  <ExternalLinkIcon class="text-xs size-[1em]" />Ver contrato
+                  class="text-sm font-semibold inline-flex items-center gap-1.5 hover:underline text-warning">
+                  <ExternalLinkIcon class="size-3" />Ver contrato
                 </a>
                 <button v-else type="button" class="cd-link-add" @click="iniciarEdicionEnlace">
-                  <CirclePlusIcon class="text-xs size-[1em]" />Agregar enlace
+                  <CirclePlusIcon class="size-3" />Agregar enlace
                 </button>
-                <p v-if="enlaceContrato" class="text-[11px] truncate mt-0.5" style="color:#b4884f">
+                <p v-if="enlaceContrato" class="text-xs truncate mt-0.5 text-warning">
                   {{ enlaceContrato }}
                 </p>
               </div>
@@ -266,7 +266,7 @@
               <label class="cd-lbl">Enlace al contrato (Drive, Dropbox, SharePoint…)</label>
               <InputText v-model.trim="formEnlace.carpeta_link" class="w-full"
                 placeholder="https://drive.google.com/…" @keyup.enter="guardarEnlace" />
-              <small class="text-[11px]" style="color:#9b89b5">
+              <small class="text-xs text-muted-foreground">
                 Debe empezar por <span class="font-mono">http://</span> o <span class="font-mono">https://</span>.
                 Déjalo vacío para quitar el enlace.
               </small>
@@ -277,25 +277,25 @@
         <!-- ── Detalles operacionales (solo si el contrato los trae) ─── -->
         <section v-if="tieneDetallesOperacionales" class="cd-sec">
           <header class="cd-sec-head">
-            <span class="cd-ico" style="background:#64748b18"><ListIcon class="size-[1em]" style="color:#64748b" /></span>
+            <span class="cd-ico bg-muted-foreground/10"><ListIcon class="size-3 text-muted-foreground" /></span>
             <h3 class="cd-sec-title">Detalles operacionales y contractuales</h3>
           </header>
           <div class="cd-sec-body space-y-3">
             <div v-if="contrato.service_scope" class="flex flex-col gap-0.5">
               <span class="cd-campo-lbl">Alcance del servicio</span>
-              <span class="text-sm whitespace-pre-line" style="color:var(--color-unergy-deep)">{{ contrato.service_scope }}</span>
+              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.service_scope }}</span>
             </div>
             <div v-if="contrato.specific_service_terms" class="flex flex-col gap-0.5">
               <span class="cd-campo-lbl">Términos específicos del servicio</span>
-              <span class="text-sm whitespace-pre-line" style="color:var(--color-unergy-deep)">{{ contrato.specific_service_terms }}</span>
+              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.specific_service_terms }}</span>
             </div>
             <div v-if="contrato.slas" class="flex flex-col gap-0.5">
               <span class="cd-campo-lbl">SLAs (Acuerdos de nivel de servicio)</span>
-              <span class="text-sm whitespace-pre-line" style="color:var(--color-unergy-deep)">{{ contrato.slas }}</span>
+              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.slas }}</span>
             </div>
             <div v-if="contrato.responsibilities" class="flex flex-col gap-0.5">
               <span class="cd-campo-lbl">Responsabilidades</span>
-              <span class="text-sm whitespace-pre-line" style="color:var(--color-unergy-deep)">{{ contrato.responsibilities }}</span>
+              <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.responsibilities }}</span>
             </div>
           </div>
         </section>
@@ -308,19 +308,19 @@
         <!-- Resumen -->
         <div v-if="resumenCantidades && !editandoCantidades" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><CalendarIcon class="size-[1em]" style="font-size:9px" />Períodos</p>
+            <p class="cd-stat-lbl"><CalendarIcon class="size-3" />Períodos</p>
             <p class="cd-stat-val">{{ resumenCantidades.periodos }} meses</p>
             <p class="cd-stat-sub">{{ resumenCantidades.añoMin }} – {{ resumenCantidades.añoMax }}</p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><ZapIcon class="size-[1em]" style="font-size:9px" />Compromiso {{ hoyPeriodo.año }}</p>
+            <p class="cd-stat-lbl"><ZapIcon class="size-3" />Compromiso {{ hoyPeriodo.año }}</p>
             <p class="cd-stat-val">{{ fmtNum(resumenCantidades.totalAñoActual) }} MWh</p>
             <p class="cd-stat-sub">
               {{ resumenCantidades.tieneAñoActual ? 'suma de mínimos del año' : 'sin compromisos este año' }}
             </p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><ClockIcon class="size-[1em]" style="font-size:9px" />Mes en curso</p>
+            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Mes en curso</p>
             <p class="cd-stat-val">
               {{ resumenCantidades.actual ? fmtNum(resumenCantidades.actual.energia_minima) + ' MWh' : '—' }}
             </p>
@@ -333,7 +333,7 @@
             </p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><MoveHorizontalIcon class="size-[1em]" style="font-size:9px" />Flexibilidad</p>
+            <p class="cd-stat-lbl"><MoveHorizontalIcon class="size-3" />Flexibilidad</p>
             <p class="cd-stat-val">
               {{ resumenCantidades.flex != null ? resumenCantidades.flex.toFixed(0) + '%' : '—' }}
             </p>
@@ -348,19 +348,19 @@
           <SelectButton v-if="!editandoCantidades" v-model="vistaCantidades" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
           <span v-else class="cd-toolbar-titulo">
-            <UploadIcon class="size-[1em]" />Cargar compromisos desde Excel
+            <UploadIcon class="size-4" />Cargar compromisos desde Excel
           </span>
           <div class="cd-toolbar-act">
             <template v-if="!editandoCantidades">
               <Button label="Editar" size="small" text severity="secondary" @click="editandoCantidades = true">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
             </template>
             <template v-else>
               <Button label="Cancelar" size="small" text severity="secondary"
                 @click="editandoCantidades = false; energiaPaste = ''; energiaRows = []; energiaError = ''" />
               <Button label="Guardar" size="small" :loading="guardandoCantidades" :disabled="!energiaRows.length" @click="guardarCantidades">
-                <template #icon><CheckIcon class="size-[1em]" /></template>
+                <template #icon><CheckIcon class="size-4" /></template>
               </Button>
             </template>
           </div>
@@ -369,7 +369,7 @@
         <!-- Modo edición cantidades -->
         <template v-if="editandoCantidades">
           <div class="cd-aviso">
-            <TriangleAlertIcon class="size-[1em]" />
+            <TriangleAlertIcon class="size-4" />
             <div>
               Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas
               abajo (Mín/Máx en MWh/mes; <strong>Plantas contrato</strong> = nº de plantas que el contrato exige
@@ -382,16 +382,16 @@
             class="w-full font-mono text-xs" @paste="onPasteEnergia" />
           <div class="flex items-center gap-2 flex-wrap">
             <Button label="Procesar" size="small" severity="secondary" outlined @click="parseEnergia">
-              <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+              <template #icon><RefreshCwIcon class="size-4" /></template>
             </Button>
             <Button v-if="energiaRows.length" label="Limpiar" size="small" severity="danger" text @click="energiaRows = []; energiaPaste = ''; energiaError = ''">
-              <template #icon><XIcon class="size-[1em]" /></template>
+              <template #icon><XIcon class="size-4" /></template>
             </Button>
             <span v-if="energiaRows.length" class="cd-pill cd-pill--ok">
-              <CircleCheckIcon class="size-[1em]" />{{ energiaRows.length }} filas listas
+              <CircleCheckIcon class="size-4" />{{ energiaRows.length }} filas listas
             </span>
             <span v-if="energiaError" class="cd-pill cd-pill--err">
-              <CircleXIcon class="size-[1em]" />{{ energiaError }}
+              <CircleXIcon class="size-4" />{{ energiaError }}
             </span>
           </div>
           <div v-if="energiaRows.length" class="cd-tabla">
@@ -422,7 +422,7 @@
         <!-- Modo lectura cantidades -->
         <template v-else>
           <div v-if="!cantidadesMensuales.length" class="cd-vacio">
-            <ChartColumnIcon class="size-[1em]" />
+            <ChartColumnIcon class="size-6" />
             <p class="cd-vacio-tit">Sin compromisos de energía</p>
             <p class="cd-vacio-sub">Usa <strong>Editar</strong> para pegarlos desde Excel.</p>
           </div>
@@ -433,10 +433,10 @@
               :rowsPerPageOptions="[12, 24, 60, 120]"
               paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
             >
-              <Column field="año" header="Año" style="width:80px">
+              <Column field="año" header="Año">
                 <template #body="{ data }"><span class="cd-num">{{ data.año }}</span></template>
               </Column>
-              <Column v-if="vistaCantidades === 'mensual'" header="Mes" style="width:130px">
+              <Column v-if="vistaCantidades === 'mensual'" header="Mes">
                 <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Mín (MWh/año)' : 'Mín (MWh/mes)'"
@@ -449,7 +449,7 @@
                 headerClass="cd-th-der" bodyClass="cd-der">
                 <template #body="{ data }"><span class="cd-num">{{ fmtNum(data.energia_maxima) }}</span></template>
               </Column>
-              <Column style="width:160px" headerClass="cd-th-der" bodyClass="cd-der">
+              <Column headerClass="cd-th-der" bodyClass="cd-der">
                 <template #header>
                   <span v-tooltip.top="'Plantas registradas y despachando energía al contrato. La calcula la plataforma vía GESCON.'">
                     {{ vistaCantidades === 'anual' ? 'Plantas inscritas (máx)' : 'Plantas inscritas' }}
@@ -462,12 +462,12 @@
                 </template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Plantas contrato (máx)' : 'Plantas contrato'"
-                style="width:150px" headerClass="cd-th-der" bodyClass="cd-der">
+                headerClass="cd-th-der" bodyClass="cd-der">
                 <template #body="{ data }">
                   <span class="cd-num">{{ data.cantidad_proyectos != null ? data.cantidad_proyectos : '—' }}</span>
                 </template>
               </Column>
-              <Column header="Rango" style="width:110px">
+              <Column header="Rango">
                 <template #body="{ data }">
                   <span v-if="data.energia_minima > 0 && data.energia_maxima != null" class="cd-pill cd-pill--flex">
                     {{ ((data.energia_maxima / data.energia_minima - 1) * 100).toFixed(0) }}% flex
@@ -485,28 +485,28 @@
 
         <!-- Resumen -->
         <div v-if="resumenTarifas && !editandoTarifas" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat" style="background:#fffbeb;border-color:#fde68a">
-            <p class="cd-stat-lbl" style="color:#b45309"><DollarSignIcon class="size-[1em]" style="font-size:9px" />
+          <div class="cd-stat bg-warning/10! border-warning/30!">
+            <p class="cd-stat-lbl text-warning!"><DollarSignIcon class="size-3" />
               {{ resumenTarifas.esDelMes ? 'Tarifa del mes' : 'Última tarifa' }}</p>
-            <p class="cd-stat-val" style="color:#b45309">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
-            <p class="cd-stat-sub" style="color:#b45309;opacity:.75">
+            <p class="cd-stat-val text-warning!">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
+            <p class="cd-stat-sub text-warning! opacity-75">
               {{ MESES[resumenTarifas.vigente.mes - 1] }} {{ resumenTarifas.vigente.año }} · COP/kWh
             </p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-[1em]" style="font-size:9px" />Variación</p>
-            <p class="cd-stat-val" :style="`color:${varColor(resumenTarifas.varPct)}`">
+            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Variación</p>
+            <p class="cd-stat-val text-(--c)!" :style="{ '--c': varColor(resumenTarifas.varPct) }">
               {{ resumenTarifas.varPct != null ? (resumenTarifas.varPct > 0 ? '+' : '') + resumenTarifas.varPct.toFixed(1) + '%' : '—' }}
             </p>
             <p class="cd-stat-sub">frente al período anterior</p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><MoveVerticalIcon class="size-[1em]" style="font-size:9px" />Rango histórico</p>
+            <p class="cd-stat-lbl"><MoveVerticalIcon class="size-3" />Rango histórico</p>
             <p class="cd-stat-val">{{ fmtCOP(resumenTarifas.min) }} – {{ fmtCOP(resumenTarifas.max) }}</p>
             <p class="cd-stat-sub">mínimo y máximo registrados</p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><CalendarIcon class="size-[1em]" style="font-size:9px" />Períodos</p>
+            <p class="cd-stat-lbl"><CalendarIcon class="size-3" />Períodos</p>
             <p class="cd-stat-val">{{ resumenTarifas.periodos }} meses</p>
             <p class="cd-stat-sub">{{ resumenTarifas.añoMin }} – {{ resumenTarifas.añoMax }}</p>
           </div>
@@ -517,19 +517,19 @@
           <SelectButton v-if="!editandoTarifas" v-model="vistaTarifas" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
           <span v-else class="cd-toolbar-titulo">
-            <UploadIcon class="size-[1em]" />Cargar tarifas desde Excel
+            <UploadIcon class="size-4" />Cargar tarifas desde Excel
           </span>
           <div class="cd-toolbar-act">
             <template v-if="!editandoTarifas">
               <Button label="Editar" size="small" text severity="secondary" @click="editandoTarifas = true">
-                <template #icon><PencilIcon class="size-[1em]" /></template>
+                <template #icon><PencilIcon class="size-4" /></template>
               </Button>
             </template>
             <template v-else>
               <Button label="Cancelar" size="small" text severity="secondary"
                 @click="editandoTarifas = false; tarifasPaste = ''; tarifasRows = []; tarifasError = ''" />
               <Button label="Guardar" size="small" :loading="guardandoTarifas" :disabled="!tarifasRows.length" @click="guardarTarifas">
-                <template #icon><CheckIcon class="size-[1em]" /></template>
+                <template #icon><CheckIcon class="size-4" /></template>
               </Button>
             </template>
           </div>
@@ -538,7 +538,7 @@
         <!-- Modo edición tarifas -->
         <template v-if="editandoTarifas">
           <div class="cd-aviso">
-            <TriangleAlertIcon class="size-[1em]" />
+            <TriangleAlertIcon class="size-4" />
             <div>
               Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas abajo.
               Al guardar se <strong>reemplazan todas</strong> las tarifas actuales.
@@ -549,16 +549,16 @@
             class="w-full font-mono text-xs" @paste="onPasteTarifas" />
           <div class="flex items-center gap-2 flex-wrap">
             <Button label="Procesar" size="small" severity="secondary" outlined @click="parseTarifas">
-              <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+              <template #icon><RefreshCwIcon class="size-4" /></template>
             </Button>
             <Button v-if="tarifasRows.length" label="Limpiar" size="small" severity="danger" text @click="tarifasRows = []; tarifasPaste = ''; tarifasError = ''">
-              <template #icon><XIcon class="size-[1em]" /></template>
+              <template #icon><XIcon class="size-4" /></template>
             </Button>
             <span v-if="tarifasRows.length" class="cd-pill cd-pill--ok">
-              <CircleCheckIcon class="size-[1em]" />{{ tarifasRows.length }} filas listas
+              <CircleCheckIcon class="size-4" />{{ tarifasRows.length }} filas listas
             </span>
             <span v-if="tarifasError" class="cd-pill cd-pill--err">
-              <CircleXIcon class="size-[1em]" />{{ tarifasError }}
+              <CircleXIcon class="size-4" />{{ tarifasError }}
             </span>
           </div>
           <div v-if="tarifasRows.length" class="cd-tabla">
@@ -583,7 +583,7 @@
         <!-- Modo lectura tarifas -->
         <template v-else>
           <div v-if="!tarifasMensuales.length" class="cd-vacio">
-            <DollarSignIcon class="size-[1em]" />
+            <DollarSignIcon class="size-6" />
             <p class="cd-vacio-tit">Sin tarifas registradas</p>
             <p class="cd-vacio-sub">Usa <strong>Editar</strong> para pegarlas desde Excel.</p>
           </div>
@@ -594,10 +594,10 @@
               :rowsPerPageOptions="[12, 24, 60, 120]"
               paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
             >
-              <Column field="año" header="Año" style="width:80px">
+              <Column field="año" header="Año">
                 <template #body="{ data }"><span class="cd-num">{{ data.año }}</span></template>
               </Column>
-              <Column v-if="vistaTarifas === 'mensual'" header="Mes" style="width:130px">
+              <Column v-if="vistaTarifas === 'mensual'" header="Mes">
                 <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
               </Column>
               <Column header="Tarifa (COP/kWh)" headerClass="cd-th-der" bodyClass="cd-der">
@@ -606,11 +606,11 @@
                   <span v-if="vistaTarifas === 'anual' && !data._uniforme" class="cd-nulo ml-1">prom.</span>
                 </template>
               </Column>
-              <Column header="Variación" style="width:130px" headerClass="cd-th-der" bodyClass="cd-der">
+              <Column header="Variación" headerClass="cd-th-der" bodyClass="cd-der">
                 <template #body="{ data, index }">
                   <span v-if="index > 0 && currentTarifas[index - 1]?.tarifa != null && data.tarifa != null"
-                    class="cd-pill" :style="`color:${varColor(varPct(currentTarifas[index-1].tarifa, data.tarifa))};background:${varBg(varPct(currentTarifas[index-1].tarifa, data.tarifa))}`">
-                    <component :is="varIcono(varPct(currentTarifas[index-1].tarifa, data.tarifa))" class="size-[1em]" />
+                    class="cd-pill text-(--c)! bg-(--bg)!" :style="{ '--c': varColor(varPct(currentTarifas[index-1].tarifa, data.tarifa)), '--bg': varBg(varPct(currentTarifas[index-1].tarifa, data.tarifa)) }">
+                    <component :is="varIcono(varPct(currentTarifas[index-1].tarifa, data.tarifa))" class="size-3" />
                     {{ variacion(currentTarifas[index-1].tarifa, data.tarifa) }}
                   </span>
                   <span v-else class="cd-nulo">—</span>
@@ -627,25 +627,25 @@
         <!-- Resumen -->
         <div v-if="!loadingAsic && asicRows.length" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><BookIcon class="size-[1em]" style="font-size:9px" />Registros</p>
+            <p class="cd-stat-lbl"><BookIcon class="size-3" />Registros</p>
             <p class="cd-stat-val">{{ resumenAsic.total }}</p>
             <p class="cd-stat-sub">histórico completo</p>
           </div>
-          <div class="cd-stat" style="background:#ecfdf5;border-color:#a7f3d0">
-            <p class="cd-stat-lbl" style="color:#059669"><CircleCheckIcon class="size-[1em]" style="font-size:9px" />Vigentes</p>
-            <p class="cd-stat-val" style="color:#059669">{{ resumenAsic.vigentes }}</p>
-            <p class="cd-stat-sub" style="color:#059669;opacity:.75">con fecha fin en el futuro</p>
+          <div class="cd-stat bg-success/10! border-success/30!">
+            <p class="cd-stat-lbl text-success!"><CircleCheckIcon class="size-3" />Vigentes</p>
+            <p class="cd-stat-val text-success!">{{ resumenAsic.vigentes }}</p>
+            <p class="cd-stat-sub text-success! opacity-75">con fecha fin en el futuro</p>
           </div>
           <div class="cd-stat">
-            <p class="cd-stat-lbl"><BadgeCheckIcon class="size-[1em]" style="font-size:9px" />Publicados</p>
+            <p class="cd-stat-lbl"><BadgeCheckIcon class="size-3" />Publicados</p>
             <p class="cd-stat-val">{{ resumenAsic.publicados }}</p>
             <p class="cd-stat-sub">estado de la solicitud</p>
           </div>
-          <div class="cd-stat" :style="resumenAsic.enProceso ? 'background:#fffbeb;border-color:#fde68a' : ''">
-            <p class="cd-stat-lbl" :style="resumenAsic.enProceso ? 'color:#b45309' : ''">
-              <HourglassIcon class="size-[1em]" style="font-size:9px" />En proceso</p>
-            <p class="cd-stat-val" :style="resumenAsic.enProceso ? 'color:#b45309' : ''">{{ resumenAsic.enProceso }}</p>
-            <p class="cd-stat-sub" :style="resumenAsic.enProceso ? 'color:#b45309;opacity:.75' : ''">
+          <div class="cd-stat" :class="resumenAsic.enProceso && 'bg-warning/10! border-warning/30!'">
+            <p class="cd-stat-lbl" :class="resumenAsic.enProceso && 'text-warning!'">
+              <HourglassIcon class="size-3" />En proceso</p>
+            <p class="cd-stat-val" :class="resumenAsic.enProceso && 'text-warning!'">{{ resumenAsic.enProceso }}</p>
+            <p class="cd-stat-sub" :class="resumenAsic.enProceso && 'text-warning! opacity-75'">
               pendientes ante el ASIC
             </p>
           </div>
@@ -662,10 +662,10 @@
         </div>
 
         <div v-if="loadingAsic" class="cd-cargando">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /><span>Cargando registros ASIC…</span>
+          <LoaderCircleIcon class="size-4 animate-spin" /><span>Cargando registros ASIC…</span>
         </div>
         <div v-else-if="!asicFiltrados.length" class="cd-vacio">
-          <BookIcon class="size-[1em]" />
+          <BookIcon class="size-6" />
           <p class="cd-vacio-tit">Sin registros ASIC {{ vistaAsic === 'vigentes' ? 'vigentes' : '' }}</p>
           <p class="cd-vacio-sub">
             Se buscan por número de contrato interno o código SIC.
@@ -677,7 +677,7 @@
         <div v-else class="cd-tabla">
           <DataTable :value="asicFiltrados" stripedRows rowHover class="text-sm"
             sortField="fecha_solicitud" :sortOrder="-1">
-            <Column field="codigo_sic_contrato" header="Código SIC" sortable style="width:110px">
+            <Column field="codigo_sic_contrato" header="Código SIC" sortable>
               <template #body="{ data }">
                 <span class="cd-num">{{ data.codigo_sic_contrato || '—' }}</span>
               </template>
@@ -690,23 +690,23 @@
                 <span v-else class="cd-nulo">—</span>
               </template>
             </Column>
-            <Column field="tipo_solicitud" header="Tipo" style="width:120px">
+            <Column field="tipo_solicitud" header="Tipo">
               <template #body="{ data }">
-                <GBadge :color="{ registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'default' }[data.tipo_solicitud] || 'default'" class="text-[10px] capitalize">{{ data.tipo_solicitud }}</GBadge>
+                <GBadge :color="{ registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'default' }[data.tipo_solicitud] || 'default'" class="text-xs capitalize">{{ data.tipo_solicitud }}</GBadge>
               </template>
             </Column>
-            <Column field="estado_solicitud" header="Estado" style="width:115px">
+            <Column field="estado_solicitud" header="Estado">
               <template #body="{ data }">
-                <GBadge :color="{ publicado: 'success', en_proceso: 'warning', rechazado: 'destructive', desistido: 'default' }[data.estado_solicitud] || 'default'" class="text-[10px] capitalize">{{ data.estado_solicitud.replace('_', ' ') }}</GBadge>
+                <GBadge :color="{ publicado: 'success', en_proceso: 'warning', rechazado: 'destructive', desistido: 'default' }[data.estado_solicitud] || 'default'" class="text-xs capitalize">{{ data.estado_solicitud.replace('_', ' ') }}</GBadge>
               </template>
             </Column>
-            <Column field="fecha_inicio" header="Inicio" sortable style="width:105px">
+            <Column field="fecha_inicio" header="Inicio" sortable>
               <template #body="{ data }"><span class="cd-num">{{ data.fecha_inicio || '—' }}</span></template>
             </Column>
-            <Column field="fecha_fin" header="Fin" sortable style="width:105px">
+            <Column field="fecha_fin" header="Fin" sortable>
               <template #body="{ data }"><span class="cd-num">{{ data.fecha_fin || '—' }}</span></template>
             </Column>
-            <Column field="porcentaje_despacho" header="% Despacho" style="width:115px"
+            <Column field="porcentaje_despacho" header="% Despacho"
               headerClass="cd-th-der" bodyClass="cd-der">
               <template #body="{ data }">
                 <span v-if="data.porcentaje_despacho != null" class="cd-pill"
@@ -716,12 +716,12 @@
                 <span v-else class="cd-nulo">—</span>
               </template>
             </Column>
-            <Column field="fecha_solicitud" header="F. solicitud" sortable style="width:120px">
+            <Column field="fecha_solicitud" header="F. solicitud" sortable>
               <template #body="{ data }"><span class="cd-num">{{ data.fecha_solicitud || '—' }}</span></template>
             </Column>
             <Column header="Observaciones">
               <template #body="{ data }">
-                <span class="text-xs" style="color:#6b5a8a">{{ data.observaciones || '—' }}</span>
+                <span class="text-xs text-muted-foreground">{{ data.observaciones || '—' }}</span>
               </template>
             </Column>
           </DataTable>
@@ -732,29 +732,29 @@
       <div v-if="tab === 'proyectos'" class="space-y-4">
         <div class="cd-toolbar">
           <span class="cd-toolbar-titulo">
-            <ZapIcon class="size-[1em]" />
+            <ZapIcon class="size-4" />
             {{ contrato.proyectos?.length || 0 }}
             {{ (contrato.proyectos?.length === 1) ? 'planta asociada' : 'plantas asociadas' }}
           </span>
           <div class="cd-toolbar-act">
             <Button label="Asociar proyecto" size="small" severity="secondary" outlined @click="abrirAsociar">
-              <template #icon><PlusIcon class="size-[1em]" /></template>
+              <template #icon><PlusIcon class="size-4" /></template>
             </Button>
           </div>
         </div>
 
         <div v-if="contrato.proyectos?.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="cd-proy">
-            <span class="cd-ico" style="background:#915BD818"><ZapIcon class="size-[1em]" style="color:var(--color-unergy-purple)" /></span>
+            <span class="cd-ico bg-unergy-purple/10"><ZapIcon class="size-3 text-unergy-purple" /></span>
             <div class="min-w-0 flex-1">
               <p class="cd-proy-nom">{{ p.nombre_comercial }}</p>
               <p class="cd-proy-id">ID {{ p.id }}</p>
             </div>
-            <ChevronRightIcon class="cd-proy-chev size-[1em]" />
+            <ChevronRightIcon class="cd-proy-chev size-2.5" />
           </router-link>
         </div>
         <div v-else class="cd-vacio">
-          <NetworkIcon class="size-[1em]" />
+          <NetworkIcon class="size-6" />
           <p class="cd-vacio-tit">Sin plantas asociadas</p>
           <p class="cd-vacio-sub">Usa <strong>Asociar proyecto</strong> para vincular las que despachan a este PPA.</p>
         </div>
@@ -771,9 +771,9 @@
       @creado="onWizardCreado" />
 
     <!-- Dialog asociar proyecto -->
-    <Dialog v-model:visible="showAsociar" header="Asociar proyecto" modal :style="{ width: '420px' }">
+    <Dialog v-model:visible="showAsociar" header="Asociar proyecto" modal class="w-full max-w-md">
       <div class="flex flex-col gap-2 pt-1">
-        <label class="text-xs font-medium text-gray-600">Buscar proyecto</label>
+        <label class="text-xs font-medium text-muted-foreground">Buscar proyecto</label>
         <Select
           v-model="proyectoSeleccionado"
           :options="todosProyectosDisponibles"
@@ -788,25 +788,25 @@
       <template #footer>
         <Button label="Cancelar" severity="secondary" outlined @click="showAsociar = false" />
         <Button label="Asociar" :loading="asociando" :disabled="!proyectoSeleccionado" @click="asociarProyecto">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </template>
     </Dialog>
   </div>
 
   <!-- Loading -->
-  <div v-else-if="loading" class="cd-cargando" style="padding:96px 20px">
-    <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:18px" />
+  <div v-else-if="loading" class="cd-cargando py-24 px-5">
+    <LoaderCircleIcon class="size-4.5 animate-spin" />
     <span>Cargando contrato…</span>
   </div>
 
   <!-- Error -->
-  <div v-else class="cd-vacio" style="padding:80px 20px">
-    <TriangleAlertIcon class="size-[1em]" style="color:#fbbf24" />
+  <div v-else class="cd-vacio py-20 px-5">
+    <TriangleAlertIcon class="size-6 text-warning!" />
     <p class="cd-vacio-tit">No se encontró el contrato</p>
     <p class="cd-vacio-sub">Puede que lo hayan eliminado o que el enlace esté mal.</p>
     <Button label="Volver" text size="small" class="mt-2" @click="$router.back()">
-      <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+      <template #icon><ArrowLeftIcon class="size-4" /></template>
     </Button>
   </div>
 </template>

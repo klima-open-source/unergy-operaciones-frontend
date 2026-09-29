@@ -4,10 +4,10 @@
     <!-- ── Header ───────────────────────────────────────────────────────────── -->
     <div class="flex items-center gap-2">
       <Button text severity="secondary" @click="$router.back()" class="-ml-1">
-        <template #icon><ArrowLeftIcon class="size-[1em]" /></template>
+        <template #icon><ArrowLeftIcon class="size-4" /></template>
       </Button>
       <div>
-        <p class="text-xs leading-none mb-0.5" style="color:#9b89b5">
+        <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
             @click="$router.push(`/proyectos/${route.params.id}`)">
             {{ proyectoNombre || '…' }}
@@ -15,9 +15,9 @@
           <span class="mx-1.5">›</span>
           <span>Servicios</span>
           <span class="mx-1.5">›</span>
-          <span class="font-medium" style="color:var(--color-unergy-deep)">Operación</span>
+          <span class="font-medium text-unergy-deep">Operación</span>
         </p>
-        <h2 class="text-lg font-bold" style="color:var(--color-unergy-deep)">Operación</h2>
+        <h2 class="text-lg font-bold text-unergy-deep">Operación</h2>
       </div>
     </div>
 
@@ -33,7 +33,7 @@
       <TabPanel>
         <template #header>
           <div class="flex items-center gap-1.5 px-1">
-            <WrenchIcon class="text-xs size-[1em]" />
+            <WrenchIcon class="size-3" />
             <span>Mantenimiento</span>
           </div>
         </template>
@@ -41,25 +41,25 @@
 
           <!-- Info card -->
           <template v-if="contratos.mantenimiento">
-            <div class="rounded-xl border bg-white p-5" style="border-color:#f59e0b40">
+            <div class="rounded-xl border bg-white p-5 border-warning/25">
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#fef3c7">
-                    <WrenchIcon class="text-sm size-[1em]" style="color:#f59e0b" />
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-warning/15">
+                    <WrenchIcon class="size-4 text-warning" />
                   </div>
                   <div>
-                    <p class="text-xs text-gray-400 leading-none mb-0.5">Contrato de Mantenimiento O&amp;M</p>
-                    <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">{{ proyectoNombre }}</span>
+                    <p class="text-xs text-muted-foreground leading-none mb-0.5">Contrato de Mantenimiento O&amp;M</p>
+                    <span class="text-sm font-semibold text-unergy-deep">{{ proyectoNombre }}</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                  <GBadge :color="CONTRATO_SEVERITY[contratos.mantenimiento.estado]" class="text-xs">{{ CONTRATO_LABELS[contratos.mantenimiento.estado] }}</GBadge>
+                  <GBadge :color="CONTRATO_SEVERITY[contratos.mantenimiento.estado]">{{ CONTRATO_LABELS[contratos.mantenimiento.estado] }}</GBadge>
                   <Button label="Editar" size="small" text severity="secondary" @click="openMantenimientoDialog('editar')">
-                    <template #icon><PencilIcon class="size-[1em]" /></template>
+                    <template #icon><PencilIcon class="size-4" /></template>
                   </Button>
                   <Button label="Cargar desde Excel" size="small" severity="secondary" outlined @click="triggerExcelInput">
-                    <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+                    <template #icon><FileSpreadsheetIcon class="size-4" /></template>
                   </Button>
                   <input ref="excelInputRef" type="file" accept=".xlsx,.xls" class="hidden"
                     @change="cargarDesdeExcel" />
@@ -68,77 +68,77 @@
               <!-- Mini-cards grid -->
               <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <!-- Contratante -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <UserIcon class="text-xs size-[1em]" style="color:#f59e0b" />Contratante
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <UserIcon class="size-3 text-warning" />Contratante
                   </p>
-                  <p class="text-sm font-semibold leading-snug" style="color:#1c1917">
+                  <p class="text-sm font-semibold leading-snug text-foreground">
                     {{ contratos.mantenimiento.contratante_nombre || '—' }}
                   </p>
                 </div>
                 <!-- Prestador -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <BuildingIcon class="text-xs size-[1em]" style="color:#f59e0b" />Prestador
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <BuildingIcon class="size-3 text-warning" />Prestador
                   </p>
-                  <p class="text-sm font-semibold leading-snug" style="color:#1c1917">
+                  <p class="text-sm font-semibold leading-snug text-foreground">
                     {{ contratos.mantenimiento.prestador_nombre || '—' }}
                   </p>
                 </div>
                 <!-- Fecha inicio -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <CalendarIcon class="text-xs size-[1em]" style="color:#f59e0b" />Fecha de inicio O&amp;M
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <CalendarIcon class="size-3 text-warning" />Fecha de inicio O&amp;M
                   </p>
-                  <p class="text-sm font-semibold" style="color:#1c1917">
+                  <p class="text-sm font-semibold text-foreground">
                     {{ formatFecha(contratos.mantenimiento.fecha_inicio_om || contratos.mantenimiento.fecha_inicio) || '—' }}
                   </p>
                 </div>
                 <!-- Valor anual -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <DollarSignIcon class="text-xs size-[1em]" style="color:#f59e0b" />Valor O&amp;M Anual (BASE)
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <DollarSignIcon class="size-3 text-warning" />Valor O&amp;M Anual (BASE)
                   </p>
-                  <p class="text-base font-bold" style="color:#d97706">
+                  <p class="text-base font-bold text-warning">
                     {{ formatCOP(getValorVigente(contratos.mantenimiento.indexacion_anual)?.valor ?? contratos.mantenimiento.tarifa_base) || '—' }}
                   </p>
                   <button type="button"
-                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity"
-                    style="background:none;border:none;padding:0;cursor:pointer;color:#f59e0b"
+                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity bg-transparent border-0 p-0 cursor-pointer text-warning"
+                   
                     @click="showIndexacion.anual = !showIndexacion.anual">
-                    <ChevronDownIcon class="text-xs transition-transform duration-200 size-[1em]" :style="showIndexacion.anual ? 'transform:rotate(180deg)' : ''" />
+                    <ChevronDownIcon :class="showIndexacion.anual ? 'rotate-180' : ''" class="transition-transform duration-200 size-3" />
                     {{ showIndexacion.anual ? 'Ocultar' : 'Ver indexación' }}
                   </button>
                 </div>
                 <!-- Valor mensual -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <CalculatorIcon class="text-xs size-[1em]" style="color:#f59e0b" />Valor mensual
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <CalculatorIcon class="size-3 text-warning" />Valor mensual
                   </p>
-                  <p class="text-base font-bold" style="color:#d97706">
+                  <p class="text-base font-bold text-warning">
                     {{ formatCOP(getValorVigente(contratos.mantenimiento.indexacion_mensual)?.valor ?? contratos.mantenimiento.tarifa_mensual ?? (contratos.mantenimiento.tarifa_base != null ? Math.round(contratos.mantenimiento.tarifa_base / 12) : null)) || '—' }}
                   </p>
                   <button type="button"
-                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity"
-                    style="background:none;border:none;padding:0;cursor:pointer;color:#f59e0b"
+                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity bg-transparent border-0 p-0 cursor-pointer text-warning"
+                   
                     @click="showIndexacion.mensual = !showIndexacion.mensual">
-                    <ChevronDownIcon class="text-xs transition-transform duration-200 size-[1em]" :style="showIndexacion.mensual ? 'transform:rotate(180deg)' : ''" />
+                    <ChevronDownIcon :class="showIndexacion.mensual ? 'rotate-180' : ''" class="transition-transform duration-200 size-3" />
                     {{ showIndexacion.mensual ? 'Ocultar' : 'Ver indexación' }}
                   </button>
                 </div>
                 <!-- Enlace Drive -->
-                <div class="rounded-lg p-3.5" style="background:#fffbeb;border:1px solid #fde68a">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#92400e">
-                    <FileTextIcon class="text-xs size-[1em]" style="color:#f59e0b" />Contrato en Drive
+                <div class="rounded-lg p-3.5 bg-warning/10 border border-warning/30">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-warning">
+                    <FileTextIcon class="size-3 text-warning" />Contrato en Drive
                   </p>
                   <a v-if="contratos.mantenimiento.enlace_drive && contratos.mantenimiento.enlace_drive.startsWith('http')"
                      :href="contratos.mantenimiento.enlace_drive" target="_blank" rel="noopener"
-                     class="text-sm font-semibold flex items-center gap-1.5 hover:underline" style="color:#f59e0b">
-                    <ExternalLinkIcon class="text-xs size-[1em]" />Ver contrato
+                     class="text-sm font-semibold flex items-center gap-1.5 hover:underline text-warning">
+                    <ExternalLinkIcon class="size-3" />Ver contrato
                   </a>
                   <button v-else @click="openMantenimientoDialog('editar')"
-                    class="text-sm font-medium flex items-center gap-1.5" style="color:#f59e0b">
-                    <CirclePlusIcon class="text-xs size-[1em]" />Agregar enlace
+                    class="text-sm font-medium flex items-center gap-1.5 text-warning">
+                    <CirclePlusIcon class="size-3" />Agregar enlace
                   </button>
                 </div>
               </div>
@@ -146,75 +146,75 @@
               <!-- ── Paneles de indexación O&M ─────────────────────────────────── -->
 
               <!-- Panel ANUAL -->
-              <div :style="{ overflow: 'hidden', transition: 'max-height 0.35s ease', maxHeight: showIndexacion.anual ? '800px' : '0px' }">
+              <div :class="showIndexacion.anual ? 'max-h-200' : 'max-h-0'" class="overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="pt-3">
-                  <div class="rounded-xl border border-amber-200 overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2.5 bg-amber-50">
-                      <span class="text-xs font-semibold" style="color:#92400e">
-                        <DollarSignIcon class="text-xs mr-1.5 size-[1em]" style="color:#f59e0b" />Indexación anual O&M
+                  <div class="rounded-xl border border-warning/30 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-warning/10">
+                      <span class="text-xs font-semibold text-warning">
+                        <DollarSignIcon class="mr-1.5 size-3 text-warning" />Indexación anual O&M
                       </span>
-                      <span class="text-xs text-gray-400">Año vigente: {{ ANIO_ACTUAL }}</span>
+                      <span class="text-xs text-muted-foreground">Año vigente: {{ ANIO_ACTUAL }}</span>
                     </div>
                     <table class="w-full text-sm border-collapse">
                       <thead>
-                        <tr class="bg-gray-50 border-b border-gray-100">
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Año</th>
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">IPC aplicado</th>
-                          <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Valor anual</th>
-                          <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Estado</th>
+                        <tr class="bg-muted border-b border-border">
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Año</th>
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">IPC aplicado</th>
+                          <th class="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Valor anual</th>
+                          <th class="px-4 py-2 text-center text-xs font-semibold text-muted-foreground">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-if="!contratos.mantenimiento.indexacion_anual?.length">
-                          <td colspan="4" class="px-4 py-6 text-center text-xs text-gray-400">
+                          <td colspan="4" class="px-4 py-6 text-center text-xs text-muted-foreground">
                             Sin indexación aún — el contrato todavía no cumple un año desde la Fecha de inicio O&amp;M (o falta esa fecha / el valor base).
                           </td>
                         </tr>
                         <tr v-for="fila in (contratos.mantenimiento.indexacion_anual || [])" :key="fila.anio"
-                          class="border-b border-gray-50 hover:bg-amber-50/20 transition-colors"
-                          :class="fila.anio === ANIO_ACTUAL ? 'bg-amber-50/50' : ''">
+                          class="border-b border-border hover:bg-warning/20 transition-colors"
+                          :class="fila.anio === ANIO_ACTUAL ? 'bg-warning/50' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span class="font-mono font-semibold"
-                                :style="fila.anio === ANIO_ACTUAL ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="font-mono font-semibold"
+                               >
                                 {{ fila.anio }}
                               </span>
                               <span v-if="fila.anio === ANIO_ACTUAL"
-                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                                style="background:#fef3c7;color:#d97706">actual</span>
-                              <ArrowLeftIcon class="text-xs size-[1em]" v-if="fila.anio === ANIO_ACTUAL" style="color:#d97706" />
+                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-warning/15 text-warning"
+                               >actual</span>
+                              <ArrowLeftIcon class="size-3 text-warning" v-if="fila.anio === ANIO_ACTUAL" />
                             </div>
                           </td>
                           <td class="px-4 py-2.5">
-                            <span v-if="fila.ipc_aplicado == null" class="text-gray-400 text-xs">— (base)</span>
-                            <span v-else class="font-mono tabular-nums" style="color:#374151">{{ fila.ipc_aplicado }}%</span>
+                            <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
+                            <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                            :style="fila.anio === ANIO_ACTUAL ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                           >
                             {{ formatCOP(fila.valor) }}
                           </td>
                           <td class="px-4 py-2.5 text-center">
                             <span v-if="fila.ipc_aplicado == null || fila.anio < ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#dcfce7;color:#166534">
-                              <CheckIcon class="text-xs size-[1em]" />Pagado
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-success/15 text-success"
+                             >
+                              <CheckIcon class="size-3" />Pagado
                             </span>
                             <span v-else-if="fila.anio === ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#fef3c7;color:#d97706">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-warning/15 text-warning"
+                             >
                               Vigente
                             </span>
                             <span v-else
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#f3f4f6;color:#9ca3af">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                             >
                               Pendiente
                             </span>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 bg-gray-50/60 text-xs text-gray-400">
-                      <ZapIcon class="text-xs size-[1em]" style="color:#f59e0b" />
+                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-border bg-muted/60 text-xs text-muted-foreground">
+                      <ZapIcon class="size-3 text-warning" />
                       Calculado automáticamente desde la Fecha de inicio O&amp;M y el IPC por año.
                     </div>
                   </div>
@@ -222,75 +222,75 @@
               </div>
 
               <!-- Panel MENSUAL -->
-              <div :style="{ overflow: 'hidden', transition: 'max-height 0.35s ease', maxHeight: showIndexacion.mensual ? '800px' : '0px' }">
+              <div :class="showIndexacion.mensual ? 'max-h-200' : 'max-h-0'" class="overflow-hidden transition-all duration-300 ease-in-out">
                 <div class="pt-3">
-                  <div class="rounded-xl border border-amber-200 overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-2.5 bg-amber-50">
-                      <span class="text-xs font-semibold" style="color:#92400e">
-                        <CalculatorIcon class="text-xs mr-1.5 size-[1em]" style="color:#f59e0b" />Indexación mensual O&M
+                  <div class="rounded-xl border border-warning/30 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-warning/10">
+                      <span class="text-xs font-semibold text-warning">
+                        <CalculatorIcon class="mr-1.5 size-3 text-warning" />Indexación mensual O&M
                       </span>
-                      <span class="text-xs text-gray-400">Año vigente: {{ ANIO_ACTUAL }}</span>
+                      <span class="text-xs text-muted-foreground">Año vigente: {{ ANIO_ACTUAL }}</span>
                     </div>
                     <table class="w-full text-sm border-collapse">
                       <thead>
-                        <tr class="bg-gray-50 border-b border-gray-100">
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Año</th>
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">IPC aplicado</th>
-                          <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Valor mensual</th>
-                          <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Estado</th>
+                        <tr class="bg-muted border-b border-border">
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Año</th>
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">IPC aplicado</th>
+                          <th class="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Valor mensual</th>
+                          <th class="px-4 py-2 text-center text-xs font-semibold text-muted-foreground">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-if="!contratos.mantenimiento.indexacion_mensual?.length">
-                          <td colspan="4" class="px-4 py-6 text-center text-xs text-gray-400">
+                          <td colspan="4" class="px-4 py-6 text-center text-xs text-muted-foreground">
                             Sin indexación aún — el contrato todavía no cumple un año desde la Fecha de inicio O&amp;M (o falta esa fecha / el valor base).
                           </td>
                         </tr>
                         <tr v-for="fila in (contratos.mantenimiento.indexacion_mensual || [])" :key="fila.anio"
-                          class="border-b border-gray-50 hover:bg-amber-50/20 transition-colors"
-                          :class="fila.anio === ANIO_ACTUAL ? 'bg-amber-50/50' : ''">
+                          class="border-b border-border hover:bg-warning/20 transition-colors"
+                          :class="fila.anio === ANIO_ACTUAL ? 'bg-warning/50' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span class="font-mono font-semibold"
-                                :style="fila.anio === ANIO_ACTUAL ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="font-mono font-semibold"
+                               >
                                 {{ fila.anio }}
                               </span>
                               <span v-if="fila.anio === ANIO_ACTUAL"
-                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                                style="background:#fef3c7;color:#d97706">actual</span>
-                              <ArrowLeftIcon class="text-xs size-[1em]" v-if="fila.anio === ANIO_ACTUAL" style="color:#d97706" />
+                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-warning/15 text-warning"
+                               >actual</span>
+                              <ArrowLeftIcon class="size-3 text-warning" v-if="fila.anio === ANIO_ACTUAL" />
                             </div>
                           </td>
                           <td class="px-4 py-2.5">
-                            <span v-if="fila.ipc_aplicado == null" class="text-gray-400 text-xs">— (base)</span>
-                            <span v-else class="font-mono tabular-nums" style="color:#374151">{{ fila.ipc_aplicado }}%</span>
+                            <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
+                            <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                            :style="fila.anio === ANIO_ACTUAL ? 'color:#d97706' : 'color:var(--color-unergy-deep)'">
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-warning' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                           >
                             {{ formatCOP(fila.valor) }}
                           </td>
                           <td class="px-4 py-2.5 text-center">
                             <span v-if="fila.ipc_aplicado == null || fila.anio < ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#dcfce7;color:#166534">
-                              <CheckIcon class="text-xs size-[1em]" />Pagado
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-success/15 text-success"
+                             >
+                              <CheckIcon class="size-3" />Pagado
                             </span>
                             <span v-else-if="fila.anio === ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#fef3c7;color:#d97706">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-warning/15 text-warning"
+                             >
                               Vigente
                             </span>
                             <span v-else
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#f3f4f6;color:#9ca3af">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                             >
                               Pendiente
                             </span>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 bg-gray-50/60 text-xs text-gray-400">
-                      <ZapIcon class="text-xs size-[1em]" style="color:#f59e0b" />
+                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-border bg-muted/60 text-xs text-muted-foreground">
+                      <ZapIcon class="size-3 text-warning" />
                       Calculado automáticamente desde la Fecha de inicio O&amp;M y el IPC por año.
                     </div>
                   </div>
@@ -300,15 +300,15 @@
             </div>
           </template>
           <template v-else>
-            <div class="rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                style="background:#fef3c7">
-                <WrenchIcon class="text-xl size-[1em]" style="color:#f59e0b" />
+            <div class="rounded-xl border border-dashed border-warning/30 bg-warning/40 p-10 text-center">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-warning/15"
+               >
+                <WrenchIcon class="size-6 text-warning" />
               </div>
-              <p class="text-sm font-medium text-gray-600 mb-1">Sin contrato de mantenimiento</p>
-              <p class="text-xs text-gray-400 mb-4">Registra el contrato para iniciar el seguimiento de pagos</p>
-              <Button label="Crear contrato" size="small" style="background:#f59e0b;border-color:#f59e0b" @click="openMantenimientoDialog('crear')">
-                <template #icon><PlusIcon class="size-[1em]" /></template>
+              <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de mantenimiento</p>
+              <p class="text-xs text-muted-foreground mb-4">Registra el contrato para iniciar el seguimiento de pagos</p>
+              <Button class="bg-warning border-warning" label="Crear contrato" size="small" @click="openMantenimientoDialog('crear')">
+                <template #icon><PlusIcon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -330,122 +330,122 @@
       <TabPanel>
         <template #header>
           <div class="flex items-center gap-1.5 px-1">
-            <HouseIcon class="text-xs size-[1em]" />
+            <HouseIcon class="size-3" />
             <span>Arriendos</span>
           </div>
         </template>
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.arriendo">
-            <div class="rounded-xl border bg-white p-5" style="border-color:#8b5cf640">
+            <div class="rounded-xl border bg-white p-5 border-primary/25">
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#f5f3ff">
-                    <HouseIcon class="text-sm size-[1em]" style="color:#8b5cf6" />
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/5">
+                    <HouseIcon class="size-4 text-primary" />
                   </div>
                   <div>
-                    <p class="text-xs text-gray-400 leading-none mb-0.5">Contrato de Arriendo</p>
-                    <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">{{ proyectoNombre }}</span>
+                    <p class="text-xs text-muted-foreground leading-none mb-0.5">Contrato de Arriendo</p>
+                    <span class="text-sm font-semibold text-unergy-deep">{{ proyectoNombre }}</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
-                  <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]" class="text-xs">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
+                  <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
                   <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('arriendo')">
-                    <template #icon><PencilIcon class="size-[1em]" /></template>
+                    <template #icon><PencilIcon class="size-4" /></template>
                   </Button>
                 </div>
               </div>
               <!-- Mini-cards -->
               <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                    <UserIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Arrendatario
+                <div class="rounded-lg p-3.5 bg-primary/5 border border-primary/20">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-primary">
+                    <UserIcon class="size-3 text-primary" />Arrendatario
                   </p>
-                  <p class="text-sm font-semibold leading-snug" style="color:#1c1917">{{ contratos.arriendo.contratante_nombre || '—' }}</p>
+                  <p class="text-sm font-semibold leading-snug text-foreground">{{ contratos.arriendo.contratante_nombre || '—' }}</p>
                 </div>
-                <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                    <CalendarIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Fecha de contrato
+                <div class="rounded-lg p-3.5 bg-primary/5 border border-primary/20">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-primary">
+                    <CalendarIcon class="size-3 text-primary" />Fecha de contrato
                   </p>
-                  <p class="text-sm font-semibold" style="color:#1c1917">{{ formatFecha(contratos.arriendo.fecha_firma_contrato) || '—' }}</p>
+                  <p class="text-sm font-semibold text-foreground">{{ formatFecha(contratos.arriendo.fecha_firma_contrato) || '—' }}</p>
                 </div>
                 <!-- Valor anual con indexación -->
-                <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                    <DollarSignIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Valor anual ({{ ANIO_ACTUAL }})
+                <div class="rounded-lg p-3.5 bg-primary/5 border border-primary/20">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-primary">
+                    <DollarSignIcon class="size-3 text-primary" />Valor anual ({{ ANIO_ACTUAL }})
                   </p>
-                  <p class="text-base font-bold" style="color:#7c3aed">
+                  <p class="text-base font-bold text-primary">
                     {{ formatCOP(getValorVigente(contratos.arriendo.indexacion_anual)?.valor ?? contratos.arriendo.tarifa_base) }}
                   </p>
                   <button type="button"
-                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity"
-                    style="background:none;border:none;padding:0;cursor:pointer;color:#8b5cf6"
+                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity bg-transparent border-0 p-0 cursor-pointer text-primary"
+                   
                     @click="showIndexacionArriendo.anual = !showIndexacionArriendo.anual">
-                    <ChevronDownIcon class="text-xs transition-transform duration-200 size-[1em]" :style="showIndexacionArriendo.anual ? 'transform:rotate(180deg)' : ''" />
+                    <ChevronDownIcon :class="showIndexacionArriendo.anual ? 'rotate-180' : ''" class="transition-transform duration-200 size-3" />
                     {{ showIndexacionArriendo.anual ? 'Ocultar' : 'Ver indexación' }}
                   </button>
                 </div>
                 <!-- Valor mensual -->
-                <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                    <CalculatorIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Valor mensual ({{ ANIO_ACTUAL }})
+                <div class="rounded-lg p-3.5 bg-primary/5 border border-primary/20">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-primary">
+                    <CalculatorIcon class="size-3 text-primary" />Valor mensual ({{ ANIO_ACTUAL }})
                   </p>
-                  <p class="text-base font-bold" style="color:#7c3aed">
+                  <p class="text-base font-bold text-primary">
                     {{ formatCOP(getValorVigente(contratos.arriendo.indexacion_mensual)?.valor ?? contratos.arriendo.tarifa_mensual ?? (contratos.arriendo.tarifa_base != null ? Math.round(contratos.arriendo.tarifa_base / 12) : null)) }}
                   </p>
                   <button type="button"
-                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity"
-                    style="background:none;border:none;padding:0;cursor:pointer;color:#8b5cf6"
+                    class="mt-2 flex items-center gap-1 text-xs font-medium hover:opacity-75 transition-opacity bg-transparent border-0 p-0 cursor-pointer text-primary"
+                   
                     @click="showIndexacionArriendo.mensual = !showIndexacionArriendo.mensual">
-                    <ChevronDownIcon class="text-xs transition-transform duration-200 size-[1em]" :style="showIndexacionArriendo.mensual ? 'transform:rotate(180deg)' : ''" />
+                    <ChevronDownIcon :class="showIndexacionArriendo.mensual ? 'rotate-180' : ''" class="transition-transform duration-200 size-3" />
                     {{ showIndexacionArriendo.mensual ? 'Ocultar' : 'Ver indexación' }}
                   </button>
                 </div>
                 <!-- Contrato en Drive -->
-                <div class="rounded-lg p-3.5" style="background:#f5f3ff;border:1px solid #ddd6fe">
-                  <p class="text-xs mb-1.5 flex items-center gap-1.5" style="color:#5b21b6">
-                    <FileTextIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Contrato en Drive
+                <div class="rounded-lg p-3.5 bg-primary/5 border border-primary/20">
+                  <p class="text-xs mb-1.5 flex items-center gap-1.5 text-primary">
+                    <FileTextIcon class="size-3 text-primary" />Contrato en Drive
                   </p>
                   <a v-if="contratos.arriendo.enlace_drive?.startsWith('http')"
                      :href="contratos.arriendo.enlace_drive" target="_blank" rel="noopener"
-                     class="text-sm font-semibold flex items-center gap-1.5 hover:underline" style="color:#8b5cf6">
-                    <ExternalLinkIcon class="text-xs size-[1em]" />Ver contrato
+                     class="text-sm font-semibold flex items-center gap-1.5 hover:underline text-primary">
+                    <ExternalLinkIcon class="size-3" />Ver contrato
                   </a>
-                  <span v-else class="text-sm text-gray-400">Sin enlace</span>
+                  <span v-else class="text-sm text-muted-foreground">Sin enlace</span>
                 </div>
               </div>
 
               <!-- Sección Arrendadores -->
-              <div class="rounded-xl border mt-3" style="border-color:#ddd6fe">
-                <div class="flex items-center justify-between px-4 py-2.5" style="background:#f5f3ff">
-                  <span class="text-xs font-semibold flex items-center gap-1.5" style="color:#5b21b6">
-                    <UsersIcon class="text-xs size-[1em]" style="color:#8b5cf6" />Arrendadores
+              <div class="rounded-xl border mt-3 border-primary/20">
+                <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+                  <span class="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                    <UsersIcon class="size-3 text-primary" />Arrendadores
                   </span>
-                  <Button label="Agregar arrendador" size="small" text style="color:#8b5cf6" @click="openArrendadorDialog('crear')">
-                    <template #icon><PlusIcon class="size-[1em]" /></template>
+                  <Button class="text-primary" label="Agregar arrendador" size="small" text @click="openArrendadorDialog('crear')">
+                    <template #icon><PlusIcon class="size-4" /></template>
                   </Button>
                 </div>
-                <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-gray-400">
+                <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
                   Sin arrendadores registrados.
                 </div>
-                <div v-else class="divide-y divide-gray-100">
+                <div v-else class="divide-y divide-border">
                   <div v-for="a in arrendadores" :key="a.id"
                     class="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-semibold" style="color:#1c1917">{{ a.nombre }}</span>
-                      <span class="text-sm font-mono tabular-nums" style="color:#7c3aed">{{ formatCOP(a.valor_base) }}</span>
-                      <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                        style="background:#ede9fe;color:#7c3aed">Responsable IVA</span>
-                      <span v-if="a.activo === false" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                        style="background:#f3f4f6;color:#9ca3af">Inactivo</span>
+                      <span class="text-sm font-semibold text-foreground">{{ a.nombre }}</span>
+                      <span class="text-sm font-mono tabular-nums text-primary">{{ formatCOP(a.valor_base) }}</span>
+                      <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary"
+                       >Responsable IVA</span>
+                      <span v-if="a.activo === false" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-muted text-muted-foreground"
+                       >Inactivo</span>
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                       <Button size="small" text severity="secondary" @click="openArrendadorDialog('editar', a)">
-                        <template #icon><PencilIcon class="size-[1em]" /></template>
+                        <template #icon><PencilIcon class="size-4" /></template>
                       </Button>
                       <Button size="small" text severity="danger" @click="eliminarArrendador(a)">
-                        <template #icon><Trash2Icon class="size-[1em]" /></template>
+                        <template #icon><Trash2Icon class="size-4" /></template>
                       </Button>
                     </div>
                   </div>
@@ -453,76 +453,76 @@
               </div>
 
               <!-- Panel indexación ANUAL por arrendador -->
-              <div v-for="a in arrendadores" :key="'anual-' + a.id"
-                :style="{ overflow: 'hidden', transition: 'max-height 0.35s ease', maxHeight: showIndexacionArriendo.anual ? '800px' : '0px' }">
+              <div :class="showIndexacionArriendo.anual ? 'max-h-200' : 'max-h-0'" class="overflow-hidden transition-all duration-300 ease-in-out" v-for="a in arrendadores" :key="'anual-' + a.id"
+               >
                 <div class="pt-3">
-                  <div class="rounded-xl border overflow-hidden" style="border-color:#ddd6fe">
-                    <div class="flex items-center justify-between px-4 py-2.5" style="background:#f5f3ff">
-                      <span class="text-xs font-semibold" style="color:#5b21b6">
-                        <DollarSignIcon class="text-xs mr-1.5 size-[1em]" style="color:#8b5cf6" />Indexación anual de arriendo — {{ a.nombre }}
+                  <div class="rounded-xl border overflow-hidden border-primary/20">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+                      <span class="text-xs font-semibold text-primary">
+                        <DollarSignIcon class="mr-1.5 size-3 text-primary" />Indexación anual de arriendo — {{ a.nombre }}
                       </span>
-                      <span class="text-xs text-gray-400">Año vigente: {{ ANIO_ACTUAL }}</span>
+                      <span class="text-xs text-muted-foreground">Año vigente: {{ ANIO_ACTUAL }}</span>
                     </div>
                     <table class="w-full text-sm border-collapse">
                       <thead>
-                        <tr class="bg-gray-50 border-b border-gray-100">
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Año</th>
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">IPC aplicado</th>
-                          <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Valor anual</th>
-                          <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Estado</th>
+                        <tr class="bg-muted border-b border-border">
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Año</th>
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">IPC aplicado</th>
+                          <th class="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Valor anual</th>
+                          <th class="px-4 py-2 text-center text-xs font-semibold text-muted-foreground">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-if="!a.indexacion_anual?.length">
-                          <td colspan="4" class="px-4 py-6 text-center text-xs text-gray-400">
+                          <td colspan="4" class="px-4 py-6 text-center text-xs text-muted-foreground">
                             Sin indexación aún — el contrato todavía no cumple un año desde la Fecha de contrato (o falta esa fecha / el valor base).
                           </td>
                         </tr>
                         <tr v-for="fila in (a.indexacion_anual || [])" :key="fila.anio"
-                          class="border-b border-gray-50 hover:bg-violet-50/20 transition-colors"
-                          :class="fila.anio === ANIO_ACTUAL ? 'bg-violet-50/40' : ''">
+                          class="border-b border-border hover:bg-primary/20 transition-colors"
+                          :class="fila.anio === ANIO_ACTUAL ? 'bg-primary/40' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span class="font-mono font-semibold"
-                                :style="fila.anio === ANIO_ACTUAL ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="font-mono font-semibold"
+                               >
                                 {{ fila.anio }}
                               </span>
                               <span v-if="fila.anio === ANIO_ACTUAL"
-                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                                style="background:#ede9fe;color:#7c3aed">actual</span>
-                              <ArrowLeftIcon class="text-xs size-[1em]" v-if="fila.anio === ANIO_ACTUAL" style="color:#7c3aed" />
+                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary"
+                               >actual</span>
+                              <ArrowLeftIcon class="size-3 text-primary" v-if="fila.anio === ANIO_ACTUAL" />
                             </div>
                           </td>
                           <td class="px-4 py-2.5">
-                            <span v-if="fila.ipc_aplicado == null" class="text-gray-400 text-xs">— (base)</span>
-                            <span v-else class="font-mono tabular-nums" style="color:#374151">{{ fila.ipc_aplicado }}%</span>
+                            <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
+                            <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                            :style="fila.anio === ANIO_ACTUAL ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                           >
                             {{ formatCOP(fila.valor) }}
                           </td>
                           <td class="px-4 py-2.5 text-center">
                             <span v-if="fila.ipc_aplicado == null || fila.anio < ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#dcfce7;color:#166534">
-                              <CheckIcon class="text-xs size-[1em]" />Pagado
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-success/15 text-success"
+                             >
+                              <CheckIcon class="size-3" />Pagado
                             </span>
                             <span v-else-if="fila.anio === ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#ede9fe;color:#7c3aed">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+                             >
                               Vigente
                             </span>
                             <span v-else
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#f3f4f6;color:#9ca3af">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                             >
                               Pendiente
                             </span>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 bg-gray-50/60 text-xs text-gray-400">
-                      <ZapIcon class="text-xs size-[1em]" style="color:#8b5cf6" />
+                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-border bg-muted/60 text-xs text-muted-foreground">
+                      <ZapIcon class="size-3 text-primary" />
                       Calculado automáticamente desde la Fecha de contrato y el IPC por año.
                     </div>
                   </div>
@@ -530,76 +530,76 @@
               </div>
 
               <!-- Panel indexación MENSUAL por arrendador -->
-              <div v-for="a in arrendadores" :key="'mensual-' + a.id"
-                :style="{ overflow: 'hidden', transition: 'max-height 0.35s ease', maxHeight: showIndexacionArriendo.mensual ? '800px' : '0px' }">
+              <div :class="showIndexacionArriendo.mensual ? 'max-h-200' : 'max-h-0'" class="overflow-hidden transition-all duration-300 ease-in-out" v-for="a in arrendadores" :key="'mensual-' + a.id"
+               >
                 <div class="pt-3">
-                  <div class="rounded-xl border overflow-hidden" style="border-color:#ddd6fe">
-                    <div class="flex items-center justify-between px-4 py-2.5" style="background:#f5f3ff">
-                      <span class="text-xs font-semibold" style="color:#5b21b6">
-                        <CalculatorIcon class="text-xs mr-1.5 size-[1em]" style="color:#8b5cf6" />Indexación mensual de arriendo — {{ a.nombre }}
+                  <div class="rounded-xl border overflow-hidden border-primary/20">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+                      <span class="text-xs font-semibold text-primary">
+                        <CalculatorIcon class="mr-1.5 size-3 text-primary" />Indexación mensual de arriendo — {{ a.nombre }}
                       </span>
-                      <span class="text-xs text-gray-400">Año vigente: {{ ANIO_ACTUAL }}</span>
+                      <span class="text-xs text-muted-foreground">Año vigente: {{ ANIO_ACTUAL }}</span>
                     </div>
                     <table class="w-full text-sm border-collapse">
                       <thead>
-                        <tr class="bg-gray-50 border-b border-gray-100">
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Año</th>
-                          <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">IPC aplicado</th>
-                          <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500">Valor mensual</th>
-                          <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500">Estado</th>
+                        <tr class="bg-muted border-b border-border">
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Año</th>
+                          <th class="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">IPC aplicado</th>
+                          <th class="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Valor mensual</th>
+                          <th class="px-4 py-2 text-center text-xs font-semibold text-muted-foreground">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-if="!a.indexacion_mensual?.length">
-                          <td colspan="4" class="px-4 py-6 text-center text-xs text-gray-400">
+                          <td colspan="4" class="px-4 py-6 text-center text-xs text-muted-foreground">
                             Sin indexación aún — el contrato todavía no cumple un año desde la Fecha de contrato (o falta esa fecha / el valor base).
                           </td>
                         </tr>
                         <tr v-for="fila in (a.indexacion_mensual || [])" :key="fila.anio"
-                          class="border-b border-gray-50 hover:bg-violet-50/20 transition-colors"
-                          :class="fila.anio === ANIO_ACTUAL ? 'bg-violet-50/40' : ''">
+                          class="border-b border-border hover:bg-primary/20 transition-colors"
+                          :class="fila.anio === ANIO_ACTUAL ? 'bg-primary/40' : ''">
                           <td class="px-4 py-2.5">
                             <div class="flex items-center gap-1.5">
-                              <span class="font-mono font-semibold"
-                                :style="fila.anio === ANIO_ACTUAL ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
+                              <span :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="font-mono font-semibold"
+                               >
                                 {{ fila.anio }}
                               </span>
                               <span v-if="fila.anio === ANIO_ACTUAL"
-                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none"
-                                style="background:#ede9fe;color:#7c3aed">actual</span>
-                              <ArrowLeftIcon class="text-xs size-[1em]" v-if="fila.anio === ANIO_ACTUAL" style="color:#7c3aed" />
+                                class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary"
+                               >actual</span>
+                              <ArrowLeftIcon class="size-3 text-primary" v-if="fila.anio === ANIO_ACTUAL" />
                             </div>
                           </td>
                           <td class="px-4 py-2.5">
-                            <span v-if="fila.ipc_aplicado == null" class="text-gray-400 text-xs">— (base)</span>
-                            <span v-else class="font-mono tabular-nums" style="color:#374151">{{ fila.ipc_aplicado }}%</span>
+                            <span v-if="fila.ipc_aplicado == null" class="text-muted-foreground text-xs">— (base)</span>
+                            <span v-else class="font-mono tabular-nums text-foreground">{{ fila.ipc_aplicado }}%</span>
                           </td>
-                          <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                            :style="fila.anio === ANIO_ACTUAL ? 'color:#7c3aed' : 'color:var(--color-unergy-deep)'">
+                          <td :class="fila.anio === ANIO_ACTUAL ? 'text-primary' : 'text-unergy-deep'" class="px-4 py-2.5 text-right font-semibold tabular-nums"
+                           >
                             {{ formatCOP(fila.valor) }}
                           </td>
                           <td class="px-4 py-2.5 text-center">
                             <span v-if="fila.ipc_aplicado == null || fila.anio < ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#dcfce7;color:#166534">
-                              <CheckIcon class="text-xs size-[1em]" />Pagado
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-success/15 text-success"
+                             >
+                              <CheckIcon class="size-3" />Pagado
                             </span>
                             <span v-else-if="fila.anio === ANIO_ACTUAL"
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#ede9fe;color:#7c3aed">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary"
+                             >
                               Vigente
                             </span>
                             <span v-else
-                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                              style="background:#f3f4f6;color:#9ca3af">
+                              class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
+                             >
                               Pendiente
                             </span>
                           </td>
                         </tr>
                       </tbody>
                     </table>
-                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-gray-100 bg-gray-50/60 text-xs text-gray-400">
-                      <ZapIcon class="text-xs size-[1em]" style="color:#8b5cf6" />
+                    <div class="flex items-center gap-1.5 px-4 py-2 border-t border-border bg-muted/60 text-xs text-muted-foreground">
+                      <ZapIcon class="size-3 text-primary" />
                       Calculado automáticamente desde la Fecha de contrato y el IPC por año.
                     </div>
                   </div>
@@ -609,9 +609,9 @@
             </div>
 
             <!-- Dialog Arrendador (crear/editar) -->
-            <Dialog v-model:visible="arrendadorDialog.visible" modal
+            <Dialog class="w-104" v-model:visible="arrendadorDialog.visible" modal
               :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
-              style="width: 26rem">
+             >
               <div class="flex flex-col gap-3 pt-2">
                 <!-- El arrendador FACTURA, así que necesita NIT y razón social:
                      por eso se vincula a un cliente en vez de escribirse. -->
@@ -622,32 +622,32 @@
                   requerido
                 />
                 <div>
-                  <label class="text-xs font-medium text-gray-600">Valor base</label>
+                  <label class="text-xs font-medium text-muted-foreground">Valor base</label>
                   <InputNumber v-model="arrendadorDialog.form.valor_base" class="w-full" mode="currency"
                     currency="COP" locale="es-CO" :maxFractionDigits="0" />
                 </div>
                 <div>
-                  <label class="text-xs font-medium text-gray-600">Responsable IVA</label>
+                  <label class="text-xs font-medium text-muted-foreground">Responsable IVA</label>
                   <Select v-model="arrendadorDialog.form.responsable_iva"
                     :options="[{label:'Sí',value:true},{label:'No',value:false}]"
                     optionLabel="label" optionValue="value" class="w-full" />
                 </div>
                 <div>
-                  <label class="text-xs font-medium text-gray-600">Activo</label>
+                  <label class="text-xs font-medium text-muted-foreground">Activo</label>
                   <Select v-model="arrendadorDialog.form.activo"
                     :options="[{label:'Sí',value:true},{label:'No',value:false}]"
                     optionLabel="label" optionValue="value" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-gray-600">Anticipo pagado desde</label>
+                  <label class="text-xs font-medium text-muted-foreground">Anticipo pagado desde</label>
                   <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-gray-600">Anticipo pagado hasta</label>
+                  <label class="text-xs font-medium text-muted-foreground">Anticipo pagado hasta</label>
                   <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-gray-600">Observaciones</label>
+                  <label class="text-xs font-medium text-muted-foreground">Observaciones</label>
                   <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" class="w-full" />
                 </div>
               </div>
@@ -658,15 +658,15 @@
             </Dialog>
           </template>
           <template v-else>
-            <div class="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                style="background:#f5f3ff">
-                <HouseIcon class="text-xl size-[1em]" style="color:#8b5cf6" />
+            <div class="rounded-xl border border-dashed border-primary/30 bg-primary/40 p-10 text-center">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-primary/5"
+               >
+                <HouseIcon class="size-6 text-primary" />
               </div>
-              <p class="text-sm font-medium text-gray-600 mb-1">Sin contrato de arriendo registrado</p>
-              <p class="text-xs text-gray-400 mb-4">No se encontró contrato de arriendo para este proyecto</p>
-              <Button label="Crear contrato" size="small" style="background:#8b5cf6;border-color:#8b5cf6" @click="openWizard('arriendo')">
-                <template #icon><PlusIcon class="size-[1em]" /></template>
+              <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de arriendo registrado</p>
+              <p class="text-xs text-muted-foreground mb-4">No se encontró contrato de arriendo para este proyecto</p>
+              <Button class="bg-primary border-primary" label="Crear contrato" size="small" @click="openWizard('arriendo')">
+                <template #icon><PlusIcon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -678,27 +678,27 @@
       <TabPanel>
         <template #header>
           <div class="flex items-center gap-1.5 px-1">
-            <WifiIcon class="text-xs size-[1em]" />
+            <WifiIcon class="size-3" />
             <span>Internet</span>
           </div>
         </template>
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.internet">
-            <div class="rounded-xl border bg-white p-5" style="border-color:#06b6d440">
+            <div class="rounded-xl border bg-white p-5 border-chart-2/25">
               <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#ecfeff">
-                    <WifiIcon class="text-sm size-[1em]" style="color:#06b6d4" />
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-chart-2/10">
+                    <WifiIcon class="size-4 text-chart-2" />
                   </div>
-                  <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Servicio de Internet</span>
-                  <GBadge :color="CONTRATO_SEVERITY[contratos.internet.estado]" class="text-xs">{{ CONTRATO_LABELS[contratos.internet.estado] }}</GBadge>
+                  <span class="text-sm font-semibold text-unergy-deep">Servicio de Internet</span>
+                  <GBadge :color="CONTRATO_SEVERITY[contratos.internet.estado]">{{ CONTRATO_LABELS[contratos.internet.estado] }}</GBadge>
                 </div>
                 <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('internet')">
-                  <template #icon><PencilIcon class="size-[1em]" /></template>
+                  <template #icon><PencilIcon class="size-4" /></template>
                 </Button>
-                <Button label="Nuevo servicio" size="small" outlined style="border-color:#06b6d4;color:#06b6d4" @click="openWizard('internet')">
-                  <template #icon><PlusIcon class="size-[1em]" /></template>
+                <Button class="border-chart-2 text-chart-2" label="Nuevo servicio" size="small" outlined @click="openWizard('internet')">
+                  <template #icon><PlusIcon class="size-4" /></template>
                 </Button>
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
@@ -728,24 +728,24 @@
 
               <!-- Ubicación del servicio -->
               <div v-if="contratos.internet.ubicacion_lat != null && contratos.internet.ubicacion_lng != null"
-                class="mt-5 pt-4 border-t border-gray-100">
-                <p class="text-xs font-medium mb-2" style="color:#9b89b5">
+                class="mt-5 pt-4 border-t border-border">
+                <p class="text-xs font-medium mb-2 text-muted-foreground">
                   Ubicación: {{ contratos.internet.ubicacion_lat }},{{ contratos.internet.ubicacion_lng }}
                 </p>
-                <div ref="internetMapEl" class="rounded-md overflow-hidden" style="height:200px; background:#e5e3df"></div>
+                <div ref="internetMapEl" class="rounded-md overflow-hidden h-50 bg-muted"></div>
               </div>
             </div>
           </template>
           <template v-else>
-            <div class="rounded-xl border border-dashed border-cyan-200 bg-cyan-50/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3"
-                style="background:#ecfeff">
-                <WifiIcon class="text-xl size-[1em]" style="color:#06b6d4" />
+            <div class="rounded-xl border border-dashed border-chart-2/30 bg-chart-2/40 p-10 text-center">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-chart-2/10"
+               >
+                <WifiIcon class="size-6 text-chart-2" />
               </div>
-              <p class="text-sm font-medium text-gray-600 mb-1">Sin servicio de internet registrado</p>
-              <p class="text-xs text-gray-400 mb-4">Registra el proveedor para iniciar el seguimiento de pagos</p>
-              <Button label="Registrar servicio" size="small" style="background:#06b6d4;border-color:#06b6d4" @click="openWizard('internet')">
-                <template #icon><PlusIcon class="size-[1em]" /></template>
+              <p class="text-sm font-medium text-muted-foreground mb-1">Sin servicio de internet registrado</p>
+              <p class="text-xs text-muted-foreground mb-4">Registra el proveedor para iniciar el seguimiento de pagos</p>
+              <Button class="bg-chart-2 border-chart-2" label="Registrar servicio" size="small" @click="openWizard('internet')">
+                <template #icon><PlusIcon class="size-4" /></template>
               </Button>
             </div>
           </template>
@@ -755,12 +755,12 @@
     </TabView>
 
     <!-- ── Dialog Mantenimiento (crear / editar) ─────────────────────────────── -->
-    <Dialog v-model:visible="dialogMant.visible" modal :style="{ width: '520px' }"
+    <Dialog class="w-130" v-model:visible="dialogMant.visible" modal
       :breakpoints="{ '560px': '95vw' }">
       <template #header>
         <div class="flex items-center gap-2">
-          <WrenchIcon class="text-sm size-[1em]" style="color:#f59e0b" />
-          <span class="font-semibold text-sm" style="color:var(--color-unergy-deep)">
+          <WrenchIcon class="size-4 text-warning" />
+          <span class="font-semibold text-sm text-unergy-deep">
             {{ dialogMant.modo === 'crear' ? 'Crear contrato de mantenimiento' : 'Editar contrato de mantenimiento' }}
           </span>
         </div>
@@ -775,7 +775,7 @@
               label="Contratante"
               requerido
             />
-            <p v-if="dialogMant.errores.contratante_nombre" class="text-xs text-red-400">{{ dialogMant.errores.contratante_nombre }}</p>
+            <p v-if="dialogMant.errores.contratante_nombre" class="text-xs text-destructive">{{ dialogMant.errores.contratante_nombre }}</p>
           </div>
           <div class="flex flex-col gap-1">
             <SelectorCliente
@@ -784,73 +784,73 @@
               label="Prestador"
               requerido
             />
-            <p v-if="dialogMant.errores.prestador_nombre" class="text-xs text-red-400">{{ dialogMant.errores.prestador_nombre }}</p>
+            <p v-if="dialogMant.errores.prestador_nombre" class="text-xs text-destructive">{{ dialogMant.errores.prestador_nombre }}</p>
           </div>
         </div>
         <!-- Fecha / Estado -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Fecha de inicio O&amp;M <span class="text-red-400">*</span></label>
+            <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M <span class="text-destructive">*</span></label>
             <DatePicker v-model="dialogMant.form.fecha_inicio_om" dateFormat="yy-mm-dd"
               class="w-full" showClear placeholder="aaaa-mm-dd" />
-            <p class="text-xs text-gray-400">Es la fecha que Costos usa para indexar la tarifa.</p>
-            <p v-if="dialogMant.errores.fecha_inicio_om" class="text-xs text-red-400">{{ dialogMant.errores.fecha_inicio_om }}</p>
+            <p class="text-xs text-muted-foreground">Es la fecha que Costos usa para indexar la tarifa.</p>
+            <p v-if="dialogMant.errores.fecha_inicio_om" class="text-xs text-destructive">{{ dialogMant.errores.fecha_inicio_om }}</p>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Estado <span class="text-red-400">*</span></label>
+            <label class="text-xs font-medium text-muted-foreground">Estado <span class="text-destructive">*</span></label>
             <Select v-model="dialogMant.form.estado" :options="ESTADOS_MANT"
               optionLabel="label" optionValue="value" class="w-full" />
-            <p v-if="dialogMant.errores.estado" class="text-xs text-red-400">{{ dialogMant.errores.estado }}</p>
+            <p v-if="dialogMant.errores.estado" class="text-xs text-destructive">{{ dialogMant.errores.estado }}</p>
           </div>
         </div>
         <!-- Fecha de suscripción (informativa; no interviene en la indexación) -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Fecha de suscripción del contrato</label>
+            <label class="text-xs font-medium text-muted-foreground">Fecha de suscripción del contrato</label>
             <DatePicker v-model="dialogMant.form.fecha_firma_contrato" dateFormat="yy-mm-dd"
               class="w-full" showClear placeholder="aaaa-mm-dd" />
-            <p class="text-xs text-gray-400">Solo informativa. La indexación usa la Fecha de inicio O&amp;M.</p>
+            <p class="text-xs text-muted-foreground">Solo informativa. La indexación usa la Fecha de inicio O&amp;M.</p>
           </div>
         </div>
         <!-- Periodicidad de cobro -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Periodicidad de cobro <span class="text-red-400">*</span></label>
+            <label class="text-xs font-medium text-muted-foreground">Periodicidad de cobro <span class="text-destructive">*</span></label>
             <Select v-model="dialogMant.form.periodicidad_pago" :options="PERIODICIDADES"
               optionLabel="label" optionValue="value" class="w-full" placeholder="Selecciona…" />
-            <p class="text-xs text-gray-400">Define en qué meses se cobra en el panel de Mantenimiento.</p>
+            <p class="text-xs text-muted-foreground">Define en qué meses se cobra en el panel de Mantenimiento.</p>
           </div>
         </div>
         <!-- Valor anual / Valor mensual -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Valor O&amp;M Anual (BASE) <span class="text-red-400">*</span></label>
+            <label class="text-xs font-medium text-muted-foreground">Valor O&amp;M Anual (BASE) <span class="text-destructive">*</span></label>
             <InputNumber v-model="dialogMant.form.tarifa_base"
               mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
               class="w-full" placeholder="$ 0"
               @update:modelValue="v => { if (v != null) dialogMant.form.tarifa_mensual = Math.round(v / 12) }" />
-            <p v-if="dialogMant.errores.tarifa_base" class="text-xs text-red-400">{{ dialogMant.errores.tarifa_base }}</p>
+            <p v-if="dialogMant.errores.tarifa_base" class="text-xs text-destructive">{{ dialogMant.errores.tarifa_base }}</p>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Valor mensual <span class="text-red-400">*</span></label>
+            <label class="text-xs font-medium text-muted-foreground">Valor mensual <span class="text-destructive">*</span></label>
             <InputNumber v-model="dialogMant.form.tarifa_mensual"
               mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
               class="w-full" placeholder="$ 0" />
-            <p class="text-xs text-gray-400">Sugerido: Valor Anual ÷ 12</p>
+            <p class="text-xs text-muted-foreground">Sugerido: Valor Anual ÷ 12</p>
           </div>
         </div>
         <!-- Enlace Drive -->
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Enlace del contrato en Drive</label>
+          <label class="text-xs font-medium text-muted-foreground">Enlace del contrato en Drive</label>
           <InputText v-model="dialogMant.form.enlace_drive" class="w-full"
             placeholder="https://drive.google.com/…" />
-          <p v-if="dialogMant.errores.enlace_drive" class="text-xs text-red-400">{{ dialogMant.errores.enlace_drive }}</p>
+          <p v-if="dialogMant.errores.enlace_drive" class="text-xs text-destructive">{{ dialogMant.errores.enlace_drive }}</p>
         </div>
       </div>
       <template #footer>
         <Button label="Cancelar" severity="secondary" text @click="dialogMant.visible = false" />
-        <Button :label="dialogMant.modo === 'crear' ? 'Crear contrato' : 'Guardar cambios'" :loading="guardandoMant" style="background:#f59e0b;border-color:#f59e0b" @click="saveMantenimiento">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+        <Button class="bg-warning border-warning" :label="dialogMant.modo === 'crear' ? 'Crear contrato' : 'Guardar cambios'" :loading="guardandoMant" @click="saveMantenimiento">
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </template>
     </Dialog>
@@ -866,12 +866,12 @@
     />
 
     <!-- ── Dialog editar contrato ───────────────────────────────────────────── -->
-    <Dialog v-model:visible="dialogEdit.visible" modal :style="{ width: '480px' }"
+    <Dialog class="w-120" v-model:visible="dialogEdit.visible" modal
       :breakpoints="{ '520px': '95vw' }">
       <template #header>
         <div class="flex items-center gap-2">
-          <PencilIcon class="text-sm size-[1em]" :style="`color:${DIALOG_EDIT_COLOR[dialogEdit.tipo]}`" />
-          <span class="font-semibold text-sm" style="color:var(--color-unergy-deep)">
+          <PencilIcon class="size-4" :class="DIALOG_EDIT_TEXT[dialogEdit.tipo]" />
+          <span class="font-semibold text-sm text-unergy-deep">
             Editar — {{ DIALOG_EDIT_LABEL[dialogEdit.tipo] }}
           </span>
         </div>
@@ -879,26 +879,26 @@
       <div class="space-y-4 pt-1">
         <div class="grid grid-cols-2 gap-4">
           <div v-if="dialogEdit.tipo === 'mantenimiento'" class="col-span-2 md:col-span-1 flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Fecha de inicio O&amp;M</label>
+            <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M</label>
             <DatePicker v-model="dialogEdit.form.fecha_inicio"
               dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
           </div>
           <template v-else-if="dialogEdit.tipo === 'arriendo'">
             <div class="col-span-2 md:col-span-1 flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Fecha de inicio O&amp;M</label>
+              <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M</label>
               <DatePicker v-model="dialogEdit.form.fecha_inicio_om"
                 dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
-              <p class="text-xs text-gray-400">Solo informativa; no interviene en la indexación.</p>
+              <p class="text-xs text-muted-foreground">Solo informativa; no interviene en la indexación.</p>
             </div>
             <div class="col-span-2 md:col-span-1 flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Fecha de contrato</label>
+              <label class="text-xs font-medium text-muted-foreground">Fecha de contrato</label>
               <DatePicker v-model="dialogEdit.form.fecha_firma_contrato"
                 dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
-              <p class="text-xs text-gray-400">Fecha base para la indexación en Costos.</p>
+              <p class="text-xs text-muted-foreground">Fecha base para la indexación en Costos.</p>
             </div>
           </template>
           <div v-if="dialogEdit.tipo !== 'internet'" class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ dialogEdit.tipo === 'mantenimiento' ? 'Valor O&M Anual BASE (COP)' : 'Valor anual BASE (COP)' }}
             </label>
             <InputNumber v-model="dialogEdit.form.tarifa_base"
@@ -909,86 +909,86 @@
         <template v-if="dialogEdit.tipo === 'internet'">
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Plan de datos</label>
+              <label class="text-xs font-medium text-muted-foreground">Plan de datos</label>
               <InputText v-model="dialogEdit.form.plan_datos_gb" class="w-full" placeholder="50 GB / Ilimitado" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Velocidad contratada</label>
+              <label class="text-xs font-medium text-muted-foreground">Velocidad contratada</label>
               <InputNumber v-model="dialogEdit.form.velocidad_mbps" suffix=" Mbps" :useGrouping="false" class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">Tipo de conexión</label>
+            <label class="text-xs font-medium text-muted-foreground">Tipo de conexión</label>
             <Select v-model="dialogEdit.form.tipo_conexion"
               :options="[{label:'Starlink',value:'Starlink'},{label:'Fibra',value:'Fibra'},{label:'4G',value:'4G'},{label:'Otro',value:'Otro'}]"
               optionLabel="label" optionValue="value" editable placeholder="Selecciona…" class="w-full" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Línea de servicio</label>
+              <label class="text-xs font-medium text-muted-foreground">Línea de servicio</label>
               <InputText v-model="dialogEdit.form.linea_servicio" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">ID del router</label>
+              <label class="text-xs font-medium text-muted-foreground">ID del router</label>
               <InputText v-model="dialogEdit.form.id_router" class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Número de kit</label>
+              <label class="text-xs font-medium text-muted-foreground">Número de kit</label>
               <InputText v-model="dialogEdit.form.numero_kit" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Latencia</label>
+              <label class="text-xs font-medium text-muted-foreground">Latencia</label>
               <InputNumber v-model="dialogEdit.form.latencia_ms" suffix=" ms" :useGrouping="false" class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Seguridad del wifi</label>
+              <label class="text-xs font-medium text-muted-foreground">Seguridad del wifi</label>
               <Select v-model="dialogEdit.form.wifi_seguridad"
                 :options="[{label:'WPA2',value:'WPA2'},{label:'WPA3',value:'WPA3'},{label:'WPA2/WPA3',value:'WPA2/WPA3'},{label:'WPA3-OWE',value:'WPA3-OWE'},{label:'Remoto RADIUS',value:'Remoto RADIUS'},{label:'A bordo RADIUS',value:'A bordo RADIUS'},{label:'Abierta',value:'Abierta'}]"
                 optionLabel="label" optionValue="value" showClear placeholder="Selecciona…" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-gray-600">Contraseña wifi</label>
+              <label class="text-xs font-medium text-muted-foreground">Contraseña wifi</label>
               <InputText v-model="dialogEdit.form.wifi_password" class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">
+            <label class="text-xs font-medium text-muted-foreground">
               Ubicación del servicio
-              <span class="text-gray-400 font-normal">— haz clic en el mapa para ubicarlo</span>
+              <span class="text-muted-foreground font-normal">— haz clic en el mapa para ubicarlo</span>
             </label>
-            <div ref="dialogEditMapEl" class="rounded-md overflow-hidden" style="height:200px; background:#e5e3df"></div>
+            <div ref="dialogEditMapEl" class="rounded-md overflow-hidden h-50 bg-muted"></div>
           </div>
         </template>
         <div v-if="dialogEdit.tipo === 'arriendo'" class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Periodicidad de cobro</label>
+          <label class="text-xs font-medium text-muted-foreground">Periodicidad de cobro</label>
           <Select v-model="dialogEdit.form.periodicidad_pago" :options="PERIODICIDADES"
             optionLabel="label" optionValue="value" class="w-full" placeholder="Selecciona…" />
-          <p class="text-xs text-gray-400">Define en qué meses se cobra en el panel de Costos.</p>
+          <p class="text-xs text-muted-foreground">Define en qué meses se cobra en el panel de Costos.</p>
         </div>
         <div v-if="dialogEdit.tipo === 'arriendo'" class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">¿Responsable de IVA?</label>
+          <label class="text-xs font-medium text-muted-foreground">¿Responsable de IVA?</label>
           <Select v-model="dialogEdit.form.responsable_iva" :options="[{label:'Sí',value:true},{label:'No',value:false}]"
             optionLabel="label" optionValue="value" class="w-full" />
         </div>
         <div v-if="dialogEdit.tipo !== 'internet'" class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Estado del pago</label>
+          <label class="text-xs font-medium text-muted-foreground">Estado del pago</label>
           <Select v-model="dialogEdit.form.estado_pago" :options="ESTADO_PAGO_OPCIONES"
             optionLabel="label" optionValue="value" placeholder="Sin definir" showClear class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Enlace en Drive</label>
+          <label class="text-xs font-medium text-muted-foreground">Enlace en Drive</label>
           <InputText v-model="dialogEdit.form.enlace_drive"
             placeholder="https://drive.google.com/…" class="w-full" />
         </div>
       </div>
       <template #footer>
         <Button label="Cancelar" severity="secondary" text @click="dialogEdit.visible = false" />
-        <Button label="Guardar cambios" :loading="guardandoContrato" @click="saveContrato" :style="`background:${DIALOG_EDIT_COLOR[dialogEdit.tipo]};border-color:${DIALOG_EDIT_COLOR[dialogEdit.tipo]}`">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+        <Button :class="DIALOG_EDIT_BG[dialogEdit.tipo]" label="Guardar cambios" :loading="guardandoContrato" @click="saveContrato">
+          <template #icon><CheckIcon class="size-4" /></template>
         </Button>
       </template>
     </Dialog>
@@ -1060,7 +1060,8 @@ const PERIODICIDADES = [
 const TABS_TIPOS = ['mantenimiento', 'arriendo', 'internet']
 const activeIndex = ref(Math.max(0, TABS_TIPOS.indexOf(route.query.subtab)))
 
-const DIALOG_EDIT_COLOR = { mantenimiento: '#f59e0b', arriendo: '#8b5cf6', internet: '#06b6d4' }
+const DIALOG_EDIT_TEXT = { mantenimiento: 'text-warning', arriendo: 'text-primary', internet: 'text-chart-2' }
+const DIALOG_EDIT_BG = { mantenimiento: 'bg-warning border-warning', arriendo: 'bg-primary border-primary', internet: 'bg-chart-2 border-chart-2' }
 const DIALOG_EDIT_LABEL = { mantenimiento: 'Mantenimiento', arriendo: 'Arriendo', internet: 'Internet' }
 
 // ── Estado reactivo ───────────────────────────────────────────────────────────
@@ -1689,13 +1690,13 @@ const InfoIcon = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        :style="'background:' + color + '18'">
-        <component :is="icon" class="text-xs size-[1em]" :style="'color:' + color" />
+      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+       >
+        <component :style="{ '--c': color }" :is="icon" class="size-3 text-(--c)" />
       </div>
       <div class="min-w-0">
-        <p class="text-xs font-medium leading-none mb-0.5" style="color:#9b89b5">{{ label }}</p>
-        <p class="text-sm font-medium truncate" style="color:#2C2039">{{ value ?? '—' }}</p>
+        <p class="text-xs font-medium leading-none mb-0.5 text-muted-foreground">{{ label }}</p>
+        <p class="text-sm font-medium truncate text-foreground">{{ value ?? '—' }}</p>
       </div>
     </div>
   `,
@@ -1710,14 +1711,14 @@ const InfoBadge = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        :style="'background:' + color + '18'">
-        <CreditCardIcon class="text-xs size-[1em]" :style="'color:' + color" />
+      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+       >
+        <CreditCardIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
       <div>
-        <p class="text-xs font-medium leading-none mb-1" style="color:#9b89b5">{{ label }}</p>
+        <p class="text-xs font-medium leading-none mb-1 text-muted-foreground">{{ label }}</p>
         <GBadge v-if="estado" :color="ESTADO_PAGO_SEVERITY_S[estado]">{{ ESTADO_PAGO_LABELS_S[estado] }}</GBadge>
-        <span v-else class="text-sm" style="color:#9ca3af">—</span>
+        <span v-else class="text-sm text-muted-foreground">—</span>
       </div>
     </div>
   `,
@@ -1733,19 +1734,19 @@ const InfoSecret = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        :style="'background:' + color + '18'">
-        <LockIcon class="text-xs size-[1em]" :style="'color:' + color" />
+      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+       >
+        <LockIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
       <div class="min-w-0">
-        <p class="text-xs font-medium leading-none mb-0.5" style="color:#9b89b5">{{ label }}</p>
-        <p v-if="!value" class="text-sm font-medium" style="color:#2C2039">—</p>
-        <button v-else type="button" class="text-sm font-medium inline-flex items-center gap-1"
-          style="background:none;border:none;cursor:pointer;padding:0;color:#2C2039"
+        <p class="text-xs font-medium leading-none mb-0.5 text-muted-foreground">{{ label }}</p>
+        <p v-if="!value" class="text-sm font-medium text-foreground">—</p>
+        <button v-else type="button" class="text-sm font-medium inline-flex items-center gap-1 bg-transparent border-0 cursor-pointer p-0 text-foreground"
+         
           @click="visible = !visible">
           {{ visible ? value : '••••••••' }}
-          <EyeOffIcon v-if="visible" class="text-xs size-[1em]" style="color:#9b89b5" />
-          <EyeIcon v-else class="text-xs size-[1em]" style="color:#9b89b5" />
+          <EyeOffIcon v-if="visible" class="size-3 text-muted-foreground" />
+          <EyeIcon v-else class="size-3 text-muted-foreground" />
         </button>
       </div>
     </div>
@@ -1762,27 +1763,27 @@ const InfoLink = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-        :style="'background:' + color + '18'">
-        <LinkIcon class="text-xs size-[1em]" :style="'color:' + color" />
+      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+       >
+        <LinkIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
       <div>
-        <p class="text-xs font-medium leading-none mb-0.5" style="color:#9b89b5">{{ label }}</p>
+        <p class="text-xs font-medium leading-none mb-0.5 text-muted-foreground">{{ label }}</p>
         <a v-if="href" :href="href" target="_blank" rel="noopener noreferrer"
-          class="text-sm font-medium hover:underline inline-flex items-center gap-1"
-          style="color:#915BD8">
-          <ExternalLinkIcon class="text-xs size-[1em]" />
+          class="text-sm font-medium hover:underline inline-flex items-center gap-1 text-primary"
+         >
+          <ExternalLinkIcon class="size-3" />
           Ver en Drive
         </a>
         <template v-else>
           <button v-if="editable" type="button"
-            class="text-xs font-medium inline-flex items-center gap-1 hover:underline transition-opacity"
-            style="background:none;border:none;cursor:pointer;padding:0;color:#9b89b5"
+            class="text-xs font-medium inline-flex items-center gap-1 hover:underline transition-opacity bg-transparent border-0 cursor-pointer p-0 text-muted-foreground"
+           
             @click="$emit('editar')">
-            <CirclePlusIcon class="text-xs size-[1em]" />
+            <CirclePlusIcon class="size-3" />
             Agregar enlace
           </button>
-          <span v-else class="text-sm" style="color:#9ca3af">—</span>
+          <span v-else class="text-sm text-muted-foreground">—</span>
         </template>
       </div>
     </div>
@@ -1803,20 +1804,20 @@ const Acordeon = {
     return { ...toRefs(props), abierto }
   },
   template: `
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
+    <div class="rounded-xl border bg-white overflow-hidden border-border">
       <button type="button"
-        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/60 transition-colors text-left"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors text-left"
         @click="abierto = !abierto">
         <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            :style="'background:' + color + '18'">
-            <component :is="icono" class="text-xs size-[1em]" :style="'color:' + color" />
+          <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-(--c)"
+           >
+            <component :style="{ '--c': color }" :is="icono" class="size-3 text-(--c)" />
           </div>
-          <span class="text-sm font-semibold" style="color:#2C2039">{{ titulo }}</span>
-          <span class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none"
-            :style="'background:' + color + '15; color:' + color">{{ count }}</span>
+          <span class="text-sm font-semibold text-foreground">{{ titulo }}</span>
+          <span :style="{ '--c': color, '--bg': color + '15' }" class="inline-flex items-center justify-center rounded-full text-xs font-medium px-2 py-0.5 leading-none bg-(--bg) text-(--c)"
+           >{{ count }}</span>
         </div>
-        <ChevronDownIcon class="text-xs text-gray-400 transition-transform duration-200 size-[1em]" :style="abierto ? 'transform:rotate(180deg)' : ''" />
+        <ChevronDownIcon :class="abierto ? 'rotate-180' : ''" class="text-muted-foreground transition-transform duration-200 size-3" />
       </button>
       <transition
         enter-active-class="transition-opacity duration-200 ease-out"
@@ -1825,7 +1826,7 @@ const Acordeon = {
         leave-active-class="transition-opacity duration-150 ease-in"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0">
-        <div v-if="abierto" class="border-t border-gray-100">
+        <div v-if="abierto" class="border-t border-border">
           <slot />
         </div>
       </transition>
@@ -1869,48 +1870,48 @@ const FacturasCobradas = {
   },
   template: `
     <Acordeon titulo="Facturas cobradas" :icono="FileInputIcon" color="#f59e0b" :count="datos.length">
-      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-muted/60 border-b border-border">
         <div class="flex items-center gap-1.5">
-          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
+          <FilterIcon class="text-muted-foreground size-3" />
+          <span class="text-xs text-muted-foreground font-medium">Filtrar por:</span>
         </div>
         <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm" style="height:32px;min-width:90px" />
+          showClear class="text-sm h-8 min-w-24" />
         <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
           optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm" style="height:32px;min-width:110px" />
+          showClear class="text-sm h-8 min-w-28" />
         <button v-if="hayFiltros" type="button"
-          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          class="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1 transition-colors"
           @click="limpiarFiltros">
-          <XIcon class="text-xs size-[1em]" /> Limpiar
+          <XIcon class="size-3" /> Limpiar
         </button>
-        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
+        <span v-if="hayFiltros" class="text-xs text-muted-foreground ml-auto">
           {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
         </span>
       </div>
       <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
         emptyMessage="Sin facturas cobradas registradas.">
-        <Column header="Mes" style="min-width:100px">
+        <Column class="min-w-24" header="Mes">
           <template #body="{ data }">
-            <span class="font-medium" style="color:#2C2039">{{ MESES_NOMBRES_STATIC[data.mes] ?? data.mes }}</span>
+            <span class="font-medium text-foreground">{{ MESES_NOMBRES_STATIC[data.mes] ?? data.mes }}</span>
           </template>
         </Column>
-        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
-        <Column field="inversionista" header="Inversionista" style="min-width:130px" />
-        <Column header="Monto" style="min-width:140px">
+        <Column class="min-w-32" field="proyecto" header="Proyecto" />
+        <Column class="min-w-32" field="inversionista" header="Inversionista" />
+        <Column class="min-w-36" header="Monto">
           <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
+            <span class="font-semibold tabular-nums text-foreground">{{ formatCOP(data.monto) }}</span>
           </template>
         </Column>
-        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
-        <Column header="Soporte" style="width:80px" bodyClass="text-center">
+        <Column class="min-w-28" field="nroFactura" header="N° Factura" />
+        <Column class="w-20" header="Soporte" bodyClass="text-center">
           <template #body="{ data }">
             <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
-              style="color:#f59e0b" title="Ver soporte">
-              <FileIcon class="text-sm size-[1em]" />
+              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
+              title="Ver soporte">
+              <FileIcon class="size-4" />
             </a>
-            <span v-else class="text-gray-300 text-sm">—</span>
+            <span v-else class="text-muted-foreground text-sm">—</span>
           </template>
         </Column>
       </DataTable>
@@ -1963,43 +1964,43 @@ const FacturasEmitidas = {
   },
   template: `
     <Acordeon titulo="Facturas emitidas" :icono="FileOutputIcon" color="#f59e0b" :count="datos.length">
-      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
+      <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-muted/60 border-b border-border">
         <div class="flex items-center gap-1.5">
-          <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-          <span class="text-xs text-gray-400 font-medium">Filtrar por:</span>
+          <FilterIcon class="text-muted-foreground size-3" />
+          <span class="text-xs text-muted-foreground font-medium">Filtrar por:</span>
         </div>
         <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm" style="height:32px;min-width:90px" />
+          showClear class="text-sm h-8 min-w-24" />
         <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
           optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm" style="height:32px;min-width:110px" />
+          showClear class="text-sm h-8 min-w-28" />
         <button v-if="hayFiltros" type="button"
-          class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+          class="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1 transition-colors"
           @click="limpiarFiltros">
-          <XIcon class="text-xs size-[1em]" /> Limpiar
+          <XIcon class="size-3" /> Limpiar
         </button>
-        <span v-if="hayFiltros" class="text-xs text-gray-400 ml-auto">
+        <span v-if="hayFiltros" class="text-xs text-muted-foreground ml-auto">
           {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
         </span>
       </div>
       <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
         emptyMessage="Sin facturas emitidas registradas.">
-        <Column field="fecha" header="Fecha" style="min-width:110px" />
-        <Column field="proyecto" header="Proyecto" style="min-width:130px" />
-        <Column field="nroFactura" header="N° Factura" style="min-width:110px" />
-        <Column header="Monto" style="min-width:140px">
+        <Column class="min-w-28" field="fecha" header="Fecha" />
+        <Column class="min-w-32" field="proyecto" header="Proyecto" />
+        <Column class="min-w-28" field="nroFactura" header="N° Factura" />
+        <Column class="min-w-36" header="Monto">
           <template #body="{ data }">
-            <span class="font-semibold tabular-nums" style="color:#2C2039">{{ formatCOP(data.monto) }}</span>
+            <span class="font-semibold tabular-nums text-foreground">{{ formatCOP(data.monto) }}</span>
           </template>
         </Column>
-        <Column header="Soporte" style="width:80px" bodyClass="text-center">
+        <Column class="w-20" header="Soporte" bodyClass="text-center">
           <template #body="{ data }">
             <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-amber-50"
-              style="color:#f59e0b" title="Ver soporte">
-              <FileIcon class="text-sm size-[1em]" />
+              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
+              title="Ver soporte">
+              <FileIcon class="size-4" />
             </a>
-            <span v-else class="text-gray-300 text-sm">—</span>
+            <span v-else class="text-muted-foreground text-sm">—</span>
           </template>
         </Column>
       </DataTable>

@@ -1,63 +1,61 @@
 <template>
   <template v-if="contratoId">
 
-    <!-- ══ SECCIÓN 1: Facturas Solenium ══════════════════════════════════════════ -->
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
+    <!-- ══ SECCIÓN 1: Facturas Solenium ══════════════════════════════════════ -->
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
 
       <!-- Header colapsable -->
       <button type="button"
-        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/60 transition-colors duration-150 text-left select-none"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors duration-150 text-left select-none"
         @click="openSol = !openSol">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style="background:#fef3c7">
-            <ReceiptIcon class="text-sm size-[1em]" style="color:#f59e0b" />
+          <div class="size-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-warning/15 text-warning">
+            <ReceiptIcon class="size-4" />
           </div>
           <div>
-            <p class="text-xs text-gray-400 leading-none mb-0.5">Proveedor O&amp;M</p>
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Facturas Solenium</span>
+            <p class="text-xs text-muted-foreground leading-none mb-0.5">Proveedor O&amp;M</p>
+            <span class="text-sm font-semibold text-unergy-deep">Facturas Solenium</span>
           </div>
-          <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1"
-            style="background:#fef3c7; color:#d97706">
+          <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1 bg-warning/15 text-warning">
             {{ facturasSol.length }}
           </span>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
-          <span v-if="facturasSol.length" class="text-xs text-gray-400 hidden sm:block">
-            Total: <strong style="color:#d97706">{{ formatCOP(totalSol) }}</strong>
+          <span v-if="facturasSol.length" class="text-xs text-muted-foreground hidden sm:block">
+            Total: <strong class="text-warning">{{ formatCOP(totalSol) }}</strong>
           </span>
-          <ChevronDownIcon class="text-xs text-gray-400 transition-transform duration-200 size-[1em]" :style="openSol ? 'transform:rotate(180deg)' : ''" />
+          <ChevronDownIcon class="size-3 text-muted-foreground transition-transform duration-200" :class="{ 'rotate-180': openSol }" />
         </div>
       </button>
 
       <!-- Contenido colapsable -->
       <div class="factura-collapse" :class="{ open: openSol }">
-        <div class="border-t border-gray-100">
+        <div class="border-t border-border">
 
           <!-- Barra de filtros + botón agregar -->
-          <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
-            <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-            <span class="text-xs text-gray-400 font-medium mr-1">Filtrar:</span>
+          <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-muted/60 border-b border-border">
+            <FilterIcon class="size-3 text-muted-foreground" />
+            <span class="text-xs text-muted-foreground font-medium mr-1">Filtrar:</span>
             <Select v-model="filtroSol.año" :options="AÑOS_OPT" placeholder="Año"
-              showClear class="text-sm" style="height:32px;min-width:88px" />
+              showClear class="text-sm" />
             <Select v-model="filtroSol.mes" :options="MESES_OPT"
               optionLabel="label" optionValue="value" placeholder="Mes"
-              showClear class="text-sm" style="height:32px;min-width:108px" />
-            <button v-if="filtroSol.año || filtroSol.mes" type="button"
-              class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
-              style="background:none;border:none;cursor:pointer"
+              showClear class="text-sm" />
+            <Button v-if="filtroSol.año || filtroSol.mes" variant="ghost" size="xs"
+              class="text-muted-foreground"
               @click="filtroSol.año = null; filtroSol.mes = null">
-              <XIcon class="text-xs size-[1em]" /> Limpiar
-            </button>
+              <XIcon /> Limpiar
+            </Button>
             <span v-if="filtroSol.año || filtroSol.mes"
-              class="text-xs text-gray-400">
+              class="text-xs text-muted-foreground">
               {{ solFiltradas.length }} resultado{{ solFiltradas.length !== 1 ? 's' : '' }}
             </span>
-            <div class="ml-auto">
-              <Button label="+ Agregar factura" size="small" text
-                style="color:#f59e0b; font-weight:600; padding:4px 10px"
+            <div class="ml-auto text-warning">
+              <Button variant="ghost" size="sm" class="font-semibold"
                 :disabled="loading"
-                @click="abrirModal('solenium')" />
+                @click="abrirModal('solenium')">
+                + Agregar factura
+              </Button>
             </div>
           </div>
 
@@ -65,89 +63,87 @@
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
               <thead>
-                <tr class="border-b border-gray-100" style="background:#fafafa">
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Fecha</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">N° Factura</th>
-                  <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 whitespace-nowrap">Monto</th>
-                  <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style="width:80px">Soporte</th>
-                  <th class="px-4 py-2.5" style="width:44px"></th>
+                <tr class="border-b border-border bg-muted/40">
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Fecha</th>
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">N° Factura</th>
+                  <th class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground whitespace-nowrap">Monto</th>
+                  <th class="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground whitespace-nowrap">Soporte</th>
+                  <th class="px-4 py-2.5"></th>
                 </tr>
               </thead>
               <tbody>
                 <!-- Loading -->
                 <tr v-if="loading">
-                  <td colspan="5" class="px-4 py-8 text-center text-gray-400 text-xs">
-                    <LoaderCircleIcon class="mr-1 size-[1em] animate-spin" />Cargando…
+                  <td colspan="5" class="px-4 py-8 text-center text-muted-foreground text-xs">
+                    <LoaderCircleIcon class="mr-1 inline size-3 animate-spin" />Cargando…
                   </td>
                 </tr>
                 <!-- Empty state -->
                 <tr v-else-if="!solFiltradas.length">
                   <td colspan="5" class="px-4 py-10 text-center">
                     <div class="flex flex-col items-center gap-2.5">
-                      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#fef3c7">
-                        <ReceiptIcon class="text-lg size-[1em]" style="color:#f59e0b" />
+                      <div class="size-10 rounded-full flex items-center justify-center bg-warning/15 text-warning">
+                        <ReceiptIcon class="size-5" />
                       </div>
-                      <p class="text-sm font-medium text-gray-500">
+                      <p class="text-sm font-medium text-muted-foreground">
                         {{ facturasSol.length ? 'Sin resultados para los filtros aplicados' : 'Sin facturas Solenium registradas' }}
                       </p>
-                      <Button v-if="!facturasSol.length" label="Agregar primera factura" size="small"
-                        style="background:#f59e0b;border-color:#f59e0b;margin-top:2px"
-                        @click="abrirModal('solenium')" />
+                      <Button v-if="!facturasSol.length" size="sm" class="mt-0.5"
+                        @click="abrirModal('solenium')">
+                        Agregar primera factura
+                      </Button>
                     </div>
                   </td>
                 </tr>
                 <!-- Filas -->
                 <tr v-for="fac in solFiltradas" :key="fac.id"
-                  class="border-b border-gray-50 transition-colors duration-100"
-                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-amber-50/30'">
+                  class="border-b border-border/50 transition-colors duration-100"
+                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-warning/5'">
                   <td class="px-4 py-2.5">
-                    <span class="font-mono text-[13px]" style="color:var(--color-unergy-deep)">{{ fac.fecha }}</span>
+                    <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm" style="color:#374151">{{ fac.numero_factura || '—' }}</span>
+                      <span class="text-sm text-foreground">{{ fac.numero_factura || '—' }}</span>
                       <span v-if="isPending(fac)"
-                        class="inline-flex items-center rounded-full text-[10px] font-semibold px-1.5 py-0.5 leading-none flex-shrink-0"
-                        style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa">
+                        class="inline-flex items-center rounded-full text-xs font-semibold px-1.5 py-0.5 leading-none flex-shrink-0 border border-warning/30 bg-warning/10 text-warning">
                         Pendiente
                       </span>
                     </div>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-semibold tabular-nums text-sm" style="color:var(--color-unergy-deep)">
+                    <span class="font-semibold tabular-nums text-sm text-unergy-deep">
                       {{ formatCOP(fac.monto) }}
                     </span>
                   </td>
                   <td class="px-4 py-2.5 text-center">
                     <a v-if="fac.enlace_soporte"
                       :href="fac.enlace_soporte" target="_blank" rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-xs font-medium hover:underline transition-colors"
-                      style="color:#f59e0b">
-                      <ExternalLinkIcon class="text-xs size-[1em]" />Ver
+                      class="inline-flex items-center gap-1 text-xs font-medium text-warning hover:underline transition-colors">
+                      <ExternalLinkIcon class="size-3" />Ver
                     </a>
-                    <span v-else class="text-gray-300 text-xs">—</span>
+                    <span v-else class="text-muted-foreground/50 text-xs">—</span>
                   </td>
                   <td class="px-4 py-2.5 text-center">
-                    <button type="button"
-                      class="w-7 h-7 rounded-lg inline-flex items-center justify-center text-red-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      style="background:none;border:none;cursor:pointer"
+                    <Button variant="ghost" size="icon-xs"
+                      class="text-destructive/60 hover:text-destructive"
                       @click="eliminarFactura('solenium', fac.id)">
-                      <Trash2Icon class="text-xs size-[1em]" />
-                    </button>
+                      <Trash2Icon />
+                    </Button>
                   </td>
                 </tr>
               </tbody>
               <!-- Fila de totales -->
               <tfoot v-if="!loading && solFiltradas.length">
-                <tr style="background:#fffbeb;border-top:1px solid #fde68a">
+                <tr class="border-t border-warning/30 bg-warning/10">
                   <td colspan="2" class="px-4 py-2.5">
-                    <span class="text-xs font-semibold text-gray-500">
+                    <span class="text-xs font-semibold text-muted-foreground">
                       Total {{ filtroSol.año || filtroSol.mes ? 'filtrado' : '' }}
                       · {{ solFiltradas.length }} factura{{ solFiltradas.length !== 1 ? 's' : '' }}
                     </span>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-bold tabular-nums text-sm" style="color:#d97706">
+                    <span class="font-bold tabular-nums text-sm text-warning">
                       {{ formatCOP(totalSolFiltrado) }}
                     </span>
                   </td>
@@ -161,63 +157,61 @@
       </div>
     </div>
 
-    <!-- ══ SECCIÓN 2: Facturas Inversionistas ════════════════════════════════════ -->
-    <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#e5e7eb">
+    <!-- ══ SECCIÓN 2: Facturas Inversionistas ══════════════════════════════════════ -->
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
 
       <!-- Header colapsable -->
       <button type="button"
-        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/60 transition-colors duration-150 text-left select-none"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors duration-150 text-left select-none"
         @click="openInv = !openInv">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style="background:#eff6ff">
-            <UsersIcon class="text-sm size-[1em]" style="color:#3b82f6" />
+          <div class="size-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/15 text-primary">
+            <UsersIcon class="size-4" />
           </div>
           <div>
-            <p class="text-xs text-gray-400 leading-none mb-0.5">Cobros a clientes</p>
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Facturas Inversionistas</span>
+            <p class="text-xs text-muted-foreground leading-none mb-0.5">Cobros a clientes</p>
+            <span class="text-sm font-semibold text-unergy-deep">Facturas Inversionistas</span>
           </div>
-          <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1"
-            style="background:#dbeafe; color:#3b82f6">
+          <span class="inline-flex items-center justify-center rounded-full text-xs font-semibold px-2 py-0.5 leading-none ml-1 bg-primary/15 text-primary">
             {{ facturasInv.length }}
           </span>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
-          <span v-if="facturasInv.length" class="text-xs text-gray-400 hidden sm:block">
-            Total: <strong style="color:#3b82f6">{{ formatCOP(totalInv) }}</strong>
+          <span v-if="facturasInv.length" class="text-xs text-muted-foreground hidden sm:block">
+            Total: <strong class="text-primary">{{ formatCOP(totalInv) }}</strong>
           </span>
-          <ChevronDownIcon class="text-xs text-gray-400 transition-transform duration-200 size-[1em]" :style="openInv ? 'transform:rotate(180deg)' : ''" />
+          <ChevronDownIcon class="size-3 text-muted-foreground transition-transform duration-200" :class="{ 'rotate-180': openInv }" />
         </div>
       </button>
 
       <!-- Contenido colapsable -->
       <div class="factura-collapse" :class="{ open: openInv }">
-        <div class="border-t border-gray-100">
+        <div class="border-t border-border">
 
           <!-- Barra de filtros + botón agregar -->
-          <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-gray-50/60 border-b border-gray-100">
-            <FilterIcon class="text-xs text-gray-400 size-[1em]" />
-            <span class="text-xs text-gray-400 font-medium mr-1">Filtrar:</span>
+          <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-muted/60 border-b border-border">
+            <FilterIcon class="size-3 text-muted-foreground" />
+            <span class="text-xs text-muted-foreground font-medium mr-1">Filtrar:</span>
             <Select v-model="filtroInv.año" :options="AÑOS_OPT" placeholder="Año"
-              showClear class="text-sm" style="height:32px;min-width:88px" />
+              showClear class="text-sm" />
             <Select v-model="filtroInv.mes" :options="MESES_OPT"
               optionLabel="label" optionValue="value" placeholder="Mes"
-              showClear class="text-sm" style="height:32px;min-width:108px" />
-            <button v-if="filtroInv.año || filtroInv.mes" type="button"
-              class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors px-2 py-1 rounded hover:bg-gray-100"
-              style="background:none;border:none;cursor:pointer"
+              showClear class="text-sm" />
+            <Button v-if="filtroInv.año || filtroInv.mes" variant="ghost" size="xs"
+              class="text-muted-foreground"
               @click="filtroInv.año = null; filtroInv.mes = null">
-              <XIcon class="text-xs size-[1em]" /> Limpiar
-            </button>
+              <XIcon /> Limpiar
+            </Button>
             <span v-if="filtroInv.año || filtroInv.mes"
-              class="text-xs text-gray-400">
+              class="text-xs text-muted-foreground">
               {{ invFiltradas.length }} resultado{{ invFiltradas.length !== 1 ? 's' : '' }}
             </span>
-            <div class="ml-auto">
-              <Button label="+ Agregar factura" size="small" text
-                style="color:#3b82f6; font-weight:600; padding:4px 10px"
+            <div class="ml-auto text-primary">
+              <Button variant="ghost" size="sm" class="font-semibold"
                 :disabled="loading"
-                @click="abrirModal('inversionistas')" />
+                @click="abrirModal('inversionistas')">
+                + Agregar factura
+              </Button>
             </div>
           </div>
 
@@ -225,96 +219,94 @@
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse">
               <thead>
-                <tr class="border-b border-gray-100" style="background:#fafafa">
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Fecha</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Inversionista</th>
-                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">N° Factura</th>
-                  <th class="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 whitespace-nowrap">Monto</th>
-                  <th class="px-4 py-2.5 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style="width:80px">Soporte</th>
-                  <th class="px-4 py-2.5" style="width:44px"></th>
+                <tr class="border-b border-border bg-muted/40">
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Fecha</th>
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">Inversionista</th>
+                  <th class="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">N° Factura</th>
+                  <th class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground whitespace-nowrap">Monto</th>
+                  <th class="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground whitespace-nowrap">Soporte</th>
+                  <th class="px-4 py-2.5"></th>
                 </tr>
               </thead>
               <tbody>
                 <!-- Loading -->
                 <tr v-if="loading">
-                  <td colspan="6" class="px-4 py-8 text-center text-gray-400 text-xs">
-                    <LoaderCircleIcon class="mr-1 size-[1em] animate-spin" />Cargando…
+                  <td colspan="6" class="px-4 py-8 text-center text-muted-foreground text-xs">
+                    <LoaderCircleIcon class="mr-1 inline size-3 animate-spin" />Cargando…
                   </td>
                 </tr>
                 <!-- Empty state -->
                 <tr v-else-if="!invFiltradas.length">
                   <td colspan="6" class="px-4 py-10 text-center">
                     <div class="flex flex-col items-center gap-2.5">
-                      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#dbeafe">
-                        <UsersIcon class="text-lg size-[1em]" style="color:#3b82f6" />
+                      <div class="size-10 rounded-full flex items-center justify-center bg-primary/15 text-primary">
+                        <UsersIcon class="size-5" />
                       </div>
-                      <p class="text-sm font-medium text-gray-500">
+                      <p class="text-sm font-medium text-muted-foreground">
                         {{ facturasInv.length ? 'Sin resultados para los filtros aplicados' : 'Sin facturas de inversionistas registradas' }}
                       </p>
-                      <Button v-if="!facturasInv.length" label="Agregar primera factura" size="small"
-                        style="background:#3b82f6;border-color:#3b82f6;margin-top:2px"
-                        @click="abrirModal('inversionistas')" />
+                      <Button v-if="!facturasInv.length" size="sm" class="mt-0.5"
+                        @click="abrirModal('inversionistas')">
+                        Agregar primera factura
+                      </Button>
                     </div>
                   </td>
                 </tr>
                 <!-- Filas -->
                 <tr v-for="fac in invFiltradas" :key="fac.id"
-                  class="border-b border-gray-50 transition-colors duration-100"
-                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-blue-50/30'">
+                  class="border-b border-border/50 transition-colors duration-100"
+                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-primary/5'">
                   <td class="px-4 py-2.5">
-                    <span class="font-mono text-[13px]" style="color:var(--color-unergy-deep)">{{ fac.fecha }}</span>
+                    <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <!-- `inversionista_nombre`: la API mandaba `inversionista_id`
                          (que ni existía) y nunca el nombre, así que esta columna
                          mostraba "—" aunque el dato estuviera guardado. -->
-                    <span class="text-sm" style="color:#374151">{{ fac.inversionista_nombre || '—' }}</span>
+                    <span class="text-sm text-foreground">{{ fac.inversionista_nombre || '—' }}</span>
                   </td>
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm" style="color:#374151">{{ fac.numero_factura || '—' }}</span>
+                      <span class="text-sm text-foreground">{{ fac.numero_factura || '—' }}</span>
                       <span v-if="isPending(fac)"
-                        class="inline-flex items-center rounded-full text-[10px] font-semibold px-1.5 py-0.5 leading-none flex-shrink-0"
-                        style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
+                        class="inline-flex items-center rounded-full text-xs font-semibold px-1.5 py-0.5 leading-none flex-shrink-0 border border-primary/30 bg-primary/10 text-primary">
                         Pendiente
                       </span>
                     </div>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-semibold tabular-nums text-sm" style="color:var(--color-unergy-deep)">
+                    <span class="font-semibold tabular-nums text-sm text-unergy-deep">
                       {{ formatCOP(fac.monto) }}
                     </span>
                   </td>
                   <td class="px-4 py-2.5 text-center">
                     <a v-if="fac.enlace_soporte"
                       :href="fac.enlace_soporte" target="_blank" rel="noopener noreferrer"
-                      class="inline-flex items-center gap-1 text-xs font-medium hover:underline transition-colors"
-                      style="color:#3b82f6">
-                      <ExternalLinkIcon class="text-xs size-[1em]" />Ver
+                      class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline transition-colors">
+                      <ExternalLinkIcon class="size-3" />Ver
                     </a>
-                    <span v-else class="text-gray-300 text-xs">—</span>
+                    <span v-else class="text-muted-foreground/50 text-xs">—</span>
                   </td>
                   <td class="px-4 py-2.5 text-center">
-                    <button type="button"
-                      class="w-7 h-7 rounded-lg inline-flex items-center justify-center text-red-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      style="background:none;border:none;cursor:pointer"
+                    <Button variant="ghost" size="icon-xs"
+                      class="text-destructive/60 hover:text-destructive"
                       @click="eliminarFactura('inversionistas', fac.id)">
-                      <Trash2Icon class="text-xs size-[1em]" />
-                    </button>
+                      <Trash2Icon />
+                    </Button>
                   </td>
                 </tr>
               </tbody>
               <!-- Fila de totales -->
               <tfoot v-if="!loading && invFiltradas.length">
-                <tr style="background:#eff6ff;border-top:1px solid #bfdbfe">
+                <tr class="border-t border-primary/30 bg-primary/10">
                   <td colspan="3" class="px-4 py-2.5">
-                    <span class="text-xs font-semibold text-gray-500">
+                    <span class="text-xs font-semibold text-muted-foreground">
                       Total {{ filtroInv.año || filtroInv.mes ? 'filtrado' : '' }}
                       · {{ invFiltradas.length }} factura{{ invFiltradas.length !== 1 ? 's' : '' }}
                     </span>
                   </td>
                   <td class="px-4 py-2.5 text-right">
-                    <span class="font-bold tabular-nums text-sm" style="color:#3b82f6">
+                    <span class="font-bold tabular-nums text-sm text-primary">
                       {{ formatCOP(totalInvFiltrado) }}
                     </span>
                   </td>
@@ -329,15 +321,14 @@
     </div>
 
     <!-- ══ MODAL: Agregar factura ════════════════════════════════════════════════ -->
-    <Dialog v-model:visible="modal.visible" modal :style="{ width: '440px' }"
-      :breakpoints="{ '500px': '95vw' }">
+    <Dialog v-model:visible="modal.visible" modal class="w-full max-w-md">
       <template #header>
         <div class="flex items-center gap-2.5">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            :style="modal.tipo === 'solenium' ? 'background:#fef3c7' : 'background:#dbeafe'">
-            <ReceiptIcon class="text-xs size-[1em]" :style="modal.tipo === 'solenium' ? 'color:#f59e0b' : 'color:#3b82f6'" />
+          <div class="size-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            :class="modal.tipo === 'solenium' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'">
+            <ReceiptIcon class="size-3" />
           </div>
-          <span class="font-semibold text-sm" style="color:var(--color-unergy-deep)">
+          <span class="font-semibold text-sm text-unergy-deep">
             Agregar factura — {{ modal.tipo === 'solenium' ? 'Solenium' : 'Inversionistas' }}
           </span>
         </div>
@@ -346,17 +337,17 @@
         <!-- Fecha + N° Factura -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">
-              Fecha (YYYY-MM) <span class="text-red-400">*</span>
+            <label class="text-xs font-medium text-muted-foreground">
+              Fecha (YYYY-MM) <span class="text-destructive">*</span>
             </label>
             <InputText v-model="modal.form.fecha"
               placeholder="2026-01" class="w-full"
-              :class="{ 'p-invalid': modal.errores.fecha }" />
-            <p v-if="modal.errores.fecha" class="text-xs text-red-400">{{ modal.errores.fecha }}</p>
-            <p v-else class="text-xs text-gray-400">Ej: 2026-03</p>
+              :invalid="!!modal.errores.fecha" />
+            <p v-if="modal.errores.fecha" class="text-xs text-destructive">{{ modal.errores.fecha }}</p>
+            <p v-else class="text-xs text-muted-foreground">Ej: 2026-03</p>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-600">N° Factura</label>
+            <label class="text-xs font-medium text-muted-foreground">N° Factura</label>
             <InputText v-model="modal.form.numero_factura"
               placeholder="FE-001234" class="w-full" />
           </div>
@@ -372,32 +363,32 @@
         />
         <!-- Monto -->
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">
-            Monto (COP) <span class="text-red-400">*</span>
+          <label class="text-xs font-medium text-muted-foreground">
+            Monto (COP) <span class="text-destructive">*</span>
           </label>
           <InputNumber v-model="modal.form.monto"
             mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
             class="w-full" placeholder="$ 0"
-            :class="{ 'p-invalid': modal.errores.monto }" />
-          <p v-if="modal.errores.monto" class="text-xs text-red-400">{{ modal.errores.monto }}</p>
+            :invalid="!!modal.errores.monto" />
+          <p v-if="modal.errores.monto" class="text-xs text-destructive">{{ modal.errores.monto }}</p>
         </div>
         <!-- Link soporte -->
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-gray-600">Link de soporte (Drive)</label>
+          <label class="text-xs font-medium text-muted-foreground">Link de soporte (Drive)</label>
           <InputText v-model="modal.form.enlace_soporte"
             placeholder="https://drive.google.com/…" class="w-full"
-            :class="{ 'p-invalid': modal.errores.enlace_soporte }" />
-          <p v-if="modal.errores.enlace_soporte" class="text-xs text-red-400">
+            :invalid="!!modal.errores.enlace_soporte" />
+          <p v-if="modal.errores.enlace_soporte" class="text-xs text-destructive">
             {{ modal.errores.enlace_soporte }}
           </p>
         </div>
       </div>
       <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="modal.visible = false" />
-        <Button label="Agregar factura" :loading="saving" :style="modal.tipo === 'solenium'
-            ? 'background:#f59e0b;border-color:#f59e0b'
-            : 'background:#3b82f6;border-color:#3b82f6'" @click="guardarFactura">
-          <template #icon><CheckIcon class="size-[1em]" /></template>
+        <Button variant="ghost" @click="modal.visible = false">Cancelar</Button>
+        <Button :disabled="saving" @click="guardarFactura">
+          <LoaderCircleIcon v-if="saving" class="animate-spin" />
+          <CheckIcon v-else />
+          Agregar factura
         </Button>
       </template>
     </Dialog>
@@ -407,7 +398,6 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -591,6 +581,6 @@ async function eliminarFactura(tipo, id) {
 }
 .fila-pendiente:hover {
   opacity: 0.72;
-  background-color: #fffbeb;
+  background-color: color-mix(in oklab, var(--warning) 10%, transparent);
 }
 </style>
