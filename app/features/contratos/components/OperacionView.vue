@@ -45,7 +45,7 @@
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-warning/15">
+                  <div class="size-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-warning/15">
                     <WrenchIcon class="size-4 text-warning" />
                   </div>
                   <div>
@@ -301,7 +301,7 @@
           </template>
           <template v-else>
             <div class="rounded-xl border border-dashed border-warning/30 bg-warning/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-warning/15"
+              <div class="size-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-warning/15"
                >
                 <WrenchIcon class="size-6 text-warning" />
               </div>
@@ -341,7 +341,7 @@
               <!-- Header -->
               <div class="flex items-start justify-between mb-4 gap-3">
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/5">
+                  <div class="size-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/5">
                     <HouseIcon class="size-4 text-primary" />
                   </div>
                   <div>
@@ -609,7 +609,7 @@
             </div>
 
             <!-- Dialog Arrendador (crear/editar) -->
-            <Dialog class="w-104" v-model:visible="arrendadorDialog.visible" modal
+            <Dialog class="w-full max-w-md" v-model:visible="arrendadorDialog.visible" modal
               :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
              >
               <div class="flex flex-col gap-3 pt-2">
@@ -659,7 +659,7 @@
           </template>
           <template v-else>
             <div class="rounded-xl border border-dashed border-primary/30 bg-primary/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-primary/5"
+              <div class="size-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-primary/5"
                >
                 <HouseIcon class="size-6 text-primary" />
               </div>
@@ -688,7 +688,7 @@
             <div class="rounded-xl border bg-white p-5 border-chart-2/25">
               <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-chart-2/10">
+                  <div class="size-8 rounded-lg flex items-center justify-center bg-chart-2/10">
                     <WifiIcon class="size-4 text-chart-2" />
                   </div>
                   <span class="text-sm font-semibold text-unergy-deep">Servicio de Internet</span>
@@ -738,7 +738,7 @@
           </template>
           <template v-else>
             <div class="rounded-xl border border-dashed border-chart-2/30 bg-chart-2/40 p-10 text-center">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-chart-2/10"
+              <div class="size-12 rounded-full flex items-center justify-center mx-auto mb-3 bg-chart-2/10"
                >
                 <WifiIcon class="size-6 text-chart-2" />
               </div>
@@ -755,7 +755,7 @@
     </TabView>
 
     <!-- ── Dialog Mantenimiento (crear / editar) ─────────────────────────────── -->
-    <Dialog class="w-130" v-model:visible="dialogMant.visible" modal
+    <Dialog class="w-full max-w-2xl" v-model:visible="dialogMant.visible" modal
       :breakpoints="{ '560px': '95vw' }">
       <template #header>
         <div class="flex items-center gap-2">
@@ -866,7 +866,7 @@
     />
 
     <!-- ── Dialog editar contrato ───────────────────────────────────────────── -->
-    <Dialog class="w-120" v-model:visible="dialogEdit.visible" modal
+    <Dialog class="w-full max-w-xl" v-model:visible="dialogEdit.visible" modal
       :breakpoints="{ '520px': '95vw' }">
       <template #header>
         <div class="flex items-center gap-2">
@@ -1690,7 +1690,7 @@ const InfoIcon = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <component :style="{ '--c': color }" :is="icon" class="size-3 text-(--c)" />
       </div>
@@ -1711,7 +1711,7 @@ const InfoBadge = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <CreditCardIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1734,7 +1734,7 @@ const InfoSecret = {
   },
   template: `
     <div class="flex items-start gap-2.5 min-w-0">
-      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <LockIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1763,7 +1763,7 @@ const InfoLink = {
   },
   template: `
     <div class="flex items-start gap-2.5">
-      <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
+      <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 bg-(--c)"
        >
         <LinkIcon :style="{ '--c': color }" class="size-3 text-(--c)" />
       </div>
@@ -1809,7 +1809,7 @@ const Acordeon = {
         class="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/60 transition-colors text-left"
         @click="abierto = !abierto">
         <div class="flex items-center gap-2.5">
-          <div :style="{ '--c': color + '18' }" class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-(--c)"
+          <div :style="{ '--c': color + '18' }" class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-(--c)"
            >
             <component :style="{ '--c': color }" :is="icono" class="size-3 text-(--c)" />
           </div>
@@ -1904,10 +1904,10 @@ const FacturasCobradas = {
           </template>
         </Column>
         <Column class="min-w-28" field="nroFactura" header="N° Factura" />
-        <Column class="w-20" header="Soporte" bodyClass="text-center">
+        <Column header="Soporte" bodyClass="text-center">
           <template #body="{ data }">
             <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
+              class="inline-flex items-center justify-center size-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
               title="Ver soporte">
               <FileIcon class="size-4" />
             </a>
@@ -1993,10 +1993,10 @@ const FacturasEmitidas = {
             <span class="font-semibold tabular-nums text-foreground">{{ formatCOP(data.monto) }}</span>
           </template>
         </Column>
-        <Column class="w-20" header="Soporte" bodyClass="text-center">
+        <Column header="Soporte" bodyClass="text-center">
           <template #body="{ data }">
             <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
+              class="inline-flex items-center justify-center size-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
               title="Ver soporte">
               <FileIcon class="size-4" />
             </a>

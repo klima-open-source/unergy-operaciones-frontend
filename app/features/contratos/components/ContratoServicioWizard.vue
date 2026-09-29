@@ -11,7 +11,7 @@
       <div class="flex items-start">
         <template v-for="(s, i) in STEPS" :key="i">
           <div class="flex flex-col items-center gap-1.5 flex-1">
-            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+            <div class="size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
               :style="{ '--c': tipoColor }"
               :class="step >= i ? 'bg-(--c) text-white' : 'bg-muted text-muted-foreground'">
               <CheckIcon class="size-3" v-if="step > i" />
