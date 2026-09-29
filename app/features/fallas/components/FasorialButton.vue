@@ -306,7 +306,7 @@ function descargarPNG() {
 
   <Dialog v-model:open="visible">
     <DialogContent
-      class="max-w-[96vw] sm:max-w-[840px]"
+      class="sm:max-w-4xl"
       :show-close-button="!loading"
       @escape-key-down="(e) => loading && e.preventDefault()"
       @pointer-down-outside="(e) => loading && e.preventDefault()"

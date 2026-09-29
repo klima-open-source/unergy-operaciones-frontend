@@ -150,10 +150,7 @@ const slaTexto = computed(() => {
   return `${p}% del límite`
 })
 
-const slaFillStyle = computed(() => {
-  const p = Math.min(slaPct.value ?? 0, 100)
-  return { width: `${p}%`, background: slaColor.value }
-})
+const slaFillPct = computed(() => Math.min(slaPct.value ?? 0, 100))
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 const PRIO_SEVERITY: Record<string, string> = {
@@ -512,14 +509,11 @@ onMounted(() => {
               <div class="mb-4 flex items-center gap-2 border-b pb-3">
                 <component
                   :is="clasif.icono"
-                  class="size-4"
-                  :style="{ color: clasif.categoriaColor }"
+                  class="size-4 text-(--c)"
+                  :style="{ '--c': clasif.categoriaColor }"
                 />
                 <h3 class="text-sm font-semibold text-foreground">Clasificación</h3>
-                <GBadge
-                  v-if="clasif.pendienteReclasificar"
-                  color="warning"
-                  class="ml-auto text-[11px]"
+                <GBadge v-if="clasif.pendienteReclasificar" color="warning" class="ml-auto text-xs"
                   >Pendiente de reclasificar</GBadge
                 >
               </div>
@@ -594,7 +588,7 @@ onMounted(() => {
                     <span
                       v-for="(t, ti) in inv.tipos"
                       :key="ti"
-                      class="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
+                      class="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary"
                       >{{ t }}</span
                     >
                   </div>
@@ -652,13 +646,15 @@ onMounted(() => {
                     >{{ falla.sla_limite_horas_efectivo }}h</span
                   >
                   <span class="ml-auto text-muted-foreground">Transcurrido</span>
-                  <span class="font-semibold" :style="{ color: slaColor }"
+                  <span class="font-semibold text-(--c)" :style="{ '--c': slaColor }"
                     >{{ horasTranscurridas }}h</span
                   >
                 </div>
-                <div class="h-2 overflow-hidden rounded-full bg-muted">
-                  <div class="h-full rounded-full transition-all" :style="slaFillStyle" />
-                </div>
+                <Progress
+                  :model-value="slaFillPct"
+                  class="h-2 *:bg-(--c)"
+                  :style="{ '--c': slaColor }"
+                />
               </div>
             </div>
 
@@ -735,7 +731,7 @@ onMounted(() => {
                       :class="iconoAdjunto(url).color"
                     />
                     <span
-                      class="line-clamp-2 w-full px-1 text-center text-[10px] text-muted-foreground"
+                      class="line-clamp-2 w-full px-1 text-center text-xs text-muted-foreground"
                       >{{ filename(url) }}</span
                     >
                   </div>
@@ -844,7 +840,7 @@ onMounted(() => {
                     </p>
                     <div v-if="seg.estado_nuevo" class="mt-1.5 flex items-center gap-1 text-xs">
                       <ArrowRightIcon class="size-2.5 text-muted-foreground" />
-                      <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)" class="text-[10px]">{{
+                      <GBadge :color="colorEstado(seg.estado_nuevo?.codigo)" class="text-xs">{{
                         seg.estado_nuevo?.etiqueta || ''
                       }}</GBadge>
                     </div>

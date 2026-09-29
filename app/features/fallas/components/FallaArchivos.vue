@@ -222,12 +222,7 @@ watch(
       </div>
 
       <!-- Barra de progreso durante carga -->
-      <div v-if="uploading" class="mb-3.5 h-[3px] overflow-hidden rounded-full bg-primary/10">
-        <div
-          class="h-full rounded-full bg-primary transition-all"
-          :style="{ width: `${uploadProgress}%` }"
-        />
-      </div>
+      <Progress v-if="uploading" :model-value="uploadProgress" class="mb-3.5 h-1" />
 
       <!-- Lista de archivos -->
       <div v-if="archivos.length" class="flex flex-col gap-1">

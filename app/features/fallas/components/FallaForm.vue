@@ -589,7 +589,7 @@ onMounted(async () => {
     <!-- ── SECCIÓN: Identificación ──────────────────────────── -->
     <div class="border-b py-3.5 first:pt-0">
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <TagIcon class="size-3.5" /> Identificación
       </div>
@@ -639,8 +639,8 @@ onMounted(async () => {
             >
               <component
                 :is="iconoCategoriaFalla(c.codigo)"
-                class="size-4.5"
-                :style="{ color: c.color_hex }"
+                class="size-4.5 text-(--c)"
+                :style="{ '--c': c.color_hex }"
               />
               <span>{{ c.etiqueta }}</span>
             </button>
@@ -990,7 +990,7 @@ onMounted(async () => {
     <!-- ── SECCIÓN: Descripción ─────────────────────────────── -->
     <div class="border-b py-3.5">
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <AlignLeftIcon class="size-3.5" /> Descripción del evento
       </div>
@@ -1008,7 +1008,7 @@ onMounted(async () => {
     <!-- ── SECCIÓN: Análisis ────────────────────────────────── -->
     <div class="border-b py-3.5">
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <SearchIcon class="size-3.5" /> Análisis
       </div>
@@ -1038,7 +1038,7 @@ onMounted(async () => {
       class="mb-1 rounded-lg border border-success/30 bg-success/5 px-3.5 py-3"
     >
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <CircleCheckIcon class="size-3.5 text-success" /> Resolución
         <span class="font-normal text-destructive normal-case"
@@ -1100,7 +1100,7 @@ onMounted(async () => {
     <!-- ── SECCIÓN: Nota inicial (solo al crear) ────────────── -->
     <div v-if="!initial" class="border-b py-3.5">
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <MessageSquareIcon class="size-3.5" /> Nota inicial
       </div>
@@ -1122,7 +1122,7 @@ onMounted(async () => {
     <!-- ── SECCIÓN: Archivos adjuntos ─────── -->
     <div class="border-b py-3.5">
       <div
-        class="mb-2.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
       >
         <PaperclipIcon class="size-3.5" /> Archivos adjuntos
       </div>
@@ -1138,7 +1138,7 @@ onMounted(async () => {
         <span class="text-xs text-foreground"
           >Arrastra archivos aquí o <span class="font-semibold text-primary">haz clic</span></span
         >
-        <span class="text-[10.5px] text-muted-foreground">Imágenes, PDF, Excel, Word, CSV</span>
+        <span class="text-xs text-muted-foreground">Imágenes, PDF, Excel, Word, CSV</span>
         <input
           ref="fileInputRef"
           type="file"

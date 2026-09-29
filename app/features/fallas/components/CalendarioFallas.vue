@@ -339,19 +339,19 @@ onMounted(cargar)
       <div class="ml-auto flex gap-4">
         <span class="flex flex-col items-center">
           <span class="text-lg font-extrabold text-muted-foreground">{{ kpiMes.pendientes }}</span>
-          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+          <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >pendientes</span
           >
         </span>
         <span class="flex flex-col items-center">
           <span class="text-lg font-extrabold text-primary">{{ kpiMes.ejecutadas }}</span>
-          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+          <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >ejecutadas</span
           >
         </span>
         <span class="flex flex-col items-center">
           <span class="text-lg font-extrabold text-foreground">{{ kpiMes.total }}</span>
-          <span class="text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
+          <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >este mes</span
           >
         </span>
@@ -361,7 +361,7 @@ onMounted(cargar)
     <!-- ── Leyenda ─────────────────────────────────────────────────────────── -->
     <div class="flex flex-wrap items-center gap-4 rounded-lg border bg-card px-4 py-2">
       <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <span class="size-2.5 shrink-0 rounded-full" style="background: var(--muted-foreground)" />
+        <span class="size-2.5 shrink-0 rounded-full bg-muted-foreground" />
         Programada (pendiente)
       </span>
       <span class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -373,7 +373,10 @@ onMounted(cargar)
         :key="codigo"
         class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
       >
-        <span class="size-2.5 shrink-0 rounded-full" :style="{ background: colorEstado(codigo) }" />
+        <span
+          class="size-2.5 shrink-0 rounded-full bg-(--c)"
+          :style="{ '--c': colorEstado(codigo) }"
+        />
         {{ estados.find((e) => e.codigo === codigo)?.etiqueta ?? codigo }}
       </span>
     </div>
@@ -394,7 +397,7 @@ onMounted(cargar)
         <div
           v-for="d in DIAS"
           :key="d"
-          class="py-2 text-center text-[11px] font-extrabold tracking-wide text-muted-foreground uppercase"
+          class="py-2 text-center text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
         >
           {{ d }}
         </div>
@@ -426,19 +429,16 @@ onMounted(cargar)
               v-for="ev in cell.eventos.slice(0, 3)"
               :key="ev.id"
               type="button"
-              class="flex items-center gap-1 overflow-hidden rounded px-1.5 py-0.5 text-left transition-opacity hover:opacity-80"
+              class="flex items-center gap-1 overflow-hidden rounded border-l-3 border-l-(--c) bg-(--c)/12 px-1.5 py-0.5 text-left transition-opacity hover:opacity-80"
               :class="esFinal(ev) && 'opacity-90'"
-              :style="{
-                background: `color-mix(in oklab, ${colorEvento(ev)} 12%, transparent)`,
-                borderLeft: `3px solid ${colorEvento(ev)}`,
-              }"
+              :style="{ '--c': colorEvento(ev) }"
               :title="`[${ev.estado?.etiqueta}] ${ev.proyecto?.nombre_comercial} — ${ev.descripcion}`"
               @click="abrirDetalle(ev)"
             >
               <CircleCheckIcon v-if="esFinal(ev)" class="size-3 shrink-0 text-primary" />
               <ClockIcon v-else class="size-3 shrink-0 text-muted-foreground" />
               <span
-                class="truncate text-[10px] font-semibold"
+                class="truncate text-xs font-semibold"
                 :class="esFinal(ev) ? 'text-muted-foreground line-through' : 'text-foreground'"
                 >{{ ev.proyecto?.nombre_comercial }}</span
               >
@@ -446,7 +446,7 @@ onMounted(cargar)
             <button
               v-if="cell.eventos.length > 3"
               type="button"
-              class="rounded px-1 text-left text-[10px] font-bold text-primary hover:bg-primary/10"
+              class="rounded px-1 text-left text-xs font-bold text-primary hover:bg-primary/10"
               @click="abrirListaDia(cell)"
             >
               +{{ cell.eventos.length - 3 }} más
@@ -471,7 +471,7 @@ onMounted(cargar)
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <ZapIcon class="size-3.5" /> Proyecto
             </span>
@@ -481,7 +481,7 @@ onMounted(cargar)
           </div>
           <div class="flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <CalendarIcon class="size-3.5" /> Fecha programada
             </span>
@@ -491,21 +491,21 @@ onMounted(cargar)
           </div>
           <div class="flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <FlagIcon class="size-3.5" /> Prioridad
             </span>
             <span class="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <span
-                class="size-2 rounded-full"
-                :style="{ background: colorPrioridad(detalle.prioridad?.codigo) }"
+                class="size-2 rounded-full bg-(--c)"
+                :style="{ '--c': colorPrioridad(detalle.prioridad?.codigo) }"
               />
               {{ detalle.prioridad?.etiqueta }}
             </span>
           </div>
           <div class="col-span-2 flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <AlignLeftIcon class="size-3.5" /> Descripción
             </span>
@@ -515,7 +515,7 @@ onMounted(cargar)
           </div>
           <div v-if="detalle.causa_raiz" class="col-span-2 flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <SearchIcon class="size-3.5" /> Causa raíz
             </span>
@@ -525,7 +525,7 @@ onMounted(cargar)
           </div>
           <div v-if="detalle.acciones_correctivas" class="col-span-2 flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <SquareCheckIcon class="size-3.5" /> Acciones correctivas
             </span>
@@ -535,7 +535,7 @@ onMounted(cargar)
           </div>
           <div class="flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <CalendarClockIcon class="size-3.5" /> Identificado
             </span>
@@ -545,7 +545,7 @@ onMounted(cargar)
           </div>
           <div class="flex flex-col gap-1">
             <span
-              class="flex items-center gap-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase"
+              class="flex items-center gap-1 text-xs font-bold tracking-wide text-muted-foreground uppercase"
             >
               <ClockIcon class="size-3.5" /> SLA
             </span>
@@ -578,7 +578,10 @@ onMounted(cargar)
             class="flex items-center gap-2.5 rounded-md px-1.5 py-2 text-left hover:bg-muted"
             @click="abrirDetalleDesdeDia(ev)"
           >
-            <span class="size-2.5 shrink-0 rounded-full" :style="{ background: colorEvento(ev) }" />
+            <span
+              class="size-2.5 shrink-0 rounded-full bg-(--c)"
+              :style="{ '--c': colorEvento(ev) }"
+            />
             <div>
               <div class="font-mono text-xs font-bold text-foreground">{{ ev.codigo_interno }}</div>
               <div class="text-xs text-muted-foreground">{{ ev.proyecto?.nombre_comercial }}</div>
