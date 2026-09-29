@@ -72,8 +72,8 @@
       <!-- Duplicados: la planta tiene varios registros que son el mismo contrato.
            Los sembraron tres fuentes distintas (los dos seeds y el wizard) sin
            que ninguna reconociera a las otras. -->
-      <div v-if="grupoDuplicado" class="dup-aviso">
-        <CopyIcon class="size-3.5" />
+      <div v-if="grupoDuplicado" class="flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-xs border bg-primary/10 border-primary/30 text-primary">
+        <CopyIcon class="size-3.5 mt-px shrink-0" />
         <div class="min-w-0">
           <p class="font-semibold">
             {{ grupoDuplicado.ids.length }} registros de esta planta son el mismo contrato
@@ -88,8 +88,8 @@
         </Button>
       </div>
 
-      <div v-else-if="grupoEnConflicto" class="dup-aviso dup-aviso--frena">
-        <TriangleAlertIcon class="size-3.5" />
+      <div v-else-if="grupoEnConflicto" class="flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-xs border bg-warning/10 border-warning/30 text-warning">
+        <TriangleAlertIcon class="size-3.5 mt-px shrink-0" />
         <div class="min-w-0">
           <p class="font-semibold">
             {{ grupoEnConflicto.ids.length }} registros parecen el mismo contrato, pero se contradicen
@@ -105,43 +105,43 @@
       <template v-if="c">
         <!-- ── Resumen ──────────────────────────────────────────────────── -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat border" :class="vigencia.tono">
-            <p class="cd-stat-lbl">
+          <div class="min-w-0 rounded-xl px-3.5 py-3 border" :class="vigencia.tono">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1">
               <CircleIcon class="size-1.5 fill-current" />Estado
             </p>
-            <p class="cd-stat-val">{{ vigencia.label }}</p>
-            <p class="cd-stat-sub opacity-70">{{ vigencia.detalle }}</p>
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase">{{ vigencia.label }}</p>
+            <p class="text-xs mt-px truncate opacity-70">{{ vigencia.detalle }}</p>
           </div>
 
-          <div class="cd-stat border border-border bg-card text-muted-foreground">
-            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Duración</p>
-            <p class="cd-stat-val text-unergy-deep">{{ duracion || '—' }}</p>
-            <p class="cd-stat-sub">{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}</p>
+          <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ClockIcon class="size-3" />Duración</p>
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ duracion || '—' }}</p>
+            <p class="text-xs mt-px truncate">{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}</p>
           </div>
 
-          <div class="cd-stat border border-border bg-card text-muted-foreground">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Tarifa CGM</p>
-            <p class="cd-stat-val text-unergy-deep">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
+          <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ChartLineIcon class="size-3" />Tarifa CGM</p>
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
               <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
-            <p class="cd-stat-sub">{{ idxCgm.length ? `${idxCgm.length} aniversarios` : 'sin indexación' }}</p>
+            <p class="text-xs mt-px truncate">{{ idxCgm.length ? `${idxCgm.length} aniversarios` : 'sin indexación' }}</p>
           </div>
 
-          <div class="cd-stat border border-border bg-card text-muted-foreground">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Tarifa Repr.</p>
-            <p class="cd-stat-val text-unergy-deep">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
+          <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ChartLineIcon class="size-3" />Tarifa Repr.</p>
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
               <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
-            <p class="cd-stat-sub">{{ idxRep.length ? `${idxRep.length} aniversarios` : 'sin indexación' }}</p>
+            <p class="text-xs mt-px truncate">{{ idxRep.length ? `${idxRep.length} aniversarios` : 'sin indexación' }}</p>
           </div>
         </div>
 
         <!-- ── Identificación ───────────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-unergy-purple/10 text-unergy-purple"><IdCardIcon class="size-3" /></span>
-            <h3 class="cd-sec-title">Identificación</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10 text-unergy-purple"><IdCardIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Identificación</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'id'" label="Editar" size="small" text severity="secondary" @click="abrir('id')">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -157,24 +157,24 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
-            <div v-if="edit !== 'id'" class="cd-grid">
+          <div class="p-3.5">
+            <div v-if="edit !== 'id'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Número de contrato" :value="c.numero_contrato" />
               <InfoField label="Inversionista" :value="c.inversionista_nombre" />
               <InfoField label="Portafolio" :value="c.portafolio" />
               <InfoField label="Código Sun Factory" :value="c.codigo_sun_factory" />
               <InfoField label="Proyecto según el contrato" :value="c.nombre_proyecto_ref" />
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Planta asociada</span>
+                <span class="text-xs font-medium text-muted-foreground">Planta asociada</span>
                 <span v-if="c.proyecto" class="text-sm text-unergy-deep">
                   {{ c.proyecto.nombre_comercial }}
                 </span>
                 <span v-else class="text-sm font-semibold text-warning">Sin proyecto</span>
               </div>
             </div>
-            <div v-else class="cd-grid">
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Número de contrato</label>
+                <label class="text-xs font-medium text-muted-foreground">Número de contrato</label>
                 <InputText v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" class="w-full" />
               </div>
               <SelectorCliente
@@ -184,15 +184,15 @@
                 requerido
               />
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Portafolio</label>
+                <label class="text-xs font-medium text-muted-foreground">Portafolio</label>
                 <InputText v-model="form.portafolio" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Código Sun Factory</label>
+                <label class="text-xs font-medium text-muted-foreground">Código Sun Factory</label>
                 <InputText v-model="form.codigo_sun_factory" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Proyecto según el contrato</label>
+                <label class="text-xs font-medium text-muted-foreground">Proyecto según el contrato</label>
                 <InputText v-model="form.nombre_proyecto_ref" class="w-full" />
               </div>
             </div>
@@ -200,11 +200,11 @@
         </section>
 
         <!-- ── Partes del contrato ──────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-primary/10 text-primary"><UsersIcon class="size-3" /></span>
-            <h3 class="cd-sec-title">Partes del contrato</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><UsersIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Partes del contrato</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'partes'" label="Editar" size="small" text severity="secondary" @click="abrir('partes')">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -220,23 +220,23 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
-            <div v-if="edit !== 'partes'" class="cd-partes">
-              <div class="cd-parte">
-                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Contratante</p>
-                <p class="cd-parte-nom">{{ c.contratante_nombre || '—' }}</p>
-                <p class="cd-parte-nit">NIT {{ c.contratante_nit || '—' }}</p>
+          <div class="p-3.5">
+            <div v-if="edit !== 'partes'" class="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Contratante</p>
+                <p class="text-sm font-semibold text-unergy-deep">{{ c.contratante_nombre || '—' }}</p>
+                <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ c.contratante_nit || '—' }}</p>
               </div>
-              <ArrowRightIcon class="cd-partes-flecha size-3" />
-              <div class="cd-parte">
-                <p class="cd-parte-rol"><BriefcaseIcon class="size-3" />Prestador</p>
-                <p class="cd-parte-nom">{{ c.prestador_nombre || '—' }}</p>
-                <p class="cd-parte-nit">NIT {{ c.prestador_nit || '—' }}</p>
+              <ArrowRightIcon class="text-muted-foreground/50 self-center rotate-90 sm:rotate-0 size-3" />
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BriefcaseIcon class="size-3" />Prestador</p>
+                <p class="text-sm font-semibold text-unergy-deep">{{ c.prestador_nombre || '—' }}</p>
+                <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ c.prestador_nit || '—' }}</p>
               </div>
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Contratante</p>
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Contratante</p>
                 <SelectorCliente
                   v-model:id="form.contratante_id"
                   v-model:nombre="form.contratante_nombre"
@@ -245,12 +245,12 @@
                   requerido
                 />
                 <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">NIT</label>
+                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
                   <InputText v-model="form.contratante_nit" class="w-full" />
                 </div>
               </div>
-              <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BriefcaseIcon class="size-3" />Prestador</p>
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BriefcaseIcon class="size-3" />Prestador</p>
                 <SelectorCliente
                   v-model:id="form.prestador_id"
                   v-model:nombre="form.prestador_nombre"
@@ -259,7 +259,7 @@
                   requerido
                 />
                 <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">NIT</label>
+                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
                   <InputText v-model="form.prestador_nit" class="w-full" />
                 </div>
               </div>
@@ -268,11 +268,11 @@
         </section>
 
         <!-- ── Vigencia ─────────────────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-success/10 text-success"><CalendarIcon class="size-3" /></span>
-            <h3 class="cd-sec-title">Vigencia</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-success/10 text-success"><CalendarIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Vigencia</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'vigencia'" label="Editar" size="small" text severity="secondary" @click="abrir('vigencia')">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -285,8 +285,8 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
-            <div v-if="edit !== 'vigencia'" class="cd-grid">
+          <div class="p-3.5">
+            <div v-if="edit !== 'vigencia'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Fecha de firma" :value="fmtFecha(c.fecha_firma_contrato)" />
               <InfoField label="Fecha inicio" :value="fmtFecha(c.fecha_inicio)" />
               <InfoField label="Fecha fin" :value="fmtFecha(c.fecha_fin)" />
@@ -294,13 +294,13 @@
                    el guion ante null/undefined. -->
               <InfoField label="Duración" :value="duracion || null" />
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Estado</span>
+                <span class="text-xs font-medium text-muted-foreground">Estado</span>
                 <div>
                   <GBadge :color="ESTADO_SEVERITY[c.estado] || 'default'" class="text-xs">{{ ESTADO_LABELS[c.estado] || c.estado || '—' }}</GBadge>
                 </div>
               </div>
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Renovación automática</span>
+                <span class="text-xs font-medium text-muted-foreground">Renovación automática</span>
                 <div>
                   <GBadge v-if="c.renovacion_automatica != null"
                     :color="c.renovacion_automatica ? 'success' : 'default'"
@@ -309,29 +309,29 @@
                 </div>
               </div>
             </div>
-            <div v-else class="cd-grid">
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Estado</label>
+                <label class="text-xs font-medium text-muted-foreground">Estado</label>
                 <Select v-model="form.estado" :options="ESTADOS_OPCIONES" optionLabel="label"
                   optionValue="value" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Fecha de firma</label>
+                <label class="text-xs font-medium text-muted-foreground">Fecha de firma</label>
                 <DatePicker v-model="form.fecha_firma_contrato" dateFormat="yy-mm-dd" showIcon
                   :manualInput="true" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Fecha inicio</label>
+                <label class="text-xs font-medium text-muted-foreground">Fecha inicio</label>
                 <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon
                   :manualInput="true" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Fecha fin</label>
+                <label class="text-xs font-medium text-muted-foreground">Fecha fin</label>
                 <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon
                   :manualInput="true" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Renovación automática</label>
+                <label class="text-xs font-medium text-muted-foreground">Renovación automática</label>
                 <Select v-model="form.renovacion_automatica" :options="SI_NO" optionLabel="label"
                   optionValue="value" class="w-full" placeholder="Sin dato" showClear />
               </div>
@@ -340,11 +340,11 @@
         </section>
 
         <!-- ── Condiciones comerciales ──────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-warning/10 text-warning"><DollarSignIcon class="size-3" /></span>
-            <h3 class="cd-sec-title">Condiciones comerciales</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10 text-warning"><DollarSignIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Condiciones comerciales</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'comercial'" label="Editar" size="small" text severity="secondary" @click="abrir('comercial')">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -358,8 +358,8 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
-            <div v-if="edit !== 'comercial'" class="cd-grid">
+          <div class="p-3.5">
+            <div v-if="edit !== 'comercial'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Tarifa admin"
                 :value="c.tarifa_admin != null ? (c.tarifa_admin * 100).toFixed(2) + ' %' : null" />
               <InfoField label="Tarifa CGM base ($/kWh)" :value="fmtVal(c.tarifa_cgm)" />
@@ -367,14 +367,14 @@
               <InfoField label="Índice de indexación" :value="c.indice_indexacion" />
               <InfoField label="Periodicidad de pago" :value="c.periodicidad_pago" />
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Responsable de IVA</span>
+                <span class="text-xs font-medium text-muted-foreground">Responsable de IVA</span>
                 <div>
                   <GBadge :color="c.responsable_iva ? 'success' : 'default'"
                     class="text-xs">{{ c.responsable_iva ? 'Sí' : 'No' }}</GBadge>
                 </div>
               </div>
-              <div class="cd-ancho flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Contrato en Drive</span>
+              <div class="col-span-full flex flex-col gap-0.5">
+                <span class="text-xs font-medium text-muted-foreground">Contrato en Drive</span>
                 <a v-if="c.enlace_drive" :href="c.enlace_drive" target="_blank" rel="noopener"
                   class="text-sm inline-flex items-center gap-1 hover:underline text-primary">
                   <ExternalLinkIcon class="size-3" />Ver contrato
@@ -382,38 +382,38 @@
                 <span v-else class="text-sm text-unergy-deep">—</span>
               </div>
             </div>
-            <div v-else class="cd-grid">
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Tarifa admin (%)</label>
+                <label class="text-xs font-medium text-muted-foreground">Tarifa admin (%)</label>
                 <InputNumber v-model="form.tarifa_admin_pct" :minFractionDigits="1" :maxFractionDigits="2"
                   suffix=" %" locale="en-US" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Tarifa CGM base ($/kWh)</label>
+                <label class="text-xs font-medium text-muted-foreground">Tarifa CGM base ($/kWh)</label>
                 <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="0" :maxFractionDigits="6"
                   locale="en-US" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Tarifa representación base ($/kWh)</label>
+                <label class="text-xs font-medium text-muted-foreground">Tarifa representación base ($/kWh)</label>
                 <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="0"
                   :maxFractionDigits="6" locale="en-US" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Índice de indexación</label>
+                <label class="text-xs font-medium text-muted-foreground">Índice de indexación</label>
                 <InputText v-model="form.indice_indexacion" placeholder="Ej: IPC" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Periodicidad de pago</label>
+                <label class="text-xs font-medium text-muted-foreground">Periodicidad de pago</label>
                 <Select v-model="form.periodicidad_pago" :options="PERIODICIDADES" optionLabel="label"
                   optionValue="value" class="w-full" placeholder="Sin dato" showClear />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Responsable de IVA</label>
+                <label class="text-xs font-medium text-muted-foreground">Responsable de IVA</label>
                 <Select v-model="form.responsable_iva" :options="SI_NO" optionLabel="label"
                   optionValue="value" class="w-full" />
               </div>
-              <div class="cd-ancho flex flex-col gap-1">
-                <label class="cd-lbl">Contrato en Drive</label>
+              <div class="col-span-full flex flex-col gap-1">
+                <label class="text-xs font-medium text-muted-foreground">Contrato en Drive</label>
                 <InputText v-model="form.enlace_drive" placeholder="https://drive.google.com/..."
                   class="w-full" />
               </div>
@@ -422,11 +422,11 @@
         </section>
 
         <!-- ── Indexación ───────────────────────────────────────────────── -->
-        <section v-for="t in TABLAS_IDX" :key="t.clave" class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-primary/10 text-primary"><TableIcon class="size-3" /></span>
-            <h3 class="cd-sec-title">{{ t.titulo }}</h3>
-            <div class="cd-sec-act">
+        <section v-for="t in TABLAS_IDX" :key="t.clave" class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><TableIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">{{ t.titulo }}</h3>
+            <div class="ml-auto flex items-center gap-1">
               <span v-if="edit !== t.clave" class="text-xs mr-1 text-muted-foreground">Hoy: {{ hoy }}</span>
               <Button v-if="edit !== t.clave" label="Editar" size="small" text severity="secondary" @click="abrirIdx(t.clave)">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -441,25 +441,25 @@
           </header>
 
           <!-- Modo edición: una fila por aniversario. El año base no lleva IPC. -->
-          <div v-if="edit === t.clave" class="cd-sec-body space-y-2">
-            <div v-for="(f, i) in filasEdit" :key="i" class="idx-fila">
+          <div v-if="edit === t.clave" class="p-3.5 space-y-2">
+            <div v-for="(f, i) in filasEdit" :key="i" class="grid grid-cols-2 md:grid-cols-4 gap-2.5 border border-border rounded-lg px-3 py-2.5 bg-muted/30">
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Año</label>
+                <label class="text-xs font-medium text-muted-foreground">Año</label>
                 <InputNumber v-model="f.anio" :useGrouping="false" :min="2000" :max="2100"
                   class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">IPC (%)</label>
+                <label class="text-xs font-medium text-muted-foreground">IPC (%)</label>
                 <InputNumber v-model="f.ipc" :minFractionDigits="1" :maxFractionDigits="3"
                   :disabled="f.esBase" placeholder="—" locale="en-US" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Valor ($/kWh)</label>
+                <label class="text-xs font-medium text-muted-foreground">Valor ($/kWh)</label>
                 <InputNumber v-model="f.valor" :minFractionDigits="0" :maxFractionDigits="6"
                   locale="en-US" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Base</label>
+                <label class="text-xs font-medium text-muted-foreground">Base</label>
                 <div class="flex items-center gap-2 h-9">
                   <Checkbox v-model="f.esBase" :binary="true" @change="marcarBase(i)" />
                   <Button text severity="danger" size="small" v-tooltip.bottom="'Quitar fila'" @click="filasEdit.splice(i, 1)">
@@ -477,17 +477,17 @@
             </p>
           </div>
 
-          <div v-else class="cd-sec-body !p-0">
+          <div v-else class="p-3.5 !p-0">
             <div v-if="!t.filas.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
               Sin datos de indexación. Usa <strong>Editar</strong> para capturarlos.
             </div>
             <table v-else class="w-full text-sm border-collapse">
               <thead>
                 <tr class="bg-muted/50">
-                  <th class="cd-th text-left">{{ c.fecha_firma_contrato ? 'Fecha aniversario' : 'Año' }}</th>
-                  <th class="cd-th text-left">IPC aplicado</th>
-                  <th class="cd-th text-right">Valor ($/kWh)</th>
-                  <th class="cd-th text-center">Estado</th>
+                  <th class="px-4 py-2 text-xs font-bold text-muted-foreground border-b border-border text-left">{{ c.fecha_firma_contrato ? 'Fecha aniversario' : 'Año' }}</th>
+                  <th class="px-4 py-2 text-xs font-bold text-muted-foreground border-b border-border text-left">IPC aplicado</th>
+                  <th class="px-4 py-2 text-xs font-bold text-muted-foreground border-b border-border text-right">Valor ($/kWh)</th>
+                  <th class="px-4 py-2 text-xs font-bold text-muted-foreground border-b border-border text-center">Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -938,95 +938,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-/* Mismo lenguaje visual que el detalle de PPA (ContratoDetailView). */
-.cd-stat {
-  border-radius: 12px;
-  padding: 11px 14px; min-width: 0;
-}
-.cd-stat-lbl {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  margin-bottom: 3px;
-}
-.cd-stat-val {
-  font-size: 15px; font-weight: 700; line-height: 1.25;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.cd-stat-val::first-letter { text-transform: uppercase; }
-.cd-stat-sub {
-  font-size: 11px; margin-top: 1px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-.cd-sec { background: #fff; border: 1.5px solid #e8e0f0; border-radius: 12px; overflow: hidden; }
-.cd-sec-head {
-  display: flex; align-items: center; gap: 9px; min-height: 42px;
-  padding: 6px 14px; background: #faf8fd; border-bottom: 1px solid #f0eaf8;
-}
-.cd-sec-title {
-  font-size: 12px; font-weight: 700; letter-spacing: .03em;
-  text-transform: uppercase; color: var(--color-unergy-deep);
-}
-.cd-sec-act { margin-left: auto; display: flex; align-items: center; gap: 4px; }
-.cd-sec-body { padding: 14px; }
-.cd-ico {
-  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-
-.cd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-@media (min-width: 768px) { .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.cd-ancho { grid-column: 1 / -1; }
-.cd-campo-lbl { font-size: 12px; font-weight: 500; color: #9b89b5; }
-.cd-lbl { font-size: 12px; font-weight: 500; color: #4b5563; }
-
-.cd-partes { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
-.cd-partes-flecha { color: #c5b9db; }
-@media (max-width: 640px) {
-  .cd-partes { grid-template-columns: 1fr; }
-  .cd-partes-flecha { transform: rotate(90deg); justify-self: center; }
-}
-.cd-parte {
-  border: 1px solid #ECE7F2; border-radius: 10px; padding: 11px 13px;
-  background: #fcfbfe; min-width: 0;
-}
-.cd-parte-rol {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-  color: #9b89b5; margin-bottom: 3px;
-}
-.cd-parte-nom { font-size: 13px; font-weight: 600; color: var(--color-unergy-deep); }
-.cd-parte-nit {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px; color: #9b8fb0; margin-top: 1px;
-}
-
-.dup-aviso {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 13px; border-radius: 10px; font-size: 12px;
-  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
-}
-.dup-aviso--frena { background: #fffbeb; border-color: #fde68a; color: #92400E; }
-.dup-aviso svg { margin-top: 1px; flex-shrink: 0; }
-
-.idx-fila {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
-  border: 1px solid #ECE7F2; border-radius: 10px; padding: 10px 12px; background: #fcfbfe;
-}
-@media (min-width: 768px) { .dup-aviso {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 13px; border-radius: 10px; font-size: 12px;
-  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
-}
-.dup-aviso--frena { background: #fffbeb; border-color: #fde68a; color: #92400E; }
-.dup-aviso svg { margin-top: 1px; flex-shrink: 0; }
-
-.idx-fila { grid-template-columns: 1fr 1fr 1fr auto; } }
-
-.cd-th {
-  padding: 8px 16px; font-size: 11px; font-weight: 700;
-  color: #9b89b5; border-bottom: 1px solid #f0eaf8;
-}
-</style>
