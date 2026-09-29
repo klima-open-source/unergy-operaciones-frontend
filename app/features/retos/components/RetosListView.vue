@@ -105,7 +105,11 @@ onMounted(cargar)
         </template>
       </PageHeader>
       <!-- Recarga (cambio de año): barra indeterminada pegada bajo el header -->
-      <div v-if="recargando" class="rq-barra" role="presentation" />
+      <div
+        v-if="recargando"
+        class="rq-barra absolute inset-x-0 -bottom-2 h-0.5 overflow-hidden rounded-full bg-primary/15"
+        role="presentation"
+      />
     </div>
 
     <!-- Error (y también el caso improbable de `retos: []`) -->
@@ -120,7 +124,10 @@ onMounted(cargar)
     <div
       v-else
       class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
-      :class="{ 'rq-recargando': recargando }"
+      :class="{
+        'pointer-events-none opacity-50 transition-opacity duration-150 motion-reduce:transition-none':
+          recargando,
+      }"
       :aria-busy="cargandoInicial || recargando"
     >
       <template v-if="cargandoInicial">
@@ -134,17 +141,7 @@ onMounted(cargar)
 </template>
 
 <style scoped>
-/* Barra indeterminada de recarga, pegada bajo el PageHeader */
-.rq-barra {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -8px;
-  height: 2px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--primary) 14%, transparent);
-  overflow: hidden;
-}
+/* Barra indeterminada de recarga: el tramo que se desliza necesita @keyframes propio. */
 .rq-barra::after {
   content: '';
   display: block;
@@ -163,20 +160,11 @@ onMounted(cargar)
   }
 }
 
-.rq-recargando {
-  opacity: 0.5;
-  pointer-events: none;
-  transition: opacity 0.14s ease;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .rq-barra::after {
     animation: none;
     width: 100%;
     opacity: 0.6;
-  }
-  .rq-recargando {
-    transition: none;
   }
 }
 </style>

@@ -103,8 +103,8 @@ const pieTxt = computed(() => {
 
 <template>
   <Card
-    class="rq-card-q gap-2.5 p-3.5"
-    :class="{ 'rq-q-actual': esEnCurso }"
+    class="cursor-pointer gap-2.5 p-3.5 transition-all duration-150 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:hover:-translate-y-px"
+    :class="{ 'border-primary ring-3 ring-primary/10': esEnCurso }"
     role="link"
     tabindex="0"
     :aria-label="`Abrir ${reto.nombre || `Retos Q${reto.trimestre}`}`"
@@ -113,28 +113,33 @@ const pieTxt = computed(() => {
     @keydown.space.prevent="abrir"
   >
     <!-- a) Eyebrow -->
-    <div class="rq-q-eyebrow">
-      <span class="rq-q-eyebrow-l">
-        <span class="rq-q-num">Q{{ reto.trimestre }}</span>
+    <div class="flex items-center justify-between gap-2">
+      <span class="inline-flex min-w-0 items-center gap-1">
+        <span class="text-xs font-extrabold text-primary">Q{{ reto.trimestre }}</span>
         <span class="text-muted-foreground">·</span>
-        <span class="rq-q-meses text-muted-foreground">{{ mesesRango }}</span>
+        <span class="text-xs font-semibold text-muted-foreground">{{ mesesRango }}</span>
       </span>
       <GBadge :color="periodoBadgeColor(reto.estado_periodo)">
-        <span v-if="esEnCurso" class="rq-punto-vivo" />
+        <span
+          v-if="esEnCurso"
+          class="size-1.25 rounded-full bg-current motion-safe:animate-pulse"
+        />
         {{ periodoLabel(reto.estado_periodo) }}
       </GBadge>
     </div>
 
     <!-- b) Identidad + anillo -->
-    <div class="rq-q-identidad">
+    <div class="flex items-start justify-between gap-2.5">
       <div class="min-w-0">
-        <div class="rq-q-nombre">{{ reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}` }}</div>
+        <div class="truncate text-base leading-tight font-extrabold">
+          {{ reto.nombre || `Retos Q${reto.trimestre} ${reto.anio}` }}
+        </div>
         <div class="mt-0.5 text-xs text-muted-foreground">{{ rangoTxt }}</div>
         <div class="text-xs text-muted-foreground">{{ semanasTxt }}</div>
       </div>
       <div class="flex shrink-0 flex-col items-center gap-0.5">
         <AnilloAvance :pct="pctGlobal" :estado="estadoQ" />
-        <span class="rq-q-ritmo">ritmo</span>
+        <span class="text-xs font-bold tracking-wider text-muted-foreground uppercase">ritmo</span>
       </div>
     </div>
 
@@ -145,7 +150,7 @@ const pieTxt = computed(() => {
 
     <template v-if="sinMetricas">
       <!-- Tarjeta sin métricas -->
-      <div class="rq-q-vacio">
+      <div class="rounded-lg border border-dashed px-2.5 py-3.5 text-center">
         <div class="text-xs font-semibold text-muted-foreground">Sin métricas definidas</div>
         <div class="mt-0.5 text-xs font-bold text-primary">Definir métricas</div>
       </div>
@@ -158,7 +163,7 @@ const pieTxt = computed(() => {
       <!-- e) Lista de métricas (máx. 3) -->
       <div class="flex flex-col gap-1.5">
         <div v-for="m in metricasVisibles" :key="m.id" class="min-w-0">
-          <div class="rq-q-m-nombre">{{ m.nombre }}</div>
+          <div class="truncate text-xs font-semibold">{{ m.nombre }}</div>
           <div class="flex items-center gap-2">
             <!-- `m.serie` es `number[]`; `Sparkline` espera `{ valor }[]`. -->
             <RetoSparkline :serie="m.serie?.map((valor) => ({ valor })) ?? []" :estado="m.estado" />
@@ -167,7 +172,7 @@ const pieTxt = computed(() => {
               >—</span
             >
             <template v-else>
-              <span class="rq-q-m-valor">{{ consolidadoDe(m) }}</span>
+              <span class="text-xs font-bold tabular-nums">{{ consolidadoDe(m) }}</span>
               <span
                 v-if="m.unidad"
                 class="text-xs font-semibold text-muted-foreground"
@@ -188,121 +193,3 @@ const pieTxt = computed(() => {
     </template>
   </Card>
 </template>
-
-<style scoped>
-.rq-card-q {
-  cursor: pointer;
-  transition: all 0.14s ease;
-}
-.rq-card-q:hover {
-  box-shadow: 0 6px 18px rgba(44, 32, 57, 0.09);
-  transform: translateY(-1px);
-}
-.rq-card-q:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-/* Trimestre en curso: se mantiene también en hover */
-.rq-q-actual {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent);
-}
-.rq-q-actual:hover {
-  box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--primary) 10%, transparent),
-    0 6px 18px rgba(44, 32, 57, 0.09);
-}
-
-.rq-q-eyebrow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.rq-q-eyebrow-l {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-.rq-q-num {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--primary);
-}
-.rq-q-meses {
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.rq-punto-vivo {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
-  animation: rq-pulse 2s ease-in-out infinite;
-}
-@keyframes rq-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.rq-q-identidad {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-.rq-q-nombre {
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rq-q-ritmo {
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--muted-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.rq-q-m-nombre {
-  font-size: 11px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.rq-q-m-valor {
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.rq-q-vacio {
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  padding: 14px 10px;
-  text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rq-card-q {
-    transition: none;
-  }
-  .rq-card-q:hover {
-    transform: none;
-  }
-  .rq-punto-vivo {
-    animation: none;
-  }
-}
-</style>
