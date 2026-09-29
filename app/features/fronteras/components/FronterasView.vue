@@ -3,7 +3,9 @@
     <!-- Header -->
     <PageHeader
       title="Fronteras Comerciales"
-      :subtitle="errorCarga ? 'No se pudo cargar' : `${filteredFronteras.length} fronteras registradas`"
+      :subtitle="
+        errorCarga ? 'No se pudo cargar' : `${filteredFronteras.length} fronteras registradas`
+      "
     >
       <template #actions>
         <Button variant="outline" size="sm" @click="descargarExcel">
@@ -28,43 +30,68 @@
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Estado</label>
-        <Select :model-value="estadoFilter ?? ''" @update:model-value="(v) => (estadoFilter = (v as string) || null)">
+        <Select
+          :model-value="estadoFilter ?? ''"
+          @update:model-value="(v) => (estadoFilter = (v as string) || null)"
+        >
           <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
-            <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+            <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{
+              op.label
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
-        <ComboBox v-model="proyectoFilterStr" :options="proyectoOpciones" placeholder="Todos" class="w-48" />
+        <ComboBox
+          v-model="proyectoFilterStr"
+          :options="proyectoOpciones"
+          placeholder="Todos"
+          class="w-48"
+        />
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Operador</label>
-        <Select :model-value="operadorFilter ?? ''" @update:model-value="(v) => (operadorFilter = (v as string) || null)">
+        <Select
+          :model-value="operadorFilter ?? ''"
+          @update:model-value="(v) => (operadorFilter = (v as string) || null)"
+        >
           <SelectTrigger class="w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
-            <SelectItem v-for="op in operadorOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+            <SelectItem v-for="op in operadorOptions" :key="op.value" :value="op.value">{{
+              op.label
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div class="flex-shrink-0">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Registro ASIC</label>
         <div class="flex gap-2">
-          <Select :model-value="mesFilter != null ? String(mesFilter) : ''" @update:model-value="(v) => (mesFilter = v ? Number(v) : null)">
+          <Select
+            :model-value="mesFilter != null ? String(mesFilter) : ''"
+            @update:model-value="(v) => (mesFilter = v ? Number(v) : null)"
+          >
             <SelectTrigger class="w-44"><SelectValue placeholder="Mes" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Mes</SelectItem>
-              <SelectItem v-for="op in mesOptions" :key="op.value" :value="String(op.value)">{{ op.label }}</SelectItem>
+              <SelectItem v-for="op in mesOptions" :key="op.value" :value="String(op.value)">{{
+                op.label
+              }}</SelectItem>
             </SelectContent>
           </Select>
-          <Select :model-value="anioFilter != null ? String(anioFilter) : ''" @update:model-value="(v) => (anioFilter = v ? Number(v) : null)">
+          <Select
+            :model-value="anioFilter != null ? String(anioFilter) : ''"
+            @update:model-value="(v) => (anioFilter = v ? Number(v) : null)"
+          >
             <SelectTrigger class="w-32"><SelectValue placeholder="Año" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="">Año</SelectItem>
-              <SelectItem v-for="op in anioOptions" :key="op.value" :value="String(op.value)">{{ op.label }}</SelectItem>
+              <SelectItem v-for="op in anioOptions" :key="op.value" :value="String(op.value)">{{
+                op.label
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -78,11 +105,17 @@
         :key="stat.label"
         class="flex h-20 min-w-[9rem] flex-1 flex-col justify-center rounded-xl border bg-card p-4"
         :class="stat.clave ? 'cursor-pointer select-none' : ''"
-        :style="stat.clave && soloGenerando ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.06)' } : {}"
+        :style="
+          stat.clave && soloGenerando
+            ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.06)' }
+            : {}
+        "
         :title="stat.clave ? 'Clic para filtrar' : undefined"
         @click="stat.clave === 'generando' && (soloGenerando = !soloGenerando)"
       >
-        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{{ stat.label }}</p>
+        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {{ stat.label }}
+        </p>
         <p class="mt-1 text-2xl font-bold" :style="{ color: stat.color }">{{ stat.value }}</p>
       </div>
     </div>
@@ -94,9 +127,15 @@
     >
       <span class="text-sm font-medium text-destructive">
         <TriangleAlertIcon class="mr-1.5 size-[1em] text-xs" />
-        {{ pendientesQuoia.length }} {{ pendientesQuoia.length === 1 ? 'frontera nueva detectada' : 'fronteras nuevas detectadas' }} en Quoia, sin registrar aquí
+        {{ pendientesQuoia.length }}
+        {{
+          pendientesQuoia.length === 1 ? 'frontera nueva detectada' : 'fronteras nuevas detectadas'
+        }}
+        en Quoia, sin registrar aquí
       </span>
-      <Button variant="ghost" size="sm" class="text-destructive" @click="abrirPendientes">Revisar</Button>
+      <Button variant="ghost" size="sm" class="text-destructive" @click="abrirPendientes"
+        >Revisar</Button
+      >
     </div>
 
     <!-- Loading -->
@@ -105,7 +144,10 @@
     </div>
 
     <!-- Fallo de carga: explicito, para no confundirlo con "no hay fronteras" -->
-    <div v-else-if="errorCarga" class="rounded-xl border border-destructive/30 bg-card p-8 text-center">
+    <div
+      v-else-if="errorCarga"
+      class="rounded-xl border border-destructive/30 bg-card p-8 text-center"
+    >
       <p class="font-semibold text-destructive">No se pudo cargar el listado</p>
       <p class="mt-1 text-sm text-muted-foreground">{{ errorCarga }}</p>
       <Button size="sm" class="mt-4" @click="loadData">Reintentar</Button>
@@ -113,12 +155,21 @@
 
     <!-- Table -->
     <div v-else class="overflow-hidden rounded-xl border bg-card">
-      <DataTable :columns="columns" :rows="filteredFronteras as unknown as DataTableRow[]" row-key="id">
+      <DataTable
+        :columns="columns"
+        :rows="filteredFronteras as unknown as DataTableRow[]"
+        row-key="id"
+      >
         <template #cell="{ row: rawRow, column }">
-          <span v-if="column.key === 'codigo_frontera'" class="font-mono text-sm font-semibold text-primary">
+          <span
+            v-if="column.key === 'codigo_frontera'"
+            class="font-mono text-sm font-semibold text-primary"
+          >
             {{ asFrontera(rawRow).codigo_frontera || '—' }}
           </span>
-          <span v-else-if="column.key === 'nombre_frontera'">{{ formatearNombre(asFrontera(rawRow).nombre_frontera) }}</span>
+          <span v-else-if="column.key === 'nombre_frontera'">{{
+            formatearNombre(asFrontera(rawRow).nombre_frontera)
+          }}</span>
           <template v-else-if="column.key === 'proyecto_nombre'">
             <RouterLink
               v-if="asFrontera(rawRow).proyecto_id"
@@ -130,43 +181,71 @@
             </RouterLink>
             <span v-else class="text-sm text-muted-foreground">—</span>
           </template>
-          <GBadge v-else-if="column.key === 'tipo_frontera'" :color="tipoSeverity(asFrontera(rawRow).tipo_frontera)">
+          <GBadge
+            v-else-if="column.key === 'tipo_frontera'"
+            :color="tipoSeverity(asFrontera(rawRow).tipo_frontera)"
+          >
             {{ tipoLabel(asFrontera(rawRow).tipo_frontera) }}
           </GBadge>
-          <GBadge v-else-if="column.key === 'estado'" :color="estadoSeverity(asFrontera(rawRow).estado)">
+          <GBadge
+            v-else-if="column.key === 'estado'"
+            :color="estadoSeverity(asFrontera(rawRow).estado)"
+          >
             {{ asFrontera(rawRow).estado }}
           </GBadge>
           <template v-else-if="column.key === 'fecha_registro_asic'">
-            <span v-if="asFrontera(rawRow).fecha_registro_asic" class="text-sm text-muted-foreground">{{ asFrontera(rawRow).fecha_registro_asic }}</span>
+            <span
+              v-if="asFrontera(rawRow).fecha_registro_asic"
+              class="text-sm text-muted-foreground"
+              >{{ asFrontera(rawRow).fecha_registro_asic }}</span
+            >
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <template v-else-if="column.key === 'nro_serie_med_ppal'">
-            <span v-if="asFrontera(rawRow).nro_serie_med_ppal" class="font-mono text-xs text-muted-foreground">{{ asFrontera(rawRow).nro_serie_med_ppal }}</span>
+            <span
+              v-if="asFrontera(rawRow).nro_serie_med_ppal"
+              class="font-mono text-xs text-muted-foreground"
+              >{{ asFrontera(rawRow).nro_serie_med_ppal }}</span
+            >
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <template v-else-if="column.key === 'nro_serie_med_resp'">
-            <span v-if="asFrontera(rawRow).nro_serie_med_resp" class="font-mono text-xs text-muted-foreground">{{ asFrontera(rawRow).nro_serie_med_resp }}</span>
+            <span
+              v-if="asFrontera(rawRow).nro_serie_med_resp"
+              class="font-mono text-xs text-muted-foreground"
+              >{{ asFrontera(rawRow).nro_serie_med_resp }}</span
+            >
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <span v-else-if="column.key === 'operador_comercial'">
             {{ asFrontera(rawRow).operador_comercial || asFrontera(rawRow).operador_red || '—' }}
           </span>
           <template v-else-if="column.key === 'cap_mw'">
-            <span v-if="capacidadMw(asFrontera(rawRow)) !== null">{{ capacidadMw(asFrontera(rawRow))!.toFixed(3) }}</span>
+            <span v-if="capacidadMw(asFrontera(rawRow)) !== null">{{
+              capacidadMw(asFrontera(rawRow))!.toFixed(3)
+            }}</span>
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <template v-else-if="column.key === 'proyecto_municipio'">
-            <span v-if="asFrontera(rawRow).proyecto_municipio">{{ asFrontera(rawRow).proyecto_municipio }}</span>
+            <span v-if="asFrontera(rawRow).proyecto_municipio">{{
+              asFrontera(rawRow).proyecto_municipio
+            }}</span>
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <template v-else-if="column.key === 'proyecto_departamento'">
-            <span v-if="asFrontera(rawRow).proyecto_departamento">{{ asFrontera(rawRow).proyecto_departamento }}</span>
+            <span v-if="asFrontera(rawRow).proyecto_departamento">{{
+              asFrontera(rawRow).proyecto_departamento
+            }}</span>
             <span v-else class="text-xs text-muted-foreground/60">—</span>
           </template>
           <div v-else-if="column.key === 'acciones'" class="flex items-center gap-1">
             <GTooltip>
               <GTooltipTrigger as-child>
-                <Button variant="ghost" size="icon-sm" @click.stop="editFrontera(asFrontera(rawRow))">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  @click.stop="editFrontera(asFrontera(rawRow))"
+                >
                   <PencilIcon class="size-4" />
                 </Button>
               </GTooltipTrigger>
@@ -181,7 +260,10 @@
                   :disabled="borrandoId !== null"
                   @click.stop="deleteFrontera(asFrontera(rawRow))"
                 >
-                  <LoaderCircleIcon v-if="borrandoId === asFrontera(rawRow).id" class="animate-spin" />
+                  <LoaderCircleIcon
+                    v-if="borrandoId === asFrontera(rawRow).id"
+                    class="animate-spin"
+                  />
                   <Trash2Icon v-else class="size-4" />
                 </Button>
               </GTooltipTrigger>
@@ -202,25 +284,35 @@
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <GLabel>Código frontera</GLabel>
-              <Input :model-value="editForm.codigo_frontera ?? ''" @update:model-value="(v) => (editForm!.codigo_frontera = (v as string) || null)" />
+              <Input
+                :model-value="editForm.codigo_frontera ?? ''"
+                @update:model-value="(v) => (editForm!.codigo_frontera = (v as string) || null)"
+              />
             </div>
             <div class="space-y-1.5">
               <GLabel>Nombre</GLabel>
-              <Input :model-value="editForm.nombre_frontera ?? ''" @update:model-value="(v) => (editForm!.nombre_frontera = (v as string) || null)" />
+              <Input
+                :model-value="editForm.nombre_frontera ?? ''"
+                @update:model-value="(v) => (editForm!.nombre_frontera = (v as string) || null)"
+              />
             </div>
             <div class="space-y-1.5">
               <GLabel>Estado</GLabel>
               <Select v-model="editForm.estado">
                 <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{
+                    op.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div class="space-y-1.5">
               <GLabel>Operador red</GLabel>
               <ComboBox
-                :model-value="editForm.operador_red_id != null ? String(editForm.operador_red_id) : null"
+                :model-value="
+                  editForm.operador_red_id != null ? String(editForm.operador_red_id) : null
+                "
                 :options="operadoresRedOptions"
                 placeholder="Seleccionar"
                 @update:model-value="(v) => (editForm!.operador_red_id = v ? Number(v) : null)"
@@ -246,22 +338,40 @@
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Tipo de extracción</GLabel>
-                <Input :model-value="editForm.tipo_extraccion_ppal ?? ''" @update:model-value="(v) => (editForm!.tipo_extraccion_ppal = (v as string) || null)" placeholder="Ej. DLMS" />
+                <Input
+                  :model-value="editForm.tipo_extraccion_ppal ?? ''"
+                  placeholder="Ej. DLMS"
+                  @update:model-value="
+                    (v) => (editForm!.tipo_extraccion_ppal = (v as string) || null)
+                  "
+                />
               </div>
               <div class="space-y-1.5">
                 <GLabel>Contraseña del medidor</GLabel>
-                <Input :model-value="editForm.password_medidor_ppal ?? ''" @update:model-value="(v) => (editForm!.password_medidor_ppal = (v as string) || null)" />
+                <Input
+                  :model-value="editForm.password_medidor_ppal ?? ''"
+                  @update:model-value="
+                    (v) => (editForm!.password_medidor_ppal = (v as string) || null)
+                  "
+                />
               </div>
             </div>
             <p class="text-xs font-semibold text-muted-foreground uppercase">Módem asociado</p>
             <div class="grid grid-cols-3 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Dirección IP</GLabel>
-                <Input :model-value="editForm.ip_modem_ppal ?? ''" @update:model-value="(v) => (editForm!.ip_modem_ppal = (v as string) || null)" placeholder="10.10.10.1" />
+                <Input
+                  :model-value="editForm.ip_modem_ppal ?? ''"
+                  placeholder="10.10.10.1"
+                  @update:model-value="(v) => (editForm!.ip_modem_ppal = (v as string) || null)"
+                />
               </div>
               <div class="space-y-1.5">
                 <GLabel>Puerto</GLabel>
-                <NumberField v-model="editForm.puerto_modem_ppal" :format-options="{ useGrouping: false }">
+                <NumberField
+                  v-model="editForm.puerto_modem_ppal"
+                  :format-options="{ useGrouping: false }"
+                >
                   <NumberFieldContent>
                     <NumberFieldInput />
                   </NumberFieldContent>
@@ -269,7 +379,13 @@
               </div>
               <div class="space-y-1.5">
                 <GLabel>Canal de comunicación</GLabel>
-                <Input :model-value="editForm.canal_comunicacion_ppal ?? ''" @update:model-value="(v) => (editForm!.canal_comunicacion_ppal = (v as string) || null)" placeholder="Ej. IPsec" />
+                <Input
+                  :model-value="editForm.canal_comunicacion_ppal ?? ''"
+                  placeholder="Ej. IPsec"
+                  @update:model-value="
+                    (v) => (editForm!.canal_comunicacion_ppal = (v as string) || null)
+                  "
+                />
               </div>
             </div>
           </div>
@@ -279,22 +395,40 @@
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Tipo de extracción</GLabel>
-                <Input :model-value="editForm.tipo_extraccion_resp ?? ''" @update:model-value="(v) => (editForm!.tipo_extraccion_resp = (v as string) || null)" placeholder="Ej. DLMS" />
+                <Input
+                  :model-value="editForm.tipo_extraccion_resp ?? ''"
+                  placeholder="Ej. DLMS"
+                  @update:model-value="
+                    (v) => (editForm!.tipo_extraccion_resp = (v as string) || null)
+                  "
+                />
               </div>
               <div class="space-y-1.5">
                 <GLabel>Contraseña del medidor</GLabel>
-                <Input :model-value="editForm.password_medidor_resp ?? ''" @update:model-value="(v) => (editForm!.password_medidor_resp = (v as string) || null)" />
+                <Input
+                  :model-value="editForm.password_medidor_resp ?? ''"
+                  @update:model-value="
+                    (v) => (editForm!.password_medidor_resp = (v as string) || null)
+                  "
+                />
               </div>
             </div>
             <p class="text-xs font-semibold text-muted-foreground uppercase">Módem asociado</p>
             <div class="grid grid-cols-3 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Dirección IP</GLabel>
-                <Input :model-value="editForm.ip_modem_resp ?? ''" @update:model-value="(v) => (editForm!.ip_modem_resp = (v as string) || null)" placeholder="10.10.10.1" />
+                <Input
+                  :model-value="editForm.ip_modem_resp ?? ''"
+                  placeholder="10.10.10.1"
+                  @update:model-value="(v) => (editForm!.ip_modem_resp = (v as string) || null)"
+                />
               </div>
               <div class="space-y-1.5">
                 <GLabel>Puerto</GLabel>
-                <NumberField v-model="editForm.puerto_modem_resp" :format-options="{ useGrouping: false }">
+                <NumberField
+                  v-model="editForm.puerto_modem_resp"
+                  :format-options="{ useGrouping: false }"
+                >
                   <NumberFieldContent>
                     <NumberFieldInput />
                   </NumberFieldContent>
@@ -302,7 +436,13 @@
               </div>
               <div class="space-y-1.5">
                 <GLabel>Canal de comunicación</GLabel>
-                <Input :model-value="editForm.canal_comunicacion_resp ?? ''" @update:model-value="(v) => (editForm!.canal_comunicacion_resp = (v as string) || null)" placeholder="Ej. IPsec" />
+                <Input
+                  :model-value="editForm.canal_comunicacion_resp ?? ''"
+                  placeholder="Ej. IPsec"
+                  @update:model-value="
+                    (v) => (editForm!.canal_comunicacion_resp = (v as string) || null)
+                  "
+                />
               </div>
             </div>
           </div>
@@ -328,7 +468,9 @@
             <div class="col-span-2 space-y-1.5">
               <GLabel>Proyecto</GLabel>
               <ComboBox
-                :model-value="createForm.proyecto_id != null ? String(createForm.proyecto_id) : null"
+                :model-value="
+                  createForm.proyecto_id != null ? String(createForm.proyecto_id) : null
+                "
                 :options="proyectosAllOptions"
                 placeholder="Seleccionar"
                 @update:model-value="(v) => (createForm.proyecto_id = v ? Number(v) : null)"
@@ -336,18 +478,31 @@
             </div>
             <div class="space-y-1.5">
               <GLabel>Código frontera</GLabel>
-              <Input :model-value="createForm.codigo_frontera ?? ''" @update:model-value="(v) => (createForm.codigo_frontera = (v as string) || null)" />
+              <Input
+                :model-value="createForm.codigo_frontera ?? ''"
+                @update:model-value="(v) => (createForm.codigo_frontera = (v as string) || null)"
+              />
             </div>
             <div class="space-y-1.5">
               <GLabel required>Nombre</GLabel>
-              <Input :model-value="createForm.nombre_frontera ?? ''" @update:model-value="(v) => (createForm.nombre_frontera = (v as string) || null)" />
+              <Input
+                :model-value="createForm.nombre_frontera ?? ''"
+                @update:model-value="(v) => (createForm.nombre_frontera = (v as string) || null)"
+              />
             </div>
             <div class="space-y-1.5">
               <GLabel required>Tipo</GLabel>
-              <Select :model-value="createForm.tipo_frontera ?? undefined" @update:model-value="(v) => (createForm.tipo_frontera = v as string)">
-                <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <Select
+                :model-value="createForm.tipo_frontera ?? undefined"
+                @update:model-value="(v) => (createForm.tipo_frontera = v as string)"
+              >
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Seleccionar"
+                /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="op in tipoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                  <SelectItem v-for="op in tipoOptions" :key="op.value" :value="op.value">{{
+                    op.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -356,14 +511,18 @@
               <Select v-model="createForm.estado">
                 <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{ op.label }}</SelectItem>
+                  <SelectItem v-for="op in estadoOptions" :key="op.value" :value="op.value">{{
+                    op.label
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div class="space-y-1.5">
               <GLabel>Operador red</GLabel>
               <ComboBox
-                :model-value="createForm.operador_red_id != null ? String(createForm.operador_red_id) : null"
+                :model-value="
+                  createForm.operador_red_id != null ? String(createForm.operador_red_id) : null
+                "
                 :options="operadoresRedOptions"
                 placeholder="Seleccionar"
                 @update:model-value="(v) => (createForm.operador_red_id = v ? Number(v) : null)"
@@ -393,11 +552,18 @@
         <p class="text-sm text-muted-foreground">
           Ya existe una frontera con un nombre muy parecido:
           <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
-          (ID {{ duplicadoInfo?.candidato_id }}).
-          Si de verdad es una frontera distinta, puedes {{ pendingConfirmar ? 'agregarla' : 'crearla' }} igual.
+          (ID {{ duplicadoInfo?.candidato_id }}). Si de verdad es una frontera distinta, puedes
+          {{ pendingConfirmar ? 'agregarla' : 'crearla' }} igual.
         </p>
         <DialogFooter>
-          <Button variant="secondary" @click="duplicadoVisible = false; pendingConfirmar = null">Cancelar</Button>
+          <Button
+            variant="secondary"
+            @click="
+              duplicadoVisible = false
+              pendingConfirmar = null
+            "
+            >Cancelar</Button
+          >
           <Button :disabled="forzando" @click="forzarDuplicado">
             <LoaderCircleIcon v-if="forzando" class="animate-spin" />
             {{ pendingConfirmar ? 'Agregar de todos modos' : 'Crear de todos modos' }}
@@ -413,20 +579,29 @@
           <DialogTitle>Fronteras nuevas en Quoia</DialogTitle>
         </DialogHeader>
         <p class="text-sm text-muted-foreground">
-          Estas fronteras existen en Quoia pero todavía no tienen fila aquí. Asígnales un proyecto para agregarlas,
-          o ignóralas si no aplican.
+          Estas fronteras existen en Quoia pero todavía no tienen fila aquí. Asígnales un proyecto
+          para agregarlas, o ignóralas si no aplican.
         </p>
         <div v-if="loadingPendientes" class="flex items-center justify-center py-8">
           <LoaderCircleIcon class="size-6 animate-spin text-primary" />
         </div>
-        <div v-else-if="!pendientesQuoia.length" class="py-8 text-center text-sm text-muted-foreground">
+        <div
+          v-else-if="!pendientesQuoia.length"
+          class="py-8 text-center text-sm text-muted-foreground"
+        >
           No hay fronteras pendientes por revisar.
         </div>
         <div v-else class="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-          <div v-for="p in pendientesQuoia" :key="p.frt_code" class="flex items-center gap-3 rounded-xl border p-3">
+          <div
+            v-for="p in pendientesQuoia"
+            :key="p.frt_code"
+            class="flex items-center gap-3 rounded-xl border p-3"
+          >
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-semibold text-foreground">{{ p.nombre_quoia }}</p>
-              <p class="font-mono text-xs text-muted-foreground">{{ p.frt_code }} · {{ p.categoria }}</p>
+              <p class="font-mono text-xs text-muted-foreground">
+                {{ p.frt_code }} · {{ p.categoria }}
+              </p>
             </div>
             <ComboBox
               :model-value="p.proyectoId != null ? String(p.proyectoId) : null"
@@ -435,14 +610,23 @@
               class="w-64"
               @update:model-value="(v) => (p.proyectoId = v ? Number(v) : null)"
             />
-            <Button size="sm" :disabled="p.loading === 'confirmar' || !p.proyectoId" @click="confirmarPendiente(p)">
+            <Button
+              size="sm"
+              :disabled="p.loading === 'confirmar' || !p.proyectoId"
+              @click="confirmarPendiente(p)"
+            >
               <LoaderCircleIcon v-if="p.loading === 'confirmar'" class="animate-spin" />
               <CheckIcon v-else class="size-4" />
               Agregar
             </Button>
             <GTooltip>
               <GTooltipTrigger as-child>
-                <Button variant="ghost" size="icon-sm" :disabled="p.loading === 'ignorar'" @click="ignorarPendiente(p)">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  :disabled="p.loading === 'ignorar'"
+                  @click="ignorarPendiente(p)"
+                >
                   <LoaderCircleIcon v-if="p.loading === 'ignorar'" class="animate-spin" />
                   <XIcon v-else class="size-4" />
                 </Button>
@@ -460,7 +644,12 @@
 import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
 import type { OperadorRed } from '~/features/operadores-red/types'
 import type { ProyectoConDetalle } from '~/features/proyectos/types'
-import type { DuplicadoFrontera, Frontera, FronteraPendienteQuoia, PayloadFrontera } from '~/features/fronteras/types'
+import type {
+  DuplicadoFrontera,
+  Frontera,
+  FronteraPendienteQuoia,
+  PayloadFrontera,
+} from '~/features/fronteras/types'
 import {
   CheckIcon,
   FileSpreadsheetIcon,
@@ -477,7 +666,10 @@ import { isFetchError, normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
 // Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de
 // `DataTable` (ver `AdminUsuariosView.vue`).
-import DataTable, { type DataTableColumn, type DataTableRow } from '~/components/blocks/DataTable.vue'
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+} from '~/components/blocks/DataTable.vue'
 import { FronterasService } from '~/features/fronteras/services/fronteras'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { exportarExcel } from '~/utils/exportarExcel'
@@ -539,7 +731,9 @@ const soloGenerando = ref(route.query.generando === '1')
 
 const proyectoFilterStr = computed<string | null>({
   get: () => (proyectoFilter.value != null ? String(proyectoFilter.value) : null),
-  set: (v) => { proyectoFilter.value = v ? Number(v) : null },
+  set: (v) => {
+    proyectoFilter.value = v ? Number(v) : null
+  },
 })
 
 watch(
@@ -615,10 +809,23 @@ const operadorOptions = computed(() => {
     const nombre = f.operador_comercial || f.operador_red
     if (nombre) seen.add(nombre)
   }
-  return [...seen].sort().map(v => ({ label: v, value: v }))
+  return [...seen].sort().map((v) => ({ label: v, value: v }))
 })
 
-const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const MESES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+]
 const mesOptions = MESES.map((label, i) => ({ label, value: i + 1 }))
 
 const anioOptions = computed(() => {
@@ -628,16 +835,17 @@ const anioOptions = computed(() => {
     const anio = new Date(f.fecha_registro_asic).getFullYear()
     if (!isNaN(anio)) seen.add(anio)
   }
-  return [...seen].sort((a, b) => b - a).map(v => ({ label: String(v), value: v }))
+  return [...seen].sort((a, b) => b - a).map((v) => ({ label: String(v), value: v }))
 })
 
 const filteredFronteras = computed(() => {
   let list = fronteras.value
-  if (estadoFilter.value) list = list.filter(f => f.estado === estadoFilter.value)
-  if (proyectoFilter.value) list = list.filter(f => f.proyecto_id === proyectoFilter.value)
-  if (operadorFilter.value) list = list.filter(f => (f.operador_comercial || f.operador_red) === operadorFilter.value)
+  if (estadoFilter.value) list = list.filter((f) => f.estado === estadoFilter.value)
+  if (proyectoFilter.value) list = list.filter((f) => f.proyecto_id === proyectoFilter.value)
+  if (operadorFilter.value)
+    list = list.filter((f) => (f.operador_comercial || f.operador_red) === operadorFilter.value)
   if (mesFilter.value || anioFilter.value) {
-    list = list.filter(f => {
+    list = list.filter((f) => {
       if (!f.fecha_registro_asic) return false
       const d = new Date(f.fecha_registro_asic)
       if (isNaN(d.getTime())) return false
@@ -649,14 +857,15 @@ const filteredFronteras = computed(() => {
   if (soloGenerando.value) list = list.filter(generaDeVerdad)
   if (search.value) {
     const s = search.value.toLowerCase()
-    list = list.filter(f =>
-      (f.codigo_frontera || '').toLowerCase().includes(s)
-      || (f.nombre_frontera || '').toLowerCase().includes(s)
-      || (f.proyecto_nombre || '').toLowerCase().includes(s)
-      || (f.operador_red || '').toLowerCase().includes(s)
-      || (f.operador_comercial || '').toLowerCase().includes(s)
-      || (f.proyecto_municipio || '').toLowerCase().includes(s)
-      || (f.proyecto_departamento || '').toLowerCase().includes(s),
+    list = list.filter(
+      (f) =>
+        (f.codigo_frontera || '').toLowerCase().includes(s) ||
+        (f.nombre_frontera || '').toLowerCase().includes(s) ||
+        (f.proyecto_nombre || '').toLowerCase().includes(s) ||
+        (f.operador_red || '').toLowerCase().includes(s) ||
+        (f.operador_comercial || '').toLowerCase().includes(s) ||
+        (f.proyecto_municipio || '').toLowerCase().includes(s) ||
+        (f.proyecto_departamento || '').toLowerCase().includes(s),
     )
   }
   return list
@@ -724,15 +933,30 @@ const stats = computed<Stat[]>(() => {
   const all = fronteras.value
   return [
     { label: 'Total', value: all.length, color: '#2C2039' },
-    { label: 'Activas', value: all.filter(f => f.estado === 'activa').length, color: '#10B981' },
-    { label: 'En registro', value: all.filter(f => f.estado === 'en_registro').length, color: '#F0C040' },
-    { label: 'Generando actualmente', value: all.filter(generaDeVerdad).length, color: '#3B82F6', clave: 'generando' },
+    { label: 'Activas', value: all.filter((f) => f.estado === 'activa').length, color: '#10B981' },
+    {
+      label: 'En registro',
+      value: all.filter((f) => f.estado === 'en_registro').length,
+      color: '#F0C040',
+    },
+    {
+      label: 'Generando actualmente',
+      value: all.filter(generaDeVerdad).length,
+      color: '#3B82F6',
+      clave: 'generando',
+    },
     { label: 'Cap. total MW', value: capacidadTotalMw(all).toFixed(1), color: '#915BD8' },
   ]
 })
 
 function tipoLabel(t: string | null): string {
-  const map: Record<string, string> = { generacion: 'Generación', consumo: 'Consumo', generacion_consumo: 'Gen+Consumo', consumo_auxiliar: 'Auxiliar', consumo_propio: 'Propio' }
+  const map: Record<string, string> = {
+    generacion: 'Generación',
+    consumo: 'Consumo',
+    generacion_consumo: 'Gen+Consumo',
+    consumo_auxiliar: 'Auxiliar',
+    consumo_propio: 'Propio',
+  }
   return (t && map[t]) || t || '—'
 }
 function tipoSeverity(t: string | null): string {
@@ -741,25 +965,38 @@ function tipoSeverity(t: string | null): string {
   return 'warning'
 }
 function estadoSeverity(e: string | null): string {
-  const map: Record<string, string> = { activa: 'success', en_registro: 'warning', en_falla: 'destructive', cancelada: 'default' }
+  const map: Record<string, string> = {
+    activa: 'success',
+    en_registro: 'warning',
+    en_falla: 'destructive',
+    cancelada: 'default',
+  }
   return (e && map[e]) || 'information'
 }
 
 async function descargarExcel() {
-  await exportarExcel(filteredFronteras.value, [
-    { header: 'Código', value: (f: Frontera) => f.codigo_frontera || '' },
-    { header: 'Nombre', value: (f: Frontera) => formatearNombre(f.nombre_frontera) || '' },
-    { header: 'Proyecto', value: (f: Frontera) => f.proyecto_nombre || '' },
-    { header: 'Tipo', value: (f: Frontera) => tipoLabel(f.tipo_frontera) },
-    { header: 'Estado', value: (f: Frontera) => f.estado || '' },
-    { header: 'Fecha Registro ASIC', value: (f: Frontera) => f.fecha_registro_asic || '' },
-    { header: 'Serial Medidor Principal', value: (f: Frontera) => f.nro_serie_med_ppal || '' },
-    { header: 'Serial Medidor Respaldo', value: (f: Frontera) => f.nro_serie_med_resp || '' },
-    { header: 'Operador', value: (f: Frontera) => f.operador_comercial || f.operador_red || '' },
-    { header: 'Cap. MW', value: (f: Frontera) => (capacidadMw(f) !== null ? capacidadMw(f)!.toFixed(3) : '') },
-    { header: 'Municipio', value: (f: Frontera) => f.proyecto_municipio || '' },
-    { header: 'Departamento', value: (f: Frontera) => f.proyecto_departamento || '' },
-  ], `fronteras_${new Date().toISOString().slice(0, 10)}.xlsx`, 'Fronteras')
+  await exportarExcel(
+    filteredFronteras.value,
+    [
+      { header: 'Código', value: (f: Frontera) => f.codigo_frontera || '' },
+      { header: 'Nombre', value: (f: Frontera) => formatearNombre(f.nombre_frontera) || '' },
+      { header: 'Proyecto', value: (f: Frontera) => f.proyecto_nombre || '' },
+      { header: 'Tipo', value: (f: Frontera) => tipoLabel(f.tipo_frontera) },
+      { header: 'Estado', value: (f: Frontera) => f.estado || '' },
+      { header: 'Fecha Registro ASIC', value: (f: Frontera) => f.fecha_registro_asic || '' },
+      { header: 'Serial Medidor Principal', value: (f: Frontera) => f.nro_serie_med_ppal || '' },
+      { header: 'Serial Medidor Respaldo', value: (f: Frontera) => f.nro_serie_med_resp || '' },
+      { header: 'Operador', value: (f: Frontera) => f.operador_comercial || f.operador_red || '' },
+      {
+        header: 'Cap. MW',
+        value: (f: Frontera) => (capacidadMw(f) !== null ? capacidadMw(f)!.toFixed(3) : ''),
+      },
+      { header: 'Municipio', value: (f: Frontera) => f.proyecto_municipio || '' },
+      { header: 'Departamento', value: (f: Frontera) => f.proyecto_departamento || '' },
+    ],
+    `fronteras_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    'Fronteras',
+  )
 }
 
 function editFrontera(f: Frontera) {
@@ -810,7 +1047,10 @@ const pendingCreatePayload = ref<PayloadFrontera | null>(null) // body a reinten
 
 async function crearFrontera() {
   creating.value = true
-  const body: PayloadFrontera = { ...createForm.value, codigo_frontera: createForm.value.codigo_frontera || null }
+  const body: PayloadFrontera = {
+    ...createForm.value,
+    codigo_frontera: createForm.value.codigo_frontera || null,
+  }
   try {
     await fronterasService.crear(body)
     toast.success('Frontera creada', { duration: 2500 })
@@ -819,7 +1059,11 @@ async function crearFrontera() {
   } catch (err) {
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
     // igual. Distinto de un choque real de columna unica (detail es un string).
-    if (isFetchError<{ detail?: DuplicadoFrontera }>(err) && err.status === 409 && err.data?.detail?.duplicado_nombre) {
+    if (
+      isFetchError<{ detail?: DuplicadoFrontera }>(err) &&
+      err.status === 409 &&
+      err.data?.detail?.duplicado_nombre
+    ) {
       duplicadoInfo.value = err.data.detail
       pendingCreatePayload.value = body
       duplicadoVisible.value = true
@@ -878,8 +1122,9 @@ function deleteFrontera(f: Frontera) {
     // se equivoco de fila. Y el aviso ya no promete que sea irreversible,
     // porque no lo es: es borrado logico, y se revierte poniendo `deleted_at`
     // en NULL. Un aviso falso asusta y no protege.
-    description: `¿Eliminar ${f.nombre_frontera} (${f.codigo_frontera})? `
-      + 'Dejará de aparecer en el listado y de reportar al ASIC.',
+    description:
+      `¿Eliminar ${f.nombre_frontera} (${f.codigo_frontera})? ` +
+      'Dejará de aparecer en el listado y de reportar al ASIC.',
     confirmLabel: 'Eliminar',
     cancelLabel: 'Cancelar',
     variant: 'destructive',
@@ -887,7 +1132,7 @@ function deleteFrontera(f: Frontera) {
       borrandoId.value = f.id
       try {
         await fronterasService.eliminar(f.id)
-        fronteras.value = fronteras.value.filter(x => x.id !== f.id)
+        fronteras.value = fronteras.value.filter((x) => x.id !== f.id)
         toast.success(`${f.nombre_frontera} eliminada`, { duration: 2000 })
       } catch (err) {
         toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
@@ -937,13 +1182,20 @@ const proyectosAllOptions = computed<ComboBoxOption[]>(() =>
   proyectosAll.value.map((p) => ({ value: String(p.id), label: p.nombre_comercial || `#${p.id}` })),
 )
 const operadoresRedOptions = computed<ComboBoxOption[]>(() =>
-  operadoresRed.value.map((o) => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })),
+  operadoresRed.value.map((o) => ({
+    value: String(o.id),
+    label: o.nombre_comercial || o.nombre_legal,
+  })),
 )
 
 async function loadPendientesQuoia() {
   try {
     const data = await fronterasService.listarPendientesQuoia()
-    pendientesQuoia.value = data.map(p => ({ ...p, proyectoId: p.proyecto_sugerido_id ?? null, loading: null }))
+    pendientesQuoia.value = data.map((p) => ({
+      ...p,
+      proyectoId: p.proyecto_sugerido_id ?? null,
+      loading: null,
+    }))
   } catch {
     // Gaia sin configurar u otro error -- no bloquea la vista, solo no se muestra el aviso.
     pendientesQuoia.value = []
@@ -962,7 +1214,9 @@ async function loadProyectosAll() {
 function abrirPendientes() {
   showPendientesDialog.value = true
   loadingPendientes.value = true
-  Promise.all([loadPendientesQuoia(), loadProyectosAll()]).finally(() => { loadingPendientes.value = false })
+  Promise.all([loadPendientesQuoia(), loadProyectosAll()]).finally(() => {
+    loadingPendientes.value = false
+  })
 }
 
 /** Pendiente a reintentar con forzar=true tras confirmar el aviso de parecido. */
@@ -982,13 +1236,18 @@ async function confirmarPendiente(p: PendienteQuoiaUI, forzar = false) {
   p.loading = 'confirmar'
   try {
     await fronterasService.confirmarPendienteQuoia(p.frt_code, p.proyectoId, forzar)
-    pendientesQuoia.value = pendientesQuoia.value.filter(x => x.frt_code !== p.frt_code)
+    pendientesQuoia.value = pendientesQuoia.value.filter((x) => x.frt_code !== p.frt_code)
     duplicadoVisible.value = false
     pendingConfirmar.value = null
     toast.success('Frontera agregada', { duration: 2500 })
     await loadData()
   } catch (err) {
-    if (!forzar && isFetchError<{ detail?: DuplicadoFrontera }>(err) && err.status === 409 && err.data?.detail?.duplicado_nombre) {
+    if (
+      !forzar &&
+      isFetchError<{ detail?: DuplicadoFrontera }>(err) &&
+      err.status === 409 &&
+      err.data?.detail?.duplicado_nombre
+    ) {
       duplicadoInfo.value = err.data.detail
       pendingConfirmar.value = p
       duplicadoVisible.value = true
@@ -1025,7 +1284,7 @@ function ignorarPendiente(p: PendienteQuoiaUI) {
       p.loading = 'ignorar'
       try {
         await fronterasService.ignorarPendienteQuoia(p.frt_code)
-        pendientesQuoia.value = pendientesQuoia.value.filter(x => x.frt_code !== p.frt_code)
+        pendientesQuoia.value = pendientesQuoia.value.filter((x) => x.frt_code !== p.frt_code)
         toast.success('Ignorada', { duration: 2000 })
       } catch {
         toast.error('Error', { description: 'No se pudo ignorar', duration: 4000 })
@@ -1042,7 +1301,9 @@ const operadoresRed = ref<OperadorRed[]>([])
 async function loadOperadoresRed() {
   try {
     operadoresRed.value = await operadoresRedService.listar()
-  } catch { /* graceful degrade -- el select queda vacío */ }
+  } catch {
+    /* graceful degrade -- el select queda vacío */
+  }
 }
 
 onMounted(() => {

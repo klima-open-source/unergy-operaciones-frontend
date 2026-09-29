@@ -12,12 +12,18 @@
 <script setup lang="ts">
 import type { Oferta } from '~/features/comercial/types'
 import type { UseOfertas } from './useOfertas'
-import { FileCheckIcon, ListIcon, LoaderCircleIcon, PlusIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
+import {
+  FileCheckIcon,
+  ListIcon,
+  LoaderCircleIcon,
+  PlusIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 // Import explícito: bug conocido de tipos de `blocks/DatePicker`.
 import DatePicker from '~/components/blocks/DatePicker.vue'
 import {
-  aFecha,
   aFechaStr,
   aniosDelPeriodo,
   tarifasMensualesQueGenera,
@@ -105,10 +111,11 @@ watch(
 )
 
 function llenarAnios() {
-  const existentes = new Map(
-    f.precios_anuales.filter((p) => p.anio).map((p) => [p.anio, p.precio]),
-  )
-  f.precios_anuales = aniosPeriodo.value.map((a) => ({ anio: a, precio: existentes.get(a) ?? null }))
+  const existentes = new Map(f.precios_anuales.filter((p) => p.anio).map((p) => [p.anio, p.precio]))
+  f.precios_anuales = aniosPeriodo.value.map((a) => ({
+    anio: a,
+    precio: existentes.get(a) ?? null,
+  }))
 }
 
 function cerrar(v: boolean) {
@@ -180,9 +187,9 @@ async function firmar() {
           <TriangleAlertIcon class="text-warning" />
           <AlertDescription>
             <strong>Esta oferta no tiene ninguna planta vinculada.</strong>
-            El contrato se crearía sin plantas y Cumplimiento no podría medirlo contra
-            la generación. Vinculá el proyecto en el panel de la oferta antes de firmar,
-            o seguí si la planta todavía no existe en la plataforma.
+            El contrato se crearía sin plantas y Cumplimiento no podría medirlo contra la
+            generación. Vinculá el proyecto en el panel de la oferta antes de firmar, o seguí si la
+            planta todavía no existe en la plataforma.
           </AlertDescription>
         </Alert>
         <div v-else class="rounded-md border bg-primary/5 px-3 py-2">
@@ -225,7 +232,11 @@ async function firmar() {
           </ToggleGroup>
 
           <div v-if="f.modo_precio === 'unica'" class="flex w-56 items-center gap-2">
-            <NumberField v-model="f.tarifa_base" :format-options="{ maximumFractionDigits: 2 }" class="w-full">
+            <NumberField
+              v-model="f.tarifa_base"
+              :format-options="{ maximumFractionDigits: 2 }"
+              class="w-full"
+            >
               <NumberFieldContent><NumberFieldInput placeholder="p. ej. 300" /></NumberFieldContent>
             </NumberField>
             <span class="shrink-0 text-xs text-muted-foreground">$/kWh</span>
@@ -233,26 +244,49 @@ async function firmar() {
 
           <div v-else>
             <div class="mb-2 flex items-center gap-2">
-              <Button variant="outline" size="sm" :disabled="!aniosPeriodo.length" @click="llenarAnios">
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="!aniosPeriodo.length"
+                @click="llenarAnios"
+              >
                 <ListIcon class="size-4" />
                 Llenar los años del periodo
               </Button>
               <span class="text-[11px] text-muted-foreground">
-                {{ aniosPeriodo.length ? `${aniosPeriodo.length} año(s) entre inicio y fin` : 'Definí las fechas primero' }}
+                {{
+                  aniosPeriodo.length
+                    ? `${aniosPeriodo.length} año(s) entre inicio y fin`
+                    : 'Definí las fechas primero'
+                }}
               </span>
             </div>
-            <div v-for="(p, i) in f.precios_anuales" :key="i" class="mb-1.5 flex items-center gap-2">
+            <div
+              v-for="(p, i) in f.precios_anuales"
+              :key="i"
+              class="mb-1.5 flex items-center gap-2"
+            >
               <NumberField v-model="p.anio" :format-options="{ useGrouping: false }" class="w-24">
                 <NumberFieldContent><NumberFieldInput placeholder="Año" /></NumberFieldContent>
               </NumberField>
-              <NumberField v-model="p.precio" :format-options="{ maximumFractionDigits: 2 }" class="w-40">
-                <NumberFieldContent><NumberFieldInput placeholder="Precio $/kWh" /></NumberFieldContent>
+              <NumberField
+                v-model="p.precio"
+                :format-options="{ maximumFractionDigits: 2 }"
+                class="w-40"
+              >
+                <NumberFieldContent
+                  ><NumberFieldInput placeholder="Precio $/kWh"
+                /></NumberFieldContent>
               </NumberField>
               <Button variant="ghost" size="icon-sm" @click="f.precios_anuales.splice(i, 1)">
                 <Trash2Icon class="size-4 text-destructive" />
               </Button>
             </div>
-            <Button variant="ghost" size="sm" @click="f.precios_anuales.push({ anio: null, precio: null })">
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="f.precios_anuales.push({ anio: null, precio: null })"
+            >
               <PlusIcon class="size-4" />
               Agregar año
             </Button>
@@ -274,7 +308,10 @@ async function firmar() {
           </div>
           <div>
             <GLabel>Cantidad mínima (kWh/mes)</GLabel>
-            <NumberField v-model="f.cantidad_minima_kwh_mes" :format-options="{ useGrouping: false }">
+            <NumberField
+              v-model="f.cantidad_minima_kwh_mes"
+              :format-options="{ useGrouping: false }"
+            >
               <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
             </NumberField>
           </div>

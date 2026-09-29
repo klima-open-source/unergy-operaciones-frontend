@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-5">
     <!-- Barra de acciones (el título ya lo pone el wrapper ReporteEnergiaView) -->
-    <div class="flex items-center justify-between flex-wrap gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <DatePicker v-model="fecha" :max-value="maxFecha" class="w-40" />
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="ejecutando" @click="ejecutarClasificacion">
@@ -9,7 +9,12 @@
           <PlayIcon v-else class="size-[1em]" />
           Ejecutar clasificación
         </Button>
-        <Button v-if="ejecutando" variant="destructive" :disabled="deteniendo" @click="detenerClasificacion">
+        <Button
+          v-if="ejecutando"
+          variant="destructive"
+          :disabled="deteniendo"
+          @click="detenerClasificacion"
+        >
           <LoaderCircleIcon v-if="deteniendo" class="animate-spin" />
           <CircleStopIcon v-else class="size-[1em]" />
           Detener
@@ -21,23 +26,33 @@
         </Button>
         <GTooltip>
           <GTooltipTrigger as-child>
-            <Button :disabled="!resumen || !resumen.puede_enviar || enviando" @click="enviarReporte">
+            <Button
+              :disabled="!resumen || !resumen.puede_enviar || enviando"
+              @click="enviarReporte"
+            >
               <LoaderCircleIcon v-if="enviando" class="animate-spin" />
               <SendIcon v-else class="size-[1em]" />
               Enviar reporte
             </Button>
           </GTooltipTrigger>
-          <GTooltipContent v-if="!resumen?.puede_enviar">Quedan fronteras con horas sin fuente por revisar</GTooltipContent>
+          <GTooltipContent v-if="!resumen?.puede_enviar"
+            >Quedan fronteras con horas sin fuente por revisar</GTooltipContent
+          >
         </GTooltip>
       </div>
     </div>
 
     <!-- Stat cards -->
     <div class="flex flex-wrap gap-4">
-      <div v-for="stat in stats" :key="stat.label"
-           class="flex h-20 min-w-[9rem] flex-1 cursor-pointer flex-col justify-center rounded-xl border bg-card p-4 shadow-sm"
-           @click="filtroSemaforo = stat.filtro">
-        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{{ stat.label }}</p>
+      <div
+        v-for="stat in stats"
+        :key="stat.label"
+        class="flex h-20 min-w-[9rem] flex-1 cursor-pointer flex-col justify-center rounded-xl border bg-card p-4 shadow-sm"
+        @click="filtroSemaforo = stat.filtro"
+      >
+        <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {{ stat.label }}
+        </p>
         <p class="mt-1 text-2xl font-bold" :style="{ color: stat.color }">{{ stat.value }}</p>
       </div>
     </div>
@@ -49,45 +64,59 @@
          ("En espera"). Solo aparece si hay algo enviado ese día; el
          polling se detiene solo en cuanto nadie queda en_espera. -->
     <div v-if="estadoQuoia" class="rounded-xl border bg-card p-4 shadow-sm">
-      <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="mb-3 flex items-start justify-between gap-3">
         <div>
           <p class="text-sm font-bold text-foreground">Estado en Quoia</p>
-          <p class="text-xs mt-0.5 text-muted-foreground">
+          <p class="mt-0.5 text-xs text-muted-foreground">
             {{ estadoQuoia.total }} fronteras enviadas
             <span v-if="estadoQuoiaPolling"> · revisando cada 2 min</span>
           </p>
         </div>
-        <span v-if="estadoQuoiaPolling" class="flex items-center gap-1.5 text-xs font-semibold text-primary">
+        <span
+          v-if="estadoQuoiaPolling"
+          class="flex items-center gap-1.5 text-xs font-semibold text-primary"
+        >
           <span class="inline-block size-1.5 animate-pulse rounded-full bg-primary" />
           En vivo
         </span>
       </div>
-      <div class="grid grid-cols-4 gap-2.5 mb-1">
-        <div class="rounded-lg py-2.5 text-center bg-muted">
+      <div class="mb-1 grid grid-cols-4 gap-2.5">
+        <div class="rounded-lg bg-muted py-2.5 text-center">
           <p class="text-xl font-extrabold text-muted-foreground">{{ estadoQuoia.en_espera }}</p>
-          <p class="text-[11px] font-semibold mt-0.5 text-muted-foreground">En espera</p>
+          <p class="mt-0.5 text-[11px] font-semibold text-muted-foreground">En espera</p>
         </div>
-        <div class="rounded-lg py-2.5 text-center bg-success/15">
+        <div class="rounded-lg bg-success/15 py-2.5 text-center">
           <p class="text-xl font-extrabold text-success">{{ estadoQuoia.exitoso }}</p>
-          <p class="text-[11px] font-semibold mt-0.5 text-success">Exitoso</p>
+          <p class="mt-0.5 text-[11px] font-semibold text-success">Exitoso</p>
         </div>
-        <div class="rounded-lg py-2.5 text-center bg-warning/15">
+        <div class="rounded-lg bg-warning/15 py-2.5 text-center">
           <p class="text-xl font-extrabold text-warning">{{ estadoQuoia.exitoso_con_alerta }}</p>
-          <p class="text-[11px] font-semibold mt-0.5 text-warning">Con alerta</p>
+          <p class="mt-0.5 text-[11px] font-semibold text-warning">Con alerta</p>
         </div>
-        <div class="rounded-lg py-2.5 text-center bg-destructive/10">
+        <div class="rounded-lg bg-destructive/10 py-2.5 text-center">
           <p class="text-xl font-extrabold text-destructive">{{ estadoQuoia.error }}</p>
-          <p class="text-[11px] font-semibold mt-0.5 text-destructive">Error</p>
+          <p class="mt-0.5 text-[11px] font-semibold text-destructive">Error</p>
         </div>
       </div>
       <div v-if="estadoQuoia.fallidas.length" class="mt-3 border-t pt-3">
-        <p class="text-xs font-bold mb-2 text-destructive">⚠ {{ estadoQuoia.fallidas.length }} con error</p>
-        <div v-for="f in estadoQuoia.fallidas" :key="f.frontera_id + f.tipo"
-             class="rounded-lg px-2.5 py-1.5 mb-1.5 text-xs bg-muted/50">
-          <span class="font-semibold text-foreground">{{ f.nombre_proyecto }} — {{ f.tipo === 'generacion' ? 'Generación' : 'Consumo' }}</span>
+        <p class="mb-2 text-xs font-bold text-destructive">
+          ⚠ {{ estadoQuoia.fallidas.length }} con error
+        </p>
+        <div
+          v-for="f in estadoQuoia.fallidas"
+          :key="f.frontera_id + f.tipo"
+          class="mb-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs"
+        >
+          <span class="font-semibold text-foreground"
+            >{{ f.nombre_proyecto }} —
+            {{ f.tipo === 'generacion' ? 'Generación' : 'Consumo' }}</span
+          >
         </div>
       </div>
-      <p v-else-if="!estadoQuoiaPolling && estadoQuoia.en_espera === 0" class="text-xs font-semibold mt-3 border-t pt-3 text-success">
+      <p
+        v-else-if="!estadoQuoiaPolling && estadoQuoia.en_espera === 0"
+        class="mt-3 border-t pt-3 text-xs font-semibold text-success"
+      >
         ✓ Todas las fronteras ya tienen respuesta de XM — nada pendiente
       </p>
     </div>
@@ -103,7 +132,7 @@
         <div v-if="loadingLista" class="flex items-center justify-center py-12">
           <LoaderCircleIcon class="size-8 animate-spin text-primary" />
         </div>
-        <div v-else-if="!filas.length" class="text-center py-12 text-muted-foreground">
+        <div v-else-if="!filas.length" class="py-12 text-center text-muted-foreground">
           <p class="mb-3">Todavía no se ha corrido la clasificación para este día.</p>
           <Button :disabled="ejecutando" @click="ejecutarClasificacion">
             <LoaderCircleIcon v-if="ejecutando" class="animate-spin" />
@@ -117,8 +146,8 @@
             :seleccionada="seleccion?.frontera_id"
             @seleccionar="(f) => seleccionar(f, 'hoy')"
           />
-          <div class="rounded-xl border bg-card p-5 min-h-80">
-            <p v-if="!seleccion" class="text-sm text-center py-16 text-muted-foreground">
+          <div class="min-h-80 rounded-xl border bg-card p-5">
+            <p v-if="!seleccion" class="py-16 text-center text-sm text-muted-foreground">
               Elige una frontera de la lista para ver su detalle.
             </p>
             <ReporteEnergiaDetalleTab
@@ -126,14 +155,17 @@
               :key="`${seleccion.frontera_id}-${fechaISO}`"
               :frontera-id="seleccion.frontera_id"
               :fecha="fechaISO"
-              @actualizado="cargarLista(true); cargarResumen()"
+              @actualizado="
+                cargarLista(true)
+                cargarResumen()
+              "
             />
           </div>
         </div>
       </GTabsContent>
 
       <GTabsContent value="1" class="pt-1">
-        <div class="flex flex-wrap items-center gap-3 mb-4">
+        <div class="mb-4 flex flex-wrap items-center gap-3">
           <span class="text-sm text-muted-foreground">Ver el reporte de otro día:</span>
           <DatePicker v-model="fechaHistorial" :max-value="maxFecha" class="w-40" />
           <Button size="sm" @click="cargarHistorial()">Ver</Button>
@@ -147,8 +179,8 @@
             :seleccionada="seleccionHistorial?.frontera_id"
             @seleccionar="(f) => seleccionar(f, 'historial')"
           />
-          <div class="rounded-xl border bg-card p-5 min-h-80">
-            <p v-if="!seleccionHistorial" class="text-sm text-center py-16 text-muted-foreground">
+          <div class="min-h-80 rounded-xl border bg-card p-5">
+            <p v-if="!seleccionHistorial" class="py-16 text-center text-sm text-muted-foreground">
               Elige una frontera de la lista para ver su detalle.
             </p>
             <ReporteEnergiaDetalleTab
@@ -160,23 +192,28 @@
             />
           </div>
         </div>
-        <p v-else class="text-sm text-center py-8 text-muted-foreground">
+        <p v-else class="py-8 text-center text-sm text-muted-foreground">
           Elige una fecha y pulsa "Ver" para revisar ese día.
         </p>
       </GTabsContent>
 
       <GTabsContent value="2" class="pt-1">
-        <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div class="mb-4 flex flex-wrap items-end gap-3">
           <div>
-            <label class="block text-xs font-semibold mb-1 text-muted-foreground">Desde</label>
+            <label class="mb-1 block text-xs font-semibold text-muted-foreground">Desde</label>
             <DatePicker v-model="resumenDesde" :max-value="resumenHasta" class="w-40" />
           </div>
           <div>
-            <label class="block text-xs font-semibold mb-1 text-muted-foreground">Hasta</label>
-            <DatePicker v-model="resumenHasta" :min-value="resumenDesde" :max-value="maxFecha" class="w-40" />
+            <label class="mb-1 block text-xs font-semibold text-muted-foreground">Hasta</label>
+            <DatePicker
+              v-model="resumenHasta"
+              :min-value="resumenDesde"
+              :max-value="maxFecha"
+              class="w-40"
+            />
           </div>
           <div>
-            <label class="block text-xs font-semibold mb-1 text-muted-foreground">Frontera</label>
+            <label class="mb-1 block text-xs font-semibold text-muted-foreground">Frontera</label>
             <ComboBox
               v-model="fronteraResumenStr"
               :options="opcionesFronterasResumen"
@@ -199,34 +236,75 @@
           <!-- Fuente usada — Generación -->
           <section class="mb-6">
             <p class="text-sm font-bold text-foreground">Fuente usada — Generación</p>
-            <p class="text-xs mb-3 text-muted-foreground">
-              {{ totalDias(kpiGen) }} días-frontera reportados en el rango · clic en una barra para ver el detalle por frontera
+            <p class="mb-3 text-xs text-muted-foreground">
+              {{ totalDias(kpiGen) }} días-frontera reportados en el rango · clic en una barra para
+              ver el detalle por frontera
             </p>
-            <div v-if="kpiGen.length" class="rounded-xl border bg-card p-3" style="height:220px;">
+            <div v-if="kpiGen.length" class="rounded-xl border bg-card p-3" style="height: 220px">
               <Bar :data="chartGen" :options="chartOptionsGen" :plugins="[dataLabelPlugin]" />
             </div>
-            <p v-else class="text-xs text-center py-8 text-muted-foreground">Sin datos en este rango.</p>
+            <p v-else class="py-8 text-center text-xs text-muted-foreground">
+              Sin datos en este rango.
+            </p>
 
             <div v-if="grupoSeleccionadoGen" class="mt-4">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-bold flex items-center gap-1.5 text-foreground">
-                  <span class="inline-block size-2 rounded-full" :style="{ background: grupoColor(grupoSeleccionadoGen).texto }" />
+              <div class="mb-2 flex items-center justify-between">
+                <p class="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                  <span
+                    class="inline-block size-2 rounded-full"
+                    :style="{ background: grupoColor(grupoSeleccionadoGen).texto }"
+                  />
                   Detalle — {{ grupoSeleccionadoGen }}
                 </p>
-                <span class="text-xs cursor-pointer text-muted-foreground" @click="grupoSeleccionadoGen = null">Cerrar ✕</span>
+                <span
+                  class="cursor-pointer text-xs text-muted-foreground"
+                  @click="grupoSeleccionadoGen = null"
+                  >Cerrar ✕</span
+                >
               </div>
-              <DataTable :columns="columnasDetalle(grupoSeleccionadoGen)" :rows="detalleFiltrado('gen') as unknown as DataTableRow[]" @row-click="(row) => irAFronteraHistorial(asDetalleFuente(row).frontera_id)">
+              <DataTable
+                :columns="columnasDetalle(grupoSeleccionadoGen)"
+                :rows="detalleFiltrado('gen') as unknown as DataTableRow[]"
+                @row-click="(row) => irAFronteraHistorial(asDetalleFuente(row).frontera_id)"
+              >
                 <template #cell="{ row: rawRow, column }">
                   <template v-if="column.key === 'pct'">
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div class="h-full rounded-full" :style="{ width: pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales) + '%', background: severidadColor(pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales)) }" />
+                        <div
+                          class="h-full rounded-full"
+                          :style="{
+                            width:
+                              pctDe(
+                                asDetalleFuente(rawRow).dias_grupo,
+                                asDetalleFuente(rawRow).dias_totales,
+                              ) + '%',
+                            background: severidadColor(
+                              pctDe(
+                                asDetalleFuente(rawRow).dias_grupo,
+                                asDetalleFuente(rawRow).dias_totales,
+                              ),
+                            ),
+                          }"
+                        />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold">{{ pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales) }}%</span>
+                      <span class="w-10 text-right text-xs font-bold"
+                        >{{
+                          pctDe(
+                            asDetalleFuente(rawRow).dias_grupo,
+                            asDetalleFuente(rawRow).dias_totales,
+                          )
+                        }}%</span
+                      >
                     </div>
                   </template>
                   <template v-else-if="column.key === 'fuentes'">
-                    <span v-for="d in asDetalleFuente(rawRow).desglose" :key="d.etiqueta" class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{{ d.etiqueta }} × {{ d.dias }}</span>
+                    <span
+                      v-for="d in asDetalleFuente(rawRow).desglose"
+                      :key="d.etiqueta"
+                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      >{{ d.etiqueta }} × {{ d.dias }}</span
+                    >
                   </template>
                   <template v-else>{{ rawRow[column.key] }}</template>
                 </template>
@@ -237,34 +315,75 @@
           <!-- Fuente usada — Consumo -->
           <section class="mb-6">
             <p class="text-sm font-bold text-foreground">Fuente usada — Consumo</p>
-            <p class="text-xs mb-3 text-muted-foreground">
-              {{ totalDias(kpiCon) }} días-frontera reportados en el rango · Consumo no usa inversores · clic en una barra para ver el detalle
+            <p class="mb-3 text-xs text-muted-foreground">
+              {{ totalDias(kpiCon) }} días-frontera reportados en el rango · Consumo no usa
+              inversores · clic en una barra para ver el detalle
             </p>
-            <div v-if="kpiCon.length" class="rounded-xl border bg-card p-3" style="height:220px;">
+            <div v-if="kpiCon.length" class="rounded-xl border bg-card p-3" style="height: 220px">
               <Bar :data="chartCon" :options="chartOptionsCon" :plugins="[dataLabelPlugin]" />
             </div>
-            <p v-else class="text-xs text-center py-8 text-muted-foreground">Sin datos en este rango.</p>
+            <p v-else class="py-8 text-center text-xs text-muted-foreground">
+              Sin datos en este rango.
+            </p>
 
             <div v-if="grupoSeleccionadoCon" class="mt-4">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-bold flex items-center gap-1.5 text-foreground">
-                  <span class="inline-block size-2 rounded-full" :style="{ background: grupoColor(grupoSeleccionadoCon).texto }" />
+              <div class="mb-2 flex items-center justify-between">
+                <p class="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                  <span
+                    class="inline-block size-2 rounded-full"
+                    :style="{ background: grupoColor(grupoSeleccionadoCon).texto }"
+                  />
                   Detalle — {{ grupoSeleccionadoCon }}
                 </p>
-                <span class="text-xs cursor-pointer text-muted-foreground" @click="grupoSeleccionadoCon = null">Cerrar ✕</span>
+                <span
+                  class="cursor-pointer text-xs text-muted-foreground"
+                  @click="grupoSeleccionadoCon = null"
+                  >Cerrar ✕</span
+                >
               </div>
-              <DataTable :columns="columnasDetalle(grupoSeleccionadoCon)" :rows="detalleFiltrado('con') as unknown as DataTableRow[]" @row-click="(row) => irAFronteraHistorial(asDetalleFuente(row).frontera_id)">
+              <DataTable
+                :columns="columnasDetalle(grupoSeleccionadoCon)"
+                :rows="detalleFiltrado('con') as unknown as DataTableRow[]"
+                @row-click="(row) => irAFronteraHistorial(asDetalleFuente(row).frontera_id)"
+              >
                 <template #cell="{ row: rawRow, column }">
                   <template v-if="column.key === 'pct'">
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div class="h-full rounded-full" :style="{ width: pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales) + '%', background: severidadColor(pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales)) }" />
+                        <div
+                          class="h-full rounded-full"
+                          :style="{
+                            width:
+                              pctDe(
+                                asDetalleFuente(rawRow).dias_grupo,
+                                asDetalleFuente(rawRow).dias_totales,
+                              ) + '%',
+                            background: severidadColor(
+                              pctDe(
+                                asDetalleFuente(rawRow).dias_grupo,
+                                asDetalleFuente(rawRow).dias_totales,
+                              ),
+                            ),
+                          }"
+                        />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold">{{ pctDe(asDetalleFuente(rawRow).dias_grupo, asDetalleFuente(rawRow).dias_totales) }}%</span>
+                      <span class="w-10 text-right text-xs font-bold"
+                        >{{
+                          pctDe(
+                            asDetalleFuente(rawRow).dias_grupo,
+                            asDetalleFuente(rawRow).dias_totales,
+                          )
+                        }}%</span
+                      >
                     </div>
                   </template>
                   <template v-else-if="column.key === 'fuentes'">
-                    <span v-for="d in asDetalleFuente(rawRow).desglose" :key="d.etiqueta" class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{{ d.etiqueta }} × {{ d.dias }}</span>
+                    <span
+                      v-for="d in asDetalleFuente(rawRow).desglose"
+                      :key="d.etiqueta"
+                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      >{{ d.etiqueta }} × {{ d.dias }}</span
+                    >
                   </template>
                   <template v-else>{{ rawRow[column.key] }}</template>
                 </template>
@@ -275,28 +394,39 @@
           <!-- Reportes automáticos (CGM) -->
           <section class="mb-6">
             <p class="text-sm font-bold text-foreground">Reportes automáticos</p>
-            <p v-if="auto.dias_excluidos" class="text-xs mb-3 text-muted-foreground">
+            <p v-if="auto.dias_excluidos" class="mb-3 text-xs text-muted-foreground">
               {{ auto.dias_contados }} de {{ auto.dias.length }} días ·
               {{ auto.dias_excluidos }} excluidos por fallas del clasificador
             </p>
-            <div v-if="kpiAuto.length" class="rounded-xl border bg-card p-3" style="height:220px;">
+            <div v-if="kpiAuto.length" class="rounded-xl border bg-card p-3" style="height: 220px">
               <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
             </div>
-            <p v-else class="text-xs text-center py-8 text-muted-foreground">Sin datos en este rango.</p>
+            <p v-else class="py-8 text-center text-xs text-muted-foreground">
+              Sin datos en este rango.
+            </p>
 
             <div v-if="auto.por_frontera?.length" class="mt-4">
-              <p class="text-sm font-bold mb-2 text-foreground">
-                Por frontera
-              </p>
-              <DataTable :columns="columnasAutomatico" :rows="auto.por_frontera as unknown as DataTableRow[]" @row-click="(row) => irAFronteraHistorial(asPorFrontera(row).frontera_id)">
+              <p class="mb-2 text-sm font-bold text-foreground">Por frontera</p>
+              <DataTable
+                :columns="columnasAutomatico"
+                :rows="auto.por_frontera as unknown as DataTableRow[]"
+                @row-click="(row) => irAFronteraHistorial(asPorFrontera(row).frontera_id)"
+              >
                 <template #cell="{ row: rawRow, column }">
                   <template v-if="column.key === 'pct'">
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div class="h-full rounded-full"
-                             :style="{ width: asPorFrontera(rawRow).tasa + '%', background: grupoColor('Automático (CGM)').texto }" />
+                        <div
+                          class="h-full rounded-full"
+                          :style="{
+                            width: asPorFrontera(rawRow).tasa + '%',
+                            background: grupoColor('Automático (CGM)').texto,
+                          }"
+                        />
                       </div>
-                      <span class="w-10 text-right text-xs font-bold">{{ Math.round(asPorFrontera(rawRow).tasa) }}%</span>
+                      <span class="w-10 text-right text-xs font-bold"
+                        >{{ Math.round(asPorFrontera(rawRow).tasa) }}%</span
+                      >
                     </div>
                   </template>
                   <template v-else>{{ rawRow[column.key] }}</template>
@@ -304,10 +434,9 @@
               </DataTable>
             </div>
           </section>
-
         </template>
 
-        <p v-else class="text-sm text-center py-8 text-muted-foreground">
+        <p v-else class="py-8 text-center text-sm text-muted-foreground">
           Elige un rango de fechas y pulsa "Buscar".
         </p>
       </GTabsContent>
@@ -326,20 +455,16 @@ import type {
   ResumenHistoricoReporteEnergia,
   ResumenReporteEnergiaDia,
 } from '~/features/fronteras/types'
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  Tooltip,
-} from 'chart.js'
+import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Tooltip } from 'chart.js'
 import { useRoute, useRouter } from 'vue-router'
 import { Bar } from 'vue-chartjs'
 import { toast } from 'vue-sonner'
 // Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de
 // `DataTable` (ver `AdminUsuariosView.vue`).
-import DataTable, { type DataTableColumn, type DataTableRow } from '~/components/blocks/DataTable.vue'
+import DataTable, {
+  type DataTableColumn,
+  type DataTableRow,
+} from '~/components/blocks/DataTable.vue'
 // Import explícito: `DatePicker` choca con el `GlobalComponents.DatePicker` que
 // declara `primevue/datepicker` (ver `GestionFallasView.vue`) -- sin este
 // import, el typecheck resuelve el tag contra el tipo de PrimeVue.
@@ -348,7 +473,13 @@ import { normalizeError } from '~/core/errors'
 import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
 import ReporteEnergiaDetalleTab from './ReporteEnergiaDetalleTab.vue'
 import ReporteEnergiaLista from './ReporteEnergiaLista.vue'
-import { CircleStopIcon, FileSpreadsheetIcon, LoaderCircleIcon, PlayIcon, SendIcon } from '@lucide/vue'
+import {
+  CircleStopIcon,
+  FileSpreadsheetIcon,
+  LoaderCircleIcon,
+  PlayIcon,
+  SendIcon,
+} from '@lucide/vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
@@ -368,7 +499,12 @@ const reporteEnergiaService = new ReporteEnergiaService()
 // agosto). Usar Intl con timeZone explícito da el día calendario correcto
 // sin importar en qué zona esté el navegador.
 function hoyColombiaISO(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 function sumarDiasISO(iso: string, dias: number): string {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number]
@@ -398,7 +534,9 @@ function queryString(v: LocationQueryValue | LocationQueryValue[] | undefined): 
 const tabInicial = route.query.tab === 'historial' ? 1 : 0
 const activeTab = ref(tabInicial)
 const fecha = ref((tabInicial === 0 && queryString(route.query.fecha)) || ayerColombiaISO())
-const fechaHistorial = ref((tabInicial === 1 && queryString(route.query.fecha)) || ayerColombiaISO())
+const fechaHistorial = ref(
+  (tabInicial === 1 && queryString(route.query.fecha)) || ayerColombiaISO(),
+)
 
 const fechaISO = computed(() => fecha.value)
 const fechaHistorialISO = computed(() => fechaHistorial.value)
@@ -428,7 +566,9 @@ const loadingResumenHistorico = ref(false)
 const fronteraResumen = ref<number | null>(null)
 const fronteraResumenStr = computed<string | null>({
   get: () => (fronteraResumen.value != null ? String(fronteraResumen.value) : null),
-  set: (v) => { fronteraResumen.value = v ? Number(v) : null },
+  set: (v) => {
+    fronteraResumen.value = v ? Number(v) : null
+  },
 })
 
 interface FronteraDelResumen {
@@ -446,22 +586,26 @@ interface FronteraDelResumen {
 // excluidos no aparece ahí, y es justo una que se querría poder mirar sola.
 const fronterasDelResumen = ref<FronteraDelResumen[]>([])
 const opcionesFronterasResumen = computed<ComboBoxOption[]>(() =>
-  fronterasDelResumen.value.map((f) => ({ value: String(f.frontera_id), label: f.nombre_proyecto })),
+  fronterasDelResumen.value.map((f) => ({
+    value: String(f.frontera_id),
+    label: f.nombre_proyecto,
+  })),
 )
 
 function fronterasDe(resumen: ResumenHistoricoReporteEnergia | null): FronteraDelResumen[] {
   const porId = new Map<number, FronteraDelResumen>()
-  for (const d of [...(resumen?.detalle_fuente_generacion || []),
-                   ...(resumen?.detalle_fuente_consumo || [])]) {
+  for (const d of [
+    ...(resumen?.detalle_fuente_generacion || []),
+    ...(resumen?.detalle_fuente_consumo || []),
+  ]) {
     if (!porId.has(d.frontera_id)) {
       porId.set(d.frontera_id, {
-        frontera_id: d.frontera_id, nombre_proyecto: (d.nombre_proyecto as string | undefined) || '',
+        frontera_id: d.frontera_id,
+        nombre_proyecto: (d.nombre_proyecto as string | undefined) || '',
       })
     }
   }
-  return [...porId.values()].sort(
-    (a, b) => a.nombre_proyecto.localeCompare(b.nombre_proyecto),
-  )
+  return [...porId.values()].sort((a, b) => a.nombre_proyecto.localeCompare(b.nombre_proyecto))
 }
 
 const resumenDesdeISO = computed(() => resumenDesde.value)
@@ -473,7 +617,9 @@ async function cargarResumenHistorico() {
   grupoSeleccionadoCon.value = null
   try {
     resumenHistorico.value = await reporteEnergiaService.obtenerResumenHistorico(
-      resumenDesdeISO.value, resumenHastaISO.value, fronteraResumen.value,
+      resumenDesdeISO.value,
+      resumenHastaISO.value,
+      fronteraResumen.value,
     )
     if (!fronteraResumen.value) {
       fronterasDelResumen.value = fronterasDe(resumenHistorico.value)
@@ -494,12 +640,13 @@ const GRUPO_COLOR: Record<string, string> = {
   // CGM en verde oscuro y Medidor en verde medio: son la misma familia --dato
   // medido-- y el tono mas fuerte es el de mayor respaldo. Separados desde el
   // 2026-09-14; antes iban los dos en la misma barra.
-  'CGM': '#2f7d5b',
-  'Medidor': '#4f9d78', 'Inversor': '#6b8fd6',
+  CGM: '#2f7d5b',
+  Medidor: '#4f9d78',
+  Inversor: '#6b8fd6',
   // Morado y no otro verde: un Excel de un tercero o el dato de otra empresa
   // NO son una medicion nuestra, y el color no debe sugerir que si.
   'Reportado por terceros': '#a06fa8',
-  'Estimación': '#c9a13f',
+  Estimación: '#c9a13f',
   // Las dos barras del grafico de automatizacion. El verde del CGM es el mismo
   // de su barra en los otros dos graficos: es el mismo dato, visto de otra forma.
   'Automático (CGM)': '#2f7d5b',
@@ -507,8 +654,9 @@ const GRUPO_COLOR: Record<string, string> = {
   // "Apagado" es un estado confirmado (el proyecto no genera), no una
   // estimación de dato faltante -- tono neutro propio, distinto de
   // Estimación (pedido 2026-08-21).
-  'Apagado': '#8a94a6',
-  'Sin fuente': '#c97086', 'Otro': '#52596b',
+  Apagado: '#8a94a6',
+  'Sin fuente': '#c97086',
+  Otro: '#52596b',
 }
 function grupoColor(etiqueta: string): { texto: string } {
   return { texto: GRUPO_COLOR[etiqueta] || '#52596b' }
@@ -530,7 +678,7 @@ function totalDias(items: ConteoGrupo[]): number {
 }
 function conPct(items: ConteoGrupo[]): ConteoGrupoPct[] {
   const total = totalDias(items)
-  return items.map(i => ({ ...i, pct: total ? Math.round((i.total / total) * 100) : 0 }))
+  return items.map((i) => ({ ...i, pct: total ? Math.round((i.total / total) * 100) : 0 }))
 }
 const kpiGen = computed(() => conPct(resumenHistorico.value?.distribucion_fuente_generacion || []))
 const kpiCon = computed(() => conPct(resumenHistorico.value?.distribucion_fuente_consumo || []))
@@ -549,9 +697,17 @@ const kpiCon = computed(() => conPct(resumenHistorico.value?.distribucion_fuente
  */
 type SerieAutomatico = ResumenHistoricoReporteEnergia['serie_automatico']
 const SERIE_AUTOMATICO_VACIA: SerieAutomatico = {
-  dias: [], dias_contados: 0, dias_excluidos: 0, automaticas: 0, fronteras: 0, tasa: 0, por_frontera: [],
+  dias: [],
+  dias_contados: 0,
+  dias_excluidos: 0,
+  automaticas: 0,
+  fronteras: 0,
+  tasa: 0,
+  por_frontera: [],
 }
-const auto = computed<SerieAutomatico>(() => resumenHistorico.value?.serie_automatico || SERIE_AUTOMATICO_VACIA)
+const auto = computed<SerieAutomatico>(
+  () => resumenHistorico.value?.serie_automatico || SERIE_AUTOMATICO_VACIA,
+)
 
 /**
  * Las dos barras, sobre las fronteras que DEBIAN reportar.
@@ -593,8 +749,15 @@ const dataLabelPlugin: Plugin<'bar'> = {
 }
 function chartDeGrupos(items: ConteoGrupoPct[]): ChartData<'bar'> {
   return {
-    labels: items.map(i => i.etiqueta),
-    datasets: [{ data: items.map(i => i.pct), backgroundColor: items.map(i => grupoColor(i.etiqueta).texto), borderRadius: 6, maxBarThickness: 70 }],
+    labels: items.map((i) => i.etiqueta),
+    datasets: [
+      {
+        data: items.map((i) => i.pct),
+        backgroundColor: items.map((i) => grupoColor(i.etiqueta).texto),
+        borderRadius: 6,
+        maxBarThickness: 70,
+      },
+    ],
   }
 }
 /**
@@ -604,12 +767,22 @@ function chartDeGrupos(items: ConteoGrupoPct[]): ChartData<'bar'> {
  * cursor. Un grafico que invita a hacer clic y no hace nada es peor que uno
  * que no invita.
  */
-function chartOptionsPara(tipo: 'gen' | 'con' | null, items: ConteoGrupoPct[], unidad = 'días'): ChartOptions<'bar'> {
+function chartOptionsPara(
+  tipo: 'gen' | 'con' | null,
+  items: ConteoGrupoPct[],
+  unidad = 'días',
+): ChartOptions<'bar'> {
   const opciones: ChartOptions<'bar'> = {
-    responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } },
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 20 } },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (ctx: TooltipItem<'bar'>) => `${items[ctx.dataIndex]!.total} ${unidad}` } },
+      tooltip: {
+        callbacks: {
+          label: (ctx: TooltipItem<'bar'>) => `${items[ctx.dataIndex]!.total} ${unidad}`,
+        },
+      },
     },
     scales: {
       x: { ticks: { font: { size: 11, weight: 600 }, color: '#6b5a8a' }, grid: { display: false } },
@@ -643,7 +816,11 @@ const chartOptionsAuto = computed(() => chartOptionsPara(null, kpiAuto.value, 'r
 // PEOR, al revés que en las tarjetas KPI, por eso tiene su propia escala en
 // vez de invertir un solo número.
 function severidadColor(pct: number): string {
-  return pct > 30 ? GRUPO_COLOR['Sin fuente']! : pct > 10 ? GRUPO_COLOR['Estimación']! : GRUPO_COLOR['Medidor']!
+  return pct > 30
+    ? GRUPO_COLOR['Sin fuente']!
+    : pct > 10
+      ? GRUPO_COLOR['Estimación']!
+      : GRUPO_COLOR['Medidor']!
 }
 // Solo lo crítico (rojo) lleva píldora de color -- pintar también lo que
 // está bien generaba demasiado ruido visual, 30 píldoras de colores
@@ -668,7 +845,6 @@ function severidadColor(pct: number): string {
  * `dias` es dias_con_fila de ESA frontera, no el largo del rango: una frontera
  * con un solo dia de datos dentro de un rango de 30 tiene el mismo problema.
  */
-
 
 interface DetalleFuenteRow {
   grupo: string
@@ -730,7 +906,7 @@ function detalleFiltrado(tipo: 'gen' | 'con'): DetalleFuenteRow[] {
   const grupo = SELECCION_POR_TIPO[tipo].value
   const detalle = resumenHistorico.value?.[DETALLE_POR_TIPO[tipo]] as DetalleFuenteRow[] | undefined
   if (!grupo || !detalle) return []
-  return detalle.filter(d => d.grupo === grupo).sort((a, b) => b.dias_grupo - a.dias_grupo)
+  return detalle.filter((d) => d.grupo === grupo).sort((a, b) => b.dias_grupo - a.dias_grupo)
 }
 
 // Salta a "Historial" en la fecha 'hasta' del rango consultado y selecciona
@@ -740,12 +916,13 @@ async function irAFronteraHistorial(frontera_id: number) {
   activeTab.value = 1
   fechaHistorial.value = resumenHasta.value
   await cargarHistorial()
-  const f = filasHistorial.value.find(x => x.frontera_id === frontera_id)
+  const f = filasHistorial.value.find((x) => x.frontera_id === frontera_id)
   if (f) {
     seleccionHistorial.value = f
   } else {
     toast.info('Sin fila en esa fecha', {
-      description: 'Esta frontera no tiene reporte en la fecha "hasta" del rango -- prueba con otra fecha en Historial.',
+      description:
+        'Esta frontera no tiene reporte en la fecha "hasta" del rango -- prueba con otra fecha en Historial.',
       duration: 5000,
     })
   }
@@ -765,7 +942,10 @@ async function cargarLista(silent = false) {
     filas.value = await reporteEnergiaService.listarFronteras(fechaISO.value)
   } catch {
     if (!silent) {
-      toast.error('Error', { description: 'No se pudo cargar el reporte de ese día.', duration: 4000 })
+      toast.error('Error', {
+        description: 'No se pudo cargar el reporte de ese día.',
+        duration: 4000,
+      })
       filas.value = []
     }
   } finally {
@@ -839,7 +1019,9 @@ function detenerPollingEstadoQuoia() {
 onUnmounted(() => detenerPollingEstadoQuoia())
 
 watch(fecha, () => {
-  seleccion.value = null; cargarResumen(); cargarLista()
+  seleccion.value = null
+  cargarResumen()
+  cargarLista()
   detenerPollingEstadoQuoia()
   cargarEstadoQuoiaActual()
 })
@@ -855,10 +1037,10 @@ function restaurarSeleccionDesdeQuery() {
   const fid = raw ? Number(raw) : null
   if (!fid) return
   if (activeTab.value === 1) {
-    const f = filasHistorial.value.find(x => x.frontera_id === fid)
+    const f = filasHistorial.value.find((x) => x.frontera_id === fid)
     if (f) seleccionHistorial.value = f
   } else {
-    const f = filas.value.find(x => x.frontera_id === fid)
+    const f = filas.value.find((x) => x.frontera_id === fid)
     if (f) seleccion.value = f
   }
 }
@@ -882,7 +1064,7 @@ function semaforo(f: FilaReporteEnergia): Semaforo {
 const filasFiltradas = computed(() => {
   const base = activeTab.value === 1 ? filasHistorial.value : filas.value
   if (!filtroSemaforo.value) return base
-  return base.filter(f => semaforo(f) === filtroSemaforo.value)
+  return base.filter((f) => semaforo(f) === filtroSemaforo.value)
 })
 
 interface Stat {
@@ -900,9 +1082,24 @@ const stats = computed<Stat[]>(() => {
   const all = activeTab.value === 1 ? filasHistorial.value : filas.value
   return [
     { label: 'Total', value: all.length, color: '#2C2039', filtro: null },
-    { label: 'Revisar', value: all.filter(f => f.revisar_manualmente).length, color: '#D64455', filtro: 'critical' },
-    { label: 'Corregido automático', value: all.filter(f => semaforo(f) === 'warning').length, color: '#F0C040', filtro: 'warning' },
-    { label: 'Reporte válido', value: all.filter(f => semaforo(f) === 'success').length, color: '#10B981', filtro: 'success' },
+    {
+      label: 'Revisar',
+      value: all.filter((f) => f.revisar_manualmente).length,
+      color: '#D64455',
+      filtro: 'critical',
+    },
+    {
+      label: 'Corregido automático',
+      value: all.filter((f) => semaforo(f) === 'warning').length,
+      color: '#F0C040',
+      filtro: 'warning',
+    },
+    {
+      label: 'Reporte válido',
+      value: all.filter((f) => semaforo(f) === 'success').length,
+      color: '#10B981',
+      filtro: 'success',
+    },
   ]
 })
 
@@ -925,7 +1122,9 @@ function seleccionar(fila: FilaReporteEnergia, origen: 'hoy' | 'historial') {
 // declaraciones tiró la vista entera con "Cannot access before
 // initialization" (2026-08-18).
 watch([activeTab, seleccion, seleccionHistorial, fecha, fechaHistorial], () => {
-  const query: Record<string, string | number> = { tab: activeTab.value === 1 ? 'historial' : 'hoy' }
+  const query: Record<string, string | number> = {
+    tab: activeTab.value === 1 ? 'historial' : 'hoy',
+  }
   if (activeTab.value === 1) {
     query.fecha = fechaHistorialISO.value
     if (seleccionHistorial.value) query.frontera_id = seleccionHistorial.value.frontera_id
@@ -942,7 +1141,8 @@ async function ejecutarClasificacion() {
   try {
     await reporteEnergiaService.ejecutarClasificacion(fechaISO.value)
     toast.info('Clasificación iniciada', {
-      description: 'Corre en segundo plano -- puede tardar varios minutos si hay medidores incompletos. La tabla se va a ir actualizando sola.',
+      description:
+        'Corre en segundo plano -- puede tardar varios minutos si hay medidores incompletos. La tabla se va a ir actualizando sola.',
       duration: 6000,
     })
     sondearResultado()
@@ -1061,7 +1261,10 @@ async function enviarReporte() {
         duration: 8000,
       })
     } else {
-      toast.success('Reporte enviado', { description: `${data.enviados} fronteras enviadas`, duration: 3000 })
+      toast.success('Reporte enviado', {
+        description: `${data.enviados} fronteras enviadas`,
+        duration: 3000,
+      })
     }
     if (!data.bloqueado) {
       await revisarEstadoQuoia()
@@ -1073,8 +1276,6 @@ async function enviarReporte() {
     enviando.value = false
   }
 }
-
-
 </script>
 
 <style scoped>
@@ -1085,6 +1286,8 @@ async function enviarReporte() {
   align-items: start;
 }
 @media (max-width: 860px) {
-  .workspace { grid-template-columns: 1fr; }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

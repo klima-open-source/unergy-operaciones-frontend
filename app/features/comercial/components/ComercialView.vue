@@ -19,7 +19,6 @@ import {
   SearchIcon,
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
-import { readDetail } from '~/core/errors'
 import { ETAPAS, TIPOS_OFERTA } from './comercial'
 import FirmarOfertaDialog from './FirmarOfertaDialog.vue'
 import KpisComercial from './KpisComercial.vue'
@@ -135,7 +134,9 @@ const ofertaAbiertaId = computed(() => {
   const v = route.query.oferta
   return v ? Number(v) : null
 })
-const ofertaAbierta = computed(() => ofertas.value.find((o) => o.id === ofertaAbiertaId.value) ?? null)
+const ofertaAbierta = computed(
+  () => ofertas.value.find((o) => o.id === ofertaAbiertaId.value) ?? null,
+)
 
 const drawerAbierto = computed({
   get: () => !!ofertaAbierta.value,
@@ -171,7 +172,8 @@ function pedirFirma(oferta: Oferta) {
   // Servicios operacionales no deriva en PPA: el backend responde 422.
   if (oferta.tipo === 'servicios_operacionales') {
     toast.info('Esta oferta no genera un PPA', {
-      description: 'Las de servicios derivan en un contrato de representación, que se crea en Servicios.',
+      description:
+        'Las de servicios derivan en un contrato de representación, que se crea en Servicios.',
       duration: 6000,
     })
     return
@@ -255,7 +257,9 @@ onMounted(cargar)
     >
       <template #actions>
         <ToggleGroup v-model="vista" type="single" variant="outline">
-          <ToggleGroupItem v-for="v in VISTAS" :key="v.value" :value="v.value">{{ v.label }}</ToggleGroupItem>
+          <ToggleGroupItem v-for="v in VISTAS" :key="v.value" :value="v.value">{{
+            v.label
+          }}</ToggleGroupItem>
         </ToggleGroup>
         <Button class="whitespace-nowrap" @click="mostrarWizard = true">
           <PlusIcon class="size-4" />
@@ -276,12 +280,20 @@ onMounted(cargar)
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <InputGroup class="w-full sm:w-72">
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
-        <InputGroupInput v-model.trim="filtros.texto" placeholder="Código, cliente, planta, municipio…" />
+        <InputGroupInput
+          v-model.trim="filtros.texto"
+          placeholder="Código, cliente, planta, municipio…"
+        />
       </InputGroup>
 
       <!-- El conteo es lo que evita que un filtro quede activo y escondido:
            plegado, el botón sigue diciendo cuántos hay puestos. -->
-      <Button v-if="!esEscritorio" variant="outline" size="sm" @click="filtrosAbiertos = !filtrosAbiertos">
+      <Button
+        v-if="!esEscritorio"
+        variant="outline"
+        size="sm"
+        @click="filtrosAbiertos = !filtrosAbiertos"
+      >
         <component :is="filtrosAbiertos ? ChevronUpIcon : FilterIcon" class="size-4" />
         {{ filtrosAbiertos ? 'Ocultar' : etiquetaFiltros }}
       </Button>
@@ -296,7 +308,12 @@ onMounted(cargar)
       <MultiComboBox
         v-show="filtrosVisibles"
         :model-value="filtros.clientes.map(String)"
-        :options="clientesDisponibles.map((c) => ({ label: c.nombre ?? `Cliente #${c.id}`, value: String(c.id) }))"
+        :options="
+          clientesDisponibles.map((c) => ({
+            label: c.nombre ?? `Cliente #${c.id}`,
+            value: String(c.id),
+          }))
+        "
         placeholder="Cliente"
         class="w-full sm:w-52"
         @update:model-value="(v) => (filtros.clientes = v.map(Number))"
@@ -312,23 +329,40 @@ onMounted(cargar)
       <Select v-if="vista === 'tabla'" v-show="filtrosVisibles" v-model="orden">
         <SelectTrigger class="w-full sm:w-48"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="o in ORDENES" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          <SelectItem v-for="o in ORDENES" :key="o.value" :value="o.value">{{
+            o.label
+          }}</SelectItem>
         </SelectContent>
       </Select>
-      <label v-show="filtrosVisibles" class="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <label
+        v-show="filtrosVisibles"
+        class="flex items-center gap-1.5 text-sm text-muted-foreground"
+      >
         <Checkbox v-model="filtros.soloAlerta" /> Solo con alerta
       </label>
-      <label v-show="filtrosVisibles" class="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <label
+        v-show="filtrosVisibles"
+        class="flex items-center gap-1.5 text-sm text-muted-foreground"
+      >
         <Checkbox v-model="filtros.soloSinRespuesta" /> Solo sin respuesta
       </label>
-      <Button v-if="hayFiltros" v-show="filtrosVisibles" variant="ghost" size="sm" @click="limpiarFiltros">
+      <Button
+        v-if="hayFiltros"
+        v-show="filtrosVisibles"
+        variant="ghost"
+        size="sm"
+        @click="limpiarFiltros"
+      >
         <FilterXIcon class="size-4" />
         Limpiar
       </Button>
     </div>
 
     <!-- Falla de carga: se distingue de "no hay ofertas" a propósito -->
-    <div v-if="errorCarga" class="mb-4 space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center">
+    <div
+      v-if="errorCarga"
+      class="mb-4 space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center"
+    >
       <p class="text-sm text-destructive">No se pudieron cargar las ofertas: {{ errorCarga }}</p>
       <Button variant="outline" size="sm" @click="alReintentar">
         <RefreshCwIcon class="size-4" />
@@ -363,11 +397,25 @@ onMounted(cargar)
       <TablaOfertas v-else :ofertas="filtradas" @abrir="abrirOferta" />
     </template>
 
-    <OfertaDrawer v-model:visible="drawerAbierto" :oferta="ofertaAbierta" :acciones="acciones" @firmar="pedirFirma" />
+    <OfertaDrawer
+      v-model:visible="drawerAbierto"
+      :oferta="ofertaAbierta"
+      :acciones="acciones"
+      @firmar="pedirFirma"
+    />
 
-    <RegistrarOfertaWizard v-model:visible="mostrarWizard" :acciones="acciones" @registrada="trasRegistrar" />
+    <RegistrarOfertaWizard
+      v-model:visible="mostrarWizard"
+      :acciones="acciones"
+      @registrada="trasRegistrar"
+    />
 
-    <FirmarOfertaDialog v-model:visible="mostrarFirmar" :oferta="ofertaAFirmar" :acciones="acciones" @firmada="cargar()" />
+    <FirmarOfertaDialog
+      v-model:visible="mostrarFirmar"
+      :oferta="ofertaAFirmar"
+      :acciones="acciones"
+      @firmada="cargar()"
+    />
 
     <!-- Declinar pide el motivo: sin él, el histórico solo dice que se perdió. -->
     <Dialog v-model:open="mostrarDeclinar">
@@ -382,7 +430,11 @@ onMounted(cargar)
         <Textarea v-model="motivoDeclinar" rows="3" placeholder="Por qué se cayó el negocio" />
         <DialogFooter>
           <Button variant="ghost" @click="mostrarDeclinar = false">Cancelar</Button>
-          <Button variant="destructive" :disabled="!motivoDeclinar.trim() || declinando" @click="declinar">
+          <Button
+            variant="destructive"
+            :disabled="!motivoDeclinar.trim() || declinando"
+            @click="declinar"
+          >
             <LoaderCircleIcon v-if="declinando" class="animate-spin" />
             Declinar
           </Button>

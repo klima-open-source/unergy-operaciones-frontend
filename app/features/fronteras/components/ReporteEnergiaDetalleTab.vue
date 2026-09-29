@@ -1,14 +1,16 @@
 <template>
   <div v-if="loading" class="flex items-center justify-center py-12">
-    <LoaderCircleIcon class="text-3xl size-[1em] animate-spin text-primary" />
+    <LoaderCircleIcon class="size-[1em] animate-spin text-3xl text-primary" />
   </div>
   <div v-else-if="detalle" class="space-y-5">
-    <div class="flex items-center justify-between flex-wrap gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <p class="text-sm font-bold text-foreground">{{ detalle.nombre_proyecto }}</p>
-        <div class="text-xs font-mono text-muted-foreground">
+        <div class="font-mono text-xs text-muted-foreground">
           {{ detalle.fecha }}
-          <span v-if="detalle.estado_reporte && detalle.estado_reporte !== 'WARNING'"> · Estado reporte {{ detalle.estado_reporte }}</span>
+          <span v-if="detalle.estado_reporte && detalle.estado_reporte !== 'WARNING'">
+            · Estado reporte {{ detalle.estado_reporte }}</span
+          >
         </div>
       </div>
       <GBadge v-if="detalle.revisar_manualmente" color="destructive">Revisar manualmente</GBadge>
@@ -19,32 +21,56 @@
          se reporta con el Excel que ellos envían, no con este árbol de
          Casos -- ver FRONTERAS_TERCEROS en clasificador.py. -->
     <div v-if="String(detalle.caso) === '0'" class="rounded-xl border bg-primary/5 p-4">
-      <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p class="text-sm font-semibold text-foreground">
-            <CircleCheckIcon v-if="detalle.medidor_usado === 'excel_terceros'" class="text-xs mr-1.5 size-[1em] text-success" />
-            <FileSpreadsheetIcon v-else class="text-xs mr-1.5 size-[1em]" />
-            {{ detalle.medidor_usado === 'excel_terceros' ? 'Cargado desde Excel de terceros' : 'Esperando Excel de terceros' }}
+            <CircleCheckIcon
+              v-if="detalle.medidor_usado === 'excel_terceros'"
+              class="mr-1.5 size-[1em] text-xs text-success"
+            />
+            <FileSpreadsheetIcon v-else class="mr-1.5 size-[1em] text-xs" />
+            {{
+              detalle.medidor_usado === 'excel_terceros'
+                ? 'Cargado desde Excel de terceros'
+                : 'Esperando Excel de terceros'
+            }}
           </p>
-          <p v-if="detalle.medidor_usado === 'excel_terceros'" class="text-xs mt-1 text-muted-foreground">
+          <p
+            v-if="detalle.medidor_usado === 'excel_terceros'"
+            class="mt-1 text-xs text-muted-foreground"
+          >
             Ya hay un Excel cargado para este día -- {{ fmtKwh(detalle.energia_final_kwh) }}. Puedes
             reemplazarlo subiendo otro, o quitarlo con "Eliminar carga".
           </p>
-          <p v-else class="text-xs mt-1 text-muted-foreground">
-            El CGM de esta frontera lo maneja otra empresa; sube su Excel (Primary/Backup ×
-            ENERGIA EXPORTADA ACTIVA) para reportar este día.
+          <p v-else class="mt-1 text-xs text-muted-foreground">
+            El CGM de esta frontera lo maneja otra empresa; sube su Excel (Primary/Backup × ENERGIA
+            EXPORTADA ACTIVA) para reportar este día.
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <input ref="fileInputExcelTerceros" type="file" accept=".xlsx,.xls" class="hidden"
-                 @change="onArchivoExcelTercerosSeleccionado" />
-          <Button size="sm" :disabled="subiendoExcelTerceros" @click="fileInputExcelTerceros?.click()">
+          <input
+            ref="fileInputExcelTerceros"
+            type="file"
+            accept=".xlsx,.xls"
+            class="hidden"
+            @change="onArchivoExcelTercerosSeleccionado"
+          />
+          <Button
+            size="sm"
+            :disabled="subiendoExcelTerceros"
+            @click="fileInputExcelTerceros?.click()"
+          >
             <LoaderCircleIcon v-if="subiendoExcelTerceros" class="animate-spin" />
             <UploadIcon v-else class="size-[1em]" />
             Cargar Excel
           </Button>
-          <Button v-if="detalle.medidor_usado === 'excel_terceros'" variant="destructive" size="sm"
-            :disabled="eliminandoExcelTerceros" @click="eliminarExcelTerceros">
+          <Button
+            v-if="detalle.medidor_usado === 'excel_terceros'"
+            variant="destructive"
+            size="sm"
+            :disabled="eliminandoExcelTerceros"
+            @click="eliminarExcelTerceros"
+          >
             <LoaderCircleIcon v-if="eliminandoExcelTerceros" class="animate-spin" />
             <Trash2Icon v-else class="size-[1em]" />
             Eliminar carga
@@ -54,9 +80,11 @@
     </div>
 
     <!-- Detalle de la clasificación -->
-    <div class="rounded-xl p-4 border">
-      <p class="text-xs font-semibold uppercase mb-3 text-muted-foreground">Detalle de la clasificación</p>
-      <div class="flex items-start gap-3 mb-3">
+    <div class="rounded-xl border p-4">
+      <p class="mb-3 text-xs font-semibold text-muted-foreground uppercase">
+        Detalle de la clasificación
+      </p>
+      <div class="mb-3 flex items-start gap-3">
         <GBadge :color="casoColor" class="min-w-9 flex-none justify-center text-sm font-bold">
           {{ detalle.caso }}
         </GBadge>
@@ -72,19 +100,27 @@
         {{ detalle.error_clasificacion }}
       </p>
       <dl class="grid grid-cols-2 gap-y-2 text-sm">
-        <dt class="text-muted-foreground">Fuente usada</dt><dd class="font-mono">{{ etiquetaFuente(detalle.medidor_usado, detalle) }}</dd>
-        <dt class="text-muted-foreground">Energía Total</dt><dd class="font-mono">{{ fmtKwh(detalle.energia_final_kwh) }}</dd>
+        <dt class="text-muted-foreground">Fuente usada</dt>
+        <dd class="font-mono">{{ etiquetaFuente(detalle.medidor_usado, detalle) }}</dd>
+        <dt class="text-muted-foreground">Energía Total</dt>
+        <dd class="font-mono">{{ fmtKwh(detalle.energia_final_kwh) }}</dd>
         <template v-if="detalle.tipo === 'generacion'">
           <dt class="text-muted-foreground">Factor de pérdida (FP)</dt>
-          <dd class="font-mono">{{ fpUsadoHoy && detalle.fp != null ? detalle.fp.toFixed(4) : '—' }}</dd>
+          <dd class="font-mono">
+            {{ fpUsadoHoy && detalle.fp != null ? detalle.fp.toFixed(4) : '—' }}
+          </dd>
         </template>
         <template v-if="(detalle.horas_rellenadas_medidor_cruzado || []).length">
           <dt class="text-muted-foreground">Rellenado (Medidor cruzado)</dt>
-          <dd class="font-mono">{{ formatearRangosHoras(detalle.horas_rellenadas_medidor_cruzado) }}</dd>
+          <dd class="font-mono">
+            {{ formatearRangosHoras(detalle.horas_rellenadas_medidor_cruzado) }}
+          </dd>
         </template>
         <template v-if="(detalle.horas_rellenadas_reconectador || []).length">
           <dt class="text-muted-foreground">Horas rellenadas (reconectador)</dt>
-          <dd class="font-mono">{{ formatearRangosHoras(detalle.horas_rellenadas_reconectador) }}</dd>
+          <dd class="font-mono">
+            {{ formatearRangosHoras(detalle.horas_rellenadas_reconectador) }}
+          </dd>
         </template>
         <template v-if="(detalle.horas_rellenadas_solenium || []).length">
           <dt class="text-muted-foreground">Horas rellenadas (Solenium × FP)</dt>
@@ -94,7 +130,14 @@
           <dt class="text-muted-foreground">Horas rellenadas (histórico)</dt>
           <dd class="font-mono">{{ formatearRangosHoras(detalle.horas_rellenadas_historico) }}</dd>
         </template>
-        <template v-if="!(detalle.horas_rellenadas_medidor_cruzado || []).length && !(detalle.horas_rellenadas_reconectador || []).length && !(detalle.horas_rellenadas_solenium || []).length && !(detalle.horas_rellenadas_historico || []).length">
+        <template
+          v-if="
+            !(detalle.horas_rellenadas_medidor_cruzado || []).length &&
+            !(detalle.horas_rellenadas_reconectador || []).length &&
+            !(detalle.horas_rellenadas_solenium || []).length &&
+            !(detalle.horas_rellenadas_historico || []).length
+          "
+        >
           <dt class="text-muted-foreground">Horas rellenadas</dt>
           <dd class="font-mono">—</dd>
         </template>
@@ -102,30 +145,49 @@
     </div>
 
     <!-- Fallas activas del proyecto (Gestión de Fallas) -->
-    <div class="rounded-xl p-4 border">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-semibold uppercase text-muted-foreground">Fallas activas del proyecto</p>
-        <RouterLink v-if="fallasActivas.length" :to="`/operaciones/gestion-fallas?proyecto=${detalle.proyecto_id}`"
-          class="text-xs underline text-primary">Ver todas</RouterLink>
+    <div class="rounded-xl border p-4">
+      <div class="mb-3 flex items-center justify-between">
+        <p class="text-xs font-semibold text-muted-foreground uppercase">
+          Fallas activas del proyecto
+        </p>
+        <RouterLink
+          v-if="fallasActivas.length"
+          :to="`/operaciones/gestion-fallas?proyecto=${detalle.proyecto_id}`"
+          class="text-xs text-primary underline"
+          >Ver todas</RouterLink
+        >
       </div>
       <p v-if="!fallasActivas.length" class="text-xs text-muted-foreground">
-        <CircleCheckIcon class="text-xs mr-1 size-[1em] text-success" />Sin fallas activas registradas.
+        <CircleCheckIcon class="mr-1 size-[1em] text-xs text-success" />Sin fallas activas
+        registradas.
       </p>
       <div v-else class="space-y-2">
-        <RouterLink v-for="f in fallasActivas" :key="f.id" :to="`/fallas/${f.id}`"
-          class="falla-activa-row flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors border">
-          <span class="size-2 flex-none rounded-full"
-                :style="{ background: prioColorFalla(f.prioridad?.codigo) }" />
+        <RouterLink
+          v-for="f in fallasActivas"
+          :key="f.id"
+          :to="`/fallas/${f.id}`"
+          class="falla-activa-row flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors"
+        >
+          <span
+            class="size-2 flex-none rounded-full"
+            :style="{ background: prioColorFalla(f.prioridad?.codigo) }"
+          />
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <code class="text-xs font-mono text-muted-foreground">{{ f.codigo_interno }}</code>
-              <span class="text-xs font-semibold px-1.5 py-0.5 rounded" :style="estadoPillStyleFalla(f.estado?.codigo)">
+              <code class="font-mono text-xs text-muted-foreground">{{ f.codigo_interno }}</code>
+              <span
+                class="rounded px-1.5 py-0.5 text-xs font-semibold"
+                :style="estadoPillStyleFalla(f.estado?.codigo)"
+              >
                 {{ f.estado?.etiqueta }}
               </span>
             </div>
-            <p class="text-sm truncate text-foreground">{{ f.tipo?.etiqueta || f.descripcion }}</p>
+            <p class="truncate text-sm text-foreground">{{ f.tipo?.etiqueta || f.descripcion }}</p>
           </div>
-          <span v-if="f.dias_abierta != null" class="text-xs font-mono flex-none text-muted-foreground">
+          <span
+            v-if="f.dias_abierta != null"
+            class="flex-none font-mono text-xs text-muted-foreground"
+          >
             {{ f.dias_abierta }}d
           </span>
         </RouterLink>
@@ -133,128 +195,192 @@
     </div>
 
     <!-- Curva -->
-    <div class="rounded-xl p-4 border">
-      <p class="text-xs font-semibold uppercase mb-3 text-muted-foreground">Curva reportada (24 h)</p>
+    <div class="rounded-xl border p-4">
+      <p class="mb-3 text-xs font-semibold text-muted-foreground uppercase">
+        Curva reportada (24 h)
+      </p>
       <CurvaChart
         :final="detalle.curva_final"
         :medidor="detalle.curva_medidor_principal || detalle.curva_medidor_respaldo"
-        :medidorLabel="medidorGraficadoLabel"
+        :medidor-label="medidorGraficadoLabel"
         :solenium="detalle.curva_solenium"
         :reconectador="detalle.curva_reconectador"
-        :horasReconectador="detalle.horas_rellenadas_reconectador"
-        :horasSolenium="detalle.horas_rellenadas_solenium"
-        :horasHistorico="detalle.horas_rellenadas_historico"
-        :horasMedidorCruzado="detalle.horas_rellenadas_medidor_cruzado"
-        :capacidadMw="detalle.capacidad_efectiva_mw"
-        :editadoManualmente="detalle.editado_manualmente"
+        :horas-reconectador="detalle.horas_rellenadas_reconectador"
+        :horas-solenium="detalle.horas_rellenadas_solenium"
+        :horas-historico="detalle.horas_rellenadas_historico"
+        :horas-medidor-cruzado="detalle.horas_rellenadas_medidor_cruzado"
+        :capacidad-mw="detalle.capacidad_efectiva_mw"
+        :editado-manualmente="detalle.editado_manualmente"
       />
     </div>
 
     <!-- Detalle de las fuentes -->
-    <div class="rounded-xl p-4 border">
-      <div class="flex items-center justify-between mb-3">
-        <p class="text-xs font-semibold uppercase text-muted-foreground">Detalle de las fuentes</p>
-        <Button variant="outline" size="sm" :disabled="recuperandoMedidor" @click="recuperarMedidor">
+    <div class="rounded-xl border p-4">
+      <div class="mb-3 flex items-center justify-between">
+        <p class="text-xs font-semibold text-muted-foreground uppercase">Detalle de las fuentes</p>
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="recuperandoMedidor"
+          @click="recuperarMedidor"
+        >
           <LoaderCircleIcon v-if="recuperandoMedidor" class="animate-spin" />
           <RefreshCwIcon v-else class="size-[1em]" />
           Recuperar medidor
         </Button>
       </div>
-      <div v-for="aviso in avisosMedidor" :key="aviso.etiqueta"
-           class="mb-3 flex items-start gap-2.5 rounded-lg border border-blue-600 bg-blue-600/10 px-3 py-2.5">
-        <span class="mt-px flex size-[18px] flex-none items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">i</span>
+      <div
+        v-for="aviso in avisosMedidor"
+        :key="aviso.etiqueta"
+        class="mb-3 flex items-start gap-2.5 rounded-lg border border-blue-600 bg-blue-600/10 px-3 py-2.5"
+      >
+        <span
+          class="mt-px flex size-[18px] flex-none items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white"
+          >i</span
+        >
         <p class="flex-1 text-xs leading-relaxed text-blue-700 dark:text-blue-400">
-          {{ aviso.etiqueta }} muestra un valor distinto en Quoia
-          (<strong class="text-foreground">{{ fmtKwh(aviso.actual) }}</strong> ahora
-          vs. <strong class="text-foreground">{{ fmtKwh(aviso.clasificacion) }}</strong> al momento de clasificar).
+          {{ aviso.etiqueta }} muestra un valor distinto en Quoia (<strong
+            class="text-foreground"
+            >{{ fmtKwh(aviso.actual) }}</strong
+          >
+          ahora vs. <strong class="text-foreground">{{ fmtKwh(aviso.clasificacion) }}</strong> al
+          momento de clasificar).
         </p>
-        <Button v-if="aviso.tipo === 'respaldo'" variant="ghost" size="sm" class="flex-none"
-                :disabled="usandoRespaldoEnVivo" @click="usarRespaldoEnVivo">
+        <Button
+          v-if="aviso.tipo === 'respaldo'"
+          variant="ghost"
+          size="sm"
+          class="flex-none"
+          :disabled="usandoRespaldoEnVivo"
+          @click="usarRespaldoEnVivo"
+        >
           <LoaderCircleIcon v-if="usandoRespaldoEnVivo" class="animate-spin" />
           Usar
         </Button>
       </div>
       <div class="space-y-0">
-        <div v-for="f in fuentes" :key="f.clave"
-             class="flex items-center gap-3 py-2.5 border-t first:border-t-0">
-          <div class="flex size-6 flex-none items-center justify-center rounded-full text-xs font-bold"
-               :style="fuenteIconStyle(f.estado)">
-            {{ f.estado === 'ok' ? '✓' : (f.estado === 'na' ? '–' : (f.estado === 'error' ? '!' : '✕')) }}
+        <div
+          v-for="f in fuentes"
+          :key="f.clave"
+          class="flex items-center gap-3 border-t py-2.5 first:border-t-0"
+        >
+          <div
+            class="flex size-6 flex-none items-center justify-center rounded-full text-xs font-bold"
+            :style="fuenteIconStyle(f.estado)"
+          >
+            {{
+              f.estado === 'ok' ? '✓' : f.estado === 'na' ? '–' : f.estado === 'error' ? '!' : '✕'
+            }}
           </div>
           <span class="w-40 flex-none text-sm font-semibold text-foreground">{{ f.nombre }}</span>
-          <span class="text-xs flex-1 min-w-0 text-muted-foreground">{{ f.detalle }}</span>
-          <span class="min-w-[90px] flex-none text-right text-xs font-mono text-foreground">
-            {{ f.valor != null ? fmtKwh(f.valor) : (f.estado === 'na' ? 'n/a' : '—') }}
+          <span class="min-w-0 flex-1 text-xs text-muted-foreground">{{ f.detalle }}</span>
+          <span class="min-w-[90px] flex-none text-right font-mono text-xs text-foreground">
+            {{ f.valor != null ? fmtKwh(f.valor) : f.estado === 'na' ? 'n/a' : '—' }}
           </span>
           <GBadge v-if="f.usado" class="flex-none">USADO</GBadge>
         </div>
       </div>
-      <p v-if="medianaHistorica" class="text-[11px] mt-3 text-muted-foreground">
+      <p v-if="medianaHistorica" class="mt-3 text-[11px] text-muted-foreground">
         <strong>Mediana histórica:</strong> {{ fmtKwh(medianaHistorica.mediana) }}
         <span v-if="medianaHistorica.dias">({{ medianaHistorica.dias }} días)</span>
       </p>
-      <p v-if="detalle.recuperacion_datos" class="text-[11px] mt-3 text-muted-foreground">
+      <p v-if="detalle.recuperacion_datos" class="mt-3 text-[11px] text-muted-foreground">
         <strong>Última recuperación de medidores:</strong> {{ detalle.recuperacion_datos }}
       </p>
     </div>
 
     <!-- Edición manual -->
-    <div class="rounded-xl p-4 border">
-      <p class="text-xs font-semibold uppercase mb-3 text-muted-foreground">Corrección manual (kWh)</p>
+    <div class="rounded-xl border p-4">
+      <p class="mb-3 text-xs font-semibold text-muted-foreground uppercase">
+        Corrección manual (kWh)
+      </p>
       <div class="flex flex-wrap gap-4">
         <table class="tabla-horas">
-          <thead><tr><th>Hora</th><th>Principal</th><th>Respaldo ({{ etiquetaOrigenRespaldo }})</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Principal</th>
+              <th>Respaldo ({{ etiquetaOrigenRespaldo }})</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr v-for="h in 12" :key="h - 1" :class="esHoraRellenada(h - 1) ? 'fila-rellenada' : ''">
+            <tr
+              v-for="h in 12"
+              :key="h - 1"
+              :class="esHoraRellenada(h - 1) ? 'fila-rellenada' : ''"
+            >
               <td>{{ h - 1 }}h</td>
               <td>
-                <Input :model-value="curvaEditable[h - 1] ?? ''" inputmode="decimal"
-                       class="w-full text-xs text-right celda-input"
-                       @update:model-value="(v) => (curvaEditable[h - 1] = v)"
-                       @paste="onPasteHora($event, h - 1)" />
+                <Input
+                  :model-value="curvaEditable[h - 1] ?? ''"
+                  inputmode="decimal"
+                  class="celda-input w-full text-right text-xs"
+                  @update:model-value="(v) => (curvaEditable[h - 1] = v)"
+                  @paste="onPasteHora($event, h - 1)"
+                />
               </td>
               <td>
-                <Input :model-value="curvaRespaldoEditable[h - 1] ?? ''" inputmode="decimal"
-                       :placeholder="respaldoPlaceholder(h - 1)"
-                       class="w-full text-xs text-right celda-input"
-                       :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
-                       @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = v)"
-                       @paste="onPasteHoraRespaldo($event, h - 1)" />
+                <Input
+                  :model-value="curvaRespaldoEditable[h - 1] ?? ''"
+                  inputmode="decimal"
+                  :placeholder="respaldoPlaceholder(h - 1)"
+                  class="celda-input w-full text-right text-xs"
+                  :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                  @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = v)"
+                  @paste="onPasteHoraRespaldo($event, h - 1)"
+                />
               </td>
             </tr>
           </tbody>
         </table>
         <table class="tabla-horas">
-          <thead><tr><th>Hora</th><th>Principal</th><th>Respaldo ({{ etiquetaOrigenRespaldo }})</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Principal</th>
+              <th>Respaldo ({{ etiquetaOrigenRespaldo }})</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr v-for="h in 12" :key="h + 11" :class="esHoraRellenada(h + 11) ? 'fila-rellenada' : ''">
+            <tr
+              v-for="h in 12"
+              :key="h + 11"
+              :class="esHoraRellenada(h + 11) ? 'fila-rellenada' : ''"
+            >
               <td>{{ h + 11 }}h</td>
               <td>
-                <Input :model-value="curvaEditable[h + 11] ?? ''" inputmode="decimal"
-                       class="w-full text-xs text-right celda-input"
-                       @update:model-value="(v) => (curvaEditable[h + 11] = v)"
-                       @paste="onPasteHora($event, h + 11)" />
+                <Input
+                  :model-value="curvaEditable[h + 11] ?? ''"
+                  inputmode="decimal"
+                  class="celda-input w-full text-right text-xs"
+                  @update:model-value="(v) => (curvaEditable[h + 11] = v)"
+                  @paste="onPasteHora($event, h + 11)"
+                />
               </td>
               <td>
-                <Input :model-value="curvaRespaldoEditable[h + 11] ?? ''" inputmode="decimal"
-                       :placeholder="respaldoPlaceholder(h + 11)"
-                       class="w-full text-xs text-right celda-input"
-                       :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
-                       @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = v)"
-                       @paste="onPasteHoraRespaldo($event, h + 11)" />
+                <Input
+                  :model-value="curvaRespaldoEditable[h + 11] ?? ''"
+                  inputmode="decimal"
+                  :placeholder="respaldoPlaceholder(h + 11)"
+                  class="celda-input w-full text-right text-xs"
+                  :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                  @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = v)"
+                  @paste="onPasteHoraRespaldo($event, h + 11)"
+                />
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="flex items-center gap-1.5 text-xs mt-2 text-muted-foreground">
+      <div class="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
         <span class="inline-block size-3 rounded-sm border border-warning bg-warning/35"></span>
         Hora rellenada
       </div>
-      <p class="text-xs mt-1 text-muted-foreground">
-        Tip: pega varios valores seguidos (ej. una columna copiada de Excel) en cualquier celda -- se reparten en las horas siguientes en orden.
+      <p class="mt-1 text-xs text-muted-foreground">
+        Tip: pega varios valores seguidos (ej. una columna copiada de Excel) en cualquier celda --
+        se reparten en las horas siguientes en orden.
       </p>
-      <div class="flex items-center justify-between mt-2">
+      <div class="mt-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Button variant="destructive" size="sm" @click="limpiarCurva">
             <EraserIcon class="size-[1em]" /> Limpiar curva
@@ -270,33 +396,60 @@
                que no cambia. Mostrar el botón otra vez solo invita a un
                clic que va a fallar con el mismo error (ver captura
                2026-08-20: 6h vacía después de rellenar 7h-11h/17h-18h). -->
-          <Button v-if="hayHuecosSinRellenar && !hayHorasRelleno(detalle)" variant="outline" size="sm"
-            :disabled="rellenando || hayCambiosSinGuardar" @click="rellenarHorario">
+          <Button
+            v-if="hayHuecosSinRellenar && !hayHorasRelleno(detalle)"
+            variant="outline"
+            size="sm"
+            :disabled="rellenando || hayCambiosSinGuardar"
+            @click="rellenarHorario"
+          >
             <LoaderCircleIcon v-if="rellenando" class="animate-spin" />
             Rellenar horas
           </Button>
-          <Button v-if="hayHorasRelleno(detalle)" variant="outline" size="sm"
-            :disabled="deshaciendoRelleno || hayCambiosSinGuardar" @click="deshacerRelleno">
+          <Button
+            v-if="hayHorasRelleno(detalle)"
+            variant="outline"
+            size="sm"
+            :disabled="deshaciendoRelleno || hayCambiosSinGuardar"
+            @click="deshacerRelleno"
+          >
             <LoaderCircleIcon v-if="deshaciendoRelleno" class="animate-spin" />
             <UndoIcon v-else class="size-[1em]" />
             Deshacer relleno
           </Button>
           <div v-if="!esCasoConfiado" class="relative">
-            <Button size="sm" class="flex-row-reverse text-warning-foreground bg-warning hover:bg-warning/90"
-              @click="mostrarMenuReportar = !mostrarMenuReportar">
+            <Button
+              size="sm"
+              class="text-warning-foreground flex-row-reverse bg-warning hover:bg-warning/90"
+              @click="mostrarMenuReportar = !mostrarMenuReportar"
+            >
               <ChevronDownIcon class="size-[1em]" /> Reportar con otra fuente
             </Button>
-            <div v-if="mostrarMenuReportar" class="fixed inset-0 z-10" @click="mostrarMenuReportar = false"></div>
-            <div v-if="mostrarMenuReportar" class="absolute bottom-full left-0 mb-2 w-72 overflow-hidden rounded-xl border bg-popover shadow-lg z-20">
-              <div v-for="op in opcionesReportarCon" :key="op.key"
-                   class="flex items-center justify-between gap-3 border-b px-3 py-2.5"
-                   :class="op.disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted'"
-                   @click="!op.disabled && elegirFuenteReportar(op)">
+            <div
+              v-if="mostrarMenuReportar"
+              class="fixed inset-0 z-10"
+              @click="mostrarMenuReportar = false"
+            ></div>
+            <div
+              v-if="mostrarMenuReportar"
+              class="absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-xl border bg-popover shadow-lg"
+            >
+              <div
+                v-for="op in opcionesReportarCon"
+                :key="op.key"
+                class="flex items-center justify-between gap-3 border-b px-3 py-2.5"
+                :class="
+                  op.disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:bg-muted'
+                "
+                @click="!op.disabled && elegirFuenteReportar(op)"
+              >
                 <div class="min-w-0">
                   <div class="text-xs font-semibold text-foreground">{{ op.nombre }}</div>
-                  <div v-if="op.nota" class="text-[10.5px] text-muted-foreground">{{ op.nota }}</div>
+                  <div v-if="op.nota" class="text-[10.5px] text-muted-foreground">
+                    {{ op.nota }}
+                  </div>
                 </div>
-                <div class="text-xs font-mono flex-none text-foreground">
+                <div class="flex-none font-mono text-xs text-foreground">
                   {{ op.valor != null ? fmtKwh(op.valor) : 'Sin dato' }}
                 </div>
               </div>
@@ -314,40 +467,66 @@
          se resuelve algo externo (ej. un CT en falla ya reportado a XM) --
          no depende de Fallas (requiere monitoreo/representación, que no
          todas las fronteras tienen). -->
-    <div class="rounded-xl p-4 border">
+    <div class="rounded-xl border p-4">
       <template v-if="exclusionActiva && !editandoExclusion">
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-sm font-semibold text-warning">
-              <BanIcon class="text-xs mr-1.5 size-[1em]" />Excluida temporalmente
+              <BanIcon class="mr-1.5 size-[1em] text-xs" />Excluida temporalmente
             </p>
-            <p class="text-xs mt-1 text-muted-foreground">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ exclusionActiva.motivo }}
-              <span v-if="exclusionActiva.fecha_fin_estimada"> -- hasta {{ exclusionActiva.fecha_fin_estimada }}</span>
+              <span v-if="exclusionActiva.fecha_fin_estimada">
+                -- hasta {{ exclusionActiva.fecha_fin_estimada }}</span
+              >
             </p>
-            <p class="text-xs mt-1 text-muted-foreground">
-              Registrada por {{ exclusionActiva.creado_por || 'desconocido' }} el {{ fmtFechaHora(exclusionActiva.created_at) }}
+            <p class="mt-1 text-xs text-muted-foreground">
+              Registrada por {{ exclusionActiva.creado_por || 'desconocido' }} el
+              {{ fmtFechaHora(exclusionActiva.created_at) }}
             </p>
           </div>
-          <button type="button" class="text-xs font-semibold flex-none text-primary" @click="iniciarEdicionExclusion">
-            <PencilIcon class="text-[10px] mr-1 size-[1em]" />Editar
+          <button
+            type="button"
+            class="flex-none text-xs font-semibold text-primary"
+            @click="iniciarEdicionExclusion"
+          >
+            <PencilIcon class="mr-1 size-[1em] text-[10px]" />Editar
           </button>
         </div>
-        <Button variant="outline" size="sm" class="mt-3"
-          :disabled="resolviendoExclusion" @click="resolverExclusionActual">
+        <Button
+          variant="outline"
+          size="sm"
+          class="mt-3"
+          :disabled="resolviendoExclusion"
+          @click="resolverExclusionActual"
+        >
           <LoaderCircleIcon v-if="resolviendoExclusion" class="animate-spin" />
           Marcar resuelta
         </Button>
       </template>
       <template v-else-if="exclusionActiva && editandoExclusion">
-        <p class="text-sm font-semibold mb-2 text-foreground">Editar exclusión</p>
-        <div class="flex flex-col gap-2 max-w-lg">
-          <div class="flex gap-2 items-start">
-            <Textarea v-model="nuevaExclusionMotivo" rows="1" placeholder="Motivo" class="text-xs flex-1" />
-            <DatePicker v-model="nuevaExclusionFechaFin" placeholder="Hasta" clearable class="w-48" />
+        <p class="mb-2 text-sm font-semibold text-foreground">Editar exclusión</p>
+        <div class="flex max-w-lg flex-col gap-2">
+          <div class="flex items-start gap-2">
+            <Textarea
+              v-model="nuevaExclusionMotivo"
+              rows="1"
+              placeholder="Motivo"
+              class="flex-1 text-xs"
+            />
+            <DatePicker
+              v-model="nuevaExclusionFechaFin"
+              placeholder="Hasta"
+              clearable
+              class="w-48"
+            />
           </div>
           <div class="flex gap-2">
-            <Button size="sm" :disabled="!nuevaExclusionMotivo.trim() || editandoExclusionGuardando" @click="guardarEdicionExclusion">
+            <Button
+              size="sm"
+              :disabled="!nuevaExclusionMotivo.trim() || editandoExclusionGuardando"
+              @click="guardarEdicionExclusion"
+            >
               <LoaderCircleIcon v-if="editandoExclusionGuardando" class="animate-spin" />
               Guardar
             </Button>
@@ -357,16 +536,25 @@
       </template>
       <template v-else>
         <p class="text-sm font-semibold text-foreground">Excluir temporalmente</p>
-        <p class="text-xs mb-3 text-muted-foreground">
+        <p class="mb-3 text-xs text-muted-foreground">
           No reporta ningún número automático mientras se resuelve el inconveniente/falla.
         </p>
-        <div class="flex flex-col gap-2 max-w-lg">
-          <div class="flex gap-2 items-start">
-            <Textarea v-model="nuevaExclusionMotivo" rows="1" placeholder="Motivo" class="text-xs flex-1" />
+        <div class="flex max-w-lg flex-col gap-2">
+          <div class="flex items-start gap-2">
+            <Textarea
+              v-model="nuevaExclusionMotivo"
+              rows="1"
+              placeholder="Motivo"
+              class="flex-1 text-xs"
+            />
             <DatePicker v-model="nuevaExclusionFechaFin" placeholder="Hasta" class="w-48" />
           </div>
-          <Button variant="destructive" size="sm"
-            :disabled="!nuevaExclusionMotivo.trim() || creandoExclusion" @click="crearExclusionActual">
+          <Button
+            variant="destructive"
+            size="sm"
+            :disabled="!nuevaExclusionMotivo.trim() || creandoExclusion"
+            @click="crearExclusionActual"
+          >
             <LoaderCircleIcon v-if="creandoExclusion" class="animate-spin" />
             Excluir temporalmente
           </Button>
@@ -378,23 +566,26 @@
          confirma que el numero automatico esta bien tal cual, sin tocar
          ningun valor. Separada de "Guardar correccion" para no parecer
          dos formas de guardar lo mismo. -->
-    <div class="rounded-xl p-4 flex items-center justify-between gap-3 border">
+    <div class="flex items-center justify-between gap-3 rounded-xl border p-4">
       <div>
         <p class="text-sm font-semibold text-foreground">Confirmar revisión</p>
         <p class="text-xs text-muted-foreground">
           Marca este día como revisado y listo para reportar.
         </p>
-        <p v-if="hayCambiosSinGuardar" class="text-xs mt-1 text-destructive">
-          Hay cambios sin guardar en la curva -- guarda la corrección primero, o se validaría el número anterior.
+        <p v-if="hayCambiosSinGuardar" class="mt-1 text-xs text-destructive">
+          Hay cambios sin guardar en la curva -- guarda la corrección primero, o se validaría el
+          número anterior.
         </p>
       </div>
-      <Button class="text-success-foreground bg-success hover:bg-success/90"
-        :disabled="validando || hayCambiosSinGuardar" @click="validar">
+      <Button
+        class="text-success-foreground bg-success hover:bg-success/90"
+        :disabled="validando || hayCambiosSinGuardar"
+        @click="validar"
+      >
         <LoaderCircleIcon v-if="validando" class="animate-spin" />
         Validar Frontera
       </Button>
     </div>
-
   </div>
 </template>
 
@@ -416,7 +607,19 @@ import { FallasService } from '~/features/fallas/services/fallas'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
 import CurvaChart from './ReporteEnergiaCurvaChart.vue'
-import { BanIcon, ChevronDownIcon, CircleCheckIcon, EraserIcon, FileSpreadsheetIcon, LoaderCircleIcon, PencilIcon, RefreshCwIcon, Trash2Icon, UndoIcon, UploadIcon } from '@lucide/vue'
+import {
+  BanIcon,
+  ChevronDownIcon,
+  CircleCheckIcon,
+  EraserIcon,
+  FileSpreadsheetIcon,
+  LoaderCircleIcon,
+  PencilIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+  UndoIcon,
+  UploadIcon,
+} from '@lucide/vue'
 
 const props = defineProps<{
   fronteraId: number
@@ -476,7 +679,9 @@ const exclusionActiva = computed(() => {
   return (
     exclusiones.value.find(
       (e) =>
-        !e.resuelta_en && e.fecha_inicio <= fecha && (!e.fecha_fin_estimada || e.fecha_fin_estimada >= fecha),
+        !e.resuelta_en &&
+        e.fecha_inicio <= fecha &&
+        (!e.fecha_fin_estimada || e.fecha_fin_estimada >= fecha),
     ) || null
   )
 })
@@ -543,7 +748,13 @@ async function guardarEdicionExclusion() {
 }
 
 function fmtFechaHora(iso: string): string {
-  return new Date(iso).toLocaleString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+  return new Date(iso).toLocaleString('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 async function cargar() {
@@ -590,28 +801,40 @@ function colapsarDuplicadas(items: Falla[]): Falla[] {
   for (const f of items) {
     const key = tipoKeyFalla(f)
     const actual = elegidoPorTipo.get(key)
-    if (!actual) { elegidoPorTipo.set(key, f); continue }
+    if (!actual) {
+      elegidoPorTipo.set(key, f)
+      continue
+    }
     const actualAbierta = !actual.estado?.es_estado_final
     const estaAbierta = !f.estado?.es_estado_final
     if (estaAbierta && !actualAbierta) elegidoPorTipo.set(key, f)
   }
   const elegidos = new Set(elegidoPorTipo.values())
-  return items.filter(f => elegidos.has(f))
+  return items.filter((f) => elegidos.has(f))
 }
 
 async function cargarFallasActivas(proyectoId: number | null) {
-  if (!proyectoId) { fallasActivas.value = []; return }
+  if (!proyectoId) {
+    fallasActivas.value = []
+    return
+  }
   try {
     // activa_en_fecha (no solo_activas): esta vista es el detalle de UN día
     // ya clasificado -- debe mostrar las fallas que estaban abiertas en ese
     // momento, no las que están abiertas hoy consultando en vivo.
-    const data = await fallasService.listar({ proyecto_id: proyectoId, activa_en_fecha: props.fecha, size: 10 })
+    const data = await fallasService.listar({
+      proyecto_id: proyectoId,
+      activa_en_fecha: props.fecha,
+      size: 10,
+    })
     fallasActivas.value = colapsarDuplicadas(data.items || [])
   } catch {
     fallasActivas.value = []
   }
 }
-function prioColorFalla(codigo: string | null | undefined): string { return colorPrioridad(codigo, '#9ca3af') }
+function prioColorFalla(codigo: string | null | undefined): string {
+  return colorPrioridad(codigo, '#9ca3af')
+}
 function estadoPillStyleFalla(codigo: string | null | undefined) {
   const c = colorEstado(codigo)
   return { background: c + '1a', color: c, border: `1px solid ${c}40` }
@@ -619,15 +842,27 @@ function estadoPillStyleFalla(codigo: string | null | undefined) {
 async function cargarCurvaTipicaPreview() {
   curvaTipicaPreview.value = null
   try {
-    curvaTipicaPreview.value = await reporteEnergiaService.obtenerCurvaTipica(props.fronteraId, props.fecha)
+    curvaTipicaPreview.value = await reporteEnergiaService.obtenerCurvaTipica(
+      props.fronteraId,
+      props.fecha,
+    )
   } catch {
     curvaTipicaPreview.value = null
   }
 }
-onMounted(() => { cargar(); cargarExclusiones(); cargarCurvaTipicaPreview() })
-watch(() => [props.fronteraId, props.fecha], () => {
-  cargar(); cargarExclusiones(); cargarCurvaTipicaPreview()
+onMounted(() => {
+  cargar()
+  cargarExclusiones()
+  cargarCurvaTipicaPreview()
 })
+watch(
+  () => [props.fronteraId, props.fecha],
+  () => {
+    cargar()
+    cargarExclusiones()
+    cargarCurvaTipicaPreview()
+  },
+)
 
 // Frontera de terceros (caso=0, ver FRONTERAS_TERCEROS en clasificador.py) --
 // el Excel puede traer varios días; recargamos el detalle del día actual
@@ -675,7 +910,12 @@ async function eliminarExcelTerceros() {
 // valor suelto no activa nada, se comporta como un input normal.
 function onPasteHora(event: ClipboardEvent, indiceInicio: number) {
   const texto = event.clipboardData?.getData('text') || ''
-  const valores = texto.split(/[\n\t,]+/).map(s => s.trim()).filter(Boolean).map(Number).filter(n => !isNaN(n))
+  const valores = texto
+    .split(/[\n\t,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => !isNaN(n))
   if (valores.length <= 1) return
   event.preventDefault()
   valores.forEach((v, i) => {
@@ -693,7 +933,12 @@ function limpiarCurva() {
 // onPasteHora para Principal).
 function onPasteHoraRespaldo(event: ClipboardEvent, indiceInicio: number) {
   const texto = event.clipboardData?.getData('text') || ''
-  const valores = texto.split(/[\n\t,]+/).map(s => s.trim()).filter(Boolean).map(Number).filter(n => !isNaN(n))
+  const valores = texto
+    .split(/[\n\t,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(Number)
+    .filter((n) => !isNaN(n))
   if (valores.length <= 1) return
   event.preventDefault()
   valores.forEach((v, i) => {
@@ -734,10 +979,12 @@ function respaldoPlaceholder(h: number): string {
 function esHoraRellenada(h: number): boolean {
   const d = detalle.value
   if (!d) return false
-  return (d.horas_rellenadas_reconectador || []).includes(h)
-    || (d.horas_rellenadas_solenium || []).includes(h)
-    || (d.horas_rellenadas_historico || []).includes(h)
-    || (d.horas_rellenadas_medidor_cruzado || []).includes(h)
+  return (
+    (d.horas_rellenadas_reconectador || []).includes(h) ||
+    (d.horas_rellenadas_solenium || []).includes(h) ||
+    (d.horas_rellenadas_historico || []).includes(h) ||
+    (d.horas_rellenadas_medidor_cruzado || []).includes(h)
+  )
 }
 
 // 'Validar Frontera' confirma el numero YA GUARDADO tal cual, sin tocar
@@ -787,7 +1034,7 @@ const hayCambiosSinGuardar = computed(() => {
 const hayHuecosSinRellenar = computed(() => {
   const d = detalle.value
   if (!d) return false
-  return (d.curva_final || []).some(v => v === null || v === undefined)
+  return (d.curva_final || []).some((v) => v === null || v === undefined)
 })
 
 async function rellenarHorario() {
@@ -830,7 +1077,10 @@ async function deshacerRelleno() {
 // 'Reportar con otra fuente' reflejen el valor recuperado (2026-08-20).
 async function recuperarMedidor() {
   recuperandoMedidor.value = true
-  toast.info('Recuperando medidor', { description: 'Puede tardar hasta 90 segundos...', duration: 4000 })
+  toast.info('Recuperando medidor', {
+    description: 'Puede tardar hasta 90 segundos...',
+    duration: 4000,
+  })
   try {
     const data = await reporteEnergiaService.recuperarMedidor(props.fronteraId, props.fecha)
     detalle.value = data
@@ -839,7 +1089,10 @@ async function recuperarMedidor() {
       duration: 5000,
     })
   } catch (err) {
-    toast.error('No se pudo recuperar', { description: normalizeError(err).message, duration: 4000 })
+    toast.error('No se pudo recuperar', {
+      description: normalizeError(err).message,
+      duration: 4000,
+    })
   } finally {
     recuperandoMedidor.value = false
   }
@@ -857,9 +1110,15 @@ async function usarRespaldoEnVivo() {
     const data = await reporteEnergiaService.revisarRespaldo(props.fronteraId, props.fecha)
     detalle.value = data
     if (data.respaldo_reportado_origen === 'medidor') {
-      toast.success('Respaldo actualizado', { description: 'Se adoptó el valor real del medidor.', duration: 4000 })
+      toast.success('Respaldo actualizado', {
+        description: 'Se adoptó el valor real del medidor.',
+        duration: 4000,
+      })
     } else {
-      toast.warning('Sigue en estimado', { description: 'El valor en vivo no quedó dentro de la tolerancia -- no se adoptó.', duration: 5000 })
+      toast.warning('Sigue en estimado', {
+        description: 'El valor en vivo no quedó dentro de la tolerancia -- no se adoptó.',
+        duration: 5000,
+      })
     }
   } catch (err) {
     toast.error('No se pudo revisar', { description: normalizeError(err).message, duration: 4000 })
@@ -909,7 +1168,7 @@ const opcionesReportarCon = computed<OpcionFuente[]>(() => {
   const d = detalle.value
   if (!d) return []
   const conFp = (curva: Curva | null | undefined): Curva =>
-    (curva || []).map(v => (v == null || d.fp == null) ? null : v * d.fp)
+    (curva || []).map((v) => (v == null || d.fp == null ? null : v * d.fp))
   const suma = (curva: Curva | null | undefined): number | null => {
     const vals = (curva || []).filter((v): v is number => v != null)
     return vals.length ? vals.reduce((a, b) => a + b, 0) : null
@@ -921,14 +1180,26 @@ const opcionesReportarCon = computed<OpcionFuente[]>(() => {
   // clasificador usó 'Histórico' porque el medidor estaba mal, y luego se
   // recupera ESE medidor, la opción "(actualizado)" tiene que poder
   // aparecer igual, no solo para el medidor que ganó el Caso.
-  const opcionMedidor = (key: 'principal' | 'respaldo', nombre: string, curvaPersistida: Curva | null | undefined): OpcionFuente => {
-    const actualizado = key === 'respaldo' ? d.respaldo_actualizado_en_quoia : d.principal_actualizado_en_quoia
+  const opcionMedidor = (
+    key: 'principal' | 'respaldo',
+    nombre: string,
+    curvaPersistida: Curva | null | undefined,
+  ): OpcionFuente => {
+    const actualizado =
+      key === 'respaldo' ? d.respaldo_actualizado_en_quoia : d.principal_actualizado_en_quoia
     const curvaActual = key === 'respaldo' ? d.respaldo_curva_actual : d.principal_curva_actual
-    const valorActual = key === 'respaldo' ? d.respaldo_energia_actual_kwh : d.principal_energia_actual_kwh
+    const valorActual =
+      key === 'respaldo' ? d.respaldo_energia_actual_kwh : d.principal_energia_actual_kwh
     if (actualizado && curvaActual != null) {
       return { key, nombre: `${nombre} (actualizado)`, curva: curvaActual, valor: valorActual }
     }
-    return { key, nombre, curva: curvaPersistida, valor: suma(curvaPersistida), disabled: suma(curvaPersistida) == null }
+    return {
+      key,
+      nombre,
+      curva: curvaPersistida,
+      valor: suma(curvaPersistida),
+      disabled: suma(curvaPersistida) == null,
+    }
   }
   // El reconectador es dato físico real -- no una estimación como Inversores
   // × FP o el histórico -- y el clasificador ya lo usa como fuente COMPLETA
@@ -963,31 +1234,47 @@ const opcionesReportarCon = computed<OpcionFuente[]>(() => {
   const sumaCgm = suma(d.curva_cgm)
   return [
     {
-      key: 'cgm', nombre: 'Reporte CGM (Quoia)', curva: d.curva_cgm,
+      key: 'cgm',
+      nombre: 'Reporte CGM (Quoia)',
+      curva: d.curva_cgm,
       valor: sumaCgm,
       disabled: !cgmValido || sumaCgm == null,
       nota: !cgmValido
         ? 'no hubo reporte automático válido ese día'
-        : (sumaCgm == null ? 'no se pudo leer la curva en Quoia' : 'no se enviará matriz: Quoia ya lo tiene'),
+        : sumaCgm == null
+          ? 'no se pudo leer la curva en Quoia'
+          : 'no se enviará matriz: Quoia ya lo tiene',
     },
     {
-      key: 'tipica', nombre: 'Curva típica (histórico)', curva: tipica?.curva,
+      key: 'tipica',
+      nombre: 'Curva típica (histórico)',
+      curva: tipica?.curva,
       nota: tipica ? `mediana de ${tipica.dias_usados} días` : 'sin histórico suficiente',
-      valor: tipica ? tipica.energia_total_kwh : null, disabled: !tipica,
+      valor: tipica ? tipica.energia_total_kwh : null,
+      disabled: !tipica,
     },
     opcionMedidor('principal', 'Medidor principal', d.curva_medidor_principal),
     opcionMedidor('respaldo', 'Medidor respaldo', d.curva_medidor_respaldo),
     {
-      key: 'reconectador', nombre: 'Reconectador', curva: d.curva_reconectador,
+      key: 'reconectador',
+      nombre: 'Reconectador',
+      curva: d.curva_reconectador,
       valor: sumaReconectador,
       disabled: sumaReconectador == null || horasFaltanReconectador.length > 0,
-      nota: sumaReconectador == null
-        ? 'sin dato del reconectador'
-        : (horasFaltanReconectador.length
+      nota:
+        sumaReconectador == null
+          ? 'sin dato del reconectador'
+          : horasFaltanReconectador.length
             ? `incompleto -- faltan ${formatearRangosHoras(horasFaltanReconectador)}`
-            : null),
+            : null,
     },
-    { key: 'inversores', nombre: 'Inversores × FP', curva: curvaInversoresFp, valor: suma(curvaInversoresFp), disabled: suma(curvaInversoresFp) == null },
+    {
+      key: 'inversores',
+      nombre: 'Inversores × FP',
+      curva: curvaInversoresFp,
+      valor: suma(curvaInversoresFp),
+      disabled: suma(curvaInversoresFp) == null,
+    },
     { key: 'ceros', nombre: 'Matriz de ceros', curva: Array(24).fill(0), valor: 0 },
   ]
 })
@@ -1009,9 +1296,10 @@ function elegirFuenteReportar(op: OpcionFuente) {
   // El CGM merece su propio aviso: la consecuencia de guardarlo no es "se
   // reporta este número" sino "no se reporta nada", y eso no se adivina.
   toast.info(`${op.nombre} aplicado`, {
-    description: op.key === 'cgm'
-      ? `${fmtKwh(op.valor)} -- al guardar, esta frontera NO se envía: se deja en pie el reporte que Quoia ya tiene.`
-      : `${fmtKwh(op.valor)} -- revisa y guarda si está bien.`,
+    description:
+      op.key === 'cgm'
+        ? `${fmtKwh(op.valor)} -- al guardar, esta frontera NO se envía: se deja en pie el reporte que Quoia ya tiene.`
+        : `${fmtKwh(op.valor)} -- revisa y guarda si está bien.`,
     duration: op.key === 'cgm' ? 6000 : 4000,
   })
 }
@@ -1021,7 +1309,7 @@ function elegirFuenteReportar(op: OpcionFuente) {
 // strings ("45.6"), vacías (""), o numeros ya normales (paste, carga
 // inicial). Se normaliza a float | null justo antes de enviar.
 function _normalizarCurva(valores: (number | string | null)[]): Curva {
-  return valores.map(v => {
+  return valores.map((v) => {
     if (v === null || v === undefined || v === '') return null
     const n = Number(v)
     return Number.isNaN(n) ? null : n
@@ -1081,28 +1369,65 @@ interface CasoInfo {
 // y clasificador_consumo.py en el backend).
 const CASO_INFO_GENERACION: Record<string, CasoInfo> = {
   // '0' no tiene una sola descripcion fija -- ver casoInfo0() abajo.
-  '0': { nombre: 'Reporta a otra empresa', descripcion: 'Frontera de terceros, fuera de este árbol de decisión' },
-  '1': { nombre: 'Reporte CGM válido', descripcion: 'El envío automático de Quoia al ASIC fue válido hoy y coincide con los inversores' },
-  '2': { nombre: 'Medidor valida', descripcion: 'El reporte automático no fue válido, pero un medidor coincide con los inversores' },
+  '0': {
+    nombre: 'Reporta a otra empresa',
+    descripcion: 'Frontera de terceros, fuera de este árbol de decisión',
+  },
+  '1': {
+    nombre: 'Reporte CGM válido',
+    descripcion:
+      'El envío automático de Quoia al ASIC fue válido hoy y coincide con los inversores',
+  },
+  '2': {
+    nombre: 'Medidor valida',
+    descripcion: 'El reporte automático no fue válido, pero un medidor coincide con los inversores',
+  },
   // '3' tampoco tiene una sola descripcion fija -- ver casoInfo3() abajo.
-  '4': { nombre: 'Medidor de mayor valor', descripcion: 'Los medidores registran más energía que los inversores; se usa el de mayor valor' },
+  '4': {
+    nombre: 'Medidor de mayor valor',
+    descripcion: 'Los medidores registran más energía que los inversores; se usa el de mayor valor',
+  },
   // '5' no tiene una sola descripcion fija -- el arbol real (clasificador.py)
   // tiene 4 caminos distintos que todos terminan en el mismo numero de Caso
   // (CGM ya valido sin inversores completos para cruzar, inversores parciales
   // x FP, reconectador, o medidor sin inversores). Ver casoInfo5() abajo.
-  '6': { nombre: 'Apagado', descripcion: 'Ninguna fuente -- CGM, medidor, inversores ni reconectador -- registra generación hoy' },
-  '7': { nombre: 'Reconstruido con reconectador o crudos', descripcion: 'Sin reporte automático ni medidor; se reconstruye con reconectador, Solenium (power) o datos crudos completos' },
-  '8': { nombre: 'Datos crudos parciales', descripcion: 'Datos crudos incompletos; se rellenan las horas faltantes con reconectador, Solenium o histórico' },
-  '-1': { nombre: 'Error de clasificación', descripcion: 'El clasificador falló para esta frontera' },
+  '6': {
+    nombre: 'Apagado',
+    descripcion:
+      'Ninguna fuente -- CGM, medidor, inversores ni reconectador -- registra generación hoy',
+  },
+  '7': {
+    nombre: 'Reconstruido con reconectador o crudos',
+    descripcion:
+      'Sin reporte automático ni medidor; se reconstruye con reconectador, Solenium (power) o datos crudos completos',
+  },
+  '8': {
+    nombre: 'Datos crudos parciales',
+    descripcion:
+      'Datos crudos incompletos; se rellenan las horas faltantes con reconectador, Solenium o histórico',
+  },
+  '-1': {
+    nombre: 'Error de clasificación',
+    descripcion: 'El clasificador falló para esta frontera',
+  },
   '-2': { nombre: 'Excluida temporalmente', descripcion: '' },
 }
 const CASO_INFO_CONSUMO: Record<string, CasoInfo> = {
-  'CGM': { nombre: 'Reporte válido', descripcion: 'El reporte automático fue válido y el canal CGM trae dato real' },
+  CGM: {
+    nombre: 'Reporte válido',
+    descripcion: 'El reporte automático fue válido y el canal CGM trae dato real',
+  },
   // 'Medidor' tampoco tiene una sola descripcion fija -- ver casoInfoMedidorConsumo() abajo.
-  'Histórico': { nombre: 'Histórico propio', descripcion: 'Ni CGM ni medidor creíbles; se usa la mediana y forma horaria del histórico' },
+  Histórico: {
+    nombre: 'Histórico propio',
+    descripcion: 'Ni CGM ni medidor creíbles; se usa la mediana y forma horaria del histórico',
+  },
   'Sin dato': { nombre: 'Sin dato', descripcion: 'Ninguna fuente disponible para este día' },
-  'Error': { nombre: 'Error de clasificación', descripcion: 'El clasificador falló para esta frontera' },
-  'Excluida': { nombre: 'Excluida temporalmente', descripcion: '' },
+  Error: {
+    nombre: 'Error de clasificación',
+    descripcion: 'El clasificador falló para esta frontera',
+  },
+  Excluida: { nombre: 'Excluida temporalmente', descripcion: '' },
 }
 // Caso 3 (Generación) junta 2 resultados muy distintos bajo el mismo numero:
 // medidor_usado='revisar' significa que no habia Factor de Perdida
@@ -1112,9 +1437,17 @@ const CASO_INFO_CONSUMO: Record<string, CasoInfo> = {
 // normal, con curva real corregida por FP.
 function casoInfo0(d: DetalleReporteEnergia): CasoInfo {
   if (d.medidor_usado === 'excel_terceros') {
-    return { nombre: 'Cargado desde Excel de terceros', descripcion: 'El CGM de esta frontera lo maneja otra empresa; se reportó con el Excel que subieron para este día' }
+    return {
+      nombre: 'Cargado desde Excel de terceros',
+      descripcion:
+        'El CGM de esta frontera lo maneja otra empresa; se reportó con el Excel que subieron para este día',
+    }
   }
-  return { nombre: 'Esperando Excel de terceros', descripcion: 'El CGM de esta frontera lo maneja otra empresa; falta subir su Excel para este día' }
+  return {
+    nombre: 'Esperando Excel de terceros',
+    descripcion:
+      'El CGM de esta frontera lo maneja otra empresa; falta subir su Excel para este día',
+  }
 }
 // medidor_usado='revisar' junta 2 caminos reales del clasificador
 // (clasificador.py:137-141 y :216-219) que no se distinguen entre sí --
@@ -1126,15 +1459,31 @@ function casoInfo3(d: DetalleReporteEnergia): CasoInfo {
   // reconectador/Solenium×FP/histórico) sí logró llenar horas -- ver
   // clasificador.py, comentario sobre Granja Solar Uruaco 2026-08-03.
   if (d.medidor_usado === 'relleno_horario') {
-    return { nombre: 'Reconstruido con relleno horario', descripcion: 'Sin inversores completos, CGM ni medidor ese día -- se reconstruyó hora por hora con reconectador, Solenium × Factor de Pérdida o histórico (ver abajo qué horas)' }
+    return {
+      nombre: 'Reconstruido con relleno horario',
+      descripcion:
+        'Sin inversores completos, CGM ni medidor ese día -- se reconstruyó hora por hora con reconectador, Solenium × Factor de Pérdida o histórico (ver abajo qué horas)',
+    }
   }
   if (d.medidor_usado === 'revisar') {
     if (d.solenium_completo === false) {
-      return { nombre: 'Inversores parciales, sin más fuentes', descripcion: 'Los inversores solo reportaron parcial ese día y ni CGM ni el medidor tienen dato -- no se pudo construir ninguna curva automática' }
+      return {
+        nombre: 'Inversores parciales, sin más fuentes',
+        descripcion:
+          'Los inversores solo reportaron parcial ese día y ni CGM ni el medidor tienen dato -- no se pudo construir ninguna curva automática',
+      }
     }
-    return { nombre: 'Sin Factor de Pérdida disponible', descripcion: 'Los medidores registran menos energía que los inversores, pero no hay suficiente histórico para calcular el Factor de Pérdida -- no se pudo generar ninguna curva automática' }
+    return {
+      nombre: 'Sin Factor de Pérdida disponible',
+      descripcion:
+        'Los medidores registran menos energía que los inversores, pero no hay suficiente histórico para calcular el Factor de Pérdida -- no se pudo generar ninguna curva automática',
+    }
   }
-  return { nombre: 'Inversores × Factor de Pérdida', descripcion: 'Los medidores registran menos energía que los inversores; se corrige con el histórico de pérdida' }
+  return {
+    nombre: 'Inversores × Factor de Pérdida',
+    descripcion:
+      'Los medidores registran menos energía que los inversores; se corrige con el histórico de pérdida',
+  }
 }
 
 // 'Medidor' (Consumo) junta el mismo tipo de conflacion que Caso 3/5 de
@@ -1147,12 +1496,26 @@ function casoInfo3(d: DetalleReporteEnergia): CasoInfo {
 // hueco parcial, ver GD Polaris 2 Consumo 2026-08-03).
 function casoInfoMedidorConsumo(d: DetalleReporteEnergia): CasoInfo {
   if (d.medidor_usado === 'revisar') {
-    return { nombre: 'Sin histórico para comparar', descripcion: 'CGM no válido; hay medidor con dato, pero no hay suficiente histórico para calcular su mediana -- no se pudo validar ni generar curva automática' }
+    return {
+      nombre: 'Sin histórico para comparar',
+      descripcion:
+        'CGM no válido; hay medidor con dato, pero no hay suficiente histórico para calcular su mediana -- no se pudo validar ni generar curva automática',
+    }
   }
-  if (d.medidor_usado === 'principal_sin_historico' || d.medidor_usado === 'respaldo_sin_historico') {
-    return { nombre: 'Medidor sin histórico para validar', descripcion: 'CGM no válido; el medidor tiene dato pero no hay mediana histórica para confirmar que el nivel es correcto -- se reporta con lo disponible, revisar a mano' }
+  if (
+    d.medidor_usado === 'principal_sin_historico' ||
+    d.medidor_usado === 'respaldo_sin_historico'
+  ) {
+    return {
+      nombre: 'Medidor sin histórico para validar',
+      descripcion:
+        'CGM no válido; el medidor tiene dato pero no hay mediana histórica para confirmar que el nivel es correcto -- se reporta con lo disponible, revisar a mano',
+    }
   }
-  return { nombre: 'Medidor valida contra histórico', descripcion: 'CGM no válido; el medidor se comparó contra su propia mediana histórica' }
+  return {
+    nombre: 'Medidor valida contra histórico',
+    descripcion: 'CGM no válido; el medidor se comparó contra su propia mediana histórica',
+  }
 }
 
 // Caso 5 (Generación) junta 4 caminos reales del clasificador bajo un mismo
@@ -1169,7 +1532,11 @@ function casoInfoMedidorConsumo(d: DetalleReporteEnergia): CasoInfo {
 function casoInfo5(d: DetalleReporteEnergia): CasoInfo {
   if (d.medidor_usado === 'cgm') {
     if (d.nota_solenium) {
-      return { nombre: 'Sin inversores registrados', descripcion: 'El reporte CGM fue válido; el proyecto no tiene inversores registrados en SolarView' }
+      return {
+        nombre: 'Sin inversores registrados',
+        descripcion:
+          'El reporte CGM fue válido; el proyecto no tiene inversores registrados en SolarView',
+      }
     }
     // Solenium incompleto no significa "no se pudo usar" -- si SÍ se
     // comparó contra las horas que reportó (error_final_pct presente), la
@@ -1182,13 +1549,25 @@ function casoInfo5(d: DetalleReporteEnergia): CasoInfo {
         descripcion: `El reporte CGM ya era válido; se comparó contra los inversores en las horas que sí reportaron ese día (${Math.abs(d.error_final_pct).toFixed(1)}% de diferencia)`,
       }
     }
-    return { nombre: 'CGM válido, Solenium incompleto', descripcion: 'El reporte CGM ya era válido; los inversores no reportaron nada ese día, no hubo con qué cruzar' }
+    return {
+      nombre: 'CGM válido, Solenium incompleto',
+      descripcion:
+        'El reporte CGM ya era válido; los inversores no reportaron nada ese día, no hubo con qué cruzar',
+    }
   }
   if (d.medidor_usado === 'inversores') {
-    return { nombre: 'Inversores parciales × Factor de Pérdida', descripcion: 'CGM no válido y el medidor está caído; se usa el total parcial de inversores corregido con el histórico de pérdida' }
+    return {
+      nombre: 'Inversores parciales × Factor de Pérdida',
+      descripcion:
+        'CGM no válido y el medidor está caído; se usa el total parcial de inversores corregido con el histórico de pérdida',
+    }
   }
   if (d.medidor_usado === 'reconectador') {
-    return { nombre: 'Reconstruido con reconectador', descripcion: 'CGM no válido, el medidor está caído y Solenium no tiene dato completo; se reconstruye con el reconectador' }
+    return {
+      nombre: 'Reconstruido con reconectador',
+      descripcion:
+        'CGM no válido, el medidor está caído y Solenium no tiene dato completo; se reconstruye con el reconectador',
+    }
   }
   if (d.medidor_usado === 'principal_sin_cgm' || d.medidor_usado === 'respaldo_sin_cgm') {
     if (d.error_final_pct != null) {
@@ -1197,9 +1576,17 @@ function casoInfo5(d: DetalleReporteEnergia): CasoInfo {
         descripcion: `CGM no reportó nada ese día; se usa el medidor directo, comparado contra los inversores en las horas que sí reportaron (${Math.abs(d.error_final_pct).toFixed(1)}% de diferencia)`,
       }
     }
-    return { nombre: 'Medidor sin CGM ni inversores', descripcion: 'CGM no reportó nada ese día y no hay inversores con qué comparar; se usa el medidor directo' }
+    return {
+      nombre: 'Medidor sin CGM ni inversores',
+      descripcion:
+        'CGM no reportó nada ese día y no hay inversores con qué comparar; se usa el medidor directo',
+    }
   }
-  return { nombre: 'Sin inversores registrados', descripcion: 'Hay medidor con dato, pero el proyecto no tiene inversores en SolarView contra qué validarlo' }
+  return {
+    nombre: 'Sin inversores registrados',
+    descripcion:
+      'Hay medidor con dato, pero el proyecto no tiene inversores en SolarView contra qué validarlo',
+  }
 }
 // 'fp' ahora se calcula y persiste SIEMPRE en el backend (no solo cuando el
 // Caso ganador lo usó para 'energia_final_kwh'), para que 'Reportar con
@@ -1287,10 +1674,20 @@ const avisosMedidor = computed<AvisoMedidor[]>(() => {
   if (!d) return []
   const avisos: AvisoMedidor[] = []
   if (d.principal_actualizado_en_quoia) {
-    avisos.push({ tipo: 'principal', etiqueta: 'Medidor principal', actual: d.principal_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_principal) })
+    avisos.push({
+      tipo: 'principal',
+      etiqueta: 'Medidor principal',
+      actual: d.principal_energia_actual_kwh,
+      clasificacion: sumaCurva(d.curva_medidor_principal),
+    })
   }
   if (d.respaldo_actualizado_en_quoia) {
-    avisos.push({ tipo: 'respaldo', etiqueta: 'Medidor respaldo', actual: d.respaldo_energia_actual_kwh, clasificacion: sumaCurva(d.curva_medidor_respaldo) })
+    avisos.push({
+      tipo: 'respaldo',
+      etiqueta: 'Medidor respaldo',
+      actual: d.respaldo_energia_actual_kwh,
+      clasificacion: sumaCurva(d.curva_medidor_respaldo),
+    })
   }
   return avisos
 })
@@ -1298,13 +1695,17 @@ const avisosMedidor = computed<AvisoMedidor[]>(() => {
 function formatearRangosHoras(horas: number[] | undefined): string {
   if (!horas?.length) return ''
   const rangos: string[] = []
-  let inicio = horas[0]!, fin = horas[0]!
+  let inicio = horas[0]!,
+    fin = horas[0]!
   for (let i = 1; i <= horas.length; i++) {
     if (i < horas.length && horas[i] === fin + 1) {
       fin = horas[i]!
     } else {
       rangos.push(inicio === fin ? `${inicio}h` : `${inicio}-${fin}h`)
-      if (i < horas.length) { inicio = horas[i]!; fin = horas[i]! }
+      if (i < horas.length) {
+        inicio = horas[i]!
+        fin = horas[i]!
+      }
     }
   }
   return rangos.join(', ')
@@ -1324,7 +1725,7 @@ function horasFaltantes(arr: Curva | null | undefined): number[] {
 const HORAS_SOLARES_FRONT = new Set([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
 function horasFaltantesSolares(arr: Curva | null | undefined): number[] {
   const faltan = horasFaltantes(arr)
-  const enVentana = faltan.filter(h => HORAS_SOLARES_FRONT.has(h))
+  const enVentana = faltan.filter((h) => HORAS_SOLARES_FRONT.has(h))
   // Si por algún motivo las horas sin dato caen TODAS fuera de la ventana
   // (ej. dejó de reportar justo a las 17h -- 'faltan' 18h-23h, ninguna
   // dentro de la ventana), mejor mostrar la lista completa que un texto
@@ -1367,9 +1768,10 @@ const fuentes = computed<FuenteInfo[]>(() => {
   // es estado_reporte, no la energía.
   const catCgm = categoriaEstadoReporte(d.estado_reporte)
   lista.push({
-    clave: 'cgm', nombre: 'Reporte CGM (Quoia)',
-    estado: catCgm === 'ok' ? 'ok' : (catCgm === 'error' ? 'error' : 'no'),
-    detalle: catCgm === 'ok' ? 'Automático' : (catCgm === 'error' ? 'Error' : 'Sin dato para hoy'),
+    clave: 'cgm',
+    nombre: 'Reporte CGM (Quoia)',
+    estado: catCgm === 'ok' ? 'ok' : catCgm === 'error' ? 'error' : 'no',
+    detalle: catCgm === 'ok' ? 'Automático' : catCgm === 'error' ? 'Error' : 'Sin dato para hoy',
     valor: d.estado_reporte ? d.energia_cgm_kwh : null,
     usado: d.medidor_usado === 'cgm',
   })
@@ -1381,7 +1783,8 @@ const fuentes = computed<FuenteInfo[]>(() => {
   // hacía parecer que el valor actualizado YA era el reportado, sin que la
   // persona lo hubiera elegido -- ver Detalle de las fuentes 2026-08-12).
   lista.push({
-    clave: 'principal', nombre: 'Medidor principal',
+    clave: 'principal',
+    nombre: 'Medidor principal',
     estado: sumaCurva(d.curva_medidor_principal) !== null ? 'ok' : 'no',
     detalle: sumaCurva(d.curva_medidor_principal) !== null ? 'Lectura disponible' : 'Sin lectura',
     valor: sumaCurva(d.curva_medidor_principal),
@@ -1389,7 +1792,8 @@ const fuentes = computed<FuenteInfo[]>(() => {
   })
 
   lista.push({
-    clave: 'respaldo', nombre: 'Medidor respaldo',
+    clave: 'respaldo',
+    nombre: 'Medidor respaldo',
     estado: sumaCurva(d.curva_medidor_respaldo) !== null ? 'ok' : 'no',
     detalle: sumaCurva(d.curva_medidor_respaldo) !== null ? 'Lectura disponible' : 'Sin lectura',
     valor: sumaCurva(d.curva_medidor_respaldo),
@@ -1405,15 +1809,16 @@ const fuentes = computed<FuenteInfo[]>(() => {
     const sinRegistro = !!d.nota_solenium
     const sumaSolenium = sumaCurva(d.curva_solenium)
     lista.push({
-      clave: 'inversores', nombre: 'Inversores (Solenium)',
-      estado: sinRegistro ? 'na' : (sumaSolenium !== null ? 'ok' : 'no'),
+      clave: 'inversores',
+      nombre: 'Inversores (Solenium)',
+      estado: sinRegistro ? 'na' : sumaSolenium !== null ? 'ok' : 'no',
       detalle: sinRegistro
         ? d.nota_solenium
-        : (sumaSolenium !== null
-            ? (d.solenium_completo
-                ? 'Dato completo'
-                : `Dato incompleto -- faltan ${formatearRangosHoras(horasFaltantesSolares(d.curva_solenium))}`)
-            : 'Solenium respondió sin dato para esta fecha'),
+        : sumaSolenium !== null
+          ? d.solenium_completo
+            ? 'Dato completo'
+            : `Dato incompleto -- faltan ${formatearRangosHoras(horasFaltantesSolares(d.curva_solenium))}`
+          : 'Solenium respondió sin dato para esta fecha',
       // Se muestra la suma de la curva EN VIVO (misma fuente que el icono y
       // que la grafica de arriba), no energia_solenium_kwh -- ese es el total
       // que quedo guardado al momento de la clasificacion, y puede no
@@ -1433,13 +1838,15 @@ const fuentes = computed<FuenteInfo[]>(() => {
     // día -- no que "no hizo falta revisarlo" (pedido 2026-08-21).
     const sumaReconectador = sumaCurva(d.curva_reconectador)
     lista.push({
-      clave: 'reconectador', nombre: 'Reconectador',
+      clave: 'reconectador',
+      nombre: 'Reconectador',
       estado: sumaReconectador !== null ? 'ok' : 'na',
-      detalle: sumaReconectador !== null
-        ? (horasFaltantesSolares(d.curva_reconectador).length
+      detalle:
+        sumaReconectador !== null
+          ? horasFaltantesSolares(d.curva_reconectador).length
             ? `Dato incompleto -- faltan ${formatearRangosHoras(horasFaltantesSolares(d.curva_reconectador))}`
-            : 'Dato completo')
-        : 'Sin dato del reconectador',
+            : 'Dato completo'
+          : 'Sin dato del reconectador',
       valor: sumaReconectador,
       usado: d.medidor_usado === 'reconectador',
     })
@@ -1449,26 +1856,42 @@ const fuentes = computed<FuenteInfo[]>(() => {
 })
 
 const ETIQUETAS_FUENTE: Record<string, string> = {
-  cgm: 'CGM', principal: 'Medidor principal', respaldo: 'Medidor respaldo',
-  inversores: 'Inversores × FP', crudos: 'Datos crudos', crudos_parcial: 'Datos crudos (parcial)',
-  reconectador: 'Reconectador', solenium_power: 'Solenium (power)', ninguno: 'Apagado',
-  revisar: 'Sin fuente', relleno_horario: 'Relleno horario',
-  externo: 'Reporta otra empresa', historico: 'Histórico propio',
+  cgm: 'CGM',
+  principal: 'Medidor principal',
+  respaldo: 'Medidor respaldo',
+  inversores: 'Inversores × FP',
+  crudos: 'Datos crudos',
+  crudos_parcial: 'Datos crudos (parcial)',
+  reconectador: 'Reconectador',
+  solenium_power: 'Solenium (power)',
+  ninguno: 'Apagado',
+  revisar: 'Sin fuente',
+  relleno_horario: 'Relleno horario',
+  externo: 'Reporta otra empresa',
+  historico: 'Histórico propio',
   historico_vecino: 'Histórico (vecino de predio)',
-  principal_sin_historico: 'Medidor principal', respaldo_sin_historico: 'Medidor respaldo',
-  principal_sin_cgm: 'Medidor principal', respaldo_sin_cgm: 'Medidor respaldo',
-  excluida: 'Excluida', excel_terceros: 'Excel de terceros', editado_manualmente: 'Editado manualmente',
+  principal_sin_historico: 'Medidor principal',
+  respaldo_sin_historico: 'Medidor respaldo',
+  principal_sin_cgm: 'Medidor principal',
+  respaldo_sin_cgm: 'Medidor respaldo',
+  excluida: 'Excluida',
+  excel_terceros: 'Excel de terceros',
+  editado_manualmente: 'Editado manualmente',
 }
 function hayHorasRelleno(d: DetalleReporteEnergia | null | undefined): boolean {
-  return !!(d && (
-    (d.horas_rellenadas_medidor_cruzado || []).length ||
-    (d.horas_rellenadas_reconectador || []).length ||
-    (d.horas_rellenadas_solenium || []).length ||
-    (d.horas_rellenadas_historico || []).length
-  ))
+  return !!(
+    d &&
+    ((d.horas_rellenadas_medidor_cruzado || []).length ||
+      (d.horas_rellenadas_reconectador || []).length ||
+      (d.horas_rellenadas_solenium || []).length ||
+      (d.horas_rellenadas_historico || []).length)
+  )
 }
 
-function etiquetaFuente(v: string | undefined, d: DetalleReporteEnergia | null | undefined): string {
+function etiquetaFuente(
+  v: string | undefined,
+  d: DetalleReporteEnergia | null | undefined,
+): string {
   if (v === 'relleno_horario' && d) {
     // El label generico no decia CUAL de las fuentes de relleno se usó de
     // verdad -- ver MGS 0022 La Cumbia 2026-08-05, donde solo entró el
@@ -1494,14 +1917,17 @@ function fmtKwh(v: unknown): string {
 </script>
 
 <style scoped>
-.falla-activa-row:hover { background: #faf9fc; }
+.falla-activa-row:hover {
+  background: #faf9fc;
+}
 
 /* Tabla vertical estilo Excel (Hora | kWh) -- dos columnas de 12 horas cada
    una, lado a lado, para no obligar a un scroll larguísimo de 24 filas. */
 .tabla-horas {
   border-collapse: collapse;
 }
-.tabla-horas th, .tabla-horas td {
+.tabla-horas th,
+.tabla-horas td {
   border: 1px solid #e8e0f0;
   padding: 0;
 }
@@ -1524,7 +1950,9 @@ function fmtKwh(v: unknown): string {
   white-space: nowrap;
   background: #f9f7ff;
 }
-.tabla-horas tr.fila-rellenada td:last-child { background: rgba(240, 192, 64, 0.14); }
+.tabla-horas tr.fila-rellenada td:last-child {
+  background: rgba(240, 192, 64, 0.14);
+}
 :deep(.celda-input) {
   width: 110px;
   height: 32px;

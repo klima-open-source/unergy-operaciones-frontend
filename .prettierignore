@@ -31,10 +31,8 @@ app/components/gandalf
 # formato del template, el resto no.
 app/features/auth/components
 app/features/clientes/components/clientesUi.js
-app/features/comercial/components
 app/features/contratos/components
 app/features/finanzas/components
-app/features/fronteras/components
 # `mem` ya migró todo, incluido `CumplimientoV2View.vue` — quedan sus 3 utils
 # JS exclusivos (ver eslint.config.mjs).
 app/features/mem/components/cumplimientoAnualExport.js
