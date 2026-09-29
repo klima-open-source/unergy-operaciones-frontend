@@ -40,7 +40,6 @@ app/data
 app/assets/*.js
 app/assets/main.css
 app/components/layout/LegacyAppSidebar.vue
-app/components/blocks/PageHeader.vue
 app/components/blocks/DetalleLayout.vue
 app/components/blocks/ContactosPanel.vue
 app/features/*/utils

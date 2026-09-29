@@ -28,7 +28,11 @@ const LEGACY_PENDIENTE_DE_MIGRAR = [
   // Piezas del legacy que aterrizaron en capas del template. Van archivo a
   // archivo porque comparten carpeta con código que sí cumple.
   'app/components/layout/LegacyAppSidebar.vue',
-  'app/components/blocks/PageHeader.vue',
+  // `DetalleLayout`/`ContactosPanel` sirven a `clientes` (migrado) y también a
+  // `contratos`/`proyectos` (fuera de alcance) — tipar sus props de objeto/array
+  // a fondo implicaría revisar cómo los llaman esos dos, que está fuera de
+  // alcance. `PageHeader` ya salió: sus props son planas (`title`/`subtitle`),
+  // sin ese riesgo.
   'app/components/blocks/DetalleLayout.vue',
   'app/components/blocks/ContactosPanel.vue',
 
