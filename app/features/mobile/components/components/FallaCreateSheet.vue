@@ -1,23 +1,29 @@
 <template>
   <Teleport to="body">
     <Transition name="fsheet">
-      <div v-if="open" class="fc-backdrop" @click.self="close">
-        <div class="fc-sheet">
-          <div class="fc-grab" />
-          <div class="fc-header">
-            <span class="fc-title"><CirclePlusIcon class="size-4" /> Registrar falla</span>
-            <button class="fc-close" @click="close"><XIcon class="size-4" /></button>
+      <div
+        v-if="open"
+        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        @click.self="close"
+      >
+        <div
+          class="fc-sheet flex max-h-11/12 w-full flex-col rounded-t-3xl bg-card px-4.5 pt-2.5 shadow-lg"
+        >
+          <div class="mx-auto mt-1 mb-3 h-1 w-10 rounded-full bg-border" />
+          <div class="mb-3 flex items-center">
+            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-unergy-deep"
+              ><CirclePlusIcon class="size-4 text-unergy-purple" /> Registrar falla</span
+            >
+            <button class="p-1 text-muted-foreground" @click="close">
+              <XIcon class="size-4" />
+            </button>
           </div>
 
-          <div class="fc-body">
+          <div class="flex-1 overflow-y-auto">
             <!-- Proyecto -->
-            <label class="fc-label"
-              >Proyecto <span class="fc-req">*</span>
-              <select
-                v-model="f.proyecto_id"
-                class="fc-select"
-                :class="{ 'fc-invalid': err.proyecto_id }"
-              >
+            <label :class="LABEL"
+              >Proyecto <span class="text-destructive">*</span>
+              <select v-model="f.proyecto_id" :class="[controlClass(err.proyecto_id), 'pr-10']">
                 <option :value="null" disabled>Selecciona un proyecto…</option>
                 <option v-for="p in proyectos" :key="p.id" :value="p.id">
                   {{ p.nombre_comercial }}
@@ -26,14 +32,16 @@
             </label>
 
             <!-- Sistema afectado -->
-            <div class="fc-field">
-              <span class="fc-label-txt">Sistema afectado <span class="fc-req">*</span></span>
-              <div class="fc-chips">
+            <div class="mb-3.5">
+              <span class="text-xs font-semibold text-muted-foreground"
+                >Sistema afectado <span class="text-destructive">*</span></span
+              >
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   v-for="c in estructura"
                   :key="c.codigo"
                   type="button"
-                  :class="['fc-chip', f.categoria === c.codigo && CHIP_ACTIVO]"
+                  :class="[CHIP, f.categoria === c.codigo ? CHIP_ACTIVO : CHIP_IDLE]"
                   :style="{ '--c': c.color_hex || 'var(--color-unergy-purple)' }"
                   @click="seleccionarCategoria(c.codigo)"
                 >
@@ -41,34 +49,32 @@
                   {{ c.etiqueta }}
                 </button>
               </div>
-              <small v-if="err.categoria" class="fc-fielderr">Selecciona el sistema</small>
+              <small v-if="err.categoria" class="mt-1 block text-xs text-destructive"
+                >Selecciona el sistema</small
+              >
             </div>
 
             <!-- RED / EVENTOS: opción única -->
             <template v-if="catActual && catActual.tipo === 'opcion'">
-              <label class="fc-label"
-                >{{ labelOpciones }} <span class="fc-req">*</span>
-                <select
-                  v-model="f.subtipo"
-                  class="fc-select"
-                  :class="{ 'fc-invalid': err.subtipo }"
-                >
+              <label :class="LABEL"
+                >{{ labelOpciones }} <span class="text-destructive">*</span>
+                <select v-model="f.subtipo" :class="[controlClass(err.subtipo), 'pr-10']">
                   <option :value="null" disabled>Selecciona…</option>
                   <option v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">
                     {{ o.etiqueta }}
                   </option>
                 </select>
               </label>
-              <div v-if="opcionActual?.pendiente_reclasificar" class="fc-banner fc-banner--warn">
+              <div v-if="opcionActual?.pendiente_reclasificar" :class="[BANNER, BANNER_WARN]">
                 Quedará <strong>pendiente de reclasificar</strong> hasta conocer la causa.
               </div>
-              <label v-if="opcionActual?.requiere_detalle" class="fc-label">
-                {{ opcionActual.detalle_label || 'Detalle' }} <span class="fc-req">*</span>
+              <label v-if="opcionActual?.requiere_detalle" :class="LABEL">
+                {{ opcionActual.detalle_label || 'Detalle' }}
+                <span class="text-destructive">*</span>
                 <textarea
                   v-model="f.detalle"
                   rows="2"
-                  class="fc-textarea"
-                  :class="{ 'fc-invalid': err.detalle }"
+                  :class="[controlClass(err.detalle), 'resize-none']"
                   placeholder="Describe el motivo específico…"
                 ></textarea>
               </label>
@@ -76,101 +82,122 @@
 
             <!-- FRONTERA: equipo + flags -->
             <template v-else-if="catActual && catActual.tipo === 'equipo'">
-              <label class="fc-label"
-                >Equipo de frontera <span class="fc-req">*</span>
-                <select
-                  v-model="f.subtipo"
-                  class="fc-select"
-                  :class="{ 'fc-invalid': err.subtipo }"
-                >
+              <label :class="LABEL"
+                >Equipo de frontera <span class="text-destructive">*</span>
+                <select v-model="f.subtipo" :class="[controlClass(err.subtipo), 'pr-10']">
                   <option :value="null" disabled>Selecciona equipo…</option>
                   <option v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">
                     {{ o.etiqueta }}
                   </option>
                 </select>
               </label>
-              <label class="fc-check"
-                ><input type="checkbox" v-model="f.afecta_medicion" /> Afecta la medición de la
-                frontera</label
+              <label class="mt-2.5 flex items-center gap-2 text-sm text-foreground"
+                ><input
+                  v-model="f.afecta_medicion"
+                  type="checkbox"
+                  class="size-4.5 accent-unergy-purple"
+                />
+                Afecta la medición de la frontera</label
               >
-              <label class="fc-check"
-                ><input type="checkbox" v-model="f.perdida_comunicacion" /> Pérdida de comunicación
-                de la frontera</label
+              <label class="mt-2.5 flex items-center gap-2 text-sm text-foreground"
+                ><input
+                  v-model="f.perdida_comunicacion"
+                  type="checkbox"
+                  class="size-4.5 accent-unergy-purple"
+                />
+                Pérdida de comunicación de la frontera</label
               >
-              <div v-if="f.perdida_comunicacion" class="fc-banner fc-banner--info">
+              <div v-if="f.perdida_comunicacion" :class="[BANNER, BANNER_INFO]">
                 Generará alarma de comunicaciones de frontera.
               </div>
             </template>
 
             <!-- INVERSORES -->
             <template v-else-if="catActual && catActual.tipo === 'inversores'">
-              <div v-if="!f.proyecto_id" class="fc-banner fc-banner--warn">
+              <div v-if="!f.proyecto_id" :class="[BANNER, BANNER_WARN]">
                 Selecciona primero el proyecto.
               </div>
               <template v-else>
-                <span class="fc-label-txt">Inversores afectados <span class="fc-req">*</span></span>
-                <div v-if="cargandoInv" class="fc-hint">Cargando…</div>
-                <div v-else-if="!inversores.length" class="fc-banner fc-banner--warn">
+                <span class="text-xs font-semibold text-muted-foreground"
+                  >Inversores afectados <span class="text-destructive">*</span></span
+                >
+                <div v-if="cargandoInv" class="my-1.5 text-xs text-muted-foreground">Cargando…</div>
+                <div v-else-if="!inversores.length" :class="[BANNER, BANNER_WARN]">
                   Sin inversores configurados.
-                  <button type="button" class="fc-linkb" @click="prefillMinigranja">
+                  <button
+                    type="button"
+                    class="ml-1 text-xs font-bold text-unergy-purple"
+                    @click="prefillMinigranja"
+                  >
                     Crear config típica minigranja
                   </button>
                 </div>
-                <div v-else class="fc-chips">
+                <div v-else class="mt-2 flex flex-wrap gap-2">
                   <button
                     v-for="inv in inversores"
                     :key="inv.id"
                     type="button"
-                    :class="['fc-chip', f.inversores_ids.includes(inv.id) && CHIP_ACTIVO_PURPURA]"
+                    :class="[
+                      CHIP,
+                      f.inversores_ids.includes(inv.id) ? CHIP_ACTIVO_PURPURA : CHIP_IDLE,
+                    ]"
                     @click="toggleInv(inv.id)"
                   >
                     {{ inv.nombre || 'Inversor' }} · {{ inv.potencia_nominal_kw || '?' }}kW
                   </button>
                 </div>
-                <small v-if="err.inversores" class="fc-fielderr"
+                <small v-if="err.inversores" class="mt-1 block text-xs text-destructive"
                   >Selecciona al menos un inversor</small
                 >
 
                 <!-- mini-agregar inversor -->
-                <div v-if="inversores.length" class="fc-invadd">
+                <div v-if="inversores.length" class="mt-2 flex gap-2">
                   <input
                     v-model="nuevoInv.nombre"
-                    class="fc-input fc-invname"
+                    :class="[CONTROL, CONTROL_OK, 'flex-1']"
                     placeholder="Nuevo inversor"
                   />
                   <input
                     v-model.number="nuevoInv.potencia_nominal_kw"
                     type="number"
-                    class="fc-input fc-invkw"
+                    :class="[CONTROL, CONTROL_OK, 'w-22']"
                     placeholder="kW"
                   />
-                  <button type="button" class="fc-invaddbtn" @click="agregarInv">
+                  <button
+                    type="button"
+                    class="w-11.5 shrink-0 rounded-xl bg-unergy-purple text-white"
+                    @click="agregarInv"
+                  >
                     <PlusIcon class="size-3" />
                   </button>
                 </div>
-                <small v-if="invError" class="fc-fielderr">{{ invError }}</small>
+                <small v-if="invError" class="mt-1 block text-xs text-destructive">{{
+                  invError
+                }}</small>
 
-                <span class="fc-label-txt mt-2 block"
-                  >Tipo(s) de falla <span class="fc-req">*</span></span
+                <span class="mt-2 block text-xs font-semibold text-muted-foreground"
+                  >Tipo(s) de falla <span class="text-destructive">*</span></span
                 >
-                <div class="fc-chips">
+                <div class="mt-2 flex flex-wrap gap-2">
                   <button
                     v-for="t in catActual.tipos_falla"
                     :key="t.codigo"
                     type="button"
                     :class="[
-                      'fc-chip',
-                      f.inversores_tipos.includes(t.codigo) && CHIP_ACTIVO_PURPURA,
+                      CHIP,
+                      f.inversores_tipos.includes(t.codigo) ? CHIP_ACTIVO_PURPURA : CHIP_IDLE,
                     ]"
                     @click="toggleTipo(t.codigo)"
                   >
                     {{ t.etiqueta }}
                   </button>
                 </div>
-                <small v-if="err.invtipos" class="fc-fielderr">Selecciona al menos un tipo</small>
+                <small v-if="err.invtipos" class="mt-1 block text-xs text-destructive"
+                  >Selecciona al menos un tipo</small
+                >
                 <div
                   v-if="f.inversores_tipos.includes('perdida_comunicacion')"
-                  class="fc-banner fc-banner--info"
+                  :class="[BANNER, BANNER_INFO]"
                 >
                   Generará alarma de comunicaciones de inversores.
                 </div>
@@ -178,14 +205,16 @@
             </template>
 
             <!-- Prioridad -->
-            <div class="fc-field">
-              <span class="fc-label-txt">Prioridad <span class="fc-req">*</span></span>
-              <div class="fc-chips">
+            <div class="mb-3.5">
+              <span class="text-xs font-semibold text-muted-foreground"
+                >Prioridad <span class="text-destructive">*</span></span
+              >
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   v-for="p in catalogos.prioridades"
                   :key="p.id"
                   type="button"
-                  :class="['fc-chip', f.prioridad_id === p.id && CHIP_ACTIVO]"
+                  :class="[CHIP, f.prioridad_id === p.id ? CHIP_ACTIVO : CHIP_IDLE]"
                   :style="{ '--c': colorPrioridad(p.codigo) }"
                   @click="f.prioridad_id = p.id"
                 >
@@ -195,14 +224,16 @@
             </div>
 
             <!-- Estado -->
-            <div class="fc-field">
-              <span class="fc-label-txt">Estado <span class="fc-req">*</span></span>
-              <div class="fc-chips">
+            <div class="mb-3.5">
+              <span class="text-xs font-semibold text-muted-foreground"
+                >Estado <span class="text-destructive">*</span></span
+              >
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   v-for="e in catalogos.estados"
                   :key="e.id"
                   type="button"
-                  :class="['fc-chip', f.estado_id === e.id && CHIP_ACTIVO]"
+                  :class="[CHIP, f.estado_id === e.id ? CHIP_ACTIVO : CHIP_IDLE]"
                   :style="{ '--c': colorEstado(e.codigo) }"
                   @click="f.estado_id = e.id"
                 >
@@ -212,49 +243,55 @@
             </div>
 
             <!-- Descripción -->
-            <label class="fc-label"
-              >Descripción <span class="fc-req">*</span>
+            <label :class="LABEL"
+              >Descripción <span class="text-destructive">*</span>
               <textarea
                 v-model="f.descripcion"
                 rows="3"
-                class="fc-textarea"
-                :class="{ 'fc-invalid': err.descripcion }"
+                :class="[controlClass(err.descripcion), 'resize-none']"
                 placeholder="¿Qué está pasando?"
               ></textarea>
             </label>
 
             <!-- Fecha -->
-            <label class="fc-label"
-              >Fecha de identificación <span class="fc-req">*</span>
-              <input v-model="f.fecha_identificacion" type="date" class="fc-input" />
+            <label :class="LABEL"
+              >Fecha de identificación <span class="text-destructive">*</span>
+              <input v-model="f.fecha_identificacion" type="date" :class="controlClass()" />
             </label>
 
             <!-- La hora arranca el reloj del SLA. Sin ella el backend lo ancla a
                  las 00:00 del dia, y una falla critica (SLA 8 h) reportada por la
                  mañana nace vencida. El formulario web siempre la manda; este
                  sheet no la capturaba. Arranca con la hora actual de Colombia. -->
-            <label class="fc-label"
+            <label :class="LABEL"
               >Hora de identificación
-              <input v-model="f.hora_identificacion" type="time" class="fc-input" />
+              <input v-model="f.hora_identificacion" type="time" :class="controlClass()" />
             </label>
 
             <!-- Nota opcional -->
-            <label class="fc-label"
+            <label :class="LABEL"
               >Nota inicial (opcional)
               <textarea
                 v-model="f.nota"
                 rows="2"
-                class="fc-textarea"
+                :class="[controlClass(), 'resize-none']"
                 placeholder="Detalle / observación…"
               ></textarea>
             </label>
 
-            <div v-if="error" class="fc-error">
+            <div
+              v-if="error"
+              class="my-1 flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+            >
               <TriangleAlertIcon class="size-4" /> {{ error }}
             </div>
           </div>
 
-          <button class="fc-submit" :disabled="saving" @click="submit">
+          <button
+            class="mt-2.5 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-unergy-purple p-4 text-base font-bold text-white disabled:opacity-50"
+            :disabled="saving"
+            @click="submit"
+          >
             <LoaderCircleIcon class="size-4 animate-spin" v-if="saving" /><CheckIcon
               class="size-4"
               v-else
@@ -369,10 +406,24 @@ const labelOpciones = computed(
     (catActual.value?.codigo === 'red' ? 'Evento de red' : 'Evento'),
 )
 
-// Chip activo: el color llega por la variable `--c` del propio botón. Con `!`
-// porque `.fc-chip` (CSS del componente) fija fondo/borde/color y le ganaría.
-const CHIP_ACTIVO = 'border-(--c)! bg-(--c)! text-white!'
-const CHIP_ACTIVO_PURPURA = 'border-unergy-purple! bg-unergy-purple! text-white!'
+// Chip activo: el color llega por la variable `--c` del propio botón.
+const CHIP = 'flex items-center gap-1 rounded-xl border-2 px-3.5 py-2 text-sm font-semibold'
+const CHIP_IDLE = 'border-border bg-card text-muted-foreground'
+const CHIP_ACTIVO = 'border-(--c) bg-(--c) text-white'
+const CHIP_ACTIVO_PURPURA = 'border-unergy-purple bg-unergy-purple text-white'
+
+const LABEL = 'mb-3.5 block text-xs font-semibold text-muted-foreground'
+const CONTROL =
+  'w-full rounded-xl border-2 bg-card px-3.5 py-3 text-base text-unergy-deep focus:outline-none'
+const CONTROL_OK = 'border-border focus:border-unergy-purple'
+const CONTROL_ERR = 'border-destructive'
+const BANNER = 'mt-2.5 rounded-lg border px-2.5 py-2 text-xs'
+const BANNER_WARN = 'border-warning/30 bg-warning/10 text-warning'
+const BANNER_INFO = 'border-chart-2/30 bg-chart-2/10 text-chart-3'
+
+function controlClass(invalid = false): string[] {
+  return ['mt-1.5', CONTROL, invalid ? CONTROL_ERR : CONTROL_OK]
+}
 
 function seleccionarCategoria(codigo: string): void {
   f.categoria = codigo
@@ -586,230 +637,9 @@ async function submit(): Promise<void> {
 </script>
 
 <style scoped>
-.fc-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(28, 18, 50, 0.45);
-  display: flex;
-  align-items: flex-end;
-}
+/* safe-area del dispositivo: env() no tiene utilidad */
 .fc-sheet {
-  width: 100%;
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  padding: 10px 18px calc(14px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-}
-.fc-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: #e5e7eb;
-  margin: 4px auto 12px;
-}
-.fc-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-}
-.fc-title {
-  flex: 1;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.fc-title svg {
-  color: var(--color-unergy-purple);
-  margin-right: 6px;
-}
-.fc-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  padding: 4px;
-}
-
-.fc-body {
-  overflow-y: auto;
-  flex: 1;
-}
-.fc-label {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-  margin-bottom: 14px;
-}
-.fc-label-txt {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-.fc-req {
-  color: #dc2626;
-}
-.fc-field {
-  margin-bottom: 14px;
-}
-.fc-hint {
-  font-size: 12px;
-  color: #9ca3af;
-  margin: 6px 0;
-}
-.fc-select,
-.fc-input,
-.fc-textarea {
-  width: 100%;
-  margin-top: 6px;
-  padding: 13px 14px;
-  font-size: 16px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 12px;
-  color: var(--color-unergy-deep);
-  background: #fff;
-  font-family: inherit;
-}
-.fc-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-}
-.fc-textarea {
-  resize: none;
-}
-.fc-input:focus,
-.fc-select:focus,
-.fc-textarea:focus {
-  outline: none;
-  border-color: var(--color-unergy-purple);
-}
-.fc-invalid {
-  border-color: #dc2626 !important;
-}
-.fc-fielderr {
-  display: block;
-  color: #dc2626;
-  font-size: 11.5px;
-  margin-top: 4px;
-}
-
-.fc-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.fc-chip {
-  padding: 9px 14px;
-  border-radius: 11px;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-.fc-chip svg {
-  font-size: 12px;
-  margin-right: 4px;
-}
-
-.fc-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  color: #4a3b6b;
-  margin: 10px 0 0;
-}
-.fc-check input {
-  accent-color: var(--color-unergy-purple);
-  width: 18px;
-  height: 18px;
-}
-
-.fc-banner {
-  font-size: 12.5px;
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin-top: 10px;
-}
-.fc-banner--warn {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-.fc-banner--info {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
-}
-.fc-linkb {
-  background: none;
-  border: none;
-  color: var(--color-unergy-purple);
-  font-weight: 700;
-  font-size: 12.5px;
-  padding: 0;
-  margin-left: 4px;
-}
-
-.fc-invadd {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.fc-invname {
-  flex: 1;
-  margin-top: 0;
-}
-.fc-invkw {
-  width: 90px;
-  margin-top: 0;
-}
-.fc-invaddbtn {
-  background: var(--color-unergy-purple);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  width: 46px;
-  flex-shrink: 0;
-}
-
-.fc-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #b91c1c;
-  background: #fef2f2;
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin: 4px 0;
-}
-.fc-submit {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 15px;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--color-unergy-purple);
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.fc-submit:disabled {
-  opacity: 0.5;
+  padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
 }
 
 .fsheet-enter-active,

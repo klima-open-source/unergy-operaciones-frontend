@@ -1,56 +1,77 @@
 <template>
   <Teleport to="body">
     <Transition name="fdsheet">
-      <div v-if="open && fa" class="fd-backdrop" @click.self="close">
-        <div class="fd-sheet">
-          <div class="fd-grab" />
+      <div
+        v-if="open && fa"
+        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        @click.self="close"
+      >
+        <div
+          class="fd-sheet flex max-h-11/12 w-full flex-col rounded-t-3xl bg-card px-4.5 pt-2.5 shadow-lg"
+        >
+          <div class="mx-auto mt-1 mb-3 h-1 w-10 rounded-full bg-border" />
 
           <!-- Header -->
-          <div class="fd-header">
-            <div class="fd-head-text">
-              <code class="fd-code">{{ fa.codigo_interno }}</code>
-              <span class="fd-type">{{ titulo }}</span>
+          <div class="mb-2.5 flex items-center gap-2.5">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <code
+                class="self-start rounded-md bg-unergy-purple/10 px-2 py-px font-mono text-xs text-unergy-purple-dark"
+                >{{ fa.codigo_interno }}</code
+              >
+              <span class="text-sm font-bold text-unergy-deep">{{ titulo }}</span>
             </div>
-            <span v-if="saving" class="fd-saving"
+            <span v-if="saving" class="text-unergy-purple"
               ><LoaderCircleIcon class="size-4 animate-spin"
             /></span>
-            <button class="fd-close" @click="close"><XIcon class="size-4" /></button>
+            <button class="p-1 text-muted-foreground" @click="close">
+              <XIcon class="size-4" />
+            </button>
           </div>
 
-          <div class="fd-body">
-            <p class="fd-desc">{{ fa.descripcion }}</p>
+          <div class="flex-1 overflow-y-auto">
+            <p class="mb-4 text-sm leading-snug text-unergy-deep">{{ fa.descripcion }}</p>
 
             <!-- Clasificación (metodología estructurada) -->
-            <div v-if="clasif" class="fd-clasif">
-              <div class="fd-clasif-head">
+            <div v-if="clasif" class="mb-4 rounded-xl border border-border bg-muted/50 px-3.5 py-3">
+              <div class="flex flex-wrap items-center gap-2">
                 <span
-                  class="fd-clasif-cat bg-(--c)/10 text-(--c)"
+                  class="inline-flex items-center gap-1 rounded-lg bg-(--c)/10 px-2.5 py-1 text-xs font-extrabold text-(--c)"
                   :style="{ '--c': clasif.categoriaColor }"
                 >
                   <component :is="clasif.icono" class="size-3" /> {{ clasif.categoriaEtiqueta }}
                 </span>
-                <span v-if="clasif.subtitulo" class="fd-clasif-sub">{{ clasif.subtitulo }}</span>
-                <span v-if="clasif.pendienteReclasificar" class="fd-clasif-pend"
+                <span v-if="clasif.subtitulo" class="text-sm font-bold text-unergy-deep">{{
+                  clasif.subtitulo
+                }}</span>
+                <span
+                  v-if="clasif.pendienteReclasificar"
+                  class="rounded-md bg-warning/15 px-2 py-0.5 text-xs font-extrabold tracking-wide text-warning uppercase"
                   >Pendiente reclasificar</span
                 >
               </div>
 
-              <p v-if="clasif.detalle" class="fd-clasif-detalle">{{ clasif.detalle }}</p>
+              <p v-if="clasif.detalle" class="mt-2.5 text-sm leading-snug text-muted-foreground">
+                {{ clasif.detalle }}
+              </p>
 
               <!-- Frontera -->
-              <div v-if="clasif.frontera" class="fd-clasif-flags">
+              <div v-if="clasif.frontera" class="mt-3 flex flex-wrap gap-2">
                 <span
                   :class="[
-                    'fd-flag',
-                    clasif.frontera.afectaMedicion ? 'fd-flag--bad' : 'fd-flag--ok',
+                    'rounded-lg px-2.5 py-1 text-xs font-bold',
+                    clasif.frontera.afectaMedicion
+                      ? 'bg-destructive/15 text-destructive'
+                      : 'bg-muted text-muted-foreground',
                   ]"
                 >
                   {{ clasif.frontera.afectaMedicion ? 'Afecta medición' : 'No afecta medición' }}
                 </span>
                 <span
                   :class="[
-                    'fd-flag',
-                    clasif.frontera.perdidaComunicacion ? 'fd-flag--warn' : 'fd-flag--ok',
+                    'rounded-lg px-2.5 py-1 text-xs font-bold',
+                    clasif.frontera.perdidaComunicacion
+                      ? 'bg-warning/15 text-warning'
+                      : 'bg-muted text-muted-foreground',
                   ]"
                 >
                   {{
@@ -62,31 +83,44 @@
               </div>
 
               <!-- Inversores afectados -->
-              <div v-if="clasif.inversores.length" class="fd-inv-list">
-                <div v-for="(inv, idx) in clasif.inversores" :key="idx" class="fd-inv">
-                  <div class="fd-inv-top">
-                    <ServerIcon class="size-3" />
+              <div v-if="clasif.inversores.length" class="mt-3 flex flex-col gap-2">
+                <div
+                  v-for="(inv, idx) in clasif.inversores"
+                  :key="idx"
+                  class="rounded-xl border border-border bg-card px-3 py-2.5"
+                >
+                  <div class="flex items-center gap-2 text-sm text-unergy-deep">
+                    <ServerIcon class="size-3 text-unergy-purple" />
                     <b>{{ inv.nombre }}</b>
-                    <span v-if="inv.potenciaKw != null" class="fd-inv-pot"
+                    <span
+                      v-if="inv.potenciaKw != null"
+                      class="text-xs font-semibold text-muted-foreground"
                       >{{ inv.potenciaKw }} kW</span
                     >
                   </div>
-                  <div v-if="inv.tipos.length" class="fd-inv-tipos">
-                    <span v-for="(t, ti) in inv.tipos" :key="ti" class="fd-inv-tag">{{ t }}</span>
+                  <div v-if="inv.tipos.length" class="mt-2 flex flex-wrap gap-1.5">
+                    <span
+                      v-for="(t, ti) in inv.tipos"
+                      :key="ti"
+                      class="rounded-md bg-unergy-purple/10 px-2 py-0.5 text-xs font-bold text-unergy-purple-dark"
+                      >{{ t }}</span
+                    >
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Estado -->
-            <div class="fd-field">
-              <span class="fd-label">Estado</span>
-              <div class="fd-chips">
+            <div class="mb-4">
+              <span class="text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+                >Estado</span
+              >
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   v-for="e in catalogos.estados"
                   :key="e.id"
                   type="button"
-                  :class="['fd-chip', fa.estado?.id === e.id && CHIP_ACTIVO]"
+                  :class="[CHIP_BASE, fa.estado?.id === e.id ? CHIP_ACTIVO : CHIP_INACTIVO]"
                   :style="{ '--c': colorEstado(e.codigo) }"
                   @click="cambiar({ estado_id: e.id })"
                 >
@@ -96,14 +130,16 @@
             </div>
 
             <!-- Prioridad -->
-            <div class="fd-field">
-              <span class="fd-label">Prioridad</span>
-              <div class="fd-chips">
+            <div class="mb-4">
+              <span class="text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+                >Prioridad</span
+              >
+              <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   v-for="p in catalogos.prioridades"
                   :key="p.id"
                   type="button"
-                  :class="['fd-chip', fa.prioridad?.id === p.id && CHIP_ACTIVO]"
+                  :class="[CHIP_BASE, fa.prioridad?.id === p.id ? CHIP_ACTIVO : CHIP_INACTIVO]"
                   :style="{ '--c': colorPrioridad(p.codigo) }"
                   @click="cambiar({ prioridad_id: p.id })"
                 >
@@ -113,65 +149,90 @@
             </div>
 
             <!-- Datos -->
-            <div class="fd-facts">
-              <div class="fd-fact">
-                <span>Proyecto</span><b>{{ fa.proyecto?.nombre_comercial || '—' }}</b>
+            <div class="mb-4 flex flex-col rounded-xl border border-border px-3 py-1">
+              <div
+                class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+              >
+                <span class="text-muted-foreground">Proyecto</span
+                ><b class="text-right text-unergy-deep">{{
+                  fa.proyecto?.nombre_comercial || '—'
+                }}</b>
               </div>
-              <div class="fd-fact">
-                <span>Identificada</span
-                ><b
+              <div
+                class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+              >
+                <span class="text-muted-foreground">Identificada</span
+                ><b class="text-right text-unergy-deep"
                   >{{ fmtFecha(fa.fecha_identificacion)
-                  }}<span v-if="fa.hora_identificacion">
+                  }}<span v-if="fa.hora_identificacion" class="text-muted-foreground">
                     · {{ String(fa.hora_identificacion).slice(0, 5) }}</span
                   ></b
                 >
               </div>
-              <div class="fd-fact">
-                <span>Registró</span><b>{{ fa.registrado_por?.nombre || '—' }}</b>
+              <div
+                class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+              >
+                <span class="text-muted-foreground">Registró</span
+                ><b class="text-right text-unergy-deep">{{ fa.registrado_por?.nombre || '—' }}</b>
               </div>
-              <div v-if="fa.fecha_resolucion" class="fd-fact">
-                <span>Resuelta</span
-                ><b class="fd-ok">{{
+              <div
+                v-if="fa.fecha_resolucion"
+                class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+              >
+                <span class="text-muted-foreground">Resuelta</span
+                ><b class="text-right text-unergy-deep">{{
                   fmtFecha(fa.fecha_resolucion?.slice?.(0, 10) || fa.fecha_resolucion)
                 }}</b>
               </div>
-              <div v-if="fa.kwh_perdidos_estimado != null" class="fd-fact">
-                <span>Energía perdida</span
-                ><b class="fd-bad"
+              <div
+                v-if="fa.kwh_perdidos_estimado != null"
+                class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
+              >
+                <span class="text-muted-foreground">Energía perdida</span
+                ><b class="text-right text-unergy-deep"
                   >{{ Number(fa.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</b
                 >
               </div>
             </div>
 
             <!-- Causa raíz / acciones -->
-            <div v-if="fa.causa_raiz" class="fd-block">
-              <span class="fd-label">Causa raíz</span>
+            <div v-if="fa.causa_raiz" class="mb-4">
+              <span class="text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+                >Causa raíz</span
+              >
               <p>{{ fa.causa_raiz }}</p>
             </div>
-            <div v-if="fa.acciones_correctivas" class="fd-block">
-              <span class="fd-label">Acciones correctivas</span>
+            <div v-if="fa.acciones_correctivas" class="mb-4">
+              <span class="text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+                >Acciones correctivas</span
+              >
               <p>{{ fa.acciones_correctivas }}</p>
             </div>
 
             <!-- Seguimientos -->
-            <div class="fd-segs">
-              <span class="fd-label">Seguimiento ({{ fa.seguimientos?.length || 0 }})</span>
-              <div class="fd-add">
+            <div class="mb-2">
+              <span class="text-xs font-extrabold tracking-wider text-muted-foreground uppercase"
+                >Seguimiento ({{ fa.seguimientos?.length || 0 }})</span
+              >
+              <div class="mt-2 mb-3.5">
                 <textarea
                   v-model="nota"
                   rows="2"
-                  class="fd-textarea"
+                  class="w-full resize-none rounded-xl border-2 border-border px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
                   placeholder="Agregar nota…"
                 ></textarea>
-                <div class="fd-add-row">
-                  <select v-model="notaEstadoId" class="fd-select fd-select--sm">
+                <div class="mt-2 flex items-stretch gap-2">
+                  <select
+                    v-model="notaEstadoId"
+                    class="fd-select flex-1 appearance-none rounded-xl border-2 border-border bg-card px-3 py-2.5 text-sm text-unergy-deep focus:border-unergy-purple focus:outline-none"
+                  >
                     <option :value="null">Sin cambiar estado</option>
                     <option v-for="e in catalogos.estados" :key="e.id" :value="e.id">
                       → {{ e.etiqueta }}
                     </option>
                   </select>
                   <button
-                    class="fd-send"
+                    class="w-12 shrink-0 rounded-xl bg-unergy-purple text-white disabled:opacity-40"
                     :disabled="addingSeg || (!nota.trim() && !notaEstadoId)"
                     @click="agregarSeg"
                   >
@@ -182,15 +243,21 @@
                   </button>
                 </div>
               </div>
-              <div v-for="s in fa.seguimientos || []" :key="s.id" class="fd-seg">
-                <div class="fd-seg-top">
-                  <span class="fd-seg-user">{{ s.usuario?.nombre || '—' }}</span>
-                  <span class="fd-seg-time">{{ relativeTime(s.created_at) }}</span>
+              <div
+                v-for="s in fa.seguimientos || []"
+                :key="s.id"
+                class="mb-1 border-l-2 border-border pt-1 pb-2.5 pl-3"
+              >
+                <div class="flex justify-between text-xs">
+                  <span class="font-bold text-unergy-deep">{{ s.usuario?.nombre || '—' }}</span>
+                  <span class="text-muted-foreground">{{ relativeTime(s.created_at) }}</span>
                 </div>
-                <p v-if="s.nota" class="fd-seg-nota">{{ s.nota }}</p>
+                <p v-if="s.nota" class="mt-1 text-sm leading-snug text-muted-foreground">
+                  {{ s.nota }}
+                </p>
                 <span
                   v-if="s.estado_nuevo"
-                  class="fd-seg-estado bg-(--c) text-white"
+                  class="mt-1.5 inline-block rounded-md bg-(--c) px-2 py-0.5 text-xs font-bold text-white"
                   :style="{ '--c': colorEstado(s.estado_nuevo.codigo) }"
                   >{{ s.estado_nuevo.etiqueta }}</span
                 >
@@ -201,13 +268,18 @@
           <!-- Acción principal -->
           <button
             v-if="!fa.estado?.es_estado_final"
-            class="fd-resolve"
+            class="mt-2.5 flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-success text-base font-bold text-white disabled:opacity-50"
             :disabled="saving"
             @click="resolver"
           >
             <CircleCheckIcon class="size-4" /> Marcar resuelta
           </button>
-          <button v-else class="fd-reopen" :disabled="saving" @click="reabrir">
+          <button
+            v-else
+            class="mt-2.5 flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-unergy-purple/10 text-base font-bold text-unergy-purple-dark disabled:opacity-50"
+            :disabled="saving"
+            @click="reabrir"
+          >
             <RotateCcwIcon class="size-4" /> Reabrir falla
           </button>
         </div>
@@ -276,9 +348,10 @@ watch(
   },
 )
 
-// Chip activo: el color llega por la variable `--c` del propio botón. Con `!`
-// porque `.fd-chip` (CSS del componente) fija fondo/borde/color y le ganaría.
-const CHIP_ACTIVO = 'border-(--c)! bg-(--c)! text-white!'
+// Chip de estado/prioridad: el color activo llega por la variable `--c` del propio botón.
+const CHIP_BASE = 'rounded-xl border-2 px-3.5 py-2.5 text-sm font-semibold'
+const CHIP_ACTIVO = 'border-(--c) bg-(--c) text-white'
+const CHIP_INACTIVO = 'border-border bg-card text-muted-foreground'
 function fmtFecha(d: string | null | undefined): string {
   if (!d) return '—'
   try {
@@ -368,387 +441,19 @@ async function reabrir(): Promise<void> {
 </script>
 
 <style scoped>
-.fd-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(28, 18, 50, 0.45);
-  display: flex;
-  align-items: flex-end;
-}
+/* safe-area inferior de la hoja */
 .fd-sheet {
-  width: 100%;
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  padding: 10px 18px calc(14px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-}
-.fd-grab {
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: #e5e7eb;
-  margin: 4px auto 12px;
-}
-.fd-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.fd-head-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.fd-code {
-  font-family: ui-monospace, monospace;
-  font-size: 12px;
-  color: var(--color-unergy-purple-dark);
-  background: #f3edfb;
-  padding: 1px 7px;
-  border-radius: 6px;
-  align-self: flex-start;
-}
-.fd-type {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.fd-saving {
-  color: var(--color-unergy-purple);
-  font-size: 14px;
-}
-.fd-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  padding: 4px;
+  padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
 }
 
-.fd-body {
-  overflow-y: auto;
-  flex: 1;
-}
-.fd-desc {
-  font-size: 15px;
-  color: var(--color-unergy-deep);
-  line-height: 1.45;
-  margin: 0 0 16px;
-}
-
-/* Clasificación estructurada */
-.fd-clasif {
-  border: 1px solid #f0eaf8;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
-  background: #fcfaff;
-}
-.fd-clasif-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.fd-clasif-cat {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-.fd-clasif-sub {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.fd-clasif-pend {
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #b45309;
-  background: #fef3c7;
-  padding: 3px 8px;
-  border-radius: 7px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.fd-clasif-detalle {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.45;
-  margin: 10px 0 0;
-}
-.fd-clasif-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-.fd-flag {
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-.fd-flag--ok {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-.fd-flag--bad {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.fd-flag--warn {
-  background: #fef3c7;
-  color: #b45309;
-}
-.fd-inv-list {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.fd-inv {
-  border: 1px solid #eee6fa;
-  border-radius: 11px;
-  padding: 10px 12px;
-  background: #fff;
-}
-.fd-inv-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 14px;
-  color: var(--color-unergy-deep);
-}
-.fd-inv-top svg {
-  color: var(--color-unergy-purple);
-  font-size: 12px;
-}
-.fd-inv-pot {
-  color: #9b8db5;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-.fd-inv-tipos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.fd-inv-tag {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 7px;
-  background: #915bd81a;
-  color: var(--color-unergy-purple-dark);
-}
-
-.fd-field {
-  margin-bottom: 16px;
-}
-.fd-label {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #9b8db5;
-}
-.fd-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-.fd-chip {
-  padding: 9px 14px;
-  border-radius: 11px;
-  border: 1.5px solid #e5e7eb;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b5a8a;
-}
-
+/* flecha del <select> nativo (appearance: none) */
 .fd-select {
-  width: 100%;
-  margin-top: 8px;
-  padding: 12px 14px;
-  font-size: 16px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 12px;
-  color: var(--color-unergy-deep);
-  background: #fff;
-  appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 14px center;
-}
-.fd-select:focus {
-  outline: none;
-  border-color: var(--color-unergy-purple);
-}
-.fd-select--sm {
-  margin-top: 0;
-  flex: 1;
-  font-size: 14px;
-  padding: 10px 12px;
+  background-position: right 0.875rem center;
 }
 
-.fd-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 1px solid #f0eaf8;
-  border-radius: 12px;
-  padding: 4px 12px;
-  margin-bottom: 16px;
-}
-.fd-fact {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f5f1fa;
-  font-size: 14px;
-}
-.fd-fact:last-child {
-  border-bottom: none;
-}
-.fd-fact span {
-  color: #9b8db5;
-}
-.fd-fact b {
-  color: var(--color-unergy-deep);
-  text-align: right;
-}
-.fd-ok {
-  color: #15803d;
-}
-.fd-bad {
-  color: #b91c1c;
-}
-
-.fd-block {
-  margin-bottom: 16px;
-}
-.fd-block p {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.45;
-  margin: 6px 0 0;
-}
-
-.fd-segs {
-  margin-bottom: 8px;
-}
-.fd-add {
-  margin: 8px 0 14px;
-}
-.fd-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 16px;
-  border: 1.5px solid #e8e0f0;
-  border-radius: 12px;
-  resize: none;
-  font-family: inherit;
-  color: var(--color-unergy-deep);
-}
-.fd-textarea:focus {
-  outline: none;
-  border-color: var(--color-unergy-purple);
-}
-.fd-add-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-  align-items: stretch;
-}
-.fd-send {
-  width: 48px;
-  border: none;
-  border-radius: 11px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-.fd-send:disabled {
-  opacity: 0.4;
-}
-
-.fd-seg {
-  border-left: 2px solid #e8e0f0;
-  padding: 4px 0 10px 12px;
-  margin-bottom: 4px;
-}
-.fd-seg-top {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-}
-.fd-seg-user {
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.fd-seg-time {
-  color: #9ca3af;
-}
-.fd-seg-nota {
-  font-size: 14px;
-  color: #4b5563;
-  margin: 4px 0 0;
-  line-height: 1.4;
-}
-.fd-seg-estado {
-  display: inline-block;
-  margin-top: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.fd-resolve,
-.fd-reopen {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 15px;
-  border: none;
-  border-radius: 14px;
-  font-size: 16px;
-  font-weight: 700;
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.fd-resolve {
-  background: #16a34a;
-  color: #fff;
-}
-.fd-reopen {
-  background: #f3edfb;
-  color: var(--color-unergy-purple-dark);
-}
-.fd-resolve:disabled,
-.fd-reopen:disabled {
-  opacity: 0.5;
-}
-
+/* transición de entrada/salida de la hoja */
 .fdsheet-enter-active,
 .fdsheet-leave-active {
   transition: opacity 0.2s ease;
