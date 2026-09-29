@@ -572,7 +572,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-sm font-semibold text-foreground">Precipitación Región Andina</h3>
           <Select v-model="precipRegion" @update:model-value="loadPrecip">
-            <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="r in REGIONS" :key="r" :value="r">{{ r }}</SelectItem>
             </SelectContent>

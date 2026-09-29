@@ -103,7 +103,7 @@ onMounted(fetchData)
     <PageHeader title="Balance Energético" subtitle="Generación, consumo y precios del mercado">
       <template #actions>
         <Select v-model="days">
-          <SelectTrigger class="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="op in dayOptions" :key="op.value" :value="op.value">{{
               op.label
