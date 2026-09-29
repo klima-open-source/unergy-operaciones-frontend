@@ -1,19 +1,33 @@
 <template>
-  <div class="ms-root">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
     <!-- ══ TOP BAR ══ -->
-    <header class="ms-topbar">
-      <button class="ms-icon-btn" @click="menuOpen = !menuOpen" title="Menú">
+    <header
+      class="ms-topbar relative flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+    >
+      <button
+        class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
+        @click="menuOpen = !menuOpen"
+        title="Menú"
+      >
         <MenuIcon class="size-4" />
       </button>
-      <span class="ms-brand"><SunIcon class="size-4" /> Unergy Solar</span>
-      <button class="ms-icon-btn ms-bell" @click="notifOpen = true" title="Notificaciones">
+      <span class="flex-1 text-center text-base font-bold tracking-wide"
+        ><SunIcon class="mr-1 inline size-4 text-unergy-yellow" /> Unergy Solar</span
+      >
+      <button
+        class="relative size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
+        @click="notifOpen = true"
+        title="Notificaciones"
+      >
         <BellIcon class="size-4" />
-        <span v-if="unreadCount > 0" class="ms-bell-badge">{{
-          unreadCount > 9 ? '9+' : unreadCount
-        }}</span>
+        <span
+          v-if="unreadCount > 0"
+          class="absolute top-0 right-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-unergy-deep bg-destructive px-1 text-xs font-extrabold text-white"
+          >{{ unreadCount > 9 ? '9+' : unreadCount }}</span
+        >
       </button>
       <button
-        class="ms-icon-btn"
+        class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
         :disabled="loadingDetail > 0"
         @click="refrescar"
         title="Actualizar"
@@ -22,16 +36,19 @@
         <RefreshCwIcon v-else class="size-4" />
       </button>
 
-      <div v-if="menuOpen" class="ms-menu" @click.self="menuOpen = false">
-        <div class="ms-menu-card">
-          <div class="ms-menu-user">
-            <UserIcon class="size-6" />
+      <div v-if="menuOpen" class="fixed inset-0 z-50 bg-black/20" @click.self="menuOpen = false">
+        <div class="ms-menu-card absolute left-3 min-w-56 rounded-xl bg-card p-2 shadow-lg">
+          <div class="flex items-center gap-2.5 border-b border-border px-2.5 pt-2.5 pb-3">
+            <UserIcon class="size-6 text-unergy-purple" />
             <div>
-              <div class="ms-menu-name">{{ user?.name || 'Usuario' }}</div>
-              <div class="ms-menu-email">{{ user?.email }}</div>
+              <div class="text-sm font-bold text-unergy-deep">{{ user?.name || 'Usuario' }}</div>
+              <div class="text-xs text-muted-foreground">{{ user?.email }}</div>
             </div>
           </div>
-          <button class="ms-menu-item" @click="cerrarSesion">
+          <button
+            class="mt-1.5 flex h-11 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm font-semibold text-destructive"
+            @click="cerrarSesion"
+          >
             <LogOutIcon class="size-4" /> Cerrar sesión
           </button>
         </div>
@@ -39,30 +56,63 @@
     </header>
 
     <!-- ══ SELECTOR (sin flechas — se cambia con swipe) ══ -->
-    <div v-if="proyectos.length" class="ms-selector">
-      <button class="ms-current" @click="pickerOpen = !pickerOpen">
-        <span class="ms-dot bg-(--c)" :style="{ '--c': statusColor(current?.status) }" />
-        <span class="ms-name">{{ current?.nombre || '—' }}</span>
-        <ChevronDownIcon class="ms-caret size-3" />
+    <div
+      v-if="proyectos.length"
+      class="relative flex shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-2"
+    >
+      <button
+        class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2"
+        @click="pickerOpen = !pickerOpen"
+      >
+        <span
+          class="size-2 shrink-0 rounded-full bg-(--c)"
+          :style="{ '--c': statusColor(current?.status) }"
+        />
+        <span class="min-w-0 flex-1 truncate text-left text-base font-bold">{{
+          current?.nombre || '—'
+        }}</span>
+        <ChevronDownIcon class="size-3 text-muted-foreground" />
       </button>
-      <button class="ms-add-falla" @click="openCreate" title="Reportar falla en esta planta">
+      <button
+        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-unergy-yellow text-unergy-deep shadow-md"
+        @click="openCreate"
+        title="Reportar falla en esta planta"
+      >
         <PlusIcon class="size-5" />
       </button>
-      <span class="ms-count">{{ idx + 1 }}/{{ proyectos.length }}</span>
+      <span class="shrink-0 text-xs font-bold whitespace-nowrap text-muted-foreground"
+        >{{ idx + 1 }}/{{ proyectos.length }}</span
+      >
 
-      <div v-if="pickerOpen" class="ms-picker" @click.self="pickerOpen = false">
-        <div class="ms-picker-card">
-          <div class="ms-picker-head">Proyectos</div>
+      <div
+        v-if="pickerOpen"
+        class="fixed inset-0 z-50 bg-black/25"
+        @click.self="pickerOpen = false"
+      >
+        <div
+          class="absolute inset-x-0 top-0 max-h-4/5 overflow-y-auto rounded-b-2xl bg-card p-2 shadow-lg"
+        >
+          <div
+            class="px-3 pt-3 pb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase"
+          >
+            Proyectos
+          </div>
           <button
             v-for="(p, i) in proyectos"
             :key="p.proyecto_id"
-            :class="['ms-picker-item', i === idx && 'ms-picker-item--active']"
+            :class="[
+              'flex w-full items-center gap-3 rounded-lg px-3 py-3.5 text-left text-base text-unergy-deep',
+              i === idx && 'bg-unergy-purple/10 font-bold',
+            ]"
             @click="selectIdx(i)"
           >
-            <span class="ms-dot bg-(--c)" :style="{ '--c': statusColor(p.status) }" />
-            <span class="ms-picker-name">{{ p.nombre }}</span>
+            <span
+              class="size-2 shrink-0 rounded-full bg-(--c)"
+              :style="{ '--c': statusColor(p.status) }"
+            />
+            <span class="min-w-0 flex-1 truncate">{{ p.nombre }}</span>
             <ZapIcon
-              class="ms-picker-relay size-4"
+              class="size-4 text-warning"
               v-if="rcnMap[p.proyecto_id]"
               title="Tiene reconectador"
             />
@@ -75,25 +125,37 @@
     <main
       v-if="proyectos.length"
       ref="deckRef"
-      class="ms-deck"
+      class="flex-1 touch-pan-y overflow-hidden"
       @touchstart.passive="onTouchStart"
       @touchmove.passive="onTouchMove"
       @touchend="onTouchEnd"
     >
       <div
-        class="ms-track translate-x-(--x)"
+        class="flex h-full translate-x-(--x) will-change-transform"
         :class="dragging ? 'transition-none' : 'transition-transform duration-300 ease-out'"
         :style="{ '--x': -idx * slideW + dragX + 'px' }"
       >
-        <section v-for="p in proyectos" :key="p.proyecto_id" class="ms-slide">
+        <section
+          v-for="p in proyectos"
+          :key="p.proyecto_id"
+          class="flex h-full w-full shrink-0 basis-full flex-col overflow-y-auto px-3 pt-3 pb-3"
+        >
           <!-- Chips "ahora" -->
-          <div class="ms-now">
-            <div class="ms-now-chip">
-              <span class="ms-now-dot bg-unergy-purple" />
-              <div class="ms-now-text">
-                <span class="ms-now-label">Inversores</span>
-                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span>
-                <span v-if="nowMap[p.proyecto_id]?.invHasta" class="ms-now-hasta">
+          <div class="mb-2 flex shrink-0 gap-2">
+            <div
+              class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5"
+            >
+              <span class="size-2 shrink-0 rounded-full bg-unergy-purple" />
+              <div class="flex min-w-0 flex-col">
+                <span class="text-xs font-medium text-muted-foreground">Inversores</span>
+                <span
+                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+                  >{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span
+                >
+                <span
+                  v-if="nowMap[p.proyecto_id]?.invHasta"
+                  class="truncate text-xs leading-tight font-normal text-muted-foreground"
+                >
                   hasta {{ nowMap[p.proyecto_id]?.invHasta
                   }}<template v-if="haceCuanto(nowMap[p.proyecto_id]?.invHasta)">
                     · {{ haceCuanto(nowMap[p.proyecto_id]?.invHasta) }}</template
@@ -101,12 +163,20 @@
                 </span>
               </div>
             </div>
-            <div class="ms-now-chip">
-              <span class="ms-now-dot bg-chart-2" />
-              <div class="ms-now-text">
-                <span class="ms-now-label">Medidor</span>
-                <span class="ms-now-val">{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span>
-                <span v-if="nowMap[p.proyecto_id]?.medHasta" class="ms-now-hasta">
+            <div
+              class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5"
+            >
+              <span class="size-2 shrink-0 rounded-full bg-chart-2" />
+              <div class="flex min-w-0 flex-col">
+                <span class="text-xs font-medium text-muted-foreground">Medidor</span>
+                <span
+                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+                  >{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span
+                >
+                <span
+                  v-if="nowMap[p.proyecto_id]?.medHasta"
+                  class="truncate text-xs leading-tight font-normal text-muted-foreground"
+                >
                   hasta {{ nowMap[p.proyecto_id]?.medHasta
                   }}<template v-if="haceCuanto(nowMap[p.proyecto_id]?.medHasta)">
                     · {{ haceCuanto(nowMap[p.proyecto_id]?.medHasta) }}</template
@@ -117,47 +187,74 @@
           </div>
 
           <!-- Gráfica — al tocarla se abre la potencia por inversor -->
-          <div class="ms-chart" @click="onChartTap(p)">
-            <div v-if="loadingDetail && !detailMap[p.proyecto_id]" class="ms-chart-loading">
-              <LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando datos…</span>
+          <div
+            class="ms-chart relative min-h-37 flex-1 rounded-2xl border border-border bg-card px-2.5 pt-3 pb-1.5"
+            @click="onChartTap(p)"
+          >
+            <div
+              v-if="loadingDetail && !detailMap[p.proyecto_id]"
+              class="absolute inset-0 flex items-center justify-center gap-2.5 text-sm text-muted-foreground"
+            >
+              <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+              <span>Cargando datos…</span>
             </div>
             <ProjectLiveChart v-else :detail="detailMap[p.proyecto_id]" />
-            <span class="ms-chart-expand"><MoveIcon class="size-3" /> Inversores</span>
+            <span
+              class="pointer-events-none absolute top-2 right-2.5 flex items-center gap-1 rounded-lg bg-unergy-purple/10 px-2 py-0.5 text-xs font-bold tracking-wide text-unergy-purple"
+              ><MoveIcon class="size-3" /> Inversores</span
+            >
           </div>
 
           <!-- Reconectador: estado + telemetría en vivo de Solenium -->
           <ReconnectorPanel v-if="rcnMap[p.proyecto_id]" :relay="rcnMap[p.proyecto_id]!" />
 
           <!-- Falla(s) activa(s) del proyecto -->
-          <div v-if="(fallasMap[p.proyecto_id] || []).length" class="ms-fallas">
+          <div
+            v-if="(fallasMap[p.proyecto_id] || []).length"
+            class="mt-2.5 flex shrink-0 flex-col gap-1.5"
+          >
             <button
               v-for="f in (fallasMap[p.proyecto_id] || []).slice(0, 2)"
               :key="f.id"
-              class="ms-falla"
+              class="flex w-full items-center gap-2 rounded-xl border border-l-3 border-border border-l-warning bg-card px-2.5 py-2 text-left"
               @click="openFalla(f)"
             >
               <span
-                class="ms-falla-stripe bg-(--c)"
-                :style="{ '--c': colorPrioridad(f.prioridad?.codigo, '#9ca3af') }"
+                class="hidden bg-(--c)"
+                :style="{ '--c': colorPrioridad(f.prioridad?.codigo, 'var(--muted-foreground)') }"
               />
               <span
-                class="ms-falla-estado bg-(--c)/15 text-(--c)"
+                class="shrink-0 rounded-md bg-(--c)/15 px-2 py-0.5 text-xs font-extrabold text-(--c)"
                 :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
-              <span class="ms-falla-tipo">{{ f.tipo?.etiqueta || 'Falla' }}</span>
-              <ChevronRightIcon class="ms-falla-arrow size-3" />
+              <span class="min-w-0 flex-1 truncate text-xs font-semibold text-unergy-deep">{{
+                f.tipo?.etiqueta || 'Falla'
+              }}</span>
+              <ChevronRightIcon class="size-3 shrink-0 text-muted-foreground" />
             </button>
-            <span v-if="(fallasMap[p.proyecto_id] || []).length > 2" class="ms-falla-more">
+            <span
+              v-if="(fallasMap[p.proyecto_id] || []).length > 2"
+              class="text-center text-xs text-muted-foreground"
+            >
               +{{ (fallasMap[p.proyecto_id] || []).length - 2 }} fallas más
             </span>
           </div>
 
           <!-- Pie -->
-          <div class="ms-footer">
-            <span class="ms-updated"><ClockIcon class="size-3" /> {{ lastUpdated || '—' }}</span>
-            <button v-if="rcnMap[p.proyecto_id]" class="ms-reconnect" @click="openSheet(p)">
-              <span :class="['ms-relay-badge', relayBadgeClass(p)]">{{ relayBadgeText(p) }}</span>
+          <div class="mt-2.5 flex shrink-0 items-center gap-2.5">
+            <span class="flex items-center gap-1.5 text-xs text-muted-foreground"
+              ><ClockIcon class="size-3" /> {{ lastUpdated || '—' }}</span
+            >
+            <button
+              v-if="rcnMap[p.proyecto_id]"
+              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-unergy-purple px-4 text-sm font-bold text-white shadow-md"
+              @click="openSheet(p)"
+            >
+              <span
+                :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', relayBadgeClass(p)]"
+                >{{ relayBadgeText(p) }}</span
+              >
               <PowerIcon class="size-4" /> Reconectar
             </button>
           </div>
@@ -166,14 +263,23 @@
     </main>
 
     <!-- ══ ESTADOS sin proyectos ══ -->
-    <div v-else class="ms-state">
+    <div
+      v-else
+      class="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
+    >
       <template v-if="loadingList"
-        ><LoaderCircleIcon class="size-6 animate-spin" /> <span>Cargando proyectos…</span></template
+        ><LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+        <span>Cargando proyectos…</span></template
       >
       <template v-else>
-        <SunIcon class="size-8 text-muted-foreground!" />
+        <SunIcon class="size-8 text-muted-foreground" />
         <span>Sin proyectos disponibles</span>
-        <button class="ms-retry" @click="cargarLista">Reintentar</button>
+        <button
+          class="mt-1 h-11 rounded-xl bg-unergy-purple px-5 text-sm font-semibold text-white"
+          @click="cargarLista"
+        >
+          Reintentar
+        </button>
       </template>
     </div>
 
@@ -270,14 +376,14 @@ const generacionSolarService = new GeneracionSolarService()
 const reconectadoresService = new ReconectadoresService()
 
 const STATUS_COLORS: Record<string, string> = {
-  online: '#16a34a',
-  degradado: '#d97706',
-  caido: '#dc2626',
-  sin_comunicacion: '#9ca3af',
-  offline: '#d1d5db',
+  online: 'var(--success)',
+  degradado: 'var(--warning)',
+  caido: 'var(--destructive)',
+  sin_comunicacion: 'var(--muted-foreground)',
+  offline: 'var(--border)',
 }
 function statusColor(s: string | undefined): string {
-  return (s && STATUS_COLORS[s]) || '#9ca3af'
+  return (s && STATUS_COLORS[s]) || 'var(--muted-foreground)'
 }
 
 interface PotenciaAhora {
@@ -376,10 +482,10 @@ function relayBadgeText(p: ProyectoMonitoreoSolar): string {
 function relayBadgeClass(p: ProyectoMonitoreoSolar): string {
   const a = rcnMap[p.proyecto_id]?.active
   return a === true
-    ? 'ms-relay-badge--on'
+    ? 'bg-success/15 text-success'
     : a === false
-      ? 'ms-relay-badge--off'
-      : 'ms-relay-badge--unk'
+      ? 'bg-destructive/15 text-destructive'
+      : 'bg-white/20 text-white'
 }
 
 // ── Swipe deck ───────────────────────────────────────────────────────────────
@@ -566,487 +672,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.ms-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  background: #f3f4f6;
-  color: var(--color-unergy-deep);
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-/* Top bar */
+/* safe-area: notch superior en la PWA */
 .ms-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  background: var(--color-unergy-deep);
-  color: #fff;
-  position: relative;
-}
-.ms-brand {
-  flex: 1;
-  text-align: center;
-  font-size: clamp(14px, 3.9vw, 16px);
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-.ms-brand svg {
-  color: var(--color-unergy-yellow);
-  margin-right: 5px;
-}
-.ms-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.ms-icon-btn:disabled {
-  opacity: 0.5;
-}
-.ms-bell {
-  position: relative;
-}
-.ms-bell-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #dc2626;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 9px;
-  border: 2px solid var(--color-unergy-deep);
-}
-
-.ms-menu {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: rgba(0, 0, 0, 0.2);
+  padding-top: calc(0.625rem + env(safe-area-inset-top));
 }
 .ms-menu-card {
-  position: absolute;
-  top: calc(56px + env(safe-area-inset-top));
-  left: 12px;
-  background: #fff;
-  border-radius: 14px;
-  padding: 8px;
-  min-width: 230px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  top: calc(3.5rem + env(safe-area-inset-top));
 }
-.ms-menu-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 10px 12px;
-  border-bottom: 1px solid #f0ebf7;
-}
-.ms-menu-user svg {
-  font-size: 22px;
-  color: var(--color-unergy-purple);
-}
-.ms-menu-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-}
-.ms-menu-email {
-  font-size: 12.5px;
-  color: #9ca3af;
-}
-.ms-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  margin-top: 6px;
-  padding: 12px 10px;
-  border: none;
-  background: none;
-  border-radius: 9px;
-  font-size: 15px;
-  color: #b91c1c;
-  font-weight: 600;
-  text-align: left;
-}
-
-/* Selector */
-.ms-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 9px 12px;
-  background: #fff;
-  border-bottom: 1px solid #eceaf2;
-  position: relative;
-}
-.ms-current {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  padding: 9px 12px;
-  border: 1px solid #eceaf2;
-  border-radius: 12px;
-  background: #faf8fd;
-}
-.ms-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ms-name {
-  flex: 1;
-  min-width: 0;
-  font-size: clamp(14px, 4vw, 16px);
-  font-weight: 700;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ms-caret {
-  font-size: 11px;
-  color: #9ca3af;
-}
-.ms-count {
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 700;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-.ms-add-falla {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 11px;
-  background: var(--color-unergy-yellow);
-  color: var(--color-unergy-deep);
-  font-size: 17px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 3px 10px rgba(246, 255, 114, 0.5);
-}
-
-.ms-picker {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  background: rgba(0, 0, 0, 0.25);
-}
-.ms-picker-card {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  max-height: 78vh;
-  overflow-y: auto;
-  background: #fff;
-  border-radius: 0 0 18px 18px;
-  padding: 8px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-}
-.ms-picker-head {
-  font-size: 12px;
-  font-weight: 700;
-  color: #9ca3af;
-  padding: 12px 12px 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.ms-picker-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 14px 12px;
-  border: none;
-  background: none;
-  border-radius: 10px;
-  font-size: 15.5px;
-  color: var(--color-unergy-deep);
-  text-align: left;
-}
-.ms-picker-item--active {
-  background: #f3edfb;
-  font-weight: 700;
-}
-.ms-picker-name {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ms-picker-relay {
-  color: #eab308;
-  font-size: 14px;
-}
-
-/* Deck swipeable */
-.ms-deck {
-  flex: 1;
-  overflow: hidden;
-  touch-action: pan-y;
-}
-.ms-track {
-  display: flex;
-  height: 100%;
-  will-change: transform;
-}
-.ms-slide {
-  flex: 0 0 100%;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 11px 13px 12px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.ms-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #6b5a8a;
-  font-size: 15px;
-}
-.ms-state svg {
-  font-size: 26px;
-  color: var(--color-unergy-purple);
-}
-.ms-retry {
-  margin-top: 4px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 11px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-weight: 600;
-  font-size: 15px;
-}
-
-/* Chips "ahora" */
-.ms-now {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.ms-now-chip {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 11px;
-  padding: 6px 10px;
-}
-.ms-now-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ms-now-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.ms-now-label {
-  font-size: clamp(9.5px, 2.6vw, 10.5px);
-  color: #787774;
-  font-weight: 500;
-}
-.ms-now-hasta {
-  font-size: clamp(8.5px, 2.3vw, 9.5px);
-  color: #9b89b5;
-  font-weight: 400;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-.ms-now-val {
-  font-size: clamp(13px, 3.8vw, 16px);
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  line-height: 1.15;
-  letter-spacing: -0.2px;
-  white-space: nowrap;
-}
-
+/* tope de alto ≈ 52% del ancho: panorámica pero con más presencia que las chips */
 .ms-chart {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-  /* tope de alto ≈ 52% del ancho: panorámica pero con más presencia que las chips */
   max-height: min(52vw, 38vh);
-  min-height: 148px;
-  background: #fff;
-  border: 1px solid #eceaf2;
-  border-radius: 16px;
-  padding: 12px 10px 6px;
-}
-
-/* Franja de fallas activas */
-.ms-fallas {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.ms-falla {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-  background: #fff;
-  border: 1px solid #f0e4e4;
-  border-left: 3px solid #f59e0b;
-  border-radius: 11px;
-  padding: 8px 10px;
-}
-.ms-falla-stripe {
-  display: none;
-}
-.ms-falla-estado {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-.ms-falla-tipo {
-  flex: 1;
-  min-width: 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--color-unergy-deep);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ms-falla-arrow {
-  font-size: 11px;
-  color: #c4b8d8;
-  flex-shrink: 0;
-}
-.ms-falla-more {
-  font-size: 11px;
-  color: #9ca3af;
-  text-align: center;
-}
-.ms-chart-expand {
-  position: absolute;
-  top: 9px;
-  right: 10px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  background: #f6f2fc;
-  color: var(--color-unergy-purple);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  pointer-events: none; /* el toque lo recibe la gráfica */
-}
-.ms-chart-expand svg {
-  font-size: 9px;
-}
-
-.ms-chart-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: #6b5a8a;
-  font-size: 14px;
-}
-.ms-chart-loading svg {
-  font-size: 22px;
-  color: var(--color-unergy-purple);
-}
-
-.ms-footer {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-shrink: 0;
-}
-.ms-updated {
-  font-size: 12px;
-  color: #9ca3af;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.ms-reconnect {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 16px;
-  border: none;
-  border-radius: 12px;
-  background: var(--color-unergy-purple);
-  color: #fff;
-  font-size: clamp(13px, 3.6vw, 14.5px);
-  font-weight: 700;
-  box-shadow: 0 5px 14px rgba(145, 91, 216, 0.32);
-}
-.ms-relay-badge {
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 6px;
-}
-.ms-relay-badge--on {
-  background: #dcfce7;
-  color: #15803d;
-}
-.ms-relay-badge--off {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.ms-relay-badge--unk {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
 }
 </style>
