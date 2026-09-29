@@ -214,20 +214,35 @@ const clientesMostrados = computed(() => {
 function kpiCards(cli: ClienteAgregado) {
   const k = cli.kpis
   return [
-    { label: 'Ingreso Bruto', value: k.ingresoBruto, icon: ArrowUpRightIcon, color: '#111827' },
+    {
+      label: 'Ingreso Bruto',
+      value: k.ingresoBruto,
+      icon: ArrowUpRightIcon,
+      color: 'text-foreground',
+    },
     {
       label: 'Comercialización',
       value: k.comercializacion,
       icon: ChartColumnIcon,
-      color: '#D64455',
+      color: 'text-destructive',
     },
-    { label: 'Costos Operativos', value: k.costosOperativos, icon: MinusIcon, color: '#D64455' },
-    { label: 'Servicios Unergy', value: k.serviciosUnergy, icon: ZapIcon, color: '#111827' },
+    {
+      label: 'Costos Operativos',
+      value: k.costosOperativos,
+      icon: MinusIcon,
+      color: 'text-destructive',
+    },
+    {
+      label: 'Servicios Unergy',
+      value: k.serviciosUnergy,
+      icon: ZapIcon,
+      color: 'text-foreground',
+    },
     {
       label: 'Valor a pagar',
       value: k.ingresoNeto,
       icon: WalletIcon,
-      color: k.ingresoNeto >= 0 ? '#915BD8' : '#ef4444',
+      color: k.ingresoNeto >= 0 ? 'text-primary' : 'text-destructive',
     },
   ]
 }
@@ -284,7 +299,7 @@ onMounted(load)
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
         <InputGroupInput v-model="q" placeholder="Buscar inversionista…" />
       </InputGroup>
-      <span class="ml-auto text-[11px] text-muted-foreground">
+      <span class="ml-auto text-xs text-muted-foreground">
         Espejo del Panel Contable · ventana 12 meses a {{ formatPeriodo(periodo) }}
       </span>
     </div>
@@ -318,11 +333,11 @@ onMounted(load)
             {{ cli.cliente_nombre }}
           </span>
           <span
-            class="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+            class="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
           >
             {{ cli.proyectos.length }} proyectos
           </span>
-          <span class="ml-2 font-mono text-[11px] font-bold text-primary">
+          <span class="ml-2 font-mono text-xs font-bold text-primary">
             {{ fmtCompact(cli.kpis.ingresoNeto) }}
           </span>
         </div>
@@ -334,7 +349,7 @@ onMounted(load)
               <div
                 v-for="k in kpiCards(cli)"
                 :key="k.label"
-                class="min-w-[140px] flex-1 rounded-xl border p-4 shadow-sm"
+                class="min-w-35 flex-1 rounded-xl border p-4 shadow-sm"
               >
                 <div class="mb-2 flex items-start justify-between">
                   <span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">{{
@@ -342,7 +357,7 @@ onMounted(load)
                   }}</span>
                   <component :is="k.icon" class="size-3.5 text-muted-foreground/50" />
                 </div>
-                <div class="text-xl font-bold" :style="{ color: k.color }">
+                <div class="text-xl font-bold" :class="k.color">
                   {{ fmtCompact(k.value) }}
                 </div>
               </div>
@@ -350,9 +365,7 @@ onMounted(load)
 
             <!-- Gráfico: valor a pagar por mes -->
             <div v-if="cli.barData.length" class="mb-4">
-              <div
-                class="mb-2 text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
-              >
+              <div class="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                 Valor a pagar por mes
               </div>
               <NetoMensualBar
@@ -391,7 +404,7 @@ onMounted(load)
                       >
                         Total
                       </th>
-                      <th class="px-2 py-1.5" style="width: 36px" />
+                      <th class="px-2 py-1.5" />
                     </tr>
                   </thead>
                   <tbody>
@@ -401,7 +414,7 @@ onMounted(load)
                       class="border-b hover:bg-muted/20"
                     >
                       <td
-                        class="sticky left-0 max-w-[160px] truncate border-r bg-card px-2 py-1.5 whitespace-nowrap text-foreground"
+                        class="sticky left-0 max-w-40 truncate border-r bg-card px-2 py-1.5 whitespace-nowrap text-foreground"
                         :title="row.nombre"
                       >
                         {{ row.nombre }}

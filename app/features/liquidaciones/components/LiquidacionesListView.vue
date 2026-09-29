@@ -200,7 +200,7 @@ onMounted(() => {
           }}</SelectItem>
         </SelectContent>
       </Select>
-      <span class="ml-auto text-[11px] text-muted-foreground">
+      <span class="ml-auto text-xs text-muted-foreground">
         Espejo del Panel Contable · edición en Panel Contable
       </span>
       <Button size="sm" @click="dialogNueva = true">
@@ -214,10 +214,9 @@ onMounted(() => {
     <div v-else class="overflow-hidden rounded-xl border bg-card">
       <div class="flex items-center gap-2 border-b px-4 py-2.5">
         <h3 class="text-sm font-bold text-foreground">Proyectos · {{ formatPeriodo(periodo) }}</h3>
-        <span
-          class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
-          >{{ proyectosFiltrados.length }}</span
-        >
+        <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{
+          proyectosFiltrados.length
+        }}</span>
       </div>
 
       <div v-if="!proyectosFiltrados.length" class="py-8 text-center text-sm text-muted-foreground">
@@ -257,7 +256,7 @@ onMounted(() => {
                 </td>
                 <td class="px-3 py-2 font-medium text-foreground">{{ p.proyecto }}</td>
                 <td class="px-3 py-2">
-                  <GBadge :color="estadoFlujoPanel(p, tipo).sev" class="text-[10px]">{{
+                  <GBadge :color="estadoFlujoPanel(p, tipo).sev" class="text-xs">{{
                     estadoFlujoPanel(p, tipo).label
                   }}</GBadge>
                 </td>
@@ -302,9 +301,7 @@ onMounted(() => {
               </tr>
               <tr v-if="expandidos.has(p.panel_id ?? -1)" class="border-b bg-muted/10">
                 <td :colspan="tipo === 'oficial' ? 9 : 7" class="px-4 py-3">
-                  <p class="mb-2 text-[11px] font-semibold text-muted-foreground">
-                    Por inversionista
-                  </p>
+                  <p class="mb-2 text-xs font-semibold text-muted-foreground">Por inversionista</p>
                   <table class="w-full text-xs">
                     <thead>
                       <tr class="text-left text-muted-foreground">
@@ -333,7 +330,7 @@ onMounted(() => {
                   </table>
                   <p
                     v-if="!p.inversionistas?.length"
-                    class="py-2 text-center text-[11px] text-muted-foreground"
+                    class="py-2 text-center text-xs text-muted-foreground"
                   >
                     Sin inversionistas en este panel.
                   </p>

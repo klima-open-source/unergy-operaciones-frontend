@@ -1037,7 +1037,7 @@ onBeforeUnmount(() => {
         </Button>
         <div>
           <div class="text-sm font-bold text-foreground">Informe PDF — Estado de Resultados</div>
-          <div class="text-[11px] text-muted-foreground">
+          <div class="text-xs text-muted-foreground">
             {{ liq?.proyecto_nombre }} · {{ periodoLabel }}
             <span v-if="actualizadoEn"> · guardado {{ actualizadoEn }}</span>
           </div>
@@ -1101,7 +1101,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="editMode"
-      class="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"
+      class="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
     >
       ✏️ Haz clic en cualquier texto para editarlo. Al terminar pulsa
       <b class="text-foreground">Guardar</b>. El PDF respeta saltos de página: las capas no se
@@ -1114,7 +1114,7 @@ onBeforeUnmount(() => {
     <div v-show="!loading" class="flex justify-center">
       <div
         ref="contentRef"
-        class="liq-doc min-h-[60vh] w-[210mm] max-w-full rounded-[10px] border bg-white p-[18mm_14mm] shadow-lg"
+        class="liq-doc liq-hoja min-h-96 max-w-full rounded-lg border bg-white shadow-lg"
         :class="{ 'outline-2 outline-offset-4 outline-primary/35 outline-dashed': editMode }"
         :contenteditable="editMode ? 'true' : 'false'"
         v-html="htmlContent"
@@ -1124,6 +1124,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Hoja A4: medidas de papel en mm, sin equivalente en la escala de Tailwind. */
+.liq-hoja {
+  width: 210mm;
+  padding: 18mm 14mm;
+}
 @media print {
   .liqpdf-toolbar {
     display: none !important;

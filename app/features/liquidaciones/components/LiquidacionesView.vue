@@ -220,7 +220,7 @@ async function exportarExcel() {
   <div class="min-h-full bg-muted/10">
     <!-- Topbar compacto con tabs -->
     <div
-      class="sticky top-0 z-20 flex min-h-[44px] flex-wrap items-center gap-3 border-b bg-card px-3.5 py-1.5 shadow-sm"
+      class="sticky top-0 z-20 flex min-h-11 flex-wrap items-center gap-3 border-b bg-card px-3.5 py-1.5 shadow-sm"
     >
       <div class="flex shrink-0 items-center gap-2">
         <ZapIcon class="size-4 text-primary" />
@@ -277,7 +277,7 @@ async function exportarExcel() {
         >
           <ChevronLeftIcon class="size-3.5" />
         </Button>
-        <span class="min-w-[78px] text-center text-[13px] font-bold text-foreground">{{
+        <span class="min-w-19.5 text-center text-sm font-bold text-foreground">{{
           formatPeriodo(periodo)
         }}</span>
         <Button
