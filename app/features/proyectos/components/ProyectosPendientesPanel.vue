@@ -76,11 +76,11 @@
         <div v-if="p.tipo_sugerencia === 'crear'" class="flex flex-wrap gap-2 items-end">
           <div>
             <label class="field-label">Nombre comercial</label>
-            <InputText v-model="p._nombre" class="w-56" />
+            <InputText v-model="p._nombre" />
           </div>
           <div>
             <label class="field-label">Tipo</label>
-            <Select v-model="p._tipo" :options="TIPOS_PROYECTO" class="w-40" placeholder="Tipo" />
+            <Select v-model="p._tipo" :options="TIPOS_PROYECTO" placeholder="Tipo" />
           </div>
           <Button label="Crear" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._nombre"
                   class="bg-unergy-purple border-unergy-purple"
