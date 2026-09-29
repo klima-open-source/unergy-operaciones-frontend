@@ -235,7 +235,7 @@ function submit() {
               <Input v-model="c.telefono" placeholder="Teléfono" class="min-w-0 flex-1" />
               <Input v-model="c.email" type="email" placeholder="Correo *" class="min-w-0 flex-1" />
               <Select v-model="c.tipo">
-                <SelectTrigger class="w-36 shrink-0">
+                <SelectTrigger class="shrink-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
