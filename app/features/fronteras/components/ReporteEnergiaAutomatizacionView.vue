@@ -142,7 +142,7 @@
             Ejecutar clasificación
           </Button>
         </div>
-        <div v-else class="workspace">
+        <div v-else class="grid items-start gap-4 md:grid-cols-[minmax(18rem,22rem)_1fr]">
           <ReporteEnergiaLista
             :filas="filasFiltradas"
             :seleccionada="seleccion?.frontera_id"
@@ -174,7 +174,10 @@
         <div v-if="loadingHistorial" class="flex items-center justify-center py-12">
           <LoaderCircleIcon class="size-8 animate-spin text-primary" />
         </div>
-        <div v-else-if="filasHistorial.length" class="workspace">
+        <div
+          v-else-if="filasHistorial.length"
+          class="grid items-start gap-4 md:grid-cols-[minmax(18rem,22rem)_1fr]"
+        >
           <ReporteEnergiaLista
             :filas="filasFiltradas"
             :seleccionada="seleccionHistorial?.frontera_id"
@@ -1278,17 +1281,3 @@ async function enviarReporte() {
   }
 }
 </script>
-
-<style scoped>
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
-  gap: 1rem;
-  align-items: start;
-}
-@media (max-width: 860px) {
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
