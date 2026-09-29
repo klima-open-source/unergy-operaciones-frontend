@@ -9,7 +9,7 @@
         <label class="field-label">Buscar</label>
         <IconField>
           <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto…" class="w-64" />
+          <InputText v-model="q" placeholder="Proyecto…" />
         </IconField>
       </div>
       <div class="flex-1" />
@@ -26,7 +26,7 @@
          por eso manda el total en kW y no el conteo de proyectos. -->
     <div v-if="!loading && !error" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-success/10">
+        <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-success/10">
           <ZapIcon class="size-5 text-success" />
         </div>
         <div class="min-w-0">
@@ -45,7 +45,7 @@
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-unergy-purple/10">
+        <div class="size-10 rounded-full flex items-center justify-center shrink-0 bg-unergy-purple/10">
           <BriefcaseIcon class="size-5 text-unergy-purple" />
         </div>
         <div class="min-w-0">
@@ -162,7 +162,7 @@
           </div>
           <div class="flex items-center gap-2">
             <ToggleSwitch v-model="f.from_generator" />
-            <span class="text-xs text-muted-foreground w-6">{{ f.from_generator ? 'Sí' : 'No' }}</span>
+            <span class="text-xs text-muted-foreground">{{ f.from_generator ? 'Sí' : 'No' }}</span>
           </div>
         </div>
 
@@ -173,7 +173,7 @@
           </div>
           <div class="flex items-center gap-2">
             <ToggleSwitch v-model="f.from_commercializer" />
-            <span class="text-xs text-muted-foreground w-6">{{ f.from_commercializer ? 'Sí' : 'No' }}</span>
+            <span class="text-xs text-muted-foreground">{{ f.from_commercializer ? 'Sí' : 'No' }}</span>
           </div>
         </div>
 
