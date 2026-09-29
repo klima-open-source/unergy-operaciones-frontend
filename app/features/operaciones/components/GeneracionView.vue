@@ -952,13 +952,13 @@ function setRango(idx: 0 | 1, v: string): void {
   aplicarModo()
 }
 
-function finDeAnioOHoy(y) {
+function finDeAnioOHoy(y: number): Date {
   const t = new Date()
   t.setHours(0, 0, 0, 0)
   const last = new Date(y, 11, 31)
   return last > t ? t : last
 }
-function finDeMesOHoy(y, m) {
+function finDeMesOHoy(y: number, m: number): Date {
   // m 0-based
   const t = new Date()
   t.setHours(0, 0, 0, 0)
@@ -967,19 +967,19 @@ function finDeMesOHoy(y, m) {
 }
 
 // Rango del picker único (modo intervalo) para día/hora → [desde, hasta] normalizado.
-function rangoDiasSel() {
-  const r = rango.value || []
-  const a = r[0] ? new Date(r[0]) : new Date(fechaDesde.value)
-  const b = r[1] ? new Date(r[1]) : new Date(r[0] || fechaHasta.value)
+function rangoDiasSel(): [Date, Date] {
+  const r = rango.value
+  const a = r?.[0] ? new Date(r[0]) : new Date(fechaDesde.value)
+  const b = r?.[1] ? new Date(r[1]) : new Date(r?.[0] || fechaHasta.value)
   a.setHours(0, 0, 0, 0)
   b.setHours(0, 0, 0, 0)
   return b < a ? [b, a] : [a, b]
 }
 // Rango del picker único (modo intervalo mensual) → límites de mes.
-function rangoMesesSel() {
-  const r = rango.value || []
-  const a0 = r[0] ? new Date(r[0]) : new Date(fechaDesde.value)
-  const b0 = r[1] ? new Date(r[1]) : new Date(r[0] || fechaHasta.value)
+function rangoMesesSel(): [Date, Date] {
+  const r = rango.value
+  const a0 = r?.[0] ? new Date(r[0]) : new Date(fechaDesde.value)
+  const b0 = r?.[1] ? new Date(r[1]) : new Date(r?.[0] || fechaHasta.value)
   const a = new Date(a0.getFullYear(), a0.getMonth(), 1)
   const b = finDeMesOHoy(b0.getFullYear(), b0.getMonth())
   return b < a
@@ -988,12 +988,12 @@ function rangoMesesSel() {
 }
 
 // Calcula fechaDesde/fechaHasta a partir de {granularidad, modo, selectores}.
-function recomputarFechas() {
+function recomputarFechas(): void {
   const t = new Date()
   t.setHours(0, 0, 0, 0)
   const y = t.getFullYear()
-  let d = null,
-    h = null
+  let d: Date | null = null
+  let h: Date | null = null
   if (granularidad.value === 'mensual') {
     if (modo.value === 'actual') {
       d = new Date(y, 0, 1)
@@ -1039,12 +1039,12 @@ function recomputarFechas() {
   if (h) fechaHasta.value = h
 }
 
-function aplicarModo() {
+function aplicarModo(): void {
   recomputarFechas()
   marcarPendiente()
 }
 
-function onGranularidadChange(g) {
+function onGranularidadChange(g: Granularidad): void {
   if (g === granularidad.value) return
   granularidad.value = g
   modo.value = MODO_DEFAULT[g]
@@ -1052,7 +1052,7 @@ function onGranularidadChange(g) {
   marcarPendiente()
 }
 
-function onModoChange(m) {
+function onModoChange(m: ModoGeneracion): void {
   if (m === modo.value) return
   modo.value = m
   // Al entrar a "intervalo", precarga el picker de rango con el rango vigente.
@@ -1062,7 +1062,7 @@ function onModoChange(m) {
 }
 
 // Atajo desde el estado "sin datos": vista mensual del año en curso.
-function verEsteAnioMensual() {
+function verEsteAnioMensual(): void {
   granularidad.value = 'mensual'
   modo.value = 'actual'
   recomputarFechas()
@@ -1070,12 +1070,12 @@ function verEsteAnioMensual() {
 }
 
 // Marca que hay filtros sin aplicar (resalta el botón Consultar).
-function marcarPendiente() {
+function marcarPendiente(): void {
   pendiente.value = true
 }
 
 // Cambio en la selección de proyectos: si se vacía, limpia resultados.
-function onProyectosChange() {
+function onProyectosChange(): void {
   pendiente.value = true
   if (!proyectosSel.value.length) {
     datasets.value = []
@@ -1109,8 +1109,8 @@ const rangoLabel = computed(() => {
   if (!d || !h) return ''
   if (granularidad.value === 'mensual')
     return `${MESES_ES[d.getMonth()]} ${d.getFullYear()} → ${MESES_ES[h.getMonth()]} ${h.getFullYear()}`
-  const f = (x) =>
-    `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()].toLowerCase()} ${x.getFullYear()}`
+  const f = (x: Date) =>
+    `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()]!.toLowerCase()} ${x.getFullYear()}`
   if (d.getTime() === h.getTime()) return f(d)
   return `${f(d)} → ${f(h)}`
 })
@@ -1123,10 +1123,18 @@ const unidadPeriodoPlural = computed(
   () => ({ mensual: 'meses', diaria: 'días', horaria: 'horas' })[granularidad.value],
 )
 
+interface ParsedGeneracion {
+  sub: string
+  nombre: string
+  map: Map<string, number>
+  sim: RespuestaGeneracionLegacy['simulation'] | null
+  fuente: RespuestaGeneracionLegacy['fuente'] | null
+}
+
 // ── Carga (datos EN VIVO de la API de Unergy vía /monitoreo/_legacy) ──────
 // La generación NO vive en la tabla local; se consulta a api.unergy.io con el
 // sub_project de cada proyecto (misma fuente que usa el resto de la plataforma).
-async function cargar() {
+async function cargar(): Promise<void> {
   if (!proyectosSel.value.length || rangoError.value) return
   loading.value = true
   error.value = null
@@ -1135,7 +1143,9 @@ async function cargar() {
   // Snapshot del query → el panel de fallas se alinea con lo que muestra la gráfica.
   qDesde.value = new Date(fechaDesde.value)
   qHasta.value = new Date(fechaHasta.value)
-  qNombres.value = proyectosSel.value.map((sub) => nombrePorSub.value[sub]).filter(Boolean)
+  qNombres.value = proyectosSel.value
+    .map((sub) => nombrePorSub.value[sub])
+    .filter((n): n is string => !!n)
   try {
     const fInicio = isoDate(fechaDesde.value)
     const fFin = isoDate(fechaHasta.value)
@@ -1154,15 +1164,13 @@ async function cargar() {
       ),
     )
 
-    const parsed = []
-    const errores = []
+    const parsed: ParsedGeneracion[] = []
+    const errores: string[] = []
     results.forEach((r, idx) => {
-      const sub = proyectosSel.value[idx]
+      const sub = proyectosSel.value[idx]!
       const nombre = nombrePorSub.value[sub] || sub
       if (r.status !== 'fulfilled') {
-        const reason = r.reason
-        const msg = reason?.data?.detail || reason?.message || 'error de conexión'
-        errores.push(`${nombre}: ${msg}`)
+        errores.push(`${nombre}: ${normalizeError(r.reason).message}`)
         return
       }
       const body = r.value.body
@@ -1184,8 +1192,9 @@ async function cargar() {
 
     // Si TODAS fallaron, es un fallo real: mostrarlo (no "sin datos").
     if (!parsed.length && errores.length) {
+      const primerError = errores[0] ?? ''
       error.value =
-        errores.length === 1 ? errores[0] : `No se pudo consultar ningún proyecto. ${errores[0]}`
+        errores.length === 1 ? primerError : `No se pudo consultar ningún proyecto. ${primerError}`
       datasets.value = []
       return
     }
@@ -1198,13 +1207,13 @@ async function cargar() {
 
     // Eje común continuo → todas las series quedan alineadas en chart y tabla.
     const keys = construirEjeKeys()
-    const ds = parsed.map((p, idx) => {
+    const ds: DatasetGeneracion[] = parsed.map((p, idx) => {
       const points = keys.map((k) => ({ key: k, kwh: p.map.get(k) ?? 0, label: labelDeClave(k) }))
       const total = points.reduce((s, pt) => s + pt.kwh, 0)
       return {
         proyectoId: p.sub,
         nombre: p.nombre,
-        color: PALETTE[idx % PALETTE.length],
+        color: PALETTE[idx % PALETTE.length]!,
         points,
         total,
         hidden: false,
@@ -1215,7 +1224,7 @@ async function cargar() {
     ds.sort((a, b) => b.total - a.total)
     datasets.value = ds
   } catch (e) {
-    error.value = e.data?.detail || e.message || 'Error de conexión'
+    error.value = normalizeError(e).message
   } finally {
     loading.value = false
   }
@@ -1223,12 +1232,12 @@ async function cargar() {
 
 // ── Agregación por granularidad ───────────────────────────────────────
 // raw: [{ time: 'YYYY-MM-DD HH:MM', date: 'YYYY-MM-DD', kwh: number }] (deltas por intervalo)
-function sumarPorGranularidad(raw) {
-  const map = new Map()
+function sumarPorGranularidad(raw: RespuestaGeneracionLegacy['data']): Map<string, number> {
+  const map = new Map<string, number>()
   for (const it of raw) {
     if (it == null || it.kwh == null) continue
-    let k = null
-    if (granularidad.value === 'diaria') k = it.date
+    let k: string | null = null
+    if (granularidad.value === 'diaria') k = it.date ?? null
     else if (granularidad.value === 'mensual') k = (it.date || '').slice(0, 7)
     else {
       // horaria: agrupa por hora real usando el timestamp de la lectura
@@ -1247,8 +1256,8 @@ function sumarPorGranularidad(raw) {
 }
 
 // Eje continuo de períodos en el rango seleccionado (alinea todas las series).
-function construirEjeKeys() {
-  const keys = []
+function construirEjeKeys(): string[] {
+  const keys: string[] = []
   if (!fechaDesde.value || !fechaHasta.value) return keys
   const start = new Date(fechaDesde.value)
   start.setHours(0, 0, 0, 0)
@@ -1279,23 +1288,23 @@ function construirEjeKeys() {
   return keys
 }
 
-function labelDeClave(k) {
+function labelDeClave(k: string): string {
   if (granularidad.value === 'mensual') return mesLabel(k)
   if (granularidad.value === 'horaria') return `${k.slice(8, 10)}/${k.slice(5, 7)} ${k.slice(11)}`
   return diaLabel(k)
 }
 
-function mesLabel(yyyymm) {
-  const [y, m] = yyyymm.split('-')
+function mesLabel(yyyymm: string): string {
+  const [y, m] = yyyymm.split('-') as [string, string]
   return `${MESES_ES[+m - 1]} ${y.slice(2)}`
 }
 
-function diaLabel(yyyymmdd) {
-  const [, m, d] = yyyymmdd.split('-')
+function diaLabel(yyyymmdd: string): string {
+  const [, m, d] = yyyymmdd.split('-') as [string, string, string]
   return `${d}/${m}`
 }
 
-function isoDate(d) {
+function isoDate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -1348,19 +1357,19 @@ const chartW = computed(() => chartContainerWidth.value)
  * `null` en un periodo --no cero-- cuando ningun proyecto visible tiene curva:
  * un cero se lee como "la meta era no generar nada".
  */
-const metaP90 = computed(() => {
+const metaP90 = computed<(number | null)[]>(() => {
   if (granularidad.value === 'horaria') return []
   const visibles = datasets.value.filter((d) => !d.hidden && d.sim?.curva_p90_kwh)
   if (!visibles.length) return []
 
   return periodos.value.map((p) => {
-    const [anio, mes] = p.key.split('-').map(Number)
+    const [anio, mes] = p.key.split('-').map(Number) as [number, number]
     if (!anio || !mes) return null
     const diasDelMes = new Date(anio, mes, 0).getDate()
     let suma = 0
     let alguno = false
     for (const ds of visibles) {
-      const delMes = Number(ds.sim.curva_p90_kwh[mes - 1])
+      const delMes = Number(ds.sim?.curva_p90_kwh?.[mes - 1])
       if (!Number.isFinite(delMes) || delMes <= 0) continue
       suma += granularidad.value === 'diaria' ? delMes / diasDelMes : delMes
       alguno = true
@@ -1401,28 +1410,28 @@ const yTicks = computed(() => {
   return [0, step, step * 2, step * 3, max]
 })
 
-function yToPx(y) {
+function yToPx(y: number): number {
   if (maxY.value === 0) return chartH - paddingB
   return paddingT + (1 - y / maxY.value) * (chartH - paddingT - paddingB)
 }
 
-function xToPx(idx) {
+function xToPx(idx: number): number {
   const n = periodos.value.length
   if (n <= 1) return paddingL
   return paddingL + (idx / (n - 1)) * (chartW.value - paddingL - paddingR)
 }
 
-function lineaPoints(ds) {
+function lineaPoints(ds: DatasetGeneracion): string {
   return ds.points.map((p, i) => `${xToPx(i)},${yToPx(p.kwh)}`).join(' ')
 }
 
-function barX(periodIdx, dsIdx, dsCount) {
+function barX(periodIdx: number, dsIdx: number, dsCount: number): number {
   const slotW = (chartW.value - paddingL - paddingR) / Math.max(1, periodos.value.length)
   const innerW = slotW * 0.7
   const barWidth = innerW / Math.max(1, dsCount)
   return paddingL + slotW * periodIdx + (slotW - innerW) / 2 + barWidth * dsIdx
 }
-function barW(dsCount) {
+function barW(dsCount: number): number {
   const slotW = (chartW.value - paddingL - paddingR) / Math.max(1, periodos.value.length)
   return (slotW * 0.7) / Math.max(1, dsCount)
 }
@@ -1432,25 +1441,25 @@ const xLabels = computed(() => {
   if (n === 0) return []
   // Show max ~8 labels evenly distributed
   const stride = Math.max(1, Math.ceil(n / 8))
-  const labels = []
+  const labels: { idx: number; label: string }[] = []
   for (let i = 0; i < n; i += stride) {
-    labels.push({ idx: i, label: periodos.value[i].label })
+    labels.push({ idx: i, label: periodos.value[i]!.label })
   }
   // Always show the last one
   if (labels[labels.length - 1]?.idx !== n - 1) {
-    labels.push({ idx: n - 1, label: periodos.value[n - 1].label })
+    labels.push({ idx: n - 1, label: periodos.value[n - 1]!.label })
   }
   return labels
 })
 
-function fmtYTick(v) {
+function fmtYTick(v: number): string {
   if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M'
   if (v >= 1_000) return (v / 1_000).toFixed(1) + 'k'
   return v.toFixed(0)
 }
 
 // Separador de miles = espacio (evita confundirlo con la coma decimal), coma decimal.
-function fmtNum(v, maxDecimals = 0) {
+function fmtNum(v: number | null | undefined, maxDecimals = 0): string {
   return (v ?? 0)
     .toLocaleString('es-CO', { maximumFractionDigits: maxDecimals })
     .replace(/\./g, ' ')
@@ -1472,7 +1481,7 @@ const hoverSeries = computed(() => {
 })
 const hoverTotal = computed(() => hoverSeries.value.reduce((s, d) => s + d.kwh, 0))
 
-function onChartMove(e) {
+function onChartMove(e: MouseEvent): void {
   const n = periodos.value.length
   if (!n || !chartSvgRef.value) {
     hover.value = null
@@ -1498,27 +1507,27 @@ function onChartMove(e) {
     label: periodos.value[idx]?.label || '',
   }
 }
-function onChartLeave() {
+function onChartLeave(): void {
   hover.value = null
 }
 
 // ── Fallas del período + correlación con la gráfica ───────────────────
-function energiaPerdida(f) {
-  const v = f?.kwh_perdidos_estimado
+function energiaPerdida(f: Falla): number {
+  const v = f.kwh_perdidos_estimado
   return v == null ? 0 : Number(v) || 0
 }
-function involucraGeneracion(f) {
+function involucraGeneracion(f: Falla): boolean {
   return energiaPerdida(f) > 0
 }
 
 // ── Fallas del período (correlación generación ↔ incidencias) ─────────
-const allFallas = ref([])
+const allFallas = ref<Falla[]>([])
 const fallasCargando = ref(false)
 // Snapshot del rango/proyectos consultados, para que el panel de fallas coincida
 // con lo que MUESTRA la gráfica (no con filtros aún sin aplicar).
-const qDesde = ref(null)
-const qHasta = ref(null)
-const qNombres = ref([]) // nombres_comerciales consultados
+const qDesde = ref<Date | null>(null)
+const qHasta = ref<Date | null>(null)
+const qNombres = ref<string[]>([]) // nombres_comerciales consultados
 
 // Fallas de los proyectos consultados dentro del rango consultado (snapshot).
 const fallasDelPeriodo = computed(() => {
@@ -1530,7 +1539,7 @@ const fallasDelPeriodo = computed(() => {
     .filter((f) => {
       const fi = (f.fecha_identificacion || '').slice(0, 10)
       if (!fi || fi < desde || fi > hasta) return false
-      return nombres.has(f.proyecto?.nombre_comercial)
+      return nombres.has(f.proyecto?.nombre_comercial ?? '')
     })
     .sort((a, b) => (b.fecha_identificacion || '').localeCompare(a.fecha_identificacion || ''))
 })
@@ -1540,9 +1549,14 @@ const kwhPerdidoTotal = computed(() =>
   fallasDelPeriodo.value.reduce((s, f) => s + energiaPerdida(f), 0),
 )
 
+interface ConteoFallasPeriodo {
+  count: number
+  kwh: number
+}
+
 // Días con fallas que impactan generación → para subrayar en rojo.
 const faultsByDay = computed(() => {
-  const m = {} // 'YYYY-MM-DD' → { count, kwh }
+  const m: Record<string, ConteoFallasPeriodo> = {} // 'YYYY-MM-DD' → { count, kwh }
   for (const f of fallasDelPeriodo.value) {
     if (!involucraGeneracion(f)) continue
     const d = (f.fecha_identificacion || '').slice(0, 10)
@@ -1554,18 +1568,18 @@ const faultsByDay = computed(() => {
   return m
 })
 const flaggedMonths = computed(() => {
-  const s = {}
+  const s: Record<string, ConteoFallasPeriodo> = {}
   for (const d in faultsByDay.value) {
     const mk = d.slice(0, 7)
     if (!s[mk]) s[mk] = { count: 0, kwh: 0 }
-    s[mk].count += faultsByDay.value[d].count
-    s[mk].kwh += faultsByDay.value[d].kwh
+    s[mk].count += faultsByDay.value[d]!.count
+    s[mk].kwh += faultsByDay.value[d]!.kwh
   }
   return s
 })
 
 // Info de fallas-generación para la clave de un período del eje (según granularidad).
-function infoFallaPeriodo(key) {
+function infoFallaPeriodo(key: string | undefined): ConteoFallasPeriodo | null {
   if (!key) return null
   if (granularidad.value === 'mensual') return flaggedMonths.value[key] || null
   if (granularidad.value === 'horaria') return faultsByDay.value[key.slice(0, 10)] || null
@@ -1589,7 +1603,7 @@ const hoverFalla = computed(() => {
   return infoFallaPeriodo(periodos.value[hover.value.idx]?.key)
 })
 
-function fmtFechaCorta(d) {
+function fmtFechaCorta(d: string | null | undefined): string {
   if (!d) return '—'
   return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CO', {
     day: '2-digit',
@@ -1612,9 +1626,15 @@ const fallasVisibles = computed(() => {
 })
 
 // ── Tabla (detalle para exportar) ─────────────────────────────────────
-const tablaFilas = computed(() => {
+interface FilaTablaGeneracion {
+  periodo: string
+  total: number
+  [proyectoId: string]: number | string
+}
+
+const tablaFilas = computed<FilaTablaGeneracion[]>(() => {
   return periodos.value.map((p, i) => {
-    const row = { periodo: p.label, total: 0 }
+    const row: FilaTablaGeneracion = { periodo: p.label, total: 0 }
     datasets.value.forEach((ds) => {
       const v = ds.points[i]?.kwh
       if (v != null) {
@@ -1627,7 +1647,7 @@ const tablaFilas = computed(() => {
 })
 
 // ── Export Excel ─────────────────────────────────────────────────────
-async function exportarExcel() {
+async function exportarExcel(): Promise<void> {
   try {
     const XLSX = await import('xlsx')
     const wb = XLSX.utils.book_new()
@@ -1654,10 +1674,11 @@ async function exportarExcel() {
     // Hoja 2: Detalle
     const headers = [unidadPeriodo.value, ...datasets.value.map((d) => d.nombre), 'Total']
     const rows = tablaFilas.value.map((r) => {
-      const arr = [r.periodo]
-      datasets.value.forEach((ds) =>
-        arr.push(r[ds.proyectoId] != null ? Number(r[ds.proyectoId].toFixed(2)) : null),
-      )
+      const arr: (string | number | null)[] = [r.periodo]
+      datasets.value.forEach((ds) => {
+        const v = r[ds.proyectoId]
+        arr.push(typeof v === 'number' ? Number(v.toFixed(2)) : null)
+      })
       arr.push(Number(r.total.toFixed(2)))
       return arr
     })
@@ -1669,17 +1690,17 @@ async function exportarExcel() {
     XLSX.writeFile(wb, filename)
     toast.success('Excel descargado', { description: filename, duration: 2500 })
   } catch (e) {
-    toast.error('Error al exportar', { description: e?.message, duration: 4000 })
+    toast.error('Error al exportar', { description: normalizeError(e).message, duration: 4000 })
   }
 }
 
 // ── Carga inicial ────────────────────────────────────────────────────
 // Proyectos consultables = los que tienen sub_project (API ID Unergy).
 // getProjects ya filtra a proyectos en operación con ID de API y lo entrega.
-async function cargarProyectos() {
+async function cargarProyectos(): Promise<void> {
   try {
     const data = await monitoreoLegacyService.obtenerProyectos()
-    const seen = new Set()
+    const seen = new Set<string>()
     proyectos.value = (data?.projects ?? [])
       .filter((p) => {
         if (!p.sub_project || seen.has(p.sub_project)) return false
@@ -1715,7 +1736,7 @@ async function cargarProyectos() {
  * Se llama desde `cargar()`, no al montar: hasta que no se aprieta Consultar no
  * se sabe qué período mirar.
  */
-async function cargarFallas(desde, hasta) {
+async function cargarFallas(desde: string, hasta: string): Promise<void> {
   fallasCargando.value = true
   try {
     const res = await fallasService.listar({
@@ -1732,7 +1753,7 @@ async function cargarFallas(desde, hasta) {
 }
 
 // ── ResizeObserver para chart responsive ─────────────────────────────
-let resizeObserver
+let resizeObserver: ResizeObserver | undefined
 onMounted(async () => {
   recomputarFechas() // fija el rango inicial según granularidad/modo por defecto
   await cargarProyectos()
