@@ -1054,7 +1054,7 @@ onBeforeUnmount(() => {
             }
           "
         >
-          <SelectTrigger class="w-64" title="Inversionista que aparecerá en el informe"
+          <SelectTrigger class="max-w-64" title="Inversionista que aparecerá en el informe"
             ><SelectValue
           /></SelectTrigger>
           <SelectContent>

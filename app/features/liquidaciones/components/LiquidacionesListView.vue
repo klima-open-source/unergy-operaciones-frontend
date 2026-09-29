@@ -187,12 +187,12 @@ onMounted(() => {
         class="text-xs text-muted-foreground hover:underline"
         >Ver todos</NuxtLink
       >
-      <InputGroup class="w-56">
+      <InputGroup class="max-w-xs min-w-48 flex-1">
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
         <InputGroupInput v-model="q" placeholder="Buscar proyecto…" />
       </InputGroup>
       <Select v-model="estadoFiltro">
-        <SelectTrigger class="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+        <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="">Estado: todos</SelectItem>
           <SelectItem v-for="op in ESTADO_OPCIONES" :key="op.value" :value="op.value">{{
@@ -227,7 +227,7 @@ onMounted(() => {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b bg-muted/30 text-left text-xs text-muted-foreground">
-              <th class="w-12 px-3 py-2" />
+              <th class="px-3 py-2" />
               <th class="px-3 py-2 font-medium">Proyecto</th>
               <th class="px-3 py-2 font-medium">Estado</th>
               <th v-if="tipo === 'oficial'" class="px-3 py-2 text-right font-medium">
@@ -239,7 +239,7 @@ onMounted(() => {
               <th class="px-3 py-2 text-right font-medium">Ingresos</th>
               <th class="px-3 py-2 text-right font-medium">Costos</th>
               <th class="px-3 py-2 text-right font-medium">Valor a pagar</th>
-              <th class="w-14 px-3 py-2" />
+              <th class="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
