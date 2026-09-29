@@ -127,6 +127,28 @@ const MOTIVOS_CUMPL: Record<string, string> = {
   sobre_maximo: 'Sobre máximo',
   sin_compromiso: 'Sin compromiso',
 }
+// Clases de la tabla densa del panel. Alineación derecha por defecto (cifras) e
+// izquierda para texto; el pie (`TF_*`) lleva el total.
+const TH_BASE =
+  'border-b bg-muted px-3 py-2 text-xs font-bold tracking-wide whitespace-nowrap text-muted-foreground uppercase'
+const TH_R = `${TH_BASE} text-right`
+const TH_L = `${TH_BASE} text-left`
+const TD_R = 'border-b px-3 py-2 text-right tabular-nums whitespace-nowrap'
+const TD_L = 'border-b px-3 py-2 text-left'
+const TF_BASE =
+  'border-t-2 border-primary bg-primary/6 px-3 py-2 font-extrabold text-foreground tabular-nums'
+const TF_R = `${TF_BASE} text-right`
+const TF_L = `${TF_BASE} text-left`
+
+// Etiquetas de estado (comercializador, PPA, facturada…).
+const TAG_BASE = 'inline-block rounded-sm px-1.75 py-px text-xs font-semibold'
+const TAG_CLS = {
+  primary: `${TAG_BASE} bg-primary/10 text-primary`,
+  warn: `${TAG_BASE} bg-destructive/10 text-destructive`,
+  warning: `${TAG_BASE} bg-warning/12 text-warning`,
+  ok: `${TAG_BASE} bg-success/12 text-success`,
+} as const
+
 function cumplClaseEstado(e: string | undefined): string {
   return (
     {
@@ -836,15 +858,15 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="fac space-y-4 p-4 sm:p-5">
+  <div class="space-y-4 p-4 sm:p-5">
     <!-- Sub-pestañas -->
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="fac-subtabs">
+      <div class="inline-flex gap-0.5 rounded-lg border bg-muted p-0.75">
         <button
           v-for="s in SUBS"
           :key="s.key"
-          class="fac-subtab"
-          :class="{ on: sub === s.key }"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          :class="sub === s.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'"
           @click="sub = s.key"
         >
           <component :is="s.icon" class="size-3" /><span>{{ s.label }}</span>
@@ -854,11 +876,11 @@ onMounted(load)
         <!-- Cruza lo que debe entrar por proyecto contra lo ya liquidado. Va acá,
              fuera de las sub-pestañas, porque mezcla las dos fuentes y no
              pertenece a ninguna de ellas. -->
-        <button class="fac-upload" :disabled="exportandoVs" @click="exportarVsDespachos">
+        <Button size="sm" :disabled="exportandoVs" @click="exportarVsDespachos">
           <LoaderCircleIcon v-if="exportandoVs" class="size-3 animate-spin" />
           <FileSpreadsheetIcon v-else class="size-3" />
           Ingresos vs. despachos
-        </button>
+        </Button>
         <span class="text-xs text-muted-foreground">
           Energía del despacho × tarifa PPA indexada por IPP · {{ formatPeriodo(periodo) }}
         </span>
@@ -876,7 +898,12 @@ onMounted(load)
         <TriangleAlertIcon class="size-3" />
         Falta el <b>IPP</b> de {{ formatPeriodo(periodo) }}. La facturación no se puede calcular sin
         él.
-        <button class="fac-link ml-1" @click="sub = 'ipp'">Cargarlo →</button>
+        <button
+          class="ml-1 cursor-pointer text-xs font-bold text-primary underline"
+          @click="sub = 'ipp'"
+        >
+          Cargarlo →
+        </button>
       </div>
 
       <!-- ═══ 1. FACTURACIÓN ═══ -->
@@ -892,38 +919,40 @@ onMounted(load)
           factura por esta vía hasta asociarle su PPA. Ver el detalle abajo.
         </div>
 
-        <div class="fac-card">
-          <div class="tblwrap">
-            <table class="dt">
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l">Proyecto / Contrato</th>
-                  <th class="l">Comerc.</th>
-                  <th>Energía (kWh)</th>
-                  <th>Tarifa</th>
-                  <th>Facturación</th>
+                  <th :class="TH_L">Proyecto / Contrato</th>
+                  <th :class="TH_L">Comerc.</th>
+                  <th :class="TH_R">Energía (kWh)</th>
+                  <th :class="TH_R">Tarifa</th>
+                  <th :class="TH_R">Facturación</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="l in facturables" :key="l.contrato ?? l.factura">
-                  <td class="l">
-                    <span class="proj">{{ l.proyecto || l.contrato }}</span>
-                    <span class="sub2">{{ l.contrato }}</span>
+                  <td :class="TD_L">
+                    <span class="font-semibold text-foreground">{{
+                      l.proyecto || l.contrato
+                    }}</span>
+                    <span class="block text-xs text-muted-foreground">{{ l.contrato }}</span>
                   </td>
-                  <td class="l">
-                    <span class="tag">{{ l.comprador || '—' }}</span>
+                  <td :class="TD_L">
+                    <span :class="TAG_CLS.primary">{{ l.comprador || '—' }}</span>
                   </td>
-                  <td>{{ fmtNum(l.kwh) }}</td>
-                  <td>{{ fmtNum(l.tarifa_indexada) }}</td>
-                  <td class="fw">{{ fmtCOP(l.facturacion) }}</td>
+                  <td :class="TD_R">{{ fmtNum(l.kwh) }}</td>
+                  <td :class="TD_R">{{ fmtNum(l.tarifa_indexada) }}</td>
+                  <td :class="[TD_R, 'font-bold text-foreground']">{{ fmtCOP(l.facturacion) }}</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <td class="l" colspan="2">Total ({{ facturables.length }} contratos)</td>
-                  <td>{{ fmtNum(res.kwh_total) }}</td>
-                  <td />
-                  <td class="fw">{{ fmtCOP(res.facturacion_total || 0) }}</td>
+                  <td :class="TF_L" colspan="2">Total ({{ facturables.length }} contratos)</td>
+                  <td :class="TF_R">{{ fmtNum(res.kwh_total) }}</td>
+                  <td :class="TF_R" />
+                  <td :class="TF_R">{{ fmtCOP(res.facturacion_total || 0) }}</td>
                 </tr>
               </tfoot>
             </table>
@@ -932,33 +961,37 @@ onMounted(load)
 
         <!-- No facturables: sin PPA marco, o con PPA pero sin tarifa/IPP. Antes solo
              se listaban los "sin PPA" y los otros casos no aparecían en ninguna parte. -->
-        <div v-if="noFacturables.length" class="fac-card">
-          <p class="fac-note">
+        <div v-if="noFacturables.length" class="overflow-hidden rounded-xl border bg-card">
+          <p class="flex items-center gap-1.5 px-3 pt-2.5 pb-0.5 text-xs text-muted-foreground">
             <InfoIcon class="size-3" /> No facturables por esta vía ({{ noFacturables.length }}):
           </p>
-          <div class="tblwrap">
-            <table class="dt">
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l">Planta / Contrato</th>
-                  <th class="l">Comerc.</th>
-                  <th class="l">Motivo</th>
-                  <th>Energía (kWh)</th>
+                  <th :class="TH_L">Planta / Contrato</th>
+                  <th :class="TH_L">Comerc.</th>
+                  <th :class="TH_L">Motivo</th>
+                  <th :class="TH_R">Energía (kWh)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="l in noFacturables" :key="l.contrato ?? l.factura">
                   <!-- Mismo formato que la tabla de arriba: la planta manda y el código
                        queda debajo. Antes solo se veía el código y no se sabía qué planta era. -->
-                  <td class="l">
-                    <span class="proj">{{ l.proyecto || 'Planta sin identificar' }}</span>
-                    <span class="sub2">{{ l.contrato }}</span>
+                  <td :class="TD_L">
+                    <span class="font-semibold text-foreground">{{
+                      l.proyecto || 'Planta sin identificar'
+                    }}</span>
+                    <span class="block text-xs text-muted-foreground">{{ l.contrato }}</span>
                   </td>
-                  <td class="l">
-                    <span class="tag warn">{{ l.comprador || '—' }}</span>
+                  <td :class="TD_L">
+                    <span :class="TAG_CLS.warn">{{ l.comprador || '—' }}</span>
                   </td>
-                  <td class="l muted">{{ MOTIVOS[l.estado ?? ''] || l.estado }}</td>
-                  <td>{{ fmtNum(l.kwh) }}</td>
+                  <td :class="[TD_L, 'text-muted-foreground']">
+                    {{ MOTIVOS[l.estado ?? ''] || l.estado }}
+                  </td>
+                  <td :class="TD_R">{{ fmtNum(l.kwh) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -978,85 +1011,112 @@ onMounted(load)
             <span class="text-xs text-muted-foreground">
               {{ res.emitidas || 0 }}/{{ res.facturas || porFactura.length }} facturadas
             </span>
-            <button
-              v-if="ordenTocado"
-              class="fac-btn"
-              :disabled="guardandoOrden"
-              @click="guardarOrden"
-            >
+            <Button size="sm" v-if="ordenTocado" :disabled="guardandoOrden" @click="guardarOrden">
               <LoaderCircleIcon v-if="guardandoOrden" class="size-3 animate-spin" />
               <SaveIcon v-else class="size-3" /> Guardar orden
+            </Button>
+            <button
+              class="cursor-pointer text-xs font-bold text-primary underline"
+              @click="restablecerOrden"
+            >
+              Orden por valor
             </button>
-            <button class="fac-link" @click="restablecerOrden">Orden por valor</button>
           </div>
         </div>
 
         <!-- Buscador: por planta / PPA o por número de factura (para ubicar una rápido) -->
-        <div class="fac-buscar">
+        <div class="mt-0.5 mb-1 flex flex-wrap items-center gap-2.5">
           <span class="relative min-w-60 flex-1">
             <SearchIcon
               class="absolute top-1/2 left-2.75 size-3 -translate-y-1/2 text-muted-foreground"
             />
             <input
               v-model="facFiltro"
-              class="fac-in w-full pl-8"
+              class="w-35 w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
               placeholder="Buscar por planta, PPA, contrato o N° de factura…"
             />
           </span>
-          <button v-if="facFiltro" class="fac-link" @click="facFiltro = ''">Limpiar</button>
+          <button
+            v-if="facFiltro"
+            class="cursor-pointer text-xs font-bold text-primary underline"
+            @click="facFiltro = ''"
+          >
+            Limpiar
+          </button>
           <span v-if="filtroActivo" class="text-xs text-muted-foreground">
             {{ porFacturaMostradas.length }} de {{ porFactura.length }}
           </span>
         </div>
 
         <!-- Tarjetas informativas del mes -->
-        <div class="fac-kpis">
-          <div class="fac-kpi hero">
-            <p class="k">Ingresos venta de energía</p>
-            <p class="v">{{ fmtCOP(res.ingreso_total || res.facturacion_total || 0) }}</p>
-            <p class="sub2">
+        <div class="mt-1 mb-1.5 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3">
+          <div class="rounded-lg border border-transparent bg-primary/8 px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-primary! uppercase">
+              Ingresos venta de energía
+            </p>
+            <p class="mt-1 text-lg font-extrabold text-primary! tabular-nums">
+              {{ fmtCOP(res.ingreso_total || res.facturacion_total || 0) }}
+            </p>
+            <p class="mt-0.5 text-xs text-muted-foreground">
               {{ fmtCOP(res.facturacion_total || 0) }} PPA +
               {{ fmtCOP(res.ingreso_bolsa || 0) }} bolsa
             </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Energía despachada</p>
-            <p class="v">{{ fmtMWh(despacho.kwh_total) }}</p>
-            <p class="sub2">{{ fmtMWh(res.kwh_total) }} facturables</p>
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Energía despachada
+            </p>
+            <p class="mt-1 text-lg font-extrabold text-foreground tabular-nums">
+              {{ fmtMWh(despacho.kwh_total) }}
+            </p>
+            <p class="mt-0.5 text-xs text-muted-foreground">
+              {{ fmtMWh(res.kwh_total) }} facturables
+            </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Tarifa promedio</p>
-            <p class="v">{{ tarifaPromedio != null ? fmtNum(tarifaPromedio) + ' $/kWh' : '—' }}</p>
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Tarifa promedio
+            </p>
+            <p class="mt-1 text-lg font-extrabold text-foreground tabular-nums">
+              {{ tarifaPromedio != null ? fmtNum(tarifaPromedio) + ' $/kWh' : '—' }}
+            </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Facturas</p>
-            <p class="v">{{ res.facturas || porFactura.length }}</p>
-            <p class="sub2">{{ res.emitidas || 0 }} facturadas</p>
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Facturas
+            </p>
+            <p class="mt-1 text-lg font-extrabold text-foreground tabular-nums">
+              {{ res.facturas || porFactura.length }}
+            </p>
+            <p class="mt-0.5 text-xs text-muted-foreground">{{ res.emitidas || 0 }} facturadas</p>
           </div>
         </div>
 
         <div
           v-for="(f, i) in porFacturaMostradas"
           :key="f.factura"
-          class="fac-card"
+          class="overflow-hidden rounded-xl border bg-card"
           :class="{
-            'fac-emitida': f.emitida,
-            'fac-drag': dragIdx === i,
+            'border-l-3 border-l-success': f.emitida,
+            'opacity-45': dragIdx === i,
             'fac-drop-antes': dropIdx === i && dragIdx !== null && dragIdx > i,
             'fac-drop-despues': dropIdx === i && dragIdx !== null && dragIdx < i,
           }"
           @dragover.prevent="!filtroActivo && arrastrarSobre(i)"
           @drop.prevent="!filtroActivo && soltar(i)"
         >
-          <div class="fac-fac-head" @click="toggleFac(f.factura)">
+          <div
+            class="flex cursor-pointer items-center gap-2 px-3.5 py-2.5 select-none hover:bg-muted"
+            @click="toggleFac(f.factura)"
+          >
             <!-- Reordenar: arrastrar por el asa para saltos largos, flechas para
                  mover de a uno. DnD nativo, sin dependencias nuevas. Se oculta con el
                  filtro activo (reordenar un subconjunto no tiene sentido). -->
-            <span v-if="!filtroActivo" class="fac-ord" @click.stop>
+            <span v-if="!filtroActivo" class="inline-flex items-center gap-0.5" @click.stop>
               <GTooltip>
                 <GTooltipTrigger as-child>
                   <span
-                    class="fac-grip"
+                    class="flex cursor-grab items-center rounded-xs px-px py-0.5 text-muted-foreground hover:bg-muted hover:text-primary active:cursor-grabbing"
                     draggable="true"
                     @dragstart="iniciarArrastre(i, $event)"
                     @dragend="finArrastre"
@@ -1066,9 +1126,9 @@ onMounted(load)
                 </GTooltipTrigger>
                 <GTooltipContent side="top">Arrastra para reordenar</GTooltipContent>
               </GTooltip>
-              <span class="fac-ord-arrows">
+              <span class="inline-flex flex-col gap-px">
                 <button
-                  class="fac-ord-b"
+                  class="flex h-2.75 w-4 cursor-pointer items-center justify-center rounded-xs text-muted-foreground enabled:hover:bg-muted enabled:hover:text-primary disabled:cursor-default disabled:opacity-30"
                   :disabled="i === 0"
                   title="Subir"
                   @click="moverFactura(i, -1)"
@@ -1076,7 +1136,7 @@ onMounted(load)
                   <ChevronUpIcon class="size-3" />
                 </button>
                 <button
-                  class="fac-ord-b"
+                  class="flex h-2.75 w-4 cursor-pointer items-center justify-center rounded-xs text-muted-foreground enabled:hover:bg-muted enabled:hover:text-primary disabled:cursor-default disabled:opacity-30"
                   :disabled="i === porFactura.length - 1"
                   title="Bajar"
                   @click="moverFactura(i, 1)"
@@ -1094,14 +1154,18 @@ onMounted(load)
             />
             <ChevronDownIcon v-if="abiertas.has(f.factura)" class="size-3 text-muted-foreground" />
             <ChevronRightIcon v-else class="size-3 text-muted-foreground" />
-            <span class="proj">{{ f.factura }}</span>
-            <span v-if="f.sin_ppa" class="tag warning">sin PPA · XM (bolsa)</span>
-            <span v-else-if="f.personalizada" class="tag ok">dividida</span>
-            <span v-else class="tag">{{ f.ppa || '—' }}</span>
+            <span
+              class="font-semibold"
+              :class="f.emitida ? 'text-muted-foreground' : 'text-foreground'"
+              >{{ f.factura }}</span
+            >
+            <span v-if="f.sin_ppa" :class="TAG_CLS.warning">sin PPA · XM (bolsa)</span>
+            <span v-else-if="f.personalizada" :class="TAG_CLS.ok">dividida</span>
+            <span v-else :class="TAG_CLS.primary">{{ f.ppa || '—' }}</span>
             <!-- Número de factura: etiqueta no editable; el lápiz abre la ventana para cambiarlo. -->
             <span
               v-if="f.emitida && f.numero_factura"
-              class="fac-numtag"
+              class="inline-flex cursor-pointer items-center gap-0.75 rounded-sm bg-success/12 px-2 py-px text-xs font-bold text-success hover:bg-success/20"
               title="Editar el N° de factura"
               @click.stop="abrirNumero(f)"
             >
@@ -1109,67 +1173,83 @@ onMounted(load)
             </span>
             <span
               v-else-if="f.emitida"
-              class="tag ok cursor-pointer"
+              :class="[TAG_CLS.ok, 'cursor-pointer']"
               title="Agregar el N° de factura"
               @click.stop="abrirNumero(f)"
               >facturada · N°?</span
             >
-            <span class="fac-acts" @click.stop>
-              <button class="fac-icobtn" title="Copiar el mensaje" @click="copiarMensaje(f)">
+            <span class="inline-flex items-center gap-0.5" @click.stop>
+              <button
+                class="inline-flex size-6.5 cursor-pointer items-center justify-center rounded-md border bg-card text-primary hover:bg-muted"
+                title="Copiar el mensaje"
+                @click="copiarMensaje(f)"
+              >
                 <CheckIcon v-if="copiada === f.factura" class="size-3" />
                 <CopyIcon v-else class="size-3" />
               </button>
-              <button class="fac-icobtn" title="Copiar como imagen" @click="copiarImagen(f)">
+              <button
+                class="inline-flex size-6.5 cursor-pointer items-center justify-center rounded-md border bg-card text-primary hover:bg-muted"
+                title="Copiar como imagen"
+                @click="copiarImagen(f)"
+              >
                 <CheckIcon v-if="imagenId === f.factura" class="size-3" />
                 <ImageIcon v-else class="size-3" />
               </button>
             </span>
-            <span class="fac-fac-nums ml-auto">
-              <span class="muted">{{ f.contratos }} contr</span>
-              <span class="muted">· {{ fmtNum(f.kwh) }} kWh</span>
-              <span class="muted">· tarifa {{ tarifaFacturaTxt(f) }}</span>
-              <b v-if="f.sin_ppa && !f.facturacion" class="muted font-semibold">sin precio bolsa</b>
+            <span
+              class="ml-auto inline-flex items-center gap-2 text-xs text-foreground tabular-nums"
+            >
+              <span class="text-muted-foreground">{{ f.contratos }} contr</span>
+              <span class="text-muted-foreground">· {{ fmtNum(f.kwh) }} kWh</span>
+              <span class="text-muted-foreground">· tarifa {{ tarifaFacturaTxt(f) }}</span>
+              <b v-if="f.sin_ppa && !f.facturacion" class="font-semibold text-muted-foreground"
+                >sin precio bolsa</b
+              >
               <b v-else>{{ fmtCOP(f.facturacion) }}</b>
             </span>
           </div>
-          <div v-if="abiertas.has(f.factura)" class="fac-fac-body">
-            <div class="tblwrap">
-              <table class="dt">
+          <div v-if="abiertas.has(f.factura)" class="border-t pt-1">
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
                 <thead>
                   <tr>
-                    <th class="l" />
-                    <th class="l">Proyecto</th>
-                    <th class="l">Contrato</th>
-                    <th>Tarifa</th>
-                    <th>Energía (kWh)</th>
-                    <th>Facturación</th>
-                    <th />
+                    <th :class="TH_L" />
+                    <th :class="TH_L">Proyecto</th>
+                    <th :class="TH_L">Contrato</th>
+                    <th :class="TH_R">Tarifa</th>
+                    <th :class="TH_R">Energía (kWh)</th>
+                    <th :class="TH_R">Facturación</th>
+                    <th :class="TH_R" />
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="p in f.proyectos" :key="p.contrato ?? undefined">
-                    <td class="l">
+                    <td :class="TD_L">
                       <input
                         type="checkbox"
                         :checked="selDe(f.factura).has(p.contrato ?? '')"
                         @change="toggleProy(f.factura, p.contrato ?? '')"
                       />
                     </td>
-                    <td class="l">
+                    <td :class="TD_L">
                       {{ p.proyecto || '—' }}
-                      <span v-if="p.asignada" class="sub2">↳ movido aquí</span>
-                      <span v-if="p.porcentaje != null" class="sub2"
+                      <span v-if="p.asignada" class="block text-xs text-muted-foreground"
+                        >↳ movido aquí</span
+                      >
+                      <span v-if="p.porcentaje != null" class="block text-xs text-muted-foreground"
                         >↳ {{ fmtPct(p.porcentaje) }} de este contrato</span
                       >
                     </td>
-                    <td class="l muted">{{ p.contrato }}</td>
-                    <td>{{ fmtNum(p.tarifa_indexada) }}</td>
-                    <td>{{ fmtNum(p.kwh) }}</td>
-                    <td class="fw">{{ fmtCOP(p.facturacion) }}</td>
-                    <td class="l">
+                    <td :class="[TD_L, 'text-muted-foreground']">{{ p.contrato }}</td>
+                    <td :class="TD_R">{{ fmtNum(p.tarifa_indexada) }}</td>
+                    <td :class="TD_R">{{ fmtNum(p.kwh) }}</td>
+                    <td :class="[TD_R, 'font-bold text-foreground']">
+                      {{ fmtCOP(p.facturacion) }}
+                    </td>
+                    <td :class="TD_L">
                       <button
                         v-if="p.asignada"
-                        class="fac-link"
+                        class="cursor-pointer text-xs font-bold text-primary underline"
                         @click="quitarAsignacion(p.contrato ?? '')"
                       >
                         quitar
@@ -1179,28 +1259,24 @@ onMounted(load)
                 </tbody>
               </table>
             </div>
-            <div class="fac-div-row">
+            <div class="flex flex-wrap items-center gap-2 border-t bg-muted px-3.5 py-2.5">
               <input
                 v-model="nuevoNombre[f.factura]"
-                class="fac-in flex-1"
+                class="w-35 flex-1 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="Nombre de la nueva factura (ej. Terpel 2 PA)"
               />
               <!-- % opcional: si va solo una parte del contrato, el resto queda en el
                    PPA original. Es el caso de Uruaco → 22.8066% a la nueva factura. -->
               <input
                 v-model="nuevoPct[f.factura]"
-                class="fac-in"
+                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="% (opcional)"
                 inputmode="decimal"
               />
-              <button
-                class="fac-btn"
-                :disabled="guardandoDiv"
-                @click="moverSeleccionados(f.factura)"
-              >
+              <Button size="sm" :disabled="guardandoDiv" @click="moverSeleccionados(f.factura)">
                 <LoaderCircleIcon v-if="guardandoDiv" class="size-3 animate-spin" />
                 <ArrowRightIcon v-else class="size-3" /> Mover seleccionados
-              </button>
+              </Button>
               <span class="text-xs text-muted-foreground">
                 Sin % se mueve el contrato completo. Con % (ej. <b>22.8066</b>) se mueve esa parte y
                 el resto queda en «{{ f.ppa || f.factura }}».
@@ -1212,33 +1288,33 @@ onMounted(load)
 
       <!-- ═══ 2. POR CÓDIGO SIC ═══ -->
       <template v-else-if="sub === 'sic'">
-        <div class="fac-card">
-          <div class="tblwrap">
-            <table class="dt">
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l">Código SIC (comercializador)</th>
-                  <th>Contratos</th>
-                  <th>Energía (kWh)</th>
-                  <th>Facturación</th>
+                  <th :class="TH_L">Código SIC (comercializador)</th>
+                  <th :class="TH_R">Contratos</th>
+                  <th :class="TH_R">Energía (kWh)</th>
+                  <th :class="TH_R">Facturación</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="g in porSic" :key="g.comprador">
-                  <td class="l">
-                    <span class="tag">{{ g.comprador }}</span>
+                  <td :class="TD_L">
+                    <span :class="TAG_CLS.primary">{{ g.comprador }}</span>
                   </td>
-                  <td>{{ g.contratos }}</td>
-                  <td>{{ fmtNum(g.kwh) }}</td>
-                  <td class="fw">{{ fmtCOP(g.facturacion) }}</td>
+                  <td :class="TD_R">{{ g.contratos }}</td>
+                  <td :class="TD_R">{{ fmtNum(g.kwh) }}</td>
+                  <td :class="[TD_R, 'font-bold text-foreground']">{{ fmtCOP(g.facturacion) }}</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <td class="l">Total</td>
-                  <td>{{ porSic.reduce((s, g) => s + g.contratos, 0) }}</td>
-                  <td>{{ fmtNum(res.kwh_total) }}</td>
-                  <td class="fw">{{ fmtCOP(res.facturacion_total || 0) }}</td>
+                  <td :class="TF_L">Total</td>
+                  <td :class="TF_R">{{ porSic.reduce((s, g) => s + g.contratos, 0) }}</td>
+                  <td :class="TF_R">{{ fmtNum(res.kwh_total) }}</td>
+                  <td :class="TF_R">{{ fmtCOP(res.facturacion_total || 0) }}</td>
                 </tr>
               </tfoot>
             </table>
@@ -1253,43 +1329,62 @@ onMounted(load)
             Compromiso (mínimo mensual del PPA) vs energía despachada · {{ formatPeriodo(periodo) }}
           </span>
           <div class="flex items-center gap-2">
-            <button
-              class="fac-upload"
-              :disabled="!cumpl.filas.length"
-              @click="exportarCumplimiento"
-            >
+            <Button size="sm" :disabled="!cumpl.filas.length" @click="exportarCumplimiento">
               <FileSpreadsheetIcon class="size-3" /> Exportar tabla
-            </button>
-            <button class="fac-upload" :disabled="exportandoCalc" @click="exportarCalculo">
+            </Button>
+            <Button size="sm" :disabled="exportandoCalc" @click="exportarCalculo">
               <LoaderCircleIcon v-if="exportandoCalc" class="size-3 animate-spin" />
               <FileSpreadsheetIcon v-else class="size-3" /> Exportar cálculo
-            </button>
+            </Button>
           </div>
         </div>
-        <div class="fac-kpis">
-          <div class="fac-kpi">
-            <p class="k">Cumplen el mínimo</p>
-            <p class="v">{{ cumpl.resumen.cumplen || 0 }} / {{ cumpl.resumen.ppas || 0 }}</p>
+        <div class="mt-1 mb-1.5 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-3">
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Cumplen el mínimo
+            </p>
+            <p class="mt-1 text-lg font-extrabold text-foreground tabular-nums">
+              {{ cumpl.resumen.cumplen || 0 }} / {{ cumpl.resumen.ppas || 0 }}
+            </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Por debajo del mínimo</p>
-            <p class="v" :class="{ 'text-destructive': cumpl.resumen.bajo_minimo }">
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Por debajo del mínimo
+            </p>
+            <p
+              class="mt-1 text-lg font-extrabold tabular-nums"
+              :class="cumpl.resumen.bajo_minimo ? 'text-destructive' : 'text-foreground'"
+            >
               {{ cumpl.resumen.bajo_minimo || 0 }}
             </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Energía incumplida</p>
-            <p class="v" :class="{ 'text-destructive': cumpl.resumen.faltante_kwh }">
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Energía incumplida
+            </p>
+            <p
+              class="mt-1 text-lg font-extrabold tabular-nums"
+              :class="cumpl.resumen.faltante_kwh ? 'text-destructive' : 'text-foreground'"
+            >
               {{ fmtNum(cumpl.resumen.faltante_kwh) }} kWh
             </p>
-            <p class="sub2">{{ fmtNum(cumpl.resumen.faltante_mwh) }} MWh</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">
+              {{ fmtNum(cumpl.resumen.faltante_mwh) }} MWh
+            </p>
           </div>
-          <div class="fac-kpi">
-            <p class="k">Valor a indemnizar</p>
-            <p class="v" :class="{ 'text-destructive': cumpl.resumen.valor_indemnizar_total_cop }">
+          <div class="rounded-lg border bg-card px-3.5 py-3">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Valor a indemnizar
+            </p>
+            <p
+              class="mt-1 text-lg font-extrabold tabular-nums"
+              :class="
+                cumpl.resumen.valor_indemnizar_total_cop ? 'text-destructive' : 'text-foreground'
+              "
+            >
               {{ fmtCOP(cumpl.resumen.valor_indemnizar_total_cop || 0) }}
             </p>
-            <p class="sub2">
+            <p class="mt-0.5 text-xs text-muted-foreground">
               bolsa
               {{
                 cumpl.resumen.precio_bolsa_cop_kwh != null
@@ -1299,58 +1394,66 @@ onMounted(load)
             </p>
           </div>
         </div>
-        <div class="fac-card">
-          <div class="tblwrap">
-            <table class="dt">
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l">Contrato (PPA)</th>
-                  <th class="l">Comerc.</th>
-                  <th>Mínimo (MWh)</th>
-                  <th>Despachado (MWh)</th>
-                  <th>Cumpl.</th>
-                  <th>Incumplido (kWh)</th>
-                  <th>Tarifa PPA ($/kWh)</th>
-                  <th>Bolsa ($/kWh)</th>
-                  <th>Diferencia ($/kWh)</th>
-                  <th>A indemnizar (COP)</th>
-                  <th class="l">Estado</th>
+                  <th :class="TH_L">Contrato (PPA)</th>
+                  <th :class="TH_L">Comerc.</th>
+                  <th :class="TH_R">Mínimo (MWh)</th>
+                  <th :class="TH_R">Despachado (MWh)</th>
+                  <th :class="TH_R">Cumpl.</th>
+                  <th :class="TH_R">Incumplido (kWh)</th>
+                  <th :class="TH_R">Tarifa PPA ($/kWh)</th>
+                  <th :class="TH_R">Bolsa ($/kWh)</th>
+                  <th :class="TH_R">Diferencia ($/kWh)</th>
+                  <th :class="TH_R">A indemnizar (COP)</th>
+                  <th :class="TH_L">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="f in cumpl.filas" :key="f.ppa ?? f.numero_contrato ?? undefined">
-                  <td class="l">
-                    <span class="proj">{{ f.ppa || f.numero_contrato || '—' }}</span>
-                    <span class="sub2">{{ f.proyecto || '' }}</span>
+                  <td :class="TD_L">
+                    <span class="font-semibold text-foreground">{{
+                      f.ppa || f.numero_contrato || '—'
+                    }}</span>
+                    <span class="block text-xs text-muted-foreground">{{ f.proyecto || '' }}</span>
                   </td>
-                  <td class="l">
-                    <span class="tag">{{ f.comprador || '—' }}</span>
+                  <td :class="TD_L">
+                    <span :class="TAG_CLS.primary">{{ f.comprador || '—' }}</span>
                   </td>
-                  <td>{{ f.minimo_mwh != null ? fmtNum(f.minimo_mwh) : '—' }}</td>
-                  <td class="fw">{{ fmtNum(f.despachado_mwh) }}</td>
+                  <td :class="TD_R">{{ f.minimo_mwh != null ? fmtNum(f.minimo_mwh) : '—' }}</td>
+                  <td :class="[TD_R, 'font-bold text-foreground']">
+                    {{ fmtNum(f.despachado_mwh) }}
+                  </td>
                   <td
-                    :class="
+                    :class="[
+                      TD_R,
                       f.estado === 'bajo_minimo'
                         ? 'font-semibold text-destructive'
-                        : 'font-semibold text-foreground'
-                    "
+                        : 'font-semibold text-foreground',
+                    ]"
                   >
                     {{ f.pct != null ? f.pct + '%' : '—' }}
                   </td>
                   <td
-                    :class="
+                    :class="[
+                      TD_R,
                       (f.faltante_kwh ?? 0) > 0
                         ? 'font-semibold text-destructive'
-                        : 'text-muted-foreground'
-                    "
+                        : 'text-muted-foreground',
+                    ]"
                   >
                     {{ (f.faltante_kwh ?? 0) > 0 ? fmtNum(f.faltante_kwh) : '—' }}
                   </td>
-                  <td>{{ f.tarifa_ppa_cop_kwh != null ? fmtNum(f.tarifa_ppa_cop_kwh) : '—' }}</td>
-                  <td>
+                  <td :class="TD_R">
+                    {{ f.tarifa_ppa_cop_kwh != null ? fmtNum(f.tarifa_ppa_cop_kwh) : '—' }}
+                  </td>
+                  <td :class="TD_R">
                     {{ f.precio_bolsa_cop_kwh != null ? fmtNum(f.precio_bolsa_cop_kwh) : '—' }}
                   </td>
-                  <td>
+                  <td :class="TD_R">
                     {{
                       f.tarifa_ppa_cop_kwh != null && f.precio_bolsa_cop_kwh != null
                         ? fmtNum(f.precio_bolsa_cop_kwh - f.tarifa_ppa_cop_kwh)
@@ -1358,11 +1461,12 @@ onMounted(load)
                     }}
                   </td>
                   <td
-                    :class="
+                    :class="[
+                      TD_R,
                       (f.valor_indemnizar_cop || 0) > 0
                         ? 'font-semibold text-destructive'
-                        : 'text-muted-foreground'
-                    "
+                        : 'text-muted-foreground',
+                    ]"
                     :title="
                       f.estado === 'bajo_minimo' && f.valor_indemnizar_cop == null
                         ? 'Falta el precio de bolsa del mes o la tarifa del PPA para calcularlo'
@@ -1379,20 +1483,20 @@ onMounted(load)
                           : '—'
                     }}
                   </td>
-                  <td class="l">
-                    <span class="tag" :class="cumplClaseEstado(f.estado)">{{
+                  <td :class="TD_L">
+                    <span :class="[TAG_BASE, cumplClaseEstado(f.estado)]">{{
                       MOTIVOS_CUMPL[f.estado ?? ''] || f.estado
                     }}</span>
                     <span
                       v-if="f.unidad_sospechosa"
-                      class="tag warn"
+                      :class="TAG_CLS.warn"
                       title="La escala mínimo vs despacho se ve rara; revisa unidades (kWh vs MWh)"
                       >⚠ revisar unidad</span
                     >
                   </td>
                 </tr>
                 <tr v-if="!cumpl.filas.length">
-                  <td class="l muted" colspan="11">
+                  <td :class="[TD_L, 'text-muted-foreground']" colspan="11">
                     Sin datos de cumplimiento para {{ formatPeriodo(periodo) }} (¿hay despacho
                     cargado?).
                   </td>
@@ -1400,7 +1504,7 @@ onMounted(load)
               </tbody>
             </table>
           </div>
-          <p class="fac-note">
+          <p class="flex items-center gap-1.5 px-3 pt-2.5 pb-0.5 text-xs text-muted-foreground">
             <InfoIcon class="size-3" /> Compromiso por contrato marco (PPA), en MWh; despacho
             convertido de kWh. La energía sin PPA (bolsa/UNGC) no entra aquí.
           </p>
@@ -1413,27 +1517,32 @@ onMounted(load)
           <span class="text-xs text-muted-foreground">
             <template v-if="despacho.contratos && despacho.contratos.length">
               {{ despacho.contratos.length }} contratos · {{ fmtMWh(despacho.kwh_total) }}
-              <span v-if="despacho.archivo" class="sub2">· {{ despacho.archivo }}</span>
+              <span v-if="despacho.archivo" class="block text-xs text-muted-foreground"
+                >· {{ despacho.archivo }}</span
+              >
             </template>
             <template v-else>Sin despacho cargado para este mes.</template>
           </span>
-          <button class="fac-upload" :disabled="subiendo" @click="pickDespacho">
+          <Button size="sm" :disabled="subiendo" @click="pickDespacho">
             <LoaderCircleIcon v-if="subiendo" class="size-3 animate-spin" />
             <UploadIcon v-else class="size-3" />
             {{ subiendo ? 'Subiendo…' : 'Subir despacho XM' }}
-          </button>
+          </Button>
         </div>
-        <div v-if="despacho.contratos && despacho.contratos.length" class="fac-card">
+        <div
+          v-if="despacho.contratos && despacho.contratos.length"
+          class="overflow-hidden rounded-xl border bg-card"
+        >
           <!-- Filtro: por contrato, vendedor o comprador. Despliega un contrato para ver
                su energía día a día (GET /facturacion/despacho/dias). -->
-          <div class="fac-desp-filtro">
+          <div class="flex flex-wrap items-center justify-between gap-2.5 border-b px-3 py-2.5">
             <span class="relative min-w-60 flex-1">
               <SearchIcon
                 class="absolute top-1/2 left-2.5 size-3 -translate-y-1/2 text-muted-foreground"
               />
               <input
                 v-model="despFiltro"
-                class="fac-in w-full pl-8"
+                class="w-35 w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
                 placeholder="Buscar contrato, vendedor o comprador…"
               />
             </span>
@@ -1441,62 +1550,79 @@ onMounted(load)
               {{ despachoFiltrado.length }} de {{ despacho.contratos.length }} contratos
             </span>
           </div>
-          <div class="tblwrap">
-            <table class="dt">
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l" />
-                  <th class="l">Contrato</th>
-                  <th class="l">Vendedor</th>
-                  <th class="l">Comprador</th>
-                  <th>Energía (kWh)</th>
+                  <th :class="TH_L" />
+                  <th :class="TH_L">Contrato</th>
+                  <th :class="TH_L">Vendedor</th>
+                  <th :class="TH_L">Comprador</th>
+                  <th :class="TH_R">Energía (kWh)</th>
                 </tr>
               </thead>
               <tbody>
                 <template v-for="d in despachoFiltrado" :key="d.contrato">
-                  <tr class="fac-desp-row" @click="toggleDias(d.contrato ?? '')">
-                    <td class="l">
+                  <tr class="cursor-pointer" @click="toggleDias(d.contrato ?? '')">
+                    <td :class="TD_L">
                       <ChevronDownIcon
                         v-if="diasAbiertos.has(d.contrato ?? '')"
                         class="size-2.5 text-muted-foreground"
                       />
                       <ChevronRightIcon v-else class="size-2.5 text-muted-foreground" />
                     </td>
-                    <td class="l">{{ d.contrato }}</td>
-                    <td class="l muted">{{ d.vendedor || '—' }}</td>
-                    <td class="l">
-                      <span class="tag">{{ d.comprador || '—' }}</span>
+                    <td :class="TD_L">{{ d.contrato }}</td>
+                    <td :class="[TD_L, 'text-muted-foreground']">{{ d.vendedor || '—' }}</td>
+                    <td :class="TD_L">
+                      <span :class="TAG_CLS.primary">{{ d.comprador || '—' }}</span>
                     </td>
-                    <td>{{ fmtNum(d.kwh) }}</td>
+                    <td :class="TD_R">{{ fmtNum(d.kwh) }}</td>
                   </tr>
-                  <tr v-if="diasAbiertos.has(d.contrato ?? '')" class="fac-desp-dias">
-                    <td />
-                    <td class="l" colspan="4">
-                      <div v-if="diasCargando(d.contrato ?? '')" class="muted py-1 text-xs">
+                  <tr v-if="diasAbiertos.has(d.contrato ?? '')" class="bg-muted">
+                    <td :class="TD_R" />
+                    <td :class="TD_L" colspan="4">
+                      <div
+                        v-if="diasCargando(d.contrato ?? '')"
+                        class="py-1 text-xs text-muted-foreground"
+                      >
                         <LoaderCircleIcon class="size-2.5 animate-spin" /> Cargando días…
                       </div>
-                      <div v-else-if="!diasDe(d.contrato ?? '').length" class="muted py-1 text-xs">
+                      <div
+                        v-else-if="!diasDe(d.contrato ?? '').length"
+                        class="py-1 text-xs text-muted-foreground"
+                      >
                         Sin detalle diario. Vuelve a subir el despacho de este mes para poblarlo.
                       </div>
-                      <div v-else class="fac-dias-grid">
-                        <div v-for="x in diasDe(d.contrato ?? '')" :key="x.fecha" class="fac-dia">
-                          <span class="fac-dia-f">{{ fmtDia(x.fecha ?? '') }}</span>
-                          <span class="fac-dia-k">{{ fmtNum(x.kwh) }}</span>
+                      <div
+                        v-else
+                        class="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-1.5 px-0.5 py-2"
+                      >
+                        <div
+                          v-for="x in diasDe(d.contrato ?? '')"
+                          :key="x.fecha"
+                          class="flex flex-col rounded-md border bg-card px-2 py-1.25"
+                        >
+                          <span class="text-xs font-semibold text-muted-foreground">{{
+                            fmtDia(x.fecha ?? '')
+                          }}</span>
+                          <span class="text-xs font-semibold text-foreground tabular-nums">{{
+                            fmtNum(x.kwh)
+                          }}</span>
                         </div>
                       </div>
                     </td>
                   </tr>
                 </template>
                 <tr v-if="!despachoFiltrado.length">
-                  <td class="l muted" colspan="5">
+                  <td :class="[TD_L, 'text-muted-foreground']" colspan="5">
                     Ningún contrato coincide con «{{ despFiltro }}».
                   </td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <td class="l" colspan="4">Total{{ despFiltro ? ' (filtrado)' : '' }}</td>
-                  <td>{{ fmtNum(totalFiltrado) }}</td>
+                  <td :class="TF_L" colspan="4">Total{{ despFiltro ? ' (filtrado)' : '' }}</td>
+                  <td :class="TF_R">{{ fmtNum(totalFiltrado) }}</td>
                 </tr>
               </tfoot>
             </table>
@@ -1506,7 +1632,7 @@ onMounted(load)
 
       <!-- ═══ 4. IPP ═══ -->
       <template v-else-if="sub === 'ipp'">
-        <div class="fac-card p-4">
+        <div class="overflow-hidden rounded-xl border bg-card p-4">
           <p class="mb-1 text-sm font-bold text-foreground">
             IPP del mes — {{ formatPeriodo(periodo) }}
           </p>
@@ -1516,25 +1642,27 @@ onMounted(load)
           </p>
           <div class="flex items-end gap-2">
             <div>
-              <label class="fac-lbl">Valor IPP</label>
+              <label class="mb-1 block text-xs font-semibold text-muted-foreground"
+                >Valor IPP</label
+              >
               <input
                 v-model.number="ippInput"
                 type="number"
                 step="0.01"
-                class="fac-in"
+                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="187.43"
               />
             </div>
-            <button class="fac-btn" :disabled="guardandoIpp || !ippInput" @click="guardarIpp">
+            <Button size="sm" :disabled="guardandoIpp || !ippInput" @click="guardarIpp">
               <LoaderCircleIcon v-if="guardandoIpp" class="size-3 animate-spin" />
               <SaveIcon v-else class="size-3" /> Guardar
-            </button>
+            </Button>
             <span v-if="ippActual" class="ml-1 text-xs text-success">Actual: {{ ippActual }}</span>
           </div>
         </div>
 
         <!-- Precio de bolsa: valoriza la energía sin PPA (UNGC) -->
-        <div class="fac-card p-4">
+        <div class="overflow-hidden rounded-xl border bg-card p-4">
           <p class="mb-1 text-sm font-bold text-foreground">
             Precio de bolsa — {{ formatPeriodo(periodo) }}
           </p>
@@ -1545,19 +1673,21 @@ onMounted(load)
           </p>
           <div class="flex flex-wrap items-end gap-2">
             <div>
-              <label class="fac-lbl">Precio bolsa ($/kWh)</label>
+              <label class="mb-1 block text-xs font-semibold text-muted-foreground"
+                >Precio bolsa ($/kWh)</label
+              >
               <input
                 v-model.number="bolsaInput"
                 type="number"
                 step="0.01"
-                class="fac-in"
+                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="$/kWh"
               />
             </div>
-            <button class="fac-btn" :disabled="guardandoBolsa" @click="guardarBolsa">
+            <Button size="sm" :disabled="guardandoBolsa" @click="guardarBolsa">
               <LoaderCircleIcon v-if="guardandoBolsa" class="size-3 animate-spin" />
               <SaveIcon v-else class="size-3" /> Guardar
-            </button>
+            </Button>
             <span
               class="ml-1 text-xs"
               :class="bolsa.vigente != null ? 'text-success' : 'text-destructive'"
@@ -1570,27 +1700,29 @@ onMounted(load)
             </span>
           </div>
         </div>
-        <div class="fac-card">
-          <p class="fac-note">Histórico</p>
-          <div class="tblwrap">
-            <table class="dt">
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <p class="flex items-center gap-1.5 px-3 pt-2.5 pb-0.5 text-xs text-muted-foreground">
+            Histórico
+          </p>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-xs [&_tbody_tr:hover]:bg-muted">
               <thead>
                 <tr>
-                  <th class="l">Período</th>
-                  <th>IPP</th>
+                  <th :class="TH_L">Período</th>
+                  <th :class="TH_R">IPP</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   v-for="r in ippHist"
                   :key="r.año + '-' + r.mes"
-                  :class="{ cur: r.año === añoMes.a && r.mes === añoMes.m }"
+                  :class="{ 'bg-primary/10!': r.año === añoMes.a && r.mes === añoMes.m }"
                 >
-                  <td class="l">{{ r.año }}-{{ String(r.mes).padStart(2, '0') }}</td>
-                  <td>{{ r.valor }}</td>
+                  <td :class="TD_L">{{ r.año }}-{{ String(r.mes).padStart(2, '0') }}</td>
+                  <td :class="TD_R">{{ r.valor }}</td>
                 </tr>
                 <tr v-if="!ippHist.length">
-                  <td class="l muted" colspan="2">Sin IPP cargado aún.</td>
+                  <td :class="[TD_L, 'text-muted-foreground']" colspan="2">Sin IPP cargado aún.</td>
                 </tr>
               </tbody>
             </table>
@@ -1639,429 +1771,12 @@ onMounted(load)
 </template>
 
 <style scoped>
-/* MIGRACIÓN — Fase 3: capa de tabla/tarjeta densa propia de este panel, sin
-   equivalente directo en shadcn. Los colores referencian los tokens del tema
-   (`var(--border)`, `var(--muted-foreground)`…) en vez de hex o de la paleta
-   `unergy-*` heredada del legacy — mismos valores que resuelven las utilidades
-   Tailwind `border`, `text-muted-foreground`, `bg-card`, etc. */
-.fac-subtabs {
-  display: inline-flex;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-}
-.fac-subtab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted-foreground);
-  border-radius: 7px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.fac-subtab.on {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-.fac-subtab:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-.fac-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-}
-.fac-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin: 4px 0 6px;
-}
-.fac-kpi {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.fac-kpi.hero {
-  background: color-mix(in oklab, var(--primary) 8%, transparent);
-  border-color: transparent;
-}
-.fac-kpi .k {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted-foreground);
-  font-weight: 600;
-}
-.fac-kpi.hero .k {
-  color: var(--primary);
-}
-.fac-kpi .v {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--foreground);
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
-}
-.fac-kpi.hero .v {
-  color: var(--primary);
-}
-.fac-kpi .sub2 {
-  font-size: 10.5px;
-  color: var(--muted-foreground);
-  margin-top: 2px;
-}
-.fac-note {
-  font-size: 11.5px;
-  color: var(--muted-foreground);
-  padding: 10px 12px 2px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tblwrap {
-  overflow-x: auto;
-}
-.dt {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-}
-.dt thead th {
-  text-align: right;
-  padding: 9px 12px;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted-foreground);
-  font-weight: 700;
-  border-bottom: 1px solid var(--border);
-  background: var(--muted);
-  white-space: nowrap;
-}
-.dt th.l {
-  text-align: left;
-}
-.dt tbody td {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.dt td.l {
-  text-align: left;
-  white-space: normal;
-}
-.dt tbody tr:hover {
-  background: var(--muted);
-}
-.dt tbody tr.cur {
-  background: color-mix(in oklab, var(--primary) 10%, transparent);
-}
-.dt tfoot td {
-  padding: 9px 12px;
-  border-top: 2px solid var(--primary);
-  background: color-mix(in oklab, var(--primary) 6%, transparent);
-  font-weight: 800;
-  color: var(--foreground);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.dt tfoot td.l {
-  text-align: left;
-}
-.proj {
-  font-weight: 600;
-  color: var(--foreground);
-}
-.sub2 {
-  display: block;
-  font-size: 10.5px;
-  color: var(--muted-foreground);
-}
-.muted {
-  color: var(--muted-foreground);
-}
-.fw {
-  font-weight: 700;
-  color: var(--foreground);
-}
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  padding: 1px 7px;
-  border-radius: 6px;
-  background: color-mix(in oklab, var(--primary) 10%, transparent);
-  color: var(--primary);
-  font-weight: 600;
-}
-.tag.warn {
-  background: color-mix(in oklab, var(--destructive) 10%, transparent);
-  color: var(--destructive);
-}
-.tag.warning {
-  background: color-mix(in oklab, var(--warning) 12%, transparent);
-  color: var(--warning);
-}
-.tag.ok {
-  background: color-mix(in oklab, var(--success) 12%, transparent);
-  color: var(--success);
-}
-
-.fac-upload,
-.fac-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  padding: 7px 14px;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.fac-upload:disabled,
-.fac-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.fac-lbl {
-  display: block;
-  font-size: 11px;
-  color: var(--muted-foreground);
-  font-weight: 600;
-  margin-bottom: 3px;
-}
-.fac-in {
-  width: 140px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  background: var(--background);
-  color: var(--foreground);
-}
-.fac-link {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-weight: 700;
-  font-size: 11px;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.fac-fac-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  cursor: pointer;
-  user-select: none;
-}
-.fac-fac-head:hover {
-  background: var(--muted);
-}
-.fac-fac-nums {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--foreground);
-  font-variant-numeric: tabular-nums;
-}
-.fac-fac-body {
-  border-top: 1px solid var(--border);
-  padding: 4px 0 0;
-}
-.fac-div-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--muted);
-  flex-wrap: wrap;
-}
-
-/* Reordenar: asa de arrastre + flechas apiladas, compactas para no crecer la fila. */
-.fac-ord {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.fac-ord-arrows {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.fac-grip {
-  display: flex;
-  align-items: center;
-  color: var(--muted-foreground);
-  cursor: grab;
-  padding: 2px 1px;
-  border-radius: 3px;
-}
-.fac-grip:hover {
-  color: var(--primary);
-  background: var(--muted);
-}
-.fac-grip:active {
-  cursor: grabbing;
-}
-.fac-grip svg {
-  font-size: 11px;
-}
-.fac-ord-b {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 11px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--muted-foreground);
-  cursor: pointer;
-  border-radius: 3px;
-}
-.fac-ord-b svg {
-  font-size: 9px;
-}
-.fac-ord-b:hover:not(:disabled) {
-  color: var(--primary);
-  background: var(--muted);
-}
-.fac-ord-b:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-/* Buscador de facturas */
-.fac-buscar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 2px 0 4px;
-  flex-wrap: wrap;
-}
-
-/* N° de factura como etiqueta no editable (clic = editar en ventana) */
-.fac-numtag {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 8px;
-  border-radius: 6px;
-  background: color-mix(in oklab, var(--success) 12%, transparent);
-  color: var(--success);
-  cursor: pointer;
-}
-.fac-numtag:hover {
-  background: color-mix(in oklab, var(--success) 20%, transparent);
-}
-
-/* Acciones compactas (mensaje / imagen) como iconos, para descongestionar el header */
-.fac-acts {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-.fac-icobtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--primary);
-  cursor: pointer;
-}
-.fac-icobtn:hover {
-  background: var(--muted);
-}
-.fac-icobtn svg {
-  font-size: 12px;
-}
-
-/* Despachos: filtro + día a día */
-.fac-desp-filtro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.fac-desp-row {
-  cursor: pointer;
-}
-.fac-desp-dias td {
-  background: var(--muted);
-}
-.fac-dias-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 6px;
-  padding: 8px 2px;
-}
-.fac-dia {
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 5px 8px;
-}
-.fac-dia-f {
-  font-size: 10px;
-  color: var(--muted-foreground);
-  font-weight: 600;
-}
-.fac-dia-k {
-  font-size: 12px;
-  color: var(--foreground);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Arrastre: la tarjeta que se mueve se atenúa y la de destino marca el borde por
-   donde va a entrar, para no soltar a ciegas. */
-.fac-drag {
-  opacity: 0.45;
-}
+/* Tarjeta que se arrastra: el borde por donde va a entrar marca el destino. Sombra
+   interior direccional, sin utilidad equivalente en Tailwind. */
 .fac-drop-antes {
   box-shadow: inset 0 3px 0 0 var(--primary);
 }
 .fac-drop-despues {
   box-shadow: inset 0 -3px 0 0 var(--primary);
-}
-
-/* Facturada: se atenúa sin ocultarla, y una barra lateral la hace evidente al barrer la lista. */
-.fac-emitida {
-  border-left: 3px solid var(--success);
-}
-.fac-emitida .proj {
-  color: var(--muted-foreground);
 }
 </style>
