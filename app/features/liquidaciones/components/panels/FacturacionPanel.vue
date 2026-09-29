@@ -847,7 +847,7 @@ onMounted(load)
           :class="{ on: sub === s.key }"
           @click="sub = s.key"
         >
-          <component :is="s.icon" class="size-[1em]" /><span>{{ s.label }}</span>
+          <component :is="s.icon" class="size-3" /><span>{{ s.label }}</span>
         </button>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -855,11 +855,11 @@ onMounted(load)
              fuera de las sub-pestañas, porque mezcla las dos fuentes y no
              pertenece a ninguna de ellas. -->
         <button class="fac-upload" :disabled="exportandoVs" @click="exportarVsDespachos">
-          <LoaderCircleIcon v-if="exportandoVs" class="size-[1em] animate-spin" />
-          <FileSpreadsheetIcon v-else class="size-[1em]" />
+          <LoaderCircleIcon v-if="exportandoVs" class="size-3 animate-spin" />
+          <FileSpreadsheetIcon v-else class="size-3" />
           Ingresos vs. despachos
         </button>
-        <span class="text-[11px] text-muted-foreground">
+        <span class="text-xs text-muted-foreground">
           Energía del despacho × tarifa PPA indexada por IPP · {{ formatPeriodo(periodo) }}
         </span>
       </div>
@@ -873,7 +873,7 @@ onMounted(load)
         v-if="!ippActual && sub !== 'ipp'"
         class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs text-warning"
       >
-        <TriangleAlertIcon class="size-[1em]" />
+        <TriangleAlertIcon class="size-3" />
         Falta el <b>IPP</b> de {{ formatPeriodo(periodo) }}. La facturación no se puede calcular sin
         él.
         <button class="fac-link ml-1" @click="sub = 'ipp'">Cargarlo →</button>
@@ -887,7 +887,7 @@ onMounted(load)
           v-if="res.sin_ppa"
           class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
-          <TriangleAlertIcon class="size-[1em]" />
+          <TriangleAlertIcon class="size-3" />
           <b>{{ res.sin_ppa }}</b> contrato{{ res.sin_ppa === 1 ? '' : 's' }} sin PPA marco: no se
           factura por esta vía hasta asociarle su PPA. Ver el detalle abajo.
         </div>
@@ -934,9 +934,7 @@ onMounted(load)
              se listaban los "sin PPA" y los otros casos no aparecían en ninguna parte. -->
         <div v-if="noFacturables.length" class="fac-card">
           <p class="fac-note">
-            <InfoIcon class="size-[1em]" /> No facturables por esta vía ({{
-              noFacturables.length
-            }}):
+            <InfoIcon class="size-3" /> No facturables por esta vía ({{ noFacturables.length }}):
           </p>
           <div class="tblwrap">
             <table class="dt">
@@ -971,13 +969,13 @@ onMounted(load)
       <!-- ═══ 1b. FACTURAS (por comercializador, divisibles) ═══ -->
       <template v-else-if="sub === 'facturas'">
         <div class="flex flex-wrap items-start justify-between gap-3">
-          <p class="min-w-[260px] flex-1 text-[11px] text-muted-foreground">
+          <p class="min-w-65 flex-1 text-xs text-muted-foreground">
             Una fila por factura (contrato marco / PPA). Puedes <b>dividir</b> una en sub-facturas:
             despliega, marca proyectos y ponles un nombre (con un <b>%</b> si solo va una parte del
             contrato). La tarifa no cambia (sale del PPA). Se guarda y aplica cada mes.
           </p>
           <div class="flex shrink-0 items-center gap-2">
-            <span class="text-[11px] text-muted-foreground">
+            <span class="text-xs text-muted-foreground">
               {{ res.emitidas || 0 }}/{{ res.facturas || porFactura.length }} facturadas
             </span>
             <button
@@ -986,8 +984,8 @@ onMounted(load)
               :disabled="guardandoOrden"
               @click="guardarOrden"
             >
-              <LoaderCircleIcon v-if="guardandoOrden" class="size-[1em] animate-spin" />
-              <SaveIcon v-else class="size-[1em]" /> Guardar orden
+              <LoaderCircleIcon v-if="guardandoOrden" class="size-3 animate-spin" />
+              <SaveIcon v-else class="size-3" /> Guardar orden
             </button>
             <button class="fac-link" @click="restablecerOrden">Orden por valor</button>
           </div>
@@ -995,9 +993,9 @@ onMounted(load)
 
         <!-- Buscador: por planta / PPA o por número de factura (para ubicar una rápido) -->
         <div class="fac-buscar">
-          <span class="relative min-w-[240px] flex-1">
+          <span class="relative min-w-60 flex-1">
             <SearchIcon
-              class="absolute top-1/2 left-[11px] size-[1em] -translate-y-1/2 text-muted-foreground"
+              class="absolute top-1/2 left-2.75 size-3 -translate-y-1/2 text-muted-foreground"
             />
             <input
               v-model="facFiltro"
@@ -1006,7 +1004,7 @@ onMounted(load)
             />
           </span>
           <button v-if="facFiltro" class="fac-link" @click="facFiltro = ''">Limpiar</button>
-          <span v-if="filtroActivo" class="text-[11px] text-muted-foreground">
+          <span v-if="filtroActivo" class="text-xs text-muted-foreground">
             {{ porFacturaMostradas.length }} de {{ porFactura.length }}
           </span>
         </div>
@@ -1063,7 +1061,7 @@ onMounted(load)
                     @dragstart="iniciarArrastre(i, $event)"
                     @dragend="finArrastre"
                   >
-                    <MenuIcon class="size-[1em]" />
+                    <MenuIcon class="size-3" />
                   </span>
                 </GTooltipTrigger>
                 <GTooltipContent side="top">Arrastra para reordenar</GTooltipContent>
@@ -1075,7 +1073,7 @@ onMounted(load)
                   title="Subir"
                   @click="moverFactura(i, -1)"
                 >
-                  <ChevronUpIcon class="size-[1em]" />
+                  <ChevronUpIcon class="size-3" />
                 </button>
                 <button
                   class="fac-ord-b"
@@ -1083,7 +1081,7 @@ onMounted(load)
                   title="Bajar"
                   @click="moverFactura(i, 1)"
                 >
-                  <ChevronDownIcon class="size-[1em]" />
+                  <ChevronDownIcon class="size-3" />
                 </button>
               </span>
             </span>
@@ -1094,30 +1092,11 @@ onMounted(load)
               @click.stop
               @change="onCheck(f, $event)"
             />
-            <ChevronDownIcon
-              v-if="abiertas.has(f.factura)"
-              class="size-[1em] text-xs text-muted-foreground"
-            />
-            <ChevronRightIcon v-else class="size-[1em] text-xs text-muted-foreground" />
+            <ChevronDownIcon v-if="abiertas.has(f.factura)" class="size-3 text-muted-foreground" />
+            <ChevronRightIcon v-else class="size-3 text-muted-foreground" />
             <span class="proj">{{ f.factura }}</span>
-            <span
-              v-if="f.sin_ppa"
-              class="tag"
-              style="
-                background: var(--warning-muted, rgba(234, 179, 8, 0.12));
-                color: var(--warning);
-              "
-              >sin PPA · XM (bolsa)</span
-            >
-            <span
-              v-else-if="f.personalizada"
-              class="tag"
-              style="
-                background: var(--success-muted, rgba(34, 197, 94, 0.12));
-                color: var(--success);
-              "
-              >dividida</span
-            >
+            <span v-if="f.sin_ppa" class="tag warning">sin PPA · XM (bolsa)</span>
+            <span v-else-if="f.personalizada" class="tag ok">dividida</span>
             <span v-else class="tag">{{ f.ppa || '—' }}</span>
             <!-- Número de factura: etiqueta no editable; el lápiz abre la ventana para cambiarlo. -->
             <span
@@ -1126,36 +1105,30 @@ onMounted(load)
               title="Editar el N° de factura"
               @click.stop="abrirNumero(f)"
             >
-              <HashIcon class="size-[9px]" /> {{ f.numero_factura }}
+              <HashIcon class="size-2.25" /> {{ f.numero_factura }}
             </span>
             <span
               v-else-if="f.emitida"
-              class="tag cursor-pointer"
-              style="
-                background: var(--success-muted, rgba(34, 197, 94, 0.12));
-                color: var(--success);
-              "
+              class="tag ok cursor-pointer"
               title="Agregar el N° de factura"
               @click.stop="abrirNumero(f)"
               >facturada · N°?</span
             >
             <span class="fac-acts" @click.stop>
               <button class="fac-icobtn" title="Copiar el mensaje" @click="copiarMensaje(f)">
-                <CheckIcon v-if="copiada === f.factura" class="size-[1em]" />
-                <CopyIcon v-else class="size-[1em]" />
+                <CheckIcon v-if="copiada === f.factura" class="size-3" />
+                <CopyIcon v-else class="size-3" />
               </button>
               <button class="fac-icobtn" title="Copiar como imagen" @click="copiarImagen(f)">
-                <CheckIcon v-if="imagenId === f.factura" class="size-[1em]" />
-                <ImageIcon v-else class="size-[1em]" />
+                <CheckIcon v-if="imagenId === f.factura" class="size-3" />
+                <ImageIcon v-else class="size-3" />
               </button>
             </span>
             <span class="fac-fac-nums ml-auto">
               <span class="muted">{{ f.contratos }} contr</span>
               <span class="muted">· {{ fmtNum(f.kwh) }} kWh</span>
               <span class="muted">· tarifa {{ tarifaFacturaTxt(f) }}</span>
-              <b v-if="f.sin_ppa && !f.facturacion" class="muted" style="font-weight: 600"
-                >sin precio bolsa</b
-              >
+              <b v-if="f.sin_ppa && !f.facturacion" class="muted font-semibold">sin precio bolsa</b>
               <b v-else>{{ fmtCOP(f.facturacion) }}</b>
             </span>
           </div>
@@ -1164,13 +1137,13 @@ onMounted(load)
               <table class="dt">
                 <thead>
                   <tr>
-                    <th class="l" style="width: 34px" />
+                    <th class="l" />
                     <th class="l">Proyecto</th>
                     <th class="l">Contrato</th>
                     <th>Tarifa</th>
                     <th>Energía (kWh)</th>
                     <th>Facturación</th>
-                    <th style="width: 60px" />
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -1209,8 +1182,7 @@ onMounted(load)
             <div class="fac-div-row">
               <input
                 v-model="nuevoNombre[f.factura]"
-                class="fac-in"
-                style="width: 220px"
+                class="fac-in flex-1"
                 placeholder="Nombre de la nueva factura (ej. Terpel 2 PA)"
               />
               <!-- % opcional: si va solo una parte del contrato, el resto queda en el
@@ -1218,7 +1190,6 @@ onMounted(load)
               <input
                 v-model="nuevoPct[f.factura]"
                 class="fac-in"
-                style="width: 110px"
                 placeholder="% (opcional)"
                 inputmode="decimal"
               />
@@ -1227,10 +1198,10 @@ onMounted(load)
                 :disabled="guardandoDiv"
                 @click="moverSeleccionados(f.factura)"
               >
-                <LoaderCircleIcon v-if="guardandoDiv" class="size-[1em] animate-spin" />
-                <ArrowRightIcon v-else class="size-[1em]" /> Mover seleccionados
+                <LoaderCircleIcon v-if="guardandoDiv" class="size-3 animate-spin" />
+                <ArrowRightIcon v-else class="size-3" /> Mover seleccionados
               </button>
-              <span class="text-[10px] text-muted-foreground">
+              <span class="text-xs text-muted-foreground">
                 Sin % se mueve el contrato completo. Con % (ej. <b>22.8066</b>) se mueve esa parte y
                 el resto queda en «{{ f.ppa || f.factura }}».
               </span>
@@ -1278,7 +1249,7 @@ onMounted(load)
       <!-- ═══ CUMPLIMIENTO (compromiso vs despacho) ═══ -->
       <template v-else-if="sub === 'cumplimiento'">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <span class="text-[11px] text-muted-foreground">
+          <span class="text-xs text-muted-foreground">
             Compromiso (mínimo mensual del PPA) vs energía despachada · {{ formatPeriodo(periodo) }}
           </span>
           <div class="flex items-center gap-2">
@@ -1287,11 +1258,11 @@ onMounted(load)
               :disabled="!cumpl.filas.length"
               @click="exportarCumplimiento"
             >
-              <FileSpreadsheetIcon class="size-[1em]" /> Exportar tabla
+              <FileSpreadsheetIcon class="size-3" /> Exportar tabla
             </button>
             <button class="fac-upload" :disabled="exportandoCalc" @click="exportarCalculo">
-              <LoaderCircleIcon v-if="exportandoCalc" class="size-[1em] animate-spin" />
-              <FileSpreadsheetIcon v-else class="size-[1em]" /> Exportar cálculo
+              <LoaderCircleIcon v-if="exportandoCalc" class="size-3 animate-spin" />
+              <FileSpreadsheetIcon v-else class="size-3" /> Exportar cálculo
             </button>
           </div>
         </div>
@@ -1414,11 +1385,7 @@ onMounted(load)
                     }}</span>
                     <span
                       v-if="f.unidad_sospechosa"
-                      class="tag"
-                      style="
-                        background: var(--destructive-muted, rgba(239, 68, 68, 0.12));
-                        color: var(--destructive);
-                      "
+                      class="tag warn"
                       title="La escala mínimo vs despacho se ve rara; revisa unidades (kWh vs MWh)"
                       >⚠ revisar unidad</span
                     >
@@ -1434,7 +1401,7 @@ onMounted(load)
             </table>
           </div>
           <p class="fac-note">
-            <InfoIcon class="size-[1em]" /> Compromiso por contrato marco (PPA), en MWh; despacho
+            <InfoIcon class="size-3" /> Compromiso por contrato marco (PPA), en MWh; despacho
             convertido de kWh. La energía sin PPA (bolsa/UNGC) no entra aquí.
           </p>
         </div>
@@ -1451,8 +1418,8 @@ onMounted(load)
             <template v-else>Sin despacho cargado para este mes.</template>
           </span>
           <button class="fac-upload" :disabled="subiendo" @click="pickDespacho">
-            <LoaderCircleIcon v-if="subiendo" class="size-[1em] animate-spin" />
-            <UploadIcon v-else class="size-[1em]" />
+            <LoaderCircleIcon v-if="subiendo" class="size-3 animate-spin" />
+            <UploadIcon v-else class="size-3" />
             {{ subiendo ? 'Subiendo…' : 'Subir despacho XM' }}
           </button>
         </div>
@@ -1460,18 +1427,17 @@ onMounted(load)
           <!-- Filtro: por contrato, vendedor o comprador. Despliega un contrato para ver
                su energía día a día (GET /facturacion/despacho/dias). -->
           <div class="fac-desp-filtro">
-            <span class="relative">
+            <span class="relative min-w-60 flex-1">
               <SearchIcon
-                class="absolute top-1/2 left-2.5 size-[1em] -translate-y-1/2 text-muted-foreground"
+                class="absolute top-1/2 left-2.5 size-3 -translate-y-1/2 text-muted-foreground"
               />
               <input
                 v-model="despFiltro"
-                class="fac-in pl-8"
-                style="width: 280px"
+                class="fac-in w-full pl-8"
                 placeholder="Buscar contrato, vendedor o comprador…"
               />
             </span>
-            <span class="text-[11px] text-muted-foreground">
+            <span class="text-xs text-muted-foreground">
               {{ despachoFiltrado.length }} de {{ despacho.contratos.length }} contratos
             </span>
           </div>
@@ -1479,7 +1445,7 @@ onMounted(load)
             <table class="dt">
               <thead>
                 <tr>
-                  <th class="l" style="width: 30px" />
+                  <th class="l" />
                   <th class="l">Contrato</th>
                   <th class="l">Vendedor</th>
                   <th class="l">Comprador</th>
@@ -1492,9 +1458,9 @@ onMounted(load)
                     <td class="l">
                       <ChevronDownIcon
                         v-if="diasAbiertos.has(d.contrato ?? '')"
-                        class="size-[10px] text-muted-foreground"
+                        class="size-2.5 text-muted-foreground"
                       />
-                      <ChevronRightIcon v-else class="size-[10px] text-muted-foreground" />
+                      <ChevronRightIcon v-else class="size-2.5 text-muted-foreground" />
                     </td>
                     <td class="l">{{ d.contrato }}</td>
                     <td class="l muted">{{ d.vendedor || '—' }}</td>
@@ -1506,13 +1472,10 @@ onMounted(load)
                   <tr v-if="diasAbiertos.has(d.contrato ?? '')" class="fac-desp-dias">
                     <td />
                     <td class="l" colspan="4">
-                      <div v-if="diasCargando(d.contrato ?? '')" class="muted py-1 text-[11px]">
-                        <LoaderCircleIcon class="size-[10px] animate-spin" /> Cargando días…
+                      <div v-if="diasCargando(d.contrato ?? '')" class="muted py-1 text-xs">
+                        <LoaderCircleIcon class="size-2.5 animate-spin" /> Cargando días…
                       </div>
-                      <div
-                        v-else-if="!diasDe(d.contrato ?? '').length"
-                        class="muted py-1 text-[11px]"
-                      >
+                      <div v-else-if="!diasDe(d.contrato ?? '').length" class="muted py-1 text-xs">
                         Sin detalle diario. Vuelve a subir el despacho de este mes para poblarlo.
                       </div>
                       <div v-else class="fac-dias-grid">
@@ -1547,7 +1510,7 @@ onMounted(load)
           <p class="mb-1 text-sm font-bold text-foreground">
             IPP del mes — {{ formatPeriodo(periodo) }}
           </p>
-          <p class="mb-3 text-[11px] text-muted-foreground">
+          <p class="mb-3 text-xs text-muted-foreground">
             Índice de Precios al Productor (DANE). Numerador de la indexación de las tarifas de
             energía.
           </p>
@@ -1563,12 +1526,10 @@ onMounted(load)
               />
             </div>
             <button class="fac-btn" :disabled="guardandoIpp || !ippInput" @click="guardarIpp">
-              <LoaderCircleIcon v-if="guardandoIpp" class="size-[1em] animate-spin" />
-              <SaveIcon v-else class="size-[1em]" /> Guardar
+              <LoaderCircleIcon v-if="guardandoIpp" class="size-3 animate-spin" />
+              <SaveIcon v-else class="size-3" /> Guardar
             </button>
-            <span v-if="ippActual" class="ml-1 text-[11px] text-success"
-              >Actual: {{ ippActual }}</span
-            >
+            <span v-if="ippActual" class="ml-1 text-xs text-success">Actual: {{ ippActual }}</span>
           </div>
         </div>
 
@@ -1577,7 +1538,7 @@ onMounted(load)
           <p class="mb-1 text-sm font-bold text-foreground">
             Precio de bolsa — {{ formatPeriodo(periodo) }}
           </p>
-          <p class="mb-3 text-[11px] text-muted-foreground">
+          <p class="mb-3 text-xs text-muted-foreground">
             Valoriza la energía de los contratos <b>sin PPA (UNGC / bolsa)</b>.
             <b>Lo calculas tú</b>
             (promedio horario→diario del mes) y lo cargas cada mes; la plataforma no lo calcula.
@@ -1594,11 +1555,11 @@ onMounted(load)
               />
             </div>
             <button class="fac-btn" :disabled="guardandoBolsa" @click="guardarBolsa">
-              <LoaderCircleIcon v-if="guardandoBolsa" class="size-[1em] animate-spin" />
-              <SaveIcon v-else class="size-[1em]" /> Guardar
+              <LoaderCircleIcon v-if="guardandoBolsa" class="size-3 animate-spin" />
+              <SaveIcon v-else class="size-3" /> Guardar
             </button>
             <span
-              class="ml-1 text-[11px]"
+              class="ml-1 text-xs"
               :class="bolsa.vigente != null ? 'text-success' : 'text-destructive'"
             >
               {{
@@ -1849,6 +1810,14 @@ onMounted(load)
 .tag.warn {
   background: color-mix(in oklab, var(--destructive) 10%, transparent);
   color: var(--destructive);
+}
+.tag.warning {
+  background: color-mix(in oklab, var(--warning) 12%, transparent);
+  color: var(--warning);
+}
+.tag.ok {
+  background: color-mix(in oklab, var(--success) 12%, transparent);
+  color: var(--success);
 }
 
 .fac-upload,

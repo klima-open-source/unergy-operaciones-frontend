@@ -386,17 +386,11 @@ onMounted(load)
           class="flex items-center justify-between rounded-xl border bg-card p-4"
         >
           <div class="min-w-0">
-            <p
-              class="truncate text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-            >
+            <p class="truncate text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               {{ kpi.label }}
             </p>
             <p class="mt-1 truncate text-xl font-bold text-foreground">{{ kpi.value }}</p>
-            <p
-              v-if="kpi.sub"
-              class="mt-0.5 text-[11px]"
-              :class="kpi.subColorClass || 'text-primary'"
-            >
+            <p v-if="kpi.sub" class="mt-0.5 text-xs" :class="kpi.subColorClass || 'text-primary'">
               {{ kpi.sub }}
             </p>
           </div>
@@ -423,8 +417,8 @@ onMounted(load)
               </div>
               <div class="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
-                  class="h-full rounded-full bg-primary"
-                  :style="{ width: barPct(t.ingresos) + '%' }"
+                  class="h-full w-(--w) rounded-full bg-primary"
+                  :style="{ '--w': barPct(t.ingresos) + '%' }"
                 />
               </div>
             </div>
@@ -442,20 +436,16 @@ onMounted(load)
               <GTooltip v-for="s in pipeline" :key="s.estado">
                 <GTooltipTrigger as-child>
                   <div
-                    class="h-full"
-                    :style="{ width: (s.count / totalMes) * 100 + '%', background: s.color }"
+                    class="h-full w-(--w) bg-(--c)"
+                    :style="{ '--w': (s.count / totalMes) * 100 + '%', '--c': s.color }"
                   />
                 </GTooltipTrigger>
                 <GTooltipContent side="top">{{ s.label }}: {{ s.count }}</GTooltipContent>
               </GTooltip>
             </div>
             <div class="flex flex-wrap gap-x-4 gap-y-1 pt-2">
-              <span
-                v-for="s in pipeline"
-                :key="s.estado"
-                class="flex items-center gap-1.5 text-[11px]"
-              >
-                <span class="size-2.5 shrink-0 rounded-full" :style="{ background: s.color }" />
+              <span v-for="s in pipeline" :key="s.estado" class="flex items-center gap-1.5 text-xs">
+                <span class="size-2.5 shrink-0 rounded-full bg-(--c)" :style="{ '--c': s.color }" />
                 <span class="text-foreground">{{ s.label }}</span>
                 <span class="font-mono font-semibold text-muted-foreground">{{ s.count }}</span>
               </span>
@@ -471,9 +461,9 @@ onMounted(load)
       <div class="rounded-xl border bg-card p-4">
         <div class="mb-3 flex items-center justify-between">
           <h3 class="text-sm font-bold text-foreground">Tendencia (últimos 12 meses)</h3>
-          <span class="text-[11px] text-muted-foreground">Ingresos · Costos · Valor a pagar</span>
+          <span class="text-xs text-muted-foreground">Ingresos · Costos · Valor a pagar</span>
         </div>
-        <div style="height: 240px">
+        <div class="h-60">
           <Line v-if="tieneTendencia" :data="trendData" :options="trendOptions" />
           <p v-else class="py-8 text-center text-xs text-muted-foreground">
             Sin datos históricos del Panel suficientes.
@@ -487,10 +477,9 @@ onMounted(load)
           <h3 class="text-sm font-bold text-foreground">
             Panel Contable de {{ formatPeriodo(periodo) }}
           </h3>
-          <span
-            class="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"
-            >{{ proyectos.length }}</span
-          >
+          <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{
+            proyectos.length
+          }}</span>
         </div>
 
         <div v-if="!proyectos.length" class="py-6 text-center text-xs text-muted-foreground">
@@ -528,7 +517,7 @@ onMounted(load)
                     {{ p.tipo_proyecto || '—' }}
                   </td>
                   <td class="px-3 py-2">
-                    <GBadge :color="estadoFlujoPanel(p, tipo).sev" class="text-[10px]">{{
+                    <GBadge :color="estadoFlujoPanel(p, tipo).sev" class="text-xs">{{
                       estadoFlujoPanel(p, tipo).label
                     }}</GBadge>
                   </td>
@@ -555,7 +544,7 @@ onMounted(load)
                 </tr>
                 <tr v-if="expandidos.has(p.panel_id ?? -1)" class="border-b bg-muted/10">
                   <td colspan="8" class="px-4 py-3">
-                    <p class="mb-2 text-[11px] font-semibold text-muted-foreground">
+                    <p class="mb-2 text-xs font-semibold text-muted-foreground">
                       Por inversionista
                     </p>
                     <table class="w-full text-xs">

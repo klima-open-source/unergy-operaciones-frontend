@@ -129,7 +129,7 @@ onMounted(load)
         <span class="text-sm font-bold text-foreground"
           >Preliquidación vs Oficial · {{ formatPeriodo(periodo) }}</span
         >
-        <span class="text-[11px] text-muted-foreground"
+        <span class="text-xs text-muted-foreground"
           >La diferencia (oficial − preliquidación) es lo que se liquida oficialmente</span
         >
       </div>
@@ -148,7 +148,7 @@ onMounted(load)
         <!-- Resumen global -->
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div v-for="k in kpis" :key="k.label" class="rounded-xl border bg-card p-4">
-            <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               {{ k.label }}
             </p>
             <p class="mt-1 text-xl font-bold" :class="k.colorClass">
@@ -218,7 +218,7 @@ onMounted(load)
                 :key="inv.proyecto_inversionista_id || inv.nombre"
                 class="mb-3"
               >
-                <p class="mb-1 text-[11px] font-semibold text-muted-foreground">
+                <p class="mb-1 text-xs font-semibold text-muted-foreground">
                   {{ inv.nombre }} · {{ (inv.porcentaje ?? 0).toFixed(2) }}%
                 </p>
                 <DiferenciaTabla

@@ -50,7 +50,7 @@ function diffTextClass(v: number | null | undefined): string {
             <tr>
               <td
                 colspan="5"
-                class="px-2 pt-2 pb-0.5 text-[10px] font-bold tracking-wide text-primary uppercase"
+                class="px-2 pt-2 pb-0.5 text-xs font-bold tracking-wide text-primary uppercase"
               >
                 {{ g.label }}
               </td>
