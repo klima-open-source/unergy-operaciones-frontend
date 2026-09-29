@@ -64,28 +64,6 @@ export interface RespuestaGeneracionLegacy {
   [clave: string]: unknown
 }
 
-/** Datos de un inversor tal como los expone `getFMOData` — forma variable según el fabricante/plataforma de monitoreo. */
-export interface InversorFmoLegacy {
-  name?: string
-  nombre?: string
-  inverter_name?: string
-  sn?: string
-  serial_number?: string
-  serial?: string
-  nominal_power?: number | string
-  capacity?: number | string
-  potencia_nominal?: number | string
-  power_kw?: number | string
-  status?: string | number
-  estado?: string | number
-  alarm_status?: string | number
-  active_power?: number | string
-  power?: number | string
-  potencia?: number | string
-  pac?: number | string
-  [clave: string]: unknown
-}
-
 /** El contrato O&M asociado al proyecto, tal como lo devuelve `getFMOData`. */
 export interface ContratoFmoLegacy {
   contratista?: string
@@ -95,10 +73,10 @@ export interface ContratoFmoLegacy {
   [clave: string]: unknown
 }
 
-/** `getFMOData`: datos de inversores en vivo, forma variable. */
+/** `getFMOData`: el contrato O&M y los inversores en vivo (SolarView). */
 export interface RespuestaFmoLegacy {
   contrato?: ContratoFmoLegacy | null
-  inverters?: InversorFmoLegacy[]
+  inverters?: InversorInformeOm[]
   inverters_error?: string
   [clave: string]: unknown
 }
@@ -312,10 +290,17 @@ export interface FichaInformeOm {
   [clave: string]: unknown
 }
 
+/**
+ * Un inversor en vivo, de SolarView (`inversores_en_vivo.inversores()` en el
+ * backend): lo muestran el informe de puesta en marcha y el informe mensual.
+ */
 export interface InversorInformeOm {
   id: number
   nombre?: string
+  /** Aproximada desde el nombre del modelo ("330KTL…" → 330). */
   potencia_nominal_kw?: number | null
+  /** Potencia actual. */
+  power_kw?: number | null
   state?: string | null
   [clave: string]: unknown
 }

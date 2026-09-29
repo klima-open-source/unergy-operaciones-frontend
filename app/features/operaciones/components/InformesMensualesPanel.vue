@@ -1799,28 +1799,21 @@ function buildFMOPage(
   if (inverters.length) {
     invTableHtml =
       '<table class="fmo-inv-table"><thead><tr>' +
-      '<th>#</th><th>NOMBRE / S/N</th><th>CAPACIDAD</th><th>ESTADO ACTUAL</th><th>POTENCIA</th></tr></thead><tbody>'
+      '<th>#</th><th>NOMBRE</th><th>CAPACIDAD</th><th>ESTADO ACTUAL</th><th>POTENCIA</th></tr></thead><tbody>'
     inverters.forEach((inv, i) => {
-      const name =
-        inv.name ||
-        inv.nombre ||
-        inv.inverter_name ||
-        inv.sn ||
-        `INV-${String(i + 1).padStart(2, '0')}`
-      const sn = inv.serial_number || inv.sn || inv.serial || '—'
-      const cap = inv.nominal_power || inv.capacity || inv.potencia_nominal || inv.power_kw
+      const name = inv.nombre || `INV-${String(i + 1).padStart(2, '0')}`
+      const cap = inv.potencia_nominal_kw
       const capStr = cap != null ? `${cap} kWp` : '—'
-      const status = inv.status || inv.estado || inv.alarm_status || '—'
-      const statusOk =
-        String(status)
-          .toLowerCase()
-          .match(/normal|ok|^0$/) || status === 0
-      const power = inv.active_power || inv.power || inv.potencia || inv.pac
+      const status = inv.state || '—'
+      // "Grid-connected" es el estado sano de SolarView: el mismo que
+      // `SoleniumChecker` da por bueno en las alarmas.
+      const statusOk = /grid-connected|normal|ok/i.test(String(status))
+      const power = inv.power_kw
       const powerStr = power != null ? `${(parseFloat(String(power)) || 0).toFixed(1)} kW` : '—'
       invTableHtml +=
         '<tr>' +
         `<td style="text-align:center;font-family:monospace;font-weight:700">${i + 1}</td>` +
-        `<td><b>${esc(name)}</b>${sn !== '—' ? `<br><span style="font-size:9px;color:#888">${esc(sn)}</span>` : ''}</td>` +
+        `<td><b>${esc(name)}</b></td>` +
         `<td style="text-align:center">${esc(capStr)}</td>` +
         `<td class="${statusOk ? 'fmo-status-ok' : 'fmo-status-err'}">${esc(String(status))}</td>` +
         `<td style="text-align:right;font-family:monospace">${esc(powerStr)}</td></tr>`
