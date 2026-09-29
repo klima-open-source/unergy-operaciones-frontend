@@ -13,8 +13,8 @@ import type {
   PayloadCrearExclusion,
   PayloadGuardarCurva,
   ResultadoEnvioReporteEnergia,
-  ResumenHistoricoReporteEnergia,
   ResumenReporteEnergiaDia,
+  ResumenVentanaReporteEnergia,
   RespuestaCargaExcelTerceros,
 } from '~/features/fronteras/types'
 import { BaseService } from '~/core/service'
@@ -23,7 +23,7 @@ const BASE = '/reporte-energia'
 
 const RUTAS = {
   resumen: `${BASE}/resumen`,
-  resumenHistorico: `${BASE}/resumen-historico`,
+  resumenVentana: `${BASE}/resumen-historico`,
   fronteras: `${BASE}/fronteras`,
   frontera: (id: number) => `${BASE}/fronteras/${id}`,
   exclusiones: (id: number) => `${BASE}/fronteras/${id}/exclusiones`,
@@ -49,14 +49,9 @@ export class ReporteEnergiaService extends BaseService {
     return this.get<ResumenReporteEnergiaDia>(RUTAS.resumen, { query: { fecha } })
   }
 
-  /** `fronteraId` recorta la vista a una sola frontera; omitirlo las trae todas. */
-  obtenerResumenHistorico(
-    desde: string,
-    hasta: string,
-    fronteraId?: number | null,
-  ): Promise<ResumenHistoricoReporteEnergia> {
-    return this.get<ResumenHistoricoReporteEnergia>(RUTAS.resumenHistorico, {
-      query: fronteraId ? { desde, hasta, frontera_id: fronteraId } : { desde, hasta },
+  obtenerResumenVentana(desde: string, hasta: string): Promise<ResumenVentanaReporteEnergia> {
+    return this.get<ResumenVentanaReporteEnergia>(RUTAS.resumenVentana, {
+      query: { desde, hasta },
     })
   }
 
