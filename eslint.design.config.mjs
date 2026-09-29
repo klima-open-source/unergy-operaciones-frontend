@@ -23,7 +23,20 @@ export default defineConfig([
       // Patrones del sidebar de shadcn (SiteHeader, SidebarInset) sin equivalente en la escala.
       'shadcn/no-arbitrary-values': [
         'error',
-        { allow: ['transition-[width,height]', 'h-[calc(100%-1rem)]'] },
+        {
+          allow: [
+            'transition-[width,height]',
+            'h-[calc(100%-1rem)]',
+            // Grids que reparten el ancho por contenido (auto-fit/minmax): ui/ ya usa grid-cols-[minmax(...)].
+            'md:grid-cols-[minmax(18rem,22rem)_1fr]',
+            'grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]',
+            'grid-cols-[repeat(auto-fill,minmax(6rem,1fr))]',
+            // Alturas máximas relativas al viewport (scroll interno de tableros y matrices).
+            'max-h-[calc(100dvh-14rem)]',
+            'lg:max-h-[calc(100dvh-20rem)]',
+            'max-h-[calc(100vh-21.25rem)]',
+          ],
+        },
       ],
       'shadcn/no-raw-colors': 'error',
       'shadcn/no-inline-styles': 'error',
