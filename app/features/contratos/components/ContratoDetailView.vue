@@ -11,7 +11,7 @@
       <template #acciones>
         <!-- Atajo al contrato: el enlace se guarda en la pestaña Datos -->
         <a v-if="enlaceContrato" :href="enlaceContrato" target="_blank" rel="noopener noreferrer"
-          class="cd-head-link" v-tooltip.bottom="'Abrir el contrato en Drive'">
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-warning/30 bg-warning/10 text-xs font-semibold text-warning transition-colors duration-150 hover:bg-warning/20" v-tooltip.bottom="'Abrir el contrato en Drive'">
           <ExternalLinkIcon class="size-4" />Contrato
         </a>
         <Button label="Editar contrato" severity="secondary" outlined size="small" @click="abrirEdicionCompleta">
@@ -24,46 +24,46 @@
 
         <!-- ── Resumen: lo que se quiere saber de un vistazo ─────────── -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat bg-(--bg)! border-(--bd)!"
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3 bg-(--bg)! border-(--bd)!"
             :style="{ '--c': estadoVigencia.color, '--bg': estadoVigencia.bg, '--bd': estadoVigencia.borde }">
-            <p class="cd-stat-lbl text-(--c)!">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-(--c)!">
               <CircleIcon class="size-1.5 fill-current" />Estado
             </p>
-            <p class="cd-stat-val text-(--c)!">{{ estadoVigencia.label }}</p>
-            <p class="cd-stat-sub text-(--c)! opacity-70">{{ estadoVigencia.detalle }}</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-(--c)!">{{ estadoVigencia.label }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate text-(--c)! opacity-70">{{ estadoVigencia.detalle }}</p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Duración</p>
-            <p class="cd-stat-val">{{ duracion || '—' }}</p>
-            <p class="cd-stat-sub">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ClockIcon class="size-3" />Duración</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ duracion || '—' }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">
               {{ formatFecha(contrato.fecha_inicio) || '—' }} → {{ formatFecha(contrato.fecha_fin) || '—' }}
             </p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Indexación</p>
-            <p class="cd-stat-val">{{ contrato.indice_indexacion || '—' }}</p>
-            <p class="cd-stat-sub">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ChartLineIcon class="size-3" />Indexación</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ contrato.indice_indexacion || '—' }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">
               {{ contrato.periodicidad_indexacion || 'sin periodicidad' }}<template v-if="contrato.periodo_indexacion_base"> · base {{ contrato.periodo_indexacion_base }}</template>
             </p>
           </div>
 
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><FileIcon class="size-3" />Facturación</p>
-            <p class="cd-stat-val">{{ contrato.periodicidad_facturacion || '—' }}</p>
-            <p class="cd-stat-sub">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><FileIcon class="size-3" />Facturación</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ contrato.periodicidad_facturacion || '—' }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">
               {{ contrato.tiempo_pago != null ? ('pago a ' + contrato.tiempo_pago + ' días') : 'sin plazo de pago' }}
             </p>
           </div>
         </div>
 
         <!-- ── Identificación ────────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-unergy-purple/10"><IdCardIcon class="size-3 text-unergy-purple" /></span>
-            <h3 class="cd-sec-title">Identificación</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10"><IdCardIcon class="size-3 text-unergy-purple" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Identificación</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoId" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionId">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -75,15 +75,15 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
+          <div class="p-3.5">
             <!-- Modo lectura -->
-            <div v-if="!editandoId" class="cd-grid">
+            <div v-if="!editandoId" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Nombre interno" :value="contrato.nombre_interno" />
               <InfoField label="Número de contrato" :value="contrato.numero_codigo_contrato" />
               <InfoField label="Tipo de contrato" :value="contrato.tipo_contrato === 'compra' ? 'Compra' : 'Venta'" />
               <InfoField label="Responsable" :value="contrato.responsable?.nombre" />
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Comunidad energética</span>
+                <span class="text-xs font-medium text-muted-foreground">Comunidad energética</span>
                 <div>
                   <GBadge v-if="contrato.es_comunidad_energetica" color="success" class="text-xs">🏘 Sí</GBadge>
                   <span v-else class="text-sm text-unergy-deep">{{ contrato.es_comunidad_energetica === false ? 'No' : '—' }}</span>
@@ -91,13 +91,13 @@
               </div>
             </div>
             <!-- Modo edición -->
-            <div v-else class="cd-grid">
+            <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Nombre interno</label>
+                <label class="text-xs font-medium text-muted-foreground">Nombre interno</label>
                 <InputText v-model="formId.nombre_interno" placeholder="Ej: Terpel 1" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="cd-lbl">Número de contrato</label>
+                <label class="text-xs font-medium text-muted-foreground">Número de contrato</label>
                 <InputText v-model="formId.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" class="w-full" />
               </div>
             </div>
@@ -105,11 +105,11 @@
         </section>
 
         <!-- ── Partes del contrato ───────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-primary/10"><UsersIcon class="size-3 text-primary" /></span>
-            <h3 class="cd-sec-title">Partes del contrato</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><UsersIcon class="size-3 text-primary" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Partes del contrato</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoPartes" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionPartes">
                 <template #icon><PencilIcon class="size-4" /></template>
               </Button>
@@ -124,25 +124,25 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
+          <div class="p-3.5">
             <!-- Modo lectura: la energía va del vendedor al comprador -->
-            <div v-if="!editandoPartes" class="cd-partes">
-              <div class="cd-parte">
-                <p class="cd-parte-rol"><SunIcon class="size-3" />Vendedor</p>
-                <p class="cd-parte-nom">{{ contrato.vendedor_nombre || '—' }}</p>
-                <p class="cd-parte-nit">NIT {{ contrato.vendedor_nit || '—' }}</p>
+            <div v-if="!editandoPartes" class="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><SunIcon class="size-3" />Vendedor</p>
+                <p class="text-sm font-semibold text-unergy-deep">{{ contrato.vendedor_nombre || '—' }}</p>
+                <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ contrato.vendedor_nit || '—' }}</p>
               </div>
-              <ArrowRightIcon class="cd-partes-flecha size-3" />
-              <div class="cd-parte">
-                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Comprador</p>
-                <p class="cd-parte-nom">{{ contrato.comprador_nombre || '—' }}</p>
-                <p class="cd-parte-nit">NIT {{ contrato.comprador_nit || '—' }}</p>
+              <ArrowRightIcon class="text-muted-foreground/50 self-center rotate-90 sm:rotate-0 size-3" />
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Comprador</p>
+                <p class="text-sm font-semibold text-unergy-deep">{{ contrato.comprador_nombre || '—' }}</p>
+                <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ contrato.comprador_nit || '—' }}</p>
               </div>
             </div>
             <!-- Modo edición -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><SunIcon class="size-3" />Vendedor</p>
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><SunIcon class="size-3" />Vendedor</p>
                 <SelectorCliente
                   v-model:id="formPartes.vendedor_id"
                   v-model:nombre="formPartes.vendedor_nombre"
@@ -151,12 +151,12 @@
                   requerido
                 />
                 <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">NIT</label>
+                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
                   <InputText v-model="formPartes.vendedor_nit" class="w-full" />
                 </div>
               </div>
-              <div class="cd-parte space-y-3">
-                <p class="cd-parte-rol"><BuildingIcon class="size-3" />Comprador</p>
+              <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
+                <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Comprador</p>
                 <SelectorCliente
                   v-model:id="formPartes.comprador_id"
                   v-model:nombre="formPartes.comprador_nombre"
@@ -165,7 +165,7 @@
                   requerido
                 />
                 <div class="flex flex-col gap-1">
-                  <label class="cd-lbl">NIT</label>
+                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
                   <InputText v-model="formPartes.comprador_nit" class="w-full" />
                 </div>
               </div>
@@ -174,18 +174,18 @@
         </section>
 
         <!-- ── Vigencia ──────────────────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-success/10"><CalendarIcon class="size-3 text-success" /></span>
-            <h3 class="cd-sec-title">Vigencia</h3>
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-success/10"><CalendarIcon class="size-3 text-success" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Vigencia</h3>
           </header>
-          <div class="cd-sec-body">
-            <div class="cd-grid">
+          <div class="p-3.5">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Fecha inicio" :value="formatFecha(contrato.fecha_inicio)" />
               <InfoField label="Fecha fin" :value="formatFecha(contrato.fecha_fin)" />
               <InfoField label="Duración" :value="duracion" />
               <div class="flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Renovación automática</span>
+                <span class="text-xs font-medium text-muted-foreground">Renovación automática</span>
                 <div>
                   <GBadge v-if="contrato.renovacion_automatica != null"
                     :color="contrato.renovacion_automatica ? 'success' : 'default'"
@@ -198,13 +198,13 @@
         </section>
 
         <!-- ── Condiciones comerciales ───────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-warning/10"><DollarSignIcon class="size-3 text-warning" /></span>
-            <h3 class="cd-sec-title">Condiciones comerciales</h3>
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><DollarSignIcon class="size-3 text-warning" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Condiciones comerciales</h3>
           </header>
-          <div class="cd-sec-body">
-            <div class="cd-grid">
+          <div class="p-3.5">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Índice de indexación" :value="contrato.indice_indexacion" />
               <InfoField label="Periodicidad indexación" :value="contrato.periodicidad_indexacion" />
               <InfoField label="Período base indexación" :value="contrato.periodo_indexacion_base" />
@@ -214,8 +214,8 @@
               <InfoField label="Periodicidad facturación" :value="contrato.periodicidad_facturacion" />
               <InfoField label="Tiempo de pago (días)"
                 :value="contrato.tiempo_pago != null ? String(contrato.tiempo_pago) : null" />
-              <div v-if="contrato.condiciones_pago" class="cd-ancho flex flex-col gap-0.5">
-                <span class="cd-campo-lbl">Condiciones de pago</span>
+              <div v-if="contrato.condiciones_pago" class="col-span-full flex flex-col gap-0.5">
+                <span class="text-xs font-medium text-muted-foreground">Condiciones de pago</span>
                 <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.condiciones_pago }}</span>
               </div>
             </div>
@@ -223,11 +223,11 @@
         </section>
 
         <!-- ── Documentos y enlaces ──────────────────────────────────── -->
-        <section class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-warning/10"><LinkIcon class="size-3 text-warning" /></span>
-            <h3 class="cd-sec-title">Documentos y enlaces</h3>
-            <div class="cd-sec-act">
+        <section class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><LinkIcon class="size-3 text-warning" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Documentos y enlaces</h3>
+            <div class="ml-auto flex items-center gap-1">
               <Button v-if="!editandoEnlace"
                 :label="enlaceContrato ? 'Editar' : 'Agregar enlace'"
                 size="small" text severity="secondary" @click="iniciarEdicionEnlace">
@@ -241,10 +241,10 @@
               </template>
             </div>
           </header>
-          <div class="cd-sec-body">
+          <div class="p-3.5">
             <!-- Modo lectura -->
-            <div v-if="!editandoEnlace" class="cd-link" :class="{ 'cd-link--vacio': !enlaceContrato }">
-              <span class="cd-ico bg-warning/15">
+            <div v-if="!editandoEnlace" class="flex items-start gap-2.5 border rounded-lg px-3 py-3" :class="enlaceContrato ? 'bg-warning/10 border-warning/30' : 'bg-muted/30 border-dashed border-warning/20'">
+              <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/15">
                 <FileTextIcon class="size-3 text-warning" />
               </span>
               <div class="min-w-0 flex-1">
@@ -253,7 +253,7 @@
                   class="text-sm font-semibold inline-flex items-center gap-1.5 hover:underline text-warning">
                   <ExternalLinkIcon class="size-3" />Ver contrato
                 </a>
-                <button v-else type="button" class="cd-link-add" @click="iniciarEdicionEnlace">
+                <button v-else type="button" class="inline-flex items-center gap-1 cursor-pointer text-sm font-semibold text-warning hover:underline" @click="iniciarEdicionEnlace">
                   <CirclePlusIcon class="size-3" />Agregar enlace
                 </button>
                 <p v-if="enlaceContrato" class="text-xs truncate mt-0.5 text-warning">
@@ -263,7 +263,7 @@
             </div>
             <!-- Modo edición -->
             <div v-else class="flex flex-col gap-1 max-w-xl">
-              <label class="cd-lbl">Enlace al contrato (Drive, Dropbox, SharePoint…)</label>
+              <label class="text-xs font-medium text-muted-foreground">Enlace al contrato (Drive, Dropbox, SharePoint…)</label>
               <InputText v-model.trim="formEnlace.carpeta_link" class="w-full"
                 placeholder="https://drive.google.com/…" @keyup.enter="guardarEnlace" />
               <small class="text-xs text-muted-foreground">
@@ -275,26 +275,26 @@
         </section>
 
         <!-- ── Detalles operacionales (solo si el contrato los trae) ─── -->
-        <section v-if="tieneDetallesOperacionales" class="cd-sec">
-          <header class="cd-sec-head">
-            <span class="cd-ico bg-muted-foreground/10"><ListIcon class="size-3 text-muted-foreground" /></span>
-            <h3 class="cd-sec-title">Detalles operacionales y contractuales</h3>
+        <section v-if="tieneDetallesOperacionales" class="bg-card border border-border rounded-xl overflow-hidden">
+          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-muted-foreground/10"><ListIcon class="size-3 text-muted-foreground" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Detalles operacionales y contractuales</h3>
           </header>
-          <div class="cd-sec-body space-y-3">
+          <div class="p-3.5 space-y-3">
             <div v-if="contrato.service_scope" class="flex flex-col gap-0.5">
-              <span class="cd-campo-lbl">Alcance del servicio</span>
+              <span class="text-xs font-medium text-muted-foreground">Alcance del servicio</span>
               <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.service_scope }}</span>
             </div>
             <div v-if="contrato.specific_service_terms" class="flex flex-col gap-0.5">
-              <span class="cd-campo-lbl">Términos específicos del servicio</span>
+              <span class="text-xs font-medium text-muted-foreground">Términos específicos del servicio</span>
               <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.specific_service_terms }}</span>
             </div>
             <div v-if="contrato.slas" class="flex flex-col gap-0.5">
-              <span class="cd-campo-lbl">SLAs (Acuerdos de nivel de servicio)</span>
+              <span class="text-xs font-medium text-muted-foreground">SLAs (Acuerdos de nivel de servicio)</span>
               <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.slas }}</span>
             </div>
             <div v-if="contrato.responsibilities" class="flex flex-col gap-0.5">
-              <span class="cd-campo-lbl">Responsabilidades</span>
+              <span class="text-xs font-medium text-muted-foreground">Responsabilidades</span>
               <span class="text-sm whitespace-pre-line text-unergy-deep">{{ contrato.responsibilities }}</span>
             </div>
           </div>
@@ -307,24 +307,24 @@
 
         <!-- Resumen -->
         <div v-if="resumenCantidades && !editandoCantidades" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><CalendarIcon class="size-3" />Períodos</p>
-            <p class="cd-stat-val">{{ resumenCantidades.periodos }} meses</p>
-            <p class="cd-stat-sub">{{ resumenCantidades.añoMin }} – {{ resumenCantidades.añoMax }}</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><CalendarIcon class="size-3" />Períodos</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenCantidades.periodos }} meses</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">{{ resumenCantidades.añoMin }} – {{ resumenCantidades.añoMax }}</p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ZapIcon class="size-3" />Compromiso {{ hoyPeriodo.año }}</p>
-            <p class="cd-stat-val">{{ fmtNum(resumenCantidades.totalAñoActual) }} MWh</p>
-            <p class="cd-stat-sub">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ZapIcon class="size-3" />Compromiso {{ hoyPeriodo.año }}</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ fmtNum(resumenCantidades.totalAñoActual) }} MWh</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">
               {{ resumenCantidades.tieneAñoActual ? 'suma de mínimos del año' : 'sin compromisos este año' }}
             </p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ClockIcon class="size-3" />Mes en curso</p>
-            <p class="cd-stat-val">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ClockIcon class="size-3" />Mes en curso</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">
               {{ resumenCantidades.actual ? fmtNum(resumenCantidades.actual.energia_minima) + ' MWh' : '—' }}
             </p>
-            <p class="cd-stat-sub">
+            <p class="text-xs text-muted-foreground mt-px truncate">
               <template v-if="resumenCantidades.actual">
                 {{ resumenCantidades.actual.plantas_inscritas ?? '—' }} de
                 {{ resumenCantidades.actual.cantidad_proyectos ?? '—' }} plantas
@@ -332,25 +332,25 @@
               <template v-else>{{ MESES[hoyPeriodo.mes - 1] }} sin registro</template>
             </p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><MoveHorizontalIcon class="size-3" />Flexibilidad</p>
-            <p class="cd-stat-val">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><MoveHorizontalIcon class="size-3" />Flexibilidad</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">
               {{ resumenCantidades.flex != null ? resumenCantidades.flex.toFixed(0) + '%' : '—' }}
             </p>
-            <p class="cd-stat-sub">
+            <p class="text-xs text-muted-foreground mt-px truncate">
               {{ resumenCantidades.flex != null ? 'promedio máx sobre mín' : 'sin rangos máx/mín' }}
             </p>
           </div>
         </div>
 
         <!-- Barra de acciones -->
-        <div class="cd-toolbar">
+        <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <SelectButton v-if="!editandoCantidades" v-model="vistaCantidades" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
-          <span v-else class="cd-toolbar-titulo">
+          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
             <UploadIcon class="size-4" />Cargar compromisos desde Excel
           </span>
-          <div class="cd-toolbar-act">
+          <div class="ml-auto flex items-center gap-1.5">
             <template v-if="!editandoCantidades">
               <Button label="Editar" size="small" text severity="secondary" @click="editandoCantidades = true">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -368,7 +368,7 @@
 
         <!-- Modo edición cantidades -->
         <template v-if="editandoCantidades">
-          <div class="cd-aviso">
+          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-warning/10 border border-warning/30 text-xs leading-normal text-warning [&>svg]:mt-px [&>svg]:shrink-0">
             <TriangleAlertIcon class="size-4" />
             <div>
               Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas
@@ -387,32 +387,32 @@
             <Button v-if="energiaRows.length" label="Limpiar" size="small" severity="danger" text @click="energiaRows = []; energiaPaste = ''; energiaError = ''">
               <template #icon><XIcon class="size-4" /></template>
             </Button>
-            <span v-if="energiaRows.length" class="cd-pill cd-pill--ok">
+            <span v-if="energiaRows.length" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-success/10 text-success">
               <CircleCheckIcon class="size-4" />{{ energiaRows.length }} filas listas
             </span>
-            <span v-if="energiaError" class="cd-pill cd-pill--err">
+            <span v-if="energiaError" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-destructive/10 text-destructive">
               <CircleXIcon class="size-4" />{{ energiaError }}
             </span>
           </div>
-          <div v-if="energiaRows.length" class="cd-tabla">
-            <table class="cd-preview">
+          <div v-if="energiaRows.length" class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
+            <table class="w-full border-collapse text-xs [&_tr:last-child_td]:border-b-0">
               <thead>
                 <tr>
-                  <th>Año</th><th>Mes</th>
-                  <th class="cd-der">Mín (MWh)</th><th class="cd-der">Máx (MWh)</th>
-                  <th class="cd-der">Plantas contrato</th>
+                  <th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-left">Año</th><th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-left">Mes</th>
+                  <th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-right">Mín (MWh)</th><th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-right">Máx (MWh)</th>
+                  <th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-right">Plantas contrato</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(r, i) in energiaRows.slice(0, 8)" :key="i">
-                  <td>{{ r.año }}</td>
-                  <td>{{ MESES[r.mes - 1] }}</td>
-                  <td class="cd-der cd-num">{{ r.energia_minima }}</td>
-                  <td class="cd-der cd-num">{{ r.energia_maxima ?? '—' }}</td>
-                  <td class="cd-der cd-num">{{ r.cantidad_proyectos ?? '—' }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ r.año }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ MESES[r.mes - 1] }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.energia_minima }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.energia_maxima ?? '—' }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.cantidad_proyectos ?? '—' }}</td>
                 </tr>
                 <tr v-if="energiaRows.length > 8">
-                  <td colspan="5" class="cd-preview-mas">… y {{ energiaRows.length - 8 }} filas más</td>
+                  <td colspan="5" class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-muted-foreground/50 italic">… y {{ energiaRows.length - 8 }} filas más</td>
                 </tr>
               </tbody>
             </table>
@@ -421,12 +421,12 @@
 
         <!-- Modo lectura cantidades -->
         <template v-else>
-          <div v-if="!cantidadesMensuales.length" class="cd-vacio">
+          <div v-if="!cantidadesMensuales.length" class="flex flex-col items-center gap-1 px-5 py-11 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1">
             <ChartColumnIcon class="size-6" />
-            <p class="cd-vacio-tit">Sin compromisos de energía</p>
-            <p class="cd-vacio-sub">Usa <strong>Editar</strong> para pegarlos desde Excel.</p>
+            <p class="text-sm font-semibold text-muted-foreground">Sin compromisos de energía</p>
+            <p class="text-xs text-muted-foreground/70">Usa <strong>Editar</strong> para pegarlos desde Excel.</p>
           </div>
-          <div v-else class="cd-tabla">
+          <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
             <DataTable
               :value="vistaCantidades === 'anual' ? cantidadesAnuales : cantidadesMensuales"
               stripedRows rowHover class="text-sm" paginator :rows="24"
@@ -434,45 +434,45 @@
               paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
             >
               <Column field="año" header="Año">
-                <template #body="{ data }"><span class="cd-num">{{ data.año }}</span></template>
+                <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.año }}</span></template>
               </Column>
               <Column v-if="vistaCantidades === 'mensual'" header="Mes">
                 <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Mín (MWh/año)' : 'Mín (MWh/mes)'"
-                headerClass="cd-th-der" bodyClass="cd-der">
+                headerClass="cd-th-der" bodyClass="text-right!">
                 <template #body="{ data }">
-                  <span class="cd-num cd-fuerte">{{ fmtNum(data.energia_minima) }}</span>
+                  <span class="font-mono tabular-nums font-semibold text-unergy-deep">{{ fmtNum(data.energia_minima) }}</span>
                 </template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Máx (MWh/año)' : 'Máx (MWh/mes)'"
-                headerClass="cd-th-der" bodyClass="cd-der">
-                <template #body="{ data }"><span class="cd-num">{{ fmtNum(data.energia_maxima) }}</span></template>
+                headerClass="cd-th-der" bodyClass="text-right!">
+                <template #body="{ data }"><span class="font-mono tabular-nums">{{ fmtNum(data.energia_maxima) }}</span></template>
               </Column>
-              <Column headerClass="cd-th-der" bodyClass="cd-der">
+              <Column headerClass="cd-th-der" bodyClass="text-right!">
                 <template #header>
                   <span v-tooltip.top="'Plantas registradas y despachando energía al contrato. La calcula la plataforma vía GESCON.'">
                     {{ vistaCantidades === 'anual' ? 'Plantas inscritas (máx)' : 'Plantas inscritas' }}
                   </span>
                 </template>
                 <template #body="{ data }">
-                  <span v-if="data.plantas_inscritas != null" class="cd-pill"
+                  <span v-if="data.plantas_inscritas != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
                     :class="plantasClase(data)">{{ data.plantas_inscritas }}</span>
-                  <span v-else class="cd-nulo">—</span>
+                  <span v-else class="text-muted-foreground/50">—</span>
                 </template>
               </Column>
               <Column :header="vistaCantidades === 'anual' ? 'Plantas contrato (máx)' : 'Plantas contrato'"
-                headerClass="cd-th-der" bodyClass="cd-der">
+                headerClass="cd-th-der" bodyClass="text-right!">
                 <template #body="{ data }">
-                  <span class="cd-num">{{ data.cantidad_proyectos != null ? data.cantidad_proyectos : '—' }}</span>
+                  <span class="font-mono tabular-nums">{{ data.cantidad_proyectos != null ? data.cantidad_proyectos : '—' }}</span>
                 </template>
               </Column>
               <Column header="Rango">
                 <template #body="{ data }">
-                  <span v-if="data.energia_minima > 0 && data.energia_maxima != null" class="cd-pill cd-pill--flex">
+                  <span v-if="data.energia_minima > 0 && data.energia_maxima != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-primary/10 text-primary">
                     {{ ((data.energia_maxima / data.energia_minima - 1) * 100).toFixed(0) }}% flex
                   </span>
-                  <span v-else class="cd-nulo">—</span>
+                  <span v-else class="text-muted-foreground/50">—</span>
                 </template>
               </Column>
             </DataTable>
@@ -485,41 +485,41 @@
 
         <!-- Resumen -->
         <div v-if="resumenTarifas && !editandoTarifas" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat bg-warning/10! border-warning/30!">
-            <p class="cd-stat-lbl text-warning!"><DollarSignIcon class="size-3" />
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3 bg-warning/10! border-warning/30!">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-warning!"><DollarSignIcon class="size-3" />
               {{ resumenTarifas.esDelMes ? 'Tarifa del mes' : 'Última tarifa' }}</p>
-            <p class="cd-stat-val text-warning!">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
-            <p class="cd-stat-sub text-warning! opacity-75">
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-warning!">{{ fmtCOP(resumenTarifas.vigente.tarifa) }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate text-warning! opacity-75">
               {{ MESES[resumenTarifas.vigente.mes - 1] }} {{ resumenTarifas.vigente.año }} · COP/kWh
             </p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><ChartLineIcon class="size-3" />Variación</p>
-            <p class="cd-stat-val text-(--c)!" :style="{ '--c': varColor(resumenTarifas.varPct) }">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><ChartLineIcon class="size-3" />Variación</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-(--c)!" :style="{ '--c': varColor(resumenTarifas.varPct) }">
               {{ resumenTarifas.varPct != null ? (resumenTarifas.varPct > 0 ? '+' : '') + resumenTarifas.varPct.toFixed(1) + '%' : '—' }}
             </p>
-            <p class="cd-stat-sub">frente al período anterior</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">frente al período anterior</p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><MoveVerticalIcon class="size-3" />Rango histórico</p>
-            <p class="cd-stat-val">{{ fmtCOP(resumenTarifas.min) }} – {{ fmtCOP(resumenTarifas.max) }}</p>
-            <p class="cd-stat-sub">mínimo y máximo registrados</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><MoveVerticalIcon class="size-3" />Rango histórico</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ fmtCOP(resumenTarifas.min) }} – {{ fmtCOP(resumenTarifas.max) }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">mínimo y máximo registrados</p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><CalendarIcon class="size-3" />Períodos</p>
-            <p class="cd-stat-val">{{ resumenTarifas.periodos }} meses</p>
-            <p class="cd-stat-sub">{{ resumenTarifas.añoMin }} – {{ resumenTarifas.añoMax }}</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><CalendarIcon class="size-3" />Períodos</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenTarifas.periodos }} meses</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">{{ resumenTarifas.añoMin }} – {{ resumenTarifas.añoMax }}</p>
           </div>
         </div>
 
         <!-- Barra de acciones -->
-        <div class="cd-toolbar">
+        <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <SelectButton v-if="!editandoTarifas" v-model="vistaTarifas" :options="VISTAS"
             optionLabel="label" optionValue="value" size="small" />
-          <span v-else class="cd-toolbar-titulo">
+          <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
             <UploadIcon class="size-4" />Cargar tarifas desde Excel
           </span>
-          <div class="cd-toolbar-act">
+          <div class="ml-auto flex items-center gap-1.5">
             <template v-if="!editandoTarifas">
               <Button label="Editar" size="small" text severity="secondary" @click="editandoTarifas = true">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -537,7 +537,7 @@
 
         <!-- Modo edición tarifas -->
         <template v-if="editandoTarifas">
-          <div class="cd-aviso">
+          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-warning/10 border border-warning/30 text-xs leading-normal text-warning [&>svg]:mt-px [&>svg]:shrink-0">
             <TriangleAlertIcon class="size-4" />
             <div>
               Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas abajo.
@@ -554,26 +554,26 @@
             <Button v-if="tarifasRows.length" label="Limpiar" size="small" severity="danger" text @click="tarifasRows = []; tarifasPaste = ''; tarifasError = ''">
               <template #icon><XIcon class="size-4" /></template>
             </Button>
-            <span v-if="tarifasRows.length" class="cd-pill cd-pill--ok">
+            <span v-if="tarifasRows.length" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-success/10 text-success">
               <CircleCheckIcon class="size-4" />{{ tarifasRows.length }} filas listas
             </span>
-            <span v-if="tarifasError" class="cd-pill cd-pill--err">
+            <span v-if="tarifasError" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-destructive/10 text-destructive">
               <CircleXIcon class="size-4" />{{ tarifasError }}
             </span>
           </div>
-          <div v-if="tarifasRows.length" class="cd-tabla">
-            <table class="cd-preview">
+          <div v-if="tarifasRows.length" class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
+            <table class="w-full border-collapse text-xs [&_tr:last-child_td]:border-b-0">
               <thead>
-                <tr><th>Año</th><th>Mes</th><th class="cd-der">Tarifa ($/kWh)</th></tr>
+                <tr><th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-left">Año</th><th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-left">Mes</th><th class="bg-muted/50 text-muted-foreground text-xs font-bold tracking-wide uppercase px-3 py-2 border-b border-border text-right">Tarifa ($/kWh)</th></tr>
               </thead>
               <tbody>
                 <tr v-for="(r, i) in tarifasRows.slice(0, 8)" :key="i">
-                  <td>{{ r.año }}</td>
-                  <td>{{ MESES[r.mes - 1] }}</td>
-                  <td class="cd-der cd-num">{{ r.tarifa }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ r.año }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep">{{ MESES[r.mes - 1] }}</td>
+                  <td class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-right font-mono tabular-nums">{{ r.tarifa }}</td>
                 </tr>
                 <tr v-if="tarifasRows.length > 8">
-                  <td colspan="3" class="cd-preview-mas">… y {{ tarifasRows.length - 8 }} filas más</td>
+                  <td colspan="3" class="px-3 py-1.5 border-b border-border/50 text-unergy-deep text-muted-foreground/50 italic">… y {{ tarifasRows.length - 8 }} filas más</td>
                 </tr>
               </tbody>
             </table>
@@ -582,12 +582,12 @@
 
         <!-- Modo lectura tarifas -->
         <template v-else>
-          <div v-if="!tarifasMensuales.length" class="cd-vacio">
+          <div v-if="!tarifasMensuales.length" class="flex flex-col items-center gap-1 px-5 py-11 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1">
             <DollarSignIcon class="size-6" />
-            <p class="cd-vacio-tit">Sin tarifas registradas</p>
-            <p class="cd-vacio-sub">Usa <strong>Editar</strong> para pegarlas desde Excel.</p>
+            <p class="text-sm font-semibold text-muted-foreground">Sin tarifas registradas</p>
+            <p class="text-xs text-muted-foreground/70">Usa <strong>Editar</strong> para pegarlas desde Excel.</p>
           </div>
-          <div v-else class="cd-tabla">
+          <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
             <DataTable
               :value="vistaTarifas === 'anual' ? tarifasAnuales : tarifasMensuales"
               stripedRows rowHover class="text-sm" paginator :rows="24"
@@ -595,25 +595,25 @@
               paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
             >
               <Column field="año" header="Año">
-                <template #body="{ data }"><span class="cd-num">{{ data.año }}</span></template>
+                <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.año }}</span></template>
               </Column>
               <Column v-if="vistaTarifas === 'mensual'" header="Mes">
                 <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
               </Column>
-              <Column header="Tarifa (COP/kWh)" headerClass="cd-th-der" bodyClass="cd-der">
+              <Column header="Tarifa (COP/kWh)" headerClass="cd-th-der" bodyClass="text-right!">
                 <template #body="{ data }">
-                  <span class="cd-num cd-tarifa">{{ fmtCOP(data.tarifa) }}</span>
-                  <span v-if="vistaTarifas === 'anual' && !data._uniforme" class="cd-nulo ml-1">prom.</span>
+                  <span class="font-mono tabular-nums font-semibold text-warning">{{ fmtCOP(data.tarifa) }}</span>
+                  <span v-if="vistaTarifas === 'anual' && !data._uniforme" class="text-muted-foreground/50 ml-1">prom.</span>
                 </template>
               </Column>
-              <Column header="Variación" headerClass="cd-th-der" bodyClass="cd-der">
+              <Column header="Variación" headerClass="cd-th-der" bodyClass="text-right!">
                 <template #body="{ data, index }">
                   <span v-if="index > 0 && currentTarifas[index - 1]?.tarifa != null && data.tarifa != null"
-                    class="cd-pill text-(--c)! bg-(--bg)!" :style="{ '--c': varColor(varPct(currentTarifas[index-1].tarifa, data.tarifa)), '--bg': varBg(varPct(currentTarifas[index-1].tarifa, data.tarifa)) }">
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums text-(--c)! bg-(--bg)!" :style="{ '--c': varColor(varPct(currentTarifas[index-1].tarifa, data.tarifa)), '--bg': varBg(varPct(currentTarifas[index-1].tarifa, data.tarifa)) }">
                     <component :is="varIcono(varPct(currentTarifas[index-1].tarifa, data.tarifa))" class="size-3" />
                     {{ variacion(currentTarifas[index-1].tarifa, data.tarifa) }}
                   </span>
-                  <span v-else class="cd-nulo">—</span>
+                  <span v-else class="text-muted-foreground/50">—</span>
                 </template>
               </Column>
             </DataTable>
@@ -626,68 +626,68 @@
 
         <!-- Resumen -->
         <div v-if="!loadingAsic && asicRows.length" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><BookIcon class="size-3" />Registros</p>
-            <p class="cd-stat-val">{{ resumenAsic.total }}</p>
-            <p class="cd-stat-sub">histórico completo</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BookIcon class="size-3" />Registros</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenAsic.total }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">histórico completo</p>
           </div>
-          <div class="cd-stat bg-success/10! border-success/30!">
-            <p class="cd-stat-lbl text-success!"><CircleCheckIcon class="size-3" />Vigentes</p>
-            <p class="cd-stat-val text-success!">{{ resumenAsic.vigentes }}</p>
-            <p class="cd-stat-sub text-success! opacity-75">con fecha fin en el futuro</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3 bg-success/10! border-success/30!">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1 text-success!"><CircleCheckIcon class="size-3" />Vigentes</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase text-success!">{{ resumenAsic.vigentes }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate text-success! opacity-75">con fecha fin en el futuro</p>
           </div>
-          <div class="cd-stat">
-            <p class="cd-stat-lbl"><BadgeCheckIcon class="size-3" />Publicados</p>
-            <p class="cd-stat-val">{{ resumenAsic.publicados }}</p>
-            <p class="cd-stat-sub">estado de la solicitud</p>
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BadgeCheckIcon class="size-3" />Publicados</p>
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase">{{ resumenAsic.publicados }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate">estado de la solicitud</p>
           </div>
-          <div class="cd-stat" :class="resumenAsic.enProceso && 'bg-warning/10! border-warning/30!'">
-            <p class="cd-stat-lbl" :class="resumenAsic.enProceso && 'text-warning!'">
+          <div class="min-w-0 rounded-xl border border-border bg-card px-3.5 py-3" :class="resumenAsic.enProceso && 'bg-warning/10! border-warning/30!'">
+            <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1" :class="resumenAsic.enProceso && 'text-warning!'">
               <HourglassIcon class="size-3" />En proceso</p>
-            <p class="cd-stat-val" :class="resumenAsic.enProceso && 'text-warning!'">{{ resumenAsic.enProceso }}</p>
-            <p class="cd-stat-sub" :class="resumenAsic.enProceso && 'text-warning! opacity-75'">
+            <p class="text-base font-bold text-unergy-deep leading-tight truncate first-letter:uppercase" :class="resumenAsic.enProceso && 'text-warning!'">{{ resumenAsic.enProceso }}</p>
+            <p class="text-xs text-muted-foreground mt-px truncate" :class="resumenAsic.enProceso && 'text-warning! opacity-75'">
               pendientes ante el ASIC
             </p>
           </div>
         </div>
 
         <!-- Barra de acciones -->
-        <div class="cd-toolbar">
+        <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <SelectButton v-model="vistaAsic" size="small"
             :options="[{ label: 'Vigentes', value: 'vigentes' }, { label: 'Históricos', value: 'historicos' }]"
             optionLabel="label" optionValue="value" />
-          <div class="cd-toolbar-act">
-            <span class="cd-toolbar-nota">{{ asicFiltrados.length }} de {{ asicRows.length }} registros</span>
+          <div class="ml-auto flex items-center gap-1.5">
+            <span class="text-xs text-muted-foreground">{{ asicFiltrados.length }} de {{ asicRows.length }} registros</span>
           </div>
         </div>
 
-        <div v-if="loadingAsic" class="cd-cargando">
+        <div v-if="loadingAsic" class="flex items-center justify-center gap-2 px-5 py-14 text-sm text-muted-foreground">
           <LoaderCircleIcon class="size-4 animate-spin" /><span>Cargando registros ASIC…</span>
         </div>
-        <div v-else-if="!asicFiltrados.length" class="cd-vacio">
+        <div v-else-if="!asicFiltrados.length" class="flex flex-col items-center gap-1 px-5 py-11 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1">
           <BookIcon class="size-6" />
-          <p class="cd-vacio-tit">Sin registros ASIC {{ vistaAsic === 'vigentes' ? 'vigentes' : '' }}</p>
-          <p class="cd-vacio-sub">
+          <p class="text-sm font-semibold text-muted-foreground">Sin registros ASIC {{ vistaAsic === 'vigentes' ? 'vigentes' : '' }}</p>
+          <p class="text-xs text-muted-foreground/70">
             Se buscan por número de contrato interno o código SIC.
             <template v-if="vistaAsic === 'vigentes' && asicRows.length">
               Hay {{ asicRows.length }} en el histórico.
             </template>
           </p>
         </div>
-        <div v-else class="cd-tabla">
+        <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
           <DataTable :value="asicFiltrados" stripedRows rowHover class="text-sm"
             sortField="fecha_solicitud" :sortOrder="-1">
             <Column field="codigo_sic_contrato" header="Código SIC" sortable>
               <template #body="{ data }">
-                <span class="cd-num">{{ data.codigo_sic_contrato || '—' }}</span>
+                <span class="font-mono tabular-nums">{{ data.codigo_sic_contrato || '—' }}</span>
               </template>
             </Column>
             <Column field="planta_nombre" header="Planta" sortable>
               <template #body="{ data }">
-                <router-link v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`" class="cd-enlace">
+                <router-link v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`" class="font-medium text-unergy-purple hover:underline underline-offset-2">
                   {{ data.planta_nombre || data.proyecto_id }}
                 </router-link>
-                <span v-else class="cd-nulo">—</span>
+                <span v-else class="text-muted-foreground/50">—</span>
               </template>
             </Column>
             <Column field="tipo_solicitud" header="Tipo">
@@ -701,23 +701,23 @@
               </template>
             </Column>
             <Column field="fecha_inicio" header="Inicio" sortable>
-              <template #body="{ data }"><span class="cd-num">{{ data.fecha_inicio || '—' }}</span></template>
+              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_inicio || '—' }}</span></template>
             </Column>
             <Column field="fecha_fin" header="Fin" sortable>
-              <template #body="{ data }"><span class="cd-num">{{ data.fecha_fin || '—' }}</span></template>
+              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_fin || '—' }}</span></template>
             </Column>
             <Column field="porcentaje_despacho" header="% Despacho"
-              headerClass="cd-th-der" bodyClass="cd-der">
+              headerClass="cd-th-der" bodyClass="text-right!">
               <template #body="{ data }">
-                <span v-if="data.porcentaje_despacho != null" class="cd-pill"
-                  :class="data.porcentaje_despacho > 100 ? 'cd-pill--err' : 'cd-pill--neutro'">
+                <span v-if="data.porcentaje_despacho != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
+                  :class="data.porcentaje_despacho > 100 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'">
                   {{ Number(data.porcentaje_despacho).toFixed(1) }}%
                 </span>
-                <span v-else class="cd-nulo">—</span>
+                <span v-else class="text-muted-foreground/50">—</span>
               </template>
             </Column>
             <Column field="fecha_solicitud" header="F. solicitud" sortable>
-              <template #body="{ data }"><span class="cd-num">{{ data.fecha_solicitud || '—' }}</span></template>
+              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_solicitud || '—' }}</span></template>
             </Column>
             <Column header="Observaciones">
               <template #body="{ data }">
@@ -730,13 +730,13 @@
 
       <!-- ══ PROYECTOS ══ -->
       <div v-if="tab === 'proyectos'" class="space-y-4">
-        <div class="cd-toolbar">
-          <span class="cd-toolbar-titulo">
+        <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-unergy-deep [&>svg]:text-unergy-purple">
             <ZapIcon class="size-4" />
             {{ contrato.proyectos?.length || 0 }}
             {{ (contrato.proyectos?.length === 1) ? 'planta asociada' : 'plantas asociadas' }}
           </span>
-          <div class="cd-toolbar-act">
+          <div class="ml-auto flex items-center gap-1.5">
             <Button label="Asociar proyecto" size="small" severity="secondary" outlined @click="abrirAsociar">
               <template #icon><PlusIcon class="size-4" /></template>
             </Button>
@@ -744,19 +744,19 @@
         </div>
 
         <div v-if="contrato.proyectos?.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="cd-proy">
-            <span class="cd-ico bg-unergy-purple/10"><ZapIcon class="size-3 text-unergy-purple" /></span>
+          <router-link v-for="p in proyectosOrdenados" :key="p.id" :to="`/proyectos/${p.id}`" class="group flex items-center gap-2.5 px-3 py-3 rounded-lg border border-border bg-card transition-colors duration-150 hover:border-unergy-purple/30 hover:bg-muted/30">
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10"><ZapIcon class="size-3 text-unergy-purple" /></span>
             <div class="min-w-0 flex-1">
-              <p class="cd-proy-nom">{{ p.nombre_comercial }}</p>
-              <p class="cd-proy-id">ID {{ p.id }}</p>
+              <p class="text-sm font-semibold text-unergy-deep truncate">{{ p.nombre_comercial }}</p>
+              <p class="font-mono text-xs text-muted-foreground">ID {{ p.id }}</p>
             </div>
-            <ChevronRightIcon class="cd-proy-chev size-2.5" />
+            <ChevronRightIcon class="text-muted-foreground/50 shrink-0 group-hover:text-unergy-purple size-2.5" />
           </router-link>
         </div>
-        <div v-else class="cd-vacio">
+        <div v-else class="flex flex-col items-center gap-1 px-5 py-11 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1">
           <NetworkIcon class="size-6" />
-          <p class="cd-vacio-tit">Sin plantas asociadas</p>
-          <p class="cd-vacio-sub">Usa <strong>Asociar proyecto</strong> para vincular las que despachan a este PPA.</p>
+          <p class="text-sm font-semibold text-muted-foreground">Sin plantas asociadas</p>
+          <p class="text-xs text-muted-foreground/70">Usa <strong>Asociar proyecto</strong> para vincular las que despachan a este PPA.</p>
         </div>
       </div>
       </template>
@@ -795,16 +795,16 @@
   </div>
 
   <!-- Loading -->
-  <div v-else-if="loading" class="cd-cargando py-24 px-5">
+  <div v-else-if="loading" class="flex items-center justify-center gap-2 text-sm text-muted-foreground py-24 px-5">
     <LoaderCircleIcon class="size-4.5 animate-spin" />
     <span>Cargando contrato…</span>
   </div>
 
   <!-- Error -->
-  <div v-else class="cd-vacio py-20 px-5">
+  <div v-else class="flex flex-col items-center gap-1 rounded-xl border border-dashed border-border bg-muted/30 text-center [&>svg]:text-muted-foreground/40 [&>svg]:mb-1 py-20 px-5">
     <TriangleAlertIcon class="size-6 text-warning!" />
-    <p class="cd-vacio-tit">No se encontró el contrato</p>
-    <p class="cd-vacio-sub">Puede que lo hayan eliminado o que el enlace esté mal.</p>
+    <p class="text-sm font-semibold text-muted-foreground">No se encontró el contrato</p>
+    <p class="text-xs text-muted-foreground/70">Puede que lo hayan eliminado o que el enlace esté mal.</p>
     <Button label="Volver" text size="small" class="mt-2" @click="$router.back()">
       <template #icon><ArrowLeftIcon class="size-4" /></template>
     </Button>
@@ -1171,8 +1171,8 @@ function varIcono(pct) {
 // Verde si las plantas inscritas ya cubren lo que el contrato exige ese mes.
 // Sin cantidad_proyectos no hay contra qué comparar: se muestra neutro.
 function plantasClase(row) {
-  if (row.cantidad_proyectos == null) return 'cd-pill--neutro'
-  return row.plantas_inscritas >= row.cantidad_proyectos ? 'cd-pill--ok' : 'cd-pill--warn'
+  if (row.cantidad_proyectos == null) return 'bg-muted text-muted-foreground'
+  return row.plantas_inscritas >= row.cantidad_proyectos ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'
 }
 
 const resumenCantidades = computed(() => {
@@ -1443,222 +1443,30 @@ async function cargarAsic(c) {
 onMounted(cargar)
 </script>
 <style scoped>
-/*
-  Paleta y formas heredadas de las otras vistas de detalle (Cliente / Proyecto)
-  y de Operación: tarjeta blanca con borde lila, cabecera #faf8fd, texto var(--color-unergy-deep),
-  etiquetas #9b89b5 y un chip de ícono de color por sección. Antes esta pestaña
-  era una lista plana de campos separados por <Divider> con títulos ámbar, que
-  no se parecía a ninguna otra pantalla de la plataforma.
-*/
-
-/* ── Tarjetas de resumen ──────────────────────────────────────────────────── */
-.cd-stat {
-  background: #fff; border: 1px solid #ECE7F2; border-radius: 12px;
-  padding: 11px 14px; min-width: 0;
-}
-.cd-stat-lbl {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-  color: #9b89b5; margin-bottom: 3px;
-}
-.cd-stat-val {
-  font-size: 15px; font-weight: 700; color: var(--color-unergy-deep); line-height: 1.25;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-/* Los valores llegan en minúscula de la BD ("mensual"). `capitalize` a secas
-   convertía "16 años 1 mes" en "16 Años 1 Mes"; con ::first-letter solo sube
-   la inicial y las cifras quedan intactas. */
-.cd-stat-val::first-letter { text-transform: uppercase; }
-.cd-stat-sub {
-  font-size: 11px; color: #9b89b5; margin-top: 1px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ── Secciones ────────────────────────────────────────────────────────────── */
-.cd-sec {
-  background: #fff; border: 1.5px solid #e8e0f0; border-radius: 12px; overflow: hidden;
-}
-.cd-sec-head {
-  display: flex; align-items: center; gap: 9px; min-height: 42px;
-  padding: 6px 14px; background: #faf8fd; border-bottom: 1px solid #f0eaf8;
-}
-.cd-sec-title {
-  font-size: 12px; font-weight: 700; letter-spacing: .03em;
-  text-transform: uppercase; color: var(--color-unergy-deep);
-}
-.cd-sec-act { margin-left: auto; display: flex; align-items: center; gap: 4px; }
-.cd-sec-body { padding: 14px; }
-.cd-ico {
-  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.cd-ico svg { font-size: 11px; }
-
-/* Rejilla de campos: 2 columnas en móvil, 3 desde tablet (como Proyecto) */
-.cd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-@media (min-width: 768px) { .cd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.cd-ancho { grid-column: 1 / -1; }
-.cd-campo-lbl { font-size: 12px; font-weight: 500; color: #9b89b5; }
-.cd-lbl { font-size: 12px; font-weight: 500; color: #4b5563; }
-
-/* ── Partes: vendedor → comprador ─────────────────────────────────────────── */
-.cd-partes {
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px;
-}
-.cd-partes-flecha { font-size: 12px; color: #c5b9db; }
-@media (max-width: 640px) {
-  .cd-partes { grid-template-columns: 1fr; }
-  .cd-partes-flecha { transform: rotate(90deg); justify-self: center; }
-}
-.cd-parte {
-  border: 1px solid #ECE7F2; border-radius: 10px; padding: 11px 13px;
-  background: #fcfbfe; min-width: 0;
-}
-.cd-parte-rol {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
-  color: #9b89b5; margin-bottom: 3px;
-}
-.cd-parte-nom { font-size: 13px; font-weight: 600; color: var(--color-unergy-deep); }
-.cd-parte-nit {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px; color: #9b8fb0; margin-top: 1px;
-}
-
-/* ── Enlace al contrato ───────────────────────────────────────────────────── */
-.cd-link {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 11px 13px;
-}
-.cd-link--vacio { background: #fdfcf8; border-style: dashed; border-color: #ecdcb8; }
-.cd-link-add {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: none; border: none; padding: 0; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: #d97706;
-}
-.cd-link-add:hover { text-decoration: underline; }
-
-/* Atajo al contrato en la cabecera, junto a "Editar contrato" */
-.cd-head-link {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 6px;
-  border: 1px solid #fde68a; background: #fffbeb;
-  font-size: 12px; font-weight: 600; color: #d97706;
-  transition: background .12s;
-}
-.cd-head-link:hover { background: #fef3c7; }
-.cd-head-link svg { font-size: 10px; }
-/* ── Barra de acciones de las pestañas de tabla ───────────────────────────── */
-.cd-toolbar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 8px 12px; border-radius: 10px;
-  background: #faf8fd; border: 1px solid #f0eaf8;
-}
-.cd-toolbar-titulo {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 700; letter-spacing: .03em;
-  text-transform: uppercase; color: var(--color-unergy-deep);
-}
-.cd-toolbar-titulo svg { font-size: 11px; color: var(--color-unergy-purple); }
-.cd-toolbar-act { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.cd-toolbar-nota { font-size: 11px; color: #9b89b5; }
-
-/* ── Contenedor de tabla: mismo marco que las secciones ───────────────────── */
-.cd-tabla { border: 1.5px solid #e8e0f0; border-radius: 12px; overflow: hidden; background: #fff; }
-.cd-num {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
-}
-.cd-fuerte { font-weight: 600; color: var(--color-unergy-deep); }
-.cd-tarifa { font-weight: 600; color: #b45309; }
-.cd-nulo { color: #c5b9db; }
-.cd-enlace { font-weight: 500; color: var(--color-unergy-purple); }
-.cd-enlace:hover { text-decoration: underline; text-underline-offset: 2px; }
-
-/* PrimeVue renderiza la tabla fuera del alcance de :scoped: hace falta :deep */
+/* PrimeVue renderiza la tabla fuera del alcance de :scoped: hace falta :deep.
+   No controlamos el markup de DataTable, por eso estas reglas viven aquí. */
 .cd-tabla :deep(.p-datatable-thead > tr > th) {
-  background: #faf8fd; color: #6b5a8a;
-  font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
-  border-bottom: 1px solid #ECE7F2; padding: 8px 12px;
+  background: color-mix(in oklab, var(--muted) 50%, transparent);
+  color: var(--muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
 }
 .cd-tabla :deep(.p-datatable-tbody > tr > td) {
-  padding: 8px 12px; border-bottom: 1px solid #f6f2fb; color: var(--color-unergy-deep);
+  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+  color: var(--color-unergy-deep);
 }
 .cd-tabla :deep(.p-datatable-tbody > tr:last-child > td) { border-bottom: none; }
-.cd-tabla :deep(.p-datatable-tbody > tr.p-row-odd) { background: #fdfcfe; }
-.cd-tabla :deep(.p-datatable-tbody > tr:hover) { background: #f7f3fd; }
+.cd-tabla :deep(.p-datatable-tbody > tr.p-row-odd) { background: color-mix(in oklab, var(--muted) 20%, transparent); }
+.cd-tabla :deep(.p-datatable-tbody > tr:hover) { background: color-mix(in oklab, var(--color-unergy-purple) 6%, transparent); }
 .cd-tabla :deep(.p-paginator) {
-  background: #faf8fd; border-top: 1px solid #ECE7F2; padding: 5px 8px;
+  background: color-mix(in oklab, var(--muted) 50%, transparent);
+  border-top: 1px solid var(--border);
+  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2);
 }
 .cd-tabla :deep(.cd-th-der .p-datatable-column-header-content) { justify-content: flex-end; }
-.cd-tabla :deep(td.cd-der), .cd-der { text-align: right; }
-
-/* ── Píldoras de estado / variación ───────────────────────────────────────── */
-.cd-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 7px; border-radius: 999px;
-  font-size: 11px; font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  background: #f4f1f9; color: #6b5a8a;
-}
-.cd-pill svg { font-size: 9px; }
-.cd-pill--neutro { background: #f4f1f9; color: #6b5a8a; }
-.cd-pill--ok { background: #ecfdf5; color: #059669; }
-.cd-pill--warn { background: #fffbeb; color: #b45309; }
-.cd-pill--err { background: #fef2f2; color: #dc2626; }
-.cd-pill--flex { background: #eef2ff; color: #4f46e5; }
-
-/* ── Aviso de "esto reemplaza todo" en los modos de pegado ────────────────── */
-.cd-aviso {
-  display: flex; align-items: flex-start; gap: 9px;
-  padding: 10px 13px; border-radius: 10px;
-  background: #fffbeb; border: 1px solid #fde68a;
-  font-size: 12px; line-height: 1.5; color: #92400e;
-}
-.cd-aviso > svg { font-size: 13px; color: #d97706; margin-top: 1px; flex-shrink: 0; }
-
-/* ── Tabla de vista previa del pegado ─────────────────────────────────────── */
-.cd-preview { width: 100%; border-collapse: collapse; font-size: 12px; }
-.cd-preview th {
-  background: #faf8fd; color: #6b5a8a; text-align: left;
-  font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
-  padding: 7px 12px; border-bottom: 1px solid #ECE7F2;
-}
-.cd-preview td { padding: 6px 12px; border-bottom: 1px solid #f6f2fb; color: var(--color-unergy-deep); }
-.cd-preview tr:last-child td { border-bottom: none; }
-.cd-preview .cd-der { text-align: right; }
-.cd-preview-mas { color: #c5b9db; font-style: italic; }
-
-/* ── Estados vacíos y de carga ────────────────────────────────────────────── */
-.cd-vacio {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 44px 20px; border-radius: 12px;
-  border: 1.5px dashed #e8e0f0; background: #fdfcfe; text-align: center;
-}
-.cd-vacio > svg { font-size: 26px; color: #d8cce9; margin-bottom: 5px; }
-.cd-vacio-tit { font-size: 13px; font-weight: 600; color: #6b5a8a; }
-.cd-vacio-sub { font-size: 12px; color: #9b89b5; }
-.cd-cargando {
-  display: flex; align-items: center; justify-content: center; gap: 9px;
-  padding: 56px 20px; font-size: 13px; color: #9b89b5;
-}
-
-/* ── Tarjetas de plantas asociadas ────────────────────────────────────────── */
-.cd-proy {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 13px; border-radius: 10px;
-  border: 1px solid #ECE7F2; background: #fff;
-  transition: border-color .12s, background .12s;
-}
-.cd-proy:hover { border-color: #d9c9f5; background: #fdfcfe; }
-.cd-proy-nom {
-  font-size: 13px; font-weight: 600; color: var(--color-unergy-deep);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.cd-proy-id {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px; color: #9b8fb0;
-}
-.cd-proy-chev { font-size: 10px; color: #c5b9db; flex-shrink: 0; }
-.cd-proy:hover .cd-proy-chev { color: var(--color-unergy-purple); }
 </style>

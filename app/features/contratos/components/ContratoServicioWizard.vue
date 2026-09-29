@@ -35,52 +35,52 @@
 
       <!-- PASO 0 (internet): solo los datos técnicos del servicio -->
       <template v-if="step === 0 && tipo === 'internet'">
-        <p class="step-title">Datos del servicio</p>
+        <p class="text-sm font-semibold text-foreground mb-4">Datos del servicio</p>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Plan de datos</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Plan de datos</label>
               <InputText v-model="form.plan_datos_gb" class="w-full" placeholder="50 GB / Ilimitado" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Velocidad contratada</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Velocidad contratada</label>
               <InputNumber v-model="form.velocidad_mbps" suffix=" Mbps" :useGrouping="false" class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Tipo de conexión</label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de conexión</label>
             <Select v-model="form.tipo_conexion"
               :options="[{label:'Starlink',value:'Starlink'},{label:'Fibra',value:'Fibra'},{label:'4G',value:'4G'},{label:'Otro',value:'Otro'}]"
               optionLabel="label" optionValue="value" editable placeholder="Selecciona…" class="w-full" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Línea de servicio</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Línea de servicio</label>
               <InputText v-model="form.linea_servicio" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">ID del router</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">ID del router</label>
               <InputText v-model="form.id_router" class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Número de kit</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de kit</label>
               <InputText v-model="form.numero_kit" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Latencia</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Latencia</label>
               <InputNumber v-model="form.latencia_ms" suffix=" ms" :useGrouping="false" class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Seguridad del wifi</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Seguridad del wifi</label>
               <Select v-model="form.wifi_seguridad" :options="WIFI_SEGURIDAD_OPTS"
                 optionLabel="label" optionValue="value" showClear placeholder="Selecciona…" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Contraseña wifi</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Contraseña wifi</label>
               <InputText v-model="form.wifi_password" class="w-full" />
             </div>
           </div>
@@ -97,11 +97,11 @@
             </div>
             <div v-if="editandoUbicacion" class="grid grid-cols-2 gap-4 mb-2">
               <div class="flex flex-col gap-1">
-                <label class="field-label">Latitud</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
                 <InputNumber v-model="form.ubicacion_lat" :minFractionDigits="4" :maxFractionDigits="6" class="w-full" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">Longitud</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
                 <InputNumber v-model="form.ubicacion_lng" :minFractionDigits="4" :maxFractionDigits="6" class="w-full" />
               </div>
             </div>
@@ -115,10 +115,10 @@
 
       <!-- PASO 0: Identificación -->
       <template v-if="step === 0 && tipo !== 'internet'">
-        <p class="step-title">Identificación del contrato</p>
+        <p class="text-sm font-semibold text-foreground mb-4">Identificación del contrato</p>
         <div class="space-y-4">
           <div class="flex flex-col gap-1">
-            <label class="field-label">Proyecto asociado <span class="text-muted-foreground">(opcional)</span></label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Proyecto asociado <span class="text-muted-foreground">(opcional)</span></label>
             <Select
               v-model="form.proyecto_id"
               :options="todosProyectos"
@@ -133,27 +133,27 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Número de contrato</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de contrato</label>
               <InputText v-model="form.numero_contrato" placeholder="Ej: REP-001-2024" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Estado</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Estado</label>
               <Select v-model="form.estado" :options="ESTADOS" optionLabel="label" optionValue="value" class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha firma <span class="text-muted-foreground">(opcional)</span></label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha firma <span class="text-muted-foreground">(opcional)</span></label>
               <DatePicker v-model="form.fecha_firma_contrato" dateFormat="yy-mm-dd" class="w-full" showClear />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Estado del pago <span class="text-muted-foreground">(opcional)</span></label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Estado del pago <span class="text-muted-foreground">(opcional)</span></label>
               <Select v-model="form.estado_pago" :options="[{label:'Pendiente',value:'pendiente'},{label:'Revisado',value:'revisado'},{label:'Aprobado',value:'aprobado'}]"
                 optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Enlace contrato en Drive <span class="text-muted-foreground">(opcional)</span></label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Enlace contrato en Drive <span class="text-muted-foreground">(opcional)</span></label>
             <InputText v-model="form.enlace_drive" placeholder="https://drive.google.com/…" class="w-full" />
           </div>
         </div>
@@ -161,7 +161,7 @@
 
       <!-- PASO 1: Partes -->
       <template v-if="step === 1 && tipo !== 'internet'">
-        <p class="step-title">Partes del contrato</p>
+        <p class="text-sm font-semibold text-foreground mb-4">Partes del contrato</p>
         <div class="grid grid-cols-2 gap-1 mb-1 px-1">
           <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contratante</span>
           <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prestador</span>
@@ -177,7 +177,7 @@
               requerido
             />
             <div class="flex flex-col gap-1">
-              <label class="field-label">NIT</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
               <InputText v-model="form.contratante_nit" class="w-full" placeholder="Autocompletado" />
             </div>
           </div>
@@ -191,7 +191,7 @@
               requerido
             />
             <div class="flex flex-col gap-1">
-              <label class="field-label">NIT</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
               <InputText v-model="form.prestador_nit" class="w-full" placeholder="Autocompletado" />
             </div>
           </div>
@@ -212,7 +212,7 @@
               label="Nombre / Razón social"
               requerido
             />
-            <p class="field-ayuda mt-2">
+            <p class="text-xs text-muted-foreground leading-snug mt-2">
               En minigranjas hay un contrato por inversionista, y cada uno puede
               tener su propia tarifa.
             </p>
@@ -222,15 +222,15 @@
 
       <!-- PASO 2: Términos económicos -->
       <template v-if="step === 2 && tipo !== 'internet'">
-        <p class="step-title">Términos económicos</p>
+        <p class="text-sm font-semibold text-foreground mb-4">Términos económicos</p>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha inicio</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha inicio</label>
               <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha fin</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin</label>
               <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
           </div>
@@ -240,26 +240,26 @@
                que volver a entrar al contrato para completarlas. -->
           <div v-if="props.tipo === 'representacion'" class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Tarifa representación (COP/kWh)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa representación (COP/kWh)</label>
               <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="2"
                 :maxFractionDigits="6" class="w-full" />
-              <small class="field-ayuda">Déjala vacía si el contrato no cubre representación.</small>
+              <small class="text-xs text-muted-foreground leading-snug">Déjala vacía si el contrato no cubre representación.</small>
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Tarifa CGM (COP/kWh)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa CGM (COP/kWh)</label>
               <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="2"
                 :maxFractionDigits="6" class="w-full" />
-              <small class="field-ayuda">Déjala vacía si el contrato no cubre CGM.</small>
+              <small class="text-xs text-muted-foreground leading-snug">Déjala vacía si el contrato no cubre CGM.</small>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div v-if="props.tipo !== 'representacion'" class="flex flex-col gap-1">
-              <label class="field-label">Tarifa base (COP/kWh)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa base (COP/kWh)</label>
               <InputNumber v-model="form.tarifa_base" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Periodicidad de pago</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad de pago</label>
               <Select v-model="form.periodicidad_pago" :options="PERIODICIDADES"
                 optionLabel="label" optionValue="value" showClear class="w-full" />
             </div>
@@ -267,7 +267,7 @@
 
           <div class="max-w-xs">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Índice de indexación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Índice de indexación</label>
               <InputText v-model="form.indice_indexacion" placeholder="Ej: IPC, IPP" class="w-full" />
             </div>
           </div>
@@ -280,22 +280,22 @@
             </p>
             <div class="space-y-4">
               <div class="flex flex-col gap-1">
-                <label class="field-label">Alcance del servicio</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Alcance del servicio</label>
                 <Textarea v-model="form.service_scope" rows="3" autoResize class="w-full"
                   placeholder="Describe el alcance del servicio…" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">Términos específicos del servicio</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Términos específicos del servicio</label>
                 <Textarea v-model="form.specific_service_terms" rows="3" autoResize class="w-full"
                   placeholder="Términos específicos aplicables al servicio…" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">SLAs (Acuerdos de nivel de servicio)</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">SLAs (Acuerdos de nivel de servicio)</label>
                 <Textarea v-model="form.slas" rows="3" autoResize class="w-full"
                   placeholder="Acuerdos de nivel de servicio, tiempos de respuesta…" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">Responsabilidades</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Responsabilidades</label>
                 <Textarea v-model="form.responsibilities" rows="3" autoResize class="w-full"
                   placeholder="Responsabilidades de las partes…" />
               </div>
@@ -306,7 +306,7 @@
 
       <!-- PASO 3: Arrendadores (solo ARRIENDO) -->
       <template v-if="tipo === 'arriendo' && step === STEPS.length - 1">
-        <p class="step-title">Arrendadores</p>
+        <p class="text-sm font-semibold text-foreground mb-4">Arrendadores</p>
         <p class="text-xs text-muted-foreground mb-3">
           El contrato ya se creó. Agrega al menos un arrendador (persona/entidad que recibe el pago) antes de finalizar.
         </p>
@@ -388,7 +388,7 @@
 
       <!-- PASO 3: CGM (solo REPRESENTACIÓN) -->
       <template v-if="step === 3 && tipo === 'representacion'">
-        <p class="step-title">CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-sm font-semibold text-foreground mb-4">CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
         <div class="space-y-4">
           <!-- CGM -->
           <div class="rounded-lg border border-border p-4 space-y-3">
@@ -400,7 +400,7 @@
             <template v-if="form.incluye_cgm">
               <div class="pt-1 max-w-xs">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Código SIC</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Código SIC</label>
                   <InputText v-model="form.cgm_codigo_sic" placeholder="Ej: CGM-001" class="w-full" />
                 </div>
               </div>
@@ -899,13 +899,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.step-title { @apply text-sm font-semibold text-gray-700 mb-4; }
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-.field-ayuda { @apply text-[11px] text-gray-400 leading-snug; }
-</style>
