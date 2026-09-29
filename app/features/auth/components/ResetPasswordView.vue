@@ -131,7 +131,7 @@ async function submit() {
   }
 
   const token = route.params.token
-  const tokenStr = Array.isArray(token) ? (token[0] ?? '') : token
+  const tokenStr = (Array.isArray(token) ? token[0] : token) ?? ''
   loading.value = true
   error.value = ''
   try {
