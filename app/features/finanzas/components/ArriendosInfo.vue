@@ -2,7 +2,7 @@
   <div class="space-y-4 pt-3">
 
     <!-- ── Barra superior ────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border border-border">
       <div class="flex items-center gap-3">
         <span class="text-sm font-semibold text-foreground">{{ periodoLabel }}</span>
         <GBadge color="default" class="text-xs font-mono">{{ periodoActual }}</GBadge>
@@ -13,7 +13,7 @@
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Buscar</label>
         <input v-model="filtroTexto" type="text" placeholder="Nombre del proyecto…"
@@ -21,7 +21,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Tipo de pago</label>
-        <select v-model="filtroPeriodicidad" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white">
+        <select v-model="filtroPeriodicidad" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-card">
           <option value="todos">Toda periodicidad</option>
           <option value="mensual">Mensual</option>
           <option value="bimestral">Bimestral</option>
@@ -32,7 +32,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Con anticipo</label>
-        <select v-model="filtroAnticipo" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white">
+        <select v-model="filtroAnticipo" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-card">
           <option value="todos">Todos</option>
           <option value="con">Con anticipo</option>
           <option value="sin">Sin anticipo</option>
@@ -43,13 +43,13 @@
 
     <!-- ── Tabla ──────────────────────────────────────────────────────────── -->
     <template v-if="loading">
-      <div class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
+      <div class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
         Cargando…
       </div>
     </template>
     <template v-else-if="secciones.length">
       <div v-for="sec in secciones" :key="sec.tipo"
-        class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+        class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
 
         <!-- Cabecera de sección (colapsable) -->
         <button type="button"
@@ -104,7 +104,7 @@
         </div>
       </div>
     </template>
-    <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
+    <div v-else class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
       No se encontraron proyectos con los filtros aplicados.
     </div>
 

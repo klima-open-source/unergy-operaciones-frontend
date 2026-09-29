@@ -65,7 +65,7 @@
     </div>
 
     <!-- ── Soporte del período ─────────────────────────────────────────────── -->
-    <div class="rounded-xl border bg-white overflow-hidden border-border">
+    <div class="rounded-xl border bg-card overflow-hidden border-border">
       <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-primary/10"
         >
         <div class="flex items-center gap-2">
