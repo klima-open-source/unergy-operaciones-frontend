@@ -19,7 +19,7 @@ const atrasada = computed(() => generacionAtrasada(props.frescura))
       mensual está comprometido.
     </AlertDescription>
   </Alert>
-  <p v-else-if="frescura" class="flex items-center gap-2 text-[11px] text-muted-foreground">
+  <p v-else-if="frescura" class="flex items-center gap-2 text-xs text-muted-foreground">
     <CircleCheckIcon class="size-3.5 text-success" />
     <span>Generación al día ({{ fechaCorta(frescura.fecha_dato_generacion) }})</span>
   </p>

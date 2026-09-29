@@ -39,13 +39,13 @@ const destacada = computed(() => props.item.estado === EstadoVencimiento.ESTIMAD
       </div>
       <div class="text-right">
         <div class="text-xl font-bold text-primary">{{ formatCOP(item.p90) }}</div>
-        <div v-if="item.central != null" class="text-[11px] text-muted-foreground">
+        <div v-if="item.central != null" class="text-xs text-muted-foreground">
           central {{ formatCOP(item.central) }}
         </div>
       </div>
     </div>
 
-    <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+    <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
       <div class="flex justify-between">
         <dt>Ventana cierra</dt>
         <dd class="text-foreground">{{ fechaCorta(item.ventana_cierra) }}</dd>

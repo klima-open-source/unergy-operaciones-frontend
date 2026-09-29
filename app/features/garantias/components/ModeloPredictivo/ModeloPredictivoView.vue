@@ -123,7 +123,7 @@ onMounted(cargar)
           operativa en cuanto lo esté; hasta entonces no hay estimaciones que consultar y
           <b>Recalcular</b> va a seguir fallando.
         </p>
-        <p class="text-[11px]">{{ error }}</p>
+        <p class="text-xs">{{ error }}</p>
       </AlertDescription>
     </Alert>
 
@@ -138,18 +138,14 @@ onMounted(cargar)
         @detalle="abrirDetalle"
       />
 
-      <div
-        v-else
-        class="grid gap-4"
-        style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))"
-      >
+      <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <MensualCard v-for="m in mensuales" :key="m.id" :item="m" @detalle="abrirDetalle" />
         <p v-if="!mensuales.length" class="text-sm text-muted-foreground">
           No hay garantías mensuales en el horizonte.
         </p>
       </div>
 
-      <p v-if="data.backtest" class="border-t pt-3 text-[11px] text-muted-foreground">
+      <p v-if="data.backtest" class="border-t pt-3 text-xs text-muted-foreground">
         Cobertura histórica:
         <b>{{ pct(data.backtest.cobertura_semanal) }}</b> semanal ·
         <b>{{ pct(data.backtest.cobertura_mensual) }}</b> mensual — ancho mediano

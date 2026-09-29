@@ -63,21 +63,22 @@ function onOpenChange(open: boolean) {
             <div
               v-for="d in detalle.descomposicion_ancho"
               :key="d.fuente"
+              class="w-(--w) bg-(--c)"
               :style="{
-                width: `${(d.pct * 100).toFixed(1)}%`,
-                background: fuenteAncho(d.fuente).color,
+                '--w': `${(d.pct * 100).toFixed(1)}%`,
+                '--c': fuenteAncho(d.fuente).color,
               }"
             />
           </div>
-          <div class="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
+          <div class="flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span
               v-for="d in detalle.descomposicion_ancho"
               :key="d.fuente"
               class="inline-flex items-center gap-1.5"
             >
               <i
-                class="inline-block size-2 rounded-sm"
-                :style="{ background: fuenteAncho(d.fuente).color }"
+                class="inline-block size-2 rounded-sm bg-(--c)"
+                :style="{ '--c': fuenteAncho(d.fuente).color }"
               />
               {{ fuenteAncho(d.fuente).label }} {{ Math.round(d.pct * 100) }}%
             </span>
@@ -111,7 +112,7 @@ function onOpenChange(open: boolean) {
               </GTableRow>
             </GTableBody>
           </GTable>
-          <p v-if="hayContaminado" class="mt-2 text-[11px] text-warning">
+          <p v-if="hayContaminado" class="mt-2 text-xs text-warning">
             Hay insumos en una versión distinta de tx2. Ese dato no existía en la fecha de cálculo,
             así que este número está contaminado y no debe leerse como definitivo.
           </p>
