@@ -91,7 +91,7 @@ onMounted(cargar)
         </template>
         <template #actions>
           <Select v-model="anio" :disabled="cargandoInicial">
-            <SelectTrigger class="w-26" aria-label="Año">
+            <SelectTrigger aria-label="Año">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
