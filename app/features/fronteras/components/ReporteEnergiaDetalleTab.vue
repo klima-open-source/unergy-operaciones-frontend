@@ -294,37 +294,49 @@
         Corrección manual (kWh)
       </p>
       <div class="flex flex-wrap gap-4">
-        <table class="tabla-horas">
+        <table class="border-collapse">
           <thead>
             <tr>
-              <th>Hora</th>
-              <th>Principal</th>
-              <th>Respaldo ({{ etiquetaOrigenRespaldo }})</th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Hora
+              </th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Principal
+              </th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Respaldo ({{ etiquetaOrigenRespaldo }})
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="h in 12"
-              :key="h - 1"
-              :class="esHoraRellenada(h - 1) ? 'fila-rellenada' : ''"
-            >
-              <td>{{ h - 1 }}h</td>
-              <td>
+            <tr v-for="h in 12" :key="h - 1">
+              <td
+                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-unergy-deep"
+              >
+                {{ h - 1 }}h
+              </td>
+              <td class="border p-0">
                 <Input
                   :model-value="curvaEditable[h - 1] ?? ''"
                   inputmode="decimal"
-                  class="celda-input w-full text-right text-xs"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
                   @update:model-value="(v) => (curvaEditable[h - 1] = v)"
                   @paste="onPasteHora($event, h - 1)"
                 />
               </td>
-              <td>
+              <td class="border p-0" :class="{ 'bg-warning/15': esHoraRellenada(h - 1) }">
                 <Input
                   :model-value="curvaRespaldoEditable[h - 1] ?? ''"
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h - 1)"
-                  class="celda-input w-full text-right text-xs"
-                  :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = v)"
                   @paste="onPasteHoraRespaldo($event, h - 1)"
                 />
@@ -332,37 +344,49 @@
             </tr>
           </tbody>
         </table>
-        <table class="tabla-horas">
+        <table class="border-collapse">
           <thead>
             <tr>
-              <th>Hora</th>
-              <th>Principal</th>
-              <th>Respaldo ({{ etiquetaOrigenRespaldo }})</th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Hora
+              </th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Principal
+              </th>
+              <th
+                class="border bg-muted px-2.5 py-1.5 text-left font-mono text-xs font-bold whitespace-nowrap text-muted-foreground"
+              >
+                Respaldo ({{ etiquetaOrigenRespaldo }})
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="h in 12"
-              :key="h + 11"
-              :class="esHoraRellenada(h + 11) ? 'fila-rellenada' : ''"
-            >
-              <td>{{ h + 11 }}h</td>
-              <td>
+            <tr v-for="h in 12" :key="h + 11">
+              <td
+                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-unergy-deep"
+              >
+                {{ h + 11 }}h
+              </td>
+              <td class="border p-0">
                 <Input
                   :model-value="curvaEditable[h + 11] ?? ''"
                   inputmode="decimal"
-                  class="celda-input w-full text-right text-xs"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
                   @update:model-value="(v) => (curvaEditable[h + 11] = v)"
                   @paste="onPasteHora($event, h + 11)"
                 />
               </td>
-              <td>
+              <td class="border p-0" :class="{ 'bg-warning/15': esHoraRellenada(h + 11) }">
                 <Input
                   :model-value="curvaRespaldoEditable[h + 11] ?? ''"
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h + 11)"
-                  class="celda-input w-full text-right text-xs"
-                  :class="{ 'celda-respaldo-real': respaldoEsDatoReal }"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = v)"
                   @paste="onPasteHoraRespaldo($event, h + 11)"
                 />
@@ -1909,57 +1933,3 @@ function fmtKwh(v: unknown): string {
   return Number(v).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh'
 }
 </script>
-
-<style scoped>
-/* Tabla vertical estilo Excel (Hora | kWh) -- dos columnas de 12 horas cada
-   una, lado a lado, para no obligar a un scroll larguísimo de 24 filas. */
-.tabla-horas {
-  border-collapse: collapse;
-}
-.tabla-horas th,
-.tabla-horas td {
-  border: 1px solid #e8e0f0;
-  padding: 0;
-}
-.tabla-horas th {
-  background: #f9f7ff;
-  color: #6b5a8a;
-  font-size: 11px;
-  font-weight: 700;
-  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-  padding: 6px 10px;
-  text-align: left;
-  white-space: nowrap;
-}
-.tabla-horas td:first-child {
-  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-unergy-deep);
-  padding: 0 10px;
-  white-space: nowrap;
-  background: #f9f7ff;
-}
-.tabla-horas tr.fila-rellenada td:last-child {
-  background: rgba(240, 192, 64, 0.14);
-}
-:deep(.celda-input) {
-  width: 110px;
-  height: 32px;
-  border: none !important;
-  background: transparent !important;
-}
-:deep(.celda-input:focus) {
-  outline: 2px solid var(--color-unergy-purple);
-  outline-offset: -2px;
-}
-/* Respaldo con dato real (Medidor) -- el placeholder se ve como texto
-   normal, no como la pista tenue de siempre, porque no es una sugerencia:
-   es el valor real que ya se está reportando (ver respaldoEsDatoReal). El
-   caso 'Estimado ±1%' se queda con el gris tenue por defecto del navegador,
-   ahí sí es un número provisional. */
-:deep(.celda-respaldo-real::placeholder) {
-  color: #2c2039;
-  opacity: 1;
-}
-</style>
