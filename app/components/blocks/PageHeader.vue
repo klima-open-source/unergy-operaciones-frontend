@@ -4,7 +4,7 @@
       <slot name="lead" />
       <div class="min-w-0">
         <h1
-          class="text-base font-extrabold whitespace-normal text-unergy-deep sm:overflow-hidden sm:text-lg sm:leading-tight sm:text-ellipsis sm:whitespace-nowrap"
+          class="text-base font-extrabold whitespace-normal text-foreground sm:overflow-hidden sm:text-lg sm:leading-tight sm:text-ellipsis sm:whitespace-nowrap"
         >
           {{ title }}
         </h1>
