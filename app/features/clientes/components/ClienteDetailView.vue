@@ -265,7 +265,7 @@ async function doDelete() {
           </p>
           <div v-else class="space-y-2">
             <Item v-for="f in clienteFronteras" :key="f.id" variant="outline">
-              <ItemMedia variant="icon" class="bg-information/10 text-information">
+              <ItemMedia variant="icon" class="bg-accent text-accent-foreground">
                 <GlobeIcon class="size-4" />
               </ItemMedia>
               <ItemContent>
