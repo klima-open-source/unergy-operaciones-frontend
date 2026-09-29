@@ -36,9 +36,7 @@
 
     <div v-else class="flex items-start gap-3.5 overflow-x-auto pb-2.5">
       <!-- Pool: proyectos sin portafolio -->
-      <Card
-        class="flex max-h-[calc(100vh-200px)] w-[270px] shrink-0 flex-col border-dashed bg-muted/30"
-      >
+      <Card class="flex max-h-160 w-68 shrink-0 flex-col border-dashed bg-muted/30">
         <CardHeader>
           <CardTitle class="flex items-center gap-1.5 text-sm">
             <InboxIcon class="size-4 text-primary" /> Sin portafolio
@@ -65,7 +63,7 @@
                   <div class="truncate text-xs font-bold text-foreground">
                     {{ element.nombre }}
                   </div>
-                  <div v-if="element.municipio" class="text-[10px] text-muted-foreground">
+                  <div v-if="element.municipio" class="text-xs text-muted-foreground">
                     {{ element.municipio }}
                   </div>
                 </div>
@@ -84,11 +82,7 @@
       </Card>
 
       <!-- Capas (portafolios) -->
-      <Card
-        v-for="pt in portafolios"
-        :key="pt.id"
-        class="flex max-h-[calc(100vh-200px)] w-[270px] shrink-0 flex-col"
-      >
+      <Card v-for="pt in portafolios" :key="pt.id" class="flex max-h-160 w-68 shrink-0 flex-col">
         <CardHeader>
           <template v-if="editandoId === pt.id">
             <Input
@@ -155,7 +149,7 @@
                   <div class="truncate text-xs font-bold text-foreground">
                     {{ element.nombre }}
                   </div>
-                  <div v-if="element.municipio" class="text-[10px] text-muted-foreground">
+                  <div v-if="element.municipio" class="text-xs text-muted-foreground">
                     {{ element.municipio }}
                   </div>
                 </div>

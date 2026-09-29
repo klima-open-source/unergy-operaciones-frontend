@@ -50,7 +50,7 @@
             v-if="tipo === 'proyecto' || tipo === 'fmo'"
             class="flex min-w-50 flex-1 flex-col gap-1"
           >
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               {{ tipo === 'fmo' ? 'Proyecto con contrato FMO' : 'Proyecto' }}
             </label>
             <Combobox
@@ -80,7 +80,7 @@
 
           <!-- Ranking vs P90: alcance (portafolio / proyectos) -->
           <div v-if="tipo === 'ranking'" class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Alcance
             </label>
             <ButtonGroup>
@@ -108,7 +108,7 @@
             v-if="tipo === 'ranking' && rankingScope === 'proyectos'"
             class="flex min-w-50 flex-1 flex-col gap-1"
           >
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Proyectos (uno o varios)
             </label>
             <Combobox
@@ -147,7 +147,7 @@
             v-if="tipo === 'portafolio' || (tipo === 'ranking' && rankingScope === 'portafolio')"
             class="flex min-w-50 flex-1 flex-col gap-1"
           >
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Portafolio / Cliente
             </label>
             <Combobox
@@ -180,7 +180,7 @@
 
           <!-- Modo de período -->
           <div class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Período
             </label>
             <ButtonGroup>
@@ -206,7 +206,7 @@
 
           <!-- Mes -->
           <div v-if="periodoMode === 'mes'" class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Mes
             </label>
             <Input v-model="mesSel" type="month" :max="mesMax" class="w-auto" />
@@ -214,13 +214,13 @@
 
           <!-- Rango custom (no FMO) -->
           <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Desde
             </label>
             <Input v-model="customDesde" type="date" :max="hoyISO" class="w-auto" />
           </div>
           <div v-if="periodoMode === 'custom' && tipo !== 'fmo'" class="flex flex-col gap-1">
-            <label class="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
+            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Hasta
             </label>
             <Input v-model="customHasta" type="date" :max="hoyISO" class="w-auto" />
