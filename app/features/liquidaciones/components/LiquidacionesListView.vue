@@ -191,10 +191,13 @@ onMounted(() => {
         <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
         <InputGroupInput v-model="q" placeholder="Buscar proyecto…" />
       </InputGroup>
-      <Select v-model="estadoFiltro">
+      <Select
+        :model-value="aValorSelect(estadoFiltro)"
+        @update:model-value="(v) => (estadoFiltro = deValorSelect(v))"
+      >
         <SelectTrigger><SelectValue placeholder="Estado" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Estado: todos</SelectItem>
+          <SelectItem :value="VALOR_SELECT_VACIO">Estado: todos</SelectItem>
           <SelectItem v-for="op in ESTADO_OPCIONES" :key="op.value" :value="op.value">{{
             op.label
           }}</SelectItem>
