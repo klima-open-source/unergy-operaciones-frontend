@@ -81,25 +81,13 @@ onMounted(cargar)
       </div>
       <div class="flex flex-col gap-1">
         <GLabel>Percentil (%)</GLabel>
-        <NumberField
-          v-model="cuantilPct"
-          :min="50"
-          :max="99"
-          class="w-28"
-          @update:model-value="cargar"
-        >
+        <NumberField v-model="cuantilPct" :min="50" :max="99" @update:model-value="cargar">
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div v-if="esquema === EsquemaModelo.SEMANAL" class="flex flex-col gap-1">
         <GLabel>Semanas</GLabel>
-        <NumberField
-          v-model="horizonte"
-          :min="1"
-          :max="12"
-          class="w-32"
-          @update:model-value="cargar"
-        >
+        <NumberField v-model="horizonte" :min="1" :max="12" @update:model-value="cargar">
           <NumberFieldContent>
             <NumberFieldDecrement />
             <NumberFieldInput />

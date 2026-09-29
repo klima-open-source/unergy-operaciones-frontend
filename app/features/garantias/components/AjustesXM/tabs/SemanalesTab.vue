@@ -363,7 +363,7 @@ async function guardarRegistro() {
             <label class="text-xs font-semibold text-muted-foreground"
               >Fecha objetivo (viernes):</label
             >
-            <DatePicker v-model="fechaObjetivo" class="w-40" />
+            <DatePicker v-model="fechaObjetivo" />
           </div>
           <FacturasDescuento
             v-model:total-descontado="totalDescontado"
