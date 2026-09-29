@@ -61,7 +61,7 @@
           <ChevronDownIcon class="text-muted-foreground ml-2 transition-transform duration-200 size-3" :class="{ 'rotate-180': openSections.has(sec.tipo) }" />
         </button>
 
-        <div class="section-collapse" :class="{ open: openSections.has(sec.tipo) }">
+        <div class="overflow-hidden transition-all" :class="openSections.has(sec.tipo) ? 'max-h-5000 duration-450 ease-in' : 'max-h-0 duration-350 ease-out'">
           <div class="overflow-x-auto">
             <table class="w-full text-sm border-collapse table-fixed">
               <thead>
@@ -235,15 +235,3 @@ function proximaFecha(iso) {
 watch(periodoActual, cargarDatos)
 onMounted(cargarDatos)
 </script>
-
-<style scoped>
-.section-collapse {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.35s ease-out;
-}
-.section-collapse.open {
-  max-height: 20000px;
-  transition: max-height 0.45s ease-in;
-}
-</style>
