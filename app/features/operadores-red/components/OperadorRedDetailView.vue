@@ -134,7 +134,9 @@ onMounted(cargar)
             </p>
 
             <div v-for="c in operador.contactos" :key="c.id" class="flex items-center gap-2">
-              <InputGroup :class="!emailValido(c.email) ? 'border-destructive' : ''">
+              <InputGroup
+                :class="['min-w-0 flex-1', !emailValido(c.email) ? 'border-destructive' : '']"
+              >
                 <InputGroupAddon>
                   <MailIcon class="size-4" />
                 </InputGroupAddon>
@@ -148,7 +150,7 @@ onMounted(cargar)
               <Input
                 :model-value="c.nombre ?? ''"
                 placeholder="Nombre (opcional)"
-                class="w-40"
+                class="min-w-0 flex-1"
                 @update:model-value="c.nombre = String($event)"
                 @blur="guardarContacto(c)"
               />
@@ -158,7 +160,7 @@ onMounted(cargar)
             </div>
 
             <div v-if="nuevo" class="flex items-center gap-2">
-              <InputGroup>
+              <InputGroup class="min-w-0 flex-1">
                 <InputGroupAddon>
                   <MailIcon class="size-4" />
                 </InputGroupAddon>
@@ -173,7 +175,7 @@ onMounted(cargar)
               <Input
                 v-model="nuevo.nombre"
                 placeholder="Nombre (opcional)"
-                class="w-40"
+                class="min-w-0 flex-1"
                 @blur="crearContacto"
               />
               <Button variant="ghost" size="icon-sm" @click="nuevo = null">
