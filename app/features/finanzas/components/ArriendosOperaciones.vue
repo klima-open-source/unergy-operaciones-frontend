@@ -9,7 +9,7 @@
             class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
             <ChevronLeftIcon class="text-muted-foreground size-3" />
           </button>
-          <span class="text-sm font-semibold text-unergy-deep text-center">
+          <span class="text-sm font-semibold text-foreground text-center">
             {{ periodoLabel }}
           </span>
           <button type="button" @click="cambiarMes(1)"
@@ -31,12 +31,12 @@
             <p class="text-xs font-semibold text-muted-foreground mb-2">Mostrar columnas</p>
             <label v-for="col in columnasOpcionales" :key="col.key"
               class="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
-              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-unergy-purple" />
+              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-primary" />
               {{ col.label }}
             </label>
           </div>
         </div>
-        <Button label="IPC" size="small" outlined @click="showIPCDialog = true" class="border-unergy-purple text-unergy-purple">
+        <Button label="IPC" size="small" outlined @click="showIPCDialog = true" class="border-primary text-primary">
           <template #icon><ChartLineIcon class="size-4" /></template>
         </Button>
         <ArriendosZipUpload
@@ -44,7 +44,7 @@
           :periodo="periodoActual"
           :periodo-label="periodoLabel"
           @docs-actualizados="() => loadDocs(periodoActual.value)" />
-        <Button label="Guardar selección" size="small" :loading="guardando" class="bg-unergy-purple border-unergy-purple" @click="guardarSeleccion">
+        <Button label="Guardar selección" size="small" :loading="guardando" class="bg-primary border-primary" @click="guardarSeleccion">
           <template #icon><SaveIcon class="size-4" /></template>
         </Button>
       </div>
@@ -111,7 +111,7 @@
               <th class="px-4 py-2.5 text-left">
                 <input type="checkbox" :checked="todosMarcadosSeccion(sec.items)"
                   @change="toggleTodosSeccion(sec.items, $event.target.checked)"
-                  class="accent-unergy-purple" />
+                  class="accent-primary" />
               </th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Proyecto</th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Estado contrato</th>
@@ -139,10 +139,10 @@
               <!-- Checkbox — solo facturable (con contrato + aplica este mes) -->
               <td class="px-4 py-2 text-center" :class="!esFacturable(fila) ? 'opacity-40' : ''">
                 <input type="checkbox" :disabled="!esFacturable(fila)"
-                  v-model="seleccion[fila.id]" class="accent-unergy-purple" />
+                  v-model="seleccion[fila.id]" class="accent-primary" />
               </td>
               <!-- Proyecto: se mantiene a opacidad completa aunque no sea facturable, para que el nombre siga siendo legible -->
-              <td class="px-4 py-2 font-medium text-unergy-deep overflow-hidden text-ellipsis"  :title="fila.proyecto">
+              <td class="px-4 py-2 font-medium text-foreground overflow-hidden text-ellipsis"  :title="fila.proyecto">
                 <div class="flex flex-col gap-0.5 max-w-full">
                   <span class="block text-xs leading-tight"
                         :class="fila.codigo ? 'text-muted-foreground' : 'text-muted-foreground/50'">
@@ -198,7 +198,7 @@
                     {{ formatCOP(fila.canon_calculado) }}
                   </span>
                   <span v-else class="text-muted-foreground/50">—</span>
-                  <InfoIcon class="flex-shrink-0 cursor-help opacity-0 group-hover:opacity-100 transition-opacity size-3 text-unergy-purple" v-if="fila.canon_calculado != null"  title="Ver cálculo" @mouseenter="mostrarCanon($event, fila)" @mouseleave="ocultarCanon()" />
+                  <InfoIcon class="flex-shrink-0 cursor-help opacity-0 group-hover:opacity-100 transition-opacity size-3 text-primary" v-if="fila.canon_calculado != null"  title="Ver cálculo" @mouseenter="mostrarCanon($event, fila)" @mouseleave="ocultarCanon()" />
                 </span>
               </td>
               <td class="px-4 py-2 text-right font-mono text-xs bg-primary/5" :class="!esFacturable(fila) ? 'opacity-40' : ''">
@@ -249,11 +249,11 @@
         <div class="flex items-center gap-6 ml-auto">
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtotal Facturado</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalSeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalSeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">IVA</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalIVASeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalIVASeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
@@ -292,7 +292,7 @@
         <button type="button" class="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted"
           @click="showExclusionDialog = false">Cancelar</button>
         <button type="button" :disabled="!exclusionValida"
-          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-unergy-purple text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           @click="confirmarExclusiones">Guardar</button>
       </template>
     </Dialog>
@@ -335,7 +335,7 @@
               <InputText v-model="ipcForm.fuente" class="w-full" placeholder="DANE" />
             </div>
           </div>
-          <Button label="Guardar tasa" size="small" @click="guardarIPC" class="bg-unergy-purple border-unergy-purple">
+          <Button label="Guardar tasa" size="small" @click="guardarIPC" class="bg-primary border-primary">
             <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
