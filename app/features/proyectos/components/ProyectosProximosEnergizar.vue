@@ -95,7 +95,7 @@
         <!-- Commercial name (read-only, viene de Sun Factory) -->
         <Column header="Proyecto" frozen>
           <template #body="{ data }">
-            <span class="text-sm block max-w-80 truncate" v-tooltip.top="data.commercialName">{{ data.commercialName }}</span>
+            <TruncatedText :text="data.commercialName" class="text-sm max-w-80" />
           </template>
         </Column>
 

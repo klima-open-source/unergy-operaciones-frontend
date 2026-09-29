@@ -49,9 +49,7 @@
               </span>
               <span class="text-xs text-muted-foreground">{{ p.fuentes.join(' + ') }}</span>
             </div>
-            <p class="text-sm font-semibold truncate text-unergy-deep">
-              {{ p.proyecto_nombre_actual || p.nombre_sugerido }}
-            </p>
+            <TruncatedText :text="p.proyecto_nombre_actual || p.nombre_sugerido" class="text-sm font-semibold text-unergy-deep" />
             <p v-if="p.tipo_sugerencia === 'actualizar' && p.proyecto_nombre_actual" class="text-xs text-muted-foreground">
               Sugerido: {{ p.nombre_sugerido }}
             </p>
