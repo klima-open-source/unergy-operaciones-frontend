@@ -6,7 +6,7 @@
       <div class="flex items-center gap-2">
         <Button variant="outline" :disabled="ejecutando" @click="ejecutarClasificacion">
           <LoaderCircleIcon v-if="ejecutando" class="animate-spin" />
-          <PlayIcon v-else class="size-[1em]" />
+          <PlayIcon v-else />
           Ejecutar clasificación
         </Button>
         <Button
@@ -16,12 +16,12 @@
           @click="detenerClasificacion"
         >
           <LoaderCircleIcon v-if="deteniendo" class="animate-spin" />
-          <CircleStopIcon v-else class="size-[1em]" />
+          <CircleStopIcon v-else />
           Detener
         </Button>
         <Button variant="outline" :disabled="generandoExcel" @click="generarExcel">
           <LoaderCircleIcon v-if="generandoExcel" class="animate-spin" />
-          <FileSpreadsheetIcon v-else class="size-[1em]" />
+          <FileSpreadsheetIcon v-else />
           Generar Excel
         </Button>
         <GTooltip>
@@ -31,7 +31,7 @@
               @click="enviarReporte"
             >
               <LoaderCircleIcon v-if="enviando" class="animate-spin" />
-              <SendIcon v-else class="size-[1em]" />
+              <SendIcon v-else />
               Enviar reporte
             </Button>
           </GTooltipTrigger>
@@ -47,13 +47,13 @@
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="flex h-20 min-w-[9rem] flex-1 cursor-pointer flex-col justify-center rounded-xl border bg-card p-4 shadow-sm"
+        class="flex h-20 min-w-36 flex-1 cursor-pointer flex-col justify-center rounded-xl border bg-card p-4 shadow-sm"
         @click="filtroSemaforo = stat.filtro"
       >
         <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {{ stat.label }}
         </p>
-        <p class="mt-1 text-2xl font-bold" :style="{ color: stat.color }">{{ stat.value }}</p>
+        <p class="mt-1 text-2xl font-bold" :class="stat.color">{{ stat.value }}</p>
       </div>
     </div>
 
@@ -83,19 +83,19 @@
       <div class="mb-1 grid grid-cols-4 gap-2.5">
         <div class="rounded-lg bg-muted py-2.5 text-center">
           <p class="text-xl font-extrabold text-muted-foreground">{{ estadoQuoia.en_espera }}</p>
-          <p class="mt-0.5 text-[11px] font-semibold text-muted-foreground">En espera</p>
+          <p class="mt-0.5 text-xs font-semibold text-muted-foreground">En espera</p>
         </div>
         <div class="rounded-lg bg-success/15 py-2.5 text-center">
           <p class="text-xl font-extrabold text-success">{{ estadoQuoia.exitoso }}</p>
-          <p class="mt-0.5 text-[11px] font-semibold text-success">Exitoso</p>
+          <p class="mt-0.5 text-xs font-semibold text-success">Exitoso</p>
         </div>
         <div class="rounded-lg bg-warning/15 py-2.5 text-center">
           <p class="text-xl font-extrabold text-warning">{{ estadoQuoia.exitoso_con_alerta }}</p>
-          <p class="mt-0.5 text-[11px] font-semibold text-warning">Con alerta</p>
+          <p class="mt-0.5 text-xs font-semibold text-warning">Con alerta</p>
         </div>
         <div class="rounded-lg bg-destructive/10 py-2.5 text-center">
           <p class="text-xl font-extrabold text-destructive">{{ estadoQuoia.error }}</p>
-          <p class="mt-0.5 text-[11px] font-semibold text-destructive">Error</p>
+          <p class="mt-0.5 text-xs font-semibold text-destructive">Error</p>
         </div>
       </div>
       <div v-if="estadoQuoia.fallidas.length" class="mt-3 border-t pt-3">
@@ -136,7 +136,7 @@
           <p class="mb-3">Todavía no se ha corrido la clasificación para este día.</p>
           <Button :disabled="ejecutando" @click="ejecutarClasificacion">
             <LoaderCircleIcon v-if="ejecutando" class="animate-spin" />
-            <PlayIcon v-else class="size-[1em]" />
+            <PlayIcon v-else />
             Ejecutar clasificación
           </Button>
         </div>
@@ -237,7 +237,7 @@
               {{ totalDias(kpiGen) }} días-frontera reportados en el rango · clic en una barra para
               ver el detalle por frontera
             </p>
-            <div v-if="kpiGen.length" class="rounded-xl border bg-card p-3" style="height: 220px">
+            <div v-if="kpiGen.length" class="h-55 rounded-xl border bg-card p-3">
               <Bar :data="chartGen" :options="chartOptionsGen" :plugins="[dataLabelPlugin]" />
             </div>
             <p v-else class="py-8 text-center text-xs text-muted-foreground">
@@ -248,8 +248,8 @@
               <div class="mb-2 flex items-center justify-between">
                 <p class="flex items-center gap-1.5 text-sm font-bold text-foreground">
                   <span
-                    class="inline-block size-2 rounded-full"
-                    :style="{ background: grupoColor(grupoSeleccionadoGen).texto }"
+                    class="inline-block size-2 rounded-full bg-(--c)"
+                    :style="{ '--c': grupoColor(grupoSeleccionadoGen).texto }"
                   />
                   Detalle — {{ grupoSeleccionadoGen }}
                 </p>
@@ -269,14 +269,14 @@
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
-                          class="h-full rounded-full"
+                          class="h-full w-(--w) rounded-full bg-(--c)"
                           :style="{
-                            width:
+                            '--w':
                               pctDe(
                                 asDetalleFuente(rawRow).dias_grupo,
                                 asDetalleFuente(rawRow).dias_totales,
                               ) + '%',
-                            background: severidadColor(
+                            '--c': severidadColor(
                               pctDe(
                                 asDetalleFuente(rawRow).dias_grupo,
                                 asDetalleFuente(rawRow).dias_totales,
@@ -299,7 +299,7 @@
                     <span
                       v-for="d in asDetalleFuente(rawRow).desglose"
                       :key="d.etiqueta"
-                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
                       >{{ d.etiqueta }} × {{ d.dias }}</span
                     >
                   </template>
@@ -316,7 +316,7 @@
               {{ totalDias(kpiCon) }} días-frontera reportados en el rango · Consumo no usa
               inversores · clic en una barra para ver el detalle
             </p>
-            <div v-if="kpiCon.length" class="rounded-xl border bg-card p-3" style="height: 220px">
+            <div v-if="kpiCon.length" class="h-55 rounded-xl border bg-card p-3">
               <Bar :data="chartCon" :options="chartOptionsCon" :plugins="[dataLabelPlugin]" />
             </div>
             <p v-else class="py-8 text-center text-xs text-muted-foreground">
@@ -327,8 +327,8 @@
               <div class="mb-2 flex items-center justify-between">
                 <p class="flex items-center gap-1.5 text-sm font-bold text-foreground">
                   <span
-                    class="inline-block size-2 rounded-full"
-                    :style="{ background: grupoColor(grupoSeleccionadoCon).texto }"
+                    class="inline-block size-2 rounded-full bg-(--c)"
+                    :style="{ '--c': grupoColor(grupoSeleccionadoCon).texto }"
                   />
                   Detalle — {{ grupoSeleccionadoCon }}
                 </p>
@@ -348,14 +348,14 @@
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
-                          class="h-full rounded-full"
+                          class="h-full w-(--w) rounded-full bg-(--c)"
                           :style="{
-                            width:
+                            '--w':
                               pctDe(
                                 asDetalleFuente(rawRow).dias_grupo,
                                 asDetalleFuente(rawRow).dias_totales,
                               ) + '%',
-                            background: severidadColor(
+                            '--c': severidadColor(
                               pctDe(
                                 asDetalleFuente(rawRow).dias_grupo,
                                 asDetalleFuente(rawRow).dias_totales,
@@ -378,7 +378,7 @@
                     <span
                       v-for="d in asDetalleFuente(rawRow).desglose"
                       :key="d.etiqueta"
-                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground"
+                      class="mr-1 mb-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground"
                       >{{ d.etiqueta }} × {{ d.dias }}</span
                     >
                   </template>
@@ -395,7 +395,7 @@
               {{ auto.dias_contados }} de {{ auto.dias.length }} días ·
               {{ auto.dias_excluidos }} excluidos por fallas del clasificador
             </p>
-            <div v-if="kpiAuto.length" class="rounded-xl border bg-card p-3" style="height: 220px">
+            <div v-if="kpiAuto.length" class="h-55 rounded-xl border bg-card p-3">
               <Bar :data="chartAuto" :options="chartOptionsAuto" :plugins="[dataLabelPlugin]" />
             </div>
             <p v-else class="py-8 text-center text-xs text-muted-foreground">
@@ -414,10 +414,10 @@
                     <div class="flex items-center gap-2">
                       <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
-                          class="h-full rounded-full"
+                          class="h-full w-(--w) rounded-full bg-(--c)"
                           :style="{
-                            width: asPorFrontera(rawRow).tasa + '%',
-                            background: grupoColor('Automático (CGM)').texto,
+                            '--w': asPorFrontera(rawRow).tasa + '%',
+                            '--c': grupoColor('Automático (CGM)').texto,
                           }"
                         />
                       </div>
@@ -1084,23 +1084,23 @@ const stats = computed<Stat[]>(() => {
   // de día en Historial las tarjetas se quedaban con el conteo de 'hoy'.
   const all = activeTab.value === 1 ? filasHistorial.value : filas.value
   return [
-    { label: 'Total', value: all.length, color: '#2C2039', filtro: null },
+    { label: 'Total', value: all.length, color: 'text-foreground', filtro: null },
     {
       label: 'Revisar',
       value: all.filter((f) => f.revisar_manualmente).length,
-      color: '#D64455',
+      color: 'text-destructive',
       filtro: 'critical',
     },
     {
       label: 'Corregido automático',
       value: all.filter((f) => semaforo(f) === 'warning').length,
-      color: '#F0C040',
+      color: 'text-warning',
       filtro: 'warning',
     },
     {
       label: 'Reporte válido',
       value: all.filter((f) => semaforo(f) === 'success').length,
-      color: '#10B981',
+      color: 'text-success',
       filtro: 'success',
     },
   ]

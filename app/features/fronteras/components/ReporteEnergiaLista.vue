@@ -1,18 +1,25 @@
 <template>
-  <div
-    class="list-pane flex flex-col overflow-hidden rounded-xl bg-white shadow-sm"
-    style="border: 1px solid #e8e0f0"
-  >
-    <div class="space-y-2 p-3" style="border-bottom: 1px solid #f1ecf7">
+  <div class="flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+    <div class="space-y-2 border-b p-3">
       <InputGroup>
         <InputGroupAddon><SearchIcon /></InputGroupAddon>
         <InputGroupInput v-model="search" placeholder="Buscar proyecto..." />
       </InputGroup>
       <div class="flex gap-2">
-        <button class="filter-pill" :class="{ on: genOn }" @click="genOn = !genOn">
+        <button
+          class="cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold"
+          :class="genOn ? PILL_ON : PILL_OFF"
+          @click="genOn = !genOn"
+        >
           Generación
         </button>
-        <button class="filter-pill" :class="{ on: conOn }" @click="conOn = !conOn">Consumo</button>
+        <button
+          class="cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold"
+          :class="conOn ? PILL_ON : PILL_OFF"
+          @click="conOn = !conOn"
+        >
+          Consumo
+        </button>
       </div>
       <Select v-model="filtroFuente">
         <SelectTrigger size="sm" class="w-full"
@@ -26,41 +33,37 @@
         </SelectContent>
       </Select>
     </div>
-    <ul class="list-scroll flex-1 overflow-y-auto" style="list-style: none; margin: 0; padding: 0">
+    <ul class="max-h-128 flex-1 overflow-y-auto">
       <li v-for="f in filtradas" :key="f.frontera_id">
         <button
-          class="row w-full text-left"
-          :class="{ 'row-selected': f.frontera_id === seleccionada }"
-          :style="{ borderLeftColor: semaforoColor(f) }"
+          class="block w-full cursor-pointer border-b border-l-3 py-2.5 pr-3.5 pl-3 text-left hover:bg-muted/50"
+          :class="[semaforoBorde(f), f.frontera_id === seleccionada ? 'bg-accent' : '']"
           @click="$emit('seleccionar', f)"
         >
           <div class="flex items-center justify-between gap-2">
-            <span class="truncate text-sm font-medium" style="color: var(--color-unergy-deep)">{{
+            <span class="truncate text-sm font-medium text-unergy-deep">{{
               f.nombre_proyecto
             }}</span>
-            <span class="flex-none font-mono text-xs" style="color: #6b5a8a">{{
+            <span class="flex-none font-mono text-xs text-muted-foreground">{{
               fmtKwh(f.energia_final_kwh)
             }}</span>
           </div>
           <div class="mt-1 flex items-center gap-2">
             <span
-              class="tipo-tag"
-              :style="{
-                color: f.tipo === 'generacion' ? '#10B981' : '#3B82F6',
-                borderColor: f.tipo === 'generacion' ? '#10B981' : '#3B82F6',
-              }"
+              class="flex-none rounded border px-1.5 py-px text-xs font-bold uppercase"
+              :class="f.tipo === 'generacion' ? 'text-success' : 'text-primary'"
             >
               {{ f.tipo === 'generacion' ? 'Gen' : 'Con' }}
             </span>
-            <span class="truncate text-xs" style="color: #9b89b5">{{ etiquetaFuente(f) }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ etiquetaFuente(f) }}</span>
           </div>
         </button>
       </li>
-      <li v-if="!filtradas.length" class="py-8 text-center text-sm" style="color: #9b89b5">
+      <li v-if="!filtradas.length" class="py-8 text-center text-sm text-muted-foreground">
         Sin resultados con estos filtros.
       </li>
     </ul>
-    <div class="px-3 py-2 text-xs" style="border-top: 1px solid #f1ecf7; color: #9b89b5">
+    <div class="border-t px-3 py-2 text-xs text-muted-foreground">
       Mostrando {{ filtradas.length }} de {{ filas.length }} fronteras
     </div>
   </div>
@@ -132,14 +135,17 @@ function semaforo(f: FilaReporteEnergia): Semaforo {
   if (['1', 'CGM'].includes(String(f.caso))) return 'success'
   return 'warning'
 }
-function semaforoColor(f: FilaReporteEnergia): string {
+function semaforoBorde(f: FilaReporteEnergia): string {
   const map: Record<Semaforo, string> = {
-    critical: '#D64455',
-    warning: '#F0C040',
-    success: '#10B981',
+    critical: 'border-l-destructive',
+    warning: 'border-l-warning',
+    success: 'border-l-success',
   }
   return map[semaforo(f)]
 }
+
+const PILL_ON = 'border-unergy-purple bg-accent text-unergy-purple-dark'
+const PILL_OFF = 'bg-card text-muted-foreground'
 
 const ETIQUETAS_FUENTE: Record<string, string> = {
   cgm: 'CGM',
@@ -173,50 +179,3 @@ function fmtKwh(v: unknown): string {
   return Number(v).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' kWh'
 }
 </script>
-
-<style scoped>
-.list-scroll {
-  max-height: 32rem;
-}
-.row {
-  display: block;
-  width: 100%;
-  padding: 10px 14px 10px 12px;
-  border: none;
-  background: none;
-  border-bottom: 1px solid #f5f1fa;
-  border-left: 3px solid transparent;
-  cursor: pointer;
-}
-.row:hover {
-  background: #faf8fd;
-}
-.row-selected {
-  background: #f5eefc;
-}
-.filter-pill {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid #e8e0f0;
-  background: white;
-  color: #9b89b5;
-  cursor: pointer;
-}
-.filter-pill.on {
-  background: #f5eefc;
-  border-color: var(--color-unergy-purple);
-  color: var(--color-unergy-purple-dark);
-}
-.tipo-tag {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid;
-  flex: none;
-}
-</style>

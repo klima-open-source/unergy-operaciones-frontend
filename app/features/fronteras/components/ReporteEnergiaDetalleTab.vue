@@ -1,6 +1,6 @@
 <template>
   <div v-if="loading" class="flex items-center justify-center py-12">
-    <LoaderCircleIcon class="size-[1em] animate-spin text-3xl text-primary" />
+    <LoaderCircleIcon class="size-8 animate-spin text-primary" />
   </div>
   <div v-else-if="detalle" class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -26,9 +26,9 @@
           <p class="text-sm font-semibold text-foreground">
             <CircleCheckIcon
               v-if="detalle.medidor_usado === 'excel_terceros'"
-              class="mr-1.5 size-[1em] text-xs text-success"
+              class="mr-1.5 inline size-3 text-success"
             />
-            <FileSpreadsheetIcon v-else class="mr-1.5 size-[1em] text-xs" />
+            <FileSpreadsheetIcon v-else class="mr-1.5 inline size-3" />
             {{
               detalle.medidor_usado === 'excel_terceros'
                 ? 'Cargado desde Excel de terceros'
@@ -61,7 +61,7 @@
             @click="fileInputExcelTerceros?.click()"
           >
             <LoaderCircleIcon v-if="subiendoExcelTerceros" class="animate-spin" />
-            <UploadIcon v-else class="size-[1em]" />
+            <UploadIcon v-else />
             Cargar Excel
           </Button>
           <Button
@@ -72,7 +72,7 @@
             @click="eliminarExcelTerceros"
           >
             <LoaderCircleIcon v-if="eliminandoExcelTerceros" class="animate-spin" />
-            <Trash2Icon v-else class="size-[1em]" />
+            <Trash2Icon v-else />
             Eliminar carga
           </Button>
         </div>
@@ -158,26 +158,25 @@
         >
       </div>
       <p v-if="!fallasActivas.length" class="text-xs text-muted-foreground">
-        <CircleCheckIcon class="mr-1 size-[1em] text-xs text-success" />Sin fallas activas
-        registradas.
+        <CircleCheckIcon class="mr-1 inline size-3 text-success" />Sin fallas activas registradas.
       </p>
       <div v-else class="space-y-2">
         <RouterLink
           v-for="f in fallasActivas"
           :key="f.id"
           :to="`/fallas/${f.id}`"
-          class="falla-activa-row flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors"
+          class="flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors hover:bg-muted/50"
         >
           <span
-            class="size-2 flex-none rounded-full"
-            :style="{ background: prioColorFalla(f.prioridad?.codigo) }"
+            class="size-2 flex-none rounded-full bg-(--c)"
+            :style="{ '--c': prioColorFalla(f.prioridad?.codigo) }"
           />
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <code class="font-mono text-xs text-muted-foreground">{{ f.codigo_interno }}</code>
               <span
-                class="rounded px-1.5 py-0.5 text-xs font-semibold"
-                :style="estadoPillStyleFalla(f.estado?.codigo)"
+                class="rounded border border-(--c)/25 bg-(--c)/10 px-1.5 py-0.5 text-xs font-semibold text-(--c)"
+                :style="{ '--c': colorEstado(f.estado?.codigo) }"
               >
                 {{ f.estado?.etiqueta }}
               </span>
@@ -225,20 +224,20 @@
           @click="recuperarMedidor"
         >
           <LoaderCircleIcon v-if="recuperandoMedidor" class="animate-spin" />
-          <RefreshCwIcon v-else class="size-[1em]" />
+          <RefreshCwIcon v-else />
           Recuperar medidor
         </Button>
       </div>
       <div
         v-for="aviso in avisosMedidor"
         :key="aviso.etiqueta"
-        class="mb-3 flex items-start gap-2.5 rounded-lg border border-blue-600 bg-blue-600/10 px-3 py-2.5"
+        class="mb-3 flex items-start gap-2.5 rounded-lg border border-primary bg-primary/10 px-3 py-2.5"
       >
         <span
-          class="mt-px flex size-[18px] flex-none items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white"
+          class="mt-px flex size-4.5 flex-none items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
           >i</span
         >
-        <p class="flex-1 text-xs leading-relaxed text-blue-700 dark:text-blue-400">
+        <p class="flex-1 text-xs leading-relaxed text-primary">
           {{ aviso.etiqueta }} muestra un valor distinto en Quoia (<strong
             class="text-foreground"
             >{{ fmtKwh(aviso.actual) }}</strong
@@ -266,7 +265,7 @@
         >
           <div
             class="flex size-6 flex-none items-center justify-center rounded-full text-xs font-bold"
-            :style="fuenteIconStyle(f.estado)"
+            :class="fuenteIconClase(f.estado)"
           >
             {{
               f.estado === 'ok' ? '✓' : f.estado === 'na' ? '–' : f.estado === 'error' ? '!' : '✕'
@@ -274,17 +273,17 @@
           </div>
           <span class="w-40 flex-none text-sm font-semibold text-foreground">{{ f.nombre }}</span>
           <span class="min-w-0 flex-1 text-xs text-muted-foreground">{{ f.detalle }}</span>
-          <span class="min-w-[90px] flex-none text-right font-mono text-xs text-foreground">
+          <span class="min-w-22.5 flex-none text-right font-mono text-xs text-foreground">
             {{ f.valor != null ? fmtKwh(f.valor) : f.estado === 'na' ? 'n/a' : '—' }}
           </span>
           <GBadge v-if="f.usado" class="flex-none">USADO</GBadge>
         </div>
       </div>
-      <p v-if="medianaHistorica" class="mt-3 text-[11px] text-muted-foreground">
+      <p v-if="medianaHistorica" class="mt-3 text-xs text-muted-foreground">
         <strong>Mediana histórica:</strong> {{ fmtKwh(medianaHistorica.mediana) }}
         <span v-if="medianaHistorica.dias">({{ medianaHistorica.dias }} días)</span>
       </p>
-      <p v-if="detalle.recuperacion_datos" class="mt-3 text-[11px] text-muted-foreground">
+      <p v-if="detalle.recuperacion_datos" class="mt-3 text-xs text-muted-foreground">
         <strong>Última recuperación de medidores:</strong> {{ detalle.recuperacion_datos }}
       </p>
     </div>
@@ -383,7 +382,7 @@
       <div class="mt-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Button variant="destructive" size="sm" @click="limpiarCurva">
-            <EraserIcon class="size-[1em]" /> Limpiar curva
+            <EraserIcon /> Limpiar curva
           </Button>
           <!-- El relleno horario (medidor cruzado / reconectador / Solenium
                × FP / histórico) ya no aplica solo durante la clasificación
@@ -414,16 +413,16 @@
             @click="deshacerRelleno"
           >
             <LoaderCircleIcon v-if="deshaciendoRelleno" class="animate-spin" />
-            <UndoIcon v-else class="size-[1em]" />
+            <UndoIcon v-else />
             Deshacer relleno
           </Button>
           <div v-if="!esCasoConfiado" class="relative">
             <Button
               size="sm"
-              class="text-warning-foreground flex-row-reverse bg-warning hover:bg-warning/90"
+              class="flex-row-reverse bg-warning text-primary-foreground hover:bg-warning/90"
               @click="mostrarMenuReportar = !mostrarMenuReportar"
             >
-              <ChevronDownIcon class="size-[1em]" /> Reportar con otra fuente
+              <ChevronDownIcon /> Reportar con otra fuente
             </Button>
             <div
               v-if="mostrarMenuReportar"
@@ -445,7 +444,7 @@
               >
                 <div class="min-w-0">
                   <div class="text-xs font-semibold text-foreground">{{ op.nombre }}</div>
-                  <div v-if="op.nota" class="text-[10.5px] text-muted-foreground">
+                  <div v-if="op.nota" class="text-xs text-muted-foreground">
                     {{ op.nota }}
                   </div>
                 </div>
@@ -472,7 +471,7 @@
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="text-sm font-semibold text-warning">
-              <BanIcon class="mr-1.5 size-[1em] text-xs" />Excluida temporalmente
+              <BanIcon class="mr-1.5 inline size-4" />Excluida temporalmente
             </p>
             <p class="mt-1 text-xs text-muted-foreground">
               {{ exclusionActiva.motivo }}
@@ -490,7 +489,7 @@
             class="flex-none text-xs font-semibold text-primary"
             @click="iniciarEdicionExclusion"
           >
-            <PencilIcon class="mr-1 size-[1em] text-[10px]" />Editar
+            <PencilIcon class="mr-1 inline size-3" />Editar
           </button>
         </div>
         <Button
@@ -578,7 +577,7 @@
         </p>
       </div>
       <Button
-        class="text-success-foreground bg-success hover:bg-success/90"
+        class="bg-success text-primary-foreground hover:bg-success/90"
         :disabled="validando || hayCambiosSinGuardar"
         @click="validar"
       >
@@ -834,10 +833,6 @@ async function cargarFallasActivas(proyectoId: number | null) {
 }
 function prioColorFalla(codigo: string | null | undefined): string {
   return colorPrioridad(codigo, '#9ca3af')
-}
-function estadoPillStyleFalla(codigo: string | null | undefined) {
-  const c = colorEstado(codigo)
-  return { background: c + '1a', color: c, border: `1px solid ${c}40` }
 }
 async function cargarCurvaTipicaPreview() {
   curvaTipicaPreview.value = null
@@ -1733,11 +1728,11 @@ function horasFaltantesSolares(arr: Curva | null | undefined): number[] {
   return enVentana.length ? enVentana : faltan
 }
 type EstadoFuente = 'ok' | 'na' | 'error' | 'no'
-function fuenteIconStyle(estado: EstadoFuente) {
-  if (estado === 'ok') return { background: 'rgba(16,185,129,0.1)', color: '#10B981' }
-  if (estado === 'na') return { background: '#f9f7ff', color: '#9b89b5' }
-  if (estado === 'error') return { background: 'rgba(240,192,64,0.15)', color: '#A8590B' }
-  return { background: 'rgba(214,68,85,0.08)', color: '#D64455' }
+function fuenteIconClase(estado: EstadoFuente): string {
+  if (estado === 'ok') return 'bg-success/10 text-success'
+  if (estado === 'na') return 'bg-muted text-muted-foreground'
+  if (estado === 'error') return 'bg-warning/15 text-warning'
+  return 'bg-destructive/10 text-destructive'
 }
 // Agrupa el estado tecnico de Quoia en dos categorias que no requieren
 // conocer el detalle interno: OK/WARNING son parte del flujo automatico
@@ -1917,10 +1912,6 @@ function fmtKwh(v: unknown): string {
 </script>
 
 <style scoped>
-.falla-activa-row:hover {
-  background: #faf9fc;
-}
-
 /* Tabla vertical estilo Excel (Hora | kWh) -- dos columnas de 12 horas cada
    una, lado a lado, para no obligar a un scroll larguísimo de 24 filas. */
 .tabla-horas {

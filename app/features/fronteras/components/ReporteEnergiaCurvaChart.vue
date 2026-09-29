@@ -1,26 +1,26 @@
 <template>
   <div>
     <div class="mb-3 flex flex-wrap gap-2 text-xs">
-      <span
-        v-if="!finalVacia"
-        class="chip"
-        style="border-color: var(--color-unergy-purple); color: var(--color-unergy-purple)"
-        >● Final reportada</span
+      <Badge v-if="!finalVacia" variant="outline" class="border-unergy-purple text-unergy-purple"
+        >● Final reportada</Badge
       >
-      <span v-if="medidorPath" class="chip" style="border-color: #3b82f6; color: #3b82f6"
-        >■ {{ medidorLabel }}</span
+      <Badge v-if="medidorPath" variant="outline" class="border-primary text-primary"
+        >■ {{ medidorLabel }}</Badge
       >
-      <span v-if="soleniumPath" class="chip" style="border-color: #0d9488; color: #0d9488"
-        >▲ Solenium</span
+      <Badge v-if="soleniumPath" variant="outline" class="border-chart-2 text-chart-2"
+        >▲ Solenium</Badge
       >
-      <span v-if="reconectadorPath" class="chip" style="border-color: #9c8b68; color: #7a6a48"
-        >⬥ Reconectador</span
+      <Badge
+        v-if="reconectadorPath"
+        variant="outline"
+        class="border-muted-foreground text-muted-foreground"
+        >⬥ Reconectador</Badge
       >
-      <span v-if="horasRellenadas.size" class="chip" style="border-color: #f0c040; color: #b8860b"
-        >◆ Hora rellenada</span
+      <Badge v-if="horasRellenadas.size" variant="outline" class="border-warning text-warning"
+        >◆ Hora rellenada</Badge
       >
-      <span v-if="capacidadKwh != null" class="chip" style="border-color: #9b89b5; color: #6b5a8a"
-        >┅ Capacidad efectiva ({{ capacidadMwFmt }} MW)</span
+      <Badge v-if="capacidadKwh != null" variant="outline" class="border-border text-foreground"
+        >┅ Capacidad efectiva ({{ capacidadMwFmt }} MW)</Badge
       >
     </div>
     <svg :width="W" :height="H" :viewBox="`0 0 ${W} ${H}`" class="w-full">
@@ -31,7 +31,7 @@
         :x2="W - padR"
         :y1="y(maxV * f)"
         :y2="y(maxV * f)"
-        stroke="#eee"
+        class="stroke-border"
         stroke-width="1"
       />
       <text
@@ -40,7 +40,7 @@
         :x="4"
         :y="y(maxV * f) + 3"
         font-size="9"
-        fill="#9b89b5"
+        class="fill-muted-foreground"
       >
         {{ Math.round(maxV * f) }}
       </text>
@@ -50,7 +50,7 @@
         :x="x(h)"
         :y="H - 4"
         font-size="9"
-        fill="#9b89b5"
+        class="fill-muted-foreground"
         text-anchor="middle"
       >
         {{ h }}h
@@ -70,8 +70,7 @@
             :y="y(val(finalCurve, h - 1)) - 4"
             width="8"
             height="8"
-            fill="#F0C040"
-            stroke="white"
+            class="fill-warning stroke-background"
             stroke-width="1.5"
             :transform="`rotate(45 ${x(h - 1)} ${y(val(finalCurve, h - 1))})`"
           />
@@ -81,13 +80,19 @@
             :cy="y(val(finalCurve, h - 1))"
             r="3.2"
             fill="var(--color-unergy-purple)"
-            stroke="white"
+            class="stroke-background"
             stroke-width="1.5"
           />
         </template>
       </template>
 
-      <path v-if="medidorPath" :d="medidorPath" fill="none" stroke="#3B82F6" stroke-width="2" />
+      <path
+        v-if="medidorPath"
+        :d="medidorPath"
+        fill="none"
+        class="stroke-primary"
+        stroke-width="2"
+      />
       <template v-if="medidorPath">
         <rect
           v-for="h in 24"
@@ -96,8 +101,7 @@
           :y="y(val(medidor, h - 1)) - 3"
           width="6"
           height="6"
-          fill="#3B82F6"
-          stroke="white"
+          class="fill-primary stroke-background"
           stroke-width="1"
         />
       </template>
@@ -106,7 +110,7 @@
         v-if="soleniumPath"
         :d="soleniumPath"
         fill="none"
-        stroke="#0D9488"
+        class="stroke-chart-2"
         stroke-width="2"
         stroke-dasharray="6 4"
       />
@@ -115,8 +119,7 @@
           v-for="h in 24"
           :key="'s' + h"
           :points="trianguloPoints(x(h - 1), y(val(solenium, h - 1)))"
-          fill="#0D9488"
-          stroke="white"
+          class="fill-chart-2 stroke-background"
           stroke-width="1"
         />
       </template>
@@ -131,7 +134,7 @@
         v-if="reconectadorPath"
         :d="reconectadorPath"
         fill="none"
-        stroke="#9c8b68"
+        class="stroke-muted-foreground"
         stroke-width="1.25"
         stroke-dasharray="1 4"
         opacity="0.85"
@@ -144,8 +147,7 @@
           :y="y(val(reconectador, h - 1)) - 2.5"
           width="5"
           height="5"
-          fill="white"
-          stroke="#9c8b68"
+          class="fill-background stroke-muted-foreground"
           stroke-width="1.25"
           opacity="0.9"
           :transform="`rotate(45 ${x(h - 1)} ${y(val(reconectador, h - 1))})`"
@@ -160,7 +162,7 @@
           :x2="W - padR"
           :y1="y(capacidadKwh)"
           :y2="y(capacidadKwh)"
-          stroke="#9b89b5"
+          class="stroke-foreground/50"
           stroke-width="1.5"
           stroke-dasharray="4 3"
         />
@@ -334,12 +336,3 @@ const medidorPath = computed(() => pathDe(conCeros(props.medidor)))
 const soleniumPath = computed(() => pathDe(conCeros(props.solenium)))
 const reconectadorPath = computed(() => pathDe(conCeros(props.reconectador)))
 </script>
-
-<style scoped>
-.chip {
-  border: 1px solid;
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-weight: 600;
-}
-</style>

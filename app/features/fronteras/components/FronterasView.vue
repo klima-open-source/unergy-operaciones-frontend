@@ -103,20 +103,18 @@
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="flex h-20 min-w-[9rem] flex-1 flex-col justify-center rounded-xl border bg-card p-4"
-        :class="stat.clave ? 'cursor-pointer select-none' : ''"
-        :style="
-          stat.clave && soloGenerando
-            ? { borderColor: '#3B82F6', background: 'rgba(59,130,246,0.06)' }
-            : {}
-        "
+        class="flex h-20 min-w-36 flex-1 flex-col justify-center rounded-xl border bg-card p-4"
+        :class="[
+          stat.clave ? 'cursor-pointer select-none' : '',
+          stat.clave && soloGenerando ? 'border-primary bg-primary/5' : '',
+        ]"
         :title="stat.clave ? 'Clic para filtrar' : undefined"
         @click="stat.clave === 'generando' && (soloGenerando = !soloGenerando)"
       >
         <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {{ stat.label }}
         </p>
-        <p class="mt-1 text-2xl font-bold" :style="{ color: stat.color }">{{ stat.value }}</p>
+        <p class="mt-1 text-2xl font-bold" :class="stat.color">{{ stat.value }}</p>
       </div>
     </div>
 
@@ -126,7 +124,7 @@
       class="flex items-center justify-between gap-3 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3"
     >
       <span class="text-sm font-medium text-destructive">
-        <TriangleAlertIcon class="mr-1.5 size-[1em] text-xs" />
+        <TriangleAlertIcon class="mr-1.5 inline size-3" />
         {{ pendientesQuoia.length }}
         {{
           pendientesQuoia.length === 1 ? 'frontera nueva detectada' : 'fronteras nuevas detectadas'
@@ -584,7 +582,7 @@
         >
           No hay fronteras pendientes por revisar.
         </div>
-        <div v-else class="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+        <div v-else class="max-h-96 space-y-3 overflow-y-auto pr-1">
           <div
             v-for="p in pendientesQuoia"
             :key="p.frt_code"
@@ -925,20 +923,24 @@ interface Stat {
 const stats = computed<Stat[]>(() => {
   const all = fronteras.value
   return [
-    { label: 'Total', value: all.length, color: '#2C2039' },
-    { label: 'Activas', value: all.filter((f) => f.estado === 'activa').length, color: '#10B981' },
+    { label: 'Total', value: all.length, color: 'text-foreground' },
+    {
+      label: 'Activas',
+      value: all.filter((f) => f.estado === 'activa').length,
+      color: 'text-success',
+    },
     {
       label: 'En registro',
       value: all.filter((f) => f.estado === 'en_registro').length,
-      color: '#F0C040',
+      color: 'text-warning',
     },
     {
       label: 'Generando actualmente',
       value: all.filter(generaDeVerdad).length,
-      color: '#3B82F6',
+      color: 'text-primary',
       clave: 'generando',
     },
-    { label: 'Cap. total MW', value: capacidadTotalMw(all).toFixed(1), color: '#915BD8' },
+    { label: 'Cap. total MW', value: capacidadTotalMw(all).toFixed(1), color: 'text-chart-2' },
   ]
 })
 
