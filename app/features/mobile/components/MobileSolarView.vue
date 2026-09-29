@@ -1,8 +1,8 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- ══ TOP BAR ══ -->
     <header
-      class="ms-topbar relative flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+      class="ms-topbar relative flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-white"
     >
       <button
         class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
@@ -12,7 +12,7 @@
         <MenuIcon class="size-4" />
       </button>
       <span class="flex-1 text-center text-base font-bold tracking-wide"
-        ><SunIcon class="mr-1 inline size-4 text-unergy-yellow" /> Unergy Solar</span
+        ><SunIcon class="mr-1 inline size-4 text-highlight" /> Unergy Solar</span
       >
       <button
         class="relative size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
@@ -22,7 +22,7 @@
         <BellIcon class="size-4" />
         <span
           v-if="unreadCount > 0"
-          class="absolute top-0 right-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-unergy-deep bg-destructive px-1 text-xs font-extrabold text-white"
+          class="absolute top-0 right-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-foreground bg-destructive px-1 text-xs font-extrabold text-white"
           >{{ unreadCount > 9 ? '9+' : unreadCount }}</span
         >
       </button>
@@ -39,9 +39,9 @@
       <div v-if="menuOpen" class="fixed inset-0 z-50 bg-black/20" @click.self="menuOpen = false">
         <div class="ms-menu-card absolute left-3 min-w-56 rounded-xl bg-card p-2 shadow-lg">
           <div class="flex items-center gap-2.5 border-b border-border px-2.5 pt-2.5 pb-3">
-            <UserIcon class="size-6 text-unergy-purple" />
+            <UserIcon class="size-6 text-primary" />
             <div>
-              <div class="text-sm font-bold text-unergy-deep">{{ user?.name || 'Usuario' }}</div>
+              <div class="text-sm font-bold text-foreground">{{ user?.name || 'Usuario' }}</div>
               <div class="text-xs text-muted-foreground">{{ user?.email }}</div>
             </div>
           </div>
@@ -75,7 +75,7 @@
         <ChevronDownIcon class="size-3 text-muted-foreground" />
       </button>
       <button
-        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-unergy-yellow text-unergy-deep shadow-md"
+        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-highlight text-foreground shadow-md"
         @click="openCreate"
         title="Reportar falla en esta planta"
       >
@@ -102,8 +102,8 @@
             v-for="(p, i) in proyectos"
             :key="p.proyecto_id"
             :class="[
-              'flex w-full items-center gap-3 rounded-lg px-3 py-3.5 text-left text-base text-unergy-deep',
-              i === idx && 'bg-unergy-purple/10 font-bold',
+              'flex w-full items-center gap-3 rounded-lg px-3 py-3.5 text-left text-base text-foreground',
+              i === idx && 'bg-primary/10 font-bold',
             ]"
             @click="selectIdx(i)"
           >
@@ -146,11 +146,11 @@
             <div
               class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5"
             >
-              <span class="size-2 shrink-0 rounded-full bg-unergy-purple" />
+              <span class="size-2 shrink-0 rounded-full bg-primary" />
               <div class="flex min-w-0 flex-col">
                 <span class="text-xs font-medium text-muted-foreground">Inversores</span>
                 <span
-                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
                   >{{ fmtKwh(nowMap[p.proyecto_id]?.inv ?? null) }}</span
                 >
                 <span
@@ -171,7 +171,7 @@
               <div class="flex min-w-0 flex-col">
                 <span class="text-xs font-medium text-muted-foreground">Medidor</span>
                 <span
-                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+                  class="text-base leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
                   >{{ fmtKwh(nowMap[p.proyecto_id]?.med ?? null) }}</span
                 >
                 <span
@@ -196,12 +196,12 @@
               v-if="loadingDetail && !detailMap[p.proyecto_id]"
               class="absolute inset-0 flex items-center justify-center gap-2.5 text-sm text-muted-foreground"
             >
-              <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+              <LoaderCircleIcon class="size-6 animate-spin text-primary" />
               <span>Cargando datos…</span>
             </div>
             <ProjectLiveChart v-else :detail="detailMap[p.proyecto_id]" />
             <span
-              class="pointer-events-none absolute top-2 right-2.5 flex items-center gap-1 rounded-lg bg-unergy-purple/10 px-2 py-0.5 text-xs font-bold tracking-wide text-unergy-purple"
+              class="pointer-events-none absolute top-2 right-2.5 flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-bold tracking-wide text-primary"
               ><MoveIcon class="size-3" /> Inversores</span
             >
           </div>
@@ -231,7 +231,7 @@
               >
               <TruncatedText
                 :text="f.tipo?.etiqueta || 'Falla'"
-                class="min-w-0 flex-1 text-xs font-semibold text-unergy-deep"
+                class="min-w-0 flex-1 text-xs font-semibold text-foreground"
               />
               <ChevronRightIcon class="size-3 shrink-0 text-muted-foreground" />
             </button>
@@ -250,7 +250,7 @@
             >
             <button
               v-if="rcnMap[p.proyecto_id]"
-              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-unergy-purple px-4 text-sm font-bold text-white shadow-md"
+              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-md"
               @click="openSheet(p)"
             >
               <span
@@ -270,14 +270,14 @@
       class="flex flex-1 flex-col items-center justify-center gap-3 text-sm text-muted-foreground"
     >
       <template v-if="loadingList"
-        ><LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+        ><LoaderCircleIcon class="size-6 animate-spin text-primary" />
         <span>Cargando proyectos…</span></template
       >
       <template v-else>
         <SunIcon class="size-8 text-muted-foreground" />
         <span>Sin proyectos disponibles</span>
         <button
-          class="mt-1 h-11 rounded-xl bg-unergy-purple px-5 text-sm font-semibold text-white"
+          class="mt-1 h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white"
           @click="cargarLista"
         >
           Reintentar
