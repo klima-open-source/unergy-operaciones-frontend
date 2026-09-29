@@ -108,7 +108,7 @@
         <FacturasMantenimiento :contrato-id="contratoMantenimientoId" />
 
         <!-- Cargar factura -->
-        <div class="rounded-xl border bg-white overflow-hidden border-border">
+        <div class="rounded-xl border bg-card overflow-hidden border-border">
           <div class="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div class="flex items-center gap-2">
               <UploadIcon class="size-3 text-primary" />

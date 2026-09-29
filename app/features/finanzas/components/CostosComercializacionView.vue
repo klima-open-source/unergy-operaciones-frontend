@@ -106,7 +106,7 @@
     </Dialog>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <Select v-model="filtros.project" :options="proyectosOptions" optionLabel="label"
@@ -159,7 +159,7 @@
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+    <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>

@@ -15,7 +15,7 @@
         </p>
       </div>
 
-      <div class="rounded-xl border bg-white p-5 border-border">
+      <div class="rounded-xl border bg-card p-5 border-border">
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Usuario FTP</label>
