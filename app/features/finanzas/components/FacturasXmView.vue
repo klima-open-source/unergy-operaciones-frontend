@@ -5,10 +5,10 @@
       <template #actions>
         <Button label="Reliquidar" size="small" outlined severity="secondary"
                 :loading="reliquidando" @click="abrirReliquidar">
-          <template #icon><CopyIcon class="size-[1em]" /></template>
+          <template #icon><CopyIcon class="size-4" /></template>
         </Button>
         <Button label="Subir facturas" size="small" @click="abrirSubida">
-          <template #icon><UploadIcon class="size-[1em]" /></template>
+          <template #icon><UploadIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
@@ -21,9 +21,9 @@
             @hide="alCerrarSubida">
       <div class="space-y-4 pt-1">
         <button type="button" class="dropzone" :disabled="subiendo" @click="seleccionarArchivos">
-          <CloudUploadIcon class="text-3xl size-[1em]" style="color:var(--color-unergy-purple)" />
-          <p class="text-sm font-semibold text-gray-700 mt-2">Seleccionar facturas</p>
-          <p class="text-xs text-gray-400">
+          <CloudUploadIcon class="size-6 text-unergy-purple" />
+          <p class="text-sm font-semibold text-foreground mt-2">Seleccionar facturas</p>
+          <p class="text-xs text-muted-foreground">
             Solo PDF · máximo {{ MAX_FACTURAS_POR_LOTE }} por lote, {{ MAX_MB_POR_FACTURA }} MB cada una
           </p>
         </button>
@@ -34,13 +34,13 @@
         </div>
 
         <div>
-          <label class="field-label">Clave de Gemini <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="field-label">Clave de Gemini <span class="text-muted-foreground font-normal">(opcional)</span></label>
           <!-- Enmascarada y sin autocompletar: es un secreto. No se guarda en
                ninguna parte — viaja con la subida y se olvida al cerrar. -->
           <Password v-model="apiKey" :feedback="false" toggleMask class="w-full" inputClass="w-full"
                     autocomplete="off" :disabled="subiendo"
                     placeholder="Déjala vacía para usar la del servidor" />
-          <p class="text-[11px] text-gray-400 mt-1">
+          <p class="text-xs text-muted-foreground mt-1">
             Con la que la IA lee los PDF. Vacía, se usa la configurada en el servidor.
             No se guarda: se olvida al cerrar esta ventana.
           </p>
@@ -48,29 +48,26 @@
 
         <div v-if="archivos.length" class="space-y-2 max-h-56 overflow-y-auto">
           <div v-for="a in archivos" :key="a.nombre"
-               class="flex items-center gap-3 rounded-lg border px-3 py-2" style="border-color:#ECE7F2">
-            <FileTextIcon class="text-sm shrink-0 size-[1em]" style="color:#9b8fb0" />
-            <span class="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate">{{ a.nombre }}</span>
-            <span class="text-[10px] text-gray-400 shrink-0">{{ fmtTamano(a.tamano) }}</span>
+               class="flex items-center gap-3 rounded-lg border px-3 py-2 border-border">
+            <FileTextIcon class="shrink-0 size-4 text-muted-foreground" />
+            <span class="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{{ a.nombre }}</span>
+            <span class="text-xs text-muted-foreground shrink-0">{{ fmtTamano(a.tamano) }}</span>
             <Button v-if="!subiendo" text rounded size="small" @click="quitarArchivo(a.nombre)">
-              <template #icon><XIcon class="size-[1em]" /></template>
+              <template #icon><XIcon class="size-4" /></template>
             </Button>
           </div>
         </div>
 
         <!-- Progreso: primero sube el archivo, después la API lo procesa en una tarea -->
         <div v-if="subiendo || progresoTarea" class="space-y-1">
-          <div class="h-1.5 rounded-full overflow-hidden" style="background:#F1EAF9">
-            <div class="h-full rounded-full transition-all duration-200"
-                 :style="{ width: (progresoTarea ? 100 : progresoSubida) + '%', background:'var(--color-unergy-purple)' }" />
-          </div>
-          <p class="text-[11px] text-gray-500">
+          <Progress :model-value="progresoTarea ? 100 : progresoSubida" />
+          <p class="text-xs text-muted-foreground">
             {{ progresoTarea || `Subiendo… ${progresoSubida}%` }}
           </p>
         </div>
 
-        <p class="text-[11px] text-gray-400">
-          <InfoIcon class="mr-1 size-[1em]" />
+        <p class="text-xs text-muted-foreground">
+          <InfoIcon class="mr-1 size-4" />
           El mes y el año no se envían: los extrae la IA del PDF. El lote se procesa
           de a una factura, así que puede tardar.
         </p>
@@ -79,7 +76,7 @@
           <Button label="Cerrar" severity="secondary" size="small" :disabled="subiendo"
                   @click="subidaVisible = false" />
           <Button label="Subir" size="small" :disabled="!archivos.length" :loading="subiendo" @click="subir">
-            <template #icon><UploadIcon class="size-[1em]" /></template>
+            <template #icon><UploadIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -88,7 +85,7 @@
     <!-- Dialog: Reliquidar (copiar las facturas a otra versión) -->
     <Dialog v-model:visible="reliqVisible" header="Reliquidar el período" modal class="w-full max-w-lg">
       <div class="space-y-4 pt-1">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-muted-foreground">
           Copia las facturas de XM de una versión a otra. Es lo que habilita reliquidar:
           sin este paso, Liquidar y Repartir fallan en la versión nueva porque no hay
           facturas en ella. Después hay que volver a correr FTP, Liquidar y Repartir.
@@ -122,7 +119,7 @@
     </Dialog>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
@@ -140,27 +137,27 @@
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Código, nombre, agente…" class="w-64" />
         </IconField>
       </div>
       <div class="flex-1" />
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} factura{{ filtrados.length === 1 ? '' : 's' }}
       </div>
     </div>
 
     <!-- Alistamiento: es la precondición de repartir los costos de XM -->
     <div v-if="!loading && !error && hayPeriodo" class="rounded-xl px-4 py-3 border text-sm"
-         :style="readiness.lista_para_repartir
-           ? 'background:#F0FDF4; border-color:#BBF7D0; color:#166534'
-           : 'background:#FFF8E6; border-color:#F5E3B3; color:#7A5C00'">
+         :class="readiness.lista_para_repartir
+           ? 'bg-success/10 border-success/30 text-success'
+           : 'bg-warning/10 border-warning/30 text-warning'">
       <div class="flex items-center gap-2 font-semibold">
-        <CircleCheckIcon v-if="readiness.lista_para_repartir" class="size-[1em]" />
-        <TriangleAlertIcon v-else class="size-[1em]" />
+        <CircleCheckIcon v-if="readiness.lista_para_repartir" class="size-4" />
+        <TriangleAlertIcon v-else class="size-4" />
         <span v-if="readiness.lista_para_repartir">Listo para repartir los costos de XM</span>
         <span v-else>Todavía no se puede repartir</span>
         <span class="font-normal text-xs opacity-75">
@@ -174,19 +171,19 @@
       </ul>
     </div>
 
-    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FEF2F2; border:1px solid #FECACA; color:#B42318">
-      <CircleXIcon class="size-[1em]" /> {{ error }}
+    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive"
+         >
+      <CircleXIcon class="size-4" /> {{ error }}
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
+            <tr class="bg-muted/50 border-b border-border">
               <th v-for="col in COLUMNAS" :key="col.key"
-                  class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap"
+                  class="px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap"
                   :class="col.align || 'text-left'">
                 {{ col.label }}
               </th>
@@ -194,7 +191,7 @@
           </thead>
           <tbody>
             <tr v-for="row in filtrados" :key="row.id"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2 font-mono text-xs">{{ row.codigo || '—' }}</td>
               <td class="px-4 py-2">{{ row.nombre || '—' }}</td>
               <td class="px-4 py-2 whitespace-nowrap">
@@ -205,22 +202,22 @@
               <td class="px-4 py-2 text-right whitespace-nowrap">{{ fmtCOP(row.valor_total) }}</td>
               <td class="px-4 py-2 whitespace-nowrap">
                 <GBadge :color="SEVERIDAD_ESTADO[row.estado_procesamiento] || 'default'">{{ row.estado_procesamiento || '—' }}</GBadge>
-                <InfoIcon class="ml-1 text-xs size-[1em]" v-if="row.error" style="color:#D64455" v-tooltip.top="row.error" />
+                <InfoIcon class="ml-1 size-3 text-destructive" v-if="row.error"  v-tooltip.top="row.error" />
               </td>
               <td class="px-4 py-2 text-center">
-                <CircleCheckIcon class="size-[1em]" v-if="row.total_valido" style="color:#10B981" />
-                <CircleXIcon class="size-[1em]" v-else style="color:#D64455" v-tooltip.top="'El total extraído no cuadra con la suma de los conceptos'" />
+                <CircleCheckIcon class="size-4 text-success" v-if="row.total_valido" />
+                <CircleXIcon class="size-4 text-destructive" v-else  v-tooltip.top="'El total extraído no cuadra con la suma de los conceptos'" />
               </td>
-              <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500">{{ fmtFecha(row.vencimiento) }}</td>
+              <td class="px-4 py-2 whitespace-nowrap text-xs text-muted-foreground">{{ fmtFecha(row.vencimiento) }}</td>
             </tr>
             <tr v-if="loading">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-gray-400">
-                <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <LoaderCircleIcon class="size-6 animate-spin" />
               </td>
             </tr>
             <tr v-else-if="!filtrados.length">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-gray-400">
-                <FileCheckIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <FileCheckIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 No hay facturas de XM para este período.
               </td>
             </tr>

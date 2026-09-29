@@ -5,30 +5,29 @@
       <template #actions>
         <!-- El IPP que se consultó queda guardado; se muestra aquí para no
              tener que volver a pedirlo solo para verlo. -->
-        <span v-if="ippVigente" class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap"
-              style="background:#F1EAF9; color:#6E3FB8"
+        <span v-if="ippVigente" class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap bg-primary/10 text-primary"
               v-tooltip.bottom="`Consultado el ${fmtFechaCorta(ippVigente.consultado_el)}`">
           IPP {{ nombreMes(filtros.month) }}: <b>{{ ippVigente.ipp }}</b>
         </span>
-        <span v-else class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap"
-              style="background:#F3F4F6; color:#6B7280">
+        <span v-else class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap bg-muted text-muted-foreground"
+              >
           IPP {{ nombreMes(filtros.month) }}: sin consultar
         </span>
         <Button label="Consultar IPP" size="small" outlined :loading="accion === 'ipp'" @click="abrir('ipp')">
-          <template #icon><PercentIcon class="size-[1em]" /></template>
+          <template #icon><PercentIcon class="size-4" /></template>
         </Button>
         <!-- El IPP de la API es el MISMO que usa Facturación, pero nuestra
              tabla se llenaba a mano y se quedaba corta. Esto la pone al día. -->
         <Button label="Guardar IPP en facturación" size="small" outlined severity="secondary"
                 :loading="sincronizandoIpp" @click="sincronizarIpp"
                 v-tooltip.bottom="'Trae el histórico del IPP del DANE y lo guarda donde lo lee Facturación'">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <template #icon><RefreshCwIcon class="size-4" /></template>
         </Button>
         <Button label="Consultar FTP" size="small" outlined :loading="accion === 'ftp'" @click="abrir('ftp')">
-          <template #icon><DownloadIcon class="size-[1em]" /></template>
+          <template #icon><DownloadIcon class="size-4" /></template>
         </Button>
         <Button label="Liquidar" size="small" :loading="accion === 'liquidar'" @click="abrir('liquidar')">
-          <template #icon><ZapIcon class="size-[1em]" /></template>
+          <template #icon><ZapIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
@@ -36,7 +35,7 @@
     <!-- Dialog de acción -->
     <Dialog v-model:visible="dialogVisible" :header="cfg.header" modal class="w-full max-w-md">
       <div class="space-y-3 pt-1">
-        <p class="text-xs text-gray-500">{{ cfg.ayuda }}</p>
+        <p class="text-xs text-muted-foreground">{{ cfg.ayuda }}</p>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="field-label">Mes</label>
@@ -52,8 +51,8 @@
           <Select v-model="c.version" :options="VERSIONES" class="w-full" />
         </div>
 
-        <p v-if="progreso" class="text-[11px] text-gray-500 flex items-center gap-2">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /> {{ progreso }}
+        <p v-if="progreso" class="text-xs text-muted-foreground flex items-center gap-2">
+          <LoaderCircleIcon class="size-4 animate-spin" /> {{ progreso }}
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
@@ -67,24 +66,22 @@
     <!-- Diagnóstico de un proyecto -->
     <Dialog v-model:visible="diagVisible" header="Diagnóstico del proyecto" modal class="w-full max-w-2xl">
       <div class="space-y-3 pt-1">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-muted-foreground">
           Por qué <strong>{{ diagProyecto }}</strong> sale o no en el estado de resultados
           de {{ filtros.month }}/{{ filtros.year }}.
         </p>
-        <div v-if="diagCargando" class="py-8 text-center text-gray-400">
-          <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+        <div v-if="diagCargando" class="py-8 text-center text-muted-foreground">
+          <LoaderCircleIcon class="size-6 animate-spin" />
         </div>
         <div v-else-if="diag" class="space-y-1.5 max-h-96 overflow-y-auto">
           <div v-for="ch in diag.checks" :key="ch.key"
                class="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs"
-               :style="ch.status === 'ok'
-                 ? 'border-color:#BBF7D0; background:#F0FDF4'
-                 : 'border-color:#FECACA; background:#FEF2F2'">
-            <CircleCheckIcon v-if="ch.status === 'ok'" class="size-[1em]" :style="ch.status === 'ok' ? 'color:#10B981' : 'color:#D64455'" />
-            <CircleXIcon v-else class="size-[1em]" :style="ch.status === 'ok' ? 'color:#10B981' : 'color:#D64455'" />
+               :class="ch.status === 'ok' ? 'border-success/30 bg-success/10' : 'border-destructive/30 bg-destructive/10'">
+            <CircleCheckIcon v-if="ch.status === 'ok'" class="size-4 text-success" />
+            <CircleXIcon v-else class="size-4 text-destructive" />
             <div class="min-w-0">
-              <span class="font-mono text-[10px] text-gray-400">{{ ch.key }}</span>
-              <p class="text-gray-700">{{ ch.message }}</p>
+              <span class="font-mono text-xs text-muted-foreground">{{ ch.key }}</span>
+              <p class="text-foreground">{{ ch.message }}</p>
             </div>
           </div>
         </div>
@@ -92,7 +89,7 @@
     </Dialog>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Mes</label>
         <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
@@ -114,27 +111,27 @@
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto, contrato, fecha…" class="w-56" />
         </IconField>
       </div>
       <div class="flex-1" />
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center text-right">
+      <div class="text-xs text-muted-foreground self-center text-right">
         {{ filtrados.length }} registro{{ filtrados.length === 1 ? '' : 's' }}
-        <span v-if="filtrados.length" class="block font-mono" style="color:#915BD8">
+        <span v-if="filtrados.length" class="block font-mono text-primary">
           {{ fmtNum(totales.energia) }} kWh · {{ fmtNum(totales.valor) }}
         </span>
       </div>
     </div>
 
     <!-- Los warnings del ER significan que las cifras están incompletas -->
-    <div v-if="!loading && avisos.length" class="rounded-xl px-4 py-3 border text-xs"
-         style="background:#FFF8E6; border-color:#F5E3B3; color:#7A5C00">
+    <div v-if="!loading && avisos.length" class="rounded-xl px-4 py-3 border text-xs bg-warning/10 border-warning/30 text-warning"
+         >
       <div class="flex items-center gap-2 font-semibold">
-        <TriangleAlertIcon class="size-[1em]" />
+        <TriangleAlertIcon class="size-4" />
         {{ avisos.length }} proyecto{{ avisos.length === 1 ? '' : 's' }} con cifras incompletas
         <button class="underline ml-1" @click="avisosAbiertos = !avisosAbiertos">
           {{ avisosAbiertos ? 'ocultar' : 'ver detalle' }}
@@ -150,19 +147,19 @@
       </div>
     </div>
 
-    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FEF2F2; border:1px solid #FECACA; color:#B42318">
-      <CircleXIcon class="size-[1em]" /> {{ error }}
+    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive"
+         >
+      <CircleXIcon class="size-4" /> {{ error }}
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
+            <tr class="bg-muted/50 border-b border-border">
               <th v-for="col in COLUMNAS" :key="col.key"
-                  class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap"
+                  class="px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap"
                   :class="col.right ? 'text-right' : 'text-left'">
                 {{ col.label }}
               </th>
@@ -171,33 +168,33 @@
           </thead>
           <tbody>
             <tr v-for="(row, i) in filtrados" :key="i"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2">{{ row.proyecto || '—' }}</td>
-              <td class="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">{{ row.fecha || '—' }}</td>
+              <td class="px-4 py-2 text-xs text-muted-foreground whitespace-nowrap">{{ row.fecha || '—' }}</td>
               <td class="px-4 py-2 whitespace-nowrap">
-                <span class="text-[11px] px-1.5 py-0.5 rounded" :style="estiloTipo(row.tipo_dato)">
+                <span class="text-xs px-1.5 py-0.5 rounded" :class="claseTipo(row.tipo_dato)">
                   {{ ETIQUETA_TIPO[row.tipo_dato] || row.tipo_dato || '—' }}
                 </span>
               </td>
-              <td class="px-4 py-2 text-xs font-mono text-gray-500">{{ row.codigo_contrato || '—' }}</td>
+              <td class="px-4 py-2 text-xs font-mono text-muted-foreground">{{ row.codigo_contrato || '—' }}</td>
               <td class="px-4 py-2 text-right font-mono text-xs">{{ fmtNum(row.energia_kwh) }}</td>
               <td class="px-4 py-2 text-right font-mono text-xs"
-                  :style="row.valor < 0 ? 'color:#D64455' : ''">{{ fmtNum(row.valor) }}</td>
+                  :class="{ 'text-destructive': row.valor < 0 }">{{ fmtNum(row.valor) }}</td>
               <td class="px-4 py-2 whitespace-nowrap uppercase text-xs">{{ row.version || '—' }}</td>
               <td class="px-4 py-2">
                 <Button text rounded size="small" v-tooltip.left="'Diagnosticar este proyecto'" @click="diagnosticar(row.topico)">
-                  <template #icon><SearchIcon class="size-[1em]" /></template>
+                  <template #icon><SearchIcon class="size-4" /></template>
                 </Button>
               </td>
             </tr>
             <tr v-if="loading">
-              <td :colspan="COLUMNAS.length + 1" class="px-4 py-12 text-center text-gray-400">
-                <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+              <td :colspan="COLUMNAS.length + 1" class="px-4 py-12 text-center text-muted-foreground">
+                <LoaderCircleIcon class="size-6 animate-spin" />
               </td>
             </tr>
             <tr v-else-if="!filtrados.length">
-              <td :colspan="COLUMNAS.length + 1" class="px-4 py-12 text-center text-sm text-gray-400">
-                <ZapIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="COLUMNAS.length + 1" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <ZapIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 No hay despachos liquidados para este período.<br>
                 <span class="text-xs">Corre «Consultar FTP» y después «Liquidar».</span>
               </td>
@@ -250,12 +247,12 @@ const ETIQUETA_TIPO = {
 }
 const OPCIONES_TIPO = Object.entries(ETIQUETA_TIPO).map(([value, label]) => ({ value, label }))
 
-function estiloTipo(tipo) {
+function claseTipo(tipo) {
   return {
-    dispatch: 'background:#EAF7EF; color:#1D6F42',
-    purchase: 'background:#FDEEF0; color:#B42318',
-    dispatch_fazni: 'background:#F1EAF9; color:#6E3FB8',
-  }[tipo] || 'background:#F3F4F6; color:#6B7280'
+    dispatch: 'bg-success/10 text-success',
+    purchase: 'bg-destructive/10 text-destructive',
+    dispatch_fazni: 'bg-primary/10 text-primary',
+  }[tipo] || 'bg-muted text-muted-foreground'
 }
 
 // Las tres acciones del ciclo que arrancan aquí. IPP y FTP son independientes;

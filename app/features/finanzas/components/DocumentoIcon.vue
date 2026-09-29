@@ -2,18 +2,16 @@
   <button
     v-if="doc != null"
     type="button"
-    class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-purple-100"
-    style="color:#7c3aed"
+    class="inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-primary/10 text-primary"
     :title="tooltip || doc.nombre_archivo || 'Ver documento'"
     @click="$emit('click', doc)">
-    <FileTextIcon class="size-[1em]" style="font-size:14px" />
+    <FileTextIcon class="size-4" />
   </button>
   <span
     v-else
-    class="inline-flex items-center justify-center w-7 h-7 cursor-default"
-    style="color:#d1d5db"
+    class="inline-flex items-center justify-center w-7 h-7 cursor-default text-muted-foreground"
     title="Sin documento">
-    <FileTextIcon class="size-[1em]" style="font-size:14px" />
+    <FileTextIcon class="size-4" />
   </span>
 </template>
 

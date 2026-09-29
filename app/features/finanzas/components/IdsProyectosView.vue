@@ -4,94 +4,93 @@
                 subtitle="Códigos SIC de liquidaciones e IDs de Quoia · GD y minigranjas en operación" />
 
     <!-- Filtro de búsqueda -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Nombre del proyecto…" class="w-64" />
         </IconField>
       </div>
       <div class="flex-1" />
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} proyecto{{ filtrados.length === 1 ? '' : 's' }}
-        <span v-if="resumen.completos" style="color:#10B981">· {{ resumen.completos }} completos</span>
-        <span v-if="resumen.pendientes" style="color:#B45309">· {{ resumen.pendientes }} pendientes</span>
+        <span v-if="resumen.completos" class="text-success">· {{ resumen.completos }} completos</span>
+        <span v-if="resumen.pendientes" class="text-warning">· {{ resumen.pendientes }} pendientes</span>
         <span v-if="resumen.sinTopico">· {{ resumen.sinTopico }} sin tópico</span>
       </div>
     </div>
 
     <div v-if="loading" class="bg-white rounded-xl shadow-sm p-10 flex justify-center">
-      <LoaderCircleIcon class="text-2xl text-gray-400 size-[1em] animate-spin" />
+      <LoaderCircleIcon class="text-muted-foreground size-6 animate-spin" />
     </div>
 
-    <div v-else-if="errorApi" class="bg-white rounded-xl shadow-sm border p-6 text-center" style="border-color:#ECE7F2">
-      <TriangleAlertIcon class="text-2xl mb-2 block size-[1em]" style="color:#D97706" />
-      <p class="text-sm text-gray-600">{{ errorApi }}</p>
+    <div v-else-if="errorApi" class="bg-white rounded-xl shadow-sm border p-6 text-center border-border">
+      <TriangleAlertIcon class="mb-2 block size-6 text-warning" />
+      <p class="text-sm text-muted-foreground">{{ errorApi }}</p>
       <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
     </div>
 
     <template v-else>
       <div v-if="!filtrados.length"
-           class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-gray-400">
+           class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground">
         No se encontraron proyectos GD/minigranja en operación.
       </div>
 
-      <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+      <div v-else class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
         <div class="overflow-x-auto">
           <table class="w-full text-sm border-collapse">
             <thead>
-              <tr class="bg-gray-50 border-b border-gray-100">
-                <th rowspan="2" class="sticky-col text-left px-4 py-2.5 font-medium text-gray-500 text-xs
-                                        uppercase tracking-wide align-bottom" style="min-width:240px">Proyecto</th>
-                <th colspan="2" class="text-center px-3 py-2 font-semibold text-[11px] uppercase tracking-wide"
-                    style="color:var(--color-unergy-deep); border-left:1px solid #EEE;">ID liquidaciones</th>
-                <th colspan="3" class="text-center px-3 py-2 font-semibold text-[11px] uppercase tracking-wide"
-                    style="color:var(--color-unergy-purple); border-left:1px solid #EEE;">ID Quoia</th>
-                <th rowspan="2" class="px-3 py-2.5" style="width:56px"></th>
+              <tr class="bg-muted/50 border-b border-border">
+                <th rowspan="2" class="sticky-col text-left px-4 py-2.5 font-medium text-muted-foreground text-xs
+                                        uppercase tracking-wide align-bottom">Proyecto</th>
+                <th colspan="2" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-unergy-deep border-l border-border"
+                    >ID liquidaciones</th>
+                <th colspan="3" class="text-center px-3 py-2 font-semibold text-xs uppercase tracking-wide text-unergy-purple border-l border-border"
+                    >ID Quoia</th>
+                <th rowspan="2" class="px-3 py-2.5"></th>
               </tr>
-              <tr class="bg-gray-50 border-b border-gray-100">
+              <tr class="bg-muted/50 border-b border-border">
                 <th v-for="col in COLUMNAS" :key="col.key"
-                    class="text-center px-3 py-2 font-medium text-gray-500 text-[11px] whitespace-nowrap"
-                    :style="col.groupStart ? 'border-left:1px solid #EEE;' : ''">
+                    class="text-center px-3 py-2 font-medium text-muted-foreground text-xs whitespace-nowrap"
+                    :class="{ 'border-l border-border': col.groupStart }">
                   {{ col.short }}
                 </th>
               </tr>
             </thead>
             <tbody>
               <template v-for="(row, i) in filtrados" :key="row.proyecto_id">
-              <tr v-if="abreGrupo(row, i)" class="border-t border-gray-200">
+              <tr v-if="abreGrupo(row, i)" class="border-t border-border">
                 <td :colspan="COLUMNAS.length + 2"
-                    class="sticky-col-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide"
-                    style="background:#F9FAFB; color:#6B7280">
+                    class="sticky-col-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wide bg-muted text-muted-foreground"
+                    >
                   {{ etiquetaGrupo(row) }}
                 </td>
               </tr>
-              <tr class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100 row-hover">
-                <td class="sticky-col px-4 py-2" style="min-width:240px">
-                  <span class="text-sm text-gray-800 font-medium">{{ row.nombre_comercial }}</span>
-                  <span v-if="!row.nombre_topico" class="ml-2 text-[10px] px-1.5 py-0.5 rounded"
-                        style="background:#FEF3C7; color:#92400E"
+              <tr class="border-t border-border hover:bg-muted/50 transition-colors duration-100 row-hover">
+                <td class="sticky-col px-4 py-2">
+                  <span class="text-sm text-foreground font-medium">{{ row.nombre_comercial }}</span>
+                  <span v-if="!row.nombre_topico" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning"
                         title="Sin código base (API ID Unergy): no se puede identificar en la API de Liquidaciones">
                     sin tópico
                   </span>
                 </td>
                 <td v-for="col in COLUMNAS" :key="col.key"
                     class="px-3 py-2 text-center id-cell cursor-pointer"
-                    :style="col.groupStart ? 'border-left:1px solid #F1F1F1;' : ''"
+                    :class="{ 'border-l border-border': col.groupStart }"
                     @click="irAlDetalle(row.proyecto_id, col.tab)"
                     v-tooltip.bottom="tieneValor(row[col.key]) ? String(row[col.key]) : 'Sin registrar · clic para abrir el proyecto'">
-                  <CircleCheckIcon class="size-[1em]" v-if="tieneValor(row[col.key])" style="color:#10B981; font-size:1rem;" />
-                  <span v-else class="text-gray-300">—</span>
+                  <CircleCheckIcon class="size-4 text-success" v-if="tieneValor(row[col.key])" />
+                  <span v-else class="text-muted-foreground/50">—</span>
                 </td>
                 <td class="px-3 py-2">
                   <Button text rounded size="small" severity="info" :disabled="!row.nombre_topico" v-tooltip.left="row.nombre_topico ? 'Editar códigos SIC' : 'Falta el código base del proyecto'" @click="abrirEditar(row)">
-                    <template #icon><PencilIcon class="size-[1em]" /></template>
+                    <template #icon><PencilIcon class="size-4" /></template>
                   </Button>
                 </td>
               </tr>
@@ -105,8 +104,8 @@
     <!-- Dialog: editar códigos de liquidaciones (van a la API de Liquidaciones) -->
     <Dialog v-model:visible="formVisible" header="Editar códigos SIC" modal class="w-full max-w-md">
       <form @submit.prevent="guardar" class="space-y-4 pt-1">
-        <div class="text-sm font-medium text-gray-700">{{ f.nombre_comercial }}</div>
-        <p class="text-[11px] text-gray-400 -mt-2">
+        <div class="text-sm font-medium text-foreground">{{ f.nombre_comercial }}</div>
+        <p class="text-xs text-muted-foreground -mt-2">
           Se guardan en la API de Liquidaciones (tópico <b>{{ f.nombre_topico }}</b>).
         </p>
         <div class="grid grid-cols-2 gap-3">
@@ -122,7 +121,7 @@
         <div class="flex justify-end gap-2 pt-1">
           <Button type="button" label="Cancelar" severity="secondary" @click="formVisible = false" />
           <Button type="submit" label="Guardar" :loading="guardando">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </form>

@@ -4,16 +4,16 @@
                 subtitle="Archivos generados en Drive · estados de resultados y cruce de facturas">
       <template #actions>
         <Button label="Crear cruce facturas" size="small" outlined @click="abrirCrudo">
-          <template #icon><FileIcon class="size-[1em]" /></template>
+          <template #icon><FileIcon class="size-4" /></template>
         </Button>
         <Button label="Generar estado de resultados" size="small" @click="abrirEstado">
-          <template #icon><ChartLineIcon class="size-[1em]" /></template>
+          <template #icon><ChartLineIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Documento</label>
         <div class="er-toggle">
@@ -41,7 +41,7 @@
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Cliente o proyecto…" class="w-64" />
         </IconField>
       </div>
@@ -49,85 +49,85 @@
       <div class="flex-1" />
 
       <Button label="Descargar ZIP" size="small" outlined :loading="descargandoZip" :disabled="!archivos.length" v-tooltip.top="'Descarga en un ZIP todo lo que coincide con los filtros'" @click="descargarZip">
-        <template #icon><DownloadIcon class="size-[1em]" /></template>
+        <template #icon><DownloadIcon class="size-4" /></template>
       </Button>
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar desde Drive'" @click="cargar(true)">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ filas.length }} archivo{{ filas.length === 1 ? '' : 's' }}
       </div>
     </div>
 
     <!-- Aviso de listado recortado -->
-    <div v-if="truncado" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FFF8E6; border:1px solid #F5E3B3; color:#7A5C00">
-      <TriangleAlertIcon class="size-[1em]" />
+    <div v-if="truncado" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-warning/10 border border-warning/30 text-warning"
+         >
+      <TriangleAlertIcon class="size-4" />
       Se muestran los {{ archivos.length }} más recientes de {{ totalFiltrados }}. Filtra por período para ver el resto.
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div v-if="loading" class="p-10 flex justify-center">
-        <LoaderCircleIcon class="text-2xl text-gray-400 size-[1em] animate-spin" />
+        <LoaderCircleIcon class="text-muted-foreground size-6 animate-spin" />
       </div>
 
       <div v-else-if="error" class="p-10 text-center">
-        <CircleXIcon class="text-2xl mb-2 block size-[1em]" style="color:#DC2626" />
-        <p class="text-sm text-gray-600">{{ error }}</p>
+        <CircleXIcon class="mb-2 block size-6 text-destructive" />
+        <p class="text-sm text-muted-foreground">{{ error }}</p>
         <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar(true)">
-          <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+          <template #icon><RefreshCwIcon class="size-4" /></template>
         </Button>
       </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Documento</th>
-              <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:110px">Período</th>
-              <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:90px">Versión</th>
-              <th class="px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:120px">Modificado</th>
-              <th class="px-4 py-2.5 text-right font-medium text-gray-500 text-xs uppercase tracking-wide" style="width:90px">Tamaño</th>
-              <th class="px-4 py-2.5" style="width:70px"></th>
+            <tr class="bg-muted/50 border-b border-border">
+              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Documento</th>
+              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Período</th>
+              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Versión</th>
+              <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Modificado</th>
+              <th class="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide">Tamaño</th>
+              <th class="px-4 py-2.5"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="a in filas" :key="a.id"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2">
-                <FileSpreadsheetIcon class="mr-2 text-xs size-[1em]" style="color:#1D6F42" />
+                <FileSpreadsheetIcon class="mr-2 size-3 text-success" />
                 <span :title="a.nombre">{{ a.descripcion || 'Cruce de facturas' }}</span>
-                <span v-if="a.es_copia" class="ml-2 text-[10px] px-1.5 py-0.5 rounded"
-                      style="background:#F1EAF9; color:var(--color-unergy-purple-dark)" title="Duplicado creado en Drive">copia</span>
+                <span v-if="a.es_copia" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-primary/10 text-unergy-purple-dark"
+                       title="Duplicado creado en Drive">copia</span>
               </td>
-              <td class="px-4 py-2 text-xs text-gray-500">{{ fmtPeriodo(a.mes, a.anio) }}</td>
+              <td class="px-4 py-2 text-xs text-muted-foreground">{{ fmtPeriodo(a.mes, a.anio) }}</td>
               <!-- Hoy la API solo escribe la versión en el nombre del cruce; en el del
                    estado de resultados no la pone. Se muestra igual, y cuando falta se
                    dice POR QUÉ falta: un guion suelto se lee como "es txf". -->
               <td class="px-4 py-2 text-xs font-mono uppercase">
                 <span v-if="a.version">{{ a.version }}</span>
-                <span v-else class="text-gray-400 normal-case font-sans"
+                <span v-else class="text-muted-foreground normal-case font-sans"
                       title="El nombre del archivo no indica la versión. La API solo la escribe en el cruce de facturas.">sin indicar</span>
               </td>
-              <td class="px-4 py-2 text-xs text-gray-500">{{ fmtFecha(a.modificado) }}</td>
-              <td class="px-4 py-2 text-right text-xs font-mono text-gray-500">{{ fmtTamano(a.tamano) }}</td>
+              <td class="px-4 py-2 text-xs text-muted-foreground">{{ fmtFecha(a.modificado) }}</td>
+              <td class="px-4 py-2 text-right text-xs font-mono text-muted-foreground">{{ fmtTamano(a.tamano) }}</td>
               <td class="px-4 py-2">
                 <div class="flex justify-end gap-1">
                   <Button text rounded size="small" severity="secondary" :loading="descargando === a.id" v-tooltip.left="'Descargar archivo'" @click="descargarUno(a)">
-                    <template #icon><DownloadIcon class="size-[1em]" /></template>
+                    <template #icon><DownloadIcon class="size-4" /></template>
                   </Button>
                   <a v-if="a.link" :href="a.link" target="_blank" rel="noopener">
                     <Button text rounded size="small" severity="info" v-tooltip.left="'Abrir en Drive'">
-                      <template #icon><ExternalLinkIcon class="size-[1em]" /></template>
+                      <template #icon><ExternalLinkIcon class="size-4" /></template>
                     </Button>
                   </a>
                 </div>
               </td>
             </tr>
             <tr v-if="!filas.length">
-              <td :colspan="tipo === 'cruce_facturas' ? 6 : 5" class="px-4 py-12 text-center text-sm text-gray-400">
-                <FolderOpenIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="tipo === 'cruce_facturas' ? 6 : 5" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <FolderOpenIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 {{ q ? 'Ningún archivo coincide con la búsqueda.' : 'No hay archivos para este período.' }}
               </td>
             </tr>
@@ -160,23 +160,23 @@
           </div>
         </div>
         <div>
-          <label class="field-label">Proyecto <span class="text-gray-400">(opcional)</span></label>
+          <label class="field-label">Proyecto <span class="text-muted-foreground">(opcional)</span></label>
           <InputText v-model="er.project" class="w-full" placeholder="Tópico, ej: bayunca — vacío = todos" />
         </div>
-        <p class="text-[11px] text-gray-500">
-          <InfoIcon class="mr-1 size-[1em]" />
+        <p class="text-xs text-muted-foreground">
+          <InfoIcon class="mr-1 size-4" />
           Este paso pide DOS versiones: de cuál de las facturas saca los datos y hacia
           cuál los lleva. Sin proyecto genera todos los del período. Lo deja en Drive y
           puede tardar varios minutos.
         </p>
-        <p v-if="progresoEr" class="text-[11px] text-gray-500 flex items-center gap-2">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /> {{ progresoEr }}
+        <p v-if="progresoEr" class="text-xs text-muted-foreground flex items-center gap-2">
+          <LoaderCircleIcon class="size-4 animate-spin" /> {{ progresoEr }}
         </p>
         <div class="flex justify-end gap-2 pt-1">
           <Button type="button" label="Cancelar" severity="secondary" :disabled="generandoEr"
                   @click="estadoVisible = false" />
           <Button type="submit" label="Generar" :loading="generandoEr">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </form>
@@ -199,18 +199,18 @@
           <label class="field-label">Versión</label>
           <Select v-model="cr.version" :options="VERSIONES" class="w-full" />
         </div>
-        <p class="text-[11px] text-gray-500">
-          <InfoIcon class="mr-1 size-[1em]" />
+        <p class="text-xs text-muted-foreground">
+          <InfoIcon class="mr-1 size-4" />
           Verifica que lo repartido cuadre con la factura real de XM. Falla si falta cualquier insumo.
         </p>
-        <p v-if="progresoCruce" class="text-[11px] text-gray-500 flex items-center gap-2">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /> {{ progresoCruce }}
+        <p v-if="progresoCruce" class="text-xs text-muted-foreground flex items-center gap-2">
+          <LoaderCircleIcon class="size-4 animate-spin" /> {{ progresoCruce }}
         </p>
         <div class="flex justify-end gap-2 pt-1">
           <Button type="button" label="Cancelar" severity="secondary" :disabled="generandoCruce"
                   @click="crudoVisible = false" />
           <Button type="submit" label="Generar" :loading="generandoCruce">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </form>
