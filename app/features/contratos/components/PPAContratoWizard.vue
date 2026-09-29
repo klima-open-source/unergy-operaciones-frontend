@@ -32,10 +32,10 @@
 
       <!-- ── PASO 0: Proyectos e identificación ─────────────────────────── -->
       <template v-if="step === 0">
-        <p class="step-title">Proyectos e identificación</p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Proyectos e identificación</p>
         <div class="space-y-4">
           <div class="flex flex-col gap-1">
-            <label class="field-label">Proyectos asociados <span class="text-muted-foreground">(opcional)</span></label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Proyectos asociados <span class="text-muted-foreground">(opcional)</span></label>
             <MultiSelect
               v-model="proyectosSeleccionados"
               :options="todosProyectos"
@@ -51,16 +51,16 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Número de contrato</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de contrato</label>
               <InputText v-model="form.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Nombre interno</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre interno</label>
               <InputText v-model="form.nombre_interno" placeholder="Ej: Terpel 1" class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Responsable</label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Responsable</label>
             <Select v-model="form.responsable_id" :options="responsablesOpts"
               optionLabel="label" optionValue="value" showClear
               placeholder="Empresa responsable del PPA" class="w-full" />
@@ -74,9 +74,9 @@
 
       <!-- ── PASO 1: Partes ─────────────────────────────────────────────── -->
       <template v-if="step === 1">
-        <p class="step-title">Partes del contrato</p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Partes del contrato</p>
         <div class="flex flex-col gap-1 mb-4">
-          <label class="field-label">Tipo de contrato</label>
+          <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de contrato</label>
           <SelectButton v-model="form.tipo_contrato" :options="TIPOS_CONTRATO"
             optionLabel="label" optionValue="value" :allowEmpty="false" />
           <span class="text-xs text-muted-foreground">
@@ -89,7 +89,7 @@
              se negocia en este contrato. A las plantas que cubra dejan de
              prestárseles representación y CGM desde la fecha de entrada. -->
         <div class="flex flex-col gap-1 mb-4">
-          <label class="field-label">Comunidad energética</label>
+          <label class="block text-xs font-medium text-muted-foreground mb-1">Comunidad energética</label>
           <div class="flex items-center gap-2">
             <ToggleSwitch v-model="form.es_comunidad_energetica" inputId="ppa-comunidad" />
             <span class="text-sm text-muted-foreground">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
@@ -101,11 +101,11 @@
         </div>
         <div v-if="form.es_comunidad_energetica" class="grid grid-cols-2 gap-4 mb-4">
           <div class="flex flex-col gap-1">
-            <label class="field-label">Nombre de la comunidad</label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre de la comunidad</label>
             <InputText v-model="form.nombre_comunidad" class="w-full" placeholder="Opcional" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Fecha de entrada a la comunidad</label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrada a la comunidad</label>
             <DatePicker v-model="form.fecha_entrada_comunidad" dateFormat="yy-mm-dd"
               showIcon class="w-full" />
             <span class="text-xs text-muted-foreground">
@@ -128,7 +128,7 @@
               requerido
             />
             <div class="flex flex-col gap-1">
-              <label class="field-label">NIT</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
               <InputText v-model="form.comprador_nit" class="w-full" placeholder="Ej: 900123456-7" />
             </div>
           </div>
@@ -142,7 +142,7 @@
               requerido
             />
             <div class="flex flex-col gap-1">
-              <label class="field-label">NIT</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
               <InputText v-model="form.vendedor_nit" class="w-full" placeholder="Ej: 900123456-7" />
             </div>
           </div>
@@ -151,21 +151,21 @@
 
       <!-- ── PASO 2: Condiciones comerciales ───────────────────────────── -->
       <template v-if="step === 2">
-        <p class="step-title">Condiciones comerciales</p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Condiciones comerciales</p>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha inicio de despacho</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha inicio de despacho</label>
               <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha final del despacho</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha final del despacho</label>
               <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
           </div>
           <div class="grid grid-cols-3 gap-4">
             <div class="flex flex-col gap-1">
-              <label class="field-label">Índice de indexación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Índice de indexación</label>
               <Select v-model="form.indice_indexacion"
                 :options="INDICES_INDEXACION"
                 optionLabel="label" optionValue="value"
@@ -173,30 +173,30 @@
                 showClear class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Periodicidad indexación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad indexación</label>
               <Select v-model="form.periodicidad_indexacion" :options="PERIODICIDADES"
                 optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Período base (AAAA-MM)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Período base (AAAA-MM)</label>
               <InputText v-model="form.periodo_indexacion_base" placeholder="2023-07" maxlength="7" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Valor base indexación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Valor base indexación</label>
               <InputNumber v-model="form.valor_indexacion_base" :maxFractionDigits="4" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Periodicidad facturación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad facturación</label>
               <Select v-model="form.periodicidad_facturacion" :options="PERIODICIDADES"
                 optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Tiempo de pago (días)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tiempo de pago (días)</label>
               <InputNumber v-model="form.tiempo_pago" :useGrouping="false" placeholder="15" class="w-full" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="field-label">Condiciones de pago</label>
+            <label class="block text-xs font-medium text-muted-foreground mb-1">Condiciones de pago</label>
             <Textarea v-model="form.condiciones_pago" rows="2" autoResize class="w-full" />
           </div>
         </div>
@@ -204,7 +204,7 @@
 
       <!-- ── PASO 3: Tarifas ────────────────────────────────────────────── -->
       <template v-if="step === 3">
-        <p class="step-title">Tabla de tarifas <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Tabla de tarifas <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
         <p class="text-xs text-muted-foreground mb-3">
           Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas aquí.
           Acepta tabulaciones o comas como separador. El mes puede ser nombre en español o número.
@@ -253,7 +253,7 @@
 
       <!-- ── PASO 4: Compromisos de energía ────────────────────────────── -->
       <template v-if="step === 4">
-        <p class="step-title">Compromisos de energía <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Compromisos de energía <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
         <p class="text-xs text-muted-foreground mb-3">
           Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas aquí
           (Mín/Máx en MWh/mes; <strong>Plantas contrato</strong> = nº de plantas que el contrato exige ese mes).
@@ -311,7 +311,7 @@
 
       <!-- ── PASO 5: GESCON + Resumen ───────────────────────────────────── -->
       <template v-if="step === 5">
-        <p class="step-title">Resumen</p>
+        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Resumen</p>
 
         <!-- Resumen -->
         <div class="rounded-lg border border-warning/20 bg-warning/10 p-4">
@@ -775,12 +775,3 @@ const ResumenFila = {
 }
 export default { components: { ResumenFila } }
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium text-gray-600 mb-1; }
-.step-title { @apply text-xs font-semibold text-amber-600 uppercase tracking-wide mb-4; }
-</style>

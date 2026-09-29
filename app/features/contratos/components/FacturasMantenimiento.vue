@@ -29,7 +29,10 @@
       </button>
 
       <!-- Contenido colapsable -->
-      <div class="factura-collapse" :class="{ open: openSol }">
+      <div
+        class="overflow-hidden transition-all"
+        :class="openSol ? 'max-h-900 duration-500 ease-in' : 'max-h-0 duration-300 ease-out'"
+      >
         <div class="border-t border-border">
 
           <!-- Barra de filtros + botón agregar -->
@@ -98,7 +101,7 @@
                 <!-- Filas -->
                 <tr v-for="fac in solFiltradas" :key="fac.id"
                   class="border-b border-border/50 transition-colors duration-100"
-                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-warning/5'">
+                  :class="isPending(fac) ? 'opacity-50 hover:opacity-70 hover:bg-warning/10' : 'hover:bg-warning/5'">
                   <td class="px-4 py-2.5">
                     <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
                   </td>
@@ -185,7 +188,10 @@
       </button>
 
       <!-- Contenido colapsable -->
-      <div class="factura-collapse" :class="{ open: openInv }">
+      <div
+        class="overflow-hidden transition-all"
+        :class="openInv ? 'max-h-900 duration-500 ease-in' : 'max-h-0 duration-300 ease-out'"
+      >
         <div class="border-t border-border">
 
           <!-- Barra de filtros + botón agregar -->
@@ -255,7 +261,7 @@
                 <!-- Filas -->
                 <tr v-for="fac in invFiltradas" :key="fac.id"
                   class="border-b border-border/50 transition-colors duration-100"
-                  :class="isPending(fac) ? 'fila-pendiente' : 'hover:bg-primary/5'">
+                  :class="isPending(fac) ? 'opacity-50 hover:opacity-70 hover:bg-warning/10' : 'hover:bg-primary/5'">
                   <td class="px-4 py-2.5">
                     <span class="font-mono text-sm text-unergy-deep">{{ fac.fecha }}</span>
                   </td>
@@ -563,24 +569,3 @@ async function eliminarFactura(tipo, id) {
 }
 
 </script>
-
-<style scoped>
-.factura-collapse {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.38s ease-out;
-}
-.factura-collapse.open {
-  max-height: 3600px;
-  transition: max-height 0.45s ease-in;
-}
-
-/* Filas pendientes (sin factura, monto ni soporte) */
-.fila-pendiente {
-  opacity: 0.48;
-}
-.fila-pendiente:hover {
-  opacity: 0.72;
-  background-color: color-mix(in oklab, var(--warning) 10%, transparent);
-}
-</style>
