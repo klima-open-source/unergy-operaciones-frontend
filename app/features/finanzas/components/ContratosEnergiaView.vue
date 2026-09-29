@@ -16,17 +16,17 @@
       <template #actions>
         <Button label="Crear contrato de Liquidaciones" size="small" @click="abrirFormulario"
                 v-tooltip.bottom="'Crea un contrato en el servicio externo de Liquidaciones, no un PPA'">
-          <template #icon><PlusIcon class="size-[1em]" /></template>
+          <template #icon><PlusIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Comercializador, proyecto, código…" class="w-72" />
         </IconField>
       </div>
@@ -52,42 +52,42 @@
       </div>
       <div>
         <label class="field-label">Vigencia</label>
-        <div class="flex items-center gap-2 h-[38px]">
+        <div class="flex items-center gap-2 h-9.5">
           <ToggleSwitch v-model="soloVigentes" />
-          <span class="text-xs text-gray-500">{{ soloVigentes ? 'Solo vigentes' : 'Todos' }}</span>
+          <span class="text-xs text-muted-foreground">{{ soloVigentes ? 'Solo vigentes' : 'Todos' }}</span>
         </div>
       </div>
       <div class="flex-1" />
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} contrato{{ filtrados.length === 1 ? '' : 's' }}
       </div>
     </div>
 
     <!-- Un PLC sin piso y techo hace fallar la liquidación -->
-    <div v-if="!loading && plcIncompletos.length" class="rounded-lg px-3 py-2 text-xs"
-         style="background:#FFF8E6; border:1px solid #F5E3B3; color:#7A5C00">
-      <TriangleAlertIcon class="mr-1 size-[1em]" />
+    <div v-if="!loading && plcIncompletos.length" class="rounded-lg px-3 py-2 text-xs bg-warning/10 border border-warning/30 text-warning"
+         >
+      <TriangleAlertIcon class="mr-1 size-4" />
       {{ plcIncompletos.length }} contrato{{ plcIncompletos.length === 1 ? '' : 's' }} PLC
       sin piso o sin techo cargado. La liquidación falla sin los dos:
       <span class="font-mono">{{ plcIncompletos.map(c => c.codigo || c.id).join(', ') }}</span>
     </div>
 
-    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FEF2F2; border:1px solid #FECACA; color:#B42318">
-      <CircleXIcon class="size-[1em]" /> {{ error }}
+    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive"
+         >
+      <CircleXIcon class="size-4" /> {{ error }}
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
+            <tr class="bg-muted/50 border-b border-border">
               <th v-for="col in COLUMNAS" :key="col.key"
-                  class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap"
+                  class="px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap"
                   :class="col.center ? 'text-center' : 'text-left'">
                 {{ col.label }}
               </th>
@@ -95,40 +95,40 @@
           </thead>
           <tbody>
             <tr v-for="row in filtrados" :key="row.id"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2 whitespace-nowrap">{{ fmtFecha(row.fecha_desde) }}</td>
               <td class="px-4 py-2 whitespace-nowrap">{{ fmtFecha(row.fecha_hasta) }}</td>
-              <td class="px-4 py-2 font-mono text-xs text-gray-500">{{ row.codigo || '—' }}</td>
+              <td class="px-4 py-2 font-mono text-xs text-muted-foreground">{{ row.codigo || '—' }}</td>
               <td class="px-4 py-2">{{ row.empresa || '—' }}</td>
               <td class="px-4 py-2">
-                <span v-if="!row.proyectos.length" class="text-gray-400">—</span>
+                <span v-if="!row.proyectos.length" class="text-muted-foreground">—</span>
                 <span v-for="p in row.proyectos" :key="p.id" class="inline-flex items-center gap-1 mr-2">
                   {{ nombreProyecto(p.proyecto) }}
                   <!-- Solo los PLC necesitan piso y techo -->
-                  <TriangleAlertIcon class="text-xs size-[1em]" v-if="row.tipo_contrato === 'ppa_pay_as_contracted' && !(p.tiene_piso && p.tiene_techo)" style="color:#D97706" v-tooltip.top="'Falta ' + faltantes(p)" />
+                  <TriangleAlertIcon class="size-3 text-warning" v-if="row.tipo_contrato === 'ppa_pay_as_contracted' && !(p.tiene_piso && p.tiene_techo)"  v-tooltip.top="'Falta ' + faltantes(p)" />
                 </span>
               </td>
               <td class="px-4 py-2 whitespace-nowrap">{{ LABEL_TIPO_CONTRATO[row.tipo_contrato] || row.tipo_contrato || '—' }}</td>
               <td class="px-4 py-2 whitespace-nowrap">{{ LABEL_TIPO_TARIFA[row.tipo_tarifa] || row.tipo_tarifa || '—' }}</td>
               <td class="px-4 py-2 text-right font-mono text-xs">{{ row.porcentaje ?? '—' }}</td>
               <td class="px-4 py-2 text-center">
-                <CircleCheckIcon class="size-[1em]" v-if="row.proyectos.some(p => p.precio_energia_id)" style="color:#10B981" />
-                <CircleXIcon class="size-[1em]" v-else style="color:#D64455" />
+                <CircleCheckIcon class="size-4 text-success" v-if="row.proyectos.some(p => p.precio_energia_id)" />
+                <CircleXIcon class="size-4 text-destructive" v-else  />
               </td>
               <td class="px-4 py-2 text-center">
                 <Button text rounded size="small" type="button" @click="abrirEdicion(row)" v-tooltip="'Editar'">
-                  <template #icon><PencilIcon class="size-[1em]" /></template>
+                  <template #icon><PencilIcon class="size-4" /></template>
                 </Button>
               </td>
             </tr>
             <tr v-if="loading">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-gray-400">
-                <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-muted-foreground">
+                <LoaderCircleIcon class="size-6 animate-spin" />
               </td>
             </tr>
             <tr v-else-if="!filtrados.length">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-gray-400">
-                <FileIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <FileIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 No hay contratos con esos filtros.
               </td>
             </tr>
@@ -154,7 +154,7 @@
           <div>
             <label class="field-label">Código</label>
             <InputText v-model="f.codigo" class="w-full" placeholder="ej: 90060" />
-            <p class="text-[11px] text-gray-400 mt-1">
+            <p class="text-xs text-muted-foreground mt-1">
               Es el código del contrato en XM. Sin él, el proyecto no entra en la
               descarga del FTP de ese mes.
             </p>
@@ -163,7 +163,7 @@
             <label class="field-label">Comercializador</label>
             <Select v-model="f.comercializador" :options="empresasOptions" optionLabel="label" optionValue="id"
                     class="w-full" placeholder="Seleccionar" filter showClear />
-            <p class="text-[11px] text-gray-400 mt-1">Necesario si el proyecto es comercializador.</p>
+            <p class="text-xs text-muted-foreground mt-1">Necesario si el proyecto es comercializador.</p>
           </div>
 
           <div>
@@ -181,34 +181,34 @@
             <label class="field-label">Porcentaje de despacho</label>
             <InputNumber v-model="f.porcentaje" :maxFractionDigits="4" :useGrouping="false"
                          class="w-full" placeholder="ej: 1.0" :min="0" :max="1" />
-            <p class="text-[11px] text-gray-400 mt-1">
+            <p class="text-xs text-muted-foreground mt-1">
               Fracción entre 0 y 1, no porcentaje.
               {{ esPlg ? 'En PLG define qué parte del despacho cubre el contrato.' : 'Fuera de PLG va completo (1.0).' }}
             </p>
           </div>
         </div>
 
-        <div class="rounded-lg px-3 py-2.5 space-y-1" style="background:#FBF7FF; border:1px solid #ECE0FB;">
-          <p class="text-xs text-gray-600">
-            <InfoIcon class="mr-1 size-[1em]" style="color:var(--color-unergy-purple);" />
+        <div class="rounded-lg px-3 py-2.5 space-y-1 bg-primary/10 border border-primary/30">
+          <p class="text-xs text-muted-foreground">
+            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
             <b>Sin contrato</b> obliga a tipo de tarifa <b>Bolsa</b>.
           </p>
-          <p class="text-xs text-gray-600">
-            <InfoIcon class="mr-1 size-[1em]" style="color:var(--color-unergy-purple);" />
+          <p class="text-xs text-muted-foreground">
+            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
             <b>PPA</b> exige precio de energía; <b>Bolsa</b> no lo admite.
           </p>
-          <p v-if="esPlc" class="text-xs text-gray-600">
-            <InfoIcon class="mr-1 size-[1em]" style="color:var(--color-unergy-purple);" />
+          <p v-if="esPlc" class="text-xs text-muted-foreground">
+            <InfoIcon class="mr-1 size-4 text-unergy-purple" />
             Cada proyecto de un contrato <b>PLC</b> necesita piso <b>y</b> techo: 24 valores en kWh, de la hora 1 a la 24.
           </p>
         </div>
 
         <!-- Proyectos del contrato -->
-        <div class="border border-gray-200 rounded-lg p-4 space-y-4">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Proyectos del contrato</p>
+        <div class="border border-border rounded-lg p-4 space-y-4">
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Proyectos del contrato</p>
 
           <div v-for="(linea, idx) in f.proyectos" :key="idx" class="space-y-2 pb-3"
-               :class="idx < f.proyectos.length - 1 ? 'border-b border-gray-100' : ''">
+               :class="idx < f.proyectos.length - 1 ? 'border-b border-border' : ''">
             <div class="grid grid-cols-12 gap-2 items-end">
               <div class="col-span-6">
                 <label class="field-label">Proyecto</label>
@@ -226,9 +226,9 @@
                      expone DELETE. Se deja quitar solo lo que aún no se guardó. -->
                 <Button v-if="!linea.id" text rounded severity="danger" size="small" type="button"
                         @click="quitarProyecto(idx)" v-tooltip="'Eliminar'">
-                  <template #icon><XIcon class="size-[1em]" /></template>
+                  <template #icon><XIcon class="size-4" /></template>
                 </Button>
-                <span v-else class="text-[11px] text-gray-300" v-tooltip="'Un proyecto ya vinculado no se puede quitar desde aquí'">—</span>
+                <span v-else class="text-xs text-muted-foreground/50" v-tooltip="'Un proyecto ya vinculado no se puede quitar desde aquí'">—</span>
               </div>
             </div>
 
@@ -247,7 +247,7 @@
           </div>
 
           <Button label="Agregar proyecto" text size="small" type="button" @click="agregarProyecto">
-            <template #icon><PlusIcon class="size-[1em]" /></template>
+            <template #icon><PlusIcon class="size-4" /></template>
           </Button>
         </div>
 
@@ -255,7 +255,7 @@
           <Button type="button" label="Cancelar" severity="secondary" :disabled="guardando"
                   @click="formVisible = false" />
           <Button type="submit" label="Guardar" :loading="guardando">
-            <template #icon><CheckIcon class="size-[1em]" /></template>
+            <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>
       </form>

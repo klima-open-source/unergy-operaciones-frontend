@@ -3,8 +3,8 @@
 
     <!-- ══ TAB BAR ══════════════════════════════════════════════════════════ -->
     <div class="mon-tab-bar">
-      <CreditCardIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-      <span class="text-base font-bold text-gray-800 whitespace-nowrap mr-2">Costos</span>
+      <CreditCardIcon class="size-4 text-unergy-purple" />
+      <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Costos</span>
       <div class="mon-tab-group">
         <button
           v-for="(tab, i) in TABS"
@@ -13,7 +13,7 @@
           :class="{ 'mon-tab--active': activeTab === i }"
           @click="activeTab = i"
         >
-          <component :is="tab.icon" class="size-[1em]" style="font-size:12px" />
+          <component :is="tab.icon" class="size-3" />
           {{ tab.label }}
         </button>
       </div>
@@ -21,9 +21,9 @@
       <!-- Exportar Excel mensual consolidado (visible desde cualquier pestaña) -->
       <div class="flex items-center gap-2 ml-auto">
         <input type="month" v-model="exportPeriodo"
-          class="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-200" />
-        <Button label="Descargar Excel" size="small" :loading="exportando" @click="onExportExcel" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-          <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+          class="text-xs border border-border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+        <Button label="Descargar Excel" size="small" :loading="exportando" @click="onExportExcel" class="bg-unergy-purple border-unergy-purple">
+          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
@@ -36,8 +36,8 @@
         <!-- Header del panel — NO sticky, no hereda mon-tab-bar -->
         <div class="om-panel-header">
           <div class="flex items-center gap-2">
-            <CalculatorIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Panel O&amp;M Mensual</span>
+            <CalculatorIcon class="size-4 text-unergy-purple" />
+            <span class="text-sm font-semibold text-unergy-deep">Panel O&amp;M Mensual</span>
           </div>
           <div class="mon-tab-group">
             <button
@@ -47,7 +47,7 @@
               :class="{ 'mon-tab--active': activeSubTabOM === i }"
               @click="activeSubTabOM = i"
             >
-              <component :is="tab.icon" class="size-[1em]" style="font-size:12px" />
+              <component :is="tab.icon" class="size-3" />
               {{ tab.label }}
             </button>
           </div>
@@ -62,18 +62,18 @@
 
       <!-- ── 2. Separador ─────────────────────────────────────────────── -->
       <div class="flex items-center gap-3 my-5">
-        <div class="h-px flex-1" style="background:#ECE7F2" />
-        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-          style="background:#F1EAF9;color:#6D28D9">
+        <div class="h-px flex-1 bg-border" />
+        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary"
+          >
           Comparación facturas emitidas vs cobrado a inversionistas
         </span>
-        <div class="h-px flex-1" style="background:#ECE7F2" />
+        <div class="h-px flex-1 bg-border" />
       </div>
 
       <!-- ── 3. Selector de proyecto ────────────────────────────────────── -->
       <div class="costos-selector-bar">
-        <ZapIcon class="text-sm flex-shrink-0 size-[1em]" style="color:var(--color-unergy-purple)" />
-        <span class="text-sm font-semibold whitespace-nowrap" style="color:var(--color-unergy-deep)">Proyecto</span>
+        <ZapIcon class="flex-shrink-0 size-4 text-unergy-purple" />
+        <span class="text-sm font-semibold whitespace-nowrap text-unergy-deep">Proyecto</span>
         <Select
           v-model="proyectoSeleccionado"
           :options="proyectos"
@@ -87,15 +87,15 @@
           @change="onProyectoChange"
         />
         <span v-if="proyectoSeleccionado && proyectoNombre"
-          class="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap"
-          style="background:#F1EAF9; color:#6D28D9">
+          class="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-primary/10 text-primary"
+          >
           {{ proyectoNombre }}
         </span>
       </div>
 
       <!-- ── 4. Contenido del proyecto ─────────────────────────────────── -->
       <div v-if="loadingContrato" class="flex justify-center py-10">
-        <LoaderCircleIcon class="size-[1em] animate-spin" style="font-size:1.5rem; color:var(--color-unergy-purple);" />
+        <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
       </div>
 
       <div v-else-if="proyectoSeleccionado" class="space-y-4 mt-3">
@@ -104,16 +104,16 @@
         <FacturasMantenimiento :contrato-id="contratoMantenimientoId" />
 
         <!-- Cargar factura -->
-        <div class="rounded-xl border bg-white overflow-hidden" style="border-color:#ECE7F2">
-          <div class="flex items-center justify-between px-4 py-2.5 border-b" style="border-color:#F3F0FA">
+        <div class="rounded-xl border bg-white overflow-hidden border-border">
+          <div class="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div class="flex items-center gap-2">
-              <UploadIcon class="text-xs size-[1em]" style="color:var(--color-unergy-purple)" />
-              <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Cargar factura</span>
+              <UploadIcon class="size-3 text-unergy-purple" />
+              <span class="text-sm font-semibold text-unergy-deep">Cargar factura</span>
             </div>
             <button type="button"
-              class="text-xs flex items-center gap-1 text-gray-400 hover:text-purple-600 transition-colors"
+              class="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
               @click="showCargarFactura = !showCargarFactura">
-              <ChevronDownIcon class="text-[10px] transition-transform duration-200 size-[1em]" :style="showCargarFactura ? 'transform:rotate(180deg)' : ''" />
+              <ChevronDownIcon class="text-xs transition-transform duration-200 size-4" :class="{ 'rotate-180': showCargarFactura }" />
               {{ showCargarFactura ? 'Ocultar' : 'Mostrar' }}
             </button>
           </div>
@@ -122,63 +122,63 @@
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
               <!-- Tipo (siempre visible, primer campo) -->
               <div class="flex flex-col gap-1 md:col-span-2">
-                <label class="text-xs font-medium text-gray-500">Tipo <span class="text-red-400">*</span></label>
+                <label class="text-xs font-medium text-muted-foreground">Tipo <span class="text-destructive">*</span></label>
                 <div class="flex gap-2">
                   <label
                     class="flex-1 flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors"
                     :class="facturaForm.tipo === 'solenium'
-                      ? 'border-purple-400 bg-purple-50 text-purple-700 font-semibold'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'">
-                    <input type="radio" v-model="facturaForm.tipo" value="solenium" class="accent-purple-600" />
+                      ? 'border-primary/50 bg-primary/5 text-primary font-semibold'
+                      : 'border-border text-muted-foreground hover:border-border'">
+                    <input type="radio" v-model="facturaForm.tipo" value="solenium" class="accent-unergy-purple" />
                     Proveedor O&amp;M (Solenium)
                   </label>
                   <label
                     class="flex-1 flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors"
                     :class="facturaForm.tipo === 'inversionistas'
-                      ? 'border-blue-400 bg-blue-50 text-blue-700 font-semibold'
-                      : 'border-gray-200 text-gray-500 hover:border-gray-300'">
-                    <input type="radio" v-model="facturaForm.tipo" value="inversionistas" class="accent-blue-600" />
+                      ? 'border-chart-2/50 bg-chart-2/10 text-chart-2 font-semibold'
+                      : 'border-border text-muted-foreground hover:border-border'">
+                    <input type="radio" v-model="facturaForm.tipo" value="inversionistas" class="accent-chart-2" />
                     Cobros a clientes (Inversionistas)
                   </label>
                 </div>
               </div>
               <!-- Período -->
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-gray-500">Mes / Año</label>
+                <label class="text-xs font-medium text-muted-foreground">Mes / Año</label>
                 <input
                   type="month"
                   v-model="facturaForm.periodo"
-                  class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <!-- N° Factura -->
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-gray-500">N° Factura</label>
+                <label class="text-xs font-medium text-muted-foreground">N° Factura</label>
                 <input
                   type="text"
                   v-model="facturaForm.numero"
                   placeholder="Ej: SOFV001"
-                  class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <!-- Monto -->
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-gray-500">Monto (COP)</label>
+                <label class="text-xs font-medium text-muted-foreground">Monto (COP)</label>
                 <input
                   type="number"
                   v-model.number="facturaForm.monto"
                   placeholder="0"
-                  class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
               <!-- Archivo -->
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-gray-500">Archivo (PDF / imagen)</label>
-                <label class="flex items-center gap-2 text-sm border border-dashed border-gray-300 rounded-lg px-2.5 py-1.5 cursor-pointer hover:border-purple-400 transition-colors">
-                  <PaperclipIcon class="text-xs text-gray-400 size-[1em]" />
-                  <span class="text-xs text-gray-400 truncate">
+                <label class="text-xs font-medium text-muted-foreground">Archivo (PDF / imagen)</label>
+                <label class="flex items-center gap-2 text-sm border border-dashed border-border rounded-lg px-2.5 py-1.5 cursor-pointer hover:border-primary/50 transition-colors">
+                  <PaperclipIcon class="text-muted-foreground size-3" />
+                  <span class="text-xs text-muted-foreground truncate">
                     {{ facturaForm.archivo ? facturaForm.archivo.name : 'Seleccionar archivo…' }}
                   </span>
                   <input
@@ -193,14 +193,14 @@
 
             <!-- Link Drive (alternativa al archivo) -->
             <div class="flex flex-col gap-1 mt-2.5">
-              <label class="text-xs font-medium text-gray-500">
+              <label class="text-xs font-medium text-muted-foreground">
                 O pega el link de Google Drive / soporte digital
               </label>
               <input
                 type="url"
                 v-model="facturaForm.enlace"
                 placeholder="https://drive.google.com/…"
-                class="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-purple-200"
+                class="text-sm border border-border rounded-lg px-2.5 py-1.5 w-full focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
@@ -208,16 +208,14 @@
             <div class="flex items-center gap-3 mt-3">
               <button type="button"
                 :disabled="!puedeGuardarFactura || guardandoFactura"
-                class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
-                style="background:var(--color-unergy-purple);color:#fff;border:none;cursor:pointer"
-                :style="!puedeGuardarFactura || guardandoFactura ? 'cursor:not-allowed' : 'cursor:pointer'"
+                class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40 bg-unergy-purple text-primary-foreground border-0 cursor-pointer"
                 @click="guardarFactura">
-                <LoaderCircleIcon v-if="guardandoFactura" class="text-xs size-[1em] animate-spin" />
-                <CheckIcon v-else class="text-xs size-[1em]" />
+                <LoaderCircleIcon v-if="guardandoFactura" class="size-3 animate-spin" />
+                <CheckIcon v-else class="size-3" />
                 {{ guardandoFactura ? 'Guardando…' : 'Guardar factura' }}
               </button>
-              <span v-if="facturaOk" class="text-xs text-green-600 flex items-center gap-1">
-                <CircleCheckIcon class="text-xs size-[1em]" />Factura registrada
+              <span v-if="facturaOk" class="text-xs text-success flex items-center gap-1">
+                <CircleCheckIcon class="size-3" />Factura registrada
               </span>
             </div>
           </div>
@@ -232,8 +230,8 @@
       <div class="om-panel-card">
         <div class="om-panel-header">
           <div class="flex items-center gap-2">
-            <BuildingIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Panel Arriendos Mensual</span>
+            <BuildingIcon class="size-4 text-unergy-purple" />
+            <span class="text-sm font-semibold text-unergy-deep">Panel Arriendos Mensual</span>
           </div>
           <div class="mon-tab-group">
             <button
@@ -243,7 +241,7 @@
               :class="{ 'mon-tab--active': activeSubTabArr === i }"
               @click="activeSubTabArr = i"
             >
-              <component :is="tab.icon" class="size-[1em]" style="font-size:12px" />
+              <component :is="tab.icon" class="size-3" />
               {{ tab.label }}
             </button>
           </div>
@@ -260,8 +258,8 @@
       <div class="om-panel-card">
         <div class="om-panel-header">
           <div class="flex items-center gap-2">
-            <WifiIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-            <span class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Starlink — Procesador de facturas PDF</span>
+            <WifiIcon class="size-4 text-unergy-purple" />
+            <span class="text-sm font-semibold text-unergy-deep">Starlink — Procesador de facturas PDF</span>
           </div>
         </div>
         <div class="om-panel-body">

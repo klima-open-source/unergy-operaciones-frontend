@@ -4,10 +4,10 @@
                 subtitle="Costos e ingresos fijos por proyecto">
       <template #actions>
         <Button label="Subir Excel costos" size="small" outlined @click="abrirSubirExcel">
-          <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
         </Button>
         <Button label="Repartir costos de XM" size="small" @click="abrirAcPower">
-          <template #icon><ZapIcon class="size-[1em]" /></template>
+          <template #icon><ZapIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
@@ -18,24 +18,21 @@
     <Dialog v-model:visible="excelVisible" header="Subir Excel de costos" modal class="w-full max-w-lg">
       <div class="space-y-4 pt-1">
         <button type="button" class="dropzone" :disabled="subiendoExcel" @click="seleccionarExcel">
-          <FileSpreadsheetIcon class="text-3xl size-[1em]" style="color:var(--color-unergy-purple)" />
-          <p class="text-sm font-semibold text-gray-700 mt-2">Seleccionar Excel</p>
-          <p class="text-xs text-gray-400">.xlsx o .xls · un archivo por carga</p>
+          <FileSpreadsheetIcon class="size-6 text-unergy-purple" />
+          <p class="text-sm font-semibold text-foreground mt-2">Seleccionar Excel</p>
+          <p class="text-xs text-muted-foreground">.xlsx o .xls · un archivo por carga</p>
         </button>
 
-        <div v-if="excel" class="flex items-center gap-3 rounded-lg border px-3 py-2" style="border-color:#ECE7F2">
-          <FileSpreadsheetIcon class="text-sm shrink-0 size-[1em]" style="color:#9b8fb0" />
-          <span class="flex-1 min-w-0 text-xs font-medium text-gray-700 truncate">{{ excel.nombre }}</span>
-          <span class="text-[10px] text-gray-400 shrink-0">{{ fmtTamano(excel.tamano) }}</span>
+        <div v-if="excel" class="flex items-center gap-3 rounded-lg border px-3 py-2 border-border">
+          <FileSpreadsheetIcon class="shrink-0 size-4 text-muted-foreground" />
+          <span class="flex-1 min-w-0 text-xs font-medium text-foreground truncate">{{ excel.nombre }}</span>
+          <span class="text-xs text-muted-foreground shrink-0">{{ fmtTamano(excel.tamano) }}</span>
         </div>
 
-        <div v-if="subiendoExcel" class="h-1.5 rounded-full overflow-hidden" style="background:#F1EAF9">
-          <div class="h-full rounded-full transition-all duration-200"
-               :style="{ width: progresoExcel + '%', background:'var(--color-unergy-purple)' }" />
-        </div>
+        <Progress v-if="subiendoExcel" :model-value="progresoExcel" />
 
-        <p class="text-[11px] text-gray-400">
-          <InfoIcon class="mr-1 size-[1em]" />
+        <p class="text-xs text-muted-foreground">
+          <InfoIcon class="mr-1 size-4" />
           No se aceptan los tipos del grupo <strong>xm</strong>: esos los genera el reparto.
           Los anuales se prorratean como valor ÷ 12.
         </p>
@@ -44,7 +41,7 @@
           <Button label="Cerrar" severity="secondary" size="small" :disabled="subiendoExcel"
                   @click="excelVisible = false" />
           <Button label="Subir" size="small" :disabled="!excel" :loading="subiendoExcel" @click="subirExcel">
-            <template #icon><UploadIcon class="size-[1em]" /></template>
+            <template #icon><UploadIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
@@ -53,7 +50,7 @@
     <!-- Dialog: repartir costos de XM -->
     <Dialog v-model:visible="acVisible" header="Repartir costos de XM" modal class="w-full max-w-md">
       <div class="space-y-3 pt-1">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-muted-foreground">
           Reparte las facturas de XM entre los proyectos a prorrata del AC Power.
           Requiere haber liquidado primero y que las facturas del período estén listas.
         </p>
@@ -75,7 +72,7 @@
         <div>
           <!-- Solo en reliquidaciones: le dice a la API de qué versión viene el
                reparto anterior. En la primera corrida del mes va vacío. -->
-          <label class="field-label">Versión anterior <span class="text-gray-400">(solo al reliquidar)</span></label>
+          <label class="field-label">Versión anterior <span class="text-muted-foreground">(solo al reliquidar)</span></label>
           <Select v-model="ac.last_version" :options="VERSIONES" class="w-full" showClear
                   placeholder="Ninguna" />
         </div>
@@ -83,21 +80,21 @@
           <label class="field-label">AC Power total del período (kW)</label>
           <InputNumber v-model="ac.total_ac_power" :maxFractionDigits="4" :useGrouping="false"
                        class="w-full" placeholder="ej: 12345.6789" />
-          <p class="text-[11px] text-gray-400 mt-1">Es el divisor de la prorrata.</p>
+          <p class="text-xs text-muted-foreground mt-1">Es el divisor de la prorrata.</p>
         </div>
 
-        <div class="flex items-start gap-2 rounded-lg px-3 py-2"
-             style="background:#FFF8E6; border:1px solid #F5E3B3">
+        <div class="flex items-start gap-2 rounded-lg px-3 py-2 bg-warning/10 border border-warning/30"
+             >
           <Checkbox v-model="ac.override" inputId="ov" binary />
-          <label for="ov" class="text-[11px] leading-snug" style="color:#7A5C00">
+          <label for="ov" class="text-xs leading-snug text-warning">
             <strong>Sobrescribir el reparto anterior.</strong>
             Debe quedar marcado la primera vez que se corre este período: sin marcar y
             sin un reparto previo, la API borra los costos de XM y no crea nada, sin avisar.
           </label>
         </div>
 
-        <p v-if="progresoReparto" class="text-[11px] text-gray-500 flex items-center gap-2">
-          <LoaderCircleIcon class="size-[1em] animate-spin" /> {{ progresoReparto }}
+        <p v-if="progresoReparto" class="text-xs text-muted-foreground flex items-center gap-2">
+          <LoaderCircleIcon class="size-4 animate-spin" /> {{ progresoReparto }}
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
@@ -109,7 +106,7 @@
     </Dialog>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Proyecto</label>
         <Select v-model="filtros.project" :options="proyectosOptions" optionLabel="label"
@@ -140,35 +137,35 @@
       <div>
         <label class="field-label">Buscar en la página</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto, costo…" class="w-48" />
         </IconField>
       </div>
       <div class="flex-1" />
       <Button label="Exportar" size="small" outlined :loading="exportando" :disabled="!total" v-tooltip.top="'Exporta a Excel todo lo que coincide con los filtros'" @click="exportar">
-        <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+        <template #icon><FileSpreadsheetIcon class="size-4" /></template>
       </Button>
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="recargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ total.toLocaleString('es-CO') }} registro{{ total === 1 ? '' : 's' }}
       </div>
     </div>
 
-    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FEF2F2; border:1px solid #FECACA; color:#B42318">
-      <CircleXIcon class="size-[1em]" /> {{ error }}
+    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive"
+         >
+      <CircleXIcon class="size-4" /> {{ error }}
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
+            <tr class="bg-muted/50 border-b border-border">
               <th v-for="col in COLUMNAS" :key="col.key"
-                  class="px-4 py-2.5 font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap"
+                  class="px-4 py-2.5 font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap"
                   :class="col.right ? 'text-right' : 'text-left'">
                 {{ col.label }}
               </th>
@@ -176,7 +173,7 @@
           </thead>
           <tbody>
             <tr v-for="row in filtrados" :key="row.id"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
               <td class="px-4 py-2 whitespace-nowrap">{{ row.fecha_desde || '—' }}</td>
               <td class="px-4 py-2 whitespace-nowrap">{{ row.fecha_hasta || '—' }}</td>
               <td class="px-4 py-2">{{ row.proyecto || '—' }}</td>
@@ -190,13 +187,13 @@
               <td class="px-4 py-2 whitespace-nowrap uppercase text-xs">{{ row.version || '—' }}</td>
             </tr>
             <tr v-if="loading">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-gray-400">
-                <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-muted-foreground">
+                <LoaderCircleIcon class="size-6 animate-spin" />
               </td>
             </tr>
             <tr v-else-if="!filtrados.length">
-              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-gray-400">
-                <WalletIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="COLUMNAS.length" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <WalletIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 No hay costos con esos filtros.
               </td>
             </tr>
@@ -205,18 +202,18 @@
       </div>
 
       <!-- Paginación: la tabla completa pasa de 10.000 filas -->
-      <div v-if="total > filtros.size" class="flex items-center justify-between px-4 py-2.5 border-t"
-           style="border-color:#ECE7F2">
-        <span class="text-xs text-gray-400">
+      <div v-if="total > filtros.size" class="flex items-center justify-between px-4 py-2.5 border-t border-border"
+           >
+        <span class="text-xs text-muted-foreground">
           {{ ((filtros.page - 1) * filtros.size + 1).toLocaleString('es-CO') }}–{{
             Math.min(filtros.page * filtros.size, total).toLocaleString('es-CO') }} de {{ total.toLocaleString('es-CO') }}
         </span>
         <div class="flex gap-1">
           <Button text rounded size="small" :disabled="filtros.page === 1 || loading" @click="irA(filtros.page - 1)">
-            <template #icon><ChevronLeftIcon class="size-[1em]" /></template>
+            <template #icon><ChevronLeftIcon class="size-4" /></template>
           </Button>
           <Button text rounded size="small" :disabled="filtros.page >= ultimaPagina || loading" @click="irA(filtros.page + 1)">
-            <template #icon><ChevronRightIcon class="size-[1em]" /></template>
+            <template #icon><ChevronRightIcon class="size-4" /></template>
           </Button>
         </div>
       </div>

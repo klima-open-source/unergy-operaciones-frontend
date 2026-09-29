@@ -1,114 +1,114 @@
 <template>
-  <div class="gf-page">
-    <div class="mon-tab-bar">
-      <CloudDownloadIcon class="text-sm size-[1em]" style="color:var(--color-unergy-purple)" />
-      <span class="text-base font-bold text-gray-800 whitespace-nowrap mr-2">Descarga de XM</span>
+  <div>
+    <div>
+      <CloudDownloadIcon class="size-4 text-unergy-purple" />
+      <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Descarga de XM</span>
     </div>
 
     <div class="max-w-3xl mx-auto mt-4 space-y-4">
-      <div class="rounded-xl border p-3 flex items-start gap-2" style="background:#F1EAF9;border-color:#E0D3F5">
-        <InfoIcon class="text-sm flex-shrink-0 mt-0.5 size-[1em]" style="color:#6D28D9" />
-        <p class="text-xs" style="color:#4C1D95">
+      <div class="rounded-xl border p-3 flex items-start gap-2 bg-primary/10 border-primary/30">
+        <InfoIcon class="flex-shrink-0 mt-0.5 size-4 text-primary" />
+        <p class="text-xs text-primary">
           Esta pestaña necesita el <strong>agente local</strong> corriendo en tu computador (el FTP de XM
           solo acepta conexiones desde tu máquina, no desde la plataforma). Abre
           <code class="font-mono">iniciar_descarga_xm.bat</code> y déjalo abierto antes de descargar.
         </p>
       </div>
 
-      <div class="rounded-xl border bg-white p-5" style="border-color:#ECE7F2">
+      <div class="rounded-xl border bg-white p-5 border-border">
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Usuario FTP</label>
+            <label class="text-xs font-medium text-muted-foreground">Usuario FTP</label>
             <input v-model="form.ftpUsuario" type="text" class="xm-input" autocomplete="off" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Clave FTP</label>
+            <label class="text-xs font-medium text-muted-foreground">Clave FTP</label>
             <input v-model="form.ftpClave" type="password" class="xm-input" autocomplete="off" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2">
             <Checkbox v-model="recordarCredenciales" binary inputId="xm-recordar" />
-            <label for="xm-recordar" class="text-xs text-gray-500">
+            <label for="xm-recordar" class="text-xs text-muted-foreground">
               Recordar en esta sesión del navegador
             </label>
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Tipo de archivo</label>
+            <label class="text-xs font-medium text-muted-foreground">Tipo de archivo</label>
             <Select v-model="form.tipo" :options="TIPOS" placeholder="Selecciona…" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Extensión</label>
+            <label class="text-xs font-medium text-muted-foreground">Extensión</label>
             <Select v-model="form.extension" :options="EXTENSIONES" placeholder="Selecciona…" />
           </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Fecha inicio</label>
+            <label class="text-xs font-medium text-muted-foreground">Fecha inicio</label>
             <input v-model="form.fechaInicio" type="date" class="xm-input" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500">Fecha fin</label>
+            <label class="text-xs font-medium text-muted-foreground">Fecha fin</label>
             <input v-model="form.fechaFin" type="date" class="xm-input" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2" v-if="tipoEsFiltrable">
             <Checkbox v-model="form.enriquecer" binary inputId="xm-enriquecer" />
-            <label for="xm-enriquecer" class="text-xs text-gray-500">
+            <label for="xm-enriquecer" class="text-xs text-muted-foreground">
               {{ etiquetaFiltro }}
             </label>
           </div>
 
           <!-- Elegir agente (solo tipos que filtran por agente, ej. tgrl) -->
           <div class="col-span-2 flex items-center gap-2 pl-6" v-if="tipoFiltraPorAgente && form.enriquecer">
-            <label class="text-xs font-medium text-gray-500">Agente</label>
+            <label class="text-xs font-medium text-muted-foreground">Agente</label>
             <Select v-model="form.agenteFiltro" :options="AGENTES" class="w-40" />
-            <span class="text-xs text-gray-400">UNGG = generador · UNGC = comercializador</span>
+            <span class="text-xs text-muted-foreground">UNGG = generador · UNGC = comercializador</span>
           </div>
         </div>
 
         <div class="mt-4">
-          <Button label="Descargar y unificar" :loading="enProceso" :disabled="!formularioValido || enProceso" @click="onDescargar" style="background:var(--color-unergy-purple);border-color:var(--color-unergy-purple)">
-            <template #icon><DownloadIcon class="size-[1em]" /></template>
+          <Button label="Descargar y unificar" :loading="enProceso" :disabled="!formularioValido || enProceso" @click="onDescargar" class="bg-unergy-purple border-unergy-purple">
+            <template #icon><DownloadIcon class="size-4" /></template>
           </Button>
         </div>
       </div>
 
-      <div v-if="estado" class="rounded-xl border p-4" style="border-color:#ECE7F2">
-        <div v-if="estado.estado === 'descargando'" class="text-sm text-gray-600">
-          <LoaderCircleIcon class="mr-2 size-[1em] animate-spin" style="color:var(--color-unergy-purple)" />
+      <div v-if="estado" class="rounded-xl border p-4 border-border">
+        <div v-if="estado.estado === 'descargando'" class="text-sm text-muted-foreground">
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
           Descargando archivos… {{ estado.archivos_procesados }}/{{ estado.archivos_totales }}
         </div>
 
-        <div v-else-if="estado.estado === 'unificando'" class="text-sm text-gray-600">
-          <LoaderCircleIcon class="mr-2 size-[1em] animate-spin" style="color:var(--color-unergy-purple)" />
+        <div v-else-if="estado.estado === 'unificando'" class="text-sm text-muted-foreground">
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
           Unificando archivos…
         </div>
 
-        <div v-else-if="estado.estado === 'exportando'" class="text-sm text-gray-600">
-          <LoaderCircleIcon class="mr-2 size-[1em] animate-spin" style="color:var(--color-unergy-purple)" />
+        <div v-else-if="estado.estado === 'exportando'" class="text-sm text-muted-foreground">
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
           Generando el archivo final… con rangos grandes puede tardar uno o dos minutos.
         </div>
 
         <div v-else-if="estado.estado === 'listo'" class="space-y-2">
-          <div class="text-sm font-semibold" style="color:var(--color-unergy-deep)">Listo</div>
-          <div v-if="estado.archivos_faltantes?.length" class="text-xs text-amber-600">
+          <div class="text-sm font-semibold text-unergy-deep">Listo</div>
+          <div v-if="estado.archivos_faltantes?.length" class="text-xs text-warning">
             {{ estado.archivos_faltantes.length }} archivo(s) no encontrados en el FTP para el rango.
           </div>
-          <div v-if="estado.codigos_sin_match?.length" class="text-xs text-amber-600">
+          <div v-if="estado.codigos_sin_match?.length" class="text-xs text-warning">
             Códigos sin match en fronteras: {{ estado.codigos_sin_match.join(', ') }}
           </div>
           <div class="flex gap-2">
             <Button label="Descargar Excel" size="small" @click="onDescargarArchivo('xlsx')">
-              <template #icon><FileSpreadsheetIcon class="size-[1em]" /></template>
+              <template #icon><FileSpreadsheetIcon class="size-4" /></template>
             </Button>
             <Button label="Descargar TXT" size="small" outlined @click="onDescargarArchivo('txt')">
-              <template #icon><FileIcon class="size-[1em]" /></template>
+              <template #icon><FileIcon class="size-4" /></template>
             </Button>
           </div>
         </div>
 
-        <div v-else-if="estado.estado === 'error'" class="text-sm text-red-600">
-          <CircleAlertIcon class="mr-2 size-[1em]" />
+        <div v-else-if="estado.estado === 'error'" class="text-sm text-destructive">
+          <CircleAlertIcon class="mr-2 size-4" />
           {{ estado.error_message || 'Ocurrió un error al procesar la descarga.' }}
         </div>
       </div>

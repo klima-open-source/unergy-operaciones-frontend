@@ -5,13 +5,13 @@
       <template #actions>
         <Button label="Exportar" size="small" outlined
                 :disabled="!filtrados.length" @click="exportar">
-          <template #icon><DownloadIcon class="size-[1em]" /></template>
+          <template #icon><DownloadIcon class="size-4" /></template>
         </Button>
       </template>
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="field-label">Proyecto</label>
         <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
@@ -35,68 +35,68 @@
       <div>
         <label class="field-label">Buscar</label>
         <IconField>
-          <InputIcon><SearchIcon class="size-[1em]" /></InputIcon>
+          <InputIcon><SearchIcon class="size-4" /></InputIcon>
           <InputText v-model="q" placeholder="Proyecto…" class="w-48" />
         </IconField>
       </div>
       <div class="flex-1" />
       <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-[1em]" /></template>
+        <template #icon><RefreshCwIcon class="size-4" /></template>
       </Button>
-      <div class="text-xs text-gray-400 self-center">
+      <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} registro{{ filtrados.length === 1 ? '' : 's' }}
-        <span v-if="filtrados.length" class="block font-mono" style="color:#915BD8">
+        <span v-if="filtrados.length" class="block font-mono text-primary">
           {{ fmtNum(totalPeriodo) }} kWh
         </span>
       </div>
     </div>
 
-    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2"
-         style="background:#FEF2F2; border:1px solid #FECACA; color:#991B1B">
-      <CircleXIcon class="size-[1em]" />{{ error }}
+    <div v-if="error" class="rounded-lg px-3 py-2 text-xs flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive"
+         >
+      <CircleXIcon class="size-4" />{{ error }}
     </div>
 
     <!-- Tabla: 24 horas + total. Las tres primeras columnas quedan fijas para no
          perder de vista el proyecto al desplazarse por las horas. -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border" style="border-color:#ECE7F2">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="col-fija col-proyecto px-4 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Proyecto</th>
-              <th class="col-fija col-fecha px-3 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide whitespace-nowrap">Fecha</th>
-              <th class="col-fija col-version px-3 py-2.5 text-left font-medium text-gray-500 text-xs uppercase tracking-wide">Versión</th>
+            <tr class="bg-muted/50 border-b border-border">
+              <th class="col-fija col-proyecto px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Proyecto</th>
+              <th class="col-fija col-fecha px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Fecha</th>
+              <th class="col-fija col-version px-3 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide">Versión</th>
               <th v-for="h in HORAS" :key="h"
-                  class="px-2 py-2.5 text-right font-medium text-gray-500 text-[10px] uppercase whitespace-nowrap">
+                  class="px-2 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase whitespace-nowrap">
                 {{ h }}
               </th>
-              <th class="px-3 py-2.5 text-right font-semibold text-[11px] uppercase whitespace-nowrap"
-                  style="color:var(--color-unergy-deep); border-left:1px solid #EEE;">Total diario</th>
+              <th class="px-3 py-2.5 text-right font-semibold text-xs uppercase whitespace-nowrap text-unergy-deep border-l border-border"
+                  >Total diario</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(row, i) in filtrados" :key="i"
-                class="border-t border-gray-100 hover:bg-gray-50/70 transition-colors duration-100 row-hover">
+                class="border-t border-border hover:bg-muted/50 transition-colors duration-100 row-hover">
               <td class="col-fija col-proyecto px-4 py-2">{{ row.proyecto || '—' }}</td>
-              <td class="col-fija col-fecha px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{{ row.fecha || '—' }}</td>
+              <td class="col-fija col-fecha px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{{ row.fecha || '—' }}</td>
               <td class="col-fija col-version px-3 py-2 text-xs font-mono uppercase">{{ row.version || '—' }}</td>
               <td v-for="(v, j) in row.horas" :key="j"
-                  class="px-2 py-2 text-right font-mono text-[11px] text-gray-600">
+                  class="px-2 py-2 text-right font-mono text-xs text-muted-foreground">
                 {{ fmtNum(v) }}
               </td>
-              <td class="px-3 py-2 text-right font-mono text-xs font-semibold"
-                  style="color:var(--color-unergy-purple); border-left:1px solid #F1F1F1;">
+              <td class="px-3 py-2 text-right font-mono text-xs font-semibold text-unergy-purple border-l border-border"
+                  >
                 {{ fmtNum(row.total_diario) }}
               </td>
             </tr>
             <tr v-if="loading">
-              <td :colspan="HORAS.length + 4" class="px-4 py-12 text-center text-gray-400">
-                <LoaderCircleIcon class="text-2xl size-[1em] animate-spin" />
+              <td :colspan="HORAS.length + 4" class="px-4 py-12 text-center text-muted-foreground">
+                <LoaderCircleIcon class="size-6 animate-spin" />
               </td>
             </tr>
             <tr v-else-if="!filtrados.length">
-              <td :colspan="HORAS.length + 4" class="px-4 py-12 text-center text-sm text-gray-400">
-                <ZapIcon class="text-2xl mb-2 block text-gray-300 size-[1em]" />
+              <td :colspan="HORAS.length + 4" class="px-4 py-12 text-center text-sm text-muted-foreground">
+                <ZapIcon class="mb-2 block text-muted-foreground/50 size-6" />
                 No hay consumo para este período.<br>
                 <span class="text-xs">
                   Estos datos los trae «Descargar FTP» desde Despachos liquidados.
