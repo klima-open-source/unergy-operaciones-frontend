@@ -23,6 +23,9 @@
   "lint-staged": {
     "*.{ts,vue,js,mjs,cjs,json,css,md}": [
       "prettier --write"
+    ],
+    "app/**/*.vue": [
+      "eslint -c eslint.design.config.mjs --no-warn-ignored"
     ]
   },
   "dependencies": {
