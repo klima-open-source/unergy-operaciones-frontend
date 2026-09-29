@@ -249,7 +249,7 @@ async function guardar() {
               {{ r.planta_nombre || 'sin planta' }}
               <span
                 v-if="inscritas.length > 1 && r.id === baseContrato.id"
-                class="text-[10px] font-normal text-primary"
+                class="text-xs font-normal text-primary"
                 >— la que se modifica</span
               >
             </td>
@@ -320,9 +320,7 @@ async function guardar() {
 
     <!-- 3 · Lo único modificable -->
     <div class="space-y-4 rounded-lg border px-3 py-3">
-      <p class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-        Qué cambia
-      </p>
+      <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Qué cambia</p>
 
       <div class="grid grid-cols-3 gap-4">
         <div class="flex flex-col gap-1.5">
@@ -384,7 +382,7 @@ async function guardar() {
       v-if="resumen"
       class="flex items-start gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs text-foreground"
     >
-      <ArrowRightLeftIcon class="mt-0.5 size-[1em] text-primary" />
+      <ArrowRightLeftIcon class="mt-0.5 size-3 text-primary" />
       <span>{{ resumen }}</span>
     </div>
 

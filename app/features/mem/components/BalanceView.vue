@@ -54,12 +54,22 @@ const kpis = computed<Kpi[]>(() => {
     {
       label: 'Precio hoy',
       value: `$${fmt(latest?.precio_promedio)}`,
-      color: '#2C2039',
+      color: 'text-foreground',
       sub: 'COP/kWh',
     },
-    { label: `Promedio ${days.value}d`, value: `$${fmt(avg)}`, color: '#915BD8', sub: 'COP/kWh' },
-    { label: 'Máximo período', value: `$${fmt(maxPrice)}`, color: '#D64455', sub: 'COP/kWh' },
-    { label: 'Demanda prom.', value: avgDemand.toFixed(1), color: '#10B981', sub: 'GWh/día' },
+    {
+      label: `Promedio ${days.value}d`,
+      value: `$${fmt(avg)}`,
+      color: 'text-primary',
+      sub: 'COP/kWh',
+    },
+    {
+      label: 'Máximo período',
+      value: `$${fmt(maxPrice)}`,
+      color: 'text-destructive',
+      sub: 'COP/kWh',
+    },
+    { label: 'Demanda prom.', value: avgDemand.toFixed(1), color: 'text-success', sub: 'GWh/día' },
   ]
 })
 
@@ -125,7 +135,7 @@ onMounted(fetchData)
           <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
             {{ kpi.label }}
           </p>
-          <p class="mt-1 text-2xl font-bold" :style="{ color: kpi.color }">{{ kpi.value }}</p>
+          <p class="mt-1 text-2xl font-bold" :class="kpi.color">{{ kpi.value }}</p>
           <p class="mt-0.5 text-xs text-muted-foreground">{{ kpi.sub }}</p>
         </div>
       </div>

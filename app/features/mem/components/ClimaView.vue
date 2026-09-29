@@ -86,24 +86,29 @@ const ensoKpis = computed<Kpi[]>(() => {
     {
       label: 'ONI Actual',
       value: oni.toFixed(2),
-      color: oni > 0.5 ? '#D64455' : oni < -0.5 ? '#3B82F6' : '#6b5a8a',
+      color: oni > 0.5 ? 'text-destructive' : oni < -0.5 ? 'text-chart-3' : 'text-muted-foreground',
       sub: `${latest.year}-${String(latest.month).padStart(2, '0')}`,
     },
     {
       label: 'Fase ENSO',
       value: phase,
-      color: phase === 'El Niño' ? '#D64455' : phase === 'La Niña' ? '#3B82F6' : '#6b5a8a',
+      color:
+        phase === 'El Niño'
+          ? 'text-destructive'
+          : phase === 'La Niña'
+            ? 'text-chart-3'
+            : 'text-muted-foreground',
     },
     {
       label: 'Meses El Niño',
       value: ninoMonths,
-      color: '#D64455',
+      color: 'text-destructive',
       sub: `de ${oniData.value.length} registros`,
     },
     {
       label: 'Meses La Niña',
       value: ninaMonths,
-      color: '#3B82F6',
+      color: 'text-chart-3',
       sub: `de ${oniData.value.length} registros`,
     },
   ]
@@ -211,19 +216,19 @@ const phaseStats = computed<PhaseStat[]>(() => {
   return [
     {
       name: 'El Niño',
-      color: '#D64455',
+      color: 'bg-destructive',
       avgPrice: avg(groups['El Niño']).toFixed(1),
       count: groups['El Niño'].length,
     },
     {
       name: 'Neutral',
-      color: '#6b5a8a',
+      color: 'bg-muted-foreground',
       avgPrice: avg(groups.Neutral).toFixed(1),
       count: groups.Neutral.length,
     },
     {
       name: 'La Niña',
-      color: '#3B82F6',
+      color: 'bg-chart-3',
       avgPrice: avg(groups['La Niña']).toFixed(1),
       count: groups['La Niña'].length,
     },
@@ -338,7 +343,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
       v-if="!oniData.length && !priceData.length"
       class="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/5 p-4"
     >
-      <InfoIcon class="size-[1em] text-primary" />
+      <InfoIcon class="size-4 text-primary" />
       <p class="text-sm text-muted-foreground">
         Datos climáticos no disponibles — EVO API no configurada. Se mostrarán cuando el servicio
         esté activo.
@@ -351,7 +356,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
         <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {{ kpi.label }}
         </p>
-        <p class="mt-1 text-2xl font-bold" :style="{ color: kpi.color }">{{ kpi.value }}</p>
+        <p class="mt-1 text-2xl font-bold" :class="kpi.color">{{ kpi.value }}</p>
         <p v-if="kpi.sub" class="mt-0.5 text-xs text-primary">{{ kpi.sub }}</p>
       </div>
     </div>
@@ -367,45 +372,45 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
       <GTabsContent value="oni" class="rounded-xl border bg-card p-4">
         <h3 class="mb-4 text-sm font-semibold text-foreground">Índice ONI (Oceanic Niño Index)</h3>
         <div class="overflow-x-auto">
-          <svg viewBox="0 0 900 250" class="w-full" style="min-width: 600px">
+          <svg viewBox="0 0 900 250" class="w-full min-w-150">
             <rect
+              class="fill-destructive/5"
               x="40"
               y="10"
               :width="840"
               :height="oniChartMid - 10"
-              fill="rgba(214,68,85,0.05)"
             />
             <rect
+              class="fill-chart-3/5"
               x="40"
               :y="oniChartMid"
               :width="840"
               :height="230 - oniChartMid"
-              fill="rgba(59,130,246,0.05)"
             />
             <line
+              class="stroke-muted-foreground"
               x1="40"
               :y1="oniChartMid"
               x2="880"
               :y2="oniChartMid"
-              stroke="#9CA3AF"
               stroke-width="0.5"
               stroke-dasharray="4"
             />
             <line
+              class="stroke-destructive"
               x1="40"
               :y1="oniToY(0.5)"
               x2="880"
               :y2="oniToY(0.5)"
-              stroke="#D64455"
               stroke-width="0.5"
               stroke-dasharray="2"
             />
             <line
+              class="stroke-chart-3"
               x1="40"
               :y1="oniToY(-0.5)"
               x2="880"
               :y2="oniToY(-0.5)"
-              stroke="#3B82F6"
               stroke-width="0.5"
               stroke-dasharray="2"
             />
@@ -416,36 +421,72 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
               stroke="var(--color-primary)"
               stroke-width="1.5"
             />
-            <text x="35" :y="oniToY(2) + 4" fill="#D64455" font-size="9" text-anchor="end">
+            <text
+              class="fill-destructive"
+              x="35"
+              :y="oniToY(2) + 4"
+              font-size="9"
+              text-anchor="end"
+            >
               2.0
             </text>
-            <text x="35" :y="oniToY(1) + 4" fill="#D64455" font-size="9" text-anchor="end">
+            <text
+              class="fill-destructive"
+              x="35"
+              :y="oniToY(1) + 4"
+              font-size="9"
+              text-anchor="end"
+            >
               1.0
             </text>
-            <text x="35" :y="oniToY(0.5) + 4" fill="#9CA3AF" font-size="8" text-anchor="end">
+            <text
+              class="fill-muted-foreground"
+              x="35"
+              :y="oniToY(0.5) + 4"
+              font-size="8"
+              text-anchor="end"
+            >
               0.5
             </text>
-            <text x="35" :y="oniChartMid + 4" fill="#6b5a8a" font-size="9" text-anchor="end">
+            <text
+              class="fill-muted-foreground"
+              x="35"
+              :y="oniChartMid + 4"
+              font-size="9"
+              text-anchor="end"
+            >
               0
             </text>
-            <text x="35" :y="oniToY(-0.5) + 4" fill="#9CA3AF" font-size="8" text-anchor="end">
+            <text
+              class="fill-muted-foreground"
+              x="35"
+              :y="oniToY(-0.5) + 4"
+              font-size="8"
+              text-anchor="end"
+            >
               -0.5
             </text>
-            <text x="35" :y="oniToY(-1) + 4" fill="#3B82F6" font-size="9" text-anchor="end">
+            <text class="fill-chart-3" x="35" :y="oniToY(-1) + 4" font-size="9" text-anchor="end">
               -1.0
             </text>
-            <text x="35" :y="oniToY(-2) + 4" fill="#3B82F6" font-size="9" text-anchor="end">
+            <text class="fill-chart-3" x="35" :y="oniToY(-2) + 4" font-size="9" text-anchor="end">
               -2.0
             </text>
             <template v-for="(label, idx) in oniXLabels" :key="idx">
-              <text :x="label.x" y="248" fill="#6b5a8a" font-size="9" text-anchor="middle">
+              <text
+                class="fill-muted-foreground"
+                :x="label.x"
+                y="248"
+                font-size="9"
+                text-anchor="middle"
+              >
                 {{ label.year }}
               </text>
             </template>
-            <text x="880" :y="oniToY(1.5)" fill="#D64455" font-size="9" text-anchor="end">
+            <text class="fill-destructive" x="880" :y="oniToY(1.5)" font-size="9" text-anchor="end">
               El Niño
             </text>
-            <text x="880" :y="oniToY(-1.5)" fill="#3B82F6" font-size="9" text-anchor="end">
+            <text class="fill-chart-3" x="880" :y="oniToY(-1.5)" font-size="9" text-anchor="end">
               La Niña
             </text>
           </svg>
@@ -458,19 +499,19 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
             Precio Energía vs Fase ENSO (26 años)
           </h3>
           <div class="overflow-x-auto">
-            <svg viewBox="0 0 900 280" class="w-full" style="min-width: 600px">
+            <svg viewBox="0 0 900 280" class="w-full min-w-150">
               <template v-for="(band, idx) in phaseBands" :key="idx">
                 <rect
                   :x="band.x"
                   y="10"
                   :width="band.w"
                   :height="230"
-                  :fill="
+                  :class="
                     band.phase === 'El Niño'
-                      ? 'rgba(214,68,85,0.08)'
+                      ? 'fill-destructive/8'
                       : band.phase === 'La Niña'
-                        ? 'rgba(59,130,246,0.08)'
-                        : 'transparent'
+                        ? 'fill-chart-3/8'
+                        : 'fill-transparent'
                   "
                 />
               </template>
@@ -482,20 +523,32 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
                 stroke-width="1.5"
               />
               <template v-for="tick in priceTicks" :key="tick">
-                <text x="35" :y="priceToY(tick) + 4" fill="#6b5a8a" font-size="9" text-anchor="end">
+                <text
+                  class="fill-muted-foreground"
+                  x="35"
+                  :y="priceToY(tick) + 4"
+                  font-size="9"
+                  text-anchor="end"
+                >
                   ${{ tick }}
                 </text>
                 <line
+                  class="stroke-border"
                   x1="40"
                   :y1="priceToY(tick)"
                   x2="880"
                   :y2="priceToY(tick)"
-                  stroke="#e8e0f0"
                   stroke-width="0.5"
                 />
               </template>
               <template v-for="(label, idx) in priceXLabels" :key="idx">
-                <text :x="label.x" y="258" fill="#6b5a8a" font-size="9" text-anchor="middle">
+                <text
+                  class="fill-muted-foreground"
+                  :x="label.x"
+                  y="258"
+                  font-size="9"
+                  text-anchor="middle"
+                >
                   {{ label.year }}
                 </text>
               </template>
@@ -506,7 +559,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div v-for="phase in phaseStats" :key="phase.name" class="rounded-xl border bg-card p-4">
             <div class="mb-2 flex items-center gap-2">
-              <div class="size-3 rounded-full" :style="{ backgroundColor: phase.color }" />
+              <div class="size-3 rounded-full" :class="phase.color" />
               <h4 class="text-sm font-semibold text-foreground">{{ phase.name }}</h4>
             </div>
             <p class="text-3xl font-bold text-foreground">${{ phase.avgPrice }}</p>
@@ -527,12 +580,11 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
         </div>
 
         <div class="overflow-x-auto">
-          <svg viewBox="0 0 900 250" class="w-full" style="min-width: 600px">
+          <svg viewBox="0 0 900 250" class="w-full min-w-150">
             <polyline
               v-if="precipClimatology.length"
+              class="fill-chart-3/8 stroke-chart-3"
               :points="precipClimatologyStr"
-              fill="rgba(59,130,246,0.08)"
-              stroke="#3B82F6"
               stroke-width="0.5"
               stroke-dasharray="3"
             />
@@ -542,13 +594,19 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
                 :y="bar.y"
                 :width="bar.w"
                 :height="bar.h"
-                :fill="bar.anomaly > 0 ? '#3B82F6' : '#F0C040'"
+                :class="bar.anomaly > 0 ? 'fill-chart-3' : 'fill-warning'"
                 :opacity="0.7"
                 rx="1"
               />
             </template>
             <template v-for="(label, idx) in precipXLabels" :key="idx">
-              <text :x="label.x" y="248" fill="#6b5a8a" font-size="9" text-anchor="middle">
+              <text
+                class="fill-muted-foreground"
+                :x="label.x"
+                y="248"
+                font-size="9"
+                text-anchor="middle"
+              >
                 {{ label.year }}
               </text>
             </template>
@@ -561,7 +619,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
             <p class="text-lg font-bold text-foreground">{{ precipStats.lastMonth }} mm</p>
             <p
               class="text-xs"
-              :class="Number(precipStats.lastAnomaly) > 0 ? 'text-primary' : 'text-amber-600'"
+              :class="Number(precipStats.lastAnomaly) > 0 ? 'text-primary' : 'text-warning'"
             >
               {{ Number(precipStats.lastAnomaly) > 0 ? '+' : '' }}{{ precipStats.lastAnomaly }}%
             </p>
@@ -590,7 +648,7 @@ const oniRows = computed(() => oniData.value.slice(0, 120))
                 (asOni(row).oni_value ?? 0) > 0.5
                   ? 'text-destructive'
                   : (asOni(row).oni_value ?? 0) < -0.5
-                    ? 'text-blue-600'
+                    ? 'text-chart-3'
                     : 'text-muted-foreground'
               "
             >

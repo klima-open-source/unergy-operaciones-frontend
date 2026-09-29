@@ -281,10 +281,10 @@ onMounted(loadData)
               </div>
             </div>
             <div class="rounded-xl border bg-card p-4">
-              <div class="mb-1 text-xs font-semibold tracking-wider text-amber-600 uppercase">
+              <div class="mb-1 text-xs font-semibold tracking-wider text-warning uppercase">
                 Excedentes en Bolsa
               </div>
-              <div class="font-mono text-xl font-bold text-amber-700">
+              <div class="font-mono text-xl font-bold text-warning">
                 {{ fmtCop(data.totales.excedentes_bolsa_cop) }}
               </div>
               <div class="mt-1 text-xs text-muted-foreground">
@@ -337,49 +337,49 @@ onMounted(loadData)
               >
                 <g v-for="gl in yGridLines" :key="gl.val">
                   <line
+                    class="stroke-border"
                     :x1="PAD_L"
                     :y1="gl.y"
                     :x2="SVG_W - PAD_R"
                     :y2="gl.y"
-                    stroke="rgba(44,32,57,0.07)"
                     stroke-width="1"
                   />
                   <text
+                    class="fill-muted-foreground"
                     :x="PAD_L - 7"
                     :y="gl.y + 4"
                     text-anchor="end"
                     font-size="10"
-                    fill="#7a6e8a"
                   >
                     {{ fmtShort(gl.val) }}
                   </text>
                 </g>
 
                 <line
+                  class="stroke-muted-foreground/50"
                   :x1="PAD_L"
                   :y1="zeroY"
                   :x2="SVG_W - PAD_R"
                   :y2="zeroY"
-                  stroke="rgba(44,32,57,0.25)"
                   stroke-width="1"
                 />
 
                 <g v-for="(mes, i) in chartMeses" :key="i">
                   <rect
                     v-if="hovered === i"
+                    class="fill-primary/7"
                     :x="slotX(i)"
                     :y="PAD_T"
                     :width="slotW"
                     :height="PLOT_H"
-                    fill="rgba(145,91,216,0.07)"
                   />
                   <rect
                     v-if="expandedMonth === mes.month"
+                    class="fill-warning/8"
                     :x="slotX(i)"
                     :y="PAD_T"
                     :width="slotW"
                     :height="PLOT_H"
-                    fill="rgba(240,192,64,0.08)"
                   />
 
                   <rect
@@ -388,7 +388,7 @@ onMounted(loadData)
                     :y="toY(mes.compras_cop)"
                     :width="barHalfW"
                     :height="zeroY - toY(mes.compras_cop)"
-                    fill="#D64455"
+                    class="fill-destructive"
                     opacity="0.85"
                   />
                   <rect
@@ -397,7 +397,7 @@ onMounted(loadData)
                     :y="zeroY"
                     :width="barHalfW"
                     :height="toY(-mes.excedentes_cop) - zeroY"
-                    fill="#F0C040"
+                    class="fill-warning"
                     opacity="0.85"
                   />
 
@@ -406,7 +406,7 @@ onMounted(loadData)
                     :y="SVG_H - PAD_B + 17"
                     text-anchor="middle"
                     font-size="11"
-                    :fill="expandedMonth === mes.month ? '#F0C040' : '#7a6e8a'"
+                    :class="expandedMonth === mes.month ? 'fill-warning' : 'fill-muted-foreground'"
                     :font-weight="expandedMonth === mes.month ? '700' : '400'"
                   >
                     {{ MESES_CORTOS[mes.month - 1] }}
@@ -423,34 +423,29 @@ onMounted(loadData)
                 </g>
 
                 <line
+                  class="stroke-muted-foreground/40"
                   :x1="PAD_L"
                   :y1="PAD_T"
                   :x2="PAD_L"
                   :y2="PAD_T + PLOT_H"
-                  stroke="rgba(44,32,57,0.18)"
                   stroke-width="1"
                 />
                 <line
+                  class="stroke-muted-foreground/40"
                   :x1="PAD_L"
                   :y1="PAD_T + PLOT_H"
                   :x2="SVG_W - PAD_R"
                   :y2="PAD_T + PLOT_H"
-                  stroke="rgba(44,32,57,0.18)"
                   stroke-width="1"
                 />
               </svg>
 
               <div
                 v-if="hoveredMes"
-                class="pointer-events-none absolute z-10 min-w-[220px] rounded-xl px-3.5 py-2.5 text-sm shadow-lg"
-                style="background: var(--color-unergy-deep); color: var(--color-unergy-avena)"
-                :style="{
-                  left: `${tooltipX}px`,
-                  top: `${tooltipY}px`,
-                  transform: 'translateY(-100%)',
-                }"
+                class="pointer-events-none absolute top-(--t) left-(--l) z-10 min-w-55 -translate-y-full rounded-xl bg-unergy-deep px-3.5 py-2.5 text-sm text-unergy-avena shadow-lg"
+                :style="{ '--l': `${tooltipX}px`, '--t': `${tooltipY}px` }"
               >
-                <div class="mb-2 font-bold" style="color: #f0c040">
+                <div class="mb-2 font-bold text-warning">
                   {{ MESES[hoveredMes.month - 1] }} {{ selectedYear }}
                 </div>
                 <div class="space-y-1">
@@ -461,14 +456,14 @@ onMounted(loadData)
                     }}</span>
                   </div>
                   <div class="flex justify-between gap-6">
-                    <span style="color: #d64455">Compras</span>
-                    <span class="font-mono font-semibold" style="color: #d64455">{{
+                    <span class="text-destructive">Compras</span>
+                    <span class="font-mono font-semibold text-destructive">{{
                       fmtCop(hoveredMes.compras_cop)
                     }}</span>
                   </div>
                   <div class="flex justify-between gap-6">
-                    <span style="color: #f0c040">Excedentes</span>
-                    <span class="font-mono font-semibold" style="color: #9a6700">{{
+                    <span class="text-warning">Excedentes</span>
+                    <span class="font-mono font-semibold text-warning">{{
                       fmtCop(hoveredMes.excedentes_cop)
                     }}</span>
                   </div>
@@ -476,12 +471,11 @@ onMounted(loadData)
                     <span class="text-white/65">Neto</span>
                     <span
                       class="font-mono font-bold"
-                      :style="{
-                        color:
-                          hoveredMes.compras_cop - hoveredMes.excedentes_cop > 0
-                            ? '#D64455'
-                            : '#2e7d32',
-                      }"
+                      :class="
+                        hoveredMes.compras_cop - hoveredMes.excedentes_cop > 0
+                          ? 'text-destructive'
+                          : 'text-success'
+                      "
                     >
                       {{ fmtCop(hoveredMes.compras_cop - hoveredMes.excedentes_cop) }}
                     </span>
@@ -495,11 +489,11 @@ onMounted(loadData)
 
             <div class="mt-3 flex flex-wrap gap-5 pl-1">
               <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <div class="size-4 rounded-sm" style="background: rgba(214, 68, 85, 0.85)" />
+                <div class="size-4 rounded-sm bg-destructive/85" />
                 Compras en bolsa (costo)
               </div>
               <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <div class="size-4 rounded-sm" style="background: rgba(240, 192, 64, 0.85)" />
+                <div class="size-4 rounded-sm bg-warning/85" />
                 Excedentes en bolsa (ingreso)
               </div>
             </div>
@@ -556,7 +550,7 @@ onMounted(loadData)
                   <template v-else-if="column.key === 'excedentes_mwh'">
                     <span
                       v-if="asMes(row).excedentes_mwh > 0"
-                      class="font-mono text-sm text-amber-700"
+                      class="font-mono text-sm text-warning"
                       >{{ fmtMwh(asMes(row).excedentes_mwh) }}</span
                     >
                     <span v-else class="text-xs text-muted-foreground/60">—</span>
@@ -564,7 +558,7 @@ onMounted(loadData)
                   <template v-else-if="column.key === 'excedentes_cop'">
                     <span
                       v-if="asMes(row).excedentes_cop > 0"
-                      class="font-mono text-sm font-semibold text-amber-700"
+                      class="font-mono text-sm font-semibold text-warning"
                       >{{ fmtCop(asMes(row).excedentes_cop) }}</span
                     >
                     <span v-else class="text-xs text-muted-foreground/60">—</span>
@@ -606,7 +600,7 @@ onMounted(loadData)
               <div class="px-5 py-4">
                 <table class="w-full text-sm">
                   <thead>
-                    <tr class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    <tr class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                       <th class="pb-2 text-left">Contrato</th>
                       <th class="pb-2 text-right">Mín MWh</th>
                       <th class="pb-2 text-right">Máx MWh</th>
@@ -644,7 +638,7 @@ onMounted(loadData)
                       </td>
                       <td class="px-2 py-2 text-right">
                         <div v-if="c.excedentes_cop > 0">
-                          <span class="font-mono font-semibold text-amber-700">{{
+                          <span class="font-mono font-semibold text-warning">{{
                             fmtCop(c.excedentes_cop)
                           }}</span>
                           <div class="font-mono text-xs text-muted-foreground">
