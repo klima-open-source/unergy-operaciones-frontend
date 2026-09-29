@@ -1028,7 +1028,7 @@ onBeforeUnmount(() => {
   <div class="min-h-full bg-muted/20">
     <!-- Toolbar (no se imprime) -->
     <div
-      class="liqpdf-toolbar sticky top-0 z-20 mb-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border bg-card px-3.5 py-2.5 shadow-sm"
+      class="sticky top-0 z-20 mb-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border bg-card px-3.5 py-2.5 shadow-sm print:hidden"
     >
       <div class="flex items-center gap-2">
         <Button variant="ghost" size="sm" @click="volver">
@@ -1128,10 +1128,5 @@ onBeforeUnmount(() => {
 .liq-hoja {
   width: 210mm;
   padding: 18mm 14mm;
-}
-@media print {
-  .liqpdf-toolbar {
-    display: none !important;
-  }
 }
 </style>
