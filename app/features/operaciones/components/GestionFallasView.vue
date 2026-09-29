@@ -48,16 +48,14 @@
           v-model="filtroProyectoStr"
           :options="proyectoOpciones"
           placeholder="Proyecto"
-          class="w-40"
+          class="min-w-40 flex-1 sm:max-w-56"
         />
 
         <Select
           :model-value="filtroPrioridad || undefined"
           @update:model-value="(v) => (filtroPrioridad = (v as string) ?? '')"
         >
-          <SelectTrigger size="sm" class="w-32"
-            ><SelectValue placeholder="Prioridad"
-          /></SelectTrigger>
+          <SelectTrigger size="sm"><SelectValue placeholder="Prioridad" /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="p in catalogos.prioridades" :key="p.codigo" :value="p.codigo!">{{
               p.etiqueta
@@ -69,7 +67,7 @@
           :model-value="filtroEstado || undefined"
           @update:model-value="(v) => (filtroEstado = (v as string) ?? '')"
         >
-          <SelectTrigger size="sm" class="w-32"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectTrigger size="sm"><SelectValue placeholder="Estado" /></SelectTrigger>
           <SelectContent>
             <SelectItem v-for="e in catalogos.estados" :key="e.codigo" :value="e.codigo!">{{
               e.etiqueta
@@ -77,8 +75,18 @@
           </SelectContent>
         </Select>
 
-        <DatePicker v-model="filtroFechaDesde" placeholder="Desde" clearable class="w-32" />
-        <DatePicker v-model="filtroFechaHasta" placeholder="Hasta" clearable class="w-32" />
+        <DatePicker
+          v-model="filtroFechaDesde"
+          placeholder="Desde"
+          clearable
+          class="min-w-36 flex-1 sm:max-w-44"
+        />
+        <DatePicker
+          v-model="filtroFechaHasta"
+          placeholder="Hasta"
+          clearable
+          class="min-w-36 flex-1 sm:max-w-44"
+        />
 
         <GTooltip v-if="hayFiltros">
           <GTooltipTrigger as-child>
@@ -418,10 +426,8 @@
                 </span>
               </header>
               <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2">
-                  <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
-                    >Estado</label
-                  >
+                <div class="grid grid-cols-3 items-center gap-2">
+                  <label class="text-xs font-semibold text-muted-foreground">Estado</label>
                   <Select
                     :model-value="quickEdit.estado_id ? String(quickEdit.estado_id) : undefined"
                     @update:model-value="
@@ -431,7 +437,9 @@
                       }
                     "
                   >
-                    <SelectTrigger size="sm" class="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger size="sm" class="col-span-2 w-full"
+                      ><SelectValue
+                    /></SelectTrigger>
                     <SelectContent>
                       <SelectItem
                         v-for="e in catalogos.estados"
@@ -442,10 +450,8 @@
                     </SelectContent>
                   </Select>
                 </div>
-                <div class="flex items-center gap-2">
-                  <label class="w-16 shrink-0 text-xs font-semibold text-muted-foreground"
-                    >Prioridad</label
-                  >
+                <div class="grid grid-cols-3 items-center gap-2">
+                  <label class="text-xs font-semibold text-muted-foreground">Prioridad</label>
                   <Select
                     :model-value="
                       quickEdit.prioridad_id ? String(quickEdit.prioridad_id) : undefined
@@ -457,7 +463,9 @@
                       }
                     "
                   >
-                    <SelectTrigger size="sm" class="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger size="sm" class="col-span-2 w-full"
+                      ><SelectValue
+                    /></SelectTrigger>
                     <SelectContent>
                       <SelectItem
                         v-for="p in catalogos.prioridades"
@@ -987,7 +995,7 @@ function navegar(delta: number) {
 
 // ── Tabla (paginación/orden en cliente) ──────────────────────────────────
 const columns: DataTableColumn[] = [
-  { key: 'stripe', header: '', class: 'w-1 p-0' },
+  { key: 'stripe', header: '', class: 'p-0' },
   { key: 'codigo', header: 'Código', sortable: true },
   { key: 'falla', header: 'Falla' },
   { key: 'proyecto', header: 'Proyecto' },

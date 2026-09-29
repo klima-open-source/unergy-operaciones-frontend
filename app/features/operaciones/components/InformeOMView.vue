@@ -510,7 +510,7 @@
                   <GTableHeader>
                     <GTableRow>
                       <GTableHead>Inversor</GTableHead>
-                      <GTableHead class="w-24">Limitado</GTableHead>
+                      <GTableHead>Limitado</GTableHead>
                       <GTableHead>Motivo</GTableHead>
                     </GTableRow>
                   </GTableHeader>
@@ -607,7 +607,7 @@
                     :model-value="reconectadorTieneSelect"
                     @update:model-value="(v) => setReconectadorTiene(v)"
                   >
-                    <SelectTrigger size="sm" class="w-28"><SelectValue /></SelectTrigger>
+                    <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="null">—</SelectItem>
                       <SelectItem value="si">Sí</SelectItem>
@@ -721,10 +721,10 @@
                   <GTableRow>
                     <GTableHead>Descripción</GTableHead>
                     <GTableHead>Marca</GTableHead>
-                    <GTableHead class="w-20">Cant.</GTableHead>
+                    <GTableHead>Cant.</GTableHead>
                     <GTableHead>Ubicación</GTableHead>
                     <GTableHead>N.º serie</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
@@ -806,7 +806,7 @@
                     <GTableHead>Fuente</GTableHead>
                     <GTableHead>Registro</GTableHead>
                     <GTableHead>Plataforma</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
@@ -883,7 +883,7 @@
                       <GTableHead>Nombre</GTableHead>
                       <GTableHead>Canal</GTableHead>
                       <GTableHead>Alcance</GTableHead>
-                      <GTableHead class="w-10" />
+                      <GTableHead />
                     </GTableRow>
                   </GTableHeader>
                   <GTableBody>
@@ -956,7 +956,7 @@
                       <GTableHead>Condición</GTableHead>
                       <GTableHead>Notificación</GTableHead>
                       <GTableHead>Destinatarios</GTableHead>
-                      <GTableHead class="w-10" />
+                      <GTableHead />
                     </GTableRow>
                   </GTableHeader>
                   <GTableBody>
@@ -1041,12 +1041,12 @@
               <GTable>
                 <GTableHeader>
                   <GTableRow>
-                    <GTableHead class="w-16">Código</GTableHead>
+                    <GTableHead>Código</GTableHead>
                     <GTableHead>Prueba</GTableHead>
                     <GTableHead>Criterio de aceptación</GTableHead>
-                    <GTableHead class="w-36">Resultado</GTableHead>
+                    <GTableHead>Resultado</GTableHead>
                     <GTableHead>Observación</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
@@ -1109,12 +1109,12 @@
               <GTable>
                 <GTableHeader>
                   <GTableRow>
-                    <GTableHead class="w-16">Código</GTableHead>
+                    <GTableHead>Código</GTableHead>
                     <GTableHead>Descripción</GTableHead>
                     <GTableHead>Causa raíz</GTableHead>
                     <GTableHead>Acción correctiva</GTableHead>
-                    <GTableHead class="w-32">Estado</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead>Estado</GTableHead>
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
@@ -1178,9 +1178,9 @@
                   <GTableRow>
                     <GTableHead>Descripción</GTableHead>
                     <GTableHead>Responsable</GTableHead>
-                    <GTableHead class="w-40">Fecha compromiso</GTableHead>
-                    <GTableHead class="w-32">Estado</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead>Fecha compromiso</GTableHead>
+                    <GTableHead>Estado</GTableHead>
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
@@ -1310,8 +1310,8 @@
                   <GTableRow>
                     <GTableHead>Nombre</GTableHead>
                     <GTableHead>Cargo</GTableHead>
-                    <GTableHead class="w-40">Fecha</GTableHead>
-                    <GTableHead class="w-10" />
+                    <GTableHead>Fecha</GTableHead>
+                    <GTableHead />
                   </GTableRow>
                 </GTableHeader>
                 <GTableBody>
