@@ -11,7 +11,7 @@
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
@@ -58,7 +58,7 @@
 
     <!-- Tabla: 24 horas + total. Las tres primeras columnas quedan fijas para no
          perder de vista el proyecto al desplazarse por las horas. -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+    <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>

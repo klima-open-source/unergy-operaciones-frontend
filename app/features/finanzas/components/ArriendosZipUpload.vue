@@ -82,7 +82,7 @@
                       <span class="text-muted-foreground">Arrendatario:</span>
                       <input v-model="grupo.nombreArrendatario" type="text"
                         placeholder="(vacío)"
-                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20" />
+                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-card focus:outline-none focus:ring-1 focus:ring-primary/20" />
                       <span class="ml-auto text-muted-foreground">{{ grupo.predios.length }} predio(s)</span>
                     </div>
                   </td>
@@ -101,7 +101,7 @@
                     </div>
                     <select v-else
                       v-model="predio.proyectoId"
-                      class="text-xs border border-destructive/30 rounded px-2 py-1 w-full bg-white"
+                      class="text-xs border border-destructive/30 rounded px-2 py-1 w-full bg-card"
                       @change="onProyectoSeleccionado(predio)">
                       <option :value="null">— Sin match (SIN-MATCH) —</option>
                       <option v-for="p in props.proyectos" :key="p.id" :value="p.id">
@@ -111,7 +111,7 @@
                     <!-- Selector de arrendador: solo cuando el proyecto tiene MÁS DE UNO -->
                     <select v-if="predio.arrendadorOpciones && predio.arrendadorOpciones.length > 1"
                       v-model="predio.arrArrendadorId"
-                      class="text-xs border border-primary/20 rounded px-1.5 py-0.5 mt-1 w-full bg-white"
+                      class="text-xs border border-primary/20 rounded px-1.5 py-0.5 mt-1 w-full bg-card"
                       title="Este proyecto tiene varios arrendadores: elige a cuál corresponde esta cuenta de cobro">
                       <option v-for="a in predio.arrendadorOpciones" :key="a.id" :value="a.id">
                         {{ a.nombre }}
