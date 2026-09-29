@@ -584,7 +584,7 @@
             class="flex items-center gap-3 rounded-xl border p-3"
           >
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-semibold text-foreground">{{ p.nombre_quoia }}</p>
+              <TruncatedText :text="p.nombre_quoia" class="text-sm font-semibold text-foreground" />
               <p class="font-mono text-xs text-muted-foreground">
                 {{ p.frt_code }} · {{ p.categoria }}
               </p>

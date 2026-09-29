@@ -471,6 +471,7 @@ import { normalizeError } from '~/core/errors'
 import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-energia'
 import ReporteEnergiaDetalleTab from './ReporteEnergiaDetalleTab.vue'
 import ReporteEnergiaLista from './ReporteEnergiaLista.vue'
+import type { TokenColor } from '~/composables/useThemeColors'
 import {
   CircleStopIcon,
   FileSpreadsheetIcon,
@@ -634,30 +635,40 @@ async function cargarResumenHistorico() {
 // 3 tonos (verde/ámbar/rosa) se reusan como semáforo de severidad en las
 // tablas de abajo, así que "Medidor"/"bajo % de problema" y "Estimación"/
 // "% medio" comparten intención visual aunque sean secciones distintas.
-const GRUPO_COLOR: Record<string, string> = {
+const { color } = useThemeColors()
+
+interface GrupoTono {
+  token: TokenColor
+  alpha?: number
+}
+const GRUPO_COLOR: Record<string, GrupoTono> = {
   // CGM en verde oscuro y Medidor en verde medio: son la misma familia --dato
   // medido-- y el tono mas fuerte es el de mayor respaldo. Separados desde el
   // 2026-09-14; antes iban los dos en la misma barra.
-  CGM: '#2f7d5b',
-  Medidor: '#4f9d78',
-  Inversor: '#6b8fd6',
+  CGM: { token: 'success' },
+  Medidor: { token: 'success', alpha: 0.65 },
+  Inversor: { token: 'primary' },
   // Morado y no otro verde: un Excel de un tercero o el dato de otra empresa
   // NO son una medicion nuestra, y el color no debe sugerir que si.
-  'Reportado por terceros': '#a06fa8',
-  Estimación: '#c9a13f',
+  'Reportado por terceros': { token: 'unergy-purple' },
+  Estimación: { token: 'warning' },
   // Las dos barras del grafico de automatizacion. El verde del CGM es el mismo
   // de su barra en los otros dos graficos: es el mismo dato, visto de otra forma.
-  'Automático (CGM)': '#2f7d5b',
-  'Otra fuente': '#8a94a6',
+  'Automático (CGM)': { token: 'success' },
+  'Otra fuente': { token: 'muted-foreground' },
   // "Apagado" es un estado confirmado (el proyecto no genera), no una
   // estimación de dato faltante -- tono neutro propio, distinto de
   // Estimación (pedido 2026-08-21).
-  Apagado: '#8a94a6',
-  'Sin fuente': '#c97086',
-  Otro: '#52596b',
+  Apagado: { token: 'muted-foreground' },
+  'Sin fuente': { token: 'destructive' },
+  Otro: { token: 'foreground', alpha: 0.7 },
+}
+const GRUPO_OTRO: GrupoTono = { token: 'foreground', alpha: 0.7 }
+function tono(t: GrupoTono): string {
+  return color(t.token, t.alpha)
 }
 function grupoColor(etiqueta: string): { texto: string } {
-  return { texto: GRUPO_COLOR[etiqueta] || '#52596b' }
+  return { texto: tono(GRUPO_COLOR[etiqueta] ?? GRUPO_OTRO) }
 }
 
 interface ConteoGrupo {
@@ -736,7 +747,7 @@ const dataLabelPlugin: Plugin<'bar'> = {
     chart.data.datasets.forEach((dataset, i) => {
       chart.getDatasetMeta(i).data.forEach((bar, index) => {
         ctx.save()
-        ctx.fillStyle = '#2C2039'
+        ctx.fillStyle = color('foreground')
         ctx.font = '700 12px sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(`${dataset.data[index]}%`, bar.x, bar.y - 8)
@@ -783,7 +794,10 @@ function chartOptionsPara(
       },
     },
     scales: {
-      x: { ticks: { font: { size: 11, weight: 600 }, color: '#6b5a8a' }, grid: { display: false } },
+      x: {
+        ticks: { font: { size: 11, weight: 600 }, color: color('muted-foreground') },
+        grid: { display: false },
+      },
       y: { display: false, beginAtZero: true, max: 100 },
     },
   }
@@ -815,10 +829,10 @@ const chartOptionsAuto = computed(() => chartOptionsPara(null, kpiAuto.value, 'r
 // vez de invertir un solo número.
 function severidadColor(pct: number): string {
   return pct > 30
-    ? GRUPO_COLOR['Sin fuente']!
+    ? tono(GRUPO_COLOR['Sin fuente']!)
     : pct > 10
-      ? GRUPO_COLOR['Estimación']!
-      : GRUPO_COLOR['Medidor']!
+      ? tono(GRUPO_COLOR['Estimación']!)
+      : tono(GRUPO_COLOR['Medidor']!)
 }
 // Solo lo crítico (rojo) lleva píldora de color -- pintar también lo que
 // está bien generaba demasiado ruido visual, 30 píldoras de colores

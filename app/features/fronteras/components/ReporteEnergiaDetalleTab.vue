@@ -181,7 +181,10 @@
                 {{ f.estado?.etiqueta }}
               </span>
             </div>
-            <p class="truncate text-sm text-foreground">{{ f.tipo?.etiqueta || f.descripcion }}</p>
+            <TruncatedText
+              :text="f.tipo?.etiqueta || f.descripcion"
+              class="text-sm text-foreground"
+            />
           </div>
           <span
             v-if="f.dias_abierta != null"
