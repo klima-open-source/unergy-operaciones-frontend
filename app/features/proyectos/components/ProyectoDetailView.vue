@@ -75,76 +75,76 @@
           </template>
           <template v-else>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Tipo de proyecto</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de proyecto</label>
               <Select v-model="editForm.tipo_proyecto" :options="TIPOS_PROYECTO" class="w-full" placeholder="Seleccionar" showClear />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Tecnología</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Tecnología</label>
               <Select v-model="editForm.tipo_tecnologia" :options="TIPOS_TECNOLOGIA" class="w-full" placeholder="Seleccionar" showClear />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Capacidad instalada (kWp)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
               <InputNumber v-model="editInfoTecnica.capacidad_instalada_kwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Departamento</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
               <Select v-model="editForm.departamento" :options="departamentos" class="w-full" placeholder="Seleccionar" showClear filter />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Municipio</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Municipio</label>
               <Select v-model="editForm.municipio" :options="municipiosDisponibles" class="w-full" placeholder="Seleccionar" showClear filter
                 :disabled="!editForm.departamento" />
             </div>
             <!-- La Ubicación se edita donde se lee. Estos dos campos habían
                  quedado en Técnico cuando la vista de lectura pasó a General. -->
             <div class="flex flex-col gap-1">
-              <label class="field-label">Dirección</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Dirección</label>
               <InputText v-model="editForm.direccion_vereda" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Link Google Maps</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Link Google Maps</label>
               <InputText v-model="editInfoTecnica.url_ubicacion" class="w-full" placeholder="https://maps.app.goo.gl/..." />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Operador de red</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red</label>
               <Select v-model="editForm.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
                 optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Clasificación regulatoria</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Clasificación regulatoria</label>
               <Select v-model="editForm.clasificacion_regulatoria" :options="CLASIFICACIONES" class="w-full" placeholder="Seleccionar" showClear />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Carpeta Drive</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive</label>
               <InputText v-model="editForm.carpeta_drive_codigo" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">API ID Unergy</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">API ID Unergy</label>
               <InputText v-model="editForm.sub_project" class="w-full" placeholder="ej: ibirico, bayunca" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Código TSF</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Código TSF</label>
               <InputText v-model="editForm.codigo_tsf" class="w-full" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha de operación en MEM</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
               <DatePicker v-model="editFechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Inicio de comercialización (pruebas)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Inicio de comercialización (pruebas)</label>
               <DatePicker v-model="editFechaComerc" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Auto (1er día con generación)" />
               <small class="text-xs text-muted-foreground">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha de operación (mantenimiento)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
               <DatePicker v-model="editFechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha de entrega del proyecto</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
               <DatePicker v-model="editFechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="field-label">Fecha fin de representación</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
               <DatePicker v-model="editFechaFinRep" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Vigente" />
             </div>
           </template>
@@ -242,15 +242,15 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ubicación</p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Latitud</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
                   <InputNumber v-model="editForm.latitud" :maxFractionDigits="6" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Longitud</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
                   <InputNumber v-model="editForm.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">RETIE (link Drive)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">RETIE (link Drive)</label>
                   <InputText v-model="editInfoTecnica.retie_url" class="w-full" placeholder="https://drive.google.com/..." />
                 </div>
               </div>
@@ -260,27 +260,27 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Potencia AC (kW)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
                   <InputNumber v-model="editInfoTecnica.potencia_ac_kw" :maxFractionDigits="3" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Capacidad instalada (kWp)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
                   <InputNumber v-model="editInfoTecnica.capacidad_instalada_kwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Voltaje red</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Voltaje red</label>
                   <InputText v-model="editInfoTecnica.voltaje_red" class="w-full" placeholder="ej: 13.8/800" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Tipo tracker</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo tracker</label>
                   <Select v-model="editInfoTecnica.tipo_tracker" :options="['1P','2P']" class="w-full" showClear placeholder="Seleccionar" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Producción específica (kWh/kWp)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Producción específica (kWh/kWp)</label>
                   <InputNumber v-model="editForm.produccion_especifica_kwh_kwp" :maxFractionDigits="2" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Altitud (msnm)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
                   <InputNumber v-model="editForm.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" />
                 </div>
               </div>
@@ -290,15 +290,15 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Paneles</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Cantidad de paneles</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad de paneles</label>
                   <InputNumber v-model="editInfoTecnica.cantidad_total_paneles" :useGrouping="false" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Potencia panel (kWp)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia panel (kWp)</label>
                   <InputText v-model="editInfoTecnica.potencia_panel_kwp" class="w-full" placeholder="ej: 0.58" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Marca paneles</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca paneles</label>
                   <InputText v-model="editInfoTecnica.marca_paneles" class="w-full" />
                 </div>
               </div>
@@ -308,19 +308,19 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Inversores</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Cantidad inversores</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad inversores</label>
                   <InputNumber v-model="editInfoTecnica.cantidad_inversores" :useGrouping="false" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Potencia inversores (kWp)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia inversores (kWp)</label>
                   <InputText v-model="editInfoTecnica.potencia_inversores_kwp" class="w-full" placeholder="ej: 300, 50 y 40" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Marca inversores</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca inversores</label>
                   <InputText v-model="editInfoTecnica.marca_inversores" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Cantidad strings</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad strings</label>
                   <InputNumber v-model="editInfoTecnica.cantidad_strings" :useGrouping="false" class="w-full" />
                 </div>
               </div>
@@ -330,35 +330,35 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Marcas de equipos</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Transformador</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Transformador</label>
                   <InputText v-model="editInfoTecnica.marca_transformador" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Reconectador / Relé</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Reconectador / Relé</label>
                   <InputText v-model="editInfoTecnica.marca_reconectador_rele" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Totalizador</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Totalizador</label>
                   <InputText v-model="editInfoTecnica.marca_totalizador" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Seguidor solar</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Seguidor solar</label>
                   <InputText v-model="editInfoTecnica.marca_seguidor_solar" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Medidores frontera</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Medidores frontera</label>
                   <InputText v-model="editInfoTecnica.marca_medidores_frontera" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Módem reconectador/relé</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Módem reconectador/relé</label>
                   <InputText v-model="editInfoTecnica.marca_modem_reconectador" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Módems frontera</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Módems frontera</label>
                   <InputText v-model="editInfoTecnica.marca_modems_frontera" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">IP módem reconectador</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">IP módem reconectador</label>
                   <InputText v-model="editInfoTecnica.ip_modem_reconectador" class="w-full" />
                 </div>
               </div>
@@ -368,19 +368,19 @@
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">CCTV y seguridad</p>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1 md:col-span-2">
-                  <label class="field-label">Estado CCTV</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Estado CCTV</label>
                   <InputText v-model="editInfoTecnica.cctv_estado" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Marca CCTV</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca CCTV</label>
                   <InputText v-model="editInfoTecnica.marca_cctv" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Seguridad física</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Seguridad física</label>
                   <InputText v-model="editInfoTecnica.seguridad_fisica" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Internet</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Internet</label>
                   <Select v-model="editInfoTecnica.tiene_internet" :options="['Sí','No']" class="w-full" showClear placeholder="Seleccionar" />
                 </div>
               </div>
@@ -394,15 +394,15 @@
               </div>
               <div v-if="editInfoTecnica.tiene_almacenamiento" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Capacidad (kWh)</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad (kWh)</label>
                   <InputNumber v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :maxFractionDigits="3" locale="en-US" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Marca</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca</label>
                   <InputText v-model="editInfoTecnica.marca_almacenamiento" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">Modelo</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">Modelo</label>
                   <InputText v-model="editInfoTecnica.modelo_almacenamiento" class="w-full" />
                 </div>
               </div>
@@ -736,15 +736,15 @@
             </template>
             <template v-else>
               <div class="flex flex-col gap-1">
-                <label class="field-label">SIC generación</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">SIC generación</label>
                 <InputText v-model="editLiq.sic_gen" class="w-full" placeholder="ej: 3A44" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">SIC consumo</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">SIC consumo</label>
                 <InputText v-model="editLiq.sic_con" class="w-full" placeholder="ej: 3A3P" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="field-label">Tópico en Liquidaciones</label>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Tópico en Liquidaciones</label>
                 <InputText v-model="editForm.topico_liquidaciones" class="w-full"
                            :placeholder="proyecto.sub_project || 'ej: mgs18'" />
                 <small class="text-xs text-muted-foreground">
@@ -796,15 +796,15 @@
               </div>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">ID Reporte Generación Quoia</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">ID Reporte Generación Quoia</label>
                   <InputText v-model="sub.quoia_report_gen_id" maxlength="4" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">ID Reporte Consumo Quoia</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">ID Reporte Consumo Quoia</label>
                   <InputText v-model="sub.quoia_report_con_id" maxlength="4" class="w-full" />
                 </div>
                 <div class="flex flex-col gap-1">
-                  <label class="field-label">ID de Nodo Quoia</label>
+                  <label class="block text-xs font-medium text-muted-foreground mb-1">ID de Nodo Quoia</label>
                   <InputText v-model="sub.quoia_node_id" maxlength="50" class="w-full" />
                 </div>
               </div>
@@ -1487,11 +1487,3 @@ const InfoField = {
 }
 export default { components: { InfoField } }
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
-</style>

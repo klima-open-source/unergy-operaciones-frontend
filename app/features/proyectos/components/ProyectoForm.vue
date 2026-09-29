@@ -2,70 +2,70 @@
   <form @submit.prevent="submit" class="space-y-4 pt-2">
     <div class="grid grid-cols-2 gap-4">
       <div class="col-span-2">
-        <label class="field-label">Nombre comercial *</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre comercial *</label>
         <InputText v-model="f.nombre_comercial" class="w-full" required />
       </div>
       <div>
-        <label class="field-label">Tipo de proyecto</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de proyecto</label>
         <Select v-model="f.tipo_proyecto" :options="tipos" class="w-full" placeholder="Seleccionar" showClear />
       </div>
       <div>
-        <label class="field-label">Estado</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Estado</label>
         <Select v-model="f.estado" :options="estados" optionLabel="label" optionValue="value" class="w-full" />
       </div>
       <div>
-        <label class="field-label">Potencia AC (kW)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
         <InputNumber v-model="potenciaAcKw" :maxFractionDigits="3" locale="en-US" class="w-full" />
       </div>
       <div>
-        <label class="field-label">Capacidad instalada (kWp)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
         <InputNumber v-model="capacidadInstaladaKwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
       </div>
       <div>
-        <label class="field-label">Tipo tecnología</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo tecnología</label>
         <Select v-model="f.tipo_tecnologia" :options="tecnologias" class="w-full" placeholder="Seleccionar" showClear />
       </div>
       <div>
-        <label class="field-label">Cantidad de paneles</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad de paneles</label>
         <InputNumber v-model="cantidadTotalPaneles" :useGrouping="false" class="w-full" />
       </div>
       <div>
-        <label class="field-label">Departamento</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
         <Select v-model="f.departamento" :options="departamentos" class="w-full" placeholder="Seleccionar" showClear filter />
       </div>
       <div>
-        <label class="field-label">Municipio</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Municipio</label>
         <Select v-model="f.municipio" :options="municipiosDisponibles" class="w-full" placeholder="Seleccionar" showClear filter
           :disabled="!f.departamento" />
       </div>
       <div>
-        <label class="field-label">Operador de red{{ operadorRedObligatorio ? ' *' : '' }}</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red{{ operadorRedObligatorio ? ' *' : '' }}</label>
         <Select v-model="f.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
           optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
       </div>
       <div>
-        <label class="field-label">Clasificación regulatoria</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Clasificación regulatoria</label>
         <Select v-model="f.clasificacion_regulatoria" :options="clasificaciones" class="w-full" placeholder="Seleccionar" showClear />
       </div>
       <div class="col-span-2">
-        <label class="field-label">Dirección / vereda</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Dirección / vereda</label>
         <InputText v-model="f.direccion_vereda" class="w-full" placeholder="Ej: Vereda El Cerrito, km 4 vía Planeta Rica" />
       </div>
       <!-- Coordenadas: hasta ahora solo se podían cargar EDITANDO el proyecto, así
            que toda planta nacía sin ubicación en el mapa y sin coordenadas para
            quien integra por API. -->
       <div>
-        <label class="field-label">Latitud</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
         <InputNumber v-model="f.latitud" :maxFractionDigits="6" locale="en-US" class="w-full" placeholder="8.748000" />
       </div>
       <div>
-        <label class="field-label">Longitud</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
         <InputNumber v-model="f.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" placeholder="-75.881000" />
       </div>
       <!-- El backend acota la altitud a -100..6000 msnm (Colombia llega a ~5.700
            en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
       <div>
-        <label class="field-label">Altitud (msnm)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
         <InputNumber v-model="f.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" placeholder="35" />
       </div>
       <!-- La comunidad energética se marca en el PPA, no acá: se negocia en ese
@@ -74,31 +74,31 @@
            asi que este toggle ya no guardaba nada -- quien lo activaba creía
            haber marcado la planta y no pasaba nada. -->
       <div>
-        <label class="field-label">Carpeta Drive (código)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive (código)</label>
         <InputText v-model="f.carpeta_drive_codigo" class="w-full" />
       </div>
       <div>
-        <label class="field-label">Código base (topic)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Código base (topic)</label>
         <InputText v-model="f.sub_project" class="w-full" placeholder="ej: perija, vallenata" />
       </div>
       <div>
-        <label class="field-label">Código TSF</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Código TSF</label>
         <InputText v-model="f.codigo_tsf" class="w-full" placeholder="ej: COLCEST58P2" />
       </div>
       <div>
-        <label class="field-label">Fecha de operación en MEM</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
         <DatePicker v-model="fechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
       </div>
       <div>
-        <label class="field-label">Fecha de operación (mantenimiento)</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
         <DatePicker v-model="fechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
       </div>
       <div>
-        <label class="field-label">Fecha de entrega del proyecto</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
         <DatePicker v-model="fechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
       </div>
       <div>
-        <label class="field-label">Fecha fin de representación</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
         <DatePicker v-model="fechaFinRep" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Vigente" />
       </div>
     </div>
@@ -158,7 +158,7 @@
           placeholder="Buscar o crear el cliente…"
         />
         <div>
-          <label class="field-label">Participación (%)</label>
+          <label class="block text-xs font-medium text-muted-foreground mb-1">Participación (%)</label>
           <InputNumber v-model="inversionistaInicial.porcentaje_pct" :min="0" :max="100"
             :minFractionDigits="2" :maxFractionDigits="7" suffix="%" locale="en-US"
             class="w-full" placeholder="100" />
@@ -356,11 +356,3 @@ function submit() {
   emit('save', payload, infoTecnica, inversionista)
 }
 </script>
-
-<style scoped>
-/* MIGRACIÓN — Fase 1: en Tailwind 4 cada bloque <style> se procesa aislado y no
-   ve el tema, así que `@apply` falla con "unknown utility class". `@reference`
-   le da acceso al tema sin emitir CSS. Era innecesario en Tailwind 3. */
-@reference 'tailwindcss';
-.field-label { @apply block text-xs font-medium mb-1; color: var(--muted-foreground); }
-</style>
