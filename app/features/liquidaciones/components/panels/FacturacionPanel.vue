@@ -1032,7 +1032,7 @@ onMounted(load)
             />
             <input
               v-model="facFiltro"
-              class="w-35 w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
+              class="w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
               placeholder="Buscar por planta, PPA, contrato o N° de factura…"
             />
           </span>
@@ -1262,14 +1262,14 @@ onMounted(load)
             <div class="flex flex-wrap items-center gap-2 border-t bg-muted px-3.5 py-2.5">
               <input
                 v-model="nuevoNombre[f.factura]"
-                class="w-35 flex-1 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
+                class="min-w-0 flex-1 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="Nombre de la nueva factura (ej. Terpel 2 PA)"
               />
               <!-- % opcional: si va solo una parte del contrato, el resto queda en el
                    PPA original. Es el caso de Uruaco → 22.8066% a la nueva factura. -->
               <input
                 v-model="nuevoPct[f.factura]"
-                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
+                class="rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="% (opcional)"
                 inputmode="decimal"
               />
@@ -1542,7 +1542,7 @@ onMounted(load)
               />
               <input
                 v-model="despFiltro"
-                class="w-35 w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
+                class="w-full rounded-md border bg-background px-2.5 py-1.5 pl-8 text-sm text-foreground tabular-nums"
                 placeholder="Buscar contrato, vendedor o comprador…"
               />
             </span>
@@ -1649,7 +1649,7 @@ onMounted(load)
                 v-model.number="ippInput"
                 type="number"
                 step="0.01"
-                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
+                class="rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="187.43"
               />
             </div>
@@ -1680,7 +1680,7 @@ onMounted(load)
                 v-model.number="bolsaInput"
                 type="number"
                 step="0.01"
-                class="w-35 rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
+                class="rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground tabular-nums"
                 placeholder="$/kWh"
               />
             </div>
