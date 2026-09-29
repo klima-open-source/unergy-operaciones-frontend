@@ -56,48 +56,63 @@ function limpiar() {
       <InputGroupInput v-model="proyecto" placeholder="Buscar proyecto…" />
     </InputGroup>
 
-    <Select v-model="tipo">
+    <Select
+      :model-value="aValorSelect(tipo)"
+      @update:model-value="(v) => (tipo = deValorSelect(v))"
+    >
       <SelectTrigger class="shrink-0"><SelectValue placeholder="Tipo" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Tipo: todos</SelectItem>
+        <SelectItem :value="VALOR_SELECT_VACIO">Tipo: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_TIPO_LIQUIDACION" :key="op.value" :value="op.value">{{
           op.label
         }}</SelectItem>
       </SelectContent>
     </Select>
 
-    <Select v-model="estado">
+    <Select
+      :model-value="aValorSelect(estado)"
+      @update:model-value="(v) => (estado = deValorSelect(v))"
+    >
       <SelectTrigger class="shrink-0"><SelectValue placeholder="Estado" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Estado: todos</SelectItem>
+        <SelectItem :value="VALOR_SELECT_VACIO">Estado: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_ESTADO_LIQUIDACION" :key="op.value" :value="op.value">{{
           op.label
         }}</SelectItem>
       </SelectContent>
     </Select>
 
-    <Select v-model="marcador">
+    <Select
+      :model-value="aValorSelect(marcador)"
+      @update:model-value="(v) => (marcador = deValorSelect(v))"
+    >
       <SelectTrigger class="shrink-0"><SelectValue placeholder="Marcador" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Marcador: todos</SelectItem>
+        <SelectItem :value="VALOR_SELECT_VACIO">Marcador: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_MARCADOR" :key="op.value" :value="op.value">{{
           op.label
         }}</SelectItem>
       </SelectContent>
     </Select>
 
-    <Select v-model="inversionista">
+    <Select
+      :model-value="aValorSelect(inversionista)"
+      @update:model-value="(v) => (inversionista = deValorSelect(v))"
+    >
       <SelectTrigger class="shrink-0"><SelectValue placeholder="Inversionista" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Inversionista: todos</SelectItem>
+        <SelectItem :value="VALOR_SELECT_VACIO">Inversionista: todos</SelectItem>
         <SelectItem v-for="nom in inversionistas" :key="nom" :value="nom">{{ nom }}</SelectItem>
       </SelectContent>
     </Select>
 
-    <Select v-model="bloque">
+    <Select
+      :model-value="aValorSelect(bloque)"
+      @update:model-value="(v) => (bloque = deValorSelect(v))"
+    >
       <SelectTrigger class="shrink-0"><SelectValue placeholder="Documento" /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Documento: todos</SelectItem>
+        <SelectItem :value="VALOR_SELECT_VACIO">Documento: todos</SelectItem>
         <SelectItem v-for="op in OPCIONES_DOCUMENTO" :key="op.value" :value="op.value">{{
           op.label
         }}</SelectItem>
