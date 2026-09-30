@@ -139,8 +139,9 @@ export interface ResumenGeneracionDiaFuente {
   [clave: string]: unknown
 }
 
-/** `GET /generacion-solar/resumen-dia`: top de generación de hoy por inversores. */
+/** `GET /generacion-solar/resumen-dia`: top de generación de hoy por medidor e inversor. */
 export interface RespuestaResumenGeneracionDia {
+  medidor?: ResumenGeneracionDiaFuente
   inversor?: ResumenGeneracionDiaFuente
   fecha?: string
   [clave: string]: unknown

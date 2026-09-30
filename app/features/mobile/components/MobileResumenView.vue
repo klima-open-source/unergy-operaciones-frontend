@@ -28,6 +28,18 @@
         <div
           class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-3"
         >
+          <span class="size-2.5 shrink-0 rounded-full bg-chart-2" />
+          <div class="flex min-w-0 flex-col">
+            <span class="text-xs font-semibold text-muted-foreground">Medidores hoy</span>
+            <span
+              class="text-xl leading-tight font-extrabold tracking-tight whitespace-nowrap text-unergy-deep"
+              >{{ fmtKwh(gen.medidor?.total) }}</span
+            >
+          </div>
+        </div>
+        <div
+          class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-3"
+        >
           <span class="size-2.5 shrink-0 rounded-full bg-unergy-purple" />
           <div class="flex min-w-0 flex-col">
             <span class="text-xs font-semibold text-muted-foreground">Inversores hoy</span>
@@ -38,6 +50,16 @@
           </div>
         </div>
       </div>
+
+      <!-- Top Medidores -->
+      <TopCard
+        title="Top generación — Medidores"
+        :icon="GaugeIcon"
+        accent="var(--chart-2)"
+        :items="gen.medidor?.top || []"
+        :loading="loadingGen"
+        :max="maxMedidor"
+      />
 
       <!-- Top Inversores -->
       <TopCard
@@ -167,6 +189,7 @@ import {
   ChartColumnIcon,
   ChevronRightIcon,
   CirclePlusIcon,
+  GaugeIcon,
   LoaderCircleIcon,
   RefreshCwIcon,
   WrenchIcon,
@@ -190,7 +213,7 @@ const CLS = {
   emptyRow: 'px-1 py-2.5 text-sm text-muted-foreground',
 } as const
 
-// ── Tarjeta de "top" ─────────────────────────────────────────────────────────
+// ── Tarjeta de "top" reutilizable (medidores / inversores) ───────────────────
 const TopCard = defineComponent({
   props: {
     title: String,
@@ -290,9 +313,10 @@ const generacionSolarService = new GeneracionSolarService()
 
 // ── Estado ───────────────────────────────────────────────────────────────────
 const gen = reactive<{
+  medidor: ResumenGeneracionDiaFuente | null
   inversor: ResumenGeneracionDiaFuente | null
   fecha: string | null
-}>({ inversor: null, fecha: null })
+}>({ medidor: null, inversor: null, fecha: null })
 const fallas = reactive<{
   creadas: Falla[]
   cambios_estado: CambioEstadoFalla[]
@@ -311,6 +335,7 @@ const catalogos = reactive<CatalogosFalla>({
 const fallaDetailOpen = ref(false)
 const fallaDetail = ref<Falla | null>(null)
 
+const maxMedidor = computed(() => Math.max(0, ...(gen.medidor?.top || []).map((x) => x.kwh || 0)))
 const maxInversor = computed(() => Math.max(0, ...(gen.inversor?.top || []).map((x) => x.kwh || 0)))
 
 const fechaLarga = computed(() => {
@@ -337,10 +362,12 @@ async function cargarGen(): Promise<void> {
   loadingGen.value = true
   try {
     const data = await generacionSolarService.obtenerResumenDia()
+    gen.medidor = data.medidor || { total: 0, top: [] }
     gen.inversor = data.inversor || { total: 0, top: [] }
     gen.fecha = data.fecha ?? null
   } catch (e) {
     logger.error('mobile', e)
+    if (!gen.medidor) gen.medidor = { total: 0, top: [] }
     if (!gen.inversor) gen.inversor = { total: 0, top: [] }
   } finally {
     loadingGen.value = false
