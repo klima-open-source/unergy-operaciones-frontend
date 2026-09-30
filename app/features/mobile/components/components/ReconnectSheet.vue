@@ -136,10 +136,7 @@ async function submit(): Promise<void> {
   loading.value = true
   error.value = ''
   try {
-    await reconectadoresService.enviarComando(props.proyectoId, {
-      accion: accion.value,
-      is_interrogating: true,
-    })
+    await reconectadoresService.enviarComando(props.proyectoId, { accion: accion.value })
     emit('done', { active: accion.value === 'ON' })
     emit('close')
   } catch (err) {
