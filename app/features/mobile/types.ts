@@ -12,9 +12,8 @@ export interface EstadoReconectador {
   [clave: string]: unknown
 }
 
+/** El comando va con el token del servidor: ya no lleva credenciales de Solenium. */
 export interface PayloadComandoReconectador {
-  username: string
-  password: string
   accion: 'ON' | 'OFF'
   is_interrogating?: boolean
 }

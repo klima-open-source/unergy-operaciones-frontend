@@ -109,7 +109,7 @@ import { ChevronDownIcon, ChevronUpIcon, ClockIcon, ZapIcon } from '@lucide/vue'
 import type { EstadoReconectador } from '~/features/mobile/types'
 
 const props = defineProps<{
-  /** Registro de `/reconectadores/estados`: estado del relay + telemetría de Solenium. */
+  /** Registro de `/reconectadores/estados`: estado del relay + telemetría de SolarView. */
   relay: EstadoReconectador
 }>()
 

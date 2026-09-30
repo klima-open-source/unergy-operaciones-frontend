@@ -42,32 +42,11 @@
           </div>
 
           <p class="mb-3.5 text-sm leading-snug text-muted-foreground">
-            Ingresa tus credenciales de Solenium para
-            <strong>{{ accion === 'ON' ? 'activar' : 'desactivar' }}</strong> el reconectador.
+            Vas a
+            <strong>{{ accion === 'ON' ? 'activar' : 'desactivar' }}</strong> el reconectador de
+            <strong>{{ nombre }}</strong
+            >. La acción queda registrada a tu nombre.
           </p>
-
-          <label class="mb-3 block text-xs font-semibold text-muted-foreground"
-            >Usuario
-            <input
-              v-model="username"
-              class="mt-1.5 w-full rounded-xl border-2 border-border bg-card px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
-              type="text"
-              inputmode="email"
-              placeholder="usuario.solenium"
-              autocomplete="username"
-            />
-          </label>
-          <label class="mb-3 block text-xs font-semibold text-muted-foreground"
-            >Contraseña
-            <input
-              v-model="password"
-              class="mt-1.5 w-full rounded-xl border-2 border-border bg-card px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
-              type="password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              @keydown.enter="submit"
-            />
-          </label>
 
           <div
             v-if="error"
@@ -81,7 +60,7 @@
               'mt-1 flex w-full items-center justify-center gap-2 rounded-xl p-4 text-base font-bold text-white disabled:opacity-50',
               TONE_SOLID[accion],
             ]"
-            :disabled="loading || !username || !password"
+            :disabled="loading"
             @click="submit"
           >
             <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
@@ -118,8 +97,6 @@ const emit = defineEmits<{
   done: [payload: { active: boolean }]
 }>()
 
-const RCN_CREDS_KEY = 'sl_rcn_creds_v1' // solo guarda { [proyecto_id]: username } — nunca la contraseña
-
 type Accion = 'ON' | 'OFF'
 
 const TONE_SOFT: Record<Accion, string> = {
@@ -136,39 +113,15 @@ const ACTION_BTN =
 const ACTION_BTN_IDLE = 'border-border bg-card text-muted-foreground'
 
 const accion = ref<Accion>('ON')
-const username = ref('')
-const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-function loadCredencial(id: number | string | null | undefined): string {
-  if (id == null) return ''
-  try {
-    const saved = JSON.parse(localStorage.getItem(RCN_CREDS_KEY) || '{}') as Record<string, string>
-    return saved[id] ?? ''
-  } catch {
-    return ''
-  }
-}
-function saveCredencial(id: number | string | null | undefined, user: string): void {
-  if (id == null) return
-  try {
-    const saved = JSON.parse(localStorage.getItem(RCN_CREDS_KEY) || '{}') as Record<string, string>
-    saved[id] = user
-    localStorage.setItem(RCN_CREDS_KEY, JSON.stringify(saved))
-  } catch {
-    /* ignore */
-  }
-}
-
-// Al abrir: acción por defecto = la opuesta al estado actual; precarga usuario.
+// Al abrir: acción por defecto = la opuesta al estado actual.
 watch(
   () => props.open,
   (isOpen) => {
     if (!isOpen) return
     accion.value = props.active === true ? 'OFF' : 'ON'
-    username.value = loadCredencial(props.proyectoId)
-    password.value = ''
     error.value = ''
     loading.value = false
   },
@@ -179,17 +132,14 @@ function close(): void {
 }
 
 async function submit(): Promise<void> {
-  if (!username.value || !password.value || props.proyectoId == null) return
+  if (props.proyectoId == null) return
   loading.value = true
   error.value = ''
   try {
     await reconectadoresService.enviarComando(props.proyectoId, {
-      username: username.value,
-      password: password.value,
       accion: accion.value,
       is_interrogating: true,
     })
-    saveCredencial(props.proyectoId, username.value)
     emit('done', { active: accion.value === 'ON' })
     emit('close')
   } catch (err) {
