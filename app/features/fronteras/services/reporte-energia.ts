@@ -6,13 +6,14 @@ import type {
   CurvaTipica,
   DetalleReporteEnergia,
   EstadoEjecucionReporteEnergia,
+  EstadoEnvioReporteEnergia,
   EstadoQuoiaReporte,
   ExclusionReporteEnergia,
   FilaReporteEnergia,
   PayloadActualizarExclusion,
   PayloadCrearExclusion,
   PayloadGuardarCurva,
-  ResultadoEnvioReporteEnergia,
+  InicioEnvioReporteEnergia,
   ResumenReporteEnergiaDia,
   ResumenVentanaReporteEnergia,
   RespuestaCargaExcelTerceros,
@@ -41,6 +42,7 @@ const RUTAS = {
   ejecutarEstado: `${BASE}/ejecutar/estado`,
   excel: `${BASE}/excel`,
   enviar: `${BASE}/enviar`,
+  enviarEstado: `${BASE}/enviar/estado`,
   estadoQuoia: `${BASE}/estado-quoia`,
 } as const
 
@@ -148,12 +150,25 @@ export class ReporteEnergiaService extends BaseService {
     return this.get(RUTAS.excel, { query: { fecha }, responseType: 'blob' })
   }
 
-  /** El envío a Quoia puede tardar varios minutos con muchas fronteras. */
-  enviarReporte(fecha: string): Promise<ResultadoEnvioReporteEnergia> {
-    return this.post<ResultadoEnvioReporteEnergia>(RUTAS.enviar, undefined, {
-      query: { fecha },
-      timeout: 300_000,
+  /**
+   * Arranca el envío a Quoia y responde de inmediato: con ~100 fronteras pasa
+   * del timeout del servidor, así que corre en segundo plano y el resultado se
+   * consulta con obtenerEstadoEnvio(). El bloqueo por fronteras sin validar sí
+   * llega en esta misma respuesta.
+   */
+  enviarReporte(fecha: string): Promise<InicioEnvioReporteEnergia> {
+    return this.post<InicioEnvioReporteEnergia>(RUTAS.enviar, undefined, { query: { fecha } })
+  }
+
+  /** Mismo recorrido que enviarReporte(), sin mandar nada a Quoia ni guardar nada. */
+  simularEnvio(fecha: string): Promise<InicioEnvioReporteEnergia> {
+    return this.post<InicioEnvioReporteEnergia>(RUTAS.enviar, undefined, {
+      query: { fecha, simulacro: true },
     })
+  }
+
+  obtenerEstadoEnvio(fecha: string): Promise<EstadoEnvioReporteEnergia> {
+    return this.get<EstadoEnvioReporteEnergia>(RUTAS.enviarEstado, { query: { fecha } })
   }
 
   obtenerEstadoQuoia(fecha: string): Promise<EstadoQuoiaReporte> {

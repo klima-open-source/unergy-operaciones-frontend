@@ -26,6 +26,15 @@
           <FileSpreadsheetIcon v-else />
           Generar Excel
         </Button>
+        <Button
+          variant="outline"
+          :disabled="!resumen || enviando"
+          title="Recorre el envío sin mandar nada a Quoia: dice qué fronteras saldrían"
+          @click="simularEnvio"
+        >
+          <FlaskConicalIcon />
+          Simular envío
+        </Button>
         <GTooltip>
           <GTooltipTrigger as-child>
             <Button
@@ -215,6 +224,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { LocationQueryValue } from 'vue-router'
 import type {
+  EstadoEnvioReporteEnergia,
   EstadoQuoiaReporte,
   FilaReporteEnergia,
   ResumenReporteEnergiaDia,
@@ -236,6 +246,7 @@ import {
   LoaderCircleIcon,
   PlayIcon,
   SendIcon,
+  FlaskConicalIcon,
 } from '@lucide/vue'
 
 type Semaforo = 'critical' | 'warning' | 'success'
@@ -659,31 +670,102 @@ async function generarExcel() {
   }
 }
 
+// El envío corre en un hilo del backend (ver envio.enviar_background): con ~100
+// fronteras pasa del timeout del servidor, y cuando era una sola petición el
+// servidor la cortaba a media lista -- Generación salía, Consumo no, y no quedaba
+// registro. POST /enviar responde de inmediato y acá se sondea /enviar/estado
+// hasta que deja de estar en curso.
+let envioTimer: ReturnType<typeof setInterval> | null = null
+
+function detenerSondeoEnvio() {
+  if (envioTimer) clearInterval(envioTimer)
+  envioTimer = null
+}
+onUnmounted(detenerSondeoEnvio)
+
 async function enviarReporte() {
   enviando.value = true
+  const fechaEnviada = fechaISO.value
   try {
-    const data = await reporteEnergiaService.enviarReporte(fechaISO.value)
-    if (data.bloqueado) {
-      toast.warning('Envío bloqueado', { description: data.motivo_bloqueo, duration: 5000 })
-    } else if (data.fallidos.length) {
-      toast.warning('Reporte enviado con fallos', {
-        description: `${data.enviados} fronteras enviadas, ${data.fallidos.length} fallidas — ${data.fallidos.join('; ')}`,
-        duration: 8000,
-      })
-    } else {
-      toast.success('Reporte enviado', {
-        description: `${data.enviados} fronteras enviadas`,
-        duration: 3000,
-      })
+    const inicio = await reporteEnergiaService.enviarReporte(fechaEnviada)
+    if (inicio.bloqueado) {
+      toast.warning('Envío bloqueado', { description: inicio.motivo_bloqueo, duration: 5000 })
+      enviando.value = false
+      return
     }
-    if (!data.bloqueado) {
-      await revisarEstadoQuoia()
-      if (estadoQuoia.value && estadoQuoia.value.en_espera > 0) iniciarPollingEstadoQuoia()
-    }
+    toast.info('Enviando reporte', {
+      description: 'Puede tardar unos minutos. Te aviso cuando termine.',
+      duration: 4000,
+    })
+    detenerSondeoEnvio()
+    envioTimer = setInterval(() => revisarEnvio(fechaEnviada), 5000)
   } catch (err) {
     toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-  } finally {
     enviando.value = false
   }
+}
+
+async function simularEnvio() {
+  enviando.value = true
+  const fechaEnviada = fechaISO.value
+  try {
+    await reporteEnergiaService.simularEnvio(fechaEnviada)
+    detenerSondeoEnvio()
+    envioTimer = setInterval(() => revisarEnvio(fechaEnviada), 3000)
+  } catch (err) {
+    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
+    enviando.value = false
+  }
+}
+
+function avisarSimulacro(data: EstadoEnvioReporteEnergia) {
+  const enviarian = data.se_enviarian ?? []
+  const gen = enviarian.filter((f) => f.tipo === 'generacion').length
+  const partes = [
+    `Se enviarían ${enviarian.length} (${gen} de generación, ${enviarian.length - gen} de consumo).`,
+    `Se saltarían ${data.se_saltarian?.length ?? 0} que Quoia ya tiene bien.`,
+  ]
+  if (data.fallarian?.length) {
+    partes.push(
+      `Fallarían ${data.fallarian.length}: ${data.fallarian.map((f) => f.nombre).join('; ')}.`,
+    )
+  }
+  if (data.bloqueado) partes.push('Ojo: el envío real está bloqueado por fronteras sin validar.')
+  partes.push(`Tardó ${data.duracion_s ?? '?'} s. No se mandó nada a Quoia.`)
+  toast.info('Simulacro de envío', { description: partes.join(' '), duration: 15000 })
+}
+
+async function revisarEnvio(fechaEnviada: string) {
+  let data
+  try {
+    data = await reporteEnergiaService.obtenerEstadoEnvio(fechaEnviada)
+  } catch {
+    return // silencioso -- se reintenta en el próximo tick
+  }
+  if (data.en_curso) return
+  detenerSondeoEnvio()
+  enviando.value = false
+  if (data.simulacro && !data.error_general) {
+    avisarSimulacro(data)
+    return
+  }
+  if (data.error_general) {
+    toast.error('Envío interrumpido', { description: data.error_general, duration: 8000 })
+  } else if (data.fallidos.length) {
+    toast.warning('Reporte enviado con fallos', {
+      description: `${data.enviados ?? 0} fronteras enviadas, ${data.fallidos.length} fallidas — ${data.fallidos.join('; ')}`,
+      duration: 8000,
+    })
+  } else {
+    toast.success('Reporte enviado', {
+      description: `${data.enviados ?? 0} fronteras enviadas`,
+      duration: 3000,
+    })
+  }
+  // El estado de XM es de la fecha enviada: si la persona cambió de día
+  // mientras tanto, no se pisa el panel del día que está viendo.
+  if (fechaISO.value !== fechaEnviada) return
+  await revisarEstadoQuoia()
+  if (estadoQuoia.value && estadoQuoia.value.en_espera > 0) iniciarPollingEstadoQuoia()
 }
 </script>

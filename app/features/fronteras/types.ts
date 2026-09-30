@@ -230,11 +230,36 @@ export interface EstadoEjecucionReporteEnergia {
   fallidas: string[]
 }
 
-export interface ResultadoEnvioReporteEnergia {
-  bloqueado?: boolean
+/** Respuesta inmediata de POST /enviar: o bloqueado, o el envío arrancó en segundo plano. */
+export interface InicioEnvioReporteEnergia {
+  status: 'iniciado' | 'bloqueado'
+  bloqueado: boolean
   motivo_bloqueo?: string
-  enviados: number
+}
+
+/** GET /enviar/estado: `en_curso` mientras corre; al terminar, el resultado del último envío. */
+export interface EstadoEnvioReporteEnergia {
+  en_curso: boolean
+  en_curso_desde?: string | null
+  terminado_en?: string
+  error_general?: string
+  enviados?: number
   fallidos: string[]
+  duracion_s?: number
+  /** Solo en un simulacro: nada se mandó a Quoia ni se guardó. */
+  simulacro?: boolean
+  bloqueado?: boolean
+  se_enviarian?: FronteraSimuladaEnvio[]
+  se_saltarian?: FronteraSimuladaEnvio[]
+  fallarian?: FronteraSimuladaEnvio[]
+}
+
+export interface FronteraSimuladaEnvio {
+  frontera_id: number
+  nombre: string
+  tipo: 'generacion' | 'consumo'
+  energia_kwh?: number | null
+  motivo?: string
 }
 
 export interface FronteraFallidaQuoia {
