@@ -55,7 +55,7 @@ export class GeneracionSolarService extends BaseService {
     })
   }
 
-  /** Top de generación de hoy por medidor e inversor (`MobileResumenView.vue`). */
+  /** Top de generación de hoy por inversores (`MobileResumenView.vue`). */
   obtenerResumenDia(): Promise<RespuestaResumenGeneracionDia> {
     return this.get<RespuestaResumenGeneracionDia>(RUTAS.resumenDia)
   }
