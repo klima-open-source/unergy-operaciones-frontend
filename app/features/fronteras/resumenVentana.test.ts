@@ -19,7 +19,12 @@ import {
   ordenarDia,
   ventana,
 } from './resumenVentana'
-import { GrupoFuenteReporte, TipoFronteraReporte, type FilaResumenVentana } from './types'
+import {
+  CambioPeriodo,
+  GrupoFuenteReporte,
+  TipoFronteraReporte,
+  type FilaResumenVentana,
+} from './types'
 
 const AYER = '2026-09-28'
 
@@ -38,6 +43,7 @@ function fila(parcial: Partial<FilaResumenVentana> = {}): FilaResumenVentana {
     desglose_fuente: [],
     fechas_excluidas: [],
     dias: [],
+    cambio: null,
     ...parcial,
   }
 }
@@ -208,6 +214,25 @@ describe('aplicarFiltros', () => {
     ])
     expect(aplicarFiltros(filas, { ...TODOS, kpi: FiltroKpi.NUNCA })).toEqual([nunca])
     expect(aplicarFiltros(filas, { ...TODOS, kpi: FiltroKpi.SIEMPRE })).toEqual([siempre])
+  })
+})
+
+describe('filtro por cambio contra el período anterior', () => {
+  const sube = filaVista(fila({ frontera_id: 1, cambio: CambioPeriodo.MEJORO }), Periodo.SEMANA, [])
+  const baja = filaVista(
+    fila({ frontera_id: 2, cambio: CambioPeriodo.EMPEORO }),
+    Periodo.SEMANA,
+    [],
+  )
+  const quieta = filaVista(fila({ frontera_id: 3 }), Periodo.SEMANA, [])
+  const filas = [sube, baja, quieta]
+
+  it('"Mejoraron" deja solo las que mejoraron', () => {
+    expect(aplicarFiltros(filas, { ...TODOS, kpi: FiltroKpi.MEJORARON })).toEqual([sube])
+  })
+
+  it('"Empeoraron" deja solo las que empeoraron', () => {
+    expect(aplicarFiltros(filas, { ...TODOS, kpi: FiltroKpi.EMPEORARON })).toEqual([baja])
   })
 })
 

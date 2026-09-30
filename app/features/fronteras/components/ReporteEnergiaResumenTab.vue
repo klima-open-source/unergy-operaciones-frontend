@@ -214,7 +214,7 @@
                   {{ periodo === Periodo.MES ? 'Días del mes' : 'Días de la semana' }} — clic en un
                   día para abrir esa fecha
                 </p>
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-1.5">
+                <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4 lg:grid-cols-7">
                   <button
                     v-for="d in f.dias"
                     :key="d.fecha"
@@ -494,14 +494,14 @@ const kpis = computed<Kpi[]>(() => {
       valor: String(k.mejoraron),
       sub: SUB_CAMBIO,
       color: AZUL,
-      filtro: null,
+      filtro: FiltroKpi.MEJORARON,
     },
     {
       etiqueta: 'Empeoraron',
       valor: String(k.empeoraron),
       sub: SUB_CAMBIO,
       color: NARANJA,
-      filtro: null,
+      filtro: FiltroKpi.EMPEORARON,
     },
   ]
 })

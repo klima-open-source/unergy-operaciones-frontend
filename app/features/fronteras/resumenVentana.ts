@@ -11,6 +11,7 @@
  * Funciones puras, fuera del `.vue`, para poder probarlas sin montar nada.
  */
 import {
+  CambioPeriodo,
   GrupoFuenteReporte,
   TipoFronteraReporte,
   type FilaResumenVentana,
@@ -48,10 +49,12 @@ export const ETIQUETA_TIPO: Record<TipoFronteraReporte, string> = {
   [TipoFronteraReporte.CONSUMO]: 'Consumo',
 }
 
-/** Las dos tarjetas KPI que filtran la tabla al hacerles clic. */
+/** Las tarjetas KPI que filtran la tabla al hacerles clic. */
 export enum FiltroKpi {
   SIEMPRE = 'siempre',
   NUNCA = 'nunca',
+  MEJORARON = 'mejoraron',
+  EMPEORARON = 'empeoraron',
 }
 
 export const COLOR_CATEGORIA: Record<CategoriaDia, string> = {
@@ -339,6 +342,9 @@ export function aplicarFiltros(filas: FilaVista[], filtros: Filtros): FilaVista[
     if (filtros.automatico === FiltroAutomatico.NO_AUTOMATICO && f.esAutomatico) return false
     if (filtros.kpi === FiltroKpi.SIEMPRE && !f.esSiempreAutomatico) return false
     if (filtros.kpi === FiltroKpi.NUNCA && !f.esNuncaAutomatico) return false
+    if (filtros.kpi === FiltroKpi.MEJORARON && f.fila.cambio !== CambioPeriodo.MEJORO) return false
+    if (filtros.kpi === FiltroKpi.EMPEORARON && f.fila.cambio !== CambioPeriodo.EMPEORO)
+      return false
     return !q || coincideBusqueda(f, q)
   })
 }

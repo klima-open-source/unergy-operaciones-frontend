@@ -275,6 +275,12 @@ export enum GrupoFuenteReporte {
   OTRO = 'otro',
 }
 
+/** Cómo le fue a la frontera contra el período anterior de igual duración. */
+export enum CambioPeriodo {
+  MEJORO = 'mejoro',
+  EMPEORO = 'empeoro',
+}
+
 export interface DiaResumenVentana {
   fecha: string
   automatico: boolean
@@ -306,6 +312,8 @@ export interface FilaResumenVentana {
   desglose_fuente: DesgloseFuenteResumen[]
   fechas_excluidas: string[]
   dias: DiaResumenVentana[]
+  /** Más de 2 días automáticos de diferencia contra el período anterior; `null` si no. */
+  cambio: CambioPeriodo | null
 }
 
 export interface KpisResumenVentana {
