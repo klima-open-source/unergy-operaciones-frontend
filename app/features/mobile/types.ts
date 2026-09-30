@@ -12,12 +12,7 @@ export interface EstadoReconectador {
   [clave: string]: unknown
 }
 
-/**
- * El comando va con el token del servidor. `password` es la de la cuenta de la
- * PLATAFORMA de quien lo manda (no la de Solenium): confirma la acción, como la
- * pide SolarView antes de abrir o cerrar un reconectador.
- */
+/** El comando va con el token del servidor: ya no lleva credenciales de Solenium. */
 export interface PayloadComandoReconectador {
   accion: 'ON' | 'OFF'
-  password: string
 }
