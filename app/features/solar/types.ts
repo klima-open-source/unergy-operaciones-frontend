@@ -147,18 +147,6 @@ export interface RespuestaResumenGeneracionDia {
   [clave: string]: unknown
 }
 
-export interface GeneracionHoyProyecto {
-  proyecto_id: number
-  kwh_real?: number | null
-  fuente?: string
-}
-
-/** `GET /generacion-solar/generacion-hoy`. */
-export interface RespuestaGeneracionHoy {
-  proyectos: GeneracionHoyProyecto[]
-  total?: number
-}
-
 /** `GET /generacion-solar/proyecto/:id/historial`. */
 export interface HistorialGeneracionProyecto {
   puntos: unknown[]

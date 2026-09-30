@@ -1,10 +1,8 @@
 /** Monitoreo en vivo de generación solar (datos de Solenium). */
 import type {
   DetalleMonitoreoSolar,
-  GeneracionHoyProyecto,
   HistorialGeneracionProyecto,
   PotenciaInversores,
-  RespuestaGeneracionHoy,
   RespuestaMonitoreoSolar,
   RespuestaResumenGeneracionDia,
 } from '~/features/solar/types'
@@ -16,7 +14,6 @@ const RUTAS = {
   monitoring: `${BASE}/monitoring`,
   monitoringDetalle: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}`,
   invertersPower: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/inverters-power`,
-  generacionHoy: `${BASE}/generacion-hoy`,
   resumenDia: `${BASE}/resumen-dia`,
   historialProyecto: (proyectoId: number) => `${BASE}/proyecto/${proyectoId}/historial`,
 } as const
@@ -56,16 +53,6 @@ export class GeneracionSolarService extends BaseService {
     return this.get<PotenciaInversores>(RUTAS.invertersPower(proyectoId), {
       query: filtros ? { date_from: filtros.dateFrom, date_to: filtros.dateTo } : undefined,
     })
-  }
-
-  async obtenerGeneracionHoy(): Promise<GeneracionHoyProyecto[]> {
-    const data = await this.get<RespuestaGeneracionHoy>(RUTAS.generacionHoy)
-    return data.proyectos ?? []
-  }
-
-  /** Igual que `obtenerGeneracionHoy`, sin desenvolver: `MonitoreoView.vue` también necesita `.total`. */
-  obtenerGeneracionHoyCompleta(): Promise<RespuestaGeneracionHoy> {
-    return this.get<RespuestaGeneracionHoy>(RUTAS.generacionHoy)
   }
 
   /** Top de generación de hoy por medidor e inversor (`MobileResumenView.vue`). */
