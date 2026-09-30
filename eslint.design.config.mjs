@@ -31,6 +31,7 @@ export default defineConfig([
             'md:grid-cols-[minmax(18rem,22rem)_1fr]',
             'grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]',
             'grid-cols-[repeat(auto-fill,minmax(6rem,1fr))]',
+            'grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]',
             // Alturas máximas relativas al viewport (scroll interno de tableros y matrices).
             'max-h-[calc(100dvh-14rem)]',
             'lg:max-h-[calc(100dvh-20rem)]',

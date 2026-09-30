@@ -2,7 +2,7 @@
   <div class="mt-2 shrink-0 rounded-xl border border-border bg-card px-3 pt-2 pb-2">
     <button class="flex w-full items-center gap-2 pt-0.5 pb-2 text-left" @click="open = !open">
       <ZapIcon class="size-4 text-warning" />
-      <span class="flex-1 text-xs font-bold text-unergy-deep">Reconectador</span>
+      <span class="flex-1 text-xs font-bold text-foreground">Reconectador</span>
       <span :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', badgeClass]">{{
         badgeText
       }}</span>
@@ -14,26 +14,26 @@
     <div class="flex gap-1.5">
       <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
         <span class="text-xs font-medium text-muted-foreground">Activa</span>
-        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
           >{{ fmt(relay.potencia_kw, 1) }} <i>kW</i></b
         >
       </div>
       <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
         <span class="text-xs font-medium text-muted-foreground">Reactiva</span>
-        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
           >{{ fmt(relay.reactiva_kva, 1) }} <i>kVA</i></b
         >
       </div>
       <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
         <span class="text-xs font-medium text-muted-foreground">PF</span>
         <b
-          class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+          class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
           >{{ fmt(relay.factor_potencia, 2) }}</b
         >
       </div>
       <div class="flex min-w-0 flex-1 flex-col rounded-lg bg-muted px-1.5 py-1">
         <span class="text-xs font-medium text-muted-foreground">F_ABC</span>
-        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-unergy-deep"
+        <b class="text-xs leading-tight font-bold tracking-tight whitespace-nowrap text-foreground"
           >{{ fmt(relay.frecuencia_hz, 1) }} <i>Hz</i></b
         >
       </div>
@@ -41,10 +41,10 @@
 
     <!-- Detalle por fase: las columnas del panel de Solenium -->
     <div v-if="open" class="mt-2 border-t border-border pt-2">
-      <table class="w-full table-fixed border-collapse">
+      <table class="w-full border-collapse">
         <thead>
           <tr>
-            <th class="w-1/5"></th>
+            <th></th>
             <th :class="thColClass">A</th>
             <th :class="thColClass">B</th>
             <th :class="thColClass">C</th>
@@ -78,19 +78,19 @@
       <div class="mt-1.5 flex justify-between gap-1.5 border-t border-border pt-1.5">
         <span class="text-xs font-semibold text-muted-foreground"
           >U_R
-          <b class="font-bold text-unergy-deep tabular-nums"
+          <b class="font-bold text-foreground tabular-nums"
             >{{ fmt(relay.voltaje_r, 0) }} V</b
           ></span
         >
         <span class="text-xs font-semibold text-muted-foreground"
           >U_S
-          <b class="font-bold text-unergy-deep tabular-nums"
+          <b class="font-bold text-foreground tabular-nums"
             >{{ fmt(relay.voltaje_s, 0) }} V</b
           ></span
         >
         <span class="text-xs font-semibold text-muted-foreground"
           >U_T
-          <b class="font-bold text-unergy-deep tabular-nums"
+          <b class="font-bold text-foreground tabular-nums"
             >{{ fmt(relay.voltaje_t, 0) }} V</b
           ></span
         >
@@ -116,8 +116,8 @@ const props = defineProps<{
 const open = ref(true)
 
 const thColClass = 'pb-1 text-right text-xs font-bold text-muted-foreground'
-const thRowClass = 'w-1/5 text-left text-xs font-bold text-muted-foreground'
-const tdClass = 'py-0.5 text-right text-xs font-semibold text-unergy-deep tabular-nums'
+const thRowClass = 'text-left text-xs font-bold text-muted-foreground'
+const tdClass = 'py-0.5 text-right text-xs font-semibold text-foreground tabular-nums'
 
 const badgeText = computed(() =>
   props.relay.active === true ? 'ON' : props.relay.active === false ? 'OFF' : '—',

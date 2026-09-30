@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex min-h-dvh w-full max-w-full items-center justify-center overflow-x-hidden bg-linear-160 from-unergy-deep from-0% via-unergy-purple-dark via-60% to-unergy-purple to-100% p-4"
+    class="flex min-h-dvh w-full max-w-full items-center justify-center overflow-x-hidden bg-linear-160 from-foreground from-0% via-primary via-60% to-primary to-100% p-4"
   >
     <div
       class="w-full max-w-90 rounded-3xl border border-white/12 bg-white/6 px-6 pt-8 pb-6 text-center shadow-lg backdrop-blur-md"
@@ -14,7 +14,7 @@
           >Correo
           <input
             v-model="email"
-            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-unergy-yellow focus:bg-white/12 focus:outline-none"
+            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-highlight focus:bg-white/12 focus:outline-none"
             type="email"
             inputmode="email"
             autocomplete="username"
@@ -26,7 +26,7 @@
           >Contraseña
           <input
             v-model="password"
-            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-unergy-yellow focus:bg-white/12 focus:outline-none"
+            class="mt-2 w-full rounded-xl border-2 border-white/15 bg-white/8 px-4 py-3.5 text-base text-white placeholder:text-white/40 focus:border-highlight focus:bg-white/12 focus:outline-none"
             type="password"
             autocomplete="current-password"
             placeholder="••••••••"
@@ -42,7 +42,7 @@
         </div>
 
         <button
-          class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-unergy-yellow p-4 text-base font-bold text-unergy-deep disabled:opacity-50"
+          class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-highlight p-4 text-base font-bold text-foreground disabled:opacity-50"
           type="submit"
           :disabled="loading || !email || !password"
         >

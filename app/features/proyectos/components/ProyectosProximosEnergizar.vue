@@ -1,11 +1,11 @@
 <template>
-  <div class="rounded-xl border border-unergy-deep/10 bg-card">
+  <div class="rounded-xl border border-foreground/10 bg-card">
 
     <!-- Header -->
-    <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-unergy-deep/10">
+    <div class="px-5 py-4 flex items-center justify-between gap-3 flex-wrap border-b border-foreground/10">
       <div class="flex items-center gap-2.5 flex-wrap">
-        <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs bg-unergy-deep/5">
-          <span class="text-base font-extrabold tabular-nums text-unergy-deep">{{ projects.length }}</span>
+        <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs bg-foreground/5">
+          <span class="text-base font-extrabold tabular-nums text-foreground">{{ projects.length }}</span>
           <span class="text-muted-foreground whitespace-nowrap">en pipeline</span>
         </div>
         <button
@@ -73,7 +73,7 @@
         <template #empty>
           <div class="text-center py-8 text-sm text-muted-foreground">
             <template v-if="loading">
-              <LoaderCircleIcon class="size-5 animate-spin text-unergy-purple" />
+              <LoaderCircleIcon class="size-5 animate-spin text-primary" />
               <p class="mt-2">Cargando proyectos del pipeline…</p>
             </template>
             <template v-else-if="warning">
@@ -123,7 +123,7 @@
         <!-- Construction progress (Sun Factory, read-only) -->
         <Column header="% Obra">
           <template #body="{ data }">
-            <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums text-unergy-deep">
+            <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums text-foreground">
               {{ Number(data.avancePct).toFixed(1) }}%
             </span>
             <span v-else class="text-sm text-muted-foreground/50">—</span>
@@ -136,20 +136,20 @@
             <span v-if="data.tieneFrontera" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate bg-success/10 text-success" v-tooltip.top="data.codigoFrontera">
               <CircleCheckIcon class="size-4" /> {{ data.codigoFrontera }}
             </span>
-            <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate text-unergy-deep/30">—</span>
+            <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate text-foreground/30">—</span>
           </template>
         </Column>
 
         <!-- Linked PPA contracts (read-only — se gestionan en el flujo PPA) -->
         <Column header="Contratos">
           <template #body="{ data }">
-            <span v-if="data.contracts && data.contracts.length" class="inline-flex items-center gap-1 text-xs whitespace-nowrap font-semibold text-unergy-purple-dark"
+            <span v-if="data.contracts && data.contracts.length" class="inline-flex items-center gap-1 text-xs whitespace-nowrap font-semibold text-primary"
                   v-tooltip.top="data.contracts.join(', ')">
               <FileIcon class="size-4" />
               {{ data.contracts[0] }}<template v-if="data.contracts.length > 1"> +{{ data.contracts.length - 1 }}</template>
             </span>
-            <span v-else class="inline-flex items-center gap-1 text-xs whitespace-nowrap text-unergy-deep/35">
-              <span class="size-1.5 rounded-full bg-unergy-deep/25" /> Sin contratos
+            <span v-else class="inline-flex items-center gap-1 text-xs whitespace-nowrap text-foreground/35">
+              <span class="size-1.5 rounded-full bg-foreground/25" /> Sin contratos
             </span>
           </template>
         </Column>
@@ -157,7 +157,7 @@
         <!-- Expected monthly MWh (read-only, viene de Sun Factory) -->
         <Column header="MWh / mes">
           <template #body="{ data }">
-            <span class="text-sm font-mono tabular-nums" :class="{ 'text-unergy-deep/30': !data.monthlyMwh }">
+            <span class="text-sm font-mono tabular-nums" :class="{ 'text-foreground/30': !data.monthlyMwh }">
               {{ Number(data.monthlyMwh).toFixed(2) }}
             </span>
           </template>
@@ -182,7 +182,7 @@
               <div
                 v-for="col in monthColumns" :key="col.field"
                 class="rounded-lg border px-1.5 py-2 text-center"
-                :class="isProrated(data, col.year, col.month) ? 'bg-warning/15 border-warning/40' : 'bg-card border-unergy-deep/10'"
+                :class="isProrated(data, col.year, col.month) ? 'bg-warning/15 border-warning/40' : 'bg-card border-foreground/10'"
                 v-tooltip.top="isProrated(data, col.year, col.month) ? 'Mes parcial — prorrateado desde la energización' : ''"
               >
                 <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ col.header }}</div>
@@ -190,7 +190,7 @@
                   class="text-sm mt-0.5 tabular-nums"
                   :class="[
                     calculateGeneration(data, col.year, col.month) === 0 ? 'font-medium' : 'font-bold',
-                    isProrated(data, col.year, col.month) ? 'text-warning' : calculateGeneration(data, col.year, col.month) === 0 ? 'text-unergy-deep/30' : 'text-unergy-deep',
+                    isProrated(data, col.year, col.month) ? 'text-warning' : calculateGeneration(data, col.year, col.month) === 0 ? 'text-foreground/30' : 'text-foreground',
                   ]"
                 >{{ calculateGeneration(data, col.year, col.month).toFixed(2) }}</div>
               </div>
@@ -439,7 +439,7 @@ function isProrated(project, year, month) {
 
 /* Estilos de PrimeVue (DataTable): no controlamos su markup. */
 :deep(.energ-table .p-datatable-thead th) {
-  background: color-mix(in oklab, var(--color-unergy-deep) 5%, transparent);
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
   color: var(--muted-foreground);
   font-size: var(--text-xs);
   font-weight: 700;
@@ -451,7 +451,7 @@ function isProrated(project, year, month) {
 :deep(.energ-table .p-datatable-tbody td) {
   padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
   font-size: var(--text-sm);
-  color: var(--color-unergy-deep);
+  color: var(--foreground);
   vertical-align: middle;
 }
 </style>

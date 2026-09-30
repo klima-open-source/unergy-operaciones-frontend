@@ -320,7 +320,7 @@
           <tbody>
             <tr v-for="h in 12" :key="h - 1">
               <td
-                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-unergy-deep"
+                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-foreground"
               >
                 {{ h - 1 }}h
               </td>
@@ -328,7 +328,7 @@
                 <Input
                   :model-value="curvaEditable[h - 1] ?? ''"
                   inputmode="decimal"
-                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
                   @update:model-value="(v) => (curvaEditable[h - 1] = v)"
                   @paste="onPasteHora($event, h - 1)"
                 />
@@ -338,7 +338,7 @@
                   :model-value="curvaRespaldoEditable[h - 1] ?? ''"
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h - 1)"
-                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
                   :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = v)"
                   @paste="onPasteHoraRespaldo($event, h - 1)"
@@ -370,7 +370,7 @@
           <tbody>
             <tr v-for="h in 12" :key="h + 11">
               <td
-                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-unergy-deep"
+                class="border bg-muted px-2.5 font-mono text-xs font-bold whitespace-nowrap text-foreground"
               >
                 {{ h + 11 }}h
               </td>
@@ -378,7 +378,7 @@
                 <Input
                   :model-value="curvaEditable[h + 11] ?? ''"
                   inputmode="decimal"
-                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
                   @update:model-value="(v) => (curvaEditable[h + 11] = v)"
                   @paste="onPasteHora($event, h + 11)"
                 />
@@ -388,7 +388,7 @@
                   :model-value="curvaRespaldoEditable[h + 11] ?? ''"
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h + 11)"
-                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-unergy-purple focus:outline-solid dark:bg-transparent"
+                  class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
                   :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = v)"
                   @paste="onPasteHoraRespaldo($event, h + 11)"

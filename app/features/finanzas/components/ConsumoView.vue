@@ -11,7 +11,7 @@
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
@@ -58,7 +58,7 @@
 
     <!-- Tabla: 24 horas + total. Las tres primeras columnas quedan fijas para no
          perder de vista el proyecto al desplazarse por las horas. -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+    <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>
@@ -70,7 +70,7 @@
                   class="px-2 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase whitespace-nowrap">
                 {{ h }}
               </th>
-              <th class="px-3 py-2.5 text-right font-semibold text-xs uppercase whitespace-nowrap text-unergy-deep border-l border-border"
+              <th class="px-3 py-2.5 text-right font-semibold text-xs uppercase whitespace-nowrap text-foreground border-l border-border"
                   >Total diario</th>
             </tr>
           </thead>
@@ -84,7 +84,7 @@
                   class="px-2 py-2 text-right font-mono text-xs text-muted-foreground">
                 {{ fmtNum(v) }}
               </td>
-              <td class="px-3 py-2 text-right font-mono text-xs font-semibold text-unergy-purple border-l border-border"
+              <td class="px-3 py-2 text-right font-mono text-xs font-semibold text-primary border-l border-border"
                   >
                 {{ fmtNum(row.total_diario) }}
               </td>

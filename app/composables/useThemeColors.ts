@@ -22,8 +22,7 @@ export type TokenColor =
   | 'chart-3'
   | 'chart-4'
   | 'chart-5'
-  | 'unergy-purple'
-  | 'unergy-deep'
+  | 'highlight'
 
 export function useThemeColors() {
   const colorMode = useColorMode()
@@ -32,8 +31,7 @@ export function useThemeColors() {
   function color(token: TokenColor, alpha?: number): string {
     // Dependencia reactiva: el llamador (computed/watch) se re-evalúa al cambiar de tema.
     void colorMode.value
-    const base = token.startsWith('unergy-') ? `--color-${token}` : `--${token}`
-    const valor = getComputedStyle(document.documentElement).getPropertyValue(base).trim()
+    const valor = getComputedStyle(document.documentElement).getPropertyValue(`--${token}`).trim()
     if (alpha === undefined) return valor
     return `color-mix(in oklab, ${valor} ${Math.round(alpha * 100)}%, transparent)`
   }

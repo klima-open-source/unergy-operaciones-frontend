@@ -744,8 +744,8 @@ const MESES_ES = [
 ]
 // Tokens del tema como `var()`: las series (SVG y puntos de leyenda) siguen el modo claro/oscuro.
 const PALETTE = [
-  'var(--color-unergy-purple)',
   'var(--primary)',
+  'var(--muted-foreground)',
   'var(--success)',
   'var(--warning)',
   'var(--destructive)',

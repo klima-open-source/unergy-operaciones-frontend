@@ -17,8 +17,8 @@
     <!-- Dialog: subir Excel -->
     <Dialog v-model:visible="excelVisible" header="Subir Excel de costos" modal class="w-full max-w-lg">
       <div class="space-y-4 pt-1">
-        <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-unergy-purple-light/40 bg-unergy-purple/5 px-4 py-5.5 transition-colors duration-150 hover:border-unergy-purple hover:bg-unergy-purple/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendoExcel" @click="seleccionarExcel">
-          <FileSpreadsheetIcon class="size-6 text-unergy-purple" />
+        <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-5.5 transition-colors duration-150 hover:border-primary hover:bg-primary/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendoExcel" @click="seleccionarExcel">
+          <FileSpreadsheetIcon class="size-6 text-primary" />
           <p class="text-sm font-semibold text-foreground mt-2">Seleccionar Excel</p>
           <p class="text-xs text-muted-foreground">.xlsx o .xls · un archivo por carga</p>
         </button>
@@ -106,7 +106,7 @@
     </Dialog>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <Select v-model="filtros.project" :options="proyectosOptions" optionLabel="label"
@@ -159,7 +159,7 @@
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+    <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
       <div class="overflow-x-auto">
         <table class="w-full text-sm border-collapse">
           <thead>

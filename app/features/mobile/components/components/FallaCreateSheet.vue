@@ -3,7 +3,7 @@
     <Transition name="fsheet">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        class="fixed inset-0 z-50 flex items-end bg-foreground/45"
         @click.self="close"
       >
         <div
@@ -11,8 +11,8 @@
         >
           <div class="mx-auto mt-1 mb-3 h-1 w-10 rounded-full bg-border" />
           <div class="mb-3 flex items-center">
-            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-unergy-deep"
-              ><CirclePlusIcon class="size-4 text-unergy-purple" /> Registrar falla</span
+            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-foreground"
+              ><CirclePlusIcon class="size-4 text-primary" /> Registrar falla</span
             >
             <button class="p-1 text-muted-foreground" @click="close">
               <XIcon class="size-4" />
@@ -42,7 +42,7 @@
                   :key="c.codigo"
                   type="button"
                   :class="[CHIP, f.categoria === c.codigo ? CHIP_ACTIVO : CHIP_IDLE]"
-                  :style="{ '--c': c.color_hex || 'var(--color-unergy-purple)' }"
+                  :style="{ '--c': c.color_hex || 'var(--primary)' }"
                   @click="seleccionarCategoria(c.codigo)"
                 >
                   <component :is="iconoCategoriaFalla(c.codigo)" class="size-3" />
@@ -95,7 +95,7 @@
                 ><input
                   v-model="f.afecta_medicion"
                   type="checkbox"
-                  class="size-4.5 accent-unergy-purple"
+                  class="size-4.5 accent-primary"
                 />
                 Afecta la medición de la frontera</label
               >
@@ -103,7 +103,7 @@
                 ><input
                   v-model="f.perdida_comunicacion"
                   type="checkbox"
-                  class="size-4.5 accent-unergy-purple"
+                  class="size-4.5 accent-primary"
                 />
                 Pérdida de comunicación de la frontera</label
               >
@@ -126,7 +126,7 @@
                   Sin inversores configurados.
                   <button
                     type="button"
-                    class="ml-1 text-xs font-bold text-unergy-purple"
+                    class="ml-1 text-xs font-bold text-primary"
                     @click="prefillMinigranja"
                   >
                     Crear config típica minigranja
@@ -160,12 +160,12 @@
                   <input
                     v-model.number="nuevoInv.potencia_nominal_kw"
                     type="number"
-                    :class="[CONTROL, CONTROL_OK, 'w-22']"
+                    :class="[CONTROL, CONTROL_OK]"
                     placeholder="kW"
                   />
                   <button
                     type="button"
-                    class="w-11.5 shrink-0 rounded-xl bg-unergy-purple text-white"
+                    class="w-11.5 shrink-0 rounded-xl bg-primary text-primary-foreground"
                     @click="agregarInv"
                   >
                     <PlusIcon class="size-3" />
@@ -288,7 +288,7 @@
           </div>
 
           <button
-            class="mt-2.5 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-unergy-purple p-4 text-base font-bold text-white disabled:opacity-50"
+            class="mt-2.5 flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary p-4 text-base font-bold text-primary-foreground disabled:opacity-50"
             :disabled="saving"
             @click="submit"
           >
@@ -410,12 +410,12 @@ const labelOpciones = computed(
 const CHIP = 'flex items-center gap-1 rounded-xl border-2 px-3.5 py-2 text-sm font-semibold'
 const CHIP_IDLE = 'border-border bg-card text-muted-foreground'
 const CHIP_ACTIVO = 'border-(--c) bg-(--c) text-white'
-const CHIP_ACTIVO_PURPURA = 'border-unergy-purple bg-unergy-purple text-white'
+const CHIP_ACTIVO_PURPURA = 'border-primary bg-primary text-primary-foreground'
 
 const LABEL = 'mb-3.5 block text-xs font-semibold text-muted-foreground'
 const CONTROL =
-  'w-full rounded-xl border-2 bg-card px-3.5 py-3 text-base text-unergy-deep focus:outline-none'
-const CONTROL_OK = 'border-border focus:border-unergy-purple'
+  'w-full rounded-xl border-2 bg-card px-3.5 py-3 text-base text-foreground focus:outline-none'
+const CONTROL_OK = 'border-border focus:border-primary'
 const CONTROL_ERR = 'border-destructive'
 const BANNER = 'mt-2.5 rounded-lg border px-2.5 py-2 text-xs'
 const BANNER_WARN = 'border-warning/30 bg-warning/10 text-warning'

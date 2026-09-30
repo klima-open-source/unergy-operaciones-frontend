@@ -2,7 +2,7 @@
   <!-- Botón trigger -->
   <div class="inline-block">
     <input ref="zipInputRef" type="file" accept=".zip" class="hidden" @change="onZipSelected" />
-    <Button label="Cargar ZIP" size="small" outlined :loading="procesando" @click="zipInputRef.click()" class="border-unergy-purple text-unergy-purple">
+    <Button label="Cargar ZIP" size="small" outlined :loading="procesando" @click="zipInputRef.click()" class="border-primary text-primary">
       <template #icon><UploadIcon class="size-4" /></template>
     </Button>
   </div>
@@ -82,7 +82,7 @@
                       <span class="text-muted-foreground">Arrendatario:</span>
                       <input v-model="grupo.nombreArrendatario" type="text"
                         placeholder="(vacío)"
-                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/20" />
+                        class="text-xs border border-border rounded px-1.5 py-0.5 bg-card focus:outline-none focus:ring-1 focus:ring-primary/20" />
                       <span class="ml-auto text-muted-foreground">{{ grupo.predios.length }} predio(s)</span>
                     </div>
                   </td>
@@ -96,12 +96,12 @@
                     <RefreshCwIcon class="text-xs ml-1 size-4 text-warning" v-if="predio.yaExiste"  title="Ya existe — se reemplazará" />
                   </td>
                   <td class="px-3 py-2">
-                    <div v-if="predio.proyectoId" class="text-xs font-medium text-unergy-deep">
+                    <div v-if="predio.proyectoId" class="text-xs font-medium text-foreground">
                       {{ predio.proyectoNombre }}
                     </div>
                     <select v-else
                       v-model="predio.proyectoId"
-                      class="text-xs border border-destructive/30 rounded px-2 py-1 w-full bg-white"
+                      class="text-xs border border-destructive/30 rounded px-2 py-1 w-full bg-card"
                       @change="onProyectoSeleccionado(predio)">
                       <option :value="null">— Sin match (SIN-MATCH) —</option>
                       <option v-for="p in props.proyectos" :key="p.id" :value="p.id">
@@ -111,7 +111,7 @@
                     <!-- Selector de arrendador: solo cuando el proyecto tiene MÁS DE UNO -->
                     <select v-if="predio.arrendadorOpciones && predio.arrendadorOpciones.length > 1"
                       v-model="predio.arrArrendadorId"
-                      class="text-xs border border-primary/20 rounded px-1.5 py-0.5 mt-1 w-full bg-white"
+                      class="text-xs border border-primary/20 rounded px-1.5 py-0.5 mt-1 w-full bg-card"
                       title="Este proyecto tiene varios arrendadores: elige a cuál corresponde esta cuenta de cobro">
                       <option v-for="a in predio.arrendadorOpciones" :key="a.id" :value="a.id">
                         {{ a.nombre }}
@@ -152,7 +152,7 @@
         <div class="flex gap-2">
           <Button label="Cancelar" size="small" outlined severity="secondary"
             :disabled="guardando" @click="showDialog = false" />
-          <Button :label="hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar'" size="small" :loading="guardando" :disabled="totalPredios === 0" @click="confirmar" class="bg-unergy-purple border-unergy-purple">
+          <Button :label="hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar'" size="small" :loading="guardando" :disabled="totalPredios === 0" @click="confirmar" class="bg-primary border-primary">
             <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>

@@ -63,24 +63,30 @@ function toFrontend(r: AjusteGarantia): AjusteGarantiaFE {
   }
 }
 
+// El backend guarda los montos y precios como decimales de 2 cifras y rechaza
+// (400) cualquier valor con más; el snapshot conserva la precisión completa.
+function aDecimal2(v: number | null | undefined): number | null | undefined {
+  return v == null ? v : Math.round(v * 100) / 100
+}
+
 // Solo se incluyen los campos presentes en `r` (permite updates parciales):
 // campo a campo y no en bucle, para no perder el tipo de cada valor.
 function toBackend(r: CamposAjusteGarantiaFE): PayloadAjusteGarantia {
   const out: PayloadAjusteGarantia = {}
   if ('tipo' in r) out.tipo = r.tipo
   if ('fecha' in r) out.fecha = r.fecha
-  if ('pb' in r) out.pb = r.pb
-  if ('restricciones' in r) out.restricciones = r.restricciones
-  if ('stn' in r) out.stn = r.stn
-  if ('trm' in r) out.trm = r.trm
-  if ('ptb' in r) out.ptb = r.ptb
-  if ('totalUNGC' in r) out.total_ungc = r.totalUNGC
-  if ('totalUNGG' in r) out.total_ungg = r.totalUNGG
-  if ('totalConsignar' in r) out.total_consignar = r.totalConsignar
-  if ('disponibleCustodia' in r) out.disponible_custodia = r.disponibleCustodia
-  if ('congelado' in r) out.congelado = r.congelado
-  if ('saldo' in r) out.saldo = r.saldo
-  if ('totalAjusteTXR' in r) out.total_ajuste_txr = r.totalAjusteTXR
+  if ('pb' in r) out.pb = aDecimal2(r.pb)
+  if ('restricciones' in r) out.restricciones = aDecimal2(r.restricciones)
+  if ('stn' in r) out.stn = aDecimal2(r.stn)
+  if ('trm' in r) out.trm = aDecimal2(r.trm)
+  if ('ptb' in r) out.ptb = aDecimal2(r.ptb)
+  if ('totalUNGC' in r) out.total_ungc = aDecimal2(r.totalUNGC)
+  if ('totalUNGG' in r) out.total_ungg = aDecimal2(r.totalUNGG)
+  if ('totalConsignar' in r) out.total_consignar = aDecimal2(r.totalConsignar)
+  if ('disponibleCustodia' in r) out.disponible_custodia = aDecimal2(r.disponibleCustodia)
+  if ('congelado' in r) out.congelado = aDecimal2(r.congelado)
+  if ('saldo' in r) out.saldo = aDecimal2(r.saldo)
+  if ('totalAjusteTXR' in r) out.total_ajuste_txr = aDecimal2(r.totalAjusteTXR)
   if ('snapshot' in r) out.snapshot = r.snapshot
   return out
 }

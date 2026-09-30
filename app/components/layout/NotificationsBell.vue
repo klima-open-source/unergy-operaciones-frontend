@@ -19,7 +19,7 @@ const TIPO_CLASES: Record<string, string> = {
   alerta: 'bg-destructive/10 text-destructive',
   accion: 'bg-primary/10 text-primary',
 }
-const TIPO_CLASE_DEFAULT = 'bg-sky-600/10 text-sky-600'
+const TIPO_CLASE_DEFAULT = 'bg-chart-2/10 text-chart-2'
 
 function tipoClase(tipo?: string | null): string {
   return (tipo && TIPO_CLASES[tipo]) || TIPO_CLASE_DEFAULT

@@ -1,10 +1,10 @@
 <template>
-  <div class="relative flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+  <div class="relative flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <header
-      class="cgm-topbar flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+      class="cgm-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex-1 text-base font-bold tracking-wide"
-        ><MailIcon class="mr-1.5 inline size-4 text-unergy-yellow" /> Reporte CGM</span
+        ><MailIcon class="mr-1.5 inline size-4 text-highlight" /> Reporte CGM</span
       >
       <button
         class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
@@ -25,7 +25,7 @@
           <span>Desde</span>
           <input
             type="date"
-            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-unergy-deep normal-case"
+            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-foreground normal-case"
             v-model="fechaDesdeStr"
             :max="fechaHastaStr || ayerStr"
           />
@@ -36,7 +36,7 @@
           <span>Hasta</span>
           <input
             type="date"
-            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-unergy-deep normal-case"
+            class="rounded-lg border-2 border-border bg-card px-2.5 py-2 text-sm font-semibold tracking-normal text-foreground normal-case"
             v-model="fechaHastaStr"
             :min="fechaDesdeStr"
             :max="ayerStr"
@@ -52,7 +52,7 @@
           :class="[
             'h-10 flex-1 rounded-lg border-2 text-xs font-bold',
             filtroTipo === opt.value
-              ? 'border-unergy-purple bg-unergy-purple text-white'
+              ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-muted-foreground',
           ]"
           @click="filtroTipo = opt.value"
@@ -65,11 +65,11 @@
         v-model="busqueda"
         type="text"
         placeholder="Buscar destinatario…"
-        class="mb-3 w-full rounded-lg border-2 border-border bg-card px-3 py-2.5 text-sm text-unergy-deep placeholder:text-muted-foreground"
+        class="mb-3 w-full rounded-lg border-2 border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
       />
 
       <div v-if="loading" class="flex items-center gap-2 px-1 py-3.5 text-sm text-muted-foreground">
-        <LoaderCircleIcon class="size-4 animate-spin text-unergy-purple" /> Cargando…
+        <LoaderCircleIcon class="size-4 animate-spin text-primary" /> Cargando…
       </div>
 
       <template v-else>
@@ -88,7 +88,7 @@
           <label class="shrink-0 pt-0.5" @click.stop>
             <input
               type="checkbox"
-              class="size-4.5 accent-unergy-purple"
+              class="size-4.5 accent-primary"
               :checked="seleccionados.has(row.key)"
               :disabled="!row.correos.length"
               @change="toggleSeleccion(row.key)"
@@ -101,7 +101,7 @@
                 :class="[
                   'rounded-full px-2 py-0.5 text-xs font-extrabold whitespace-nowrap',
                   row.tipo === 'Operador de Red'
-                    ? 'bg-unergy-purple/10 text-unergy-purple-dark'
+                    ? 'bg-primary/10 text-primary'
                     : 'bg-success/15 text-success',
                 ]"
               >
@@ -121,7 +121,7 @@
               :class="[
                 'mb-1 text-sm',
                 row.nombre
-                  ? 'font-bold text-unergy-deep'
+                  ? 'font-bold text-foreground'
                   : 'font-medium text-muted-foreground italic',
               ]"
             >
@@ -131,7 +131,7 @@
             <RouterLink
               v-if="row.linkCorregir && row.correos.length"
               :to="row.linkCorregir"
-              class="inline-block text-xs font-semibold text-unergy-purple-dark underline"
+              class="inline-block text-xs font-semibold text-primary underline"
               @click.stop
             >
               {{ row.correos.length }} correo{{ row.correos.length > 1 ? 's' : '' }}
@@ -152,7 +152,7 @@
               <button
                 v-if="proyectosDeFila(row.key).size"
                 type="button"
-                class="mb-1.5 ml-auto block text-xs font-bold text-unergy-purple underline"
+                class="mb-1.5 ml-auto block text-xs font-bold text-primary underline"
                 @click.stop="limpiarProyectos(row.key)"
               >
                 Quitar selección (volver a todos)
@@ -165,7 +165,7 @@
                   :class="[
                     'rounded-md border px-2 py-1 text-xs transition-opacity duration-150',
                     proyectosDeFila(row.key).has(p.id)
-                      ? 'border-unergy-purple bg-unergy-purple text-white'
+                      ? 'border-primary bg-primary text-primary-foreground'
                       : proyectosDeFila(row.key).size
                         ? 'border-border bg-muted/30 text-muted-foreground/50'
                         : 'border-border bg-muted/30 text-muted-foreground',
@@ -187,7 +187,7 @@
       class="cgm-send-bar absolute inset-x-0 bg-linear-to-t from-muted from-70% to-transparent px-3 py-2.5"
     >
       <button
-        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-unergy-purple text-sm font-bold text-white shadow-md disabled:opacity-40 disabled:shadow-none"
+        class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-md disabled:opacity-40 disabled:shadow-none"
         :disabled="!totalSeleccionados || enviando"
         @click="enviarSeleccionados"
       >

@@ -23,7 +23,7 @@ const data = computed<ChartData<'bar'>>(() => ({
     {
       data: props.bars.map((b) => b.neto),
       backgroundColor: props.bars.map((b) =>
-        b.neto >= 0 ? color('unergy-purple') : color('destructive'),
+        b.neto >= 0 ? color('primary') : color('destructive'),
       ),
       borderRadius: 4,
       maxBarThickness: 28,

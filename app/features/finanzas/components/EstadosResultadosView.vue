@@ -13,14 +13,14 @@
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Documento</label>
         <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
           <button v-for="t in TIPOS" :key="t.key" class="cursor-pointer rounded-md px-3 py-1 text-xs font-bold whitespace-nowrap transition-all duration-150"
                   :class="tipo === t.key
-                    ? 'bg-unergy-purple text-unergy-avena shadow-sm'
-                    : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'" @click="tipo = t.key">
+                    ? 'bg-primary text-background shadow-sm'
+                    : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'" @click="tipo = t.key">
             {{ t.label }}
           </button>
         </div>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Tabla -->
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+    <div class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
       <div v-if="loading" class="p-10 flex justify-center">
         <LoaderCircleIcon class="text-muted-foreground size-6 animate-spin" />
       </div>
@@ -99,7 +99,7 @@
               <td class="px-4 py-2">
                 <FileSpreadsheetIcon class="mr-2 size-3 text-success" />
                 <span :title="a.nombre">{{ a.descripcion || 'Cruce de facturas' }}</span>
-                <span v-if="a.es_copia" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-primary/10 text-unergy-purple-dark"
+                <span v-if="a.es_copia" class="ml-2 text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary"
                        title="Duplicado creado en Drive">copia</span>
               </td>
               <td class="px-4 py-2 text-xs text-muted-foreground">{{ fmtPeriodo(a.mes, a.anio) }}</td>

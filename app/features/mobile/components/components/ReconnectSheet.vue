@@ -3,7 +3,7 @@
     <Transition name="sheet">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        class="fixed inset-0 z-50 flex items-end bg-foreground/45"
         @click.self="close"
       >
         <div class="rs-sheet w-full rounded-t-3xl bg-card px-5 pt-2.5 shadow-lg">
@@ -17,7 +17,7 @@
               ]"
               >{{ accion }}</span
             >
-            <span class="flex-1 text-base font-bold text-unergy-deep"
+            <span class="flex-1 text-base font-bold text-foreground"
               >Reconectador · {{ nombre }}</span
             >
             <button class="p-1 text-muted-foreground" @click="close">

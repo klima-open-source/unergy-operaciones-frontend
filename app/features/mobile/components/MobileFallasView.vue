@@ -1,11 +1,11 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- TOP BAR -->
     <header
-      class="mf-topbar flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+      class="mf-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex flex-1 items-center gap-1.5 text-base font-bold"
-        ><WrenchIcon class="size-4 text-unergy-yellow" /> Fallas</span
+        ><WrenchIcon class="size-4 text-highlight" /> Fallas</span
       >
       <button
         class="relative size-9 rounded-lg bg-white/10 text-white"
@@ -15,12 +15,12 @@
         <BellIcon class="size-4" />
         <span
           v-if="unreadCount > 0"
-          class="absolute top-px right-px flex h-4.5 min-w-4.5 items-center justify-center rounded-full border-2 border-unergy-deep bg-destructive px-1 text-xs leading-none font-extrabold text-white"
+          class="absolute top-px right-px flex h-4.5 min-w-4.5 items-center justify-center rounded-full border-2 border-foreground bg-destructive px-1 text-xs leading-none font-extrabold text-white"
           >{{ unreadCount > 9 ? '9+' : unreadCount }}</span
         >
       </button>
       <button
-        class="relative size-9 rounded-lg bg-unergy-purple text-white"
+        class="relative size-9 rounded-lg bg-primary text-primary-foreground"
         @click="createOpen = true"
         title="Registrar falla"
       >
@@ -34,7 +34,7 @@
         <SearchIcon class="size-4 text-muted-foreground" />
         <input
           v-model="search"
-          class="flex-1 border-none bg-transparent text-base text-unergy-deep outline-none"
+          class="flex-1 border-none bg-transparent text-base text-foreground outline-none"
           placeholder="Buscar código, descripción, proyecto…"
         />
         <XIcon class="size-4 text-muted-foreground" v-if="search" @click="search = ''" />
@@ -70,7 +70,7 @@
     <!-- LISTA -->
     <main class="flex-1 overflow-y-auto px-3.5 py-3">
       <div v-if="loading" :class="STATE">
-        <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" /> Cargando fallas…
+        <LoaderCircleIcon class="size-6 animate-spin text-primary" /> Cargando fallas…
       </div>
       <div v-else-if="!filtradas.length" :class="STATE">
         <CircleCheckIcon class="size-8 text-success" />
@@ -78,7 +78,7 @@
           fallas.length ? 'Sin resultados con estos filtros' : 'No hay fallas registradas'
         }}</span>
         <button
-          class="mt-1.5 flex items-center gap-2 rounded-xl bg-unergy-purple px-5 py-2.5 text-base font-bold text-white"
+          class="mt-1.5 flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-base font-bold text-primary-foreground"
           @click="createOpen = true"
         >
           <PlusIcon class="size-4" /> Registrar falla
@@ -97,21 +97,20 @@
           />
           <div class="min-w-0 flex-1 px-4 py-3">
             <div class="mb-1 flex items-center justify-between gap-2">
-              <code
-                class="rounded-md bg-unergy-purple/10 px-2 py-px font-mono text-xs text-unergy-purple-dark"
-                >{{ f.codigo_interno }}</code
-              >
+              <code class="rounded-md bg-primary/10 px-2 py-px font-mono text-xs text-primary">{{
+                f.codigo_interno
+              }}</code>
               <span
                 class="rounded-md bg-(--c)/15 px-2 py-0.5 text-xs font-extrabold text-(--c)"
                 :style="{ '--c': colorEstado(f.estado?.codigo) }"
                 >{{ f.estado?.etiqueta }}</span
               >
             </div>
-            <div class="text-sm leading-tight font-bold text-unergy-deep">
+            <div class="text-sm leading-tight font-bold text-foreground">
               {{ f.tipo?.etiqueta || 'Falla' }}
             </div>
             <div class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <ZapIcon class="size-3 text-unergy-purple" />
+              <ZapIcon class="size-3 text-primary" />
               {{ f.proyecto?.nombre_comercial || '—' }}
             </div>
             <div class="mt-2 flex items-center gap-2.5">
@@ -174,7 +173,7 @@ import FallaCreateSheet from '~/features/mobile/components/components/FallaCreat
 import NotificationsSheet from '~/features/mobile/components/components/NotificationsSheet.vue'
 
 const FCHIP = 'shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-2 text-sm font-semibold'
-const FCHIP_ON = 'border-unergy-deep bg-unergy-deep text-white'
+const FCHIP_ON = 'border-foreground bg-foreground text-background'
 const FCHIP_OFF = 'border-border bg-card text-muted-foreground'
 const STATE =
   'flex flex-col items-center justify-center gap-3 px-5 py-15 text-center text-base text-muted-foreground'

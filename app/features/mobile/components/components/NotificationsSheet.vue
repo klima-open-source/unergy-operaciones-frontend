@@ -3,7 +3,7 @@
     <Transition name="nsheet">
       <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        class="fixed inset-0 z-50 flex items-end bg-foreground/45"
         @click.self="close"
       >
         <div
@@ -12,12 +12,12 @@
           <div class="mx-auto mt-1 mb-3 h-1 w-10 rounded-full bg-border" />
 
           <div class="mb-2.5 flex items-center gap-2.5">
-            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-unergy-deep"
-              ><BellIcon class="size-4 text-unergy-purple" /> Notificaciones</span
+            <span class="flex flex-1 items-center gap-1.5 text-base font-bold text-foreground"
+              ><BellIcon class="size-4 text-primary" /> Notificaciones</span
             >
             <button
               v-if="items.length"
-              class="text-sm font-semibold text-unergy-purple"
+              class="text-sm font-semibold text-primary"
               @click="marcarTodas"
             >
               Marcar todas
@@ -29,7 +29,7 @@
 
           <div class="flex-1 overflow-y-auto">
             <div v-if="loading" :class="STATE">
-              <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" /> Cargando…
+              <LoaderCircleIcon class="size-6 animate-spin text-primary" /> Cargando…
             </div>
             <div v-else-if="!items.length" :class="STATE">
               <CircleCheckIcon class="size-8 text-success" />
@@ -40,7 +40,7 @@
               :key="n.id"
               :class="[
                 'flex w-full items-start gap-3 border-b border-border px-2 py-3 text-left',
-                !n.leida && 'bg-unergy-purple/5',
+                !n.leida && 'bg-primary/5',
               ]"
               @click="leer(n)"
             >
@@ -50,13 +50,13 @@
                 :class="colorFor(n.tipo)"
               />
               <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="text-sm font-bold text-unergy-deep">{{ n.titulo }}</span>
+                <span class="text-sm font-bold text-foreground">{{ n.titulo }}</span>
                 <span class="text-sm leading-snug text-muted-foreground">{{ n.mensaje }}</span>
                 <span class="mt-0.5 text-xs text-muted-foreground">{{
                   timeAgo(n.created_at)
                 }}</span>
               </div>
-              <span v-if="!n.leida" class="mt-1 size-2 shrink-0 rounded-full bg-unergy-purple" />
+              <span v-if="!n.leida" class="mt-1 size-2 shrink-0 rounded-full bg-primary" />
             </button>
           </div>
         </div>
@@ -142,7 +142,7 @@ function colorFor(tipo: string | null | undefined): string {
   return tipo === 'alerta'
     ? 'text-destructive'
     : tipo === 'accion'
-      ? 'text-unergy-purple'
+      ? 'text-primary'
       : 'text-primary'
 }
 function timeAgo(s: string | null | undefined): string {

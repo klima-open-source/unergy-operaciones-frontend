@@ -2,14 +2,14 @@
   <div class="space-y-4 pt-3">
 
     <!-- ── Barra superior ────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border border-border">
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <button type="button" @click="cambiarMes(-1)"
             class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
             <ChevronLeftIcon class="text-muted-foreground size-3" />
           </button>
-          <span class="text-sm font-semibold text-unergy-deep text-center">
+          <span class="text-sm font-semibold text-foreground text-center">
             {{ periodoLabel }}
           </span>
           <button type="button" @click="cambiarMes(1)"
@@ -26,17 +26,17 @@
             <template #icon><TableIcon class="size-4" /></template>
           </Button>
           <div v-if="showColMenu"
-            class="absolute right-0 top-8 z-50 bg-white border border-border rounded-xl shadow-lg p-3 space-y-1"
+            class="absolute right-0 top-8 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-1"
             >
             <p class="text-xs font-semibold text-muted-foreground mb-2">Mostrar columnas</p>
             <label v-for="col in columnasOpcionales" :key="col.key"
               class="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded">
-              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-unergy-purple" />
+              <input type="checkbox" v-model="colsVisibles[col.key]" class="accent-primary" />
               {{ col.label }}
             </label>
           </div>
         </div>
-        <Button label="IPC" size="small" outlined @click="showIPCDialog = true" class="border-unergy-purple text-unergy-purple">
+        <Button label="IPC" size="small" outlined @click="showIPCDialog = true" class="border-primary text-primary">
           <template #icon><ChartLineIcon class="size-4" /></template>
         </Button>
         <ArriendosZipUpload
@@ -44,14 +44,14 @@
           :periodo="periodoActual"
           :periodo-label="periodoLabel"
           @docs-actualizados="() => loadDocs(periodoActual.value)" />
-        <Button label="Guardar selección" size="small" :loading="guardando" class="bg-unergy-purple border-unergy-purple" @click="guardarSeleccion">
+        <Button label="Guardar selección" size="small" :loading="guardando" class="bg-primary border-primary" @click="guardarSeleccion">
           <template #icon><SaveIcon class="size-4" /></template>
         </Button>
       </div>
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Buscar</label>
         <input v-model="filtroTexto" type="text" placeholder="Nombre del proyecto…"
@@ -59,7 +59,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Estado contrato</label>
-        <select v-model="filtroEstado" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white">
+        <select v-model="filtroEstado" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-card">
           <option value="todos">Todos</option>
           <option value="con_contrato">Con contrato</option>
           <option value="en_tramite">En trámite</option>
@@ -68,7 +68,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Periodicidad</label>
-        <select v-model="filtroPeriodicidad" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white">
+        <select v-model="filtroPeriodicidad" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-card">
           <option value="todos">Toda periodicidad</option>
           <option value="mensual">Mensual</option>
           <option value="bimestral">Bimestral</option>
@@ -79,7 +79,7 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-muted-foreground">Aplica este mes</label>
-        <select v-model="filtroAplica" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-white">
+        <select v-model="filtroAplica" class="text-sm border border-border rounded-lg px-2 py-1.5 bg-card">
           <option value="todos">Todos</option>
           <option value="aplica">Aplican este mes</option>
           <option value="no">No aplican este mes</option>
@@ -91,7 +91,7 @@
     <!-- ── Tabla ──────────────────────────────────────────────────────────── -->
     <template v-if="filasFiltradas.length">
      <div v-for="sec in secciones" :key="sec.tipo"
-       class="bg-white rounded-xl shadow-sm overflow-hidden border border-border">
+       class="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
 
       <!-- Cabecera de sección (colapsable) -->
       <button type="button"
@@ -111,7 +111,7 @@
               <th class="px-4 py-2.5 text-left">
                 <input type="checkbox" :checked="todosMarcadosSeccion(sec.items)"
                   @change="toggleTodosSeccion(sec.items, $event.target.checked)"
-                  class="accent-unergy-purple" />
+                  class="accent-primary" />
               </th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Proyecto</th>
               <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Estado contrato</th>
@@ -139,10 +139,10 @@
               <!-- Checkbox — solo facturable (con contrato + aplica este mes) -->
               <td class="px-4 py-2 text-center" :class="!esFacturable(fila) ? 'opacity-40' : ''">
                 <input type="checkbox" :disabled="!esFacturable(fila)"
-                  v-model="seleccion[fila.id]" class="accent-unergy-purple" />
+                  v-model="seleccion[fila.id]" class="accent-primary" />
               </td>
               <!-- Proyecto: se mantiene a opacidad completa aunque no sea facturable, para que el nombre siga siendo legible -->
-              <td class="px-4 py-2 font-medium text-unergy-deep overflow-hidden text-ellipsis"  :title="fila.proyecto">
+              <td class="px-4 py-2 font-medium text-foreground overflow-hidden text-ellipsis"  :title="fila.proyecto">
                 <div class="flex flex-col gap-0.5 max-w-full">
                   <span class="block text-xs leading-tight"
                         :class="fila.codigo ? 'text-muted-foreground' : 'text-muted-foreground/50'">
@@ -198,7 +198,7 @@
                     {{ formatCOP(fila.canon_calculado) }}
                   </span>
                   <span v-else class="text-muted-foreground/50">—</span>
-                  <InfoIcon class="flex-shrink-0 cursor-help opacity-0 group-hover:opacity-100 transition-opacity size-3 text-unergy-purple" v-if="fila.canon_calculado != null"  title="Ver cálculo" @mouseenter="mostrarCanon($event, fila)" @mouseleave="ocultarCanon()" />
+                  <InfoIcon class="flex-shrink-0 cursor-help opacity-0 group-hover:opacity-100 transition-opacity size-3 text-primary" v-if="fila.canon_calculado != null"  title="Ver cálculo" @mouseenter="mostrarCanon($event, fila)" @mouseleave="ocultarCanon()" />
                 </span>
               </td>
               <td class="px-4 py-2 text-right font-mono text-xs bg-primary/5" :class="!esFacturable(fila) ? 'opacity-40' : ''">
@@ -241,7 +241,7 @@
      </div>
 
       <!-- Total general (todas las secciones) -->
-      <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between border-border"
+      <div class="bg-card rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between border-border"
         >
         <span class="text-xs font-semibold text-muted-foreground">
           {{ filasSeleccionadas }} proyectos seleccionados
@@ -249,11 +249,11 @@
         <div class="flex items-center gap-6 ml-auto">
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtotal Facturado</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalSeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalSeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">IVA</p>
-            <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalIVASeleccionado) }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalIVASeleccionado) }}</p>
           </div>
           <div class="text-right">
             <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
@@ -262,7 +262,7 @@
         </div>
       </div>
     </template>
-    <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
+    <div v-else class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border border-border">
       No se encontraron arriendos con los filtros aplicados.
     </div>
 
@@ -292,7 +292,7 @@
         <button type="button" class="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted"
           @click="showExclusionDialog = false">Cancelar</button>
         <button type="button" :disabled="!exclusionValida"
-          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-unergy-purple text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           @click="confirmarExclusiones">Guardar</button>
       </template>
     </Dialog>
@@ -335,7 +335,7 @@
               <InputText v-model="ipcForm.fuente" class="w-full" placeholder="DANE" />
             </div>
           </div>
-          <Button label="Guardar tasa" size="small" @click="guardarIPC" class="bg-unergy-purple border-unergy-purple">
+          <Button label="Guardar tasa" size="small" @click="guardarIPC" class="bg-primary border-primary">
             <template #icon><CheckIcon class="size-4" /></template>
           </Button>
         </div>

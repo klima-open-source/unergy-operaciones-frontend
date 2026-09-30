@@ -29,14 +29,14 @@
     <div class="flex min-h-8 flex-wrap items-center gap-2">
       <button
         type="button"
-        class="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-unergy-purple hover:underline hover:underline-offset-2"
+        class="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-primary hover:underline hover:underline-offset-2"
         @click="router.push(volver.to)">
         <ArrowLeftIcon class="size-3" /> {{ volver.label }}
       </button>
       <span class="text-muted-foreground/60">/</span>
 
       <slot name="titulo">
-        <TruncatedText :text="titulo" class="max-w-sm text-sm font-bold text-unergy-deep" />
+        <TruncatedText :text="titulo" class="max-w-sm text-sm font-bold text-foreground" />
       </slot>
 
       <span v-if="codigo" class="font-mono text-xs text-muted-foreground">{{ codigo }}</span>
@@ -53,15 +53,15 @@
         <button v-for="t in tabsVisibles" :key="t.key" type="button"
                 class="-mb-px inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors duration-150 sm:px-4 sm:py-2.5 sm:text-sm"
                 :class="tabActiva === t.key
-                  ? 'border-unergy-purple text-unergy-purple'
-                  : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-unergy-deep'"
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground'"
                 @click="seleccionar(t.key)">
           <component :is="t.icon" class="size-3" v-if="t.icon" />
           <span>{{ t.label }}</span>
           <span
             v-if="t.badge != null && t.badge !== ''"
             class="min-w-4.5 rounded-full px-1.5 text-center text-xs font-extrabold"
-            :class="tabActiva === t.key ? 'bg-primary/10 text-unergy-purple' : 'bg-muted text-muted-foreground'"
+            :class="tabActiva === t.key ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'"
           >{{ t.badge }}</span>
         </button>
       </div>

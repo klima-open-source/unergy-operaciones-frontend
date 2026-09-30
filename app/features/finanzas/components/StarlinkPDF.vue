@@ -2,7 +2,7 @@
   <div class="space-y-5 pt-3">
 
     <!-- ── Barra superior: navegación + upload + descarga ──────────────────── -->
-    <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
+    <div class="bg-card rounded-xl shadow-sm p-3 flex items-center justify-between flex-wrap gap-2 border">
 
       <!-- Navegación por período (solo si hay datos) -->
       <div class="flex items-center gap-3">
@@ -12,7 +12,7 @@
               class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50 disabled:opacity-30 disabled:cursor-not-allowed">
               <ChevronLeftIcon class="text-muted-foreground size-3" />
             </button>
-            <span class="text-sm font-semibold text-unergy-deep min-w-25 text-center">
+            <span class="text-sm font-semibold text-foreground min-w-25 text-center">
               {{ periodoLabel }}
             </span>
             <button type="button" @click="irSiguiente" :disabled="periodoIndex >= periodos.length - 1"
@@ -38,7 +38,7 @@
     </div>
 
     <!-- ── Filtros ──────────────────────────────────────────────────────────── -->
-    <div v-if="facturaActual" class="bg-white rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
+    <div v-if="facturaActual" class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
         <IconField>
@@ -61,7 +61,7 @@
 
     <!-- ── Spinner de carga ──────────────────────────────────────────────────── -->
     <div v-else-if="cargandoFactura" class="flex justify-center py-10">
-      <LoaderCircleIcon class="animate-spin size-4 text-unergy-purple" />
+      <LoaderCircleIcon class="animate-spin size-4 text-primary" />
     </div>
 
     <!-- ── Datos del período seleccionado ───────────────────────────────────── -->
@@ -70,11 +70,11 @@
       <!-- Resumen -->
       <div class="flex items-center gap-4 flex-wrap">
         <div class="text-xs text-muted-foreground">
-          <span class="font-semibold text-unergy-deep">{{ facturaActual.items.length }}</span> ítems
+          <span class="font-semibold text-foreground">{{ facturaActual.items.length }}</span> ítems
         </div>
         <div class="text-xs text-muted-foreground">
           Suma:
-          <span class="font-semibold text-unergy-purple">{{ formatCOP(facturaActual.suma_items) }}</span>
+          <span class="font-semibold text-primary">{{ formatCOP(facturaActual.suma_items) }}</span>
         </div>
         <div v-if="facturaActual.cargos_totales" class="text-xs text-muted-foreground">
           Cargos totales PDF:
@@ -88,7 +88,7 @@
       <!-- Tabla por proyecto, agrupada por tipo (igual que Arriendos) -->
       <template v-if="secciones.length">
         <div v-for="sec in secciones" :key="sec.tipo"
-          class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          class="bg-card rounded-xl shadow-sm border overflow-hidden">
           <button type="button"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-left select-none hover:bg-muted/50 transition-colors duration-150"
             @click="toggleSection(sec.tipo)">
@@ -105,15 +105,15 @@
                     <th class="px-4 py-2.5 text-left font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Minigranja</th>
                     <th class="px-4 py-2.5 text-center font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Cantidad</th>
                     <th class="px-4 py-2.5 text-right font-medium text-muted-foreground text-xs uppercase tracking-wide whitespace-nowrap">Precio unit. prom.</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">Sin IVA</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">IVA</th>
-                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-unergy-purple/10 whitespace-nowrap text-unergy-purple">Monto total</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">Sin IVA</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">IVA</th>
+                    <th class="px-4 py-2.5 text-right font-semibold text-xs uppercase tracking-wide bg-primary/10 whitespace-nowrap text-primary">Monto total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(fila, i) in sec.items" :key="i"
                     class="border-t border-border hover:bg-muted/50 transition-colors duration-100">
-                    <td class="px-4 py-2 font-medium text-unergy-deep">
+                    <td class="px-4 py-2 font-medium text-foreground">
                       <span v-if="fila.nombre_comercial">
                         <span class="block text-xs leading-tight"
                               :class="fila.codigo_tsf ? 'text-muted-foreground' : 'text-muted-foreground'">
@@ -127,7 +127,7 @@
                       </div>
                       <div v-else class="flex items-center gap-1.5">
                         <GBadge color="warning">Sin asignar</GBadge>
-                        <button type="button" class="inline-flex size-5.5 cursor-pointer items-center justify-center rounded-md border border-border bg-card text-unergy-purple transition-colors duration-150 hover:bg-muted" title="Asignar minigranja"
+                        <button type="button" class="inline-flex size-5.5 cursor-pointer items-center justify-center rounded-md border border-border bg-card text-primary transition-colors duration-150 hover:bg-muted" title="Asignar minigranja"
                           @click="abrirAsignarMinigranja(fila.descripcion)">
                           <LinkIcon class="size-3" />
                         </button>
@@ -135,9 +135,9 @@
                     </td>
                     <td class="px-4 py-2 text-xs text-center text-muted-foreground">{{ fila.cantidad_total }}</td>
                     <td class="px-4 py-2 text-right font-mono text-xs text-muted-foreground">{{ formatCOP(fila.precio_unitario_promedio) }}</td>
-                    <td class="px-4 py-2 text-right font-mono text-xs bg-unergy-purple/5">{{ formatCOP(fila.sin_iva) }}</td>
-                    <td class="px-4 py-2 text-right font-mono text-xs bg-unergy-purple/5">{{ formatCOP(fila.iva) }}</td>
-                    <td class="px-4 py-2 text-right font-semibold tabular-nums bg-unergy-purple/5 text-unergy-purple">{{ formatCOP(fila.monto_total) }}</td>
+                    <td class="px-4 py-2 text-right font-mono text-xs bg-primary/5">{{ formatCOP(fila.sin_iva) }}</td>
+                    <td class="px-4 py-2 text-right font-mono text-xs bg-primary/5">{{ formatCOP(fila.iva) }}</td>
+                    <td class="px-4 py-2 text-right font-semibold tabular-nums bg-primary/5 text-primary">{{ formatCOP(fila.monto_total) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -146,16 +146,16 @@
         </div>
 
         <!-- Total general -->
-        <div class="bg-white rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
+        <div class="bg-card rounded-xl shadow-sm border px-4 py-3 flex items-center flex-wrap gap-x-8 gap-y-2 justify-between">
           <span class="text-xs font-semibold text-muted-foreground">Total del período</span>
           <div class="flex items-center gap-6 ml-auto">
             <div class="text-right">
               <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtotal (Sin IVA)</p>
-              <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalSinIVAGeneral) }}</p>
+              <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalSinIVAGeneral) }}</p>
             </div>
             <div class="text-right">
               <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">IVA</p>
-              <p class="text-sm font-semibold tabular-nums text-unergy-deep">{{ formatCOP(totalIVAGeneral) }}</p>
+              <p class="text-sm font-semibold tabular-nums text-foreground">{{ formatCOP(totalIVAGeneral) }}</p>
             </div>
             <div class="text-right">
               <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
@@ -164,7 +164,7 @@
           </div>
         </div>
       </template>
-      <div v-else class="bg-white rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
+      <div v-else class="bg-card rounded-xl shadow-sm p-10 text-center text-sm text-muted-foreground border">
         {{ filtroTexto ? 'No se encontraron minigranjas con ese nombre.' : 'Sin líneas para este período.' }}
       </div>
     </template>
@@ -188,7 +188,7 @@
             <span class="text-muted-foreground font-normal">(detectado automáticamente — puedes corregirlo)</span>
           </label>
           <input type="month" v-model="periodoParaGuardar"
-            class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-unergy-purple/30" />
+            class="text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
 
         <!-- Advertencia de sobreescritura -->
@@ -227,7 +227,7 @@
       class="w-full max-w-md" :closable="!asignando">
       <div class="space-y-4 pt-1">
         <p class="text-xs text-muted-foreground">
-          Sitio Starlink: <strong class="text-unergy-deep">{{ descripcionParaAsignar }}</strong>
+          Sitio Starlink: <strong class="text-foreground">{{ descripcionParaAsignar }}</strong>
         </p>
 
         <div class="flex flex-col gap-2">

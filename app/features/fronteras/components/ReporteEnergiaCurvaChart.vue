@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-3 flex flex-wrap gap-2 text-xs">
-      <Badge v-if="!finalVacia" variant="outline" class="border-unergy-purple text-unergy-purple"
+      <Badge v-if="!finalVacia" variant="outline" class="border-primary text-primary"
         >● Final reportada</Badge
       >
       <Badge v-if="medidorPath" variant="outline" class="border-primary text-primary"
@@ -61,8 +61,8 @@
            incluso cuando coinciden casi exacto con el valor final (ej. Caso
            1/2, donde el medidor validado ES la fuente del total). -->
       <template v-if="!finalVacia">
-        <path :d="finalArea" fill="var(--color-unergy-purple)" opacity="0.08" />
-        <path :d="finalPath" fill="none" stroke="var(--color-unergy-purple)" stroke-width="3" />
+        <path :d="finalArea" fill="var(--primary)" opacity="0.08" />
+        <path :d="finalPath" fill="none" stroke="var(--primary)" stroke-width="3" />
         <template v-for="h in 24" :key="'p' + h">
           <rect
             v-if="horasRellenadas.has(h - 1)"
@@ -79,7 +79,7 @@
             :cx="x(h - 1)"
             :cy="y(val(finalCurve, h - 1))"
             r="3.2"
-            fill="var(--color-unergy-purple)"
+            fill="var(--primary)"
             class="stroke-background"
             stroke-width="1.5"
           />

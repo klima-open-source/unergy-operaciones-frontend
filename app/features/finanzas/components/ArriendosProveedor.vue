@@ -6,7 +6,7 @@
         class="size-7 flex items-center justify-center rounded-lg border border-border hover:bg-muted/50">
         <ChevronLeftIcon class="text-muted-foreground size-3" />
       </button>
-      <span class="text-sm font-semibold text-unergy-deep text-center">
+      <span class="text-sm font-semibold text-foreground text-center">
         {{ periodoLabel }}
       </span>
       <button type="button" @click="cambiarMes(1)"
@@ -37,7 +37,7 @@
           <tbody>
             <tr v-for="fila in filas" :key="fila.id"
               class="border-b border-border hover:bg-muted/50">
-              <td class="px-4 py-2.5 font-medium text-unergy-deep">{{ fila.proyecto }}</td>
+              <td class="px-4 py-2.5 font-medium text-foreground">{{ fila.proyecto }}</td>
               <td class="px-4 py-2.5 text-xs text-muted-foreground">{{ periodoLabel }}</td>
               <td class="px-4 py-2.5 text-right font-semibold tabular-nums text-primary">
                 {{ formatCOP(fila.canon_a_facturar) }}
@@ -65,12 +65,12 @@
     </div>
 
     <!-- ── Soporte del período ─────────────────────────────────────────────── -->
-    <div class="rounded-xl border bg-white overflow-hidden border-border">
+    <div class="rounded-xl border bg-card overflow-hidden border-border">
       <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-primary/10"
         >
         <div class="flex items-center gap-2">
-          <FileTextIcon class="size-3 text-unergy-purple" />
-          <span class="text-sm font-semibold text-unergy-deep">Soporte del período</span>
+          <FileTextIcon class="size-3 text-primary" />
+          <span class="text-sm font-semibold text-foreground">Soporte del período</span>
           <GBadge color="default" class="text-xs font-mono">{{ periodoLabel }}</GBadge>
         </div>
         <span v-if="soporte.enlace"
@@ -100,7 +100,7 @@
             class="flex-1 text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20" />
           <button type="button"
             :disabled="!nuevoEnlace.startsWith('http')"
-            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all bg-unergy-purple text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all bg-primary text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             @click="guardarSoporte">
             <SaveIcon class="size-3" />Guardar
           </button>

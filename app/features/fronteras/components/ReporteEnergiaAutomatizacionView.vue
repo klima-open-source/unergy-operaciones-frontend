@@ -230,7 +230,6 @@ import { ReporteEnergiaService } from '~/features/fronteras/services/reporte-ene
 import ReporteEnergiaDetalleTab from './ReporteEnergiaDetalleTab.vue'
 import ReporteEnergiaResumenTab from './ReporteEnergiaResumenTab.vue'
 import ReporteEnergiaLista from './ReporteEnergiaLista.vue'
-import type { TokenColor } from '~/composables/useThemeColors'
 import {
   CircleStopIcon,
   FileSpreadsheetIcon,

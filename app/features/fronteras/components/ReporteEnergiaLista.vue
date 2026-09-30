@@ -43,7 +43,7 @@
           <div class="flex items-center justify-between gap-2">
             <TruncatedText
               :text="f.nombre_proyecto"
-              class="min-w-0 text-sm font-medium text-unergy-deep"
+              class="min-w-0 text-sm font-medium text-foreground"
             />
             <span class="flex-none font-mono text-xs text-muted-foreground">{{
               fmtKwh(f.energia_final_kwh)
@@ -148,7 +148,7 @@ function semaforoBorde(f: FilaReporteEnergia): string {
   return map[semaforo(f)]
 }
 
-const PILL_ON = 'border-unergy-purple bg-accent text-unergy-purple-dark'
+const PILL_ON = 'border-primary bg-accent text-primary'
 const PILL_OFF = 'bg-card text-muted-foreground'
 
 const ETIQUETAS_FUENTE: Record<string, string> = {

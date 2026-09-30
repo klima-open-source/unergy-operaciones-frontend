@@ -53,7 +53,7 @@ const chartData = computed<ChartData<'bar'>>(() => ({
     {
       label: 'Generación',
       data: dias.value.map((d) => d.kwh),
-      backgroundColor: color('unergy-purple'),
+      backgroundColor: color('primary'),
       borderRadius: 3,
       maxBarThickness: 16,
     },

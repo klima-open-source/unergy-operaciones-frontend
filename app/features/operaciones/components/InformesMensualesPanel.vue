@@ -2334,14 +2334,10 @@ watch(tipo, (t) => {
 
   /* Paleta del informe: es "papel" con marca Unergy, no sigue el tema oscuro. */
   --rpt-paper: white;
-  --rpt-line: color-mix(in oklab, var(--color-unergy-purple) 12%, white);
-  --rpt-tint: color-mix(in oklab, var(--color-unergy-purple) 6%, white);
-  --rpt-faint: color-mix(in oklab, var(--color-unergy-deep) 40%, white);
-  --rpt-header-end: color-mix(
-    in oklab,
-    var(--color-unergy-purple-dark) 60%,
-    var(--color-unergy-deep)
-  );
+  --rpt-line: color-mix(in oklab, var(--primary) 12%, white);
+  --rpt-tint: color-mix(in oklab, var(--primary) 6%, white);
+  --rpt-faint: color-mix(in oklab, var(--foreground) 40%, white);
+  --rpt-header-end: color-mix(in oklab, var(--primary) 60%, var(--foreground));
   --rpt-ok-bg: color-mix(in oklab, var(--success) 8%, white);
   --rpt-ok-line: color-mix(in oklab, var(--success) 30%, white);
   --rpt-multa-bg: color-mix(in oklab, var(--destructive) 6%, white);
@@ -2355,7 +2351,7 @@ watch(tipo, (t) => {
   border-radius: 8px;
   box-shadow: 0 2px 14px color-mix(in oklab, black 8%, transparent);
   margin-bottom: 24px;
-  color: var(--color-unergy-deep);
+  color: var(--foreground);
 }
 .im-report :deep(.rpt-page-sep) {
   height: 22px;
@@ -2363,13 +2359,13 @@ watch(tipo, (t) => {
 .im-report :deep(.rpt-header) {
   background: linear-gradient(
     135deg,
-    var(--color-unergy-deep) 0%,
-    var(--color-unergy-deep-light) 70%,
+    var(--foreground) 0%,
+    var(--foreground) 70%,
     var(--rpt-header-end) 100%
   );
   border-radius: 8px;
   padding: 18px 22px 16px;
-  color: var(--color-unergy-avena);
+  color: var(--background);
   margin: -30px -36px 22px;
 }
 .im-report :deep(.rpt-meta-grid) {
@@ -2386,7 +2382,7 @@ watch(tipo, (t) => {
 }
 .im-report :deep(.rpt-meta-lbl) {
   font-size: 9px;
-  color: color-mix(in oklab, var(--color-unergy-avena) 55%, transparent);
+  color: color-mix(in oklab, var(--background) 55%, transparent);
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -2394,7 +2390,7 @@ watch(tipo, (t) => {
 }
 .im-report :deep(.rpt-meta-val) {
   font-size: 12px;
-  color: var(--color-unergy-avena);
+  color: var(--background);
   font-weight: 700;
 }
 .im-report :deep(.rpt-section) {
@@ -2404,7 +2400,7 @@ watch(tipo, (t) => {
 .im-report :deep(.fmo-section-title) {
   font-size: 13px;
   font-weight: 800;
-  color: var(--color-unergy-purple-dark);
+  color: var(--primary);
   letter-spacing: 0.3px;
   margin-bottom: 12px;
   padding-bottom: 6px;
@@ -2439,7 +2435,7 @@ watch(tipo, (t) => {
 .im-report :deep(.rpt-kpi-val) {
   font-size: 16px;
   font-weight: 800;
-  color: var(--color-unergy-deep);
+  color: var(--foreground);
   margin-top: 4px;
 }
 .im-report :deep(.rpt-table) {
@@ -2459,7 +2455,7 @@ watch(tipo, (t) => {
   text-align: left;
   font-size: 9px;
   font-weight: 800;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
@@ -2467,12 +2463,12 @@ watch(tipo, (t) => {
 .im-report :deep(.rpt-table tbody td) {
   padding: 7px 9px;
   border-bottom: 1px solid var(--rpt-line);
-  color: var(--color-unergy-deep);
+  color: var(--foreground);
 }
 .im-report :deep(.rpt-total-row) {
   background: var(--rpt-tint);
   font-weight: 800;
-  border-top: 2px solid var(--color-unergy-purple-dark);
+  border-top: 2px solid var(--primary);
 }
 .im-report :deep(.rpt-total-row td) {
   font-weight: 800;
@@ -2512,7 +2508,7 @@ watch(tipo, (t) => {
 }
 .im-report :deep(.rpt-edit-hint) {
   font-size: 9px;
-  color: var(--color-unergy-purple);
+  color: var(--primary);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
@@ -2528,13 +2524,13 @@ watch(tipo, (t) => {
   border-radius: 8px;
   background: var(--rpt-ok-bg);
   font-size: 12px;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
   line-height: 1.8;
 }
 .im-report :deep(.rpt-obs-editable:focus) {
   background: color-mix(in oklab, var(--warning) 8%, white);
-  border-left-color: var(--color-unergy-purple-dark);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-unergy-purple) 15%, transparent);
+  border-left-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 15%, transparent);
 }
 .im-report :deep(.rpt-status-box) {
   background: var(--rpt-tint);
@@ -2544,7 +2540,7 @@ watch(tipo, (t) => {
 }
 .im-report :deep(.rpt-status-row) {
   font-size: 11px;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
   margin-bottom: 5px;
   line-height: 1.5;
 }
@@ -2595,7 +2591,7 @@ watch(tipo, (t) => {
   text-align: left;
   font-size: 9px;
   font-weight: 800;
-  color: var(--color-unergy-deep-light);
+  color: var(--foreground);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);

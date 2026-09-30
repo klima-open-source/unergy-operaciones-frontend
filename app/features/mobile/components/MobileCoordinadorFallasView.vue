@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- TOP BAR -->
     <header
       class="cf-topbar flex shrink-0 items-center gap-2.5 bg-chart-3 px-3.5 pb-2.5 text-white"
@@ -40,7 +40,7 @@
         <SearchIcon class="size-4 text-muted-foreground" />
         <input
           v-model="search"
-          class="flex-1 border-none bg-transparent text-base text-unergy-deep outline-none"
+          class="flex-1 border-none bg-transparent text-base text-foreground outline-none"
           placeholder="Código, descripción, proyecto…"
         />
         <XIcon class="size-4 text-muted-foreground" v-if="search" @click="search = ''" />
@@ -118,7 +118,7 @@
                 >{{ f.estado?.etiqueta }}</span
               >
             </div>
-            <div class="text-sm leading-tight font-bold text-unergy-deep">
+            <div class="text-sm leading-tight font-bold text-foreground">
               {{ f.tipo?.etiqueta || 'Falla' }}
             </div>
             <div class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">

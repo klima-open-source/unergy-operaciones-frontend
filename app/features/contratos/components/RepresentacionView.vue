@@ -26,9 +26,9 @@
             @click="$router.push(`/proyectos/${route.params.id}`)">{{ proyectoNombre || '…' }}</span>
           <span class="mx-1.5">›</span><span>Servicios</span>
           <span class="mx-1.5">›</span>
-          <span class="font-medium text-unergy-deep">Representación</span>
+          <span class="font-medium text-foreground">Representación</span>
         </p>
-        <h2 class="text-lg font-bold text-unergy-deep">Representación CGM</h2>
+        <h2 class="text-lg font-bold text-foreground">Representación CGM</h2>
       </div>
       <div class="ml-auto flex items-center gap-2">
         <Button v-if="c" label="Eliminar" size="small" outlined severity="danger" @click="confirmarEliminar">
@@ -115,13 +115,13 @@
 
           <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ClockIcon class="size-3" />Duración</p>
-            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ duracion || '—' }}</p>
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-foreground">{{ duracion || '—' }}</p>
             <p class="text-xs mt-px truncate">{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}</p>
           </div>
 
           <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ChartLineIcon class="size-3" />Tarifa CGM</p>
-            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-foreground">{{ fmtVal(valorVigente(idxCgm) ?? c.tarifa_cgm) }}
               <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
             <p class="text-xs mt-px truncate">{{ idxCgm.length ? `${idxCgm.length} aniversarios` : 'sin indexación' }}</p>
@@ -129,7 +129,7 @@
 
           <div class="min-w-0 rounded-xl px-3.5 py-3 border border-border bg-card text-muted-foreground">
             <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase mb-1"><ChartLineIcon class="size-3" />Tarifa Repr.</p>
-            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-unergy-deep">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
+            <p class="text-base font-bold leading-tight truncate first-letter:uppercase text-foreground">{{ fmtVal(valorVigente(idxRep) ?? c.tarifa_representacion) }}
               <span class="text-xs font-normal text-muted-foreground">$/kWh</span>
             </p>
             <p class="text-xs mt-px truncate">{{ idxRep.length ? `${idxRep.length} aniversarios` : 'sin indexación' }}</p>
@@ -139,8 +139,8 @@
         <!-- ── Identificación ───────────────────────────────────────────── -->
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
-            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-unergy-purple/10 text-unergy-purple"><IdCardIcon class="size-3" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Identificación</h3>
+            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><IdCardIcon class="size-3" /></span>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Identificación</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'id'" label="Editar" size="small" text severity="secondary" @click="abrir('id')">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -166,7 +166,7 @@
               <InfoField label="Proyecto según el contrato" :value="c.nombre_proyecto_ref" />
               <div class="flex flex-col gap-0.5">
                 <span class="text-xs font-medium text-muted-foreground">Planta asociada</span>
-                <span v-if="c.proyecto" class="text-sm text-unergy-deep">
+                <span v-if="c.proyecto" class="text-sm text-foreground">
                   {{ c.proyecto.nombre_comercial }}
                 </span>
                 <span v-else class="text-sm font-semibold text-warning">Sin proyecto</span>
@@ -203,7 +203,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><UsersIcon class="size-3" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Partes del contrato</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Partes del contrato</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'partes'" label="Editar" size="small" text severity="secondary" @click="abrir('partes')">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -224,13 +224,13 @@
             <div v-if="edit !== 'partes'" class="flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Contratante</p>
-                <p class="text-sm font-semibold text-unergy-deep">{{ c.contratante_nombre || '—' }}</p>
+                <p class="text-sm font-semibold text-foreground">{{ c.contratante_nombre || '—' }}</p>
                 <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ c.contratante_nit || '—' }}</p>
               </div>
               <ArrowRightIcon class="text-muted-foreground/50 self-center rotate-90 sm:rotate-0 size-3" />
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BriefcaseIcon class="size-3" />Prestador</p>
-                <p class="text-sm font-semibold text-unergy-deep">{{ c.prestador_nombre || '—' }}</p>
+                <p class="text-sm font-semibold text-foreground">{{ c.prestador_nombre || '—' }}</p>
                 <p class="font-mono text-xs text-muted-foreground mt-px">NIT {{ c.prestador_nit || '—' }}</p>
               </div>
             </div>
@@ -271,7 +271,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-success/10 text-success"><CalendarIcon class="size-3" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Vigencia</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Vigencia</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'vigencia'" label="Editar" size="small" text severity="secondary" @click="abrir('vigencia')">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -305,7 +305,7 @@
                   <GBadge v-if="c.renovacion_automatica != null"
                     :color="c.renovacion_automatica ? 'success' : 'default'"
                     class="text-xs">{{ c.renovacion_automatica ? 'Sí' : 'No' }}</GBadge>
-                  <span v-else class="text-sm text-unergy-deep">—</span>
+                  <span v-else class="text-sm text-foreground">—</span>
                 </div>
               </div>
             </div>
@@ -343,7 +343,7 @@
         <section class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10 text-warning"><DollarSignIcon class="size-3" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">Condiciones comerciales</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Condiciones comerciales</h3>
             <div class="ml-auto flex items-center gap-1">
               <Button v-if="edit !== 'comercial'" label="Editar" size="small" text severity="secondary" @click="abrir('comercial')">
                 <template #icon><PencilIcon class="size-4" /></template>
@@ -379,7 +379,7 @@
                   class="text-sm inline-flex items-center gap-1 hover:underline text-primary">
                   <ExternalLinkIcon class="size-3" />Ver contrato
                 </a>
-                <span v-else class="text-sm text-unergy-deep">—</span>
+                <span v-else class="text-sm text-foreground">—</span>
               </div>
             </div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -425,7 +425,7 @@
         <section v-for="t in TABLAS_IDX" :key="t.clave" class="bg-card border border-border rounded-xl overflow-hidden">
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><TableIcon class="size-3" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-unergy-deep">{{ t.titulo }}</h3>
+            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">{{ t.titulo }}</h3>
             <div class="ml-auto flex items-center gap-1">
               <span v-if="edit !== t.clave" class="text-xs mr-1 text-muted-foreground">Hoy: {{ hoy }}</span>
               <Button v-if="edit !== t.clave" label="Editar" size="small" text severity="secondary" @click="abrirIdx(t.clave)">
@@ -496,7 +496,7 @@
                   <td class="px-4 py-2.5">
                     <div class="flex items-center gap-1.5">
                       <span class="font-mono font-semibold"
-                        :class="iVigente(t.filas) === i ? 'text-warning' : 'text-unergy-deep'">
+                        :class="iVigente(t.filas) === i ? 'text-warning' : 'text-foreground'">
                         {{ etiquetaAnio(f) }}
                       </span>
                       <span v-if="f.esBase" class="text-xs px-1.5 py-0.5 rounded font-bold bg-primary/10 text-primary">base</span>
@@ -513,7 +513,7 @@
                     <span v-else class="font-mono tabular-nums text-foreground">{{ f.ipc }}%</span>
                   </td>
                   <td class="px-4 py-2.5 text-right font-semibold tabular-nums"
-                    :class="iVigente(t.filas) === i ? 'text-warning' : 'text-unergy-deep'">
+                    :class="iVigente(t.filas) === i ? 'text-warning' : 'text-foreground'">
                     {{ fmtVal(f.valor) }}
                   </td>
                   <td class="px-4 py-2.5 text-center">

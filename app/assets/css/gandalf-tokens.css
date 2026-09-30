@@ -1,0 +1,33 @@
+/**
+ * Puente de tokens de Gandalf. Los componentes de `app/components/gandalf/` usan utilidades
+ * (`bg-base-foreground-loud`, `bg-default-muted`, `text-action`…) cuyos colores define el tema
+ * del sistema de diseño, que este proyecto todavía no trae: sin ellos Tailwind no genera esas
+ * clases (tooltips sin fondo, badges y tablas sin color).
+ *
+ * Mapea cada token de Gandalf al token semántico equivalente de shadcn. NO son los valores
+ * oficiales de Gandalf: se retira este archivo cuando el tema de Gandalf se sincronice.
+ * `text-base` (tamaño de fuente) no lleva token de color a propósito.
+ */
+@theme inline {
+  /* Superficies y texto (tablas, tabs, acordeón, switch, tooltip) */
+  --color-base-loud: var(--muted);
+  --color-base-loud-extra: var(--border);
+  --color-base-foreground-loud: var(--foreground);
+  --color-base-foreground-quiet: var(--muted-foreground);
+  --color-base-foreground-extra-quiet: var(--muted-foreground);
+  --color-muted-foreground-quiet: var(--muted-foreground);
+  --color-brand-primary: var(--primary);
+  --color-bni-border-loud: var(--border);
+  --color-bni-border-extra-loud: var(--border);
+
+  /* Colores semánticos de GBadge / GAccordion: texto, borde y fondo suave (`-muted`) */
+  --color-default: var(--foreground);
+  --color-default-muted: var(--muted);
+  --color-action: var(--primary);
+  --color-action-muted: color-mix(in oklab, var(--primary) 12%, transparent);
+  --color-information: var(--chart-2);
+  --color-information-muted: color-mix(in oklab, var(--chart-2) 15%, transparent);
+  --color-success-muted: color-mix(in oklab, var(--success) 15%, transparent);
+  --color-warning-muted: color-mix(in oklab, var(--warning) 15%, transparent);
+  --color-destructive-muted: color-mix(in oklab, var(--destructive) 15%, transparent);
+}

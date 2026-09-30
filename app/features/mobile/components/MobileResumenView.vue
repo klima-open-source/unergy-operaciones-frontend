@@ -1,11 +1,11 @@
 <template>
-  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-unergy-deep">
+  <div class="flex h-dvh flex-col overflow-hidden bg-muted font-sans text-foreground">
     <!-- ══ TOP BAR ══ -->
     <header
-      class="rs-topbar flex shrink-0 items-center gap-2.5 bg-unergy-deep px-3.5 pb-2.5 text-white"
+      class="rs-topbar flex shrink-0 items-center gap-2.5 bg-foreground px-3.5 pb-2.5 text-background"
     >
       <span class="flex-1 text-base font-bold tracking-wide"
-        ><ChartColumnIcon class="mr-1.5 inline size-4 text-unergy-yellow" /> Resumen del día</span
+        ><ChartColumnIcon class="mr-1.5 inline size-4 text-highlight" /> Resumen del día</span
       >
       <button
         class="size-9 shrink-0 rounded-xl bg-white/10 text-white disabled:opacity-50"
@@ -32,7 +32,7 @@
           <div class="flex min-w-0 flex-col">
             <span class="text-xs font-semibold text-muted-foreground">Medidores hoy</span>
             <span
-              class="text-xl leading-tight font-extrabold tracking-tight whitespace-nowrap text-unergy-deep"
+              class="text-xl leading-tight font-extrabold tracking-tight whitespace-nowrap text-foreground"
               >{{ fmtKwh(gen.medidor?.total) }}</span
             >
           </div>
@@ -40,11 +40,11 @@
         <div
           class="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-3"
         >
-          <span class="size-2.5 shrink-0 rounded-full bg-unergy-purple" />
+          <span class="size-2.5 shrink-0 rounded-full bg-primary" />
           <div class="flex min-w-0 flex-col">
             <span class="text-xs font-semibold text-muted-foreground">Inversores hoy</span>
             <span
-              class="text-xl leading-tight font-extrabold tracking-tight whitespace-nowrap text-unergy-deep"
+              class="text-xl leading-tight font-extrabold tracking-tight whitespace-nowrap text-foreground"
               >{{ fmtKwh(gen.inversor?.total) }}</span
             >
           </div>
@@ -65,7 +65,7 @@
       <TopCard
         title="Top generación — Inversores"
         :icon="ZapIcon"
-        accent="var(--color-unergy-purple)"
+        accent="var(--primary)"
         :items="gen.inversor?.top || []"
         :loading="loadingGen"
         :max="maxInversor"
@@ -79,7 +79,7 @@
         </div>
 
         <div v-if="loadingFallas" :class="CLS.loading">
-          <LoaderCircleIcon class="size-4 animate-spin text-unergy-purple" /> Cargando…
+          <LoaderCircleIcon class="size-4 animate-spin text-primary" /> Cargando…
         </div>
 
         <template v-else>
@@ -89,7 +89,7 @@
           >
             <CirclePlusIcon class="size-4" /> Creadas
             <span
-              class="ml-auto rounded-full bg-unergy-purple/10 px-2 py-px text-xs font-extrabold text-muted-foreground normal-case"
+              class="ml-auto rounded-full bg-primary/10 px-2 py-px text-xs font-extrabold text-muted-foreground normal-case"
               >{{ fallas.creadas?.length || 0 }}</span
             >
           </div>
@@ -110,7 +110,7 @@
             <span class="flex min-w-0 flex-1 flex-col gap-0.5">
               <TruncatedText
                 :text="f.proyecto?.nombre_comercial || '—'"
-                class="text-sm font-bold text-unergy-deep"
+                class="text-sm font-bold text-foreground"
               />
               <TruncatedText
                 :text="f.tipo?.etiqueta || f.tipo_libre || 'Falla'"
@@ -126,7 +126,7 @@
           >
             <RefreshCwIcon class="size-4" /> Cambiaron de estado
             <span
-              class="ml-auto rounded-full bg-unergy-purple/10 px-2 py-px text-xs font-extrabold text-muted-foreground normal-case"
+              class="ml-auto rounded-full bg-primary/10 px-2 py-px text-xs font-extrabold text-muted-foreground normal-case"
               >{{ fallas.cambios_estado?.length || 0 }}</span
             >
           </div>
@@ -142,7 +142,7 @@
             <span class="flex min-w-0 flex-1 flex-col gap-0.5">
               <TruncatedText
                 :text="c.falla?.proyecto?.nombre_comercial || '—'"
-                class="text-sm font-bold text-unergy-deep"
+                class="text-sm font-bold text-foreground"
               />
               <span class="flex flex-wrap items-center gap-1.5">
                 <span
@@ -208,7 +208,7 @@ import FallaDetailSheet from '~/features/mobile/components/components/FallaDetai
 const CLS = {
   card: 'mb-3.5 rounded-2xl border border-border bg-card px-3 pb-2 pt-3',
   cardHead: 'mb-2.5 flex items-center gap-2',
-  cardTitle: 'text-sm font-extrabold text-unergy-deep',
+  cardTitle: 'text-sm font-extrabold text-foreground',
   loading: 'flex items-center gap-2 px-1 py-3.5 text-sm text-muted-foreground',
   emptyRow: 'px-1 py-2.5 text-sm text-muted-foreground',
 } as const
@@ -227,7 +227,7 @@ const TopCard = defineComponent({
   setup(props) {
     const medal = (i: number) =>
       i === 0
-        ? 'var(--color-unergy-yellow)'
+        ? 'var(--highlight)'
         : i === 1
           ? 'var(--muted-foreground)'
           : i === 2
@@ -243,7 +243,7 @@ const TopCard = defineComponent({
         ]),
         props.loading
           ? h('div', { class: CLS.loading }, [
-              h(LoaderCircleIcon, { class: 'size-4 animate-spin text-unergy-purple' }),
+              h(LoaderCircleIcon, { class: 'size-4 animate-spin text-primary' }),
               ' Cargando…',
             ])
           : props.items.length === 0
@@ -266,8 +266,8 @@ const TopCard = defineComponent({
                           class: [
                             'flex size-6 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold',
                             medal(i)
-                              ? 'bg-(--c) text-unergy-deep'
-                              : 'bg-unergy-purple/10 text-muted-foreground',
+                              ? 'bg-(--c) text-foreground'
+                              : 'bg-primary/10 text-muted-foreground',
                           ],
                           style: { '--c': medal(i) },
                         },
@@ -276,7 +276,7 @@ const TopCard = defineComponent({
                       h('div', { class: 'flex min-w-0 flex-1 flex-col gap-1.5' }, [
                         h(
                           'span',
-                          { class: 'truncate text-sm font-semibold text-unergy-deep' },
+                          { class: 'truncate text-sm font-semibold text-foreground' },
                           it.nombre || '—',
                         ),
                         h('div', { class: 'h-1.5 overflow-hidden rounded-sm bg-muted' }, [
@@ -296,7 +296,7 @@ const TopCard = defineComponent({
                         'span',
                         {
                           class:
-                            'shrink-0 whitespace-nowrap text-sm font-extrabold tabular-nums text-unergy-deep',
+                            'shrink-0 whitespace-nowrap text-sm font-extrabold tabular-nums text-foreground',
                         },
                         fmt(it.kwh),
                       ),

@@ -3,7 +3,7 @@
     <Transition name="fdsheet">
       <div
         v-if="open && fa"
-        class="fixed inset-0 z-50 flex items-end bg-unergy-deep/45"
+        class="fixed inset-0 z-50 flex items-end bg-foreground/45"
         @click.self="close"
       >
         <div
@@ -15,12 +15,12 @@
           <div class="mb-2.5 flex items-center gap-2.5">
             <div class="flex min-w-0 flex-1 flex-col gap-0.5">
               <code
-                class="self-start rounded-md bg-unergy-purple/10 px-2 py-px font-mono text-xs text-unergy-purple-dark"
+                class="self-start rounded-md bg-primary/10 px-2 py-px font-mono text-xs text-primary"
                 >{{ fa.codigo_interno }}</code
               >
-              <span class="text-sm font-bold text-unergy-deep">{{ titulo }}</span>
+              <span class="text-sm font-bold text-foreground">{{ titulo }}</span>
             </div>
-            <span v-if="saving" class="text-unergy-purple"
+            <span v-if="saving" class="text-primary"
               ><LoaderCircleIcon class="size-4 animate-spin"
             /></span>
             <button class="p-1 text-muted-foreground" @click="close">
@@ -29,7 +29,7 @@
           </div>
 
           <div class="flex-1 overflow-y-auto">
-            <p class="mb-4 text-sm leading-snug text-unergy-deep">{{ fa.descripcion }}</p>
+            <p class="mb-4 text-sm leading-snug text-foreground">{{ fa.descripcion }}</p>
 
             <!-- Clasificación (metodología estructurada) -->
             <div v-if="clasif" class="mb-4 rounded-xl border border-border bg-muted/50 px-3.5 py-3">
@@ -40,7 +40,7 @@
                 >
                   <component :is="clasif.icono" class="size-3" /> {{ clasif.categoriaEtiqueta }}
                 </span>
-                <span v-if="clasif.subtitulo" class="text-sm font-bold text-unergy-deep">{{
+                <span v-if="clasif.subtitulo" class="text-sm font-bold text-foreground">{{
                   clasif.subtitulo
                 }}</span>
                 <span
@@ -89,8 +89,8 @@
                   :key="idx"
                   class="rounded-xl border border-border bg-card px-3 py-2.5"
                 >
-                  <div class="flex items-center gap-2 text-sm text-unergy-deep">
-                    <ServerIcon class="size-3 text-unergy-purple" />
+                  <div class="flex items-center gap-2 text-sm text-foreground">
+                    <ServerIcon class="size-3 text-primary" />
                     <b>{{ inv.nombre }}</b>
                     <span
                       v-if="inv.potenciaKw != null"
@@ -102,7 +102,7 @@
                     <span
                       v-for="(t, ti) in inv.tipos"
                       :key="ti"
-                      class="rounded-md bg-unergy-purple/10 px-2 py-0.5 text-xs font-bold text-unergy-purple-dark"
+                      class="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary"
                       >{{ t }}</span
                     >
                   </div>
@@ -154,7 +154,7 @@
                 class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
               >
                 <span class="text-muted-foreground">Proyecto</span
-                ><b class="text-right text-unergy-deep">{{
+                ><b class="text-right text-foreground">{{
                   fa.proyecto?.nombre_comercial || '—'
                 }}</b>
               </div>
@@ -162,7 +162,7 @@
                 class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
               >
                 <span class="text-muted-foreground">Identificada</span
-                ><b class="text-right text-unergy-deep"
+                ><b class="text-right text-foreground"
                   >{{ fmtFecha(fa.fecha_identificacion)
                   }}<span v-if="fa.hora_identificacion" class="text-muted-foreground">
                     · {{ String(fa.hora_identificacion).slice(0, 5) }}</span
@@ -173,14 +173,14 @@
                 class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
               >
                 <span class="text-muted-foreground">Registró</span
-                ><b class="text-right text-unergy-deep">{{ fa.registrado_por?.nombre || '—' }}</b>
+                ><b class="text-right text-foreground">{{ fa.registrado_por?.nombre || '—' }}</b>
               </div>
               <div
                 v-if="fa.fecha_resolucion"
                 class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
               >
                 <span class="text-muted-foreground">Resuelta</span
-                ><b class="text-right text-unergy-deep">{{
+                ><b class="text-right text-foreground">{{
                   fmtFecha(fa.fecha_resolucion?.slice?.(0, 10) || fa.fecha_resolucion)
                 }}</b>
               </div>
@@ -189,7 +189,7 @@
                 class="flex items-center justify-between gap-2.5 border-b border-border py-2.5 text-sm last:border-b-0"
               >
                 <span class="text-muted-foreground">Energía perdida</span
-                ><b class="text-right text-unergy-deep"
+                ><b class="text-right text-foreground"
                   >{{ Number(fa.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh</b
                 >
               </div>
@@ -218,13 +218,13 @@
                 <textarea
                   v-model="nota"
                   rows="2"
-                  class="w-full resize-none rounded-xl border-2 border-border px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
+                  class="w-full resize-none rounded-xl border-2 border-border px-3.5 py-3 text-base text-foreground focus:border-primary focus:outline-none"
                   placeholder="Agregar nota…"
                 ></textarea>
                 <div class="mt-2 flex items-stretch gap-2">
                   <select
                     v-model="notaEstadoId"
-                    class="fd-select flex-1 appearance-none rounded-xl border-2 border-border bg-card px-3 py-2.5 text-sm text-unergy-deep focus:border-unergy-purple focus:outline-none"
+                    class="fd-select flex-1 appearance-none rounded-xl border-2 border-border bg-card px-3 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                   >
                     <option :value="null">Sin cambiar estado</option>
                     <option v-for="e in catalogos.estados" :key="e.id" :value="e.id">
@@ -232,7 +232,7 @@
                     </option>
                   </select>
                   <button
-                    class="w-12 shrink-0 rounded-xl bg-unergy-purple text-white disabled:opacity-40"
+                    class="shrink-0 rounded-xl bg-primary px-4 text-primary-foreground disabled:opacity-40"
                     :disabled="addingSeg || (!nota.trim() && !notaEstadoId)"
                     @click="agregarSeg"
                   >
@@ -249,7 +249,7 @@
                 class="mb-1 border-l-2 border-border pt-1 pb-2.5 pl-3"
               >
                 <div class="flex justify-between text-xs">
-                  <span class="font-bold text-unergy-deep">{{ s.usuario?.nombre || '—' }}</span>
+                  <span class="font-bold text-foreground">{{ s.usuario?.nombre || '—' }}</span>
                   <span class="text-muted-foreground">{{ relativeTime(s.created_at) }}</span>
                 </div>
                 <p v-if="s.nota" class="mt-1 text-sm leading-snug text-muted-foreground">
@@ -276,7 +276,7 @@
           </button>
           <button
             v-else
-            class="mt-2.5 flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-unergy-purple/10 text-base font-bold text-unergy-purple-dark disabled:opacity-50"
+            class="mt-2.5 flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary/10 text-base font-bold text-primary disabled:opacity-50"
             :disabled="saving"
             @click="reabrir"
           >

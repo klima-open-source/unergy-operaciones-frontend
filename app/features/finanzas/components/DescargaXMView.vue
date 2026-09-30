@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-      <CloudDownloadIcon class="size-4 text-unergy-purple" />
+      <CloudDownloadIcon class="size-4 text-primary" />
       <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Descarga de XM</span>
     </div>
 
@@ -15,15 +15,15 @@
         </p>
       </div>
 
-      <div class="rounded-xl border bg-white p-5 border-border">
+      <div class="rounded-xl border bg-card p-5 border-border">
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Usuario FTP</label>
-            <input v-model="form.ftpUsuario" type="text" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" autocomplete="off" />
+            <input v-model="form.ftpUsuario" type="text" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" autocomplete="off" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Clave FTP</label>
-            <input v-model="form.ftpClave" type="password" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" autocomplete="off" />
+            <input v-model="form.ftpClave" type="password" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" autocomplete="off" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2">
@@ -44,11 +44,11 @@
 
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha inicio</label>
-            <input v-model="form.fechaInicio" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" />
+            <input v-model="form.fechaInicio" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha fin</label>
-            <input v-model="form.fechaFin" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-unergy-purple focus:outline-none focus:ring-2 focus:ring-unergy-purple/15" />
+            <input v-model="form.fechaFin" type="date" class="rounded-lg border border-input px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15" />
           </div>
 
           <div class="col-span-2 flex items-center gap-2" v-if="tipoEsFiltrable">
@@ -67,7 +67,7 @@
         </div>
 
         <div class="mt-4">
-          <Button label="Descargar y unificar" :loading="enProceso" :disabled="!formularioValido || enProceso" @click="onDescargar" class="bg-unergy-purple border-unergy-purple">
+          <Button label="Descargar y unificar" :loading="enProceso" :disabled="!formularioValido || enProceso" @click="onDescargar" class="bg-primary border-primary">
             <template #icon><DownloadIcon class="size-4" /></template>
           </Button>
         </div>
@@ -75,22 +75,22 @@
 
       <div v-if="estado" class="rounded-xl border p-4 border-border">
         <div v-if="estado.estado === 'descargando'" class="text-sm text-muted-foreground">
-          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-primary" />
           Descargando archivos… {{ estado.archivos_procesados }}/{{ estado.archivos_totales }}
         </div>
 
         <div v-else-if="estado.estado === 'unificando'" class="text-sm text-muted-foreground">
-          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-primary" />
           Unificando archivos…
         </div>
 
         <div v-else-if="estado.estado === 'exportando'" class="text-sm text-muted-foreground">
-          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-unergy-purple" />
+          <LoaderCircleIcon class="mr-2 size-4 animate-spin text-primary" />
           Generando el archivo final… con rangos grandes puede tardar uno o dos minutos.
         </div>
 
         <div v-else-if="estado.estado === 'listo'" class="space-y-2">
-          <div class="text-sm font-semibold text-unergy-deep">Listo</div>
+          <div class="text-sm font-semibold text-foreground">Listo</div>
           <div v-if="estado.archivos_faltantes?.length" class="text-xs text-warning">
             {{ estado.archivos_faltantes.length }} archivo(s) no encontrados en el FTP para el rango.
           </div>

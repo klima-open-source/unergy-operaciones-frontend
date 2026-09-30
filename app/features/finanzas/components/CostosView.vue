@@ -3,7 +3,7 @@
 
     <!-- ══ TAB BAR ══════════════════════════════════════════════════════════ -->
     <div class="sticky top-0 z-20 flex shrink-0 items-center gap-2 border-b border-border bg-card px-3.5 py-1.5 shadow-xs">
-      <CreditCardIcon class="size-4 text-unergy-purple" />
+      <CreditCardIcon class="size-4 text-primary" />
       <span class="text-base font-bold text-foreground whitespace-nowrap mr-2">Costos</span>
       <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
         <button
@@ -11,8 +11,8 @@
           :key="i"
           class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
           :class="activeTab === i
-            ? 'bg-unergy-purple text-unergy-avena shadow-sm'
-            : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
+            ? 'bg-primary text-background shadow-sm'
+            : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'"
           @click="activeTab = i"
         >
           <component :is="tab.icon" class="size-3" />
@@ -24,7 +24,7 @@
       <div class="flex items-center gap-2 ml-auto">
         <input type="month" v-model="exportPeriodo"
           class="text-xs border border-border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20" />
-        <Button label="Descargar Excel" size="small" :loading="exportando" @click="onExportExcel" class="bg-unergy-purple border-unergy-purple">
+        <Button label="Descargar Excel" size="small" :loading="exportando" @click="onExportExcel" class="bg-primary border-primary">
           <template #icon><FileSpreadsheetIcon class="size-4" /></template>
         </Button>
       </div>
@@ -38,8 +38,8 @@
         <!-- Header del panel — NO sticky, no hereda mon-tab-bar -->
         <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
-            <CalculatorIcon class="size-4 text-unergy-purple" />
-            <span class="text-sm font-semibold text-unergy-deep">Panel O&amp;M Mensual</span>
+            <CalculatorIcon class="size-4 text-primary" />
+            <span class="text-sm font-semibold text-foreground">Panel O&amp;M Mensual</span>
           </div>
           <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
             <button
@@ -47,8 +47,8 @@
               :key="i"
               class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
               :class="activeSubTabOM === i
-                ? 'bg-unergy-purple text-unergy-avena shadow-sm'
-                : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
+                ? 'bg-primary text-background shadow-sm'
+                : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'"
               @click="activeSubTabOM = i"
             >
               <component :is="tab.icon" class="size-3" />
@@ -76,8 +76,8 @@
 
       <!-- ── 3. Selector de proyecto ────────────────────────────────────── -->
       <div class="mb-3 flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2">
-        <ZapIcon class="flex-shrink-0 size-4 text-unergy-purple" />
-        <span class="text-sm font-semibold whitespace-nowrap text-unergy-deep">Proyecto</span>
+        <ZapIcon class="flex-shrink-0 size-4 text-primary" />
+        <span class="text-sm font-semibold whitespace-nowrap text-foreground">Proyecto</span>
         <Select
           v-model="proyectoSeleccionado"
           :options="proyectos"
@@ -99,7 +99,7 @@
 
       <!-- ── 4. Contenido del proyecto ─────────────────────────────────── -->
       <div v-if="loadingContrato" class="flex justify-center py-10">
-        <LoaderCircleIcon class="size-6 animate-spin text-unergy-purple" />
+        <LoaderCircleIcon class="size-6 animate-spin text-primary" />
       </div>
 
       <div v-else-if="proyectoSeleccionado" class="space-y-4 mt-3">
@@ -108,11 +108,11 @@
         <FacturasMantenimiento :contrato-id="contratoMantenimientoId" />
 
         <!-- Cargar factura -->
-        <div class="rounded-xl border bg-white overflow-hidden border-border">
+        <div class="rounded-xl border bg-card overflow-hidden border-border">
           <div class="flex items-center justify-between px-4 py-2.5 border-b border-border">
             <div class="flex items-center gap-2">
-              <UploadIcon class="size-3 text-unergy-purple" />
-              <span class="text-sm font-semibold text-unergy-deep">Cargar factura</span>
+              <UploadIcon class="size-3 text-primary" />
+              <span class="text-sm font-semibold text-foreground">Cargar factura</span>
             </div>
             <button type="button"
               class="text-xs flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
@@ -133,7 +133,7 @@
                     :class="facturaForm.tipo === 'solenium'
                       ? 'border-primary/50 bg-primary/5 text-primary font-semibold'
                       : 'border-border text-muted-foreground hover:border-border'">
-                    <input type="radio" v-model="facturaForm.tipo" value="solenium" class="accent-unergy-purple" />
+                    <input type="radio" v-model="facturaForm.tipo" value="solenium" class="accent-primary" />
                     Proveedor O&amp;M (Solenium)
                   </label>
                   <label
@@ -210,7 +210,7 @@
             <div class="flex items-center gap-3 mt-3">
               <button type="button"
                 :disabled="!puedeGuardarFactura || guardandoFactura"
-                class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40 bg-unergy-purple text-primary-foreground border-0 cursor-pointer"
+                class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-40 bg-primary text-primary-foreground border-0 cursor-pointer"
                 @click="guardarFactura">
                 <LoaderCircleIcon v-if="guardandoFactura" class="size-3 animate-spin" />
                 <CheckIcon v-else class="size-3" />
@@ -232,8 +232,8 @@
       <div class="overflow-hidden rounded-xl border border-border bg-card">
         <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
-            <BuildingIcon class="size-4 text-unergy-purple" />
-            <span class="text-sm font-semibold text-unergy-deep">Panel Arriendos Mensual</span>
+            <BuildingIcon class="size-4 text-primary" />
+            <span class="text-sm font-semibold text-foreground">Panel Arriendos Mensual</span>
           </div>
           <div class="inline-flex rounded-lg border border-border bg-muted p-0.5">
             <button
@@ -241,8 +241,8 @@
               :key="i"
               class="relative inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all duration-150"
               :class="activeSubTabArr === i
-                ? 'bg-unergy-purple text-unergy-avena shadow-sm'
-                : 'text-muted-foreground hover:bg-unergy-purple/10 hover:text-unergy-deep'"
+                ? 'bg-primary text-background shadow-sm'
+                : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'"
               @click="activeSubTabArr = i"
             >
               <component :is="tab.icon" class="size-3" />
@@ -262,8 +262,8 @@
       <div class="overflow-hidden rounded-xl border border-border bg-card">
         <div class="flex items-center justify-between gap-2.5 border-b border-border bg-card px-3.5 py-2">
           <div class="flex items-center gap-2">
-            <WifiIcon class="size-4 text-unergy-purple" />
-            <span class="text-sm font-semibold text-unergy-deep">Starlink — Procesador de facturas PDF</span>
+            <WifiIcon class="size-4 text-primary" />
+            <span class="text-sm font-semibold text-foreground">Starlink — Procesador de facturas PDF</span>
           </div>
         </div>
         <div class="bg-muted">
