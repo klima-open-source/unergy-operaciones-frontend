@@ -48,6 +48,18 @@
             >. La acción queda registrada a tu nombre.
           </p>
 
+          <label class="mb-3 block text-xs font-semibold text-muted-foreground"
+            >Confirma con tu contraseña de la plataforma
+            <input
+              v-model="password"
+              class="mt-1.5 w-full rounded-xl border-2 border-border bg-card px-3.5 py-3 text-base text-unergy-deep focus:border-unergy-purple focus:outline-none"
+              type="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              @keydown.enter="submit"
+            />
+          </label>
+
           <div
             v-if="error"
             class="mb-3 flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
@@ -60,7 +72,7 @@
               'mt-1 flex w-full items-center justify-center gap-2 rounded-xl p-4 text-base font-bold text-white disabled:opacity-50',
               TONE_SOLID[accion],
             ]"
-            :disabled="loading"
+            :disabled="loading || !password"
             @click="submit"
           >
             <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
@@ -113,6 +125,7 @@ const ACTION_BTN =
 const ACTION_BTN_IDLE = 'border-border bg-card text-muted-foreground'
 
 const accion = ref<Accion>('ON')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
@@ -122,6 +135,7 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     accion.value = props.active === true ? 'OFF' : 'ON'
+    password.value = ''
     error.value = ''
     loading.value = false
   },
@@ -132,16 +146,21 @@ function close(): void {
 }
 
 async function submit(): Promise<void> {
-  if (props.proyectoId == null) return
+  if (!password.value || props.proyectoId == null) return
   loading.value = true
   error.value = ''
   try {
-    await reconectadoresService.enviarComando(props.proyectoId, { accion: accion.value })
+    await reconectadoresService.enviarComando(props.proyectoId, {
+      accion: accion.value,
+      password: password.value,
+    })
     emit('done', { active: accion.value === 'ON' })
     emit('close')
   } catch (err) {
     error.value = normalizeError(err).message
   } finally {
+    // La contraseña no se queda en memoria después del intento, salga o no.
+    password.value = ''
     loading.value = false
   }
 }
