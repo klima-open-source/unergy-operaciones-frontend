@@ -979,16 +979,20 @@ const hayCeldasInvalidas = computed(
 // valor suelto no activa nada, se comporta como un input normal (y la coma
 // que traiga la cambia aPunto). Los valores se separan por salto de línea o
 // tabulador, que es lo que pone Excel; la coma ya no separa, es decimal.
+// Una celda vacía de Excel queda vacía EN SU HORA (y se envía como 0). Antes
+// se descartaba y todo lo de abajo subía una hora: un hueco a las 3h corría
+// la tarde entera sin aviso.
 function _pegarEnCurva(
   event: ClipboardEvent,
   curva: (number | string | null)[],
   indiceInicio: number,
 ) {
   const texto = event.clipboardData?.getData('text') || ''
+  // Excel termina lo copiado con un salto de línea: eso no es una hora más.
   const valores = texto
-    .split(/[\r\n\t]+/)
+    .replace(/\r?\n$/, '')
+    .split(/\r?\n|\t/)
     .map((s) => String(aPunto(s.trim())))
-    .filter(Boolean)
   if (valores.length <= 1) return
   event.preventDefault()
   const invalidos = valores.filter((v) => !esValorValido(v))
@@ -1001,7 +1005,7 @@ function _pegarEnCurva(
   }
   valores.forEach((v, i) => {
     const idx = indiceInicio + i
-    if (idx < 24) curva[idx] = Number(v)
+    if (idx < 24) curva[idx] = v === '' ? null : Number(v)
   })
 }
 
