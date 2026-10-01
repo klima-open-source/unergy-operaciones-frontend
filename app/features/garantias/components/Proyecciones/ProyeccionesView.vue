@@ -26,7 +26,7 @@ const MESES = [
 ]
 
 const plantasNuevas = ref(0)
-const kwhPlantaNueva = ref(180)
+const kwhPlantaNueva = ref(180_000)
 const corte = ref('')
 const data = ref<Proyecciones | null>(null)
 const historial = ref<SnapshotGarantias[]>([])
@@ -135,8 +135,8 @@ onMounted(() => {
         </NumberField>
       </div>
       <div class="flex flex-col gap-1">
-        <GLabel>kWh por planta nueva</GLabel>
-        <NumberField v-model="kwhPlantaNueva" :min="0" :step="10" @update:model-value="cargar">
+        <GLabel>kWh/mes por planta nueva</GLabel>
+        <NumberField v-model="kwhPlantaNueva" :min="0" :step="1000" @update:model-value="cargar">
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>

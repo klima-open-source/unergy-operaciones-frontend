@@ -24,9 +24,11 @@ const RUTAS = {
   atribucion: `${BASE}/atribucion`,
 } as const
 
-/** Valores por defecto de la simulación, los mismos que traía el legacy. */
+/** Valores por defecto de la simulación. `kwh_planta_nueva` es la generación
+ * MENSUAL estimada de una planta nueva (kWh); el backend la prorratea por los días
+ * de cada ventana. */
 const PLANTAS_NUEVAS_POR_DEFECTO = 0
-const KWH_PLANTA_NUEVA_POR_DEFECTO = 180
+const KWH_PLANTA_NUEVA_POR_DEFECTO = 180_000
 
 function aQuery({
   plantasNuevas = PLANTAS_NUEVAS_POR_DEFECTO,
@@ -64,8 +66,6 @@ export class ProyeccionesGarantiasService extends BaseService {
    * (PLC + duplicados) y la guarda. `corte` replica un corte pasado.
    */
   calcularAtribucion(corte?: string): Promise<AtribucionGarantia> {
-    return this.post<AtribucionGarantia>(
-      RUTAS.atribucion, null, { query: corte ? { corte } : {} },
-    )
+    return this.post<AtribucionGarantia>(RUTAS.atribucion, null, { query: corte ? { corte } : {} })
   }
 }
