@@ -105,6 +105,26 @@
         <GBadge v-for="r in resumenEstados" :key="r.key" :color="r.color">
           {{ r.label }} · {{ r.count }}
         </GBadge>
+
+        <!-- Reconectadores: un clic filtra las tarjetas, otro clic lo quita -->
+        <template v-if="resumenReconectadores.length">
+          <span class="mx-1 h-4 w-px bg-border" aria-hidden="true" />
+          <GBadge
+            v-for="r in resumenReconectadores"
+            :key="r.key"
+            as="button"
+            type="button"
+            :color="r.color"
+            :variant="filtroRcn === r.key ? 'default' : 'outline'"
+            class="cursor-pointer gap-1"
+            :aria-pressed="filtroRcn === r.key"
+            :title="filtroRcn === r.key ? 'Quitar filtro' : `Ver solo: ${r.label}`"
+            @click="filtroRcn = filtroRcn === r.key ? null : r.key"
+          >
+            <PowerIcon class="size-3" /> {{ r.label }} · {{ r.count }}
+            <XIcon v-if="filtroRcn === r.key" class="size-3" />
+          </GBadge>
+        </template>
       </div>
 
       <!-- ══ LOADING inicial ══ -->
@@ -131,7 +151,13 @@
         class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
       >
         <SearchIcon class="size-8 text-muted-foreground/40" />
-        <p class="text-sm">Ningún proyecto coincide con "{{ filtro }}"</p>
+        <p class="text-sm">
+          Ningún proyecto coincide
+          <template v-if="filtro.trim()">con "{{ filtro }}"</template>
+          <template v-if="filtroRcn">
+            {{ filtro.trim() ? 'y' : 'con' }} el filtro de reconectador</template
+          >
+        </p>
       </div>
 
       <!-- ══ PROYECTOS (drag & drop) ══ -->
@@ -142,7 +168,7 @@
         handle=".sl-drag-handle"
         class="grid grid-cols-(--cols) gap-4"
         :style="{ '--cols': cols }"
-        :disabled="!!filtro.trim()"
+        :disabled="!!filtro.trim() || !!filtroRcn"
         @end="saveOrder"
       >
         <template #item="{ element: proy }">
@@ -532,14 +558,47 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 // ── Filtro por proyecto ────────────────────────────────────────────────────
 const filtro = ref('')
 
+// ── Filtro por estado del reconectador ─────────────────────────────────────
+// Solo cuentan las plantas de esta pantalla que tienen reconectador: las demás
+// no salen en ningún grupo, porque "sin reconectador" no es un estado del relay.
+type FiltroReconectador = 'on' | 'off' | 'sin_dato'
+const filtroRcn = ref<FiltroReconectador | null>(null)
+
+function estadoRcn(proy: ProyectoMonitoreoSolar): FiltroReconectador | null {
+  const r = rcnMap[proy.proyecto_id]
+  if (!r) return null
+  return r.active === true ? 'on' : r.active === false ? 'off' : 'sin_dato'
+}
+
+const RCN_META: Record<FiltroReconectador, { label: string; color: string }> = {
+  on: { label: 'Reconectador activo', color: 'success' },
+  off: { label: 'Reconectador inactivo', color: 'destructive' },
+  sin_dato: { label: 'Reconectador sin dato', color: 'default' },
+}
+
+const resumenReconectadores = computed(() => {
+  const counts: Partial<Record<FiltroReconectador, number>> = {}
+  for (const p of proyectos.value) {
+    const e = estadoRcn(p)
+    if (e) counts[e] = (counts[e] || 0) + 1
+  }
+  // Activo e inactivo siempre (aunque sea 0, para que se sepa que hay cero
+  // apagados); "sin dato" solo si hay alguno.
+  if (!Object.keys(counts).length) return []
+  return (['on', 'off', 'sin_dato'] as const)
+    .filter((key) => key !== 'sin_dato' || counts[key])
+    .map((key) => ({ key, count: counts[key] ?? 0, ...RCN_META[key] }))
+})
+
 function matchesFiltro(proy: ProyectoMonitoreoSolar): boolean {
+  if (filtroRcn.value && estadoRcn(proy) !== filtroRcn.value) return false
   const q = filtro.value.trim().toLowerCase()
   if (!q) return true
   return (proy.nombre || '').toLowerCase().includes(q)
 }
 
 const sinCoincidencias = computed(
-  () => !!filtro.value.trim() && !proyectos.value.some(matchesFiltro),
+  () => (!!filtro.value.trim() || !!filtroRcn.value) && !proyectos.value.some(matchesFiltro),
 )
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
