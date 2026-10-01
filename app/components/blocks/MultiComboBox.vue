@@ -4,13 +4,10 @@
  * equivalente a `blocks/ComboBox.vue` pero de varios valores a la vez
  * (reemplazo de `MultiSelect` de PrimeVue con `display="chip"`).
  *
- * Construido sobre `Popover` + `Input` filtrando a mano, como
- * `SelectorCliente.vue` — no sobre `ui/combobox` (`ComboboxRoot` con
- * `multiple`): ese camino exige anidar los chips y su botón de borrar dentro
- * del propio trigger del combobox, con los conflictos de foco/click que eso
- * trae. El patrón de Popover ya está probado en este mismo repo.
+ * Los chips van fuera del combobox, encima del input: así el botón de quitar
+ * de cada chip no compite por el foco ni el click con el trigger.
  */
-import { XIcon } from '@lucide/vue'
+import { CheckIcon, XIcon } from '@lucide/vue'
 
 export interface ComboBoxOption {
   label: string
@@ -26,24 +23,8 @@ const props = defineProps<{
 
 const modelValue = defineModel<string[]>({ default: () => [] })
 
-const open = ref(false)
-const query = ref('')
-
-const disponibles = computed(() => props.options.filter((o) => !modelValue.value.includes(o.value)))
-
-const sugerencias = computed(() => {
-  const q = query.value.toLowerCase().trim()
-  if (!q) return disponibles.value
-  return disponibles.value.filter((o) => o.label.toLowerCase().includes(q))
-})
-
 function etiqueta(value: string): string {
   return props.options.find((o) => o.value === value)?.label ?? value
-}
-
-function agregar(value: string) {
-  modelValue.value = [...modelValue.value, value]
-  query.value = ''
 }
 
 function quitar(value: string) {
@@ -71,33 +52,26 @@ function quitar(value: string) {
       </span>
     </div>
 
-    <Popover v-model:open="open">
-      <PopoverAnchor as-child>
-        <Input
-          v-model="query"
-          :placeholder="placeholder"
-          :disabled="disabled"
-          @focus="open = true"
-        />
-      </PopoverAnchor>
-      <PopoverContent
-        class="w-(--reka-popover-trigger-width) max-w-none p-1"
-        align="start"
-        @open-auto-focus.prevent
-      >
-        <p v-if="!sugerencias.length" class="px-2 py-4 text-center text-sm text-muted-foreground">
-          {{ emptyMessage ?? 'Sin resultados.' }}
-        </p>
-        <button
-          v-for="option in sugerencias"
-          :key="option.value"
-          type="button"
-          class="flex w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
-          @click="agregar(option.value)"
-        >
-          {{ option.label }}
-        </button>
-      </PopoverContent>
-    </Popover>
+    <Combobox v-model="modelValue" multiple open-on-click open-on-focus :disabled="disabled">
+      <ComboboxAnchor>
+        <ComboboxInput :placeholder="placeholder" />
+      </ComboboxAnchor>
+      <ComboboxList>
+        <ComboboxEmpty>{{ emptyMessage ?? 'Sin resultados.' }}</ComboboxEmpty>
+        <ComboboxViewport>
+          <ComboboxItem
+            v-for="option in options"
+            :key="option.value"
+            :value="option.value"
+            :text-value="option.label"
+          >
+            {{ option.label }}
+            <ComboboxItemIndicator>
+              <CheckIcon />
+            </ComboboxItemIndicator>
+          </ComboboxItem>
+        </ComboboxViewport>
+      </ComboboxList>
+    </Combobox>
   </div>
 </template>

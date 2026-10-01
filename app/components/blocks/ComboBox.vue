@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CheckIcon } from '@lucide/vue'
+
 export interface ComboBoxOption {
   label: string
   value: string
@@ -19,11 +21,9 @@ function displayValue(value: string) {
 </script>
 
 <template>
-  <Combobox v-model="modelValue" :disabled="disabled">
+  <Combobox v-model="modelValue" open-on-click open-on-focus :disabled="disabled">
     <ComboboxAnchor>
-      <ComboboxTrigger>
-        <ComboboxInput :display-value="displayValue" :placeholder="placeholder" />
-      </ComboboxTrigger>
+      <ComboboxInput :display-value="displayValue" :placeholder="placeholder" />
     </ComboboxAnchor>
     <ComboboxList>
       <ComboboxEmpty>{{ emptyMessage ?? 'Sin resultados.' }}</ComboboxEmpty>
@@ -35,6 +35,9 @@ function displayValue(value: string) {
           :text-value="option.label"
         >
           {{ option.label }}
+          <ComboboxItemIndicator>
+            <CheckIcon />
+          </ComboboxItemIndicator>
         </ComboboxItem>
       </ComboboxViewport>
     </ComboboxList>

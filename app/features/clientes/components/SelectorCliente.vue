@@ -68,6 +68,9 @@ const query = computed({
   set: (valor: string) => alCambiar(valor),
 })
 
+/** El cliente vinculado, para que la lista lo marque como elegido. */
+const seleccionado = computed(() => catalogo.value.find((c) => c.id === props.id) ?? null)
+
 /** El nombre escrito que no corresponde a ningún cliente vinculado. */
 const textoSuelto = computed(() => (props.id ? '' : (props.nombre ?? '').trim()))
 
@@ -121,42 +124,39 @@ watch(
   <div class="flex flex-col gap-1">
     <GLabel :required="requerido">{{ label }}</GLabel>
     <div class="flex gap-2">
-      <Popover v-model:open="open">
-        <PopoverAnchor as-child>
-          <Input
-            :id="inputId"
-            v-model="query"
-            :placeholder="placeholder"
-            :disabled="disabled"
-            class="flex-1"
-            @focus="open = true"
-          />
-        </PopoverAnchor>
-        <PopoverContent
-          class="w-(--reka-popover-trigger-width) max-w-none p-1"
-          align="start"
-          @open-auto-focus.prevent
-        >
-          <p
-            v-if="sugerencias.length === 0"
-            class="px-2 py-4 text-center text-sm text-muted-foreground"
-          >
-            Sin resultados
-          </p>
-          <button
-            v-for="c in sugerencias"
-            :key="c.id"
-            type="button"
-            class="flex w-full flex-col rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted"
-            @click="alCambiar(c)"
-          >
-            <span>{{ c.razon_social_nombre }}</span>
-            <span v-if="c.nit_cedula" class="text-xs text-muted-foreground"
-              >NIT {{ c.nit_cedula }}</span
-            >
-          </button>
-        </PopoverContent>
-      </Popover>
+      <!-- `ignore-filter`: el filtro es `sugerencias` (por nombre y NIT, y
+           vacío sin búsqueda). Sin reset del término: lo escrito es el nombre
+           de la parte, no una búsqueda que se descarta al salir del campo. -->
+      <Combobox
+        v-model:open="open"
+        :model-value="seleccionado"
+        by="id"
+        open-on-click
+        open-on-focus
+        ignore-filter
+        :reset-search-term-on-blur="false"
+        :reset-search-term-on-select="false"
+        :disabled="disabled"
+        class="flex-1"
+        @update:model-value="(c) => c && alCambiar(c as Cliente)"
+      >
+        <ComboboxAnchor>
+          <ComboboxInput :id="inputId" v-model="query" :placeholder="placeholder" />
+        </ComboboxAnchor>
+        <ComboboxList align="start">
+          <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+          <ComboboxViewport>
+            <ComboboxItem v-for="c in sugerencias" :key="c.id" :value="c">
+              <div class="flex flex-col">
+                <span>{{ c.razon_social_nombre }}</span>
+                <span v-if="c.nit_cedula" class="text-xs text-muted-foreground"
+                  >NIT {{ c.nit_cedula }}</span
+                >
+              </div>
+            </ComboboxItem>
+          </ComboboxViewport>
+        </ComboboxList>
+      </Combobox>
       <GTooltip>
         <GTooltipTrigger as-child>
           <Button variant="outline" size="icon" :disabled="disabled" @click="abrirCreacion">
