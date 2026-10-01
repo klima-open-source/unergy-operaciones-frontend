@@ -324,7 +324,11 @@
               >
                 {{ h - 1 }}h
               </td>
-              <td class="border p-0">
+              <td
+                class="relative border p-0"
+                :class="{ 'bg-primary/10': enRangoArrastre('p', h - 1) }"
+                @mouseenter="sobreCelda('p', h - 1)"
+              >
                 <Input
                   :model-value="curvaEditable[h - 1] ?? ''"
                   inputmode="decimal"
@@ -336,9 +340,24 @@
                   }"
                   @update:model-value="(v) => (curvaEditable[h - 1] = aPunto(v))"
                   @paste="onPasteHora($event, h - 1)"
+                  @focus="celdaActiva = { col: 'p', h: h - 1 }"
+                  @keydown="onKeydownCelda($event, 'p', h - 1)"
+                />
+                <span
+                  v-if="celdaActiva?.col === 'p' && celdaActiva.h === h - 1"
+                  class="absolute -right-1 -bottom-1 z-10 size-2 cursor-crosshair border border-background bg-primary"
+                  title="Arrastra para copiar este valor"
+                  @mousedown.prevent="iniciarArrastre('p', h - 1)"
                 />
               </td>
-              <td class="border p-0" :class="{ 'bg-warning/15': esHoraRellenada(h - 1) }">
+              <td
+                class="relative border p-0"
+                :class="{
+                  'bg-warning/15': esHoraRellenada(h - 1),
+                  'bg-primary/10': enRangoArrastre('r', h - 1),
+                }"
+                @mouseenter="sobreCelda('r', h - 1)"
+              >
                 <Input
                   :model-value="curvaRespaldoEditable[h - 1] ?? ''"
                   inputmode="decimal"
@@ -352,6 +371,14 @@
                   }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = aPunto(v))"
                   @paste="onPasteHoraRespaldo($event, h - 1)"
+                  @focus="celdaActiva = { col: 'r', h: h - 1 }"
+                  @keydown="onKeydownCelda($event, 'r', h - 1)"
+                />
+                <span
+                  v-if="celdaActiva?.col === 'r' && celdaActiva.h === h - 1"
+                  class="absolute -right-1 -bottom-1 z-10 size-2 cursor-crosshair border border-background bg-primary"
+                  title="Arrastra para copiar este valor"
+                  @mousedown.prevent="iniciarArrastre('r', h - 1)"
                 />
               </td>
             </tr>
@@ -384,7 +411,11 @@
               >
                 {{ h + 11 }}h
               </td>
-              <td class="border p-0">
+              <td
+                class="relative border p-0"
+                :class="{ 'bg-primary/10': enRangoArrastre('p', h + 11) }"
+                @mouseenter="sobreCelda('p', h + 11)"
+              >
                 <Input
                   :model-value="curvaEditable[h + 11] ?? ''"
                   inputmode="decimal"
@@ -396,9 +427,24 @@
                   }"
                   @update:model-value="(v) => (curvaEditable[h + 11] = aPunto(v))"
                   @paste="onPasteHora($event, h + 11)"
+                  @focus="celdaActiva = { col: 'p', h: h + 11 }"
+                  @keydown="onKeydownCelda($event, 'p', h + 11)"
+                />
+                <span
+                  v-if="celdaActiva?.col === 'p' && celdaActiva.h === h + 11"
+                  class="absolute -right-1 -bottom-1 z-10 size-2 cursor-crosshair border border-background bg-primary"
+                  title="Arrastra para copiar este valor"
+                  @mousedown.prevent="iniciarArrastre('p', h + 11)"
                 />
               </td>
-              <td class="border p-0" :class="{ 'bg-warning/15': esHoraRellenada(h + 11) }">
+              <td
+                class="relative border p-0"
+                :class="{
+                  'bg-warning/15': esHoraRellenada(h + 11),
+                  'bg-primary/10': enRangoArrastre('r', h + 11),
+                }"
+                @mouseenter="sobreCelda('r', h + 11)"
+              >
                 <Input
                   :model-value="curvaRespaldoEditable[h + 11] ?? ''"
                   inputmode="decimal"
@@ -412,6 +458,14 @@
                   }"
                   @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = aPunto(v))"
                   @paste="onPasteHoraRespaldo($event, h + 11)"
+                  @focus="celdaActiva = { col: 'r', h: h + 11 }"
+                  @keydown="onKeydownCelda($event, 'r', h + 11)"
+                />
+                <span
+                  v-if="celdaActiva?.col === 'r' && celdaActiva.h === h + 11"
+                  class="absolute -right-1 -bottom-1 z-10 size-2 cursor-crosshair border border-background bg-primary"
+                  title="Arrastra para copiar este valor"
+                  @mousedown.prevent="iniciarArrastre('r', h + 11)"
                 />
               </td>
             </tr>
@@ -425,7 +479,8 @@
       <p class="mt-1 text-xs text-muted-foreground">
         Tip: pega varios valores seguidos (ej. una columna copiada de Excel) en cualquier celda --
         se reparten en las horas siguientes en orden. El decimal es el punto; una coma se cambia por
-        punto sola.
+        punto sola. Para repetir un valor, arrastra el cuadrito de la esquina de la celda, o usa
+        Ctrl+D para copiar el de la hora de arriba.
       </p>
       <div class="mt-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -1008,6 +1063,59 @@ function _pegarEnCurva(
     if (idx < 24) curva[idx] = v === '' ? null : Number(v)
   })
 }
+
+// Copiar un valor a varias horas, como en Excel. Dos formas, cada una
+// dentro de su columna (Principal o Respaldo, nunca de una a otra):
+// - arrastrar el cuadrito de la esquina de la celda activa: el valor de esa
+//   celda se copia a todas las horas por las que pase el mouse, hacia
+//   arriba o hacia abajo, y cruza de la tabla 0-11h a la 12-23h;
+// - Ctrl+D: la celda toma el valor de la hora de arriba.
+// Una celda vacía se copia vacía (en Respaldo, el número gris es solo
+// referencia, no un valor de la celda).
+type ColumnaCurva = 'p' | 'r'
+const celdaActiva = ref<{ col: ColumnaCurva; h: number } | null>(null)
+const arrastre = ref<{ col: ColumnaCurva; desde: number; hasta: number } | null>(null)
+
+function _curvaDeColumna(col: ColumnaCurva) {
+  return col === 'p' ? curvaEditable.value : curvaRespaldoEditable.value
+}
+
+function iniciarArrastre(col: ColumnaCurva, h: number) {
+  arrastre.value = { col, desde: h, hasta: h }
+  window.addEventListener('mouseup', terminarArrastre, { once: true })
+}
+
+function sobreCelda(col: ColumnaCurva, h: number) {
+  if (arrastre.value?.col === col) arrastre.value.hasta = h
+}
+
+function enRangoArrastre(col: ColumnaCurva, h: number): boolean {
+  const a = arrastre.value
+  if (!a || a.col !== col) return false
+  return h >= Math.min(a.desde, a.hasta) && h <= Math.max(a.desde, a.hasta)
+}
+
+function terminarArrastre() {
+  const a = arrastre.value
+  arrastre.value = null
+  if (!a || a.desde === a.hasta) return
+  const curva = _curvaDeColumna(a.col)
+  const valor = curva[a.desde] ?? null
+  for (let h = Math.min(a.desde, a.hasta); h <= Math.max(a.desde, a.hasta); h++) {
+    curva[h] = valor
+  }
+}
+
+function onKeydownCelda(event: KeyboardEvent, col: ColumnaCurva, h: number) {
+  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'd') return
+  // Sin esto el navegador abre "Agregar a favoritos".
+  event.preventDefault()
+  if (h === 0) return
+  const curva = _curvaDeColumna(col)
+  curva[h] = curva[h - 1] ?? null
+}
+
+onBeforeUnmount(() => window.removeEventListener('mouseup', terminarArrastre))
 
 function onPasteHora(event: ClipboardEvent, indiceInicio: number) {
   _pegarEnCurva(event, curvaEditable.value, indiceInicio)
