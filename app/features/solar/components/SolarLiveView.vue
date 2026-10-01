@@ -32,7 +32,7 @@
         <!-- ── Barra de acciones ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
           <!-- Filtro por proyecto -->
-          <InputGroup class="min-w-0 flex-1 sm:max-w-xs">
+          <InputGroup class="min-w-48 flex-1 sm:max-w-xs">
             <InputGroupAddon>
               <SearchIcon />
             </InputGroupAddon>
@@ -44,7 +44,21 @@
             </InputGroupAddon>
           </InputGroup>
 
-          <div class="flex items-center gap-2.5">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Interruptor general del ON/OFF de reconectadores: solo admin -->
+            <div
+              v-if="interruptor && can('reconectadores:interruptor')"
+              class="flex items-center gap-2 rounded-md border border-border px-2.5 py-1"
+              :title="tituloInterruptor"
+            >
+              <PowerIcon class="size-4 text-muted-foreground" />
+              <span class="text-xs font-semibold text-muted-foreground">Comandos ON/OFF</span>
+              <GSwitch
+                :model-value="interruptor.habilitado"
+                :disabled="interruptor.forzado_por_servidor || cambiandoInterruptor"
+                @update:model-value="pedirCambioInterruptor"
+              />
+            </div>
             <!-- Toggle columnas -->
             <ButtonGroup>
               <Button
@@ -439,7 +453,8 @@ import draggable from 'vuedraggable'
 import { toast } from 'vue-sonner'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
 import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
-import type { EstadoReconectador } from '~/features/mobile/types'
+import type { EstadoInterruptorReconectadores, EstadoReconectador } from '~/features/mobile/types'
+import { normalizeError } from '~/core/errors'
 import ReconectadorPanel from '~/features/solar/components/components/ReconectadorPanel.vue'
 import ReconectarDialog from '~/features/solar/components/components/ReconectarDialog.vue'
 // Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
@@ -465,6 +480,7 @@ import {
   LayoutListIcon,
   LoaderCircleIcon,
   MenuIcon,
+  PowerIcon,
   RefreshCwIcon,
   SearchIcon,
   SunIcon,
@@ -484,6 +500,7 @@ const GeneracionView = defineAsyncComponent(
 const generacionSolarService = new GeneracionSolarService()
 const reconectadoresService = new ReconectadoresService()
 const { can } = useAuth()
+const confirm = useConfirm()
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
 
@@ -930,6 +947,52 @@ async function cargarEstados(): Promise<void> {
   }
 }
 
+// El interruptor general: con él apagado, ningún ON/OFF sale del servidor.
+const interruptor = ref<EstadoInterruptorReconectadores | null>(null)
+const cambiandoInterruptor = ref(false)
+
+const tituloInterruptor = computed(() => {
+  const i = interruptor.value
+  if (!i) return ''
+  if (i.forzado_por_servidor) return 'Encendido en la configuración del servidor'
+  if (!i.actualizado_por) return 'Nunca se ha encendido desde la plataforma'
+  const cuando = i.actualizado_en ? new Date(i.actualizado_en).toLocaleString('es-CO') : ''
+  return `${i.habilitado ? 'Encendido' : 'Apagado'} por ${i.actualizado_por} ${cuando}`.trim()
+})
+
+async function cargarInterruptor(): Promise<void> {
+  if (!can('reconectadores:interruptor')) return
+  try {
+    interruptor.value = await reconectadoresService.obtenerInterruptor()
+  } catch {
+    /* sin el estado no se muestra el interruptor */
+  }
+}
+
+function pedirCambioInterruptor(habilitado: boolean): void {
+  confirm({
+    title: habilitado ? '¿Encender los comandos ON/OFF?' : '¿Apagar los comandos ON/OFF?',
+    description: habilitado
+      ? 'Los usuarios de admin y operaciones podrán abrir y cerrar reconectadores (con su usuario de SolarView). Apagar un reconectador deja la planta fuera de línea y puede haber gente en sitio: coordínalo con el equipo de campo.'
+      : 'Nadie podrá abrir ni cerrar reconectadores desde la plataforma hasta que se vuelvan a encender.',
+    confirmLabel: habilitado ? 'Encender' : 'Apagar',
+    variant: habilitado ? 'destructive' : 'default',
+    onConfirm: () => cambiarInterruptor(habilitado),
+  })
+}
+
+async function cambiarInterruptor(habilitado: boolean): Promise<void> {
+  cambiandoInterruptor.value = true
+  try {
+    interruptor.value = await reconectadoresService.cambiarInterruptor(habilitado)
+    toast.success(habilitado ? 'Comandos ON/OFF encendidos' : 'Comandos ON/OFF apagados')
+  } catch (err) {
+    toast.error('No se pudo cambiar', { description: normalizeError(err).message })
+  } finally {
+    cambiandoInterruptor.value = false
+  }
+}
+
 function abrirReconectar(p: ProyectoMonitoreoSolar): void {
   reconectarTarget.value = p
   reconectarOpen.value = true
@@ -952,6 +1015,7 @@ async function cargar(): Promise<void> {
   loading.value = true
   // En paralelo con la lista: no depende de ella.
   void cargarEstados()
+  void cargarInterruptor()
   try {
     const res = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = applyOrder(res.projects ?? [])

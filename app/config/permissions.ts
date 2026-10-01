@@ -35,6 +35,7 @@ export type Permission =
   | 'registros-cnd:read'
   | 'liquidaciones:read'
   | 'reconectadores:command'
+  | 'reconectadores:interruptor'
   | 'admin:manage'
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -95,6 +96,8 @@ export const ROLE_PERMISSIONS = {
     'registros-cnd:read',
     'liquidaciones:read',
     'reconectadores:command',
+    // Encender o apagar TODOS los comandos ON/OFF: solo admin.
+    'reconectadores:interruptor',
     'admin:manage',
   ],
   [UserRole.OPERACIONES]: [
