@@ -134,6 +134,7 @@
         <template #item="{ element: proy }">
           <div
             v-show="matchesFiltro(proy)"
+            class="min-w-0"
             :ref="(el) => observarTarjeta(el as Element | null, proy.proyecto_id)"
           >
             <Card size="sm">
@@ -309,7 +310,9 @@
                     v-if="rcnMap[proy.proyecto_id]"
                     :relay="rcnMap[proy.proyecto_id]!"
                     :puede-reconectar="can('reconectadores:command')"
+                    :recargando="recargandoEstados"
                     @reconectar="abrirReconectar(proy)"
+                    @refrescar="cargarEstados"
                   />
 
                   <!-- ── Generación de hoy ── -->
@@ -913,13 +916,17 @@ function alCambiarVisibilidad(entradas: IntersectionObserverEntry[]): void {
 const rcnMap = reactive<Record<number, EstadoReconectador>>({})
 const reconectarOpen = ref(false)
 const reconectarTarget = ref<ProyectoMonitoreoSolar | null>(null)
+const recargandoEstados = ref(false)
 
 async function cargarEstados(): Promise<void> {
+  recargandoEstados.value = true
   try {
     const data = await reconectadoresService.obtenerEstados()
     for (const r of data) rcnMap[r.proyecto_id] = r
   } catch {
     /* silencioso: sin reconectadores la tarjeta queda como antes */
+  } finally {
+    recargandoEstados.value = false
   }
 }
 

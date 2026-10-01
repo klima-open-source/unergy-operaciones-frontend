@@ -15,4 +15,7 @@ export interface EstadoReconectador {
 /** El comando va con el token del servidor: ya no lleva credenciales de Solenium. */
 export interface PayloadComandoReconectador {
   accion: 'ON' | 'OFF'
+  /** Usuario y contraseña de SolarView de quien manda el comando; no se guardan. */
+  username: string
+  password: string
 }
