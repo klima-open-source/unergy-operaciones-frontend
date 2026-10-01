@@ -304,6 +304,14 @@
                     </div>
                   </div>
 
+                  <!-- Reconectador: estado + telemetría en vivo (SolarView) -->
+                  <ReconectadorPanel
+                    v-if="rcnMap[proy.proyecto_id]"
+                    :relay="rcnMap[proy.proyecto_id]!"
+                    :puede-reconectar="can('reconectadores:command')"
+                    @reconectar="abrirReconectar(proy)"
+                  />
+
                   <!-- ── Generación de hoy ── -->
                   <div class="flex flex-col gap-2 border-t border-border pt-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -397,6 +405,14 @@
     <div v-else class="flex-1 overflow-y-auto">
       <GeneracionView />
     </div>
+
+    <ReconectarDialog
+      v-model:open="reconectarOpen"
+      :proyecto-id="reconectarTarget?.proyecto_id ?? null"
+      :nombre="reconectarTarget?.nombre || ''"
+      :active="(reconectarTarget && rcnMap[reconectarTarget.proyecto_id]?.active) ?? null"
+      @done="onReconectado"
+    />
   </div>
   <!-- /root -->
 </template>
@@ -417,7 +433,12 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
+import { toast } from 'vue-sonner'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
+import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
+import type { EstadoReconectador } from '~/features/mobile/types'
+import ReconectadorPanel from '~/features/solar/components/components/ReconectadorPanel.vue'
+import ReconectarDialog from '~/features/solar/components/components/ReconectarDialog.vue'
 // Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
 // aparte porque las dos ya se separaron dos veces leyendo el mismo endpoint --
 // ver el docstring del modulo.
@@ -458,6 +479,8 @@ const GeneracionView = defineAsyncComponent(
 )
 
 const generacionSolarService = new GeneracionSolarService()
+const reconectadoresService = new ReconectadoresService()
+const { can } = useAuth()
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
 
@@ -885,9 +908,43 @@ function alCambiarVisibilidad(entradas: IntersectionObserverEntry[]): void {
   }
 }
 
+// ── Reconectadores ───────────────────────────────────────────────────────
+// Un solo GET trae todos los relays; las plantas sin reconectador no salen.
+const rcnMap = reactive<Record<number, EstadoReconectador>>({})
+const reconectarOpen = ref(false)
+const reconectarTarget = ref<ProyectoMonitoreoSolar | null>(null)
+
+async function cargarEstados(): Promise<void> {
+  try {
+    const data = await reconectadoresService.obtenerEstados()
+    for (const r of data) rcnMap[r.proyecto_id] = r
+  } catch {
+    /* silencioso: sin reconectadores la tarjeta queda como antes */
+  }
+}
+
+function abrirReconectar(p: ProyectoMonitoreoSolar): void {
+  reconectarTarget.value = p
+  reconectarOpen.value = true
+}
+
+function onReconectado({ active }: { active: boolean }): void {
+  const p = reconectarTarget.value
+  if (!p) return
+  // Refleja el comando de inmediato; `cargarEstados()` traerá la lectura real.
+  rcnMap[p.proyecto_id] = { ...(rcnMap[p.proyecto_id] || { proyecto_id: p.proyecto_id }), active }
+  toast.success('Comando enviado', {
+    description: `${p.nombre}: ${active ? 'ON' : 'OFF'}`,
+    duration: 3500,
+  })
+  cargarEstados()
+}
+
 // ── Carga ─────────────────────────────────────────────────────────────────
 async function cargar(): Promise<void> {
   loading.value = true
+  // En paralelo con la lista: no depende de ella.
+  void cargarEstados()
   try {
     const res = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = applyOrder(res.projects ?? [])
