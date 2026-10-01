@@ -48,6 +48,28 @@
             >. La acción queda registrada a tu nombre.
           </p>
 
+          <form class="mb-3.5 flex flex-col gap-2.5" @submit.prevent="submit">
+            <p class="text-xs font-semibold text-muted-foreground">
+              Confirma con tu usuario y contraseña de SolarView
+            </p>
+            <Input
+              v-model="usuario"
+              placeholder="Usuario"
+              autocomplete="username"
+              autocapitalize="off"
+              class="h-11"
+              :disabled="loading"
+            />
+            <Input
+              v-model="contrasena"
+              type="password"
+              placeholder="Contraseña"
+              autocomplete="current-password"
+              class="h-11"
+              :disabled="loading"
+            />
+          </form>
+
           <div
             v-if="error"
             class="mb-3 flex items-center gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
@@ -60,7 +82,7 @@
               'mt-1 flex w-full items-center justify-center gap-2 rounded-xl p-4 text-base font-bold text-white disabled:opacity-50',
               TONE_SOLID[accion],
             ]"
-            :disabled="loading"
+            :disabled="loading || !credencialesCompletas"
             @click="submit"
           >
             <LoaderCircleIcon class="size-4 animate-spin" v-if="loading" />
@@ -75,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { CircleStopIcon, LoaderCircleIcon, PowerIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
 import { normalizeError } from '~/core/errors'
 import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
@@ -116,6 +138,13 @@ const accion = ref<Accion>('ON')
 const loading = ref(false)
 const error = ref('')
 
+// El usuario se recuerda en este navegador para no escribirlo cada vez; la
+// contraseña nunca: se borra después de cada intento.
+const USUARIO_KEY = 'solarview_usuario'
+const usuario = ref('')
+const contrasena = ref('')
+const credencialesCompletas = computed(() => !!usuario.value.trim() && !!contrasena.value)
+
 // Al abrir: acción por defecto = la opuesta al estado actual.
 watch(
   () => props.open,
@@ -124,6 +153,12 @@ watch(
     accion.value = props.active === true ? 'OFF' : 'ON'
     error.value = ''
     loading.value = false
+    contrasena.value = ''
+    try {
+      usuario.value = localStorage.getItem(USUARIO_KEY) || ''
+    } catch {
+      usuario.value = ''
+    }
   },
 )
 
@@ -132,16 +167,26 @@ function close(): void {
 }
 
 async function submit(): Promise<void> {
-  if (props.proyectoId == null) return
+  if (props.proyectoId == null || !credencialesCompletas.value || loading.value) return
   loading.value = true
   error.value = ''
   try {
-    await reconectadoresService.enviarComando(props.proyectoId, { accion: accion.value })
+    await reconectadoresService.enviarComando(props.proyectoId, {
+      accion: accion.value,
+      username: usuario.value.trim(),
+      password: contrasena.value,
+    })
+    try {
+      localStorage.setItem(USUARIO_KEY, usuario.value.trim())
+    } catch {
+      /* almacenamiento no disponible */
+    }
     emit('done', { active: accion.value === 'ON' })
     emit('close')
   } catch (err) {
     error.value = normalizeError(err).message
   } finally {
+    contrasena.value = ''
     loading.value = false
   }
 }
