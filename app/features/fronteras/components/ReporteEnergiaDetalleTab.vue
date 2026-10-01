@@ -329,7 +329,12 @@
                   :model-value="curvaEditable[h - 1] ?? ''"
                   inputmode="decimal"
                   class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
-                  @update:model-value="(v) => (curvaEditable[h - 1] = v)"
+                  :class="{
+                    'bg-destructive/15 dark:bg-destructive/15': !esValorValido(
+                      curvaEditable[h - 1],
+                    ),
+                  }"
+                  @update:model-value="(v) => (curvaEditable[h - 1] = aPunto(v))"
                   @paste="onPasteHora($event, h - 1)"
                 />
               </td>
@@ -339,8 +344,13 @@
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h - 1)"
                   class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
-                  :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
-                  @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = v)"
+                  :class="{
+                    'placeholder:text-foreground': respaldoEsDatoReal,
+                    'bg-destructive/15 dark:bg-destructive/15': !esValorValido(
+                      curvaRespaldoEditable[h - 1],
+                    ),
+                  }"
+                  @update:model-value="(v) => (curvaRespaldoEditable[h - 1] = aPunto(v))"
                   @paste="onPasteHoraRespaldo($event, h - 1)"
                 />
               </td>
@@ -379,7 +389,12 @@
                   :model-value="curvaEditable[h + 11] ?? ''"
                   inputmode="decimal"
                   class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
-                  @update:model-value="(v) => (curvaEditable[h + 11] = v)"
+                  :class="{
+                    'bg-destructive/15 dark:bg-destructive/15': !esValorValido(
+                      curvaEditable[h + 11],
+                    ),
+                  }"
+                  @update:model-value="(v) => (curvaEditable[h + 11] = aPunto(v))"
                   @paste="onPasteHora($event, h + 11)"
                 />
               </td>
@@ -389,8 +404,13 @@
                   inputmode="decimal"
                   :placeholder="respaldoPlaceholder(h + 11)"
                   class="h-8 w-28 border-0 bg-transparent text-right text-xs focus:outline-2 focus:-outline-offset-2 focus:outline-primary focus:outline-solid dark:bg-transparent"
-                  :class="{ 'placeholder:text-foreground': respaldoEsDatoReal }"
-                  @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = v)"
+                  :class="{
+                    'placeholder:text-foreground': respaldoEsDatoReal,
+                    'bg-destructive/15 dark:bg-destructive/15': !esValorValido(
+                      curvaRespaldoEditable[h + 11],
+                    ),
+                  }"
+                  @update:model-value="(v) => (curvaRespaldoEditable[h + 11] = aPunto(v))"
                   @paste="onPasteHoraRespaldo($event, h + 11)"
                 />
               </td>
@@ -404,7 +424,8 @@
       </div>
       <p class="mt-1 text-xs text-muted-foreground">
         Tip: pega varios valores seguidos (ej. una columna copiada de Excel) en cualquier celda --
-        se reparten en las horas siguientes en orden.
+        se reparten en las horas siguientes en orden. El decimal es el punto; una coma se cambia por
+        punto sola.
       </p>
       <div class="mt-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -482,7 +503,11 @@
             </div>
           </div>
         </div>
-        <Button size="sm" :disabled="guardando || !hayCambiosSinGuardar" @click="guardarCurva">
+        <Button
+          size="sm"
+          :disabled="guardando || !hayCambiosSinGuardar || hayCeldasInvalidas"
+          @click="guardarCurva"
+        >
           <LoaderCircleIcon v-if="guardando" class="animate-spin" />
           Guardar corrección
         </Button>
@@ -926,23 +951,62 @@ async function eliminarExcelTerceros() {
   }
 }
 
+// El separador decimal de la tabla es el punto, y nada más. Una coma (la del
+// teclado en español, o la de un Excel en español) se cambia por punto al
+// escribirla o pegarla. Antes la coma rompía la tabla callada: Number('45,6')
+// es NaN, y _normalizarCurva lo mandaba como hora vacía; al pegar, la coma se
+// tomaba como separador de valores y '45,6' llenaba dos horas (45 y 6).
+function aPunto(v: string | number): string | number {
+  return typeof v === 'string' ? v.replace(/,/g, '.') : v
+}
+
+// Vacío o un número con punto decimal. Lo demás ('1.2.3', '45 kWh') pinta la
+// celda en rojo y bloquea 'Guardar corrección' -- mejor que mandarla vacía.
+function esValorValido(v: number | string | null | undefined): boolean {
+  if (v === null || v === undefined || v === '') return true
+  if (typeof v === 'number') return !Number.isNaN(v)
+  return /^-?(\d+\.?\d*|\.\d+)$/.test(v.trim())
+}
+
+const hayCeldasInvalidas = computed(
+  () =>
+    curvaEditable.value.some((v) => !esValorValido(v)) ||
+    curvaRespaldoEditable.value.some((v) => !esValorValido(v)),
+)
+
 // Pegado tipo Excel: si lo pegado trae varios valores (columna o fila
 // copiada), se distribuyen empezando en la celda donde se pegó -- un solo
-// valor suelto no activa nada, se comporta como un input normal.
-function onPasteHora(event: ClipboardEvent, indiceInicio: number) {
+// valor suelto no activa nada, se comporta como un input normal (y la coma
+// que traiga la cambia aPunto). Los valores se separan por salto de línea o
+// tabulador, que es lo que pone Excel; la coma ya no separa, es decimal.
+function _pegarEnCurva(
+  event: ClipboardEvent,
+  curva: (number | string | null)[],
+  indiceInicio: number,
+) {
   const texto = event.clipboardData?.getData('text') || ''
   const valores = texto
-    .split(/[\n\t,]+/)
-    .map((s) => s.trim())
+    .split(/[\r\n\t]+/)
+    .map((s) => String(aPunto(s.trim())))
     .filter(Boolean)
-    .map(Number)
-    .filter((n) => !isNaN(n))
   if (valores.length <= 1) return
   event.preventDefault()
+  const invalidos = valores.filter((v) => !esValorValido(v))
+  if (invalidos.length) {
+    toast.error('No se pegó nada', {
+      description: `No se pudo leer como número: ${invalidos.slice(0, 3).join(', ')}`,
+      duration: 5000,
+    })
+    return
+  }
   valores.forEach((v, i) => {
     const idx = indiceInicio + i
-    if (idx < 24) curvaEditable.value[idx] = v
+    if (idx < 24) curva[idx] = Number(v)
   })
+}
+
+function onPasteHora(event: ClipboardEvent, indiceInicio: number) {
+  _pegarEnCurva(event, curvaEditable.value, indiceInicio)
 }
 
 function limpiarCurva() {
@@ -950,22 +1014,8 @@ function limpiarCurva() {
   curvaRespaldoEditable.value = Array(24).fill(null)
 }
 
-// Pegado tipo Excel para la columna Respaldo (mismo comportamiento que
-// onPasteHora para Principal).
 function onPasteHoraRespaldo(event: ClipboardEvent, indiceInicio: number) {
-  const texto = event.clipboardData?.getData('text') || ''
-  const valores = texto
-    .split(/[\n\t,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map(Number)
-    .filter((n) => !isNaN(n))
-  if (valores.length <= 1) return
-  event.preventDefault()
-  valores.forEach((v, i) => {
-    const idx = indiceInicio + i
-    if (idx < 24) curvaRespaldoEditable.value[idx] = v
-  })
+  _pegarEnCurva(event, curvaRespaldoEditable.value, indiceInicio)
 }
 
 // Placeholder de la columna Respaldo: la celda queda VACÍA a propósito
@@ -994,7 +1044,9 @@ function respaldoPlaceholder(h: number): string {
   const v = detalle.value?.curva_respaldo_reportada?.[h]
   return v === null || v === undefined
     ? ''
-    : Number(v).toLocaleString('es-CO', { maximumFractionDigits: 2 })
+    : // Con punto, como se escribe en la celda (toLocaleString('es-CO') ponía
+      // coma decimal y punto de miles, y no se podía copiar tal cual).
+      String(Math.round(Number(v) * 100) / 100)
 }
 
 function esHoraRellenada(h: number): boolean {
