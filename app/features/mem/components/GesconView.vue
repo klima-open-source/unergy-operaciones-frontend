@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
-import type { DataTableColumn, DataTableRow } from '~/components/blocks/DataTable.vue'
+import type {
+  DataTableColumn,
+  DataTableRow,
+  DataTableSort,
+} from '~/components/blocks/DataTable.vue'
 import type {
   BackfillNombreResuelto,
   BackfillTerminacionResuelta,
@@ -152,9 +156,33 @@ const filtradas = computed(() => {
   return r
 })
 
+// Aplica el orden que eligió el usuario (si lo hay) sobre lo ya filtrado. Sin
+// elección, respeta el orden del backend (más recientes primero). Compara números
+// como números y texto con locale; los vacíos van al final.
+const ordenadas = computed(() => {
+  const o = orden.value
+  if (!o) return filtradas.value
+  const campo = CAMPO_ORDEN[o.key] ?? o.key
+  const signo = o.direction === 'asc' ? 1 : -1
+  return filtradas.value.slice().sort((a, b) => {
+    const va = (a as Record<string, unknown>)[campo]
+    const vb = (b as Record<string, unknown>)[campo]
+    const na = va == null || va === ''
+    const nb = vb == null || vb === ''
+    if (na && nb) return 0
+    if (na) return 1
+    if (nb) return -1
+    const r =
+      typeof va === 'number' && typeof vb === 'number'
+        ? va - vb
+        : String(va).localeCompare(String(vb), 'es', { numeric: true })
+    return r * signo
+  })
+})
+
 const paginadas = computed(() => {
   const inicio = (pagina.value - 1) * filasPorPagina
-  return filtradas.value.slice(inicio, inicio + filasPorPagina)
+  return ordenadas.value.slice(inicio, inicio + filasPorPagina)
 })
 
 watch(filtradas, () => {
@@ -183,20 +211,35 @@ function limpiar() {
 }
 
 const columns: DataTableColumn[] = [
-  { key: 'codigo_sic_contrato', header: 'SIC' },
-  { key: 'contrato_interno', header: 'Contrato', class: 'min-w-40' },
-  { key: 'nombre_interno', header: 'Nombre interno', class: 'min-w-36' },
-  { key: 'planta', header: 'Planta', class: 'min-w-40' },
-  { key: 'tipo_solicitud', header: 'Tipo' },
-  { key: 'requerimiento_asic', header: 'Req.' },
-  { key: 'fecha_inicio', header: 'Inicio' },
-  { key: 'fecha_fin', header: 'Fin' },
-  { key: 'estado_solicitud', header: 'Estado' },
-  { key: 'porcentaje_despacho', header: 'Desp.' },
+  { key: 'codigo_sic_contrato', header: 'SIC', sortable: true },
+  { key: 'contrato_interno', header: 'Contrato', class: 'min-w-40', sortable: true },
+  { key: 'nombre_interno', header: 'Nombre interno', class: 'min-w-36', sortable: true },
+  { key: 'planta', header: 'Planta', class: 'min-w-40', sortable: true },
+  { key: 'tipo_solicitud', header: 'Tipo', sortable: true },
+  { key: 'requerimiento_asic', header: 'Req.', sortable: true },
+  { key: 'fecha_inicio', header: 'Inicio', sortable: true },
+  { key: 'fecha_fin', header: 'Fin', sortable: true },
+  { key: 'estado_solicitud', header: 'Estado', sortable: true },
+  { key: 'porcentaje_despacho', header: 'Desp.', sortable: true },
+  // 'coexiste' y 'modalidad' se derivan de varios campos (no de uno ordenable);
+  // 'acciones' son botones. Esas tres no se ordenan.
   { key: 'coexiste', header: 'Coex.' },
   { key: 'modalidad', header: 'Modalidad' },
   { key: 'acciones', header: '' },
 ]
+
+// El campo real por el que ordena cada columna (la mayoría coincide con la key;
+// 'planta' muestra `planta_nombre`).
+const CAMPO_ORDEN: Record<string, string> = { planta: 'planta_nombre' }
+
+// Orden del usuario al hacer click en una columna. `null` = orden por defecto del
+// backend (más recientes primero, por `-fecha_solicitud`).
+const orden = ref<DataTableSort | null>(null)
+
+function cambiarOrden(nuevo: DataTableSort) {
+  orden.value = nuevo
+  pagina.value = 1 // volver al inicio al reordenar
+}
 
 function asRow(row: DataTableRow): RegistroAsic {
   return row as unknown as RegistroAsic
@@ -1091,7 +1134,9 @@ onMounted(() => {
         :page="pagina"
         :page-size="filasPorPagina"
         :total="filtradas.length"
+        :sort="orden"
         @update:page="(p) => (pagina = p)"
+        @update:sort="cambiarOrden"
       >
         <template #empty>
           <div class="py-12 text-center text-sm text-muted-foreground">
