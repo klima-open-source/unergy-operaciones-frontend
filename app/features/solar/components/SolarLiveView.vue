@@ -134,8 +134,8 @@
         <template #item="{ element: proy }">
           <div
             v-show="matchesFiltro(proy)"
-            class="min-w-0"
             :ref="(el) => observarTarjeta(el as Element | null, proy.proyecto_id)"
+            class="min-w-0"
           >
             <Card size="sm">
               <CardContent class="flex flex-col gap-3">
