@@ -2,7 +2,7 @@
   <div class="flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-card p-3">
     <!-- Igual que el panel de SolarView: título, interruptor y recargar. -->
     <div class="flex items-center gap-2">
-      <h3 class="flex-1 text-sm font-bold text-foreground">Control general de la minigranja</h3>
+      <h3 class="flex-1 text-sm font-bold text-foreground">Reconectador</h3>
       <span
         :class="[
           'text-xs font-semibold',
