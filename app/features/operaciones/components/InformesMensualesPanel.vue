@@ -68,12 +68,14 @@
               </ComboboxAnchor>
               <ComboboxList>
                 <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
-                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
-                  {{ o.label }}
-                  <ComboboxItemIndicator>
-                    <CheckIcon />
-                  </ComboboxItemIndicator>
-                </ComboboxItem>
+                <ComboboxViewport>
+                  <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                    <ComboboxItemIndicator>
+                      <CheckIcon />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
               </ComboboxList>
             </Combobox>
           </div>
@@ -132,12 +134,14 @@
               </ComboboxAnchor>
               <ComboboxList>
                 <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
-                <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
-                  {{ o.label }}
-                  <ComboboxItemIndicator>
-                    <CheckIcon />
-                  </ComboboxItemIndicator>
-                </ComboboxItem>
+                <ComboboxViewport>
+                  <ComboboxItem v-for="o in opcionesProyecto" :key="o.value" :value="o.value">
+                    {{ o.label }}
+                    <ComboboxItemIndicator>
+                      <CheckIcon />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
               </ComboboxList>
             </Combobox>
           </div>
@@ -165,15 +169,17 @@
               </ComboboxAnchor>
               <ComboboxList>
                 <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
-                <ComboboxItem v-for="o in opcionesPortafolio" :key="o.value" :value="o.value">
-                  <TruncatedText :text="o.label" class="min-w-0 flex-1" />
-                  <span class="shrink-0 text-xs text-muted-foreground"
-                    >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
-                  >
-                  <ComboboxItemIndicator>
-                    <CheckIcon />
-                  </ComboboxItemIndicator>
-                </ComboboxItem>
+                <ComboboxViewport>
+                  <ComboboxItem v-for="o in opcionesPortafolio" :key="o.value" :value="o.value">
+                    <TruncatedText :text="o.label" class="min-w-0 flex-1" />
+                    <span class="shrink-0 text-xs text-muted-foreground"
+                      >{{ o.count }} proyecto{{ o.count !== 1 ? 's' : '' }}</span
+                    >
+                    <ComboboxItemIndicator>
+                      <CheckIcon />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
               </ComboboxList>
             </Combobox>
           </div>

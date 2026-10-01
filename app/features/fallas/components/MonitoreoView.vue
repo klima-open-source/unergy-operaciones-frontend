@@ -96,12 +96,14 @@
                     </ComboboxAnchor>
                     <ComboboxList>
                       <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
-                      <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
-                        {{ p.nombre_comercial }}
-                        <ComboboxItemIndicator>
-                          <CheckIcon />
-                        </ComboboxItemIndicator>
-                      </ComboboxItem>
+                      <ComboboxViewport>
+                        <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
+                          {{ p.nombre_comercial }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxViewport>
                     </ComboboxList>
                   </Combobox>
                 </div>

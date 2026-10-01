@@ -152,13 +152,15 @@
             </ComboboxAnchor>
             <ComboboxList>
               <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
-              <ComboboxItem v-for="p in proyectos" :key="p.sub_project" :value="p.sub_project">
-                <TruncatedText :text="p.nombre_comercial" class="min-w-0 flex-1" />
-                <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
-                <ComboboxItemIndicator>
-                  <CheckIcon />
-                </ComboboxItemIndicator>
-              </ComboboxItem>
+              <ComboboxViewport>
+                <ComboboxItem v-for="p in proyectos" :key="p.sub_project" :value="p.sub_project">
+                  <TruncatedText :text="p.nombre_comercial" class="min-w-0 flex-1" />
+                  <span class="shrink-0 text-xs text-muted-foreground">{{ p.municipio }}</span>
+                  <ComboboxItemIndicator>
+                    <CheckIcon />
+                  </ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxViewport>
             </ComboboxList>
           </Combobox>
 
