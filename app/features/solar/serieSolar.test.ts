@@ -28,7 +28,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { acumuladoInversores, acumuladoMedidor, fmtKwh, hastaMedidor } from './serieSolar'
+import {
+  acumuladoInversores,
+  acumuladoMedidor,
+  fmtKwh,
+  hastaMedidor,
+  irradianceSeries,
+} from './serieSolar'
 
 const RAIZ = join(__dirname, '..', '..', '..')
 
@@ -134,4 +140,27 @@ describe('las dos vistas pasan por el helper compartido', () => {
       ).toEqual([])
     })
   }
+})
+
+describe('irradianceSeries', () => {
+  it('sin estación o sin POA no hay serie', () => {
+    expect(irradianceSeries(null)).toBeNull()
+    expect(irradianceSeries({ disponible: false, unidad: 'W/m²', puntos: [] })).toBeNull()
+  })
+
+  it('promedia en los slots de 5 min de la hora de SolarView', () => {
+    const serie = irradianceSeries({
+      disponible: true,
+      unidad: 'W/m²',
+      puntos: [
+        { time: '2026-10-01 11:00:14', w_m2: 900 },
+        { time: '2026-10-01 11:01:14', w_m2: 1000 },
+        { time: '2026-10-01 11:05:14', w_m2: 800 },
+      ],
+    })!
+    expect(serie).toHaveLength(288)
+    expect(serie[132]).toBe(950) // 11:00
+    expect(serie[133]).toBe(800) // 11:05
+    expect(serie[0]).toBeNull()
+  })
 })

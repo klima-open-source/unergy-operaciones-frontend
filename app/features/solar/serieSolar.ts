@@ -19,7 +19,11 @@
  * y un cambio tocó una copia. Lo que vive acá no es solo utilería: es **qué
  * campo es el número de cada panel**, que es justo lo que divergió.
  */
-import type { DetalleMonitoreoSolar, PuntoPotenciaSolar } from '~/features/solar/types'
+import type {
+  DetalleMonitoreoSolar,
+  IrradianciaSolar,
+  PuntoPotenciaSolar,
+} from '~/features/solar/types'
 
 // ── Ejes de tiempo ────────────────────────────────────────────────────────
 
@@ -107,6 +111,19 @@ export function meterSeries(
     rows,
     (r) => gaiaTime(r.time),
     (r) => +r.kw!,
+  )
+  return data.every((v) => v == null) ? null : data
+}
+
+/** Serie de irradiancia POA: 288 valores W/m² o null si la planta no la tiene. */
+export function irradianceSeries(
+  irr: IrradianciaSolar | null | undefined,
+): (number | null)[] | null {
+  if (!irr?.disponible || !irr.puntos?.length) return null
+  const data = mapMinutes(
+    irr.puntos,
+    (pt) => (pt.time.includes(' ') ? pt.time.split(' ')[1] : pt.time),
+    (pt) => pt.w_m2,
   )
   return data.every((v) => v == null) ? null : data
 }
