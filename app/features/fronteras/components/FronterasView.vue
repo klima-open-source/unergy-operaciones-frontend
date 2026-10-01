@@ -269,11 +269,11 @@
 
     <!-- Edit Dialog -->
     <Dialog v-model:open="showEdit">
-      <DialogContent class="sm:max-w-2xl">
+      <DialogContent class="flex max-h-11/12 flex-col sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{{ editingFrontera ? 'Editar Frontera' : 'Frontera' }}</DialogTitle>
         </DialogHeader>
-        <div v-if="editForm" class="space-y-4 pt-2">
+        <div v-if="editForm" class="-mx-6 min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pt-2">
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <GLabel>Código frontera</GLabel>
