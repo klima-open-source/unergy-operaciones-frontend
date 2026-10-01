@@ -237,6 +237,14 @@
                       >
                         <span class="size-2 shrink-0 rounded-full bg-primary" />
                         Inversores
+                        <span
+                          v-if="irradianciaMap[proy.proyecto_id]"
+                          class="ml-auto flex items-center gap-1 font-medium tracking-normal normal-case"
+                          title="Irradiancia POA de la estación (eje derecho, W/m²)"
+                        >
+                          <span class="h-0.5 w-3 rounded-full bg-chart-4" />
+                          Irradiancia POA
+                        </span>
                       </div>
                       <!-- Mismo tratamiento que Medidores: el acumulado del dia en
                      grande, con hasta que hora cubre. Son horas sumadas, no una
@@ -294,6 +302,14 @@
                           <Badge v-if="panelesMedidor[proy.proyecto_id]!.tipo" variant="outline">{{
                             panelesMedidor[proy.proyecto_id]!.tipo
                           }}</Badge>
+                          <span
+                            v-if="irradianciaMap[proy.proyecto_id]"
+                            class="ml-auto flex items-center gap-1 font-medium tracking-normal normal-case"
+                            title="Irradiancia POA de la estación (eje derecho, W/m²)"
+                          >
+                            <span class="h-0.5 w-3 rounded-full bg-chart-4" />
+                            Irradiancia POA
+                          </span>
                         </div>
                         <!-- El numero grande es la generacion del dia: es lo que alguien
                        quiere saber de un vistazo, y no se cae a cero de noche como
@@ -495,6 +511,7 @@ import {
   hastaInversores,
   hastaMedidor,
   inverterSeries,
+  irradianceSeries,
   meterSeries,
 } from '~/features/solar/serieSolar'
 import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
@@ -787,10 +804,45 @@ interface CurvaChartDataset {
   pointRadius: number
   borderWidth: number
   spanGaps: boolean
+  yAxisID?: string
 }
 interface CurvaChartData {
   labels: string[]
   datasets: CurvaChartDataset[]
+}
+
+// ── Irradiancia POA ───────────────────────────────────────────────────────
+// Va como segunda línea en las dos gráficas, con su propio eje a la derecha
+// (W/m²). Solo en las plantas cuya estación mide POA; en las demás las gráficas
+// quedan como estaban. Siempre es el dataset [1]: el [0] es la potencia.
+const irradianciaMap = reactive<Record<number, (number | null)[] | null>>({})
+
+function datasetIrradiancia(id: number): CurvaChartDataset[] {
+  const data = irradianciaMap[id]
+  if (!data) return []
+  return [
+    {
+      label: 'Irradiancia POA (W/m²)',
+      data,
+      borderColor: color('chart-4'),
+      backgroundColor: color('chart-4', 0.1),
+      fill: false,
+      tension: 0.35,
+      pointRadius: 0,
+      borderWidth: 1.5,
+      spanGaps: true,
+      yAxisID: 'y1',
+    },
+  ]
+}
+
+async function cargarIrradiancia(id: number): Promise<void> {
+  try {
+    irradianciaMap[id] = irradianceSeries(await generacionSolarService.obtenerIrradiancia(id))
+  } catch {
+    // Sin la estación la gráfica sigue igual que antes: solo potencia.
+    if (!(id in irradianciaMap)) irradianciaMap[id] = null
+  }
 }
 
 function getInversorData(id: number): CurvaChartData {
@@ -810,6 +862,7 @@ function getInversorData(id: number): CurvaChartData {
         borderWidth: 2,
         spanGaps: true,
       },
+      ...datasetIrradiancia(id),
     ],
   }
 }
@@ -860,6 +913,7 @@ function medidorPanel(id: number): PanelMedidor | null {
               borderWidth: 2,
               spanGaps: true,
             },
+            ...datasetIrradiancia(id),
           ],
         }
       : null,
@@ -878,12 +932,15 @@ function getDiffPct(id: number): number | null {
 }
 
 // ── Chart options ─────────────────────────────────────────────────────────
-function makeOptions(maxY: number | undefined): ChartOptions<'line'> {
+function makeOptions(maxY: number | undefined, conIrradiancia = false): ChartOptions<'line'> {
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
     plugins: {
+      // La leyenda de la irradiancia va en el título del panel, en HTML: el
+      // plugin Legend de Chart.js no está registrado en esta vista, y
+      // registrarlo es global (aparecería en otras gráficas de la app).
       legend: { display: false },
       tooltip: {
         backgroundColor: color('card'),
@@ -894,8 +951,18 @@ function makeOptions(maxY: number | undefined): ChartOptions<'line'> {
         padding: 10,
         displayColors: true,
         callbacks: {
-          label: (ctx) =>
-            `${ctx.parsed.y != null ? ctx.parsed.y.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} kW`,
+          label: (ctx) => {
+            const esIrr = ctx.dataset.yAxisID === 'y1'
+            const v = ctx.parsed.y
+            const txt =
+              v != null
+                ? v.toLocaleString('es-CO', {
+                    minimumFractionDigits: esIrr ? 0 : 2,
+                    maximumFractionDigits: esIrr ? 0 : 2,
+                  })
+                : '—'
+            return esIrr ? `${txt} W/m²` : `${txt} kW`
+          },
         },
       },
     },
@@ -911,6 +978,25 @@ function makeOptions(maxY: number | undefined): ChartOptions<'line'> {
         title: { display: true, text: 'kW', font: { size: 9 }, color: color('muted-foreground') },
         ...(maxY ? { max: maxY } : {}),
       },
+      ...(conIrradiancia
+        ? {
+            y1: {
+              position: 'right' as const,
+              beginAtZero: true,
+              // Un poco más que el sol de mediodía, para que las dos curvas
+              // queden a una altura comparable.
+              suggestedMax: 1200,
+              ticks: { font: { size: 9 }, color: color('muted-foreground') },
+              grid: { drawOnChartArea: false },
+              title: {
+                display: true,
+                text: 'W/m²',
+                font: { size: 9 },
+                color: color('muted-foreground'),
+              },
+            },
+          }
+        : {}),
     },
   }
 }
@@ -932,10 +1018,10 @@ function getChartMax(id: number): number | undefined {
 }
 
 function chartOptionsInv(id: number): ChartOptions<'line'> {
-  return makeOptions(getChartMax(id))
+  return makeOptions(getChartMax(id), !!irradianciaMap[id])
 }
 function chartOptionsMed(id: number): ChartOptions<'line'> {
-  return makeOptions(getChartMax(id))
+  return makeOptions(getChartMax(id), !!irradianciaMap[id])
 }
 
 // ── Carga perezosa del detalle ──────────────────────────────────────────────
@@ -1121,6 +1207,9 @@ async function loadDetail(id: number, refrescar = false): Promise<void> {
   if (detalleEnVuelo.has(id)) return
   detalleEnVuelo.add(id)
   try {
+    // La irradiancia va en paralelo y por su cuenta: si la estación tarda o
+    // falla, la tarjeta no la espera.
+    void cargarIrradiancia(id)
     detailMap[id] = await generacionSolarService.obtenerDetalle(id)
   } catch {
     // `{}` y no dejarlo sin definir: sin esto la tarjeta se queda con el

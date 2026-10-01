@@ -2,6 +2,7 @@
 import type {
   DetalleMonitoreoSolar,
   HistorialGeneracionProyecto,
+  IrradianciaSolar,
   PotenciaInversores,
   RespuestaMonitoreoSolar,
   RespuestaResumenGeneracionDia,
@@ -14,6 +15,7 @@ const RUTAS = {
   monitoring: `${BASE}/monitoring`,
   monitoringDetalle: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}`,
   invertersPower: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/inverters-power`,
+  irradiancia: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/irradiancia`,
   resumenDia: `${BASE}/resumen-dia`,
   historialProyecto: (proyectoId: number) => `${BASE}/proyecto/${proyectoId}/historial`,
 } as const
@@ -40,6 +42,11 @@ export class GeneracionSolarService extends BaseService {
    * El parámetro es opt-out y no opt-in porque el backend ya mandaba estos
    * campos: apagarlo desde acá no toca a ningún otro consumidor.
    */
+  /** Irradiancia POA de hoy; `disponible: false` en las plantas sin estación. */
+  obtenerIrradiancia(proyectoId: number): Promise<IrradianciaSolar> {
+    return this.get<IrradianciaSolar>(RUTAS.irradiancia(proyectoId))
+  }
+
   obtenerDetalle(proyectoId: number, incluirSnapshot = false): Promise<DetalleMonitoreoSolar> {
     return this.get<DetalleMonitoreoSolar>(RUTAS.monitoringDetalle(proyectoId), {
       query: { incluir_30d: false, ...(incluirSnapshot ? { incluir_snapshot: true } : {}) },

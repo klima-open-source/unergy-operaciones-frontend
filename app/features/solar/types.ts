@@ -32,6 +32,14 @@ export interface RespuestaMonitoreoSolar {
 }
 
 /** Un punto de `power_curve` (inversores) o de `medidor.curva` (medidor): potencia a un instante. */
+/** `GET /generacion-solar/monitoring/{id}/irradiancia`: POA de hoy de la estación. */
+export interface IrradianciaSolar {
+  /** False si la planta no tiene estación o no mide POA: no se dibuja nada. */
+  disponible: boolean
+  unidad: string
+  puntos: { time: string; w_m2: number }[]
+}
+
 export interface PuntoPotenciaSolar {
   time?: string
   kw?: number | null
