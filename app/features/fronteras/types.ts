@@ -276,6 +276,8 @@ export interface EstadoQuoiaReporte {
   exitoso_con_alerta: number
   error: number
   fallidas: FronteraFallidaQuoia[]
+  /** Solo en POST: en espera que esta tanda no alcanzó a consultar; las toma el próximo tick. */
+  sin_revisar?: number
 }
 
 export enum TipoFronteraReporte {

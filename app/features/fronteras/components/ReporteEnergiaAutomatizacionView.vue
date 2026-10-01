@@ -765,7 +765,13 @@ async function revisarEnvio(fechaEnviada: string) {
   // El estado de XM es de la fecha enviada: si la persona cambió de día
   // mientras tanto, no se pisa el panel del día que está viendo.
   if (fechaISO.value !== fechaEnviada) return
-  await revisarEstadoQuoia()
-  if (estadoQuoia.value && estadoQuoia.value.en_espera > 0) iniciarPollingEstadoQuoia()
+  // Primero lo ya guardado (GET, sin golpear Quoia): el panel aparece en el
+  // acto y, si hay algo en espera, arranca el polling. Antes se esperaba a la
+  // revisión en vivo, y cuando esa pasaba del timeout del servidor el error se
+  // tragaba en silencio y el panel nunca salía (2026-09-30). La revisión en
+  // vivo va por tandas (ver estado_quoia_revisar): la primera sale ya, el
+  // polling sigue con las que falten.
+  await cargarEstadoQuoiaActual()
+  if (estadoQuoiaPolling.value) void revisarEstadoQuoia()
 }
 </script>
