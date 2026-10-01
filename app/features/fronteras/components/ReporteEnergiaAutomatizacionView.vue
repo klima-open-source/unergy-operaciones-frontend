@@ -26,15 +26,6 @@
           <FileSpreadsheetIcon v-else />
           Generar Excel
         </Button>
-        <Button
-          variant="outline"
-          :disabled="!resumen || enviando"
-          title="Recorre el envío sin mandar nada a Quoia: dice qué fronteras saldrían"
-          @click="simularEnvio"
-        >
-          <FlaskConicalIcon />
-          Simular envío
-        </Button>
         <GTooltip>
           <GTooltipTrigger as-child>
             <Button
@@ -224,7 +215,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { LocationQueryValue } from 'vue-router'
 import type {
-  EstadoEnvioReporteEnergia,
   EstadoQuoiaReporte,
   FilaReporteEnergia,
   ResumenReporteEnergiaDia,
@@ -246,7 +236,6 @@ import {
   LoaderCircleIcon,
   PlayIcon,
   SendIcon,
-  FlaskConicalIcon,
 } from '@lucide/vue'
 
 type Semaforo = 'critical' | 'warning' | 'success'
@@ -705,36 +694,6 @@ async function enviarReporte() {
   }
 }
 
-async function simularEnvio() {
-  enviando.value = true
-  const fechaEnviada = fechaISO.value
-  try {
-    await reporteEnergiaService.simularEnvio(fechaEnviada)
-    detenerSondeoEnvio()
-    envioTimer = setInterval(() => revisarEnvio(fechaEnviada), 3000)
-  } catch (err) {
-    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-    enviando.value = false
-  }
-}
-
-function avisarSimulacro(data: EstadoEnvioReporteEnergia) {
-  const enviarian = data.se_enviarian ?? []
-  const gen = enviarian.filter((f) => f.tipo === 'generacion').length
-  const partes = [
-    `Se enviarían ${enviarian.length} (${gen} de generación, ${enviarian.length - gen} de consumo).`,
-    `Se saltarían ${data.se_saltarian?.length ?? 0} que Quoia ya tiene bien.`,
-  ]
-  if (data.fallarian?.length) {
-    partes.push(
-      `Fallarían ${data.fallarian.length}: ${data.fallarian.map((f) => f.nombre).join('; ')}.`,
-    )
-  }
-  if (data.bloqueado) partes.push('Ojo: el envío real está bloqueado por fronteras sin validar.')
-  partes.push(`Tardó ${data.duracion_s ?? '?'} s. No se mandó nada a Quoia.`)
-  toast.info('Simulacro de envío', { description: partes.join(' '), duration: 15000 })
-}
-
 async function revisarEnvio(fechaEnviada: string) {
   let data
   try {
@@ -745,10 +704,6 @@ async function revisarEnvio(fechaEnviada: string) {
   if (data.en_curso) return
   detenerSondeoEnvio()
   enviando.value = false
-  if (data.simulacro && !data.error_general) {
-    avisarSimulacro(data)
-    return
-  }
   if (data.error_general) {
     toast.error('Envío interrumpido', { description: data.error_general, duration: 8000 })
   } else if (data.fallidos.length) {

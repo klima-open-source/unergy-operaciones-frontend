@@ -246,20 +246,7 @@ export interface EstadoEnvioReporteEnergia {
   enviados?: number
   fallidos: string[]
   duracion_s?: number
-  /** Solo en un simulacro: nada se mandó a Quoia ni se guardó. */
-  simulacro?: boolean
   bloqueado?: boolean
-  se_enviarian?: FronteraSimuladaEnvio[]
-  se_saltarian?: FronteraSimuladaEnvio[]
-  fallarian?: FronteraSimuladaEnvio[]
-}
-
-export interface FronteraSimuladaEnvio {
-  frontera_id: number
-  nombre: string
-  tipo: 'generacion' | 'consumo'
-  energia_kwh?: number | null
-  motivo?: string
 }
 
 export interface FronteraFallidaQuoia {

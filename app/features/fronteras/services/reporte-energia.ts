@@ -160,13 +160,6 @@ export class ReporteEnergiaService extends BaseService {
     return this.post<InicioEnvioReporteEnergia>(RUTAS.enviar, undefined, { query: { fecha } })
   }
 
-  /** Mismo recorrido que enviarReporte(), sin mandar nada a Quoia ni guardar nada. */
-  simularEnvio(fecha: string): Promise<InicioEnvioReporteEnergia> {
-    return this.post<InicioEnvioReporteEnergia>(RUTAS.enviar, undefined, {
-      query: { fecha, simulacro: true },
-    })
-  }
-
   obtenerEstadoEnvio(fecha: string): Promise<EstadoEnvioReporteEnergia> {
     return this.get<EstadoEnvioReporteEnergia>(RUTAS.enviarEstado, { query: { fecha } })
   }
