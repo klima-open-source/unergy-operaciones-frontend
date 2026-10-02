@@ -59,53 +59,60 @@
       </div>
     </div>
 
-    <!-- Estado en Quoia: ¿XM ya resolvió los reportes ENVIADOS ese día?
-         Distinto de "Enviar reporte" (que solo dice si el POST llegó bien
-         a Quoia) -- esto vuelve a consultar Quoia para saber si XM lo
-         aprobó ("Exitoso") o lo rechazó ("Error"), o sigue sin resolver
-         ("En espera"). Solo aparece si hay algo enviado ese día; el
-         polling se detiene solo en cuanto nadie queda en_espera. -->
-    <div v-if="estadoQuoia" class="rounded-xl border bg-card p-4 shadow-sm">
+    <!-- Resumen del envío: qué pasó con cada frontera del día al enviar a
+         Quoia. Se mueve en vivo mientras corre el envío (el sondeo de
+         /enviar/estado cada 5 s) y sigue visible al volver a abrir el día,
+         porque se cuenta de las filas guardadas. Reemplazó al panel de
+         estados de XM (decisión de Sara 2026-10-02). -->
+    <div v-if="resumenEnvio" class="rounded-xl border bg-card p-4 shadow-sm">
       <div class="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p class="text-sm font-bold text-foreground">Estado en Quoia</p>
+          <p class="text-sm font-bold text-foreground">Resumen del envío</p>
           <p class="mt-0.5 text-xs text-muted-foreground">
-            {{ estadoQuoia.total }} fronteras enviadas
-            <span v-if="estadoQuoiaPolling"> · revisando cada 2 min</span>
+            {{ resumenEnvio.total }} fronteras del día
           </p>
         </div>
         <span
-          v-if="estadoQuoiaPolling"
+          v-if="envioEnCurso"
           class="flex items-center gap-1.5 text-xs font-semibold text-primary"
         >
           <span class="inline-block size-1.5 animate-pulse rounded-full bg-primary" />
-          En vivo
+          Enviando… {{ resumenEnvio.enviadas + resumenEnvio.fallidas }} de
+          {{ resumenEnvio.enviadas + resumenEnvio.fallidas + resumenEnvio.por_enviar }}
         </span>
       </div>
       <div class="mb-1 grid grid-cols-4 gap-2.5">
-        <div class="rounded-lg bg-muted py-2.5 text-center">
-          <p class="text-xl font-extrabold text-muted-foreground">{{ estadoQuoia.en_espera }}</p>
-          <p class="mt-0.5 text-xs font-semibold text-muted-foreground">En espera</p>
-        </div>
         <div class="rounded-lg bg-success/15 py-2.5 text-center">
-          <p class="text-xl font-extrabold text-success">{{ estadoQuoia.exitoso }}</p>
-          <p class="mt-0.5 text-xs font-semibold text-success">Exitoso</p>
+          <p class="text-xl font-extrabold text-success">{{ resumenEnvio.enviadas }}</p>
+          <p class="mt-0.5 text-xs font-semibold text-success">Enviadas</p>
         </div>
-        <div class="rounded-lg bg-warning/15 py-2.5 text-center">
-          <p class="text-xl font-extrabold text-warning">{{ estadoQuoia.exitoso_con_alerta }}</p>
-          <p class="mt-0.5 text-xs font-semibold text-warning">Con alerta</p>
+        <div class="rounded-lg bg-muted py-2.5 text-center">
+          <p class="text-xl font-extrabold text-muted-foreground">
+            {{ resumenEnvio.automaticas }}
+          </p>
+          <p class="mt-0.5 text-xs font-semibold text-muted-foreground">No enviadas: Automáticas</p>
+        </div>
+        <div class="rounded-lg bg-muted py-2.5 text-center">
+          <p class="text-xl font-extrabold text-muted-foreground">{{ resumenEnvio.excluidas }}</p>
+          <p class="mt-0.5 text-xs font-semibold text-muted-foreground">Excluidas</p>
         </div>
         <div class="rounded-lg bg-destructive/10 py-2.5 text-center">
-          <p class="text-xl font-extrabold text-destructive">{{ estadoQuoia.error }}</p>
-          <p class="mt-0.5 text-xs font-semibold text-destructive">Error</p>
+          <p class="text-xl font-extrabold text-destructive">{{ resumenEnvio.fallidas }}</p>
+          <p class="mt-0.5 text-xs font-semibold text-destructive">Fallidas</p>
         </div>
       </div>
-      <div v-if="estadoQuoia.fallidas.length" class="mt-3 border-t pt-3">
+      <p
+        v-if="!envioEnCurso && resumenEnvio.por_enviar"
+        class="mt-2 text-xs font-semibold text-warning"
+      >
+        {{ resumenEnvio.por_enviar }} fronteras sin enviar todavía
+      </p>
+      <div v-if="resumenEnvio.fallidas_detalle.length" class="mt-3 border-t pt-3">
         <p class="mb-2 text-xs font-bold text-destructive">
-          ⚠ {{ estadoQuoia.fallidas.length }} con error
+          ⚠ {{ resumenEnvio.fallidas_detalle.length }} fallidas
         </p>
         <div
-          v-for="f in estadoQuoia.fallidas"
+          v-for="f in resumenEnvio.fallidas_detalle"
           :key="f.frontera_id + f.tipo"
           class="mb-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs"
         >
@@ -113,14 +120,9 @@
             >{{ f.nombre_proyecto }} —
             {{ f.tipo === 'generacion' ? 'Generación' : 'Consumo' }}</span
           >
+          <span v-if="f.motivo" class="text-muted-foreground"> · {{ f.motivo }}</span>
         </div>
       </div>
-      <p
-        v-else-if="!estadoQuoiaPolling && estadoQuoia.en_espera === 0"
-        class="mt-3 border-t pt-3 text-xs font-semibold text-success"
-      >
-        ✓ Todas las fronteras ya tienen respuesta de XM — nada pendiente
-      </p>
     </div>
 
     <GTabs :model-value="String(activeTab)" @update:model-value="(v) => (activeTab = Number(v))">
@@ -215,7 +217,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { LocationQueryValue } from 'vue-router'
 import type {
-  EstadoQuoiaReporte,
+  EstadoEnvioReporteEnergia,
   FilaReporteEnergia,
   ResumenReporteEnergiaDia,
 } from '~/features/fronteras/types'
@@ -309,9 +311,14 @@ const enviando = ref(false)
 const ejecutando = ref(false)
 const deteniendo = ref(false)
 
-const estadoQuoia = ref<EstadoQuoiaReporte | null>(null)
-const estadoQuoiaPolling = ref(false)
-let estadoQuoiaTimer: ReturnType<typeof setInterval> | null = null
+const estadoEnvio = ref<EstadoEnvioReporteEnergia | null>(null)
+const envioEnCurso = computed(() => !!estadoEnvio.value?.en_curso)
+// El panel sale si hay un envío andando o si algo ya se intentó enviar ese día.
+const resumenEnvio = computed(() => {
+  const e = estadoEnvio.value
+  if (!e?.resumen) return null
+  return e.en_curso || e.resumen.enviadas + e.resumen.fallidas > 0 ? e.resumen : null
+})
 
 // Salta a "Historial" en esa fecha y selecciona esa frontera -- si esa fecha
 // no tiene fila para ella (pudo no generar/reportar justo ese día), se avisa en
@@ -388,52 +395,30 @@ async function cargarHistorial(silent = false) {
   }
 }
 
-// Estado en Quoia (aprobación de XM sobre lo YA enviado) -- GET liviano
-// para mostrar lo que ya se sabe (sin golpear Quoia) al entrar o cambiar
-// de fecha; si hay algo todavía 'en_espera' de un envío anterior, retoma
-// el polling solo. detenerPollingEstadoQuoia() no borra estadoQuoia -- el
-// panel se queda visible con el último estado conocido, solo deja de
-// refrescarse (pedido 2026-08-21).
-async function cargarEstadoQuoiaActual() {
+// Resumen del envío de la fecha que se está viendo. Si hay un envío andando
+// (lanzado antes de recargar, o por otra persona), retoma el sondeo para que
+// el avance se vea en vivo.
+async function cargarEstadoEnvio() {
+  const fechaPedida = fechaISO.value
   try {
-    const data = await reporteEnergiaService.obtenerEstadoQuoia(fechaISO.value)
-    estadoQuoia.value = data.total > 0 ? data : null
-    if (estadoQuoia.value && estadoQuoia.value.en_espera > 0) iniciarPollingEstadoQuoia()
+    const data = await reporteEnergiaService.obtenerEstadoEnvio(fechaPedida)
+    if (fechaISO.value !== fechaPedida) return
+    estadoEnvio.value = data
+    if (data.en_curso && !envioTimer) {
+      enviando.value = true
+      envioTimer = setInterval(() => revisarEnvio(fechaPedida), 5000)
+    }
   } catch {
-    estadoQuoia.value = null
+    estadoEnvio.value = null
   }
 }
-
-async function revisarEstadoQuoia() {
-  try {
-    const data = await reporteEnergiaService.revisarEstadoQuoia(fechaISO.value)
-    estadoQuoia.value = data
-    if (data.en_espera === 0) detenerPollingEstadoQuoia()
-  } catch {
-    // silencioso -- se reintenta en el próximo tick del polling
-  }
-}
-
-function iniciarPollingEstadoQuoia() {
-  if (estadoQuoiaTimer) return
-  estadoQuoiaPolling.value = true
-  estadoQuoiaTimer = setInterval(revisarEstadoQuoia, 2 * 60 * 1000)
-}
-function detenerPollingEstadoQuoia() {
-  estadoQuoiaPolling.value = false
-  if (estadoQuoiaTimer) {
-    clearInterval(estadoQuoiaTimer)
-    estadoQuoiaTimer = null
-  }
-}
-onUnmounted(() => detenerPollingEstadoQuoia())
 
 watch(fecha, () => {
   seleccion.value = null
   cargarResumen()
   cargarLista()
-  detenerPollingEstadoQuoia()
-  cargarEstadoQuoiaActual()
+  estadoEnvio.value = null
+  cargarEstadoEnvio()
 })
 
 // Busca en la lista ya cargada (de la fecha/tab correctos) la fila que
@@ -456,7 +441,7 @@ function restaurarSeleccionDesdeQuery() {
 }
 
 onMounted(async () => {
-  await Promise.all([cargarResumen(), cargarLista(), cargarEstadoQuoiaActual()])
+  await Promise.all([cargarResumen(), cargarLista(), cargarEstadoEnvio()])
   if (activeTab.value === 1) await cargarHistorial()
   restaurarSeleccionDesdeQuery()
 })
@@ -688,6 +673,8 @@ async function enviarReporte() {
     })
     detenerSondeoEnvio()
     envioTimer = setInterval(() => revisarEnvio(fechaEnviada), 5000)
+    // El panel sale ya, en "Enviando… 0 de N", sin esperar el primer tick.
+    void revisarEnvio(fechaEnviada)
   } catch (err) {
     toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
     enviando.value = false
@@ -701,6 +688,9 @@ async function revisarEnvio(fechaEnviada: string) {
   } catch {
     return // silencioso -- se reintenta en el próximo tick
   }
+  // El resumen es de la fecha enviada: si la persona cambió de día mientras
+  // tanto, no se pisa el panel del día que está viendo.
+  if (fechaISO.value === fechaEnviada) estadoEnvio.value = data
   if (data.en_curso) return
   detenerSondeoEnvio()
   enviando.value = false
@@ -717,16 +707,5 @@ async function revisarEnvio(fechaEnviada: string) {
       duration: 3000,
     })
   }
-  // El estado de XM es de la fecha enviada: si la persona cambió de día
-  // mientras tanto, no se pisa el panel del día que está viendo.
-  if (fechaISO.value !== fechaEnviada) return
-  // Primero lo ya guardado (GET, sin golpear Quoia): el panel aparece en el
-  // acto y, si hay algo en espera, arranca el polling. Antes se esperaba a la
-  // revisión en vivo, y cuando esa pasaba del timeout del servidor el error se
-  // tragaba en silencio y el panel nunca salía (2026-09-30). La revisión en
-  // vivo va por tandas (ver estado_quoia_revisar): la primera sale ya, el
-  // polling sigue con las que falten.
-  await cargarEstadoQuoiaActual()
-  if (estadoQuoiaPolling.value) void revisarEstadoQuoia()
 }
 </script>

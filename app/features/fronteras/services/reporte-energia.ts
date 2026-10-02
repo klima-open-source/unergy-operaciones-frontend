@@ -7,7 +7,6 @@ import type {
   DetalleReporteEnergia,
   EstadoEjecucionReporteEnergia,
   EstadoEnvioReporteEnergia,
-  EstadoQuoiaReporte,
   ExclusionReporteEnergia,
   FilaReporteEnergia,
   PayloadActualizarExclusion,
@@ -43,7 +42,6 @@ const RUTAS = {
   excel: `${BASE}/excel`,
   enviar: `${BASE}/enviar`,
   enviarEstado: `${BASE}/enviar/estado`,
-  estadoQuoia: `${BASE}/estado-quoia`,
 } as const
 
 export class ReporteEnergiaService extends BaseService {
@@ -162,17 +160,5 @@ export class ReporteEnergiaService extends BaseService {
 
   obtenerEstadoEnvio(fecha: string): Promise<EstadoEnvioReporteEnergia> {
     return this.get<EstadoEnvioReporteEnergia>(RUTAS.enviarEstado, { query: { fecha } })
-  }
-
-  obtenerEstadoQuoia(fecha: string): Promise<EstadoQuoiaReporte> {
-    return this.get<EstadoQuoiaReporte>(RUTAS.estadoQuoia, { query: { fecha } })
-  }
-
-  /** Vuelve a consultar Quoia por el estado de lo ya enviado — no es instantáneo. */
-  revisarEstadoQuoia(fecha: string): Promise<EstadoQuoiaReporte> {
-    return this.post<EstadoQuoiaReporte>(RUTAS.estadoQuoia, undefined, {
-      query: { fecha },
-      timeout: 180_000,
-    })
   }
 }

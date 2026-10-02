@@ -247,24 +247,31 @@ export interface EstadoEnvioReporteEnergia {
   fallidos: string[]
   duracion_s?: number
   bloqueado?: boolean
+  resumen: ResumenEnvioReporteEnergia
 }
 
-export interface FronteraFallidaQuoia {
+export interface FronteraFallidaEnvio {
   frontera_id: number
   tipo: 'generacion' | 'consumo'
   nombre_proyecto?: string
+  motivo?: string | null
 }
 
-/** `GET/POST /estado-quoia`: si XM ya resolvió (aprobó/rechazó) lo que ya se envió ese día. */
-export interface EstadoQuoiaReporte {
+/**
+ * Qué pasó con cada frontera del día en el envío -- viaja en `GET /enviar/estado`.
+ * Sale de las filas, así que se mueve en vivo mientras corre el envío y sigue ahí
+ * al volver a abrir el día. Cada frontera cuenta en una sola casilla.
+ */
+export interface ResumenEnvioReporteEnergia {
   total: number
-  en_espera: number
-  exitoso: number
-  exitoso_con_alerta: number
-  error: number
-  fallidas: FronteraFallidaQuoia[]
-  /** Solo en POST: en espera que esta tanda no alcanzó a consultar; las toma el próximo tick. */
-  sin_revisar?: number
+  enviadas: number
+  fallidas: number
+  /** Las que este envío todavía no alcanza (o que nunca se han enviado). */
+  por_enviar: number
+  /** El CGM de Quoia ya las reportó bien: no se envían. */
+  automaticas: number
+  excluidas: number
+  fallidas_detalle: FronteraFallidaEnvio[]
 }
 
 export enum TipoFronteraReporte {
