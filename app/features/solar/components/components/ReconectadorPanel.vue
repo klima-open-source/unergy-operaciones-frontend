@@ -4,6 +4,15 @@
     <div class="flex items-center gap-2">
       <h3 class="flex-1 text-sm font-bold text-foreground">Reconectador</h3>
       <span
+        v-if="pendiente"
+        class="flex items-center gap-1 text-xs font-semibold text-warning"
+        title="Comando enviado: esperando que SolarView reporte el nuevo estado"
+      >
+        <LoaderCircleIcon class="size-3 animate-spin" />
+        Aplicando {{ relay.active === true ? 'ON' : 'OFF' }}…
+      </span>
+      <span
+        v-else
         :class="[
           'text-xs font-semibold',
           relay.active === true
@@ -15,14 +24,17 @@
       >
         {{ relay.active === true ? 'Activa' : relay.active === false ? 'Inactiva' : 'Sin dato' }}
       </span>
-      <!-- El interruptor no cambia nada por sí solo: abre la confirmación. -->
+      <!-- El interruptor no cambia nada por sí solo: abre la confirmación. Mientras
+           un comando se aplica queda bloqueado, para no mandarlo dos veces. -->
       <GSwitch
         :model-value="relay.active === true"
-        :disabled="!puedeReconectar"
+        :disabled="!puedeReconectar || pendiente"
         :title="
-          puedeReconectar
-            ? 'Encender o apagar el reconectador'
-            : 'Solo admin y operaciones pueden reconectar'
+          pendiente
+            ? 'Esperando confirmación del comando anterior'
+            : puedeReconectar
+              ? 'Encender o apagar el reconectador'
+              : 'Solo admin y operaciones pueden reconectar'
         "
         @update:model-value="emit('reconectar')"
       />
@@ -53,7 +65,15 @@
         </thead>
         <tbody>
           <tr>
-            <td class="py-2 pr-4 text-foreground tabular-nums">{{ tiempo }}</td>
+            <td class="py-2 pr-4 text-foreground tabular-nums">
+              {{ tiempo }}
+              <span
+                v-if="relay.lectura_fallida"
+                class="ml-1 text-warning"
+                title="SolarView no respondió en la última consulta: esta es la última lectura conocida"
+                >· última conocida</span
+              >
+            </td>
             <td v-for="c in columnas" :key="c.label" class="px-2 py-2 text-foreground tabular-nums">
               {{ c.valor }}
             </td>
@@ -66,7 +86,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RefreshCwIcon } from '@lucide/vue'
+import { LoaderCircleIcon, RefreshCwIcon } from '@lucide/vue'
 import type { EstadoReconectador } from '~/features/mobile/types'
 
 const props = defineProps<{
@@ -75,6 +95,8 @@ const props = defineProps<{
   /** Solo presentación: el backend vuelve a exigir el rol al recibir el comando. */
   puedeReconectar?: boolean
   recargando?: boolean
+  /** Se envió un comando y SolarView aún no reporta una lectura posterior. */
+  pendiente?: boolean
 }>()
 const emit = defineEmits<{ reconectar: []; refrescar: [] }>()
 

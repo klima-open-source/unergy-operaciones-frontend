@@ -9,6 +9,8 @@
 export interface EstadoReconectador {
   proyecto_id: number
   active: boolean | null
+  /** True: SolarView no respondió en esta lectura y esto es la última buena. */
+  lectura_fallida?: boolean
   [clave: string]: unknown
 }
 
