@@ -652,6 +652,182 @@ async function copiarMensaje(f: LineaFacturacion) {
   }
 }
 
+// ── Tarifas del período, por contrato ────────────────────────────────────────
+// Una fila por CONTRATO, sin las agrupaciones manuales de facturas: lo que se
+// quiere ver aquí es la tarifa que le quedó a cada contrato del mes, con el IPP
+// que la produjo. Mismo mecanismo de canvas que `copiarImagen`.
+const imagenTarifas = ref(false)
+
+function _renderTarifasCanvas(): HTMLCanvasElement {
+  const DARK = '#2C2039'
+  const GREY = '#7a6e8a'
+  const PURPLE = '#915BD8'
+  const scale = 2
+  const W = 860
+  const padX = 34
+  // Ordenadas por planta para poder buscar a ojo; el contrato va igual en su columna.
+  const filas = [...facturables.value].sort((a, b) =>
+    String(a.proyecto || a.contrato || '').localeCompare(String(b.proyecto || b.contrato || '')),
+  )
+  const headerH = 104
+  const tableHeadH = 26
+  const rowH = 30
+  const footerH = 42
+  const bodyTop = headerH + tableHeadH
+  const H = bodyTop + Math.max(filas.length, 1) * rowH + footerH
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W * scale
+  canvas.height = H * scale
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+  ctx.scale(scale, scale)
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = PURPLE
+  ctx.fillRect(0, 0, W, 6)
+
+  const trunc = (txt: unknown, max: number) => {
+    let t = String(txt ?? '')
+    if (ctx.measureText(t).width <= max) return t
+    while (t.length && ctx.measureText(t + '…').width > max) t = t.slice(0, -1)
+    return t + '…'
+  }
+
+  // Cabecera: título, período y el IPP del mes, que es lo que pidió verse arriba.
+  ctx.fillStyle = DARK
+  ctx.font = 'bold 20px Inter, Arial, sans-serif'
+  ctx.fillText('Tarifas por contrato', padX, 40)
+  ctx.fillStyle = GREY
+  ctx.font = '13px Inter, Arial, sans-serif'
+  ctx.fillText(formatPeriodo(props.periodo), padX, 60)
+
+  const ipp = ippActual.value
+  ctx.font = 'bold 12px Inter, Arial, sans-serif'
+  const etiquetaIpp = ipp != null ? `IPP del período · ${fmtNum(ipp)}` : 'IPP del período · sin cargar'
+  const anchoIpp = ctx.measureText(etiquetaIpp).width + 24
+  ctx.fillStyle = ipp != null ? 'rgba(145,91,216,.10)' : '#fdecea'
+  ctx.fillRect(W - padX - anchoIpp, 26, anchoIpp, 26)
+  ctx.fillStyle = ipp != null ? PURPLE : '#a13527'
+  ctx.fillText(etiquetaIpp, W - padX - anchoIpp + 12, 44)
+
+  ctx.fillStyle = GREY
+  ctx.font = '11px Inter, Arial, sans-serif'
+  ctx.fillText('tarifa indexada = tarifa base × IPP del período ÷ IPP base', padX, 84)
+
+  // Cabecera de tabla
+  const colTarR = W - padX
+  const colIppBaseR = W - padX - 110
+  const colBaseR = W - padX - 210
+  const xProy = padX
+  const xPpa = padX + 240
+  let y = headerH + 17
+  ctx.fillStyle = '#faf7ff'
+  ctx.fillRect(0, headerH, W, tableHeadH)
+  ctx.fillStyle = '#9b8fb0'
+  ctx.font = 'bold 10px Inter, Arial, sans-serif'
+  ctx.fillText('PROYECTO / CONTRATO', xProy, y)
+  ctx.fillText('PPA', xPpa, y)
+  ctx.textAlign = 'right'
+  ctx.fillText('BASE', colBaseR, y)
+  ctx.fillText('IPP BASE', colIppBaseR, y)
+  ctx.fillText('TARIFA', colTarR, y)
+  ctx.textAlign = 'left'
+
+  y = bodyTop + 19
+  for (const l of filas) {
+    ctx.fillStyle = DARK
+    ctx.font = '12px Inter, Arial, sans-serif'
+    ctx.fillText(trunc(l.proyecto || '—', 170), xProy, y)
+    ctx.fillStyle = GREY
+    ctx.font = '10.5px Inter, Arial, sans-serif'
+    ctx.fillText(trunc(l.contrato, 60), xProy + 178, y)
+    ctx.fillStyle = DARK
+    ctx.font = '11.5px Inter, Arial, sans-serif'
+    ctx.fillText(trunc(l.ppa || '—', colBaseR - xPpa - 20), xPpa, y)
+    ctx.textAlign = 'right'
+    ctx.fillStyle = GREY
+    ctx.fillText(l.tarifa_base != null ? fmtNum(l.tarifa_base) : '—', colBaseR, y)
+    ctx.fillText(l.ipp_base != null ? fmtNum(l.ipp_base) : '—', colIppBaseR, y)
+    ctx.fillStyle = DARK
+    ctx.font = 'bold 12px Inter, Arial, sans-serif'
+    ctx.fillText(l.tarifa_indexada != null ? fmtNum(l.tarifa_indexada) : '—', colTarR, y)
+    ctx.textAlign = 'left'
+    ctx.strokeStyle = '#f2edf8'
+    ctx.beginPath()
+    ctx.moveTo(padX, y + 10)
+    ctx.lineTo(W - padX, y + 10)
+    ctx.stroke()
+    y += rowH
+  }
+
+  // Pie: cuántos contratos salieron y cuántos quedaron fuera por no tener tarifa.
+  const fy = bodyTop + filas.length * rowH
+  ctx.fillStyle = 'rgba(145,91,216,.07)'
+  ctx.fillRect(0, fy, W, footerH)
+  ctx.strokeStyle = PURPLE
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(0, fy)
+  ctx.lineTo(W, fy)
+  ctx.stroke()
+  ctx.fillStyle = DARK
+  ctx.font = 'bold 12px Inter, Arial, sans-serif'
+  ctx.fillText(`${filas.length} contrato${filas.length === 1 ? '' : 's'} con tarifa`, padX, fy + 26)
+  const fuera = noFacturables.value.length
+  if (fuera) {
+    ctx.fillStyle = '#a13527'
+    ctx.font = '11px Inter, Arial, sans-serif'
+    ctx.textAlign = 'right'
+    ctx.fillText(`${fuera} sin tarifa, no salen acá`, W - padX, fy + 26)
+    ctx.textAlign = 'left'
+  }
+  return canvas
+}
+
+async function copiarTarifas() {
+  if (!facturables.value.length) {
+    toast.info('No hay tarifas que exportar', {
+      description: 'El período no tiene contratos facturables.',
+      duration: 4000,
+    })
+    return
+  }
+  let canvas: HTMLCanvasElement
+  try {
+    canvas = _renderTarifasCanvas()
+  } catch (e) {
+    toast.error('No se pudo generar la imagen', {
+      description: normalizeError(e).message,
+      duration: 5000,
+    })
+    return
+  }
+  canvas.toBlob(async (blob) => {
+    if (!blob) return
+    const nombre = `tarifas-${per.value}.png`
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      imagenTarifas.value = true
+      setTimeout(() => (imagenTarifas.value = false), 2200)
+    } catch {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombre
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.info('Imagen descargada', {
+        description: `El navegador no dejó copiarla al portapapeles: se guardó como ${nombre}.`,
+        duration: 6000,
+      })
+    }
+  }, 'image/png')
+}
+
 // ── Copiar la factura como imagen ─────────────────────────────────────────────
 // Mismo mecanismo que en Cumplimiento estrategia: se dibuja un canvas y se copia
 // al portapapeles (o se descarga si el navegador no lo permite). Se dibuja a mano
@@ -876,6 +1052,11 @@ onMounted(load)
         <!-- Cruza lo que debe entrar por proyecto contra lo ya liquidado. Va acá,
              fuera de las sub-pestañas, porque mezcla las dos fuentes y no
              pertenece a ninguna de ellas. -->
+        <Button size="sm" variant="outline" @click="copiarTarifas">
+          <CheckIcon v-if="imagenTarifas" class="size-3" />
+          <ImageIcon v-else class="size-3" />
+          Tarifas por contrato
+        </Button>
         <Button size="sm" :disabled="exportandoVs" @click="exportarVsDespachos">
           <LoaderCircleIcon v-if="exportandoVs" class="size-3 animate-spin" />
           <FileSpreadsheetIcon v-else class="size-3" />
@@ -1011,7 +1192,7 @@ onMounted(load)
             <span class="text-xs text-muted-foreground">
               {{ res.emitidas || 0 }}/{{ res.facturas || porFactura.length }} facturadas
             </span>
-            <Button size="sm" v-if="ordenTocado" :disabled="guardandoOrden" @click="guardarOrden">
+            <Button v-if="ordenTocado" size="sm" :disabled="guardandoOrden" @click="guardarOrden">
               <LoaderCircleIcon v-if="guardandoOrden" class="size-3 animate-spin" />
               <SaveIcon v-else class="size-3" /> Guardar orden
             </Button>

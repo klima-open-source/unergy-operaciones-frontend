@@ -349,6 +349,14 @@ export interface LineaFacturacion {
   emitida_por?: string
   emitida_at?: string
   tarifa_indexada?: number | null
+  /** Tarifa del PPA para el mes, ANTES de indexar. */
+  tarifa_base?: number | null
+  /** IPP con el que se firmó el PPA; el divisor de la indexación. */
+  ipp_base?: number | null
+  /** IPP del mes que se factura; el multiplicador. */
+  ipp_mes?: number | null
+  /** Período del `ipp_base`, p. ej. "2025-01". */
+  periodo_ipp_base?: string | null
   tarifa_mixta?: boolean
   sin_ppa?: boolean
   /** Contrato PPA de la factura, cuando no es una división personalizada. */
