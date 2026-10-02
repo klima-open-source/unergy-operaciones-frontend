@@ -652,23 +652,53 @@ async function copiarMensaje(f: LineaFacturacion) {
   }
 }
 
-// ── Tarifas del período, por contrato ────────────────────────────────────────
-// Una fila por CONTRATO, sin las agrupaciones manuales de facturas: lo que se
-// quiere ver aquí es la tarifa que le quedó a cada contrato del mes, con el IPP
-// que la produjo. Mismo mecanismo de canvas que `copiarImagen`.
+// ── Tarifas del período, por PPA ─────────────────────────────────────────────
+// Una fila por PPA, no por planta: la tarifa la fija el contrato marco, así que
+// las ~50 plantas del mes se colapsan en ~16 filas. Tampoco se usan las
+// agrupaciones manuales de facturas: eso es reparto, no tarifa.
 const imagenTarifas = ref(false)
+
+interface TarifaPpa {
+  ppa: string
+  contratos: number
+  tarifaBase: number | null
+  ippBase: number | null
+  tarifa: number | null
+  /** Dos contratos del mismo PPA con tarifas distintas: no debería pasar. */
+  varia: boolean
+}
+
+function _tarifasPorPpa(): TarifaPpa[] {
+  const porPpa = new Map<string, LineaFacturacion[]>()
+  for (const l of facturables.value) {
+    const clave = l.ppa || '—'
+    const grupo = porPpa.get(clave)
+    if (grupo) grupo.push(l)
+    else porPpa.set(clave, [l])
+  }
+  return [...porPpa.entries()]
+    .map(([ppa, ls]) => {
+      const primera = ls[0]!
+      return {
+        ppa,
+        contratos: ls.length,
+        tarifaBase: primera.tarifa_base ?? null,
+        ippBase: primera.ipp_base ?? null,
+        tarifa: primera.tarifa_indexada ?? null,
+        varia: new Set(ls.map((l) => l.tarifa_indexada)).size > 1,
+      }
+    })
+    .sort((a, b) => a.ppa.localeCompare(b.ppa))
+}
 
 function _renderTarifasCanvas(): HTMLCanvasElement {
   const DARK = '#2C2039'
   const GREY = '#7a6e8a'
   const PURPLE = '#915BD8'
   const scale = 2
-  const W = 860
-  const padX = 34
-  // Ordenadas por planta para poder buscar a ojo; el contrato va igual en su columna.
-  const filas = [...facturables.value].sort((a, b) =>
-    String(a.proyecto || a.contrato || '').localeCompare(String(b.proyecto || b.contrato || '')),
-  )
+  const W = 640
+  const padX = 30
+  const filas = _tarifasPorPpa()
   const headerH = 104
   const tableHeadH = 26
   const rowH = 30
@@ -698,7 +728,7 @@ function _renderTarifasCanvas(): HTMLCanvasElement {
   // Cabecera: título, período y el IPP del mes, que es lo que pidió verse arriba.
   ctx.fillStyle = DARK
   ctx.font = 'bold 20px Inter, Arial, sans-serif'
-  ctx.fillText('Tarifas por contrato', padX, 40)
+  ctx.fillText('Tarifas por PPA', padX, 40)
   ctx.fillStyle = GREY
   ctx.font = '13px Inter, Arial, sans-serif'
   ctx.fillText(formatPeriodo(props.periodo), padX, 60)
@@ -714,45 +744,41 @@ function _renderTarifasCanvas(): HTMLCanvasElement {
 
   ctx.fillStyle = GREY
   ctx.font = '11px Inter, Arial, sans-serif'
-  ctx.fillText('tarifa indexada = tarifa base × IPP del período ÷ IPP base', padX, 84)
+  ctx.fillText('tarifa = tarifa base × IPP del período ÷ IPP base', padX, 84)
 
   // Cabecera de tabla
   const colTarR = W - padX
-  const colIppBaseR = W - padX - 110
-  const colBaseR = W - padX - 210
-  const xProy = padX
-  const xPpa = padX + 240
+  const colIppBaseR = W - padX - 92
+  const colBaseR = W - padX - 174
+  const colNR = W - padX - 244
   let y = headerH + 17
   ctx.fillStyle = '#faf7ff'
   ctx.fillRect(0, headerH, W, tableHeadH)
   ctx.fillStyle = '#9b8fb0'
   ctx.font = 'bold 10px Inter, Arial, sans-serif'
-  ctx.fillText('PROYECTO / CONTRATO', xProy, y)
-  ctx.fillText('PPA', xPpa, y)
+  ctx.fillText('PPA', padX, y)
   ctx.textAlign = 'right'
+  ctx.fillText('N°', colNR, y)
   ctx.fillText('BASE', colBaseR, y)
   ctx.fillText('IPP BASE', colIppBaseR, y)
   ctx.fillText('TARIFA', colTarR, y)
   ctx.textAlign = 'left'
 
   y = bodyTop + 19
-  for (const l of filas) {
+  for (const f of filas) {
     ctx.fillStyle = DARK
-    ctx.font = '12px Inter, Arial, sans-serif'
-    ctx.fillText(trunc(l.proyecto || '—', 170), xProy, y)
-    ctx.fillStyle = GREY
-    ctx.font = '10.5px Inter, Arial, sans-serif'
-    ctx.fillText(trunc(l.contrato, 60), xProy + 178, y)
-    ctx.fillStyle = DARK
-    ctx.font = '11.5px Inter, Arial, sans-serif'
-    ctx.fillText(trunc(l.ppa || '—', colBaseR - xPpa - 20), xPpa, y)
+    ctx.font = '12.5px Inter, Arial, sans-serif'
+    ctx.fillText(trunc(f.ppa, colNR - padX - 30), padX, y)
     ctx.textAlign = 'right'
     ctx.fillStyle = GREY
-    ctx.fillText(l.tarifa_base != null ? fmtNum(l.tarifa_base) : '—', colBaseR, y)
-    ctx.fillText(l.ipp_base != null ? fmtNum(l.ipp_base) : '—', colIppBaseR, y)
-    ctx.fillStyle = DARK
-    ctx.font = 'bold 12px Inter, Arial, sans-serif'
-    ctx.fillText(l.tarifa_indexada != null ? fmtNum(l.tarifa_indexada) : '—', colTarR, y)
+    ctx.font = '11px Inter, Arial, sans-serif'
+    ctx.fillText(String(f.contratos), colNR, y)
+    ctx.font = '11.5px Inter, Arial, sans-serif'
+    ctx.fillText(f.tarifaBase != null ? fmtNum(f.tarifaBase) : '—', colBaseR, y)
+    ctx.fillText(f.ippBase != null ? fmtNum(f.ippBase) : '—', colIppBaseR, y)
+    ctx.fillStyle = f.varia ? '#a13527' : DARK
+    ctx.font = 'bold 12.5px Inter, Arial, sans-serif'
+    ctx.fillText(f.varia ? 'varía' : f.tarifa != null ? fmtNum(f.tarifa) : '—', colTarR, y)
     ctx.textAlign = 'left'
     ctx.strokeStyle = '#f2edf8'
     ctx.beginPath()
@@ -762,8 +788,9 @@ function _renderTarifasCanvas(): HTMLCanvasElement {
     y += rowH
   }
 
-  // Pie: cuántos contratos salieron y cuántos quedaron fuera por no tener tarifa.
+  // Pie: cuántos PPA y cuántos contratos hay detrás.
   const fy = bodyTop + filas.length * rowH
+  const contratos = filas.reduce((n, f) => n + f.contratos, 0)
   ctx.fillStyle = 'rgba(145,91,216,.07)'
   ctx.fillRect(0, fy, W, footerH)
   ctx.strokeStyle = PURPLE
@@ -774,13 +801,17 @@ function _renderTarifasCanvas(): HTMLCanvasElement {
   ctx.stroke()
   ctx.fillStyle = DARK
   ctx.font = 'bold 12px Inter, Arial, sans-serif'
-  ctx.fillText(`${filas.length} contrato${filas.length === 1 ? '' : 's'} con tarifa`, padX, fy + 26)
+  ctx.fillText(
+    `${filas.length} PPA · ${contratos} contrato${contratos === 1 ? '' : 's'}`,
+    padX,
+    fy + 26,
+  )
   const fuera = noFacturables.value.length
   if (fuera) {
     ctx.fillStyle = '#a13527'
     ctx.font = '11px Inter, Arial, sans-serif'
     ctx.textAlign = 'right'
-    ctx.fillText(`${fuera} sin tarifa, no salen acá`, W - padX, fy + 26)
+    ctx.fillText(`${fuera} contrato(s) sin tarifa, no salen acá`, W - padX, fy + 26)
     ctx.textAlign = 'left'
   }
   return canvas
@@ -1055,7 +1086,7 @@ onMounted(load)
         <Button size="sm" variant="outline" @click="copiarTarifas">
           <CheckIcon v-if="imagenTarifas" class="size-3" />
           <ImageIcon v-else class="size-3" />
-          Tarifas por contrato
+          Tarifas por PPA
         </Button>
         <Button size="sm" :disabled="exportandoVs" @click="exportarVsDespachos">
           <LoaderCircleIcon v-if="exportandoVs" class="size-3 animate-spin" />
