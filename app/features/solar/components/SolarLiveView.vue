@@ -49,7 +49,7 @@
             <div
               v-if="interruptor && can('reconectadores:interruptor')"
               class="flex items-center gap-2 rounded-md border border-border px-2.5 py-1"
-              :title="tituloInterruptor"
+              :title="tituloInterruptor()"
             >
               <PowerIcon class="size-4 text-muted-foreground" />
               <span class="text-xs font-semibold text-muted-foreground">Comandos ON/OFF</span>
@@ -495,9 +495,7 @@ import { Line } from 'vue-chartjs'
 import draggable from 'vuedraggable'
 import { toast } from 'vue-sonner'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
-import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
-import type { EstadoInterruptorReconectadores, EstadoReconectador } from '~/features/mobile/types'
-import { normalizeError } from '~/core/errors'
+import { useReconectadores } from '~/features/mobile/useReconectadores'
 import ReconectadorPanel from '~/features/solar/components/components/ReconectadorPanel.vue'
 import ReconectarDialog from '~/features/solar/components/components/ReconectarDialog.vue'
 // Los datos y las DECISIONES que esta vista comparte con la app movil. Vive
@@ -542,9 +540,19 @@ const GeneracionView = defineAsyncComponent(
 )
 
 const generacionSolarService = new GeneracionSolarService()
-const reconectadoresService = new ReconectadoresService()
+const {
+  rcnMap,
+  pendientes,
+  recargando: recargandoEstados,
+  cargarEstados,
+  marcarEnviado,
+  interruptor,
+  cambiandoInterruptor,
+  cargarInterruptor,
+  pedirCambioInterruptor,
+  tituloInterruptor,
+} = useReconectadores()
 const { can } = useAuth()
-const confirm = useConfirm()
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler)
 
@@ -1075,121 +1083,10 @@ function alCambiarVisibilidad(entradas: IntersectionObserverEntry[]): void {
 }
 
 // ── Reconectadores ───────────────────────────────────────────────────────
-// Un solo GET trae todos los relays; las plantas sin reconectador no salen.
-const rcnMap = reactive<Record<number, EstadoReconectador>>({})
+// El estado, el "Aplicando…" tras un comando y el interruptor general viven en
+// `useReconectadores`, compartido con la app móvil (ver `rcn` arriba).
 const reconectarOpen = ref(false)
 const reconectarTarget = ref<ProyectoMonitoreoSolar | null>(null)
-const recargandoEstados = ref(false)
-
-// Tras un ON/OFF, SolarView tarda en reportar el nuevo estado (y el backend
-// cachea /estados un minuto). Sin esto la pantalla volvía al estado anterior a
-// los pocos segundos y alguien podía creer que falló y mandar el comando otra
-// vez. Se mantiene lo enviado hasta que llegue una lectura POSTERIOR al comando.
-const ESPERA_CONFIRMACION_MS = 3 * 60_000
-const SONDEO_PENDIENTE_MS = 15_000
-const pendientes = reactive<Record<number, { active: boolean; desde: number }>>({})
-let sondeoPendientes: ReturnType<typeof setTimeout> | null = null
-
-/** Hora de la lectura de SolarView ("2026-10-02 11:47:22", hora de Colombia). */
-function lecturaMs(raw: unknown): number | null {
-  if (!raw) return null
-  let s = String(raw).trim().replace(' ', 'T')
-  if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += '-05:00'
-  const t = Date.parse(s)
-  return Number.isNaN(t) ? null : t
-}
-
-function programarSondeo(): void {
-  if (sondeoPendientes) clearTimeout(sondeoPendientes)
-  sondeoPendientes = Object.keys(pendientes).length
-    ? setTimeout(() => void cargarEstados(), SONDEO_PENDIENTE_MS)
-    : null
-}
-
-async function cargarEstados(): Promise<void> {
-  recargandoEstados.value = true
-  try {
-    const data = await reconectadoresService.obtenerEstados()
-    const llegaron = new Set<number>()
-    for (const r of data) {
-      llegaron.add(r.proyecto_id)
-      const p = pendientes[r.proyecto_id]
-      if (p) {
-        const t = lecturaMs(r.ultima_actualizacion)
-        const confirmada = t != null && t > p.desde
-        const vencida = Date.now() - p.desde > ESPERA_CONFIRMACION_MS
-        if (confirmada || vencida) {
-          Reflect.deleteProperty(pendientes, r.proyecto_id)
-          if (!confirmada) {
-            toast.warning('Sin confirmación del reconectador', {
-              description: `SolarView no ha reportado el cambio en ${r.nombre ?? 'la planta'}. Revisa el estado antes de reintentar.`,
-            })
-          }
-        } else {
-          rcnMap[r.proyecto_id] = { ...r, active: p.active }
-          continue
-        }
-      }
-      rcnMap[r.proyecto_id] = r
-    }
-    // Reemplazo completo: un relay que ya no viene no se sigue mostrando ni
-    // contando en los indicadores con un estado viejo.
-    for (const id of Object.keys(rcnMap).map(Number)) {
-      if (!llegaron.has(id) && !pendientes[id]) Reflect.deleteProperty(rcnMap, id)
-    }
-  } catch {
-    /* silencioso: sin reconectadores la tarjeta queda como antes */
-  } finally {
-    recargandoEstados.value = false
-    programarSondeo()
-  }
-}
-
-// El interruptor general: con él apagado, ningún ON/OFF sale del servidor.
-const interruptor = ref<EstadoInterruptorReconectadores | null>(null)
-const cambiandoInterruptor = ref(false)
-
-const tituloInterruptor = computed(() => {
-  const i = interruptor.value
-  if (!i) return ''
-  if (i.forzado_por_servidor) return 'Encendido en la configuración del servidor'
-  if (!i.actualizado_por) return 'Nunca se ha encendido desde la plataforma'
-  const cuando = i.actualizado_en ? new Date(i.actualizado_en).toLocaleString('es-CO') : ''
-  return `${i.habilitado ? 'Encendido' : 'Apagado'} por ${i.actualizado_por} ${cuando}`.trim()
-})
-
-async function cargarInterruptor(): Promise<void> {
-  if (!can('reconectadores:interruptor')) return
-  try {
-    interruptor.value = await reconectadoresService.obtenerInterruptor()
-  } catch {
-    /* sin el estado no se muestra el interruptor */
-  }
-}
-
-function pedirCambioInterruptor(habilitado: boolean): void {
-  confirm({
-    title: habilitado ? '¿Encender los comandos ON/OFF?' : '¿Apagar los comandos ON/OFF?',
-    description: habilitado
-      ? 'Los usuarios de admin y operaciones podrán abrir y cerrar reconectadores (con su usuario de SolarView). Apagar un reconectador deja la planta fuera de línea y puede haber gente en sitio: coordínalo con el equipo de campo.'
-      : 'Nadie podrá abrir ni cerrar reconectadores desde la plataforma hasta que se vuelvan a encender.',
-    confirmLabel: habilitado ? 'Encender' : 'Apagar',
-    variant: habilitado ? 'destructive' : 'default',
-    onConfirm: () => cambiarInterruptor(habilitado),
-  })
-}
-
-async function cambiarInterruptor(habilitado: boolean): Promise<void> {
-  cambiandoInterruptor.value = true
-  try {
-    interruptor.value = await reconectadoresService.cambiarInterruptor(habilitado)
-    toast.success(habilitado ? 'Comandos ON/OFF encendidos' : 'Comandos ON/OFF apagados')
-  } catch (err) {
-    toast.error('No se pudo cambiar', { description: normalizeError(err).message })
-  } finally {
-    cambiandoInterruptor.value = false
-  }
-}
 
 function abrirReconectar(p: ProyectoMonitoreoSolar): void {
   reconectarTarget.value = p
@@ -1199,14 +1096,11 @@ function abrirReconectar(p: ProyectoMonitoreoSolar): void {
 function onReconectado({ active }: { active: boolean }): void {
   const p = reconectarTarget.value
   if (!p) return
-  // Refleja el comando de inmediato y lo sostiene hasta que SolarView confirme.
-  pendientes[p.proyecto_id] = { active, desde: Date.now() }
-  rcnMap[p.proyecto_id] = { ...(rcnMap[p.proyecto_id] || { proyecto_id: p.proyecto_id }), active }
+  marcarEnviado(p.proyecto_id, active)
   toast.success('Comando enviado', {
     description: `${p.nombre}: ${active ? 'ON' : 'OFF'}`,
     duration: 3500,
   })
-  cargarEstados()
 }
 
 // ── Carga ─────────────────────────────────────────────────────────────────
@@ -1286,7 +1180,6 @@ onMounted(() => {
 })
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
-  if (sondeoPendientes) clearTimeout(sondeoPendientes)
   observador?.disconnect()
   observador = null
   tarjetasVisibles.clear()
