@@ -207,7 +207,11 @@
           </div>
 
           <!-- Reconectador: estado + telemetría en vivo de Solenium -->
-          <ReconnectorPanel v-if="rcnMap[p.proyecto_id]" :relay="rcnMap[p.proyecto_id]!" />
+          <ReconnectorPanel
+            v-if="rcnMap[p.proyecto_id]"
+            :relay="rcnMap[p.proyecto_id]!"
+            :pendiente="!!pendientes[p.proyecto_id]"
+          />
 
           <!-- Falla(s) activa(s) del proyecto -->
           <div
@@ -249,15 +253,19 @@
               ><ClockIcon class="size-3" /> {{ lastUpdated || '—' }}</span
             >
             <button
-              v-if="rcnMap[p.proyecto_id]"
-              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-md"
+              v-if="rcnMap[p.proyecto_id] && can('reconectadores:command')"
+              class="ml-auto flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-md disabled:opacity-60"
+              :disabled="!!pendientes[p.proyecto_id]"
               @click="openSheet(p)"
             >
               <span
                 :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', relayBadgeClass(p)]"
                 >{{ relayBadgeText(p) }}</span
               >
-              <PowerIcon class="size-4" /> Reconectar
+              <template v-if="pendientes[p.proyecto_id]">
+                <LoaderCircleIcon class="size-4 animate-spin" /> Aplicando…
+              </template>
+              <template v-else><PowerIcon class="size-4" /> Reconectar</template>
             </button>
           </div>
         </section>
@@ -345,12 +353,11 @@ import {
 } from '@lucide/vue'
 import type { CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
-import type { EstadoReconectador } from '~/features/mobile/types'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
 import { GeneracionSolarService } from '~/features/solar/services/generacion-solar'
-import { ReconectadoresService } from '~/features/mobile/services/reconectadores'
+import { useReconectadores } from '~/features/mobile/useReconectadores'
 import { usePwa } from '~/features/mobile/components/usePwa'
 import {
   acumuladoInversores,
@@ -370,12 +377,14 @@ import FallaCreateSheet from '~/features/mobile/components/components/FallaCreat
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 
 const router = useRouter()
-const { user, signOut } = useAuth()
+const { user, signOut, can } = useAuth()
 const { register } = usePwa()
 const fallasService = new FallasService()
 const notificacionesService = new NotificacionesService()
 const generacionSolarService = new GeneracionSolarService()
-const reconectadoresService = new ReconectadoresService()
+// Estado de los relays y "Aplicando…" tras un comando: el mismo módulo que usa
+// Generación Solar en escritorio. El interruptor general NO va en el móvil.
+const { rcnMap, pendientes, cargarEstados, marcarEnviado } = useReconectadores()
 
 const STATUS_COLORS: Record<string, string> = {
   online: 'var(--success)',
@@ -400,7 +409,6 @@ const proyectos = ref<ProyectoMonitoreoSolar[]>([])
 const idx = ref(0)
 const detailMap = reactive<Record<number, DetalleMonitoreoSolar>>({}) // proyecto_id → detalle
 const nowMap = reactive<Record<number, PotenciaAhora>>({}) // proyecto_id → { inv, med } (potencia "ahora")
-const rcnMap = reactive<Record<number, EstadoReconectador>>({}) // proyecto_id → { active, telemetría del relay }
 const loadingList = ref(false)
 const loadingDetail = ref(0) // contador: >0 = cargando (permite cargas paralelas)
 const lastUpdated = ref('')
@@ -563,15 +571,6 @@ async function cargarLista(): Promise<void> {
   prefetchAround()
 }
 
-async function cargarEstados(): Promise<void> {
-  try {
-    const data = await reconectadoresService.obtenerEstados()
-    for (const r of data) rcnMap[r.proyecto_id] = r
-  } catch {
-    /* silencioso */
-  }
-}
-
 async function loadDetail(id: number | null | undefined, force = false): Promise<void> {
   if (!id) return
   if (detailMap[id] && !force) return
@@ -643,13 +642,12 @@ function openSheet(p: ProyectoMonitoreoSolar): void {
 function onReconnectDone({ active }: { active: boolean }): void {
   const p = sheetTarget.value
   if (!p) return
-  // Refleja el comando de inmediato; `cargarEstados()` traerá la lectura real.
-  rcnMap[p.proyecto_id] = { ...(rcnMap[p.proyecto_id] || { proyecto_id: p.proyecto_id }), active }
+  // Lo sostiene como "Aplicando…" hasta que SolarView confirme.
+  marcarEnviado(p.proyecto_id, active)
   toast.success('Comando enviado', {
     description: `${p.nombre}: ${active ? 'ON' : 'OFF'}`,
     duration: 3500,
   })
-  cargarEstados()
 }
 
 // ── Sesión ─────────────────────────────────────────────────────────────────

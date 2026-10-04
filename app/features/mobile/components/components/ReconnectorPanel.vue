@@ -3,7 +3,13 @@
     <button class="flex w-full items-center gap-2 pt-0.5 pb-2 text-left" @click="open = !open">
       <ZapIcon class="size-4 text-warning" />
       <span class="flex-1 text-xs font-bold text-foreground">Reconectador</span>
-      <span :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', badgeClass]">{{
+      <span
+        v-if="pendiente"
+        class="flex items-center gap-1 rounded-md bg-warning/10 px-2 py-0.5 text-xs font-extrabold text-warning"
+      >
+        <LoaderCircleIcon class="size-3 animate-spin" /> Aplicando {{ badgeText }}…
+      </span>
+      <span v-else :class="['rounded-md px-2 py-0.5 text-xs font-extrabold', badgeClass]">{{
         badgeText
       }}</span>
       <ChevronUpIcon v-if="open" class="size-3 text-muted-foreground" />
@@ -98,6 +104,7 @@
 
       <div class="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
         <ClockIcon class="size-3" /> {{ tiempo }}
+        <span v-if="relay.lectura_fallida" class="text-warning">· última conocida</span>
       </div>
     </div>
   </div>
@@ -105,12 +112,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ChevronDownIcon, ChevronUpIcon, ClockIcon, ZapIcon } from '@lucide/vue'
+import { ChevronDownIcon, ChevronUpIcon, ClockIcon, LoaderCircleIcon, ZapIcon } from '@lucide/vue'
 import type { EstadoReconectador } from '~/features/mobile/types'
 
 const props = defineProps<{
   /** Registro de `/reconectadores/estados`: estado del relay + telemetría de SolarView. */
   relay: EstadoReconectador
+  /** Se envió un comando y SolarView aún no reporta una lectura posterior. */
+  pendiente?: boolean
 }>()
 
 const open = ref(true)
