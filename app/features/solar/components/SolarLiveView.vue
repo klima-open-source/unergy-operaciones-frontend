@@ -149,14 +149,15 @@
       </p>
 
       <!-- ══ RESUMEN DE COMUNICACIÓN ══ -->
-      <!-- Un chip por fuente: un clic filtra, otro lo quita. -->
+      <!-- Un chip por fuente: un clic filtra, otro lo quita. Naranja (`warning`),
+           no rojo: es un aviso para revisar, no una falla confirmada. -->
       <div v-if="proyectos.length" class="flex flex-wrap items-center gap-2">
         <GBadge
           v-for="r in resumenComunicacion"
           :key="r.fuente"
           as="button"
           type="button"
-          color="destructive"
+          color="warning"
           :variant="filtroComunicacion === r.fuente ? 'default' : 'outline'"
           class="cursor-pointer gap-1"
           :aria-pressed="filtroComunicacion === r.fuente"
