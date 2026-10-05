@@ -11,16 +11,17 @@
  */
 
 import type { GaiaSnapshot } from '~/features/fallas/utils/gaiaSnapshotToFasorial'
+import type { ComunicacionPlanta, ConsultaFuente, Fuente } from '~/features/solar/comunicacion'
 
 // ── Monitoreo en vivo (`/generacion-solar/*`) ─────────────────────────────────
 
 export interface ProyectoMonitoreoSolar {
   proyecto_id: number
   nombre?: string
-  status?: string
+  /** Por fuente; `null` mientras el sondeo no la ha evaluado. Ver `comunicacion.ts`. */
+  comunicacion?: ComunicacionPlanta | null
   power_kw?: number | null
   utilization_pct?: number | null
-  availability_pct?: number | null
   /** P90 del día, en kWh — meta contra la que `SolarLiveView.vue` compara lo generado hoy. */
   p90_diario_kwh?: number | null
   [clave: string]: unknown
@@ -29,6 +30,8 @@ export interface ProyectoMonitoreoSolar {
 /** `GET /generacion-solar/monitoring`. */
 export interface RespuestaMonitoreoSolar {
   projects: ProyectoMonitoreoSolar[]
+  /** Si la última consulta a SolarView o a Quoia falló entera. */
+  consultas?: Partial<Record<Fuente, ConsultaFuente>>
 }
 
 /** Un punto de `power_curve` (inversores) o de `medidor.curva` (medidor): potencia a un instante. */

@@ -66,7 +66,7 @@
       >
         <span
           class="size-2 shrink-0 rounded-full bg-(--c)"
-          :style="{ '--c': statusColor(current?.status) }"
+          :style="{ '--c': colorComunicacion(current?.comunicacion) }"
         />
         <TruncatedText
           :text="current?.nombre || '—'"
@@ -109,7 +109,7 @@
           >
             <span
               class="size-2 shrink-0 rounded-full bg-(--c)"
-              :style="{ '--c': statusColor(p.status) }"
+              :style="{ '--c': colorComunicacion(p.comunicacion) }"
             />
             <TruncatedText :text="p.nombre" class="min-w-0 flex-1" />
             <ZapIcon
@@ -353,6 +353,11 @@ import {
 } from '@lucide/vue'
 import type { CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
+import {
+  COLOR_NIVEL,
+  nivelComunicacion,
+  type ComunicacionPlanta,
+} from '~/features/solar/comunicacion'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { NotificacionesService } from '~/features/notificaciones/services/notificaciones'
@@ -386,15 +391,9 @@ const generacionSolarService = new GeneracionSolarService()
 // Generación Solar en escritorio. El interruptor general NO va en el móvil.
 const { rcnMap, pendientes, cargarEstados, marcarEnviado } = useReconectadores()
 
-const STATUS_COLORS: Record<string, string> = {
-  online: 'var(--success)',
-  degradado: 'var(--warning)',
-  caido: 'var(--destructive)',
-  sin_comunicacion: 'var(--muted-foreground)',
-  offline: 'var(--border)',
-}
-function statusColor(s: string | undefined): string {
-  return (s && STATUS_COLORS[s]) || 'var(--muted-foreground)'
+// El punto de cada planta: el mismo criterio que escritorio (`comunicacion.ts`).
+function colorComunicacion(c: ComunicacionPlanta | null | undefined): string {
+  return `var(--${COLOR_NIVEL[nivelComunicacion(c)]})`
 }
 
 interface PotenciaAhora {

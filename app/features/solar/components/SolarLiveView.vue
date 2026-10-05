@@ -31,18 +31,61 @@
 
         <!-- ── Barra de acciones ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <!-- Filtro por proyecto -->
-          <InputGroup class="min-w-48 flex-1 sm:max-w-xs">
-            <InputGroupAddon>
-              <SearchIcon />
-            </InputGroupAddon>
-            <InputGroupInput v-model="filtro" placeholder="Buscar proyecto..." />
-            <InputGroupAddon v-if="filtro" align="inline-end">
-              <InputGroupButton size="icon-xs" aria-label="Limpiar filtro" @click="filtro = ''">
-                <XIcon />
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
+          <!-- Filtro por proyecto: escribir filtra la lista, el clic elige.
+               Mismo selector que la pestaña Histórico (GeneracionView). -->
+          <div class="flex min-w-48 flex-1 items-center gap-1 sm:max-w-xs">
+            <Combobox
+              v-model="seleccion"
+              multiple
+              open-on-click
+              open-on-focus
+              class="min-w-0 flex-1"
+            >
+              <ComboboxAnchor>
+                <ComboboxInput
+                  :display-value="
+                    (v) =>
+                      Array.isArray(v) && v.length
+                        ? `${v.length} proyecto${v.length > 1 ? 's' : ''} seleccionado${v.length > 1 ? 's' : ''}`
+                        : ''
+                  "
+                  placeholder="Buscar proyecto..."
+                />
+              </ComboboxAnchor>
+              <ComboboxList>
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxViewport>
+                  <ComboboxItem
+                    v-for="p in opcionesProyectos"
+                    :key="p.proyecto_id"
+                    :value="p.proyecto_id"
+                    :text-value="p.nombre"
+                  >
+                    <span
+                      class="size-2 shrink-0 rounded-full bg-(--status-color)"
+                      :style="{ '--status-color': colorComunicacion(p.comunicacion) }"
+                      :title="detalleComunicacion(p.comunicacion)"
+                      aria-hidden="true"
+                    />
+                    <TruncatedText :text="p.nombre" class="min-w-0 flex-1" />
+                    <ComboboxItemIndicator>
+                      <CheckIcon />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+            <Button
+              v-if="seleccion.length"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Quitar filtro de proyectos"
+              title="Quitar filtro de proyectos"
+              @click="seleccion = []"
+            >
+              <XIcon />
+            </Button>
+          </div>
 
           <div class="flex flex-wrap items-center gap-2.5">
             <!-- Interruptor general del ON/OFF de reconectadores: solo admin -->
@@ -100,10 +143,28 @@
         </div>
       </div>
 
-      <!-- ══ RESUMEN DE ESTADO ══ -->
-      <div v-if="resumenEstados.length" class="flex flex-wrap items-center gap-2">
-        <GBadge v-for="r in resumenEstados" :key="r.key" :color="r.color">
+      <!-- ══ AVISO: un servicio no respondió ══ -->
+      <p v-for="aviso in avisos" :key="aviso" class="text-sm font-medium text-warning">
+        {{ aviso }}
+      </p>
+
+      <!-- ══ RESUMEN DE COMUNICACIÓN ══ -->
+      <!-- Un chip por fuente: un clic filtra, otro lo quita. -->
+      <div v-if="proyectos.length" class="flex flex-wrap items-center gap-2">
+        <GBadge
+          v-for="r in resumenComunicacion"
+          :key="r.fuente"
+          as="button"
+          type="button"
+          color="destructive"
+          :variant="filtroComunicacion === r.fuente ? 'default' : 'outline'"
+          class="cursor-pointer gap-1"
+          :aria-pressed="filtroComunicacion === r.fuente"
+          :title="filtroComunicacion === r.fuente ? 'Quitar filtro' : `Ver solo: ${r.label}`"
+          @click="filtroComunicacion = filtroComunicacion === r.fuente ? null : r.fuente"
+        >
           {{ r.label }} · {{ r.count }}
+          <XIcon v-if="filtroComunicacion === r.fuente" class="size-3" />
         </GBadge>
 
         <!-- Reconectadores: un clic filtra las tarjetas, otro clic lo quita -->
@@ -151,13 +212,8 @@
         class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"
       >
         <SearchIcon class="size-8 text-muted-foreground/40" />
-        <p class="text-sm">
-          Ningún proyecto coincide
-          <template v-if="filtro.trim()">con "{{ filtro }}"</template>
-          <template v-if="filtroRcn">
-            {{ filtro.trim() ? 'y' : 'con' }} el filtro de reconectador</template
-          >
-        </p>
+        <p class="text-sm">Ningún proyecto cumple todos los filtros a la vez</p>
+        <Button variant="outline" size="sm" @click="quitarFiltros">Quitar filtros</Button>
       </div>
 
       <!-- ══ PROYECTOS (drag & drop) ══ -->
@@ -168,7 +224,7 @@
         handle=".sl-drag-handle"
         class="grid grid-cols-(--cols) gap-4"
         :style="{ '--cols': cols }"
-        :disabled="!!filtro.trim() || !!filtroRcn"
+        :disabled="hayFiltro"
         @end="saveOrder"
       >
         <template #item="{ element: proy }">
@@ -187,13 +243,16 @@
                   />
                   <span
                     class="size-2 shrink-0 rounded-full bg-(--status-color)"
-                    :style="{ '--status-color': statusColor(proy.status) }"
+                    :style="{ '--status-color': colorComunicacion(proy.comunicacion) }"
+                    :title="detalleComunicacion(proy.comunicacion)"
                   />
                   <TruncatedText :text="proy.nombre" class="min-w-0 flex-1" />
                   <span
+                    v-if="etiquetaComunicacion(proy.comunicacion)"
                     class="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    :title="detalleComunicacion(proy.comunicacion)"
                   >
-                    {{ statusMeta(proy.status).label }}
+                    {{ etiquetaComunicacion(proy.comunicacion) }}
                   </span>
                 </div>
 
@@ -513,9 +572,25 @@ import {
   irradianceSeries,
   meterSeries,
 } from '~/features/solar/serieSolar'
-import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
+import type {
+  DetalleMonitoreoSolar,
+  ProyectoMonitoreoSolar,
+  RespuestaMonitoreoSolar,
+} from '~/features/solar/types'
+import {
+  COLOR_NIVEL,
+  FUENTES,
+  avisosConsultas,
+  detalleComunicacion,
+  fuentesSinComunicacion,
+  nivelComunicacion,
+  sinComunicacion,
+  type ComunicacionPlanta,
+  type Fuente,
+} from '~/features/solar/comunicacion'
 import {
   ChartLineIcon,
+  CheckIcon,
   ClockIcon,
   Columns2Icon,
   Columns4Icon,
@@ -582,7 +657,30 @@ const cols = ref<ColumnasGrid>(1)
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 // ── Filtro por proyecto ────────────────────────────────────────────────────
-const filtro = ref('')
+// Los ids elegidos en el selector. Vacío = se ven todos.
+const seleccion = ref<number[]>([])
+
+/** Las opciones del selector: los proyectos de esta pantalla, por nombre. */
+const opcionesProyectos = computed(() =>
+  [...proyectos.value].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')),
+)
+
+// ── Filtro por comunicación ────────────────────────────────────────────────
+// Un chip por fuente (ver `comunicacion.ts`): un clic deja solo las plantas
+// que no comunican por esa fuente, otro clic lo quita.
+const filtroComunicacion = ref<Fuente | null>(null)
+
+const resumenComunicacion = computed(() =>
+  (Object.keys(FUENTES) as Fuente[]).map((fuente) => ({
+    fuente,
+    label: FUENTES[fuente].label,
+    count: proyectos.value.filter((p) => sinComunicacion(p.comunicacion, fuente)).length,
+  })),
+)
+
+// Si la última consulta a SolarView o a Quoia falló, los estados pueden estar viejos.
+const consultas = ref<RespuestaMonitoreoSolar['consultas']>({})
+const avisos = computed(() => avisosConsultas(consultas.value))
 
 // ── Filtro por estado del reconectador ─────────────────────────────────────
 // Solo cuentan las plantas de esta pantalla que tienen reconectador: las demás
@@ -618,14 +716,23 @@ const resumenReconectadores = computed(() => {
 
 function matchesFiltro(proy: ProyectoMonitoreoSolar): boolean {
   if (filtroRcn.value && estadoRcn(proy) !== filtroRcn.value) return false
-  const q = filtro.value.trim().toLowerCase()
-  if (!q) return true
-  return (proy.nombre || '').toLowerCase().includes(q)
+  if (filtroComunicacion.value && !sinComunicacion(proy.comunicacion, filtroComunicacion.value))
+    return false
+  return !seleccion.value.length || seleccion.value.includes(proy.proyecto_id)
 }
 
-const sinCoincidencias = computed(
-  () => (!!filtro.value.trim() || !!filtroRcn.value) && !proyectos.value.some(matchesFiltro),
+/** Con cualquier filtro puesto no se reordena: arrastrar entre tarjetas ocultas desordena. */
+const hayFiltro = computed(
+  () => !!seleccion.value.length || !!filtroRcn.value || !!filtroComunicacion.value,
 )
+
+const sinCoincidencias = computed(() => hayFiltro.value && !proyectos.value.some(matchesFiltro))
+
+function quitarFiltros(): void {
+  seleccion.value = []
+  filtroRcn.value = null
+  filtroComunicacion.value = null
+}
 
 // ── Generación de hoy ──────────────────────────────────────────────────────
 // El P90 del dia lo manda /monitoring en cada proyecto (`p90_diario_kwh`).
@@ -703,55 +810,19 @@ function setAuto(ms: number): void {
 
 const { color } = useThemeColors()
 
-/** Color de fondo del punto de estado de una tarjeta; gris si no se reconoce. */
-function statusColor(status: string | undefined): string {
-  switch (status) {
-    case 'online':
-      return color('success')
-    case 'degradado':
-      return color('warning')
-    case 'caido':
-      return color('destructive')
-    case 'sin_datos':
-    case 'offline':
-      return color('muted-foreground', 0.4)
-    default:
-      return color('muted-foreground')
-  }
+/** Punto de la tarjeta: verde comunica, ámbar falla una fuente, rojo todas, gris sin evaluar. */
+function colorComunicacion(c: ComunicacionPlanta | null | undefined): string {
+  const nivel = nivelComunicacion(c)
+  return color(COLOR_NIVEL[nivel], nivel === 'evaluando' ? 0.4 : 1)
 }
 
-// ── Resumen de estado ──────────────────────────────────────────────────────
-// Mismo criterio de severidad que statusColor (caido es lo unico realmente
-// rojo; sin_comunicacion/sin_datos/offline son variantes de "no hay dato", no
-// una falla confirmada), pero en colores semanticos para la franja de resumen
-// y la etiqueta de cada tarjeta.
-const STATUS_META = {
-  online: { label: 'En línea', color: 'success' },
-  degradado: { label: 'Degradado', color: 'warning' },
-  caido: { label: 'Caído', color: 'destructive' },
-  sin_comunicacion: { label: 'Sin comunicación', color: 'information' },
-  sin_datos: { label: 'Sin datos', color: 'default' },
-  offline: { label: 'Offline', color: 'default' },
+/** Lo que dice la esquina de la tarjeta: las fuentes caídas, o nada si comunica. */
+function etiquetaComunicacion(c: ComunicacionPlanta | null | undefined): string {
+  if (nivelComunicacion(c) === 'evaluando') return 'Evaluando…'
+  return fuentesSinComunicacion(c)
+    .map((f) => FUENTES[f].label)
+    .join(' · ')
 }
-
-/** Etiqueta/color de una tarjeta, cae a `offline` si el estado no se reconoce. */
-function statusMeta(status: string | undefined): { label: string; color: string } {
-  return (
-    (status ? STATUS_META[status as keyof typeof STATUS_META] : undefined) || STATUS_META.offline
-  )
-}
-
-const resumenEstados = computed(() => {
-  const counts: Partial<Record<keyof typeof STATUS_META, number>> = {}
-  for (const p of proyectos.value) {
-    const key: keyof typeof STATUS_META =
-      p.status && p.status in STATUS_META ? (p.status as keyof typeof STATUS_META) : 'offline'
-    counts[key] = (counts[key] || 0) + 1
-  }
-  return (Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
-    .filter((key) => counts[key])
-    .map((key) => ({ key, count: counts[key] as number, ...STATUS_META[key] }))
-})
 
 // ── Orden persistido ───────────────────────────────────────────────────────
 function saveOrder(): void {
@@ -1112,6 +1183,7 @@ async function cargar(): Promise<void> {
   try {
     const res = await generacionSolarService.obtenerMonitoreo()
     proyectos.value = applyOrder(res.projects ?? [])
+    consultas.value = res.consultas ?? {}
     lastUpdated.value = new Date().toLocaleTimeString('es-CO', {
       hour: '2-digit',
       minute: '2-digit',
