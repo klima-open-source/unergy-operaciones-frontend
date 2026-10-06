@@ -397,30 +397,6 @@
         </Dialog>
       </template>
 
-      <!-- PASO 3: código SIC de CGM (solo REPRESENTACIÓN). Es un dato aparte: si
-           el contrato cubre CGM lo dicen las casillas de Términos, no este paso. -->
-      <template v-if="step === 3 && tipo === 'representacion'">
-        <p class="text-sm font-semibold text-foreground mb-4">Código SIC de CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
-        <div class="space-y-4">
-          <!-- CGM -->
-          <div class="rounded-lg border border-border p-4 space-y-3">
-            <div class="flex items-center gap-3">
-              <ToggleSwitch v-model="form.incluye_cgm" />
-              <span class="text-sm font-semibold text-foreground">Registrar código SIC de CGM</span>
-              <span class="text-xs text-muted-foreground">(Comercializador Generador Minorista)</span>
-            </div>
-            <template v-if="form.incluye_cgm">
-              <div class="pt-1 max-w-xs">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Código SIC</label>
-                  <InputText v-model="form.cgm_codigo_sic" placeholder="Ej: CGM-001" class="w-full" />
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </template>
-
     </div>
 
     <!-- Footer -->
@@ -483,7 +459,6 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
-import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
@@ -525,7 +500,6 @@ const STEPS = computed(() => {
     { label: 'Partes' },
     { label: 'Términos' },
   ]
-  if (props.tipo === 'representacion') return [...base, { label: 'Código CGM' }]
   if (props.tipo === 'arriendo') return [...base, { label: 'Arrendadores' }]
   return base
 })
@@ -573,10 +547,6 @@ const form = reactive({
   fecha_firma_contrato: null,
   enlace_drive: '',
   estado_pago: null,
-  // Solo gobierna si se pide el codigo SIC: no viaja al backend. Si el contrato
-  // cubre CGM lo dice `cubre_cgm` (las casillas de Términos), no esto.
-  incluye_cgm: false,
-  cgm_codigo_sic: '',
   service_scope: '',
   specific_service_terms: '',
   slas: '',
@@ -836,7 +806,6 @@ async function crearContrato() {
       tarifa_cgm: form.cubre_cgm ? (form.tarifa_cgm ?? null) : null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
-      cgm_codigo_sic: form.incluye_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
       service_scope: form.service_scope?.trim() || null,
       specific_service_terms: form.specific_service_terms?.trim() || null,
       slas: form.slas?.trim() || null,
