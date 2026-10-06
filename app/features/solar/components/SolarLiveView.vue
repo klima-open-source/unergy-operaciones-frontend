@@ -116,8 +116,8 @@
                 <component :is="c.icon" class="size-4" />
               </Button>
             </ButtonGroup>
-            <!-- Actualizar. No hay refresco por temporizador: la pantalla se pone
-                 al día sola al volver a la pestaña (ver `alVolverALaPestana`). -->
+            <!-- Actualizar. Además se refresca sola cada 5 min mientras está a la
+                 vista, y se pone al día al volver a la pestaña (`useRefrescoVisible`). -->
             <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
               <LoaderCircleIcon v-if="loading" class="animate-spin" />
               <RefreshCwIcon v-else />
@@ -562,6 +562,7 @@ import type {
   ProyectoMonitoreoSolar,
   RespuestaMonitoreoSolar,
 } from '~/features/solar/types'
+import { useRefrescoVisible } from '~/features/solar/refrescoVisible'
 import {
   COLOR_NIVEL,
   FUENTES,
@@ -770,19 +771,20 @@ function getGenHoy(id: number): GeneracionHoyResultado {
   return { real, p90, fuente, pct }
 }
 
-// ── Ponerse al día al volver a la pestaña ──────────────────────────────────
-// Antes había un refresco por temporizador (1 a 30 min, apagado por defecto):
-// quien no lo prendía veía datos viejos sin saberlo, y quien lo prendía y se iba
-// a otra pestaña seguía pidiendo ~6 llamadas externas por tarjeta visible para
-// nadie (decisión del 2026-10-05). Ahora se piden datos solo cuando alguien
-// mira: al abrir la pantalla, al pulsar "Actualizar" y al volver a la pestaña.
-const VIEJO_TRAS_MS = 5 * 60 * 1000
-let ultimaCarga = 0
-
-function alVolverALaPestana(): void {
-  if (document.visibilityState !== 'visible' || loading.value) return
-  if (Date.now() - ultimaCarga >= VIEJO_TRAS_MS) void cargar()
-}
+// ── Refresco ───────────────────────────────────────────────────────────────
+// Antes había un selector (1 a 30 min, apagado por defecto): quien no lo prendía
+// veía datos viejos sin saberlo, y quien lo prendía y se iba a otra pestaña
+// seguía pidiendo ~6 llamadas externas por tarjeta visible para nadie. Ahora,
+// cada 5 min SOLO mientras la pestaña está a la vista, y al volver se pone al
+// día (decisión del 2026-10-05). 5 min y no 1: cada vuelta recarga todas las
+// tarjetas visibles, y SolarView manda un punto nuevo cada 5 min.
+const CINCO_MIN = 5 * 60 * 1000
+const { marcarCarga } = useRefrescoVisible(
+  () => {
+    if (!loading.value) return cargar()
+  },
+  { cadaMs: CINCO_MIN, viejoTrasMs: CINCO_MIN },
+)
 
 const { color } = useThemeColors()
 
@@ -1153,7 +1155,7 @@ function onReconectado({ active }: { active: boolean }): void {
 // ── Carga ─────────────────────────────────────────────────────────────────
 async function cargar(): Promise<void> {
   loading.value = true
-  ultimaCarga = Date.now()
+  marcarCarga()
   // En paralelo con la lista: no depende de ella.
   void cargarEstados()
   void cargarInterruptor()
@@ -1225,10 +1227,8 @@ onMounted(() => {
     observador = new IntersectionObserver(alCambiarVisibilidad, { rootMargin: MARGEN_PRECARGA })
   }
   cargar()
-  document.addEventListener('visibilitychange', alVolverALaPestana)
 })
 onUnmounted(() => {
-  document.removeEventListener('visibilitychange', alVolverALaPestana)
   observador?.disconnect()
   observador = null
   tarjetasVisibles.clear()

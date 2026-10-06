@@ -353,6 +353,7 @@ import {
 } from '@lucide/vue'
 import type { CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
+import { useRefrescoVisible } from '~/features/solar/refrescoVisible'
 import {
   COLOR_NIVEL,
   nivelComunicacion,
@@ -419,7 +420,6 @@ const notifOpen = ref(false)
 const invOpen = ref(false)
 const invTarget = ref<ProyectoMonitoreoSolar | null>(null)
 const unreadCount = ref(0)
-let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 // ── Fallas (falla activa por proyecto + reportar) ────────────────────────────
 const catalogos = reactive<CatalogosFalla>({
@@ -607,14 +607,49 @@ function prefetchAround(): void {
   })
 }
 
+/**
+ * La lista otra vez, sin esqueleto de carga y SIN reordenar: el backend la
+ * ordena por comunicación, y aplicar ese orden movería el carrusel bajo el dedo.
+ * Se actualizan los datos de cada planta en su sitio; las nuevas, al final.
+ */
+async function refrescarLista(): Promise<void> {
+  try {
+    const res = await generacionSolarService.obtenerMonitoreo()
+    const llegaron = res.projects ?? []
+    const porId = new Map(llegaron.map((p) => [p.proyecto_id, p]))
+    const actualId = current.value?.proyecto_id
+    const lista = proyectos.value
+      .filter((p) => porId.has(p.proyecto_id))
+      .map((p) => porId.get(p.proyecto_id)!)
+    const yaEstaban = new Set(lista.map((p) => p.proyecto_id))
+    lista.push(...llegaron.filter((p) => !yaEstaban.has(p.proyecto_id)))
+    proyectos.value = lista
+    const i = lista.findIndex((p) => p.proyecto_id === actualId)
+    idx.value = i >= 0 ? i : 0
+  } catch {
+    /* se queda la lista que había */
+  }
+}
+
 function refrescar(): void {
+  marcarCarga()
   if (current.value) {
     loadDetail(current.value.proyecto_id, true)
     loadFallas(current.value.proyecto_id, true)
   }
+  void refrescarLista()
   cargarEstados()
   fetchUnread()
 }
+
+// Cada 60 s mientras la app está a la vista; en segundo plano nada, y al volver
+// se pone al día si pasaron más de 5 min (`useRefrescoVisible`). 60 s y no 5 min
+// como en escritorio: aquí cada vuelta refresca UNA planta, no todas las
+// tarjetas visibles. Decisión del 2026-10-05.
+const { marcarCarga } = useRefrescoVisible(refrescar, {
+  cadaMs: 60 * 1000,
+  viejoTrasMs: 5 * 60 * 1000,
+})
 
 watch(idx, prefetchAround)
 
@@ -661,11 +696,9 @@ onMounted(() => {
   cargarLista()
   cargarCatalogos()
   fetchUnread()
-  refreshTimer = setInterval(refrescar, 60000)
   window.addEventListener('resize', measure)
 })
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
   window.removeEventListener('resize', measure)
 })
 </script>
