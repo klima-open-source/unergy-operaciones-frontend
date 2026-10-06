@@ -41,11 +41,22 @@ const PLANTAS = [
 
 /** Una de cada caso, para el filtro de `cargarOperativos`. */
 const MEZCLA = [
-  { id: 1, nombre_comercial: 'Opera Y La Operamos', estado: 'en_operacion', srv_operacion: true },
-  { id: 2, nombre_comercial: 'Opera Sin Servicio', estado: 'en_operacion', srv_operacion: false },
-  { id: 3, nombre_comercial: 'En Obra', estado: 'en_desarrollo', srv_operacion: true },
-  { id: 4, nombre_comercial: 'Cancelada', estado: 'cancelado', srv_operacion: true },
-  { id: 5, nombre_comercial: 'Sin Bandera', estado: 'en_operacion' },
+  {
+    id: 1,
+    nombre_comercial: 'Opera Y La Operamos',
+    estado: 'en_operacion',
+    servicios: { operacion: true },
+  },
+  {
+    id: 2,
+    nombre_comercial: 'Opera Sin Contrato',
+    estado: 'en_operacion',
+    servicios: { operacion: false },
+  },
+  // Con contrato de arriendo pero en obra: el backend ya la da como no operada.
+  { id: 3, nombre_comercial: 'En Obra', estado: 'en_desarrollo', servicios: { operacion: false } },
+  { id: 4, nombre_comercial: 'Cancelada', estado: 'cancelado', servicios: { operacion: false } },
+  { id: 5, nombre_comercial: 'Sin Servicios', estado: 'en_operacion' },
 ]
 
 async function cargarComposable() {
@@ -165,7 +176,7 @@ describe('useProyectosCatalogo', () => {
   })
 
   it('cargarOperativos no gasta una petición aparte', async () => {
-    // `estado` y `srv_operacion` vienen en cada fila: se filtra lo ya cargado.
+    // `servicios` viene en cada fila: se filtra lo ya cargado.
     const usar = await cargarComposable()
     listar.mockResolvedValue(MEZCLA)
 

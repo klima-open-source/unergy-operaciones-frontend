@@ -13,7 +13,6 @@ import type {
   PayloadConfirmarPendiente,
   PayloadInversionista,
   PayloadInversorProyecto,
-  PayloadServicioToggle,
   ProyectoConDetalle,
   ProyectoConServicioRepresentacion,
   ProyectoLiviano,
@@ -34,7 +33,6 @@ const RUTAS = {
   inversores: (id: Proyecto['id']) => `${BASE}/${id}/inversores`,
   inversor: (id: Proyecto['id'], inversorId: InversorProyecto['id']) =>
     `${BASE}/${id}/inversores/${inversorId}`,
-  servicios: (id: Proyecto['id']) => `${BASE}/${id}/servicios`,
   areaContactos: (id: Proyecto['id']) => `${BASE}/${id}/area-contactos`,
   areaContacto: (id: Proyecto['id'], tipo: string) => `${BASE}/${id}/area-contactos/${tipo}`,
   pendientes: `${BASE}/pendientes`,
@@ -205,10 +203,6 @@ export class ProyectosService extends BaseService {
 
   eliminarInversor(id: Proyecto['id'], inversorId: InversorProyecto['id']): Promise<unknown> {
     return this.delete<unknown>(RUTAS.inversor(id, inversorId))
-  }
-
-  alternarServicio(id: Proyecto['id'], payload: PayloadServicioToggle): Promise<unknown> {
-    return this.patch<unknown>(RUTAS.servicios(id), payload)
   }
 
   listarAreaContactos(id: Proyecto['id']): Promise<AreaContactoOverride[]> {

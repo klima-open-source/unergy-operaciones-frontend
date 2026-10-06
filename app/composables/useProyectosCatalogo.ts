@@ -104,15 +104,15 @@ export function useProyectosCatalogo() {
    * desarrollo y 2 canceladas. Una planta en obra no genera, no tiene medidor
    * reportando y no puede tener una falla de operación — pero en un desplegable
    * alfabético de 188 nombres queda justo al lado de la que sí opera y suele
-   * llamarse parecido. De los 95 que operan, 84 tienen el servicio: los otros
-   * 11 operan pero no los operamos nosotros.
+   * llamarse parecido. Y de las que operan, no todas las operamos nosotros.
    *
-   * Se filtra del catálogo ya cargado, sin una petición aparte: `estado` y
-   * `srv_operacion` vienen en cada fila.
+   * Lo decide el backend: `servicios.operacion` es "en operación y con contrato
+   * de operación vigente", la misma regla del sondeo MGS. Antes era una bandera
+   * puesta a mano. Se filtra del catálogo ya cargado, sin una petición aparte.
    */
   async function cargarOperativos(): Promise<ProyectoConDetalle[]> {
     const todos = await cargar()
-    return todos.filter((p) => p.estado === 'en_operacion' && p.srv_operacion)
+    return todos.filter((p) => p.servicios?.operacion)
   }
 
   /**

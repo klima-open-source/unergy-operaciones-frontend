@@ -105,10 +105,9 @@ export interface ProyectoConDetalle extends Proyecto {
   quoia_reporte_consumo_id?: string | null
   quoia_nodo_id?: string | null
   produccion_especifica_kwh_kwp?: number | null
-  srv_ppa?: boolean
-  srv_operacion?: boolean
-  srv_representacion?: boolean
-  srv_cgm?: boolean
+  /** De los contratos vigentes (backend `plantas.resumen_servicios`), solo lectura.
+   *  `operacion` es "genera y la operamos": en operación y con contrato de operación. */
+  servicios?: ServiciosPlanta
   [clave: string]: unknown
 }
 
@@ -155,8 +154,11 @@ export interface PayloadActualizarProyecto {
   [clave: string]: unknown
 }
 
-export interface PayloadServicioToggle {
-  [clave: string]: boolean
+export interface ServiciosPlanta {
+  operacion: boolean
+  representacion: boolean
+  cgm: boolean
+  ppa: boolean
 }
 
 // ── Inversores del proyecto (equipo, no inversionistas — catálogo para clasificar fallas) ──

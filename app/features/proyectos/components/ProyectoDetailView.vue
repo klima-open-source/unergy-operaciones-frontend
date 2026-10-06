@@ -610,7 +610,7 @@
               </span>
               <span v-if="srvFlags[srv.key]"
                 class="absolute top-2 right-2 size-2 rounded-full bg-(--c)" />
-              <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'srv_ppa'" />
+              <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'ppa'" />
             </div>
           </div>
 
@@ -669,14 +669,19 @@
             </DataTable>
           </div>
 
-          <!-- Activar / desactivar servicios -->
+          <!-- Qué servicios tiene la planta. No se editan: salen de sus contratos
+               vigentes (reemplazan a las banderas que se prendían a mano). Para
+               cambiarlos, se carga o se cierra el contrato. -->
           <div class="pt-2 border-t border-border">
-            <p class="text-xs text-muted-foreground mb-3">Activar / desactivar servicios</p>
+            <p class="text-xs text-muted-foreground mb-3">Servicios según contratos vigentes</p>
             <div class="flex flex-wrap gap-3">
-              <div v-for="srv in SERVICIOS_FLAGS" :key="srv.key + '_toggle'"
+              <div v-for="srv in SERVICIOS_FLAGS" :key="srv.key + '_estado'"
                 class="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-                <ToggleSwitch v-model="srvFlags[srv.key]" @change="toggleServicio(srv.key, srvFlags[srv.key])" />
+                <span class="size-2 rounded-full" :class="srvFlags[srv.key] ? 'bg-success' : 'bg-border'" />
                 <span class="text-xs text-muted-foreground">{{ srv.label }}</span>
+                <span class="text-xs font-semibold" :class="srvFlags[srv.key] ? 'text-success' : 'text-muted-foreground'">
+                  {{ srvFlags[srv.key] ? 'Sí' : 'No' }}
+                </span>
               </div>
             </div>
           </div>
@@ -877,13 +882,13 @@ const TIPOS_TECNOLOGIA = ['solar', 'eolica', 'hidraulica', 'biomasa', 'otra']
 const CLASIFICACIONES = ['AGP', 'AGPE', 'AGGE', 'GD', 'DER', 'otra']
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const SERVICIOS_CARDS = [
-  { key: 'srv_ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7', tipo: null },
-  { key: 'srv_operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: null },
-  { key: 'srv_representacion',label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff', tipo: 'representacion' },
+  { key: 'ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7', tipo: null },
+  { key: 'operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: null },
+  { key: 'representacion', label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff', tipo: 'representacion' },
 ]
 const SERVICIOS_FLAGS = [
   ...SERVICIOS_CARDS,
-  { key: 'srv_cgm',     label: 'CGM',     icon: ChartColumnIcon, color: '#10b981', bg: '#ecfdf5' },
+  { key: 'cgm',     label: 'CGM',     icon: ChartColumnIcon, color: '#10b981', bg: '#ecfdf5' },
 ]
 const ESTADO_LABELS_SRV = { vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación' }
 const ESTADO_SEVERITY_SRV = { vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning' }
@@ -904,7 +909,9 @@ const clientes = ref([])
 const loading = ref(true)
 const errorMsg = ref(null)
 const guardando = ref(false)
-const srvFlags = reactive({})
+// Qué servicios tiene la planta: `servicios` del backend, calculado de los
+// contratos vigentes. Solo lectura.
+const srvFlags = computed(() => proyecto.value?.servicios ?? {})
 const srvExpanded = ref(null)
 const contratosInline = ref([])
 const loadingInline = ref(false)
@@ -1361,31 +1368,16 @@ async function guardarEdicionInversionista(invId) {
 }
 
 // ── Servicios ─────────────────────────────────────────────────────────────────
-async function toggleServicio(key, value) {
-  try {
-    await proyectosService.alternarServicio(route.params.id, { [key]: value })
-    const [proy, inversionistas] = await Promise.all([
-      proyectosService.obtener(route.params.id),
-      proyectosService.listarInversionistas(route.params.id),
-    ])
-    proyecto.value = { ...proy, inversionistas }
-    toast.success('Servicio actualizado', { duration: 2000 })
-  } catch {
-    srvFlags[key] = !value
-    toast.error('Error al actualizar', { duration: 3000 })
-  }
-}
-
 function clickServicio(srv) {
-  if (srv.key === 'srv_ppa') {
+  if (srv.key === 'ppa') {
     router.push(`/proyectos/${route.params.id}/ppa`)
     return
   }
-  if (srv.key === 'srv_operacion') {
+  if (srv.key === 'operacion') {
     router.push(`/proyectos/${route.params.id}/operacion`)
     return
   }
-  if (srv.key === 'srv_representacion') {
+  if (srv.key === 'representacion') {
     router.push(`/proyectos/${route.params.id}/representacion`)
     return
   }
@@ -1459,7 +1451,6 @@ onMounted(async () => {
     clientes.value = clientesList
     fronteras.value = fronterasRes
     operadoresRed.value = operadoresRes
-    for (const s of SERVICIOS_FLAGS) srvFlags[s.key] = proy[s.key]
     if (isEditMode.value) populateEditForm()
   } catch (e) {
     errorMsg.value = e.data?.detail || e.message || 'Error de conexión con el servidor'

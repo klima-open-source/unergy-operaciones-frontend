@@ -340,10 +340,10 @@
           <template #body="{ data }">
             <div class="flex gap-0.5 overflow-hidden min-w-0">
               <template v-for="srv in SERVICIOS_BADGES" :key="srv.key">
-                <span v-if="data[srv.key]" class="inline-flex items-center shrink-0 text-xs font-bold leading-normal px-1.5 rounded-full whitespace-nowrap bg-success/10 text-success"
+                <span v-if="data.servicios?.[srv.key]" class="inline-flex items-center shrink-0 text-xs font-bold leading-normal px-1.5 rounded-full whitespace-nowrap bg-success/10 text-success"
                       v-tooltip.bottom="srv.tooltip">{{ srv.badge }}</span>
               </template>
-              <span v-if="!SERVICIOS_BADGES.some(sb => data[sb.key])" class="text-xs text-muted-foreground/50">—</span>
+              <span v-if="!SERVICIOS_BADGES.some(sb => data.servicios?.[sb.key])" class="text-xs text-muted-foreground/50">—</span>
             </div>
           </template>
         </Column>
@@ -850,11 +850,13 @@ const tinte = (c, pct) => `color-mix(in oklab, ${c} ${pct}%, transparent)`
 
 const colorTipoContrato = (sub) => TIPO_CONTRATO_COLOR[sub] || 'var(--muted-foreground)'
 
+// Los servicios de cada planta: `servicios` de GET /proyectos, calculado de los
+// contratos vigentes (antes, las banderas `srv_*` que se prendian a mano).
 const SERVICIOS_BADGES = [
-  { key: 'srv_operacion',      badge: 'OP',   tooltip: 'Operación' },
-  { key: 'srv_representacion', badge: 'REP',  tooltip: 'Reporte de energía producida' },
-  { key: 'srv_cgm',            badge: 'CGM',  tooltip: 'Control y gestión de medición' },
-  { key: 'srv_ppa',            badge: 'PPA',  tooltip: 'PPA' },
+  { key: 'operacion',      badge: 'OP',   tooltip: 'Operación' },
+  { key: 'representacion', badge: 'REP',  tooltip: 'Reporte de energía producida' },
+  { key: 'cgm',            badge: 'CGM',  tooltip: 'Control y gestión de medición' },
+  { key: 'ppa',            badge: 'PPA',  tooltip: 'PPA' },
 ]
 
 const TIPO_LABELS = {
@@ -1673,7 +1675,7 @@ const COLUMNAS_EXCEL = {
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },
     { header: 'Capacidad instalada (kWp)', value: p => p.info_tecnica?.capacidad_instalada_kwp ?? '' },
     { header: 'Potencia AC (kW)', value: p => p.info_tecnica?.potencia_ac_kw ?? '' },
-    { header: 'Servicios', value: p => SERVICIOS_BADGES.filter(s => p[s.key]).map(s => s.badge).join(', ') },
+    { header: 'Servicios', value: p => SERVICIOS_BADGES.filter(s => p.servicios?.[s.key]).map(s => s.badge).join(', ') },
     { header: 'PPA', value: p => ppaVigentes(p).map(ppaLabel).join(', ') },
     { header: 'Inversionistas', value: p => (p.inversionistas || []).map(i => i.cliente_nombre).join(', ') },
   ],
