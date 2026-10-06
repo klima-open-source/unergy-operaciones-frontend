@@ -658,7 +658,7 @@
     <!-- ══ DIALOG CREAR / EDITAR ══════════════════════════════════════════ -->
     <Dialog v-model:open="formDialogVisible">
       <DialogContent
-        class="flex max-h-11/12 max-w-2xl flex-col"
+        class="flex max-h-11/12 flex-col sm:max-w-5xl"
         :show-close-button="!savingForm"
         @escape-key-down="(e) => savingForm && e.preventDefault()"
         @pointer-down-outside="(e) => savingForm && e.preventDefault()"
@@ -937,7 +937,13 @@ const filtradas = computed(() => {
     const hasta = filtroFechaHasta.value
     arr = arr.filter((f) => f.fecha_identificacion && f.fecha_identificacion <= hasta)
   }
-  return arr
+  // Más reciente primero; a igual fecha, la registrada después va arriba
+  return [...arr].sort(
+    (a, b) =>
+      (b.fecha_identificacion ?? '').localeCompare(a.fecha_identificacion ?? '') ||
+      (b.created_at ?? '').localeCompare(a.created_at ?? '') ||
+      b.id - a.id,
+  )
 })
 
 const hayFiltros = computed(
@@ -1079,6 +1085,14 @@ async function cargar(desde: string | null = null) {
     }
     allFallas.value = [...porId.values()]
     ventanaDesde.value = inicio
+    const truncada = [abiertas, cerradas].some((r) => (r.total ?? 0) > (r.items?.length ?? 0))
+    if (truncada) {
+      toast.warning('Lista incompleta', {
+        description:
+          'Hay más fallas de las que se cargaron. Acota el rango de fechas para verlas todas.',
+        duration: 8000,
+      })
+    }
   } catch (err) {
     error.value = normalizeError(err).message
   } finally {
@@ -1167,34 +1181,64 @@ async function onSaveForm(payload: PayloadFallaForm) {
       const { nota_inicial: notaInicial, _archivos, ...patchPayload } = payload
       void _archivos
       await fallasService.actualizar(editingFalla.value.id, patchPayload)
-      if (notaInicial) {
-        fallasService.crearSeguimiento(editingFalla.value.id, { nota: notaInicial }).catch(() => {})
+      if (notaInicial && !(await guardarNotaInicial(editingFalla.value.id, notaInicial))) {
+        toast.warning('Falla actualizada, pero la nota no se guardó', {
+          description: 'Agrégala desde Seguimientos en el detalle de la falla.',
+          duration: 6000,
+        })
+      } else {
+        toast.success('Falla actualizada', { duration: 2500 })
       }
-      toast.success('Falla actualizada', { duration: 2500 })
     } else {
       // Al crear: puede venir proyecto_ids (array) → una falla por proyecto
       const { proyecto_ids, nota_inicial, _archivos: _archivosCrear, ...basePayload } = payload
       void _archivosCrear
       const ids = proyecto_ids?.length ? proyecto_ids : [basePayload.proyecto_id].filter(Boolean)
       if (!ids.length) throw new Error('Selecciona al menos un proyecto')
+      // Se intenta cada proyecto por separado: si uno falla, los demás siguen y
+      // el formulario se cierra igual, para que reintentar no duplique los ya creados.
       const created: Falla[] = []
+      const fallidos: { pid: number; err: unknown }[] = []
+      const sinNota: string[] = []
       for (const pid of ids) {
-        const nueva = await fallasService.crear({
-          ...basePayload,
-          proyecto_id: pid,
-        } as PayloadFalla)
-        created.push(nueva)
-        // La nota inicial se agrega por separado — no bloquea el guardado si falla
-        if (nota_inicial) {
-          fallasService.crearSeguimiento(nueva.id, { nota: nota_inicial }).catch(() => {})
+        try {
+          const nueva = await fallasService.crear({
+            ...basePayload,
+            proyecto_id: pid,
+          } as PayloadFalla)
+          created.push(nueva)
+          if (nota_inicial && !(await guardarNotaInicial(nueva.id, nota_inicial))) {
+            sinNota.push(nueva.codigo_interno ?? String(nueva.id))
+          }
+        } catch (err) {
+          fallidos.push({ pid: Number(pid), err })
         }
       }
-      toast.success(
-        created.length > 1 ? `${created.length} fallas registradas` : 'Falla registrada',
-        {
-          duration: 2500,
-        },
-      )
+      if (!created.length) throw fallidos[0]!.err
+
+      if (fallidos.length) {
+        const nombres = fallidos.map(
+          ({ pid }) =>
+            proyectos.value.find((p) => p.id === pid)?.nombre_comercial || `proyecto ${pid}`,
+        )
+        toast.error(`Se registraron ${created.length} de ${ids.length} fallas`, {
+          description: `No se pudo crear en: ${nombres.join(', ')}. Créalas de nuevo solo para esos proyectos.`,
+          duration: 12000,
+        })
+      } else {
+        toast.success(
+          created.length > 1 ? `${created.length} fallas registradas` : 'Falla registrada',
+          {
+            duration: 2500,
+          },
+        )
+      }
+      if (sinNota.length) {
+        toast.warning('La nota inicial no se guardó', {
+          description: `En: ${sinNota.join(', ')}. Agrégala desde Seguimientos.`,
+          duration: 8000,
+        })
+      }
     }
     formDialogVisible.value = false
     await cargar()
@@ -1207,6 +1251,16 @@ async function onSaveForm(payload: PayloadFallaForm) {
     toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
   } finally {
     savingForm.value = false
+  }
+}
+
+// Devuelve false si la nota no se pudo guardar (la falla ya quedó creada/editada)
+async function guardarNotaInicial(fallaId: number, nota: string): Promise<boolean> {
+  try {
+    await fallasService.crearSeguimiento(fallaId, { nota })
+    return true
+  } catch {
+    return false
   }
 }
 

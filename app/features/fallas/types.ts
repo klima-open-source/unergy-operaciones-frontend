@@ -197,6 +197,7 @@ export interface Falla {
   /** Adjuntos subidos por `subirAdjunto` (ruta `/attachments`, ver el service). */
   attachments?: AdjuntoFallaLegado[]
   seguimientos?: SeguimientoFalla[]
+  created_at?: string
   categoria_codigo?: string | null
   subtipo_codigo?: string | null
   subtipo_detalle?: string | null
