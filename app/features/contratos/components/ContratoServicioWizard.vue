@@ -234,22 +234,33 @@
               <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
             </div>
           </div>
-          <!-- Un contrato de este grupo puede cubrir representación, CGM o las dos:
-               `servicio_aplica` solo admite un valor, así que lo que distingue
-               un caso de otro es CUÁL tarifa se llena. Pedirlas acá evita tener
-               que volver a entrar al contrato para completarlas. -->
-          <div v-if="props.tipo === 'representacion'" class="grid grid-cols-2 gap-4">
+          <!-- Un contrato de este grupo puede cubrir representación, CGM o las dos.
+               Lo dicen las casillas, que viajan como `servicios`; la tarifa ya no
+               decide nada (puede llegar después) y solo se pide la de lo marcado. -->
+          <div v-if="props.tipo === 'representacion'" class="space-y-3">
             <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa representación (COP/kWh)</label>
-              <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="2"
-                :maxFractionDigits="6" class="w-full" />
-              <small class="text-xs text-muted-foreground leading-snug">Déjala vacía si el contrato no cubre representación.</small>
+              <span class="block text-xs font-medium text-muted-foreground mb-1">Servicios que cubre</span>
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox v-model="form.cubre_representacion" :binary="true" /> Representación
+                </label>
+                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox v-model="form.cubre_cgm" :binary="true" /> CGM
+                </label>
+              </div>
+              <small v-if="sinServicio" class="text-xs text-destructive leading-snug">Marca al menos uno.</small>
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa CGM (COP/kWh)</label>
-              <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="2"
-                :maxFractionDigits="6" class="w-full" />
-              <small class="text-xs text-muted-foreground leading-snug">Déjala vacía si el contrato no cubre CGM.</small>
+            <div class="grid grid-cols-2 gap-4">
+              <div v-if="form.cubre_representacion" class="flex flex-col gap-1">
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa representación (COP/kWh)</label>
+                <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="2"
+                  :maxFractionDigits="6" class="w-full" />
+              </div>
+              <div v-if="form.cubre_cgm" class="flex flex-col gap-1">
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa CGM (COP/kWh)</label>
+                <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="2"
+                  :maxFractionDigits="6" class="w-full" />
+              </div>
             </div>
           </div>
 
@@ -386,15 +397,16 @@
         </Dialog>
       </template>
 
-      <!-- PASO 3: CGM (solo REPRESENTACIÓN) -->
+      <!-- PASO 3: código SIC de CGM (solo REPRESENTACIÓN). Es un dato aparte: si
+           el contrato cubre CGM lo dicen las casillas de Términos, no este paso. -->
       <template v-if="step === 3 && tipo === 'representacion'">
-        <p class="text-sm font-semibold text-foreground mb-4">CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+        <p class="text-sm font-semibold text-foreground mb-4">Código SIC de CGM <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
         <div class="space-y-4">
           <!-- CGM -->
           <div class="rounded-lg border border-border p-4 space-y-3">
             <div class="flex items-center gap-3">
               <ToggleSwitch v-model="form.incluye_cgm" />
-              <span class="text-sm font-semibold text-foreground">Incluye CGM</span>
+              <span class="text-sm font-semibold text-foreground">Registrar código SIC de CGM</span>
               <span class="text-xs text-muted-foreground">(Comercializador Generador Minorista)</span>
             </div>
             <template v-if="form.incluye_cgm">
@@ -430,12 +442,12 @@
         </Button>
         <Button v-else-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse bg-(--c) border-(--c)"
           :style="{ '--c': tipoColor }"
-          :disabled="step === 1 && partesPendientes.length > 0"
+          :disabled="(step === 1 && partesPendientes.length > 0) || (step === 2 && sinServicio)"
           v-tooltip="avisoPartes"
           @click="step++">
           <template #icon><ArrowRightIcon class="size-4" /></template>
         </Button>
-        <Button v-else label="Crear contrato" class="bg-(--c) border-(--c)" :loading="guardando" :disabled="partesPendientes.length > 0"
+        <Button v-else label="Crear contrato" class="bg-(--c) border-(--c)" :loading="guardando" :disabled="partesPendientes.length > 0 || sinServicio"
           v-tooltip="avisoPartes"
           :style="{ '--c': tipoColor }" @click="guardar">
           <template #icon><CheckIcon class="size-4" /></template>
@@ -472,6 +484,7 @@ import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
+import Checkbox from 'primevue/checkbox'
 import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
@@ -512,7 +525,7 @@ const STEPS = computed(() => {
     { label: 'Partes' },
     { label: 'Términos' },
   ]
-  if (props.tipo === 'representacion') return [...base, { label: 'CGM' }]
+  if (props.tipo === 'representacion') return [...base, { label: 'Código CGM' }]
   if (props.tipo === 'arriendo') return [...base, { label: 'Arrendadores' }]
   return base
 })
@@ -552,14 +565,16 @@ const form = reactive({
   tarifa_base: null,
   tarifa_representacion: null,
   tarifa_cgm: null,
+  // Representación/CGM: qué servicios cubre el contrato. Viajan como `servicios`.
+  cubre_representacion: true,
+  cubre_cgm: false,
   periodicidad_pago: null,
   indice_indexacion: '',
   fecha_firma_contrato: null,
   enlace_drive: '',
   estado_pago: null,
-  // Solo gobierna si se pide el codigo SIC: no viaja al backend. La columna
-  // `contratos_servicio.tiene_cgm` se elimino -- la verdad de si la planta
-  // tiene CGM es `proyectos.srv_cgm`, y aca el dato es el codigo.
+  // Solo gobierna si se pide el codigo SIC: no viaja al backend. Si el contrato
+  // cubre CGM lo dice `cubre_cgm` (las casillas de Términos), no esto.
   incluye_cgm: false,
   cgm_codigo_sic: '',
   service_scope: '',
@@ -674,6 +689,19 @@ onBeforeUnmount(() => {
  *
  * Internet no tiene paso de partes.
  */
+/** Representación/CGM sin ninguna casilla marcada: no se puede crear. */
+const sinServicio = computed(() =>
+  props.tipo === 'representacion' && !form.cubre_representacion && !form.cubre_cgm)
+
+/** La lista `servicios` del contrato; solo la manda representación/CGM. */
+function serviciosElegidos() {
+  if (props.tipo !== 'representacion') return undefined
+  return [
+    ...(form.cubre_representacion ? ['representacion'] : []),
+    ...(form.cubre_cgm ? ['cgm'] : []),
+  ]
+}
+
 const partesPendientes = computed(() => {
   if (props.tipo === 'internet') return []
   const faltan = []
@@ -801,8 +829,11 @@ async function crearContrato() {
       fecha_inicio: formatFecha(form.fecha_inicio),
       fecha_fin: formatFecha(form.fecha_fin),
       tarifa_base: form.tarifa_base ?? null,
-      tarifa_representacion: form.tarifa_representacion ?? null,
-      tarifa_cgm: form.tarifa_cgm ?? null,
+      // En este grupo `servicio_aplica` es siempre 'representacion' (nombra al
+      // grupo); lo que cubre el contrato lo dice `servicios`.
+      servicios: serviciosElegidos(),
+      tarifa_representacion: form.cubre_representacion ? (form.tarifa_representacion ?? null) : null,
+      tarifa_cgm: form.cubre_cgm ? (form.tarifa_cgm ?? null) : null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
       cgm_codigo_sic: form.incluye_cgm ? (form.cgm_codigo_sic?.trim() || null) : null,
