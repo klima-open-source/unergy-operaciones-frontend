@@ -116,29 +116,13 @@
                 <component :is="c.icon" class="size-4" />
               </Button>
             </ButtonGroup>
-            <!-- Botón actualizar + auto-refresh -->
-            <ButtonGroup>
-              <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
-                <LoaderCircleIcon v-if="loading" class="animate-spin" />
-                <RefreshCwIcon v-else />
-                Actualizar
-              </Button>
-              <Select
-                :model-value="String(autoInterval)"
-                @update:model-value="(v) => setAuto(Number(v))"
-              >
-                <SelectTrigger size="sm">
-                  <ClockIcon />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="0">Desactivado</SelectItem>
-                  <SelectItem v-for="opt in autoOptions" :key="opt.ms" :value="String(opt.ms)">
-                    Cada {{ opt.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </ButtonGroup>
+            <!-- Actualizar. No hay refresco por temporizador: la pantalla se pone
+                 al día sola al volver a la pestaña (ver `alVolverALaPestana`). -->
+            <Button variant="outline" size="sm" :disabled="loading" @click="cargar">
+              <LoaderCircleIcon v-if="loading" class="animate-spin" />
+              <RefreshCwIcon v-else />
+              Actualizar
+            </Button>
           </div>
         </div>
       </div>
@@ -592,7 +576,6 @@ import {
 import {
   ChartLineIcon,
   CheckIcon,
-  ClockIcon,
   Columns2Icon,
   Columns4Icon,
   LayoutListIcon,
@@ -655,7 +638,6 @@ const proyectos = ref<ProyectoMonitoreoSolar[]>([])
 const detailMap = reactive<Record<number, DetalleMonitoreoSolar>>({})
 const lastUpdated = ref('')
 const cols = ref<ColumnasGrid>(1)
-let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 // ── Filtro por proyecto ────────────────────────────────────────────────────
 // Los ids elegidos en el selector. Vacío = se ven todos.
@@ -788,25 +770,18 @@ function getGenHoy(id: number): GeneracionHoyResultado {
   return { real, p90, fuente, pct }
 }
 
-// ── Auto-refresh ───────────────────────────────────────────────────────────
-const AUTO_KEY = 'solar_auto_refresh'
-interface OpcionAutoRefresh {
-  ms: number
-  label: string
-}
-const autoOptions: OpcionAutoRefresh[] = [
-  { ms: 60000, label: '1 min' },
-  { ms: 300000, label: '5 min' },
-  { ms: 900000, label: '15 min' },
-  { ms: 1800000, label: '30 min' },
-]
-const autoInterval = ref<number>(parseInt(localStorage.getItem(AUTO_KEY) || '0'))
+// ── Ponerse al día al volver a la pestaña ──────────────────────────────────
+// Antes había un refresco por temporizador (1 a 30 min, apagado por defecto):
+// quien no lo prendía veía datos viejos sin saberlo, y quien lo prendía y se iba
+// a otra pestaña seguía pidiendo ~6 llamadas externas por tarjeta visible para
+// nadie (decisión del 2026-10-05). Ahora se piden datos solo cuando alguien
+// mira: al abrir la pantalla, al pulsar "Actualizar" y al volver a la pestaña.
+const VIEJO_TRAS_MS = 5 * 60 * 1000
+let ultimaCarga = 0
 
-function setAuto(ms: number): void {
-  autoInterval.value = ms
-  localStorage.setItem(AUTO_KEY, String(ms))
-  if (refreshTimer) clearInterval(refreshTimer)
-  refreshTimer = ms ? setInterval(cargar, ms) : null
+function alVolverALaPestana(): void {
+  if (document.visibilityState !== 'visible' || loading.value) return
+  if (Date.now() - ultimaCarga >= VIEJO_TRAS_MS) void cargar()
 }
 
 const { color } = useThemeColors()
@@ -1178,6 +1153,7 @@ function onReconectado({ active }: { active: boolean }): void {
 // ── Carga ─────────────────────────────────────────────────────────────────
 async function cargar(): Promise<void> {
   loading.value = true
+  ultimaCarga = Date.now()
   // En paralelo con la lista: no depende de ella.
   void cargarEstados()
   void cargarInterruptor()
@@ -1249,10 +1225,10 @@ onMounted(() => {
     observador = new IntersectionObserver(alCambiarVisibilidad, { rootMargin: MARGEN_PRECARGA })
   }
   cargar()
-  if (autoInterval.value) refreshTimer = setInterval(cargar, autoInterval.value)
+  document.addEventListener('visibilitychange', alVolverALaPestana)
 })
 onUnmounted(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
+  document.removeEventListener('visibilitychange', alVolverALaPestana)
   observador?.disconnect()
   observador = null
   tarjetasVisibles.clear()
