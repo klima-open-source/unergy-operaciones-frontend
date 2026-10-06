@@ -286,7 +286,6 @@ export interface ContratoServicio {
   periodicidad_pago?: string | null
   indice_indexacion?: string | null
   responsable_iva?: boolean | null
-  cgm_codigo_sic?: string | null
   service_scope?: string | null
   specific_service_terms?: string | null
   slas?: string | null
