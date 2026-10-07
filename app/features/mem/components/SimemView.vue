@@ -11,7 +11,8 @@ import { BuildingIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon, SearchIc
 import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
-import { obtenerRegistroAgentes } from '~/features/mem/services/simem'
+import type { ProgresoConsulta } from '~/features/mem/services/simem'
+import { consultarDataset, obtenerRegistroAgentes } from '~/features/mem/services/simem'
 import type { AgenteSimem, FilaAgente, PlantaDeAgente, PlantaSimem } from '~/features/mem/utils/simemAgentes'
 import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/mem/utils/simemAgentes'
 import { exportarExcel } from '~/utils/exportarExcel'
@@ -29,6 +30,19 @@ interface FilaExportacion {
 const PESTANAS = [
   { id: 'agentes', label: 'Códigos de agente' },
   { id: 'bolsa', label: 'Precio de bolsa' },
+  { id: 'costos', label: 'Costos CND / ASIC' },
+] as const
+
+/**
+ * Los datasets del panel de costos. El SIMEM los identifica por un id opaco,
+ * así que el nombre va acá: en la URL no se distingue uno de otro.
+ */
+const DATASETS_COSTOS = [
+  { id: 'E4CE10', label: 'Servicios CND + ASIC' },
+  { id: '00C31F', label: 'Restricciones con alivio' },
+  { id: '43d851', label: 'Cargos por uso STN/STR/ADD' },
+  { id: 'B1009C', label: 'Valor compras en bolsa' },
+  { id: 'F387F3', label: 'Valor ventas en bolsa' },
 ] as const
 type Pestana = (typeof PESTANAS)[number]['id']
 
@@ -176,6 +190,66 @@ async function cargarBolsa() {
 watch(pestana, (p) => {
   if (p === 'bolsa' && !bolsa.value && !cargandoBolsa.value) cargarBolsa()
 })
+
+// ── Costos CND / ASIC ──────────────────────────────────────────────────────
+// Panel genérico: dataset + rango + filtro por agente. El mismo molde sirve
+// para OEF y Contratos cuando entren.
+const haceUnMes = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
+const cDataset = ref<string>(DATASETS_COSTOS[0].id)
+const cInicio = ref(haceUnMes.toISOString().slice(0, 10))
+const cFin = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 0).toISOString().slice(0, 10))
+const cAgente = ref('UNGG')
+const cFilas = ref<Record<string, unknown>[]>([])
+const cCargando = ref(false)
+const cError = ref<string | null>(null)
+const cProgreso = ref<ProgresoConsulta | null>(null)
+const cConsultado = ref(false)
+
+/** La columna del agente cambia de nombre entre datasets; se busca por patrón. */
+const COLUMNA_AGENTE = /codigosicagente|codigoagente/i
+
+const cColumnas = computed(() =>
+  cFilas.value.length ? Object.keys(cFilas.value[0]!) : [],
+)
+
+const cFiltradas = computed(() => {
+  const q = cAgente.value.trim().toUpperCase()
+  if (!q) return cFilas.value
+  const col = cColumnas.value.find((c) => COLUMNA_AGENTE.test(c))
+  // Sin columna de agente el filtro no aplica: se muestran todas en vez de
+  // devolver una tabla vacía que parecería "no hay datos".
+  if (!col) return cFilas.value
+  return cFilas.value.filter((f) => String(f[col] ?? '').toUpperCase() === q)
+})
+
+async function consultarCostos() {
+  cCargando.value = true
+  cError.value = null
+  cProgreso.value = null
+  try {
+    cFilas.value = await consultarDataset(cDataset.value, cInicio.value, cFin.value, {
+      alAvanzar: (p) => { cProgreso.value = p.total > 1 ? p : null },
+    })
+    cConsultado.value = true
+  } catch (e) {
+    cError.value = normalizeError(e).message
+    cFilas.value = []
+  } finally {
+    cCargando.value = false
+    cProgreso.value = null
+  }
+}
+
+async function exportarCostos() {
+  if (!cFiltradas.value.length) return
+  const nombre = DATASETS_COSTOS.find((d) => d.id === cDataset.value)?.label ?? cDataset.value
+  await exportarExcel(
+    cFiltradas.value,
+    cColumnas.value.map((c) => ({ header: c, value: (f: Record<string, unknown>) => f[c] ?? '' })),
+    `SIMEM_${nombre.replace(/[^\w]+/g, '_')}_${cInicio.value}_${cFin.value}.xlsx`,
+    'Datos',
+  )
+}
 
 onMounted(cargar)
 </script>
@@ -392,6 +466,94 @@ onMounted(cargar)
           </table>
         </div>
       </template>
+    </template>
+
+    <!-- ═══ Costos CND / ASIC ═══ -->
+    <template v-else-if="pestana === 'costos'">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Dataset</label>
+          <select v-model="cDataset" class="h-9 rounded-md border bg-background px-2 text-sm">
+            <option v-for="d in DATASETS_COSTOS" :key="d.id" :value="d.id">{{ d.label }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Desde</label>
+          <Input v-model="cInicio" type="date" class="w-40" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Hasta</label>
+          <Input v-model="cFin" type="date" class="w-40" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Agente</label>
+          <Input v-model="cAgente" class="w-28 uppercase" placeholder="UNGG" />
+        </div>
+        <Button size="sm" :disabled="cCargando" @click="consultarCostos">Consultar</Button>
+        <Button
+          size="sm" variant="outline"
+          :disabled="cCargando || !cFiltradas.length" @click="exportarCostos"
+        >
+          <DownloadIcon class="size-3" />
+          Exportar
+        </Button>
+      </div>
+
+      <!-- Un rango largo se parte en bloques y tarda: hay que decir por dónde va. -->
+      <p v-if="cProgreso" class="text-xs text-muted-foreground">
+        Consultando bloque {{ cProgreso.bloque }} de {{ cProgreso.total }}
+        ({{ cProgreso.inicio }} → {{ cProgreso.fin }})…
+      </p>
+
+      <div v-if="cError" class="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+        {{ cError }}
+      </div>
+
+      <Spinner v-else-if="cCargando" class="mx-auto my-10 block size-6 text-muted-foreground" />
+
+      <template v-else-if="cConsultado">
+        <p class="text-sm text-muted-foreground">
+          <b class="text-foreground">{{ cFiltradas.length.toLocaleString('es-CO') }}</b> filas
+          <span v-if="cFiltradas.length !== cFilas.length">
+            (de {{ cFilas.length.toLocaleString('es-CO') }} sin filtrar por agente)
+          </span>
+        </p>
+
+        <div v-if="!cFiltradas.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
+          Sin resultados para ese rango y agente.
+        </div>
+
+        <!-- Las columnas no se fijan: cada dataset trae las suyas y el SIMEM las
+             cambia sin avisar. Se pinta lo que venga. -->
+        <div v-else class="max-h-[32rem] overflow-auto rounded-md border">
+          <table class="w-full text-xs">
+            <thead class="sticky top-0 bg-muted">
+              <tr class="border-b">
+                <th
+                  v-for="c in cColumnas" :key="c"
+                  class="px-2 py-2 text-left font-medium whitespace-nowrap text-muted-foreground"
+                >
+                  {{ c }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(f, i) in cFiltradas.slice(0, 500)" :key="i" class="border-t hover:bg-muted/40">
+                <td v-for="c in cColumnas" :key="c" class="px-2 py-1.5 whitespace-nowrap">
+                  {{ f[c] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-if="cFiltradas.length > 500" class="text-xs text-muted-foreground">
+          Se muestran las primeras 500 filas. El Excel las trae todas.
+        </p>
+      </template>
+
+      <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
+        Elige un rango y consulta.
+      </div>
     </template>
   </div>
 </template>
