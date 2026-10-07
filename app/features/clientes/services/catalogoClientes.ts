@@ -8,6 +8,7 @@
  */
 import type { Cliente } from '~/types/cliente'
 import { ClientesService } from '~/features/clientes/services/clientes'
+import { slugify } from '~/utils/string'
 
 let promesa: Promise<Cliente[]> | null = null
 let lista: Cliente[] = []
@@ -29,6 +30,20 @@ export function clientes(recargar = false): Promise<Cliente[]> {
       })
   }
   return promesa
+}
+
+/**
+ * El cliente que se llama igual —sin contar tildes, mayúsculas ni puntuación—, o
+ * `null` si no hay ninguno o hay más de uno: con dos homónimos, elegir uno al azar
+ * ataría el contrato al cliente equivocado.
+ */
+export function clientePorNombre(lista: Cliente[], nombre: string): Cliente | null {
+  // Sin los guiones de `slugify`: "S.A.S." y "SAS" tienen que ser lo mismo.
+  const claveDe = (texto: string) => slugify(texto).replaceAll('-', '')
+  const clave = claveDe(nombre)
+  if (!clave) return null
+  const iguales = lista.filter((c) => claveDe(c.razon_social_nombre ?? '') === clave)
+  return iguales.length === 1 ? iguales[0]! : null
 }
 
 /** Suma el cliente recién creado, sin volver a pedir la lista entera. */

@@ -1016,6 +1016,10 @@ import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { formatCOP } from '~/utils/currency'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import {
+  clientePorNombre,
+  clientes as cargarClientes,
+} from '~/features/clientes/services/catalogoClientes'
 
 const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
@@ -1419,9 +1423,7 @@ async function saveMantenimiento() {
     const toISO = d => d instanceof Date ? d.toISOString().slice(0, 10) : (d || null)
     const payload = {
       contratante_id:     dialogMant.form.contratante_id,
-      contratante_nombre: dialogMant.form.contratante_nombre.trim(),
       prestador_id:       dialogMant.form.prestador_id,
-      prestador_nombre:   dialogMant.form.prestador_nombre.trim(),
       fecha_inicio_om:    toISO(dialogMant.form.fecha_inicio_om),
       fecha_firma_contrato: toISO(dialogMant.form.fecha_firma_contrato),
       tarifa_base:        dialogMant.form.tarifa_base,
@@ -1497,8 +1499,16 @@ async function cargarDesdeExcel(event) {
       return isNaN(d.getTime()) ? null : d
     }
 
-    dialogMant.form.contratante_nombre = String(fila['Contratante'] ?? '').trim()
-    dialogMant.form.prestador_nombre   = String(fila['Prestador'] ?? '').trim()
+    // Las partes son clientes, no texto: se vincula el que se llama igual. Si no
+    // hay ninguno, queda el nombre sin vínculo y el selector pide elegirlo o
+    // crearlo antes de guardar.
+    const catalogo = await cargarClientes()
+    for (const [rol, columna] of [['contratante', 'Contratante'], ['prestador', 'Prestador']]) {
+      const texto   = String(fila[columna] ?? '').trim()
+      const cliente = clientePorNombre(catalogo, texto)
+      dialogMant.form[`${rol}_id`]     = cliente?.id ?? null
+      dialogMant.form[`${rol}_nombre`] = cliente?.razon_social_nombre ?? texto
+    }
     dialogMant.form.fecha_inicio_om    = parseFecha(fila['Fecha de inicio O&M'])
     dialogMant.form.tarifa_base        = parseNum(fila['Valor O&M Anual (BASE)'])
     const mensualExcel                 = parseNum(fila['Valor mensual'])

@@ -213,8 +213,7 @@
                 <Button label="Guardar" size="small" :loading="guardando"
                   :disabled="!form.contratante_id || !form.prestador_id"
                   v-tooltip="(form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
-                  @click="guardar(['contratante_id', 'contratante_nombre', 'contratante_nit',
-                                   'prestador_id', 'prestador_nombre', 'prestador_nit'])">
+                  @click="guardar(['contratante_id', 'prestador_id'])">
                   <template #icon><CheckIcon class="size-4" /></template>
                 </Button>
               </template>
@@ -244,10 +243,7 @@
                   label="Nombre / Razón social"
                   requerido
                 />
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
-                  <InputText v-model="form.contratante_nit" class="w-full" />
-                </div>
+                <NitDeCliente :nit="form.contratante_nit" />
               </div>
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BriefcaseIcon class="size-3" />Prestador</p>
@@ -258,10 +254,7 @@
                   label="Nombre / Razón social"
                   requerido
                 />
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
-                  <InputText v-model="form.prestador_nit" class="w-full" />
-                </div>
+                <NitDeCliente :nit="form.prestador_nit" />
               </div>
             </div>
           </div>
@@ -564,6 +557,7 @@ import { ContratosServicioService } from '~/features/contratos/services/contrato
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import {
   anioDeFila,
   estadoFilaIndexacion,

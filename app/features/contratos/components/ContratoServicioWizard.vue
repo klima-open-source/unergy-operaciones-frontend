@@ -176,10 +176,7 @@
               label="Nombre / Razón social"
               requerido
             />
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
-              <InputText v-model="form.contratante_nit" class="w-full" placeholder="Autocompletado" />
-            </div>
+            <NitDeCliente :nit="form.contratante_nit" />
           </div>
           <!-- Prestador -->
           <div class="space-y-3">
@@ -190,10 +187,7 @@
               label="Nombre / Razón social"
               requerido
             />
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
-              <InputText v-model="form.prestador_nit" class="w-full" placeholder="Autocompletado" />
-            </div>
+            <NitDeCliente :nit="form.prestador_nit" />
           </div>
         </div>
 
@@ -462,6 +456,7 @@ import DatePicker from 'primevue/datepicker'
 import Checkbox from 'primevue/checkbox'
 import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
@@ -785,12 +780,9 @@ async function crearContrato() {
       proyecto_id: form.proyecto_id ?? null,
       numero_contrato: form.numero_contrato?.trim() || null,
       estado: form.estado ?? 'firmado',
+      // Las partes viajan solo como cliente: nombre y NIT son los de su ficha.
       contratante_id: form.contratante_id ?? null,
-      contratante_nombre: form.contratante_nombre || null,
-      contratante_nit: form.contratante_nit?.trim() || null,
       prestador_id: form.prestador_id ?? null,
-      prestador_nombre: form.prestador_nombre || null,
-      prestador_nit: form.prestador_nit?.trim() || null,
       inversionista_id: form.inversionista_id ?? null,
       inversionista_nombre: form.inversionista_nombre || null,
       fecha_firma_contrato: formatFecha(form.fecha_firma_contrato),

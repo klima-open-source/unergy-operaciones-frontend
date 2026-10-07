@@ -127,10 +127,7 @@
               label="Nombre / Razón social"
               requerido
             />
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
-              <InputText v-model="form.comprador_nit" class="w-full" placeholder="Ej: 900123456-7" />
-            </div>
+            <NitDeCliente :nit="form.comprador_nit" />
           </div>
           <!-- Vendedor -->
           <div class="space-y-3">
@@ -141,10 +138,7 @@
               label="Nombre / Razón social"
               requerido
             />
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">NIT</label>
-              <InputText v-model="form.vendedor_nit" class="w-full" placeholder="Ej: 900123456-7" />
-            </div>
+            <NitDeCliente :nit="form.vendedor_nit" />
           </div>
         </div>
       </template>
@@ -398,6 +392,7 @@ import DatePicker from 'primevue/datepicker'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
 
 const ppaService = new PpaService()
@@ -695,6 +690,10 @@ async function guardar() {
   guardando.value = true
   try {
     const payload = { ...form }
+    // Las partes viajan solo como cliente: nombre y NIT son los de su ficha.
+    for (const k of ['comprador_nombre', 'comprador_nit', 'vendedor_nombre', 'vendedor_nit']) {
+      delete payload[k]
+    }
     for (const k of ['fecha_inicio', 'fecha_fin', 'fecha_entrada_comunidad']) {
       payload[k] = formatFecha(form[k])
     }

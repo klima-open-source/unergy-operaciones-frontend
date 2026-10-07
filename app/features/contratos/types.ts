@@ -59,10 +59,13 @@ export interface ContratoPpa {
   numero_codigo_contrato?: string | null
   nombre_interno?: string | null
   tipo_contrato?: string | null
-  comprador_nombre?: string | null
-  comprador_nit?: string | null
-  vendedor_nombre?: string | null
-  vendedor_nit?: string | null
+  /** Las partes: el cliente de cada lado. Nombre y NIT salen de su ficha (solo lectura). */
+  comprador_id?: number | null
+  readonly comprador_nombre?: string | null
+  readonly comprador_nit?: string | null
+  vendedor_id?: number | null
+  readonly vendedor_nombre?: string | null
+  readonly vendedor_nit?: string | null
   fecha_inicio?: string | null
   fecha_fin?: string | null
   tarifa_base?: number | null
@@ -103,7 +106,17 @@ export interface ContratoPpa {
  * así que todo es opcional salvo lo que exige crear.
  */
 export type PayloadPpa = Partial<
-  Omit<ContratoPpa, 'id' | 'proyectos' | 'tarifas' | 'compromisos_energia'>
+  Omit<
+    ContratoPpa,
+    | 'id'
+    | 'proyectos'
+    | 'tarifas'
+    | 'compromisos_energia'
+    | 'comprador_nombre'
+    | 'comprador_nit'
+    | 'vendedor_nombre'
+    | 'vendedor_nit'
+  >
 > & {
   proyecto_id?: number
   proyecto_ids?: number[]
@@ -262,12 +275,14 @@ export interface ContratoServicio {
   numero_contrato?: string | null
   estado?: string
   estado_pago?: string | null
+  /** Las partes: el cliente de cada lado. Nombre y NIT salen de su ficha (solo lectura). */
   contratante_id?: number | null
-  contratante_nombre?: string | null
-  contratante_nit?: string | null
+  readonly contratante_nombre?: string | null
+  readonly contratante_nit?: string | null
   prestador_id?: number | null
-  prestador_nombre?: string | null
-  prestador_nit?: string | null
+  readonly prestador_nombre?: string | null
+  readonly prestador_nit?: string | null
+  inversionista_id?: number | null
   inversionista_nombre?: string | null
   portafolio?: string | null
   codigo_sun_factory?: string | null
@@ -311,7 +326,12 @@ export interface ContratoServicio {
   [clave: string]: unknown
 }
 
-export type PayloadContratoServicio = Partial<Omit<ContratoServicio, 'id'>>
+export type PayloadContratoServicio = Partial<
+  Omit<
+    ContratoServicio,
+    'id' | 'contratante_nombre' | 'contratante_nit' | 'prestador_nombre' | 'prestador_nit'
+  >
+>
 
 /** Entrada de `indexacion_cgm`/`indexacion_representacion`: JSONB `{año, ipc, valor, esBase}`. */
 export interface EntradaIndexacion {

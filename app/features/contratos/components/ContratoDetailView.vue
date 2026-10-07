@@ -150,10 +150,7 @@
                   label="Nombre / Razón social"
                   requerido
                 />
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
-                  <InputText v-model="formPartes.vendedor_nit" class="w-full" />
-                </div>
+                <NitDeCliente :nit="formPartes.vendedor_nit" />
               </div>
               <div class="border border-border rounded-lg px-3 py-3 bg-muted/30 min-w-0 sm:flex-1 space-y-3">
                 <p class="flex items-center gap-1 text-xs font-bold tracking-wide uppercase text-muted-foreground mb-1"><BuildingIcon class="size-3" />Comprador</p>
@@ -164,10 +161,7 @@
                   label="Nombre / Razón social"
                   requerido
                 />
-                <div class="flex flex-col gap-1">
-                  <label class="text-xs font-medium text-muted-foreground">NIT</label>
-                  <InputText v-model="formPartes.comprador_nit" class="w-full" />
-                </div>
+                <NitDeCliente :nit="formPartes.comprador_nit" />
               </div>
             </div>
           </div>
@@ -827,6 +821,7 @@ import Select from 'primevue/select'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { idsConPlantaAgregada, yaEstaVinculada } from '~/features/contratos/plantasDelContrato'
 import { PpaService } from '~/features/contratos/services/ppa'
@@ -917,7 +912,11 @@ function cancelarEdicionPartes() {
 async function guardarPartes() {
   guardandoPartes.value = true
   try {
-    const data = await ppaService.actualizar(contrato.value.id, formPartes)
+    // Solo el cliente de cada lado: nombre y NIT son los de su ficha.
+    const data = await ppaService.actualizar(contrato.value.id, {
+      comprador_id: formPartes.comprador_id,
+      vendedor_id: formPartes.vendedor_id,
+    })
     contrato.value = { ...contrato.value, ...data }
     editandoPartes.value = false
     toast.success('Guardado', { description: 'Partes del contrato actualizadas', duration: 3000 })
