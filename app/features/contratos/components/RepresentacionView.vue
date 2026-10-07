@@ -350,7 +350,8 @@
               </Button>
               <template v-else>
                 <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['tarifa_admin', 'tarifa_cgm', 'tarifa_representacion',
+                <Button label="Guardar" size="small" :loading="guardando" :disabled="!form.cubre_representacion && !form.cubre_cgm"
+                  @click="guardar(['servicios', 'tarifa_admin', 'tarifa_cgm', 'tarifa_representacion',
                                    'indice_indexacion', 'periodicidad_pago', 'responsable_iva',
                                    'enlace_drive'])">
                   <template #icon><CheckIcon class="size-4" /></template>
@@ -360,6 +361,7 @@
           </header>
           <div class="p-3.5">
             <div v-if="edit !== 'comercial'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+              <InfoField class="col-span-full" label="Servicios que cubre" :value="serviciosTexto(c)" />
               <InfoField label="Tarifa admin"
                 :value="c.tarifa_admin != null ? (c.tarifa_admin * 100).toFixed(2) + ' %' : null" />
               <InfoField label="Tarifa CGM base ($/kWh)" :value="fmtVal(c.tarifa_cgm)" />
@@ -383,6 +385,21 @@
               </div>
             </div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+              <!-- Qué cubre el contrato lo dicen estas casillas (viajan como
+                   `servicios`), no qué tarifa está llena. -->
+              <div class="col-span-full flex flex-col gap-1">
+                <span class="text-xs font-medium text-muted-foreground">Servicios que cubre</span>
+                <div class="flex items-center gap-6">
+                  <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <Checkbox v-model="form.cubre_representacion" :binary="true" /> Representación
+                  </label>
+                  <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <Checkbox v-model="form.cubre_cgm" :binary="true" /> CGM
+                  </label>
+                </div>
+                <small v-if="!form.cubre_representacion && !form.cubre_cgm"
+                  class="text-xs text-destructive leading-snug">Marca al menos uno.</small>
+              </div>
               <div class="flex flex-col gap-1">
                 <label class="text-xs font-medium text-muted-foreground">Tarifa admin (%)</label>
                 <InputNumber v-model="form.tarifa_admin_pct" :minFractionDigits="1" :maxFractionDigits="2"
@@ -797,8 +814,20 @@ function abrir(seccion) {
     periodicidad_pago: x.periodicidad_pago || null,
     responsable_iva: !!x.responsable_iva,
     enlace_drive: x.enlace_drive || '',
+    cubre_representacion: subserviciosDe(x).includes('representacion'),
+    cubre_cgm: subserviciosDe(x).includes('cgm'),
   })
   edit.value = seccion
+}
+
+/** Los servicios que cubre el contrato; un contrato sin filas cae a `servicio_aplica`. */
+function subserviciosDe(x) {
+  return x?.subservicios?.length ? x.subservicios : [x?.servicio_aplica].filter(Boolean)
+}
+
+function serviciosTexto(x) {
+  const nombres = { representacion: 'Representación', cgm: 'CGM' }
+  return subserviciosDe(x).map(s => nombres[s] ?? s).join(' y ')
 }
 
 function aFecha(v) { return v ? new Date(`${String(v).slice(0, 10)}T00:00:00`) : null }
@@ -815,7 +844,12 @@ function deFecha(v) {
 function guardar(campos) {
   const payload = {}
   for (const k of campos) {
-    if (k === 'tarifa_admin') {
+    if (k === 'servicios') {
+      payload.servicios = [
+        ...(form.cubre_representacion ? ['representacion'] : []),
+        ...(form.cubre_cgm ? ['cgm'] : []),
+      ]
+    } else if (k === 'tarifa_admin') {
       payload.tarifa_admin = form.tarifa_admin_pct != null ? form.tarifa_admin_pct / 100 : null
     } else if (['fecha_firma_contrato', 'fecha_inicio', 'fecha_fin'].includes(k)) {
       payload[k] = deFecha(form[k])
