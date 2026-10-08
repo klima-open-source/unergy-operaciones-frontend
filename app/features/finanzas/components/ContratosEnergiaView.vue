@@ -14,10 +14,12 @@
     <PageHeader title="Contratos de energía · Liquidaciones"
                 subtitle="Contratos del servicio de Liquidaciones y sus proyectos vinculados. No son los PPA: esos están en Servicios.">
       <template #actions>
-        <Button label="Crear contrato de Liquidaciones" size="small" @click="abrirFormulario"
-                v-tooltip.bottom="'Crea un contrato en el servicio externo de Liquidaciones, no un PPA'">
-          <template #icon><PlusIcon class="size-4" /></template>
-        </Button>
+        <GTooltip>
+          <GTooltipTrigger as-child>
+            <Button size="sm" @click="abrirFormulario"><PlusIcon class="size-4" /> Crear contrato de Liquidaciones</Button>
+          </GTooltipTrigger>
+          <GTooltipContent>Crea un contrato en el servicio externo de Liquidaciones, no un PPA</GTooltipContent>
+        </GTooltip>
       </template>
     </PageHeader>
 
@@ -25,41 +27,59 @@
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Comercializador, proyecto, código…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Comercializador, proyecto, código…" />
+        </InputGroup>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Planta</label>
-        <Select v-model="plantaSel" :options="proyectosOptions" optionLabel="label" optionValue="value"
-                showClear filter placeholder="Todas" />
+        <div class="w-56">
+          <ComboBox :key="proyectosOptions.length" :model-value="plantaSel" :options="conVacio(proyectosOptions, 'Todas')"
+                    placeholder="Todas" @update:model-value="plantaSel = deValorSelect($event) || null" />
+        </div>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de contrato</label>
-        <Select v-model="tipoSel" :options="TIPOS_CONTRATO" optionLabel="label" optionValue="value"
-                showClear placeholder="Todos" />
+<Select :model-value="aValorSelect(tipoSel)" @update:model-value="tipoSel = deValorSelect($event) || null">
+          <SelectTrigger class="min-w-40"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="o in TIPOS_CONTRATO" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de tarifa</label>
-        <Select v-model="tarifaSel" :options="TIPOS_TARIFA" optionLabel="label" optionValue="value"
-                showClear placeholder="Todas" />
+<Select :model-value="aValorSelect(tarifaSel)" @update:model-value="tarifaSel = deValorSelect($event) || null">
+          <SelectTrigger class="min-w-36"><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todas</SelectItem>
+            <SelectItem v-for="o in TIPOS_TARIFA" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-        <Select v-model="anioSel" :options="aniosOptions" showClear placeholder="Todos"
-                v-tooltip.top="'Contratos cuya vigencia toca ese año'" />
+        <Select :model-value="aValorSelect(anioSel != null ? String(anioSel) : null)"
+                @update:model-value="v => { const a = deValorSelect(v); anioSel = a ? Number(a) : null }">
+          <SelectTrigger class="min-w-24" title="Contratos cuya vigencia toca ese año"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="a in aniosOptions" :key="a" :value="String(a)">{{ a }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Vigencia</label>
         <div class="flex items-center gap-2 h-9.5">
-          <ToggleSwitch v-model="soloVigentes" />
+          <GSwitch v-model="soloVigentes" aria-label="Solo vigentes" />
           <span class="text-xs text-muted-foreground">{{ soloVigentes ? 'Solo vigentes' : 'Todos' }}</span>
         </div>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} contrato{{ filtrados.length === 1 ? '' : 's' }}
@@ -105,7 +125,9 @@
                 <span v-for="p in row.proyectos" :key="p.id" class="inline-flex items-center gap-1 mr-2">
                   {{ nombreProyecto(p.proyecto) }}
                   <!-- Solo los PLC necesitan piso y techo -->
-                  <TriangleAlertIcon class="size-3 text-warning" v-if="row.tipo_contrato === 'ppa_pay_as_contracted' && !(p.tiene_piso && p.tiene_techo)"  v-tooltip.top="'Falta ' + faltantes(p)" />
+                  <span v-if="row.tipo_contrato === 'ppa_pay_as_contracted' && !(p.tiene_piso && p.tiene_techo)" :title="'Falta ' + faltantes(p)">
+                    <TriangleAlertIcon class="size-3 text-warning" />
+                  </span>
                 </span>
               </td>
               <td class="px-4 py-2 whitespace-nowrap">{{ LABEL_TIPO_CONTRATO[row.tipo_contrato] || row.tipo_contrato || '—' }}</td>
@@ -116,8 +138,8 @@
                 <CircleXIcon class="size-4 text-destructive" v-else  />
               </td>
               <td class="px-4 py-2 text-center">
-                <Button text rounded size="small" type="button" @click="abrirEdicion(row)" v-tooltip="'Editar'">
-                  <template #icon><PencilIcon class="size-4" /></template>
+                <Button variant="ghost" size="icon-sm" type="button" title="Editar" aria-label="Editar" @click="abrirEdicion(row)">
+                  <PencilIcon class="size-4" />
                 </Button>
               </td>
             </tr>
@@ -138,22 +160,27 @@
     </div>
 
     <!-- Dialog: nuevo contrato -->
-    <Dialog v-model:visible="formVisible" :header="editandoId ? `Editar contrato ${editandoId}` : 'Nuevo contrato de energía'" modal
-            class="w-full max-w-3xl" :dismissableMask="false">
-      <form @submit.prevent="guardar" class="space-y-5 pt-1">
+    <Dialog v-model:open="formVisible">
+      <!-- Sin cerrar con clic afuera: es un formulario largo y se perdía lo escrito. -->
+      <DialogContent class="sm:max-w-3xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent @interact-outside.prevent>
+      <DialogHeader>
+        <DialogTitle>{{ editandoId ? `Editar contrato ${editandoId}` : 'Nuevo contrato de energía' }}</DialogTitle>
+        <DialogDescription class="sr-only">Contrato de energía del servicio de Liquidaciones y sus proyectos.</DialogDescription>
+      </DialogHeader>
+      <form @submit.prevent="guardar" class="space-y-5">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Fecha desde *</label>
-            <DatePicker v-model="f.fecha_desde" dateFormat="yy-mm-dd" showIcon class="w-full" placeholder="Seleccionar" />
+            <DatePicker v-model="f.fecha_desde" placeholder="Seleccionar" />
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Fecha hasta *</label>
-            <DatePicker v-model="f.fecha_hasta" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+            <DatePicker v-model="f.fecha_hasta" clearable placeholder="Seleccionar" />
           </div>
 
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Código</label>
-            <InputText v-model="f.codigo" class="w-full" placeholder="ej: 90060" />
+            <Input v-model="f.codigo" placeholder="ej: 90060" />
             <p class="text-xs text-muted-foreground mt-1">
               Es el código del contrato en XM. Sin él, el proyecto no entra en la
               descarga del FTP de ese mes.
@@ -161,26 +188,37 @@
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Comercializador</label>
-            <Select v-model="f.comercializador" :options="empresasOptions" optionLabel="label" optionValue="id"
-                    class="w-full" placeholder="Seleccionar" filter showClear />
+            <ComboBox :key="empresasOptions.length" :model-value="f.comercializador != null ? String(f.comercializador) : null"
+                      :options="opcionesEmpresa" placeholder="Seleccionar"
+                      @update:model-value="v => { const id = deValorSelect(v); f.comercializador = id ? Number(id) : null }" />
             <p class="text-xs text-muted-foreground mt-1">Necesario si el proyecto es comercializador.</p>
           </div>
 
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de contrato *</label>
-            <Select v-model="f.tipo_contrato" :options="TIPOS_CONTRATO" optionLabel="label" optionValue="value"
-                    class="w-full" placeholder="Seleccionar" />
+            <Select :model-value="f.tipo_contrato ?? ''" @update:model-value="f.tipo_contrato = $event">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in TIPOS_CONTRATO" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de tarifa *</label>
-            <Select v-model="f.tipo_tarifa" :options="tarifasDisponibles" optionLabel="label" optionValue="value"
-                    class="w-full" placeholder="Seleccionar" />
+            <Select :model-value="f.tipo_tarifa ?? ''" @update:model-value="f.tipo_tarifa = $event">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in tarifasDisponibles" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Porcentaje de despacho</label>
-            <InputNumber v-model="f.porcentaje" :maxFractionDigits="4" :useGrouping="false"
-                         class="w-full" placeholder="ej: 1.0" :min="0" :max="1" />
+            <NumberField v-model="f.porcentaje" :step-snapping="false" :min="0" :max="1"
+                         :format-options="{ maximumFractionDigits: 4, useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput placeholder="ej: 1,0" /></NumberFieldContent>
+            </NumberField>
             <p class="text-xs text-muted-foreground mt-1">
               Fracción entre 0 y 1, no porcentaje.
               {{ esPlg ? 'En PLG define qué parte del despacho cubre el contrato.' : 'Fuera de PLG va completo (1.0).' }}
@@ -212,69 +250,60 @@
             <div class="grid grid-cols-12 gap-2 items-end">
               <div class="col-span-6">
                 <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
-                <Select v-model="linea.project" :options="proyectosOptions" optionLabel="label" optionValue="value"
-                        class="w-full" placeholder="Seleccionar" filter showClear />
+                <ComboBox :key="proyectosOptions.length" :model-value="linea.project" :options="conVacio(proyectosOptions)"
+                          placeholder="Seleccionar" @update:model-value="linea.project = deValorSelect($event) || null" />
               </div>
               <div class="col-span-5">
                 <label class="mb-1 block text-xs font-medium text-muted-foreground">Precio de energía</label>
-                <Select v-model="linea.energy_price" :options="preciosOptions" optionLabel="label" optionValue="id"
-                        class="w-full" placeholder="Seleccionar" filter showClear
-                        :disabled="f.tipo_tarifa === 'market'" />
+                <ComboBox :key="preciosOptions.length" :model-value="linea.energy_price != null ? String(linea.energy_price) : null"
+                          :options="opcionesPrecio" placeholder="Seleccionar" :disabled="f.tipo_tarifa === 'market'"
+                          @update:model-value="v => { const id = deValorSelect(v); linea.energy_price = id ? Number(id) : null }" />
               </div>
               <div class="col-span-1 flex justify-center pb-1">
                 <!-- Un proyecto ya vinculado no se puede desvincular: la API no
                      expone DELETE. Se deja quitar solo lo que aún no se guardó. -->
-                <Button v-if="!linea.id" text rounded severity="danger" size="small" type="button"
-                        @click="quitarProyecto(idx)" v-tooltip="'Eliminar'">
-                  <template #icon><XIcon class="size-4" /></template>
+                <Button v-if="!linea.id" variant="ghost" size="icon-sm" type="button" title="Eliminar" aria-label="Eliminar"
+                        @click="quitarProyecto(idx)">
+                  <XIcon class="size-4 text-destructive" />
                 </Button>
-                <span v-else class="text-xs text-muted-foreground/50" v-tooltip="'Un proyecto ya vinculado no se puede quitar desde aquí'">—</span>
+                <span v-else class="text-xs text-muted-foreground/50" title="Un proyecto ya vinculado no se puede quitar desde aquí">—</span>
               </div>
             </div>
 
             <div v-if="esPlc" class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
                 <label class="mb-1 block text-xs font-medium text-muted-foreground">Piso · 24 valores kWh</label>
-                <Textarea v-model="linea.floorTexto" rows="2" class="w-full text-xs"
+                <Textarea v-model="linea.floorTexto" rows="2" class="text-xs"
                           placeholder="0, 0, 0, …, 120.5, 340, …" />
               </div>
               <div>
                 <label class="mb-1 block text-xs font-medium text-muted-foreground">Techo · 24 valores kWh</label>
-                <Textarea v-model="linea.roofTexto" rows="2" class="w-full text-xs"
+                <Textarea v-model="linea.roofTexto" rows="2" class="text-xs"
                           placeholder="0, 0, 0, …, 150.2, 400, …" />
               </div>
             </div>
           </div>
 
-          <Button label="Agregar proyecto" text size="small" type="button" @click="agregarProyecto">
-            <template #icon><PlusIcon class="size-4" /></template>
+          <Button variant="ghost" size="sm" type="button" @click="agregarProyecto">
+            <PlusIcon class="size-4" /> Agregar proyecto
           </Button>
         </div>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" label="Cancelar" severity="secondary" :disabled="guardando"
-                  @click="formVisible = false" />
-          <Button type="submit" label="Guardar" :loading="guardando">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button type="button" variant="outline" :disabled="guardando" @click="formVisible = false">Cancelar</Button>
+          <Button type="submit" :disabled="guardando">
+            <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar
           </Button>
         </div>
       </form>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Textarea from 'primevue/textarea'
-import DatePicker from 'primevue/datepicker'
-import Select from 'primevue/select'
-import ToggleSwitch from 'primevue/toggleswitch'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { TIPOS_CONTRATO, TIPOS_TARIFA } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
@@ -331,6 +360,11 @@ const preciosOptions = ref([])
 // Tópico → nombre comercial, para no mostrar identificadores crudos en la tabla.
 const nombrePorTopico = ref({})
 const proyectosOptions = ref([])
+
+/** Opciones de un ComboBox con la primera para dejarlo vacío (el showClear de PrimeVue). */
+const conVacio = (opciones, etiqueta = 'Sin seleccionar') => [{ value: VALOR_SELECT_VACIO, label: etiqueta }, ...opciones]
+const opcionesEmpresa = computed(() => conVacio(empresasOptions.value.map(o => ({ value: String(o.id), label: o.label }))))
+const opcionesPrecio = computed(() => conVacio(preciosOptions.value.map(o => ({ value: String(o.id), label: o.label }))))
 
 const filtrados = computed(() => {
   const term = q.value.trim().toLowerCase()
@@ -491,8 +525,9 @@ function horasATexto(curva) {
 function abrirEdicion(row) {
   editandoId.value = row.id
   Object.assign(f, {
-    fecha_desde: row.fecha_desde ? new Date(row.fecha_desde + 'T00:00:00') : null,
-    fecha_hasta: row.fecha_hasta ? new Date(row.fecha_hasta + 'T00:00:00') : null,
+    // 'aaaa-mm-dd', lo que usa el DatePicker; `fechaISO` ya acepta texto.
+    fecha_desde: row.fecha_desde ? String(row.fecha_desde).slice(0, 10) : null,
+    fecha_hasta: row.fecha_hasta ? String(row.fecha_hasta).slice(0, 10) : null,
     codigo: row.codigo || '',
     comercializador: row.empresa_id ?? null,
     tipo_contrato: row.tipo_contrato,
