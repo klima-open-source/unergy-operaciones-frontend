@@ -26,13 +26,13 @@
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
-        <NumberField v-model="potenciaAcKw" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }">
+        <NumberField v-model="potenciaAcKw" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }">
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-        <NumberField v-model="capacidadInstaladaKwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }">
+        <NumberField v-model="capacidadInstaladaKwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }">
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
@@ -89,13 +89,13 @@
            quien integra por API. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-        <NumberField v-model="f.latitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }">
+        <NumberField v-model="f.latitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }">
           <NumberFieldContent><NumberFieldInput placeholder="8.748000" /></NumberFieldContent>
         </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-        <NumberField v-model="f.longitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }">
+        <NumberField v-model="f.longitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }">
           <NumberFieldContent><NumberFieldInput placeholder="-75.881000" /></NumberFieldContent>
         </NumberField>
       </div>
@@ -103,7 +103,7 @@
            en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
-        <NumberField v-model="f.altitud_msnm" :step-snapping="false" locale="en-US" :min="-100" :max="6000">
+        <NumberField v-model="f.altitud_msnm" :step-snapping="false" :min="-100" :max="6000">
           <NumberFieldContent><NumberFieldInput placeholder="35" /></NumberFieldContent>
         </NumberField>
       </div>
@@ -190,7 +190,7 @@
         />
         <div>
           <label class="block text-xs font-medium text-muted-foreground mb-1">Participación (%)</label>
-          <NumberField v-model="inversionistaInicial.porcentaje_pct" :step-snapping="false" :min="0" :max="100" locale="en-US"
+          <NumberField v-model="inversionistaInicial.porcentaje_pct" :step-snapping="false" :min="0" :max="100"
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
             <NumberFieldContent><NumberFieldInput placeholder="100" /></NumberFieldContent>
           </NumberField>

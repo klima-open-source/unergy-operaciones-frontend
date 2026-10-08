@@ -84,7 +84,7 @@
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-              <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+              <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
@@ -247,11 +247,11 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-                  <NumberField v-model="editForm.latitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.latitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-                  <NumberField v-model="editForm.longitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.longitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">RETIE (link Drive)</label>
@@ -265,11 +265,11 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
-                  <NumberField v-model="editInfoTecnica.potencia_ac_kw" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editInfoTecnica.potencia_ac_kw" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-                  <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Voltaje red</label>
@@ -281,11 +281,11 @@
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Producción específica (kWh/kWp)</label>
-                  <NumberField v-model="editForm.produccion_especifica_kwh_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 2 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.produccion_especifica_kwh_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 2 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
-                  <NumberField v-model="editForm.altitud_msnm" :step-snapping="false" locale="en-US" :min="-100" :max="6000" ><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.altitud_msnm" :step-snapping="false" :min="-100" :max="6000" ><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
               </div>
             </div>
@@ -399,7 +399,7 @@
               <div v-if="editInfoTecnica.tiene_almacenamiento" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad (kWh)</label>
-                  <NumberField v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Marca</label>
@@ -429,7 +429,7 @@
             <div class="grid grid-cols-6 gap-2">
               <div v-for="(mes, i) in MESES" :key="sim.key + '-' + i">
                 <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-                <NumberField v-if="isEditMode" v-model="sim.editArray.value[i]" :step-snapping="false" locale="en-US"
+                <NumberField v-if="isEditMode" v-model="sim.editArray.value[i]" :step-snapping="false"
                   :format-options="{ maximumFractionDigits: 1 }">
                   <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" /></NumberFieldContent>
                 </NumberField>
@@ -466,7 +466,7 @@
                 <GTableCell>{{ data.cliente_nombre }}</GTableCell>
                 <GTableCell>
                   <NumberField v-if="editandoInvId === data.id" v-model="editPct" :step-snapping="false" :min="0" :max="100"
-                    locale="en-US" :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }" class="w-36">
+                    :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }" class="w-36">
                     <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
                   </NumberField>
                   <template v-else>
@@ -538,7 +538,7 @@
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Porcentaje de participación (%)</label>
-              <NumberField v-model="nuevoInv.porcentaje_pct" :step-snapping="false" :min="0" :max="100" locale="en-US"
+              <NumberField v-model="nuevoInv.porcentaje_pct" :step-snapping="false" :min="0" :max="100"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
               </NumberField>
