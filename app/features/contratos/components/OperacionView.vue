@@ -3,9 +3,7 @@
 
     <!-- ── Header ───────────────────────────────────────────────────────────── -->
     <div class="flex items-center gap-2">
-      <Button text severity="secondary" @click="$router.back()" class="-ml-1">
-        <template #icon><ArrowLeftIcon class="size-4" /></template>
-      </Button>
+      <Button variant="ghost" size="icon-sm" class="-ml-1" @click="$router.back()"><ArrowLeftIcon class="size-4" /></Button>
       <div>
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
@@ -23,20 +21,21 @@
 
     <!-- ── Loading ───────────────────────────────────────────────────────────── -->
     <div v-if="loading" class="flex justify-center py-20">
-      <ProgressSpinner />
+      <Spinner class="size-8" />
     </div>
 
     <!-- ── Tabs ──────────────────────────────────────────────────────────────── -->
-    <TabView v-else v-model:activeIndex="activeIndex">
+    <!-- force-mount: el mapa de Internet se crea al cargar aunque su pestaña no se vea
+         (ver el ResizeObserver de `initInternetMap`). -->
+    <GTabs v-else v-model="pestana">
+      <GTabsList>
+        <GTabsTrigger value="mantenimiento"><WrenchIcon class="size-3" /> Mantenimiento</GTabsTrigger>
+        <GTabsTrigger value="arriendo"><HouseIcon class="size-3" /> Arriendos</GTabsTrigger>
+        <GTabsTrigger value="internet"><WifiIcon class="size-3" /> Internet</GTabsTrigger>
+      </GTabsList>
 
       <!-- ══════════ MANTENIMIENTO ══════════ -->
-      <TabPanel>
-        <template #header>
-          <div class="flex items-center gap-1.5 px-1">
-            <WrenchIcon class="size-3" />
-            <span>Mantenimiento</span>
-          </div>
-        </template>
+      <GTabsContent value="mantenimiento" force-mount class="data-[state=inactive]:hidden">
         <div class="space-y-5 pt-3">
 
           <!-- Info card -->
@@ -55,12 +54,8 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.mantenimiento.estado]">{{ CONTRATO_LABELS[contratos.mantenimiento.estado] }}</GBadge>
-                  <Button label="Editar" size="small" text severity="secondary" @click="openMantenimientoDialog('editar')">
-                    <template #icon><PencilIcon class="size-4" /></template>
-                  </Button>
-                  <Button label="Cargar desde Excel" size="small" severity="secondary" outlined @click="triggerExcelInput">
-                    <template #icon><FileSpreadsheetIcon class="size-4" /></template>
-                  </Button>
+                  <Button variant="ghost" size="sm" @click="openMantenimientoDialog('editar')"><PencilIcon class="size-4" /> Editar</Button>
+                  <Button variant="outline" size="sm" @click="triggerExcelInput"><FileSpreadsheetIcon class="size-4" /> Cargar desde Excel</Button>
                   <input ref="excelInputRef" type="file" accept=".xlsx,.xls" class="hidden"
                     @change="cargarDesdeExcel" />
                 </div>
@@ -307,9 +302,7 @@
               </div>
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de mantenimiento</p>
               <p class="text-xs text-muted-foreground mb-4">Registra el contrato para iniciar el seguimiento de pagos</p>
-              <Button class="bg-warning border-warning" label="Crear contrato" size="small" @click="openMantenimientoDialog('crear')">
-                <template #icon><PlusIcon class="size-4" /></template>
-              </Button>
+              <Button size="sm" class="bg-warning border-warning" @click="openMantenimientoDialog('crear')"><PlusIcon class="size-4" /> Crear contrato</Button>
             </div>
           </template>
 
@@ -324,16 +317,10 @@
           />
 
         </div>
-      </TabPanel>
+      </GTabsContent>
 
       <!-- ══════════ ARRIENDOS ══════════ -->
-      <TabPanel>
-        <template #header>
-          <div class="flex items-center gap-1.5 px-1">
-            <HouseIcon class="size-3" />
-            <span>Arriendos</span>
-          </div>
-        </template>
+      <GTabsContent value="arriendo" force-mount class="data-[state=inactive]:hidden">
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.arriendo">
@@ -351,9 +338,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
-                  <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('arriendo')">
-                    <template #icon><PencilIcon class="size-4" /></template>
-                  </Button>
+                  <Button variant="ghost" size="sm" @click="openEditContrato('arriendo')"><PencilIcon class="size-4" /> Editar</Button>
                 </div>
               </div>
               <!-- Mini-cards -->
@@ -422,9 +407,7 @@
                   <span class="text-xs font-semibold flex items-center gap-1.5 text-primary">
                     <UsersIcon class="size-3 text-primary" />Arrendadores
                   </span>
-                  <Button class="text-primary" label="Agregar arrendador" size="small" text @click="openArrendadorDialog('crear')">
-                    <template #icon><PlusIcon class="size-4" /></template>
-                  </Button>
+                  <Button variant="ghost" size="sm" class="text-primary" @click="openArrendadorDialog('crear')"><PlusIcon class="size-4" /> Agregar arrendador</Button>
                 </div>
                 <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
                   Sin arrendadores registrados.
@@ -441,12 +424,8 @@
                        >Inactivo</span>
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
-                      <Button size="small" text severity="secondary" @click="openArrendadorDialog('editar', a)">
-                        <template #icon><PencilIcon class="size-4" /></template>
-                      </Button>
-                      <Button size="small" text severity="danger" @click="eliminarArrendador(a)">
-                        <template #icon><Trash2Icon class="size-4" /></template>
-                      </Button>
+                      <Button variant="ghost" size="icon-sm" @click="openArrendadorDialog('editar', a)"><PencilIcon class="size-4" /></Button>
+                      <Button variant="ghost" size="icon-sm" @click="eliminarArrendador(a)"><Trash2Icon class="size-4 text-destructive" /></Button>
                     </div>
                   </div>
                 </div>
@@ -609,10 +588,13 @@
             </div>
 
             <!-- Dialog Arrendador (crear/editar) -->
-            <Dialog class="w-full max-w-md" v-model:visible="arrendadorDialog.visible" modal
-              :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
-             >
-              <div class="flex flex-col gap-3 pt-2">
+            <Dialog v-model:open="arrendadorDialog.visible">
+              <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+              <DialogHeader>
+                <DialogTitle>{{ arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador' }}</DialogTitle>
+                <DialogDescription class="sr-only">Quién recibe el pago del arriendo y en qué condiciones.</DialogDescription>
+              </DialogHeader>
+              <div class="flex flex-col gap-3">
                 <!-- El arrendador FACTURA, así que necesita NIT y razón social:
                      por eso se vincula a un cliente en vez de escribirse. -->
                 <SelectorCliente
@@ -623,38 +605,34 @@
                 />
                 <div>
                   <label class="text-xs font-medium text-muted-foreground">Valor base</label>
-                  <InputNumber v-model="arrendadorDialog.form.valor_base" class="w-full" mode="currency"
-                    currency="COP" locale="es-CO" :maxFractionDigits="0" />
+                  <NumberField :step-snapping="false" v-model="arrendadorDialog.form.valor_base" locale="es-CO" :format-options="FORMATO_COP">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
                 </div>
-                <div>
-                  <label class="text-xs font-medium text-muted-foreground">Responsable IVA</label>
-                  <Select v-model="arrendadorDialog.form.responsable_iva"
-                    :options="[{label:'Sí',value:true},{label:'No',value:false}]"
-                    optionLabel="label" optionValue="value" class="w-full" />
-                </div>
-                <div>
-                  <label class="text-xs font-medium text-muted-foreground">Activo</label>
-                  <Select v-model="arrendadorDialog.form.activo"
-                    :options="[{label:'Sí',value:true},{label:'No',value:false}]"
-                    optionLabel="label" optionValue="value" class="w-full" />
-                </div>
+                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox v-model="arrendadorDialog.form.responsable_iva" /> Responsable de IVA
+                </label>
+                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox v-model="arrendadorDialog.form.activo" /> Activo
+                </label>
                 <div class="flex flex-col gap-1">
                   <label class="text-xs font-medium text-muted-foreground">Anticipo pagado desde</label>
-                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" clearable />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="text-xs font-medium text-muted-foreground">Anticipo pagado hasta</label>
-                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" clearable />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="text-xs font-medium text-muted-foreground">Observaciones</label>
-                  <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" class="w-full" />
+                  <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" />
                 </div>
               </div>
-              <template #footer>
-                <Button label="Cancelar" text severity="secondary" @click="arrendadorDialog.visible = false" />
-                <Button label="Guardar" :loading="arrendadorDialog.guardando" @click="guardarArrendador" />
-              </template>
+              <DialogFooter>
+                <Button variant="ghost" @click="arrendadorDialog.visible = false">Cancelar</Button>
+                <Button :disabled="arrendadorDialog.guardando" @click="guardarArrendador"><Spinner v-if="arrendadorDialog.guardando" class="size-4" /> Guardar</Button>
+              </DialogFooter>
+              </DialogContent>
             </Dialog>
           </template>
           <template v-else>
@@ -665,23 +643,15 @@
               </div>
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de arriendo registrado</p>
               <p class="text-xs text-muted-foreground mb-4">No se encontró contrato de arriendo para este proyecto</p>
-              <Button class="bg-primary border-primary" label="Crear contrato" size="small" @click="openWizard('arriendo')">
-                <template #icon><PlusIcon class="size-4" /></template>
-              </Button>
+              <Button size="sm" class="bg-primary border-primary" @click="openWizard('arriendo')"><PlusIcon class="size-4" /> Crear contrato</Button>
             </div>
           </template>
 
         </div>
-      </TabPanel>
+      </GTabsContent>
 
       <!-- ══════════ INTERNET ══════════ -->
-      <TabPanel>
-        <template #header>
-          <div class="flex items-center gap-1.5 px-1">
-            <WifiIcon class="size-3" />
-            <span>Internet</span>
-          </div>
-        </template>
+      <GTabsContent value="internet" force-mount class="data-[state=inactive]:hidden">
         <div class="space-y-5 pt-3">
 
           <template v-if="contratos.internet">
@@ -694,12 +664,8 @@
                   <span class="text-sm font-semibold text-foreground">Servicio de Internet</span>
                   <GBadge :color="CONTRATO_SEVERITY[contratos.internet.estado]">{{ CONTRATO_LABELS[contratos.internet.estado] }}</GBadge>
                 </div>
-                <Button label="Editar" size="small" text severity="secondary" @click="openEditContrato('internet')">
-                  <template #icon><PencilIcon class="size-4" /></template>
-                </Button>
-                <Button class="border-chart-2 text-chart-2" label="Nuevo servicio" size="small" outlined @click="openWizard('internet')">
-                  <template #icon><PlusIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="openEditContrato('internet')"><PencilIcon class="size-4" /> Editar</Button>
+                <Button variant="outline" size="sm" class="border-chart-2 text-chart-2" @click="openWizard('internet')"><PlusIcon class="size-4" /> Nuevo servicio</Button>
               </div>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5">
                 <InfoIcon :icon="BuildingIcon" color="var(--chart-2)" label="Proveedor"
@@ -744,27 +710,24 @@
               </div>
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin servicio de internet registrado</p>
               <p class="text-xs text-muted-foreground mb-4">Registra el proveedor para iniciar el seguimiento de pagos</p>
-              <Button class="bg-chart-2 border-chart-2" label="Registrar servicio" size="small" @click="openWizard('internet')">
-                <template #icon><PlusIcon class="size-4" /></template>
-              </Button>
+              <Button size="sm" class="bg-chart-2 border-chart-2" @click="openWizard('internet')"><PlusIcon class="size-4" /> Registrar servicio</Button>
             </div>
           </template>
         </div>
-      </TabPanel>
+      </GTabsContent>
 
-    </TabView>
+    </GTabs>
 
     <!-- ── Dialog Mantenimiento (crear / editar) ─────────────────────────────── -->
-    <Dialog class="w-full max-w-2xl" v-model:visible="dialogMant.visible" modal
-      :breakpoints="{ '560px': '95vw' }">
-      <template #header>
-        <div class="flex items-center gap-2">
+    <Dialog v-model:open="dialogMant.visible">
+      <DialogContent class="sm:max-w-2xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2 text-sm">
           <WrenchIcon class="size-4 text-warning" />
-          <span class="font-semibold text-sm text-foreground">
-            {{ dialogMant.modo === 'crear' ? 'Crear contrato de mantenimiento' : 'Editar contrato de mantenimiento' }}
-          </span>
-        </div>
-      </template>
+          {{ dialogMant.modo === 'crear' ? 'Crear contrato de mantenimiento' : 'Editar contrato de mantenimiento' }}
+        </DialogTitle>
+        <DialogDescription class="sr-only">Partes, fechas, periodicidad y valores del contrato de O&amp;M.</DialogDescription>
+      </DialogHeader>
       <div class="space-y-4 pt-1">
         <!-- Contratante / Prestador -->
         <div class="grid grid-cols-2 gap-4">
@@ -791,15 +754,18 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M <span class="text-destructive">*</span></label>
-            <DatePicker v-model="dialogMant.form.fecha_inicio_om" dateFormat="yy-mm-dd"
-              class="w-full" showClear placeholder="aaaa-mm-dd" />
+            <DatePicker v-model="dialogMant.form.fecha_inicio_om" clearable />
             <p class="text-xs text-muted-foreground">Es la fecha que Costos usa para indexar la tarifa.</p>
             <p v-if="dialogMant.errores.fecha_inicio_om" class="text-xs text-destructive">{{ dialogMant.errores.fecha_inicio_om }}</p>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Estado <span class="text-destructive">*</span></label>
-            <Select v-model="dialogMant.form.estado" :options="ESTADOS_MANT"
-              optionLabel="label" optionValue="value" class="w-full" />
+            <Select v-model="dialogMant.form.estado">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in ESTADOS_MANT" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+              </SelectContent>
+            </Select>
             <p v-if="dialogMant.errores.estado" class="text-xs text-destructive">{{ dialogMant.errores.estado }}</p>
           </div>
         </div>
@@ -807,8 +773,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha de suscripción del contrato</label>
-            <DatePicker v-model="dialogMant.form.fecha_firma_contrato" dateFormat="yy-mm-dd"
-              class="w-full" showClear placeholder="aaaa-mm-dd" />
+            <DatePicker v-model="dialogMant.form.fecha_firma_contrato" clearable />
             <p class="text-xs text-muted-foreground">Solo informativa. La indexación usa la Fecha de inicio O&amp;M.</p>
           </div>
         </div>
@@ -816,8 +781,12 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Periodicidad de cobro <span class="text-destructive">*</span></label>
-            <Select v-model="dialogMant.form.periodicidad_pago" :options="PERIODICIDADES"
-              optionLabel="label" optionValue="value" class="w-full" placeholder="Selecciona…" />
+            <Select v-model="dialogMant.form.periodicidad_pago">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+              </SelectContent>
+            </Select>
             <p class="text-xs text-muted-foreground">Define en qué meses se cobra en el panel de Mantenimiento.</p>
           </div>
         </div>
@@ -825,34 +794,32 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Valor O&amp;M Anual (BASE) <span class="text-destructive">*</span></label>
-            <InputNumber v-model="dialogMant.form.tarifa_base"
-              mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
-              class="w-full" placeholder="$ 0"
-              @update:modelValue="v => { if (v != null) dialogMant.form.tarifa_mensual = Math.round(v / 12) }" />
+            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_base" locale="es-CO" :format-options="FORMATO_COP"
+              @update:model-value="v => { if (Number.isFinite(v)) dialogMant.form.tarifa_mensual = Math.round(v / 12) }">
+              <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
+            </NumberField>
             <p v-if="dialogMant.errores.tarifa_base" class="text-xs text-destructive">{{ dialogMant.errores.tarifa_base }}</p>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Valor mensual <span class="text-destructive">*</span></label>
-            <InputNumber v-model="dialogMant.form.tarifa_mensual"
-              mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
-              class="w-full" placeholder="$ 0" />
+            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_mensual" locale="es-CO" :format-options="FORMATO_COP">
+              <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
+            </NumberField>
             <p class="text-xs text-muted-foreground">Sugerido: Valor Anual ÷ 12</p>
           </div>
         </div>
         <!-- Enlace Drive -->
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-muted-foreground">Enlace del contrato en Drive</label>
-          <InputText v-model="dialogMant.form.enlace_drive" class="w-full"
-            placeholder="https://drive.google.com/…" />
+          <Input v-model="dialogMant.form.enlace_drive" placeholder="https://drive.google.com/…" />
           <p v-if="dialogMant.errores.enlace_drive" class="text-xs text-destructive">{{ dialogMant.errores.enlace_drive }}</p>
         </div>
       </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="dialogMant.visible = false" />
-        <Button class="bg-warning border-warning" :label="dialogMant.modo === 'crear' ? 'Crear contrato' : 'Guardar cambios'" :loading="guardandoMant" @click="saveMantenimiento">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
-      </template>
+      <DialogFooter>
+        <Button variant="ghost" @click="dialogMant.visible = false">Cancelar</Button>
+        <Button class="bg-warning border-warning" :disabled="guardandoMant" @click="saveMantenimiento"><Spinner v-if="guardandoMant" class="size-4" /> <CheckIcon v-else class="size-4" /> {{ dialogMant.modo === 'crear' ? 'Crear contrato' : 'Guardar cambios' }}</Button>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- ── Wizard nuevo contrato ──────────────────────────────────────────────── -->
@@ -866,34 +833,30 @@
     />
 
     <!-- ── Dialog editar contrato ───────────────────────────────────────────── -->
-    <Dialog class="w-full max-w-xl" v-model:visible="dialogEdit.visible" modal
-      :breakpoints="{ '520px': '95vw' }">
-      <template #header>
-        <div class="flex items-center gap-2">
+    <Dialog v-model:open="dialogEdit.visible">
+      <DialogContent class="sm:max-w-xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2 text-sm">
           <PencilIcon class="size-4" :class="DIALOG_EDIT_TEXT[dialogEdit.tipo]" />
-          <span class="font-semibold text-sm text-foreground">
-            Editar — {{ DIALOG_EDIT_LABEL[dialogEdit.tipo] }}
-          </span>
-        </div>
-      </template>
+          Editar — {{ DIALOG_EDIT_LABEL[dialogEdit.tipo] }}
+        </DialogTitle>
+        <DialogDescription class="sr-only">Datos editables del contrato.</DialogDescription>
+      </DialogHeader>
       <div class="space-y-4 pt-1">
         <div class="grid grid-cols-2 gap-4">
           <div v-if="dialogEdit.tipo === 'mantenimiento'" class="col-span-2 md:col-span-1 flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M</label>
-            <DatePicker v-model="dialogEdit.form.fecha_inicio"
-              dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+            <DatePicker v-model="dialogEdit.form.fecha_inicio" clearable />
           </div>
           <template v-else-if="dialogEdit.tipo === 'arriendo'">
             <div class="col-span-2 md:col-span-1 flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Fecha de inicio O&amp;M</label>
-              <DatePicker v-model="dialogEdit.form.fecha_inicio_om"
-                dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+              <DatePicker v-model="dialogEdit.form.fecha_inicio_om" clearable />
               <p class="text-xs text-muted-foreground">Solo informativa; no interviene en la indexación.</p>
             </div>
             <div class="col-span-2 md:col-span-1 flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Fecha de contrato</label>
-              <DatePicker v-model="dialogEdit.form.fecha_firma_contrato"
-                dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+              <DatePicker v-model="dialogEdit.form.fecha_firma_contrato" clearable />
               <p class="text-xs text-muted-foreground">Fecha base para la indexación en Costos.</p>
             </div>
           </template>
@@ -901,58 +864,68 @@
             <label class="text-xs font-medium text-muted-foreground">
               {{ dialogEdit.tipo === 'mantenimiento' ? 'Valor O&M Anual BASE (COP)' : 'Valor anual BASE (COP)' }}
             </label>
-            <InputNumber v-model="dialogEdit.form.tarifa_base"
-              mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
-              class="w-full" placeholder="$ 0" />
+            <NumberField :step-snapping="false" v-model="dialogEdit.form.tarifa_base" locale="es-CO" :format-options="FORMATO_COP">
+              <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <template v-if="dialogEdit.tipo === 'internet'">
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Plan de datos</label>
-              <InputText v-model="dialogEdit.form.plan_datos_gb" class="w-full" placeholder="50 GB / Ilimitado" />
+              <Input v-model="dialogEdit.form.plan_datos_gb" placeholder="50 GB / Ilimitado" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-muted-foreground">Velocidad contratada</label>
-              <InputNumber v-model="dialogEdit.form.velocidad_mbps" suffix=" Mbps" :useGrouping="false" class="w-full" />
+              <label class="text-xs font-medium text-muted-foreground">Velocidad contratada (Mbps)</label>
+              <NumberField :step-snapping="false" v-model="dialogEdit.form.velocidad_mbps" :format-options="{ useGrouping: false }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Tipo de conexión</label>
-            <Select v-model="dialogEdit.form.tipo_conexion"
-              :options="[{label:'Starlink',value:'Starlink'},{label:'Fibra',value:'Fibra'},{label:'4G',value:'4G'},{label:'Otro',value:'Otro'}]"
-              optionLabel="label" optionValue="value" editable placeholder="Selecciona…" class="w-full" />
+            <Input v-model="dialogEdit.form.tipo_conexion" list="operacion-tipos-conexion" placeholder="Selecciona o escribe…" />
+            <datalist id="operacion-tipos-conexion">
+              <option v-for="t in TIPOS_CONEXION" :key="t" :value="t" />
+            </datalist>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Línea de servicio</label>
-              <InputText v-model="dialogEdit.form.linea_servicio" class="w-full" />
+              <Input v-model="dialogEdit.form.linea_servicio" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">ID del router</label>
-              <InputText v-model="dialogEdit.form.id_router" class="w-full" />
+              <Input v-model="dialogEdit.form.id_router" />
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Número de kit</label>
-              <InputText v-model="dialogEdit.form.numero_kit" class="w-full" />
+              <Input v-model="dialogEdit.form.numero_kit" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-muted-foreground">Latencia</label>
-              <InputNumber v-model="dialogEdit.form.latencia_ms" suffix=" ms" :useGrouping="false" class="w-full" />
+              <label class="text-xs font-medium text-muted-foreground">Latencia (ms)</label>
+              <NumberField :step-snapping="false" v-model="dialogEdit.form.latencia_ms" :format-options="{ useGrouping: false }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Seguridad del wifi</label>
-              <Select v-model="dialogEdit.form.wifi_seguridad"
-                :options="[{label:'WPA2',value:'WPA2'},{label:'WPA3',value:'WPA3'},{label:'WPA2/WPA3',value:'WPA2/WPA3'},{label:'WPA3-OWE',value:'WPA3-OWE'},{label:'Remoto RADIUS',value:'Remoto RADIUS'},{label:'A bordo RADIUS',value:'A bordo RADIUS'},{label:'Abierta',value:'Abierta'}]"
-                optionLabel="label" optionValue="value" showClear placeholder="Selecciona…" class="w-full" />
+              <Select :model-value="aValorSelect(dialogEdit.form.wifi_seguridad)"
+                @update:model-value="dialogEdit.form.wifi_seguridad = deValorSelect($event) || null">
+                <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                  <SelectItem v-for="w in WIFI_SEGURIDAD" :key="w" :value="w">{{ w }}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs font-medium text-muted-foreground">Contraseña wifi</label>
-              <InputText v-model="dialogEdit.form.wifi_password" class="w-full" />
+              <Input v-model="dialogEdit.form.wifi_password" />
             </div>
           </div>
           <div class="flex flex-col gap-1">
@@ -965,32 +938,38 @@
         </template>
         <div v-if="dialogEdit.tipo === 'arriendo'" class="flex flex-col gap-1">
           <label class="text-xs font-medium text-muted-foreground">Periodicidad de cobro</label>
-          <Select v-model="dialogEdit.form.periodicidad_pago" :options="PERIODICIDADES"
-            optionLabel="label" optionValue="value" class="w-full" placeholder="Selecciona…" />
+          <Select v-model="dialogEdit.form.periodicidad_pago">
+            <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+            </SelectContent>
+          </Select>
           <p class="text-xs text-muted-foreground">Define en qué meses se cobra en el panel de Costos.</p>
         </div>
-        <div v-if="dialogEdit.tipo === 'arriendo'" class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-muted-foreground">¿Responsable de IVA?</label>
-          <Select v-model="dialogEdit.form.responsable_iva" :options="[{label:'Sí',value:true},{label:'No',value:false}]"
-            optionLabel="label" optionValue="value" class="w-full" />
-        </div>
+        <label v-if="dialogEdit.tipo === 'arriendo'" class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+          <Checkbox v-model="dialogEdit.form.responsable_iva" /> Responsable de IVA
+        </label>
         <div v-if="dialogEdit.tipo !== 'internet'" class="flex flex-col gap-1">
           <label class="text-xs font-medium text-muted-foreground">Estado del pago</label>
-          <Select v-model="dialogEdit.form.estado_pago" :options="ESTADO_PAGO_OPCIONES"
-            optionLabel="label" optionValue="value" placeholder="Sin definir" showClear class="w-full" />
+          <Select :model-value="aValorSelect(dialogEdit.form.estado_pago)"
+            @update:model-value="dialogEdit.form.estado_pago = deValorSelect($event) || null">
+            <SelectTrigger class="w-full"><SelectValue placeholder="Sin definir" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+              <SelectItem v-for="o in ESTADO_PAGO_OPCIONES" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-muted-foreground">Enlace en Drive</label>
-          <InputText v-model="dialogEdit.form.enlace_drive"
-            placeholder="https://drive.google.com/…" class="w-full" />
+          <Input v-model="dialogEdit.form.enlace_drive" placeholder="https://drive.google.com/…" />
         </div>
       </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="dialogEdit.visible = false" />
-        <Button :class="DIALOG_EDIT_BG[dialogEdit.tipo]" label="Guardar cambios" :loading="guardandoContrato" @click="saveContrato">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
-      </template>
+      <DialogFooter>
+        <Button variant="ghost" @click="dialogEdit.visible = false">Cancelar</Button>
+        <Button :disabled="guardandoContrato" :class="DIALOG_EDIT_BG[dialogEdit.tipo]" @click="saveContrato"><Spinner v-if="guardandoContrato" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar cambios</Button>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
 
   </div>
@@ -1000,16 +979,7 @@
 import { ArrowLeftIcon, BoxIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CheckIcon, ChevronDownIcon, CirclePlusIcon, CreditCardIcon, DatabaseIcon, DollarSignIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, FileIcon, FileInputIcon, FileOutputIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, GaugeIcon, HouseIcon, LinkIcon, LockIcon, MonitorIcon, NetworkIcon, PencilIcon, PlusIcon, ShieldIcon, TableIcon, Trash2Icon, UserIcon, UsersIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import TabView from 'primevue/tabview'
-import TabPanel from 'primevue/tabpanel'
-import Button from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import Textarea from 'primevue/textarea'
-import Dialog from 'primevue/dialog'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
@@ -1053,6 +1023,11 @@ const ESTADOS_MANT = [
   { label: 'Terminado',     value: 'terminado' },
 ]
 
+const FORMATO_COP = { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }
+
+const TIPOS_CONEXION = ['Starlink', 'Fibra', '4G', 'Otro']
+const WIFI_SEGURIDAD = ['WPA2', 'WPA3', 'WPA2/WPA3', 'WPA3-OWE', 'Remoto RADIUS', 'A bordo RADIUS', 'Abierta']
+
 const PERIODICIDADES = [
   { label: 'Mensual',    value: 'mensual' },
   { label: 'Bimestral',  value: 'bimestral' },
@@ -1062,7 +1037,7 @@ const PERIODICIDADES = [
 ]
 
 const TABS_TIPOS = ['mantenimiento', 'arriendo', 'internet']
-const activeIndex = ref(Math.max(0, TABS_TIPOS.indexOf(route.query.subtab)))
+const pestana = ref(TABS_TIPOS.includes(route.query.subtab) ? route.query.subtab : TABS_TIPOS[0])
 
 const DIALOG_EDIT_TEXT = { mantenimiento: 'text-warning', arriendo: 'text-primary', internet: 'text-chart-2' }
 const DIALOG_EDIT_BG = { mantenimiento: 'bg-warning border-warning', arriendo: 'bg-primary border-primary', internet: 'bg-chart-2 border-chart-2' }
@@ -1268,12 +1243,12 @@ function openEditContrato(tipo) {
   if (!c) return
   dialogEdit.tipo = tipo
   dialogEdit.form.tarifa_base = c.tarifa_base
-  dialogEdit.form.fecha_firma_contrato = c.fecha_firma_contrato ? new Date(c.fecha_firma_contrato) : null
-  dialogEdit.form.fecha_inicio = c.fecha_inicio ? new Date(c.fecha_inicio) : null
+  dialogEdit.form.fecha_firma_contrato = aFecha(c.fecha_firma_contrato)
+  dialogEdit.form.fecha_inicio = aFecha(c.fecha_inicio)
   dialogEdit.form.enlace_drive = c.enlace_drive || ''
   dialogEdit.form.estado_pago = c.estado_pago || null
   dialogEdit.form.periodicidad_pago = c.periodicidad_pago || 'mensual'
-  dialogEdit.form.fecha_inicio_om = c.fecha_inicio_om ? new Date(c.fecha_inicio_om) : null
+  dialogEdit.form.fecha_inicio_om = aFecha(c.fecha_inicio_om)
   dialogEdit.form.responsable_iva = c.responsable_iva ?? false
   dialogEdit.form.plan_datos_gb = c.plan_datos_gb || ''
   dialogEdit.form.velocidad_mbps = c.velocidad_mbps ?? null
@@ -1377,9 +1352,8 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.contratante_nombre = c.contratante_nombre || ''
     dialogMant.form.prestador_id       = c.prestador_id ?? null
     dialogMant.form.prestador_nombre   = c.prestador_nombre   || ''
-    dialogMant.form.fecha_inicio_om    = c.fecha_inicio_om ? new Date(c.fecha_inicio_om)
-                                        : (c.fecha_inicio ? new Date(c.fecha_inicio) : null)
-    dialogMant.form.fecha_firma_contrato = c.fecha_firma_contrato ? new Date(c.fecha_firma_contrato) : null
+    dialogMant.form.fecha_inicio_om    = aFecha(c.fecha_inicio_om || c.fecha_inicio)
+    dialogMant.form.fecha_firma_contrato = aFecha(c.fecha_firma_contrato)
     dialogMant.form.tarifa_base        = c.tarifa_base ?? null
     dialogMant.form.tarifa_mensual     = c.tarifa_mensual ?? (c.tarifa_base != null ? Math.round(c.tarifa_base / 12) : null)
     dialogMant.form.enlace_drive       = c.enlace_drive || ''
@@ -1509,7 +1483,7 @@ async function cargarDesdeExcel(event) {
       dialogMant.form[`${rol}_id`]     = cliente?.id ?? null
       dialogMant.form[`${rol}_nombre`] = cliente?.razon_social_nombre ?? texto
     }
-    dialogMant.form.fecha_inicio_om    = parseFecha(fila['Fecha de inicio O&M'])
+    dialogMant.form.fecha_inicio_om    = parseFecha(fila['Fecha de inicio O&M'])?.toISOString().slice(0, 10) ?? null
     dialogMant.form.tarifa_base        = parseNum(fila['Valor O&M Anual (BASE)'])
     const mensualExcel                 = parseNum(fila['Valor mensual'])
     dialogMant.form.tarifa_mensual     = mensualExcel ?? (dialogMant.form.tarifa_base != null ? Math.round(dialogMant.form.tarifa_base / 12) : null)
@@ -1595,8 +1569,8 @@ function openArrendadorDialog(modo, arrendador = null) {
   arrendadorDialog.form.valor_base = arrendador?.valor_base ?? null
   arrendadorDialog.form.responsable_iva = arrendador?.responsable_iva ?? false
   arrendadorDialog.form.activo = arrendador?.activo ?? true
-  arrendadorDialog.form.anticipo_pagado_desde = arrendador?.anticipo_pagado_desde ? new Date(arrendador.anticipo_pagado_desde) : null
-  arrendadorDialog.form.anticipo_pagado_hasta = arrendador?.anticipo_pagado_hasta ? new Date(arrendador.anticipo_pagado_hasta) : null
+  arrendadorDialog.form.anticipo_pagado_desde = aFecha(arrendador?.anticipo_pagado_desde)
+  arrendadorDialog.form.anticipo_pagado_hasta = aFecha(arrendador?.anticipo_pagado_hasta)
   arrendadorDialog.form.observaciones = arrendador?.observaciones || ''
   arrendadorDialog.visible = true
 }
@@ -1654,6 +1628,11 @@ async function eliminarArrendador(arrendador) {
 }
 
 // ── Helpers de formato ────────────────────────────────────────────────────────
+/** Fecha del API → 'aaaa-mm-dd', que es lo que usa `DatePicker`. */
+function aFecha(f) {
+  return f ? String(f).slice(0, 10) : null
+}
+
 function formatFecha(f) {
   if (!f) return '—'
   return String(f).slice(0, 10)
@@ -1669,10 +1648,9 @@ function formatFecha(f) {
 import { computed, ref, toRefs } from 'vue'
 import { GBadge } from '~/components/gandalf/base/badge'
 import { formatCOP } from '~/utils/currency'
-import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Select from 'primevue/select'
+import DataTable from '~/components/blocks/DataTable.vue'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 
 const MESES_NOMBRES_STATIC = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -1844,9 +1822,26 @@ const Acordeon = {
   `,
 }
 
+const COLUMNAS_COBRADAS = [
+  { key: 'mes', header: 'Mes', class: 'min-w-24' },
+  { key: 'proyecto', header: 'Proyecto', class: 'min-w-32' },
+  { key: 'inversionista', header: 'Inversionista', class: 'min-w-32' },
+  { key: 'monto', header: 'Monto', class: 'min-w-36' },
+  { key: 'nroFactura', header: 'N° Factura', class: 'min-w-28' },
+  { key: 'soporte', header: 'Soporte', class: 'text-center' },
+]
+
+const COLUMNAS_EMITIDAS = [
+  { key: 'fecha', header: 'Fecha', class: 'min-w-28' },
+  { key: 'proyecto', header: 'Proyecto', class: 'min-w-32' },
+  { key: 'nroFactura', header: 'N° Factura', class: 'min-w-28' },
+  { key: 'monto', header: 'Monto', class: 'min-w-36' },
+  { key: 'soporte', header: 'Soporte', class: 'text-center' },
+]
+
 // Acordeón 1: Facturas cobradas
 const FacturasCobradas = {
-  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
+  components: { DataTable, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Acordeon, FileIcon, FilterIcon, XIcon },
   props: {
     datos: { type: Array, default: () => [] },
     proyectoNombre: String,
@@ -1872,6 +1867,11 @@ const FacturasCobradas = {
       AÑOS_STATIC,
       MESES_OPCIONES_STATIC,
       MESES_NOMBRES_STATIC,
+      COLUMNAS: COLUMNAS_COBRADAS,
+      FileInputIcon,
+      aValorSelect,
+      deValorSelect,
+      VALOR_SELECT_VACIO,
       datosFiltrados,
       hayFiltros,
       limpiarFiltros,
@@ -1885,11 +1885,22 @@ const FacturasCobradas = {
           <FilterIcon class="text-muted-foreground size-3" />
           <span class="text-xs text-muted-foreground font-medium">Filtrar por:</span>
         </div>
-        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm h-8 min-w-24" />
-        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
-          optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm h-8 min-w-28" />
+        <Select :model-value="aValorSelect(filtroAño != null ? String(filtroAño) : null)"
+          @update:model-value="v => { const a = deValorSelect(v); filtroAño = a ? Number(a) : null }">
+          <SelectTrigger size="sm" class="min-w-24"><SelectValue placeholder="Año" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="a in AÑOS_STATIC" :key="a" :value="String(a)">{{ a }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select :model-value="aValorSelect(filtroMes != null ? String(filtroMes) : null)"
+          @update:model-value="v => { const m = deValorSelect(v); filtroMes = m ? Number(m) : null }">
+          <SelectTrigger size="sm" class="min-w-28"><SelectValue placeholder="Mes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="m in MESES_OPCIONES_STATIC" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+          </SelectContent>
+        </Select>
         <button v-if="hayFiltros" type="button"
           class="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1 transition-colors"
           @click="limpiarFiltros">
@@ -1899,31 +1910,20 @@ const FacturasCobradas = {
           {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
         </span>
       </div>
-      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
-        emptyMessage="Sin facturas cobradas registradas.">
-        <Column class="min-w-24" header="Mes">
-          <template #body="{ data }">
-            <span class="font-medium text-foreground">{{ MESES_NOMBRES_STATIC[data.mes] ?? data.mes }}</span>
-          </template>
-        </Column>
-        <Column class="min-w-32" field="proyecto" header="Proyecto" />
-        <Column class="min-w-32" field="inversionista" header="Inversionista" />
-        <Column class="min-w-36" header="Monto">
-          <template #body="{ data }">
-            <span class="font-semibold tabular-nums text-foreground">{{ formatCOP(data.monto) }}</span>
-          </template>
-        </Column>
-        <Column class="min-w-28" field="nroFactura" header="N° Factura" />
-        <Column header="Soporte" bodyClass="text-center">
-          <template #body="{ data }">
-            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
+      <DataTable :columns="COLUMNAS" :rows="datosFiltrados" empty-message="Sin facturas cobradas registradas.">
+        <template #cell="{ row, column }">
+          <span v-if="column.key === 'mes'" class="font-medium text-foreground">{{ MESES_NOMBRES_STATIC[row.mes] ?? row.mes }}</span>
+          <span v-else-if="column.key === 'monto'" class="font-semibold tabular-nums text-foreground">{{ formatCOP(row.monto) }}</span>
+          <template v-else-if="column.key === 'soporte'">
+            <a v-if="row.soporteUrl" :href="row.soporteUrl" target="_blank" rel="noopener noreferrer"
               class="inline-flex items-center justify-center size-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
               title="Ver soporte">
               <FileIcon class="size-4" />
             </a>
             <span v-else class="text-muted-foreground text-sm">—</span>
           </template>
-        </Column>
+          <template v-else>{{ row[column.key] }}</template>
+        </template>
       </DataTable>
     </Acordeon>
   `,
@@ -1931,7 +1931,7 @@ const FacturasCobradas = {
 
 // Acordeón 2: Facturas emitidas
 const FacturasEmitidas = {
-  components: { DataTable, Column, Select, Acordeon, FileIcon, FilterIcon, XIcon },
+  components: { DataTable, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Acordeon, FileIcon, FilterIcon, XIcon },
   props: {
     datos: { type: Array, default: () => [] },
     proyectoNombre: String,
@@ -1966,6 +1966,11 @@ const FacturasEmitidas = {
       filtroMes,
       AÑOS_STATIC,
       MESES_OPCIONES_STATIC,
+      COLUMNAS: COLUMNAS_EMITIDAS,
+      FileOutputIcon,
+      aValorSelect,
+      deValorSelect,
+      VALOR_SELECT_VACIO,
       datosFiltrados,
       hayFiltros,
       limpiarFiltros,
@@ -1979,11 +1984,22 @@ const FacturasEmitidas = {
           <FilterIcon class="text-muted-foreground size-3" />
           <span class="text-xs text-muted-foreground font-medium">Filtrar por:</span>
         </div>
-        <Select v-model="filtroAño" :options="AÑOS_STATIC" placeholder="Año"
-          showClear class="text-sm h-8 min-w-24" />
-        <Select v-model="filtroMes" :options="MESES_OPCIONES_STATIC"
-          optionLabel="label" optionValue="value" placeholder="Mes"
-          showClear class="text-sm h-8 min-w-28" />
+        <Select :model-value="aValorSelect(filtroAño != null ? String(filtroAño) : null)"
+          @update:model-value="v => { const a = deValorSelect(v); filtroAño = a ? Number(a) : null }">
+          <SelectTrigger size="sm" class="min-w-24"><SelectValue placeholder="Año" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="a in AÑOS_STATIC" :key="a" :value="String(a)">{{ a }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select :model-value="aValorSelect(filtroMes != null ? String(filtroMes) : null)"
+          @update:model-value="v => { const m = deValorSelect(v); filtroMes = m ? Number(m) : null }">
+          <SelectTrigger size="sm" class="min-w-28"><SelectValue placeholder="Mes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="m in MESES_OPCIONES_STATIC" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+          </SelectContent>
+        </Select>
         <button v-if="hayFiltros" type="button"
           class="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1 transition-colors"
           @click="limpiarFiltros">
@@ -1993,26 +2009,19 @@ const FacturasEmitidas = {
           {{ datosFiltrados.length }} resultado{{ datosFiltrados.length !== 1 ? 's' : '' }}
         </span>
       </div>
-      <DataTable :value="datosFiltrados" stripedRows rowHover class="text-sm"
-        emptyMessage="Sin facturas emitidas registradas.">
-        <Column class="min-w-28" field="fecha" header="Fecha" />
-        <Column class="min-w-32" field="proyecto" header="Proyecto" />
-        <Column class="min-w-28" field="nroFactura" header="N° Factura" />
-        <Column class="min-w-36" header="Monto">
-          <template #body="{ data }">
-            <span class="font-semibold tabular-nums text-foreground">{{ formatCOP(data.monto) }}</span>
-          </template>
-        </Column>
-        <Column header="Soporte" bodyClass="text-center">
-          <template #body="{ data }">
-            <a v-if="data.soporteUrl" :href="data.soporteUrl" target="_blank" rel="noopener noreferrer"
+      <DataTable :columns="COLUMNAS" :rows="datosFiltrados" empty-message="Sin facturas emitidas registradas.">
+        <template #cell="{ row, column }">
+          <span v-if="column.key === 'monto'" class="font-semibold tabular-nums text-foreground">{{ formatCOP(row.monto) }}</span>
+          <template v-else-if="column.key === 'soporte'">
+            <a v-if="row.soporteUrl" :href="row.soporteUrl" target="_blank" rel="noopener noreferrer"
               class="inline-flex items-center justify-center size-7 rounded-lg transition-colors hover:bg-warning/10 text-warning"
               title="Ver soporte">
               <FileIcon class="size-4" />
             </a>
             <span v-else class="text-muted-foreground text-sm">—</span>
           </template>
-        </Column>
+          <template v-else>{{ row[column.key] }}</template>
+        </template>
       </DataTable>
     </Acordeon>
   `,
