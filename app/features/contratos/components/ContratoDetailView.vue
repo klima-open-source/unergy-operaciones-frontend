@@ -11,12 +11,10 @@
       <template #acciones>
         <!-- Atajo al contrato: el enlace se guarda en la pestaña Datos -->
         <a v-if="enlaceContrato" :href="enlaceContrato" target="_blank" rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-warning/30 bg-warning/10 text-xs font-semibold text-warning transition-colors duration-150 hover:bg-warning/20" v-tooltip.bottom="'Abrir el contrato en Drive'">
+          class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-warning/30 bg-warning/10 text-xs font-semibold text-warning transition-colors duration-150 hover:bg-warning/20" title="Abrir el contrato en Drive">
           <ExternalLinkIcon class="size-4" />Contrato
         </a>
-        <Button label="Editar contrato" severity="secondary" outlined size="small" @click="abrirEdicionCompleta">
-          <template #icon><PencilIcon class="size-4" /></template>
-        </Button>
+        <Button variant="outline" size="sm" @click="abrirEdicionCompleta"><PencilIcon class="size-4" /> Editar contrato</Button>
       </template>
       <template #default="{ tab }">
       <!-- ══ DATOS ══ -->
@@ -64,14 +62,10 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><IdCardIcon class="size-3 text-primary" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Identificación</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="!editandoId" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionId">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="!editandoId" @click="iniciarEdicionId"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="cancelarEdicionId" />
-                <Button label="Guardar" size="small" :loading="guardandoId" @click="guardarId">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="cancelarEdicionId">Cancelar</Button>
+                <Button size="sm" :disabled="guardandoId" @click="guardarId"><Spinner v-if="guardandoId" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
               </template>
             </div>
           </header>
@@ -93,12 +87,12 @@
             <!-- Modo edición -->
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Nombre interno</label>
-                <InputText v-model="formId.nombre_interno" placeholder="Ej: Terpel 1" class="w-full" />
+                <GLabel>Nombre interno</GLabel>
+                <Input v-model="formId.nombre_interno" placeholder="Ej: Terpel 1" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Número de contrato</label>
-                <InputText v-model="formId.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" class="w-full" />
+                <GLabel>Número de contrato</GLabel>
+                <Input v-model="formId.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" />
               </div>
             </div>
           </div>
@@ -110,17 +104,10 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10"><UsersIcon class="size-3 text-primary" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Partes del contrato</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="!editandoPartes" label="Editar" size="small" text severity="secondary" @click="iniciarEdicionPartes">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="!editandoPartes" @click="iniciarEdicionPartes"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="cancelarEdicionPartes" />
-                <Button label="Guardar" size="small" :loading="guardandoPartes"
-                  :disabled="!formPartes.comprador_id || !formPartes.vendedor_id"
-                  v-tooltip="(formPartes.comprador_id && formPartes.vendedor_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
-                  @click="guardarPartes">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="cancelarEdicionPartes">Cancelar</Button>
+                <GTooltip :disabled="!((formPartes.comprador_id && formPartes.vendedor_id) ? undefined : 'Vincula las dos partes a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardandoPartes || (!formPartes.comprador_id || !formPartes.vendedor_id)" @click="guardarPartes"><Spinner v-if="guardandoPartes" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button></span></GTooltipTrigger><GTooltipContent>{{ (formPartes.comprador_id && formPartes.vendedor_id) ? undefined : 'Vincula las dos partes a un cliente registrado.' }}</GTooltipContent></GTooltip>
               </template>
             </div>
           </header>
@@ -222,16 +209,10 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><LinkIcon class="size-3 text-warning" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Documentos y enlaces</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="!editandoEnlace"
-                :label="enlaceContrato ? 'Editar' : 'Agregar enlace'"
-                size="small" text severity="secondary" @click="iniciarEdicionEnlace">
-                <template #icon><component :is="enlaceContrato ? PencilIcon : PlusIcon" class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="!editandoEnlace" @click="iniciarEdicionEnlace"><component :is="enlaceContrato ? PencilIcon : PlusIcon" class="size-4" /> {{ enlaceContrato ? 'Editar' : 'Agregar enlace' }}</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="editandoEnlace = false" />
-                <Button label="Guardar" size="small" :loading="guardandoEnlace" @click="guardarEnlace">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="editandoEnlace = false">Cancelar</Button>
+                <Button size="sm" :disabled="guardandoEnlace" @click="guardarEnlace"><Spinner v-if="guardandoEnlace" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
               </template>
             </div>
           </header>
@@ -255,8 +236,8 @@
             </div>
             <!-- Modo edición -->
             <div v-else class="flex flex-col gap-1 max-w-xl">
-              <label class="text-xs font-medium text-muted-foreground">Enlace al contrato (Drive, Dropbox, SharePoint…)</label>
-              <InputText v-model.trim="formEnlace.carpeta_link" class="w-full"
+              <GLabel>Enlace al contrato (Drive, Dropbox, SharePoint…)</GLabel>
+              <Input v-model.trim="formEnlace.carpeta_link"
                 placeholder="https://drive.google.com/…" @keyup.enter="guardarEnlace" />
               <small class="text-xs text-muted-foreground">
                 Debe empezar por <span class="font-mono">http://</span> o <span class="font-mono">https://</span>.
@@ -337,23 +318,20 @@
 
         <!-- Barra de acciones -->
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
-          <SelectButton v-if="!editandoCantidades" v-model="vistaCantidades" :options="VISTAS"
-            optionLabel="label" optionValue="value" size="small" />
+          <ToggleGroup v-if="!editandoCantidades" :model-value="vistaCantidades" type="single" variant="outline" size="sm"
+            @update:model-value="(x) => { if (x) vistaCantidades = x }">
+            <ToggleGroupItem v-for="o in VISTAS" :key="o.value" :value="o.value">{{ o.label }}</ToggleGroupItem>
+          </ToggleGroup>
           <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <UploadIcon class="size-4" />Cargar compromisos desde Excel
           </span>
           <div class="ml-auto flex items-center gap-1.5">
             <template v-if="!editandoCantidades">
-              <Button label="Editar" size="small" text severity="secondary" @click="editandoCantidades = true">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" @click="editandoCantidades = true"><PencilIcon class="size-4" /> Editar</Button>
             </template>
             <template v-else>
-              <Button label="Cancelar" size="small" text severity="secondary"
-                @click="editandoCantidades = false; energiaPaste = ''; energiaRows = []; energiaError = ''" />
-              <Button label="Guardar" size="small" :loading="guardandoCantidades" :disabled="!energiaRows.length" @click="guardarCantidades">
-                <template #icon><CheckIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" @click="editandoCantidades = false; energiaPaste = ''; energiaRows = []; energiaError = ''">Cancelar</Button>
+              <Button size="sm" :disabled="guardandoCantidades || !energiaRows.length" @click="guardarCantidades"><Spinner v-if="guardandoCantidades" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
             </template>
           </div>
         </div>
@@ -371,14 +349,10 @@
           </div>
           <Textarea v-model="energiaPaste" rows="7"
             placeholder="2024&#9;Enero&#9;90&#9;180&#9;4&#10;2024&#9;Febrero&#9;90&#9;180&#9;4"
-            class="w-full font-mono text-xs" @paste="onPasteEnergia" />
+            class="font-mono text-xs" @paste="onPasteEnergia" />
           <div class="flex items-center gap-2 flex-wrap">
-            <Button label="Procesar" size="small" severity="secondary" outlined @click="parseEnergia">
-              <template #icon><RefreshCwIcon class="size-4" /></template>
-            </Button>
-            <Button v-if="energiaRows.length" label="Limpiar" size="small" severity="danger" text @click="energiaRows = []; energiaPaste = ''; energiaError = ''">
-              <template #icon><XIcon class="size-4" /></template>
-            </Button>
+            <Button variant="outline" size="sm" @click="parseEnergia"><RefreshCwIcon class="size-4" /> Procesar</Button>
+            <Button variant="ghost" size="sm" v-if="energiaRows.length" @click="energiaRows = []; energiaPaste = ''; energiaError = ''"><XIcon class="size-4 text-destructive" /> Limpiar</Button>
             <span v-if="energiaRows.length" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-success/10 text-success">
               <CircleCheckIcon class="size-4" />{{ energiaRows.length }} filas listas
             </span>
@@ -419,54 +393,30 @@
             <p class="text-xs text-muted-foreground/70">Usa <strong>Editar</strong> para pegarlos desde Excel.</p>
           </div>
           <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
-            <DataTable
-              :value="vistaCantidades === 'anual' ? cantidadesAnuales : cantidadesMensuales"
-              stripedRows rowHover class="text-sm" paginator :rows="24"
-              :rowsPerPageOptions="[12, 24, 60, 120]"
-              paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-            >
-              <Column field="año" header="Año">
-                <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.año }}</span></template>
-              </Column>
-              <Column v-if="vistaCantidades === 'mensual'" header="Mes">
-                <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
-              </Column>
-              <Column :header="vistaCantidades === 'anual' ? 'Mín (MWh/año)' : 'Mín (MWh/mes)'"
-                headerClass="cd-th-der" bodyClass="text-right!">
-                <template #body="{ data }">
-                  <span class="font-mono tabular-nums font-semibold text-foreground">{{ fmtNum(data.energia_minima) }}</span>
-                </template>
-              </Column>
-              <Column :header="vistaCantidades === 'anual' ? 'Máx (MWh/año)' : 'Máx (MWh/mes)'"
-                headerClass="cd-th-der" bodyClass="text-right!">
-                <template #body="{ data }"><span class="font-mono tabular-nums">{{ fmtNum(data.energia_maxima) }}</span></template>
-              </Column>
-              <Column headerClass="cd-th-der" bodyClass="text-right!">
-                <template #header>
-                  <span v-tooltip.top="'Plantas registradas y despachando energía al contrato. La calcula la plataforma vía GESCON.'">
-                    {{ vistaCantidades === 'anual' ? 'Plantas inscritas (máx)' : 'Plantas inscritas' }}
-                  </span>
-                </template>
-                <template #body="{ data }">
-                  <span v-if="data.plantas_inscritas != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
-                    :class="plantasClase(data)">{{ data.plantas_inscritas }}</span>
+            <p class="px-3.5 pt-2.5 text-xs text-muted-foreground">
+              <strong>Plantas inscritas:</strong> registradas y despachando energía al contrato (la calcula la plataforma vía GESCON).
+            </p>
+            <DataTable :columns="columnasCantidades" :rows="paginaDe(filasCantidades, paginaCantidades)"
+              :page="paginaCantidades" :page-size="POR_PAGINA" :total="filasCantidades.length"
+              @update:page="paginaCantidades = $event">
+              <template #cell="{ row, column }">
+                <span v-if="column.key === 'año'" class="font-mono tabular-nums">{{ row.año }}</span>
+                <template v-else-if="column.key === 'mes'">{{ MESES[row.mes - 1] }}</template>
+                <span v-else-if="column.key === 'energia_minima'" class="font-mono tabular-nums font-semibold text-foreground">{{ fmtNum(row.energia_minima) }}</span>
+                <span v-else-if="column.key === 'energia_maxima'" class="font-mono tabular-nums">{{ fmtNum(row.energia_maxima) }}</span>
+                <template v-else-if="column.key === 'plantas_inscritas'">
+                  <span v-if="row.plantas_inscritas != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
+                    :class="plantasClase(row)">{{ row.plantas_inscritas }}</span>
                   <span v-else class="text-muted-foreground/50">—</span>
                 </template>
-              </Column>
-              <Column :header="vistaCantidades === 'anual' ? 'Plantas contrato (máx)' : 'Plantas contrato'"
-                headerClass="cd-th-der" bodyClass="text-right!">
-                <template #body="{ data }">
-                  <span class="font-mono tabular-nums">{{ data.cantidad_proyectos != null ? data.cantidad_proyectos : '—' }}</span>
-                </template>
-              </Column>
-              <Column header="Rango">
-                <template #body="{ data }">
-                  <span v-if="data.energia_minima > 0 && data.energia_maxima != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-primary/10 text-primary">
-                    {{ ((data.energia_maxima / data.energia_minima - 1) * 100).toFixed(0) }}% flex
+                <span v-else-if="column.key === 'cantidad_proyectos'" class="font-mono tabular-nums">{{ row.cantidad_proyectos != null ? row.cantidad_proyectos : '—' }}</span>
+                <template v-else-if="column.key === 'rango'">
+                  <span v-if="row.energia_minima > 0 && row.energia_maxima != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-primary/10 text-primary">
+                    {{ ((row.energia_maxima / row.energia_minima - 1) * 100).toFixed(0) }}% flex
                   </span>
                   <span v-else class="text-muted-foreground/50">—</span>
                 </template>
-              </Column>
+              </template>
             </DataTable>
           </div>
         </template>
@@ -506,23 +456,20 @@
 
         <!-- Barra de acciones -->
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
-          <SelectButton v-if="!editandoTarifas" v-model="vistaTarifas" :options="VISTAS"
-            optionLabel="label" optionValue="value" size="small" />
+          <ToggleGroup v-if="!editandoTarifas" :model-value="vistaTarifas" type="single" variant="outline" size="sm"
+            @update:model-value="(x) => { if (x) vistaTarifas = x }">
+            <ToggleGroupItem v-for="o in VISTAS" :key="o.value" :value="o.value">{{ o.label }}</ToggleGroupItem>
+          </ToggleGroup>
           <span v-else class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <UploadIcon class="size-4" />Cargar tarifas desde Excel
           </span>
           <div class="ml-auto flex items-center gap-1.5">
             <template v-if="!editandoTarifas">
-              <Button label="Editar" size="small" text severity="secondary" @click="editandoTarifas = true">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" @click="editandoTarifas = true"><PencilIcon class="size-4" /> Editar</Button>
             </template>
             <template v-else>
-              <Button label="Cancelar" size="small" text severity="secondary"
-                @click="editandoTarifas = false; tarifasPaste = ''; tarifasRows = []; tarifasError = ''" />
-              <Button label="Guardar" size="small" :loading="guardandoTarifas" :disabled="!tarifasRows.length" @click="guardarTarifas">
-                <template #icon><CheckIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" @click="editandoTarifas = false; tarifasPaste = ''; tarifasRows = []; tarifasError = ''">Cancelar</Button>
+              <Button size="sm" :disabled="guardandoTarifas || !tarifasRows.length" @click="guardarTarifas"><Spinner v-if="guardandoTarifas" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
             </template>
           </div>
         </div>
@@ -538,14 +485,10 @@
           </div>
           <Textarea v-model="tarifasPaste" rows="7"
             placeholder="2024&#9;Enero&#9;460&#10;2024&#9;Febrero&#9;460"
-            class="w-full font-mono text-xs" @paste="onPasteTarifas" />
+            class="font-mono text-xs" @paste="onPasteTarifas" />
           <div class="flex items-center gap-2 flex-wrap">
-            <Button label="Procesar" size="small" severity="secondary" outlined @click="parseTarifas">
-              <template #icon><RefreshCwIcon class="size-4" /></template>
-            </Button>
-            <Button v-if="tarifasRows.length" label="Limpiar" size="small" severity="danger" text @click="tarifasRows = []; tarifasPaste = ''; tarifasError = ''">
-              <template #icon><XIcon class="size-4" /></template>
-            </Button>
+            <Button variant="outline" size="sm" @click="parseTarifas"><RefreshCwIcon class="size-4" /> Procesar</Button>
+            <Button variant="ghost" size="sm" v-if="tarifasRows.length" @click="tarifasRows = []; tarifasPaste = ''; tarifasError = ''"><XIcon class="size-4 text-destructive" /> Limpiar</Button>
             <span v-if="tarifasRows.length" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-success/10 text-success">
               <CircleCheckIcon class="size-4" />{{ tarifasRows.length }} filas listas
             </span>
@@ -580,34 +523,27 @@
             <p class="text-xs text-muted-foreground/70">Usa <strong>Editar</strong> para pegarlas desde Excel.</p>
           </div>
           <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
-            <DataTable
-              :value="vistaTarifas === 'anual' ? tarifasAnuales : tarifasMensuales"
-              stripedRows rowHover class="text-sm" paginator :rows="24"
-              :rowsPerPageOptions="[12, 24, 60, 120]"
-              paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-            >
-              <Column field="año" header="Año">
-                <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.año }}</span></template>
-              </Column>
-              <Column v-if="vistaTarifas === 'mensual'" header="Mes">
-                <template #body="{ data }">{{ MESES[data.mes - 1] }}</template>
-              </Column>
-              <Column header="Tarifa (COP/kWh)" headerClass="cd-th-der" bodyClass="text-right!">
-                <template #body="{ data }">
-                  <span class="font-mono tabular-nums font-semibold text-warning">{{ fmtCOP(data.tarifa) }}</span>
-                  <span v-if="vistaTarifas === 'anual' && !data._uniforme" class="text-muted-foreground/50 ml-1">prom.</span>
+            <DataTable :columns="columnasTarifas" :rows="paginaDe(filasTarifas, paginaTarifas)"
+              :page="paginaTarifas" :page-size="POR_PAGINA" :total="filasTarifas.length"
+              @update:page="paginaTarifas = $event">
+              <template #cell="{ row, column }">
+                <span v-if="column.key === 'año'" class="font-mono tabular-nums">{{ row.año }}</span>
+                <template v-else-if="column.key === 'mes'">{{ MESES[row.mes - 1] }}</template>
+                <template v-else-if="column.key === 'tarifa'">
+                  <span class="font-mono tabular-nums font-semibold text-warning">{{ fmtCOP(row.tarifa) }}</span>
+                  <span v-if="vistaTarifas === 'anual' && !row._uniforme" class="text-muted-foreground/50 ml-1">prom.</span>
                 </template>
-              </Column>
-              <Column header="Variación" headerClass="cd-th-der" bodyClass="text-right!">
-                <template #body="{ data, index }">
-                  <span v-if="index > 0 && currentTarifas[index - 1]?.tarifa != null && data.tarifa != null"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums text-(--c)! bg-(--bg)!" :style="{ '--c': varColor(varPct(currentTarifas[index-1].tarifa, data.tarifa)), '--bg': varBg(varPct(currentTarifas[index-1].tarifa, data.tarifa)) }">
-                    <component :is="varIcono(varPct(currentTarifas[index-1].tarifa, data.tarifa))" class="size-3" />
-                    {{ variacion(currentTarifas[index-1].tarifa, data.tarifa) }}
+                <template v-else-if="column.key === 'variacion'">
+                  <!-- Contra la fila anterior de la lista COMPLETA (`_anterior`), no
+                       de la página: con paginación el índice de la fila no sirve. -->
+                  <span v-if="row._anterior != null && row.tarifa != null"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums text-(--c)! bg-(--bg)!" :style="{ '--c': varColor(varPct(row._anterior, row.tarifa)), '--bg': varBg(varPct(row._anterior, row.tarifa)) }">
+                    <component :is="varIcono(varPct(row._anterior, row.tarifa))" class="size-3" />
+                    {{ variacion(row._anterior, row.tarifa) }}
                   </span>
                   <span v-else class="text-muted-foreground/50">—</span>
                 </template>
-              </Column>
+              </template>
             </DataTable>
           </div>
         </template>
@@ -645,9 +581,11 @@
 
         <!-- Barra de acciones -->
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
-          <SelectButton v-model="vistaAsic" size="small"
-            :options="[{ label: 'Vigentes', value: 'vigentes' }, { label: 'Históricos', value: 'historicos' }]"
-            optionLabel="label" optionValue="value" />
+          <ToggleGroup :model-value="vistaAsic" type="single" variant="outline" size="sm"
+            @update:model-value="(x) => { if (x) vistaAsic = x }">
+            <ToggleGroupItem value="vigentes">Vigentes</ToggleGroupItem>
+            <ToggleGroupItem value="historicos">Históricos</ToggleGroupItem>
+          </ToggleGroup>
           <div class="ml-auto flex items-center gap-1.5">
             <span class="text-xs text-muted-foreground">{{ asicFiltrados.length }} de {{ asicRows.length }} registros</span>
           </div>
@@ -667,55 +605,28 @@
           </p>
         </div>
         <div v-else class="cd-tabla border border-border rounded-xl overflow-hidden bg-card">
-          <DataTable :value="asicFiltrados" stripedRows rowHover class="text-sm"
-            sortField="fecha_solicitud" :sortOrder="-1">
-            <Column field="codigo_sic_contrato" header="Código SIC" sortable>
-              <template #body="{ data }">
-                <span class="font-mono tabular-nums">{{ data.codigo_sic_contrato || '—' }}</span>
-              </template>
-            </Column>
-            <Column field="planta_nombre" header="Planta" sortable>
-              <template #body="{ data }">
-                <router-link v-if="data.proyecto_id" :to="`/proyectos/${data.proyecto_id}`" class="font-medium text-primary hover:underline underline-offset-2">
-                  {{ data.planta_nombre || data.proyecto_id }}
+          <DataTable :columns="COLUMNAS_ASIC" :rows="asicOrdenados" :sort="ordenAsic"
+            @update:sort="ordenAsic = $event">
+            <template #cell="{ row, column }">
+              <span v-if="column.key === 'codigo_sic_contrato'" class="font-mono tabular-nums">{{ row.codigo_sic_contrato || '—' }}</span>
+              <template v-else-if="column.key === 'planta_nombre'">
+                <router-link v-if="row.proyecto_id" :to="`/proyectos/${row.proyecto_id}`" class="font-medium text-primary hover:underline underline-offset-2">
+                  {{ row.planta_nombre || row.proyecto_id }}
                 </router-link>
                 <span v-else class="text-muted-foreground/50">—</span>
               </template>
-            </Column>
-            <Column field="tipo_solicitud" header="Tipo">
-              <template #body="{ data }">
-                <GBadge :color="{ registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'default' }[data.tipo_solicitud] || 'default'" class="text-xs capitalize">{{ data.tipo_solicitud }}</GBadge>
-              </template>
-            </Column>
-            <Column field="estado_solicitud" header="Estado">
-              <template #body="{ data }">
-                <GBadge :color="{ publicado: 'success', en_proceso: 'warning', rechazado: 'destructive', desistido: 'default' }[data.estado_solicitud] || 'default'" class="text-xs capitalize">{{ data.estado_solicitud.replace('_', ' ') }}</GBadge>
-              </template>
-            </Column>
-            <Column field="fecha_inicio" header="Inicio" sortable>
-              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_inicio || '—' }}</span></template>
-            </Column>
-            <Column field="fecha_fin" header="Fin" sortable>
-              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_fin || '—' }}</span></template>
-            </Column>
-            <Column field="porcentaje_despacho" header="% Despacho"
-              headerClass="cd-th-der" bodyClass="text-right!">
-              <template #body="{ data }">
-                <span v-if="data.porcentaje_despacho != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
-                  :class="data.porcentaje_despacho > 100 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'">
-                  {{ Number(data.porcentaje_despacho).toFixed(1) }}%
+              <GBadge v-else-if="column.key === 'tipo_solicitud'" :color="{ registro: 'success', modificacion: 'information', terminacion: 'destructive', desistimiento: 'default' }[row.tipo_solicitud] || 'default'" class="text-xs capitalize">{{ row.tipo_solicitud }}</GBadge>
+              <GBadge v-else-if="column.key === 'estado_solicitud'" :color="{ publicado: 'success', en_proceso: 'warning', rechazado: 'destructive', desistido: 'default' }[row.estado_solicitud] || 'default'" class="text-xs capitalize">{{ String(row.estado_solicitud).replace('_', ' ') }}</GBadge>
+              <span v-else-if="['fecha_inicio', 'fecha_fin', 'fecha_solicitud'].includes(column.key)" class="font-mono tabular-nums">{{ row[column.key] || '—' }}</span>
+              <template v-else-if="column.key === 'porcentaje_despacho'">
+                <span v-if="row.porcentaje_despacho != null" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums"
+                  :class="row.porcentaje_despacho > 1 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'">
+                  {{ (Number(row.porcentaje_despacho) * 100).toFixed(1) }}%
                 </span>
                 <span v-else class="text-muted-foreground/50">—</span>
               </template>
-            </Column>
-            <Column field="fecha_solicitud" header="F. solicitud" sortable>
-              <template #body="{ data }"><span class="font-mono tabular-nums">{{ data.fecha_solicitud || '—' }}</span></template>
-            </Column>
-            <Column header="Observaciones">
-              <template #body="{ data }">
-                <span class="text-xs text-muted-foreground">{{ data.observaciones || '—' }}</span>
-              </template>
-            </Column>
+              <span v-else-if="column.key === 'observaciones'" class="text-xs text-muted-foreground">{{ row.observaciones || '—' }}</span>
+            </template>
           </DataTable>
         </div>
       </div>
@@ -729,9 +640,7 @@
             {{ (contrato.proyectos?.length === 1) ? 'planta asociada' : 'plantas asociadas' }}
           </span>
           <div class="ml-auto flex items-center gap-1.5">
-            <Button label="Asociar proyecto" size="small" severity="secondary" outlined @click="abrirAsociar">
-              <template #icon><PlusIcon class="size-4" /></template>
-            </Button>
+            <Button variant="outline" size="sm" @click="abrirAsociar"><PlusIcon class="size-4" /> Asociar proyecto</Button>
           </div>
         </div>
 
@@ -763,26 +672,23 @@
       @creado="onWizardCreado" />
 
     <!-- Dialog asociar proyecto -->
-    <Dialog v-model:visible="showAsociar" header="Asociar proyecto" modal class="w-full max-w-md">
-      <div class="flex flex-col gap-2 pt-1">
-        <label class="text-xs font-medium text-muted-foreground">Buscar proyecto</label>
-        <Select
-          v-model="proyectoSeleccionado"
-          :options="todosProyectosDisponibles"
-          optionLabel="nombre_comercial"
-          placeholder="Seleccionar proyecto…"
-          filter
-          filterPlaceholder="Buscar…"
-          class="w-full"
-          :loading="cargandoProyectos"
-        />
-      </div>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" outlined @click="showAsociar = false" />
-        <Button label="Asociar" :loading="asociando" :disabled="!proyectoSeleccionado" @click="asociarProyecto">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
-      </template>
+    <Dialog v-model:open="showAsociar">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+        <DialogHeader>
+          <DialogTitle>Asociar proyecto</DialogTitle>
+          <DialogDescription class="sr-only">La planta que despacha energía a este PPA.</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-1.5">
+          <GLabel>Buscar proyecto</GLabel>
+          <ComboBox v-model="proyectoSeleccionadoId" :options="opcionesProyectosDisponibles"
+            :placeholder="cargandoProyectos ? 'Cargando proyectos…' : 'Seleccionar proyecto…'"
+            empty-message="Sin proyectos" :disabled="cargandoProyectos" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showAsociar = false">Cancelar</Button>
+          <Button :disabled="asociando || !proyectoSeleccionado" @click="asociarProyecto"><Spinner v-if="asociando" class="size-4" /> <CheckIcon v-else class="size-4" /> Asociar</Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   </div>
 
@@ -797,27 +703,17 @@
     <TriangleAlertIcon class="size-6 text-warning!" />
     <p class="text-sm font-semibold text-muted-foreground">No se encontró el contrato</p>
     <p class="text-xs text-muted-foreground/70">Puede que lo hayan eliminado o que el enlace esté mal.</p>
-    <Button label="Volver" text size="small" class="mt-2" @click="$router.back()">
-      <template #icon><ArrowLeftIcon class="size-4" /></template>
-    </Button>
+    <Button variant="ghost" size="sm" class="mt-2" @click="$router.back()"><ArrowLeftIcon class="size-4" /> Volver</Button>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
-import Button from 'primevue/button'
+// Import explícito: el auto-import sintetiza mal los tipos de props de blocks/DataTable.
+import DataTable from '~/components/blocks/DataTable.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import SelectButton from 'primevue/selectbutton'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import Textarea from 'primevue/textarea'
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
@@ -834,6 +730,23 @@ const catalogoProyectos = useProyectosCatalogo()
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const VISTAS = [{ label: 'Mensual', value: 'mensual' }, { label: 'Anual', value: 'anual' }]
+
+// Tablas: blocks/DataTable deja el orden y la página a cargo de quien lo usa.
+const POR_PAGINA = 24
+function paginaDe(filas, pagina) {
+  return filas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+}
+const COLUMNAS_ASIC = [
+  { key: 'codigo_sic_contrato', header: 'Código SIC', sortable: true },
+  { key: 'planta_nombre', header: 'Planta', sortable: true },
+  { key: 'tipo_solicitud', header: 'Tipo' },
+  { key: 'estado_solicitud', header: 'Estado' },
+  { key: 'fecha_inicio', header: 'Inicio', sortable: true },
+  { key: 'fecha_fin', header: 'Fin', sortable: true },
+  { key: 'porcentaje_despacho', header: '% Despacho', class: 'text-right' },
+  { key: 'fecha_solicitud', header: 'F. solicitud', sortable: true },
+  { key: 'observaciones', header: 'Observaciones' },
+]
 
 const route = useRoute()
 const activeTab = ref('datos')
@@ -989,6 +902,10 @@ const tieneDetallesOperacionales = computed(() => {
 
 const vistaCantidades = ref('mensual')
 const vistaTarifas = ref('mensual')
+const paginaCantidades = ref(1)
+const paginaTarifas = ref(1)
+watch(vistaCantidades, () => { paginaCantidades.value = 1 })
+watch(vistaTarifas, () => { paginaTarifas.value = 1 })
 
 // Plantas inscritas (calculadas por la plataforma): "año-mes" -> nº de plantas registradas
 // y despachando energía al contrato vía GESCON. Numerador del cumplimiento de plantas.
@@ -1100,6 +1017,20 @@ async function guardarCantidades() {
 const asicRows = ref([])
 const loadingAsic = ref(false)
 const vistaAsic = ref('vigentes')
+// Como antes: por fecha de solicitud, lo más reciente primero.
+const ordenAsic = ref({ key: 'fecha_solicitud', direction: 'desc' })
+
+const asicOrdenados = computed(() => {
+  const { key, direction } = ordenAsic.value
+  const signo = direction === 'asc' ? 1 : -1
+  return [...asicFiltrados.value].sort((a, b) => {
+    const x = a[key], y = b[key]
+    if (x == null && y == null) return 0
+    if (x == null) return 1          // los vacíos, siempre al final
+    if (y == null) return -1
+    return (x > y ? 1 : x < y ? -1 : 0) * signo
+  })
+})
 
 const asicFiltrados = computed(() => {
   if (vistaAsic.value === 'historicos') return asicRows.value
@@ -1258,6 +1189,31 @@ const currentTarifas = computed(() =>
   vistaTarifas.value === 'anual' ? tarifasAnuales.value : tarifasMensuales.value
 )
 
+/** Cada tarifa con la de la fila anterior de la lista completa, para la variación. */
+const filasTarifas = computed(() =>
+  currentTarifas.value.map((t, i, todas) => ({ ...t, _anterior: i > 0 ? todas[i - 1].tarifa : null })))
+const columnasTarifas = computed(() => [
+  { key: 'año', header: 'Año' },
+  ...(vistaTarifas.value === 'mensual' ? [{ key: 'mes', header: 'Mes' }] : []),
+  { key: 'tarifa', header: 'Tarifa (COP/kWh)', class: 'text-right' },
+  { key: 'variacion', header: 'Variación', class: 'text-right' },
+])
+
+const filasCantidades = computed(() =>
+  vistaCantidades.value === 'anual' ? cantidadesAnuales.value : cantidadesMensuales.value)
+const columnasCantidades = computed(() => {
+  const anual = vistaCantidades.value === 'anual'
+  return [
+    { key: 'año', header: 'Año' },
+    ...(anual ? [] : [{ key: 'mes', header: 'Mes' }]),
+    { key: 'energia_minima', header: anual ? 'Mín (MWh/año)' : 'Mín (MWh/mes)', class: 'text-right' },
+    { key: 'energia_maxima', header: anual ? 'Máx (MWh/año)' : 'Máx (MWh/mes)', class: 'text-right' },
+    { key: 'plantas_inscritas', header: anual ? 'Plantas inscritas (máx)' : 'Plantas inscritas', class: 'text-right' },
+    { key: 'cantidad_proyectos', header: anual ? 'Plantas contrato (máx)' : 'Plantas contrato', class: 'text-right' },
+    { key: 'rango', header: 'Rango' },
+  ]
+})
+
 const cantidadesMensuales = computed(() => {
   if (!contrato.value?.compromisos_energia) return []
   return [...contrato.value.compromisos_energia]
@@ -1309,6 +1265,15 @@ function onWizardCreado() {
 // Asociar proyecto
 const showAsociar = ref(false)
 const proyectoSeleccionado = ref(null)
+// El buscador trabaja con el id como texto; el resto, con el objeto de la planta.
+const opcionesProyectosDisponibles = computed(() =>
+  todosProyectosDisponibles.value.map(p => ({ label: p.nombre_comercial ?? `Proyecto ${p.id}`, value: String(p.id) })))
+const proyectoSeleccionadoId = computed({
+  get: () => (proyectoSeleccionado.value ? String(proyectoSeleccionado.value.id) : null),
+  set: (id) => {
+    proyectoSeleccionado.value = todosProyectosDisponibles.value.find(p => String(p.id) === id) ?? null
+  },
+})
 const todosProyectos = ref([])
 const cargandoProyectos = ref(false)
 const asociando = ref(false)
