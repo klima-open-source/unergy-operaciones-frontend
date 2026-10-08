@@ -1,399 +1,419 @@
 <template>
-  <Dialog :visible="visible" @update:visible="$emit('update:visible', $event)" modal class="w-full max-w-3xl"
-    :header="editandoId ? 'Editar contrato PPA' : 'Nuevo contrato PPA'" :closable="true" @hide="$emit('cerrar')">
-
-    <!-- Step indicator -->
-    <div class="px-6 pt-5 pb-4 border-b border-muted">
-      <div class="flex items-start">
-        <template v-for="(s, i) in STEPS" :key="i">
-          <div class="flex flex-col items-center gap-1.5 flex-1">
-            <div class="size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-              :class="{
-                'bg-warning text-white shadow-sm ': step === i,
-                'bg-warning/80 text-white': step > i,
-                'bg-muted text-muted-foreground': step < i,
-              }">
-              <CheckIcon class="size-3" v-if="step > i" />
-              <span v-else>{{ i + 1 }}</span>
-            </div>
-            <span class="text-xs text-center leading-tight px-0.5"
-              :class="step === i ? 'text-warning font-semibold' : step > i ? 'text-muted-foreground' : 'text-muted-foreground/60'">
-              {{ s.label }}
-            </span>
-          </div>
-          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
-            :class="step > i ? 'bg-warning/80' : 'bg-muted'" />
-        </template>
-      </div>
-    </div>
-
-    <!-- Contenido -->
-    <div class="px-6 py-5 min-h-72">
-
-      <!-- ── PASO 0: Proyectos e identificación ─────────────────────────── -->
-      <template v-if="step === 0">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Proyectos e identificación</p>
-        <div class="space-y-4">
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Proyectos asociados <span class="text-muted-foreground">(opcional)</span></label>
-            <MultiSelect
-              v-model="proyectosSeleccionados"
-              :options="todosProyectos"
-              optionLabel="nombre_comercial"
-              placeholder="Buscar y seleccionar proyectos…"
-              filter
-              filterPlaceholder="Buscar proyecto"
-              :maxSelectedLabels="4"
-              selectedItemsLabel="{0} proyectos seleccionados"
-              class="w-full"
-              display="chip"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de contrato</label>
-              <InputText v-model="form.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre interno</label>
-              <InputText v-model="form.nombre_interno" placeholder="Ej: Terpel 1" class="w-full" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Responsable</label>
-            <Select v-model="form.responsable_id" :options="responsablesOpts"
-              optionLabel="label" optionValue="value" showClear
-              placeholder="Empresa responsable del PPA" class="w-full" />
-            <span class="text-xs text-muted-foreground">
-              Empresa que gestiona este PPA. Los responsables marcados como no relevantes
-              no aparecen en la Matriz anual de Cumplimiento.
-            </span>
-          </div>
-        </div>
-      </template>
-
-      <!-- ── PASO 1: Partes ─────────────────────────────────────────────── -->
-      <template v-if="step === 1">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Partes del contrato</p>
-        <div class="flex flex-col gap-1 mb-4">
-          <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de contrato</label>
-          <SelectButton v-model="form.tipo_contrato" :options="TIPOS_CONTRATO"
-            optionLabel="label" optionValue="value" :allowEmpty="false" />
-          <span class="text-xs text-muted-foreground">
-            <strong>Venta:</strong> Unergy vende energía a la contraparte ·
-            <strong>Compra:</strong> Unergy compra energía (ej. a un generador).
-          </span>
-        </div>
-
-        <!-- La comunidad se define acá, no en la ficha de la planta: es lo que
-             se negocia en este contrato. A las plantas que cubra dejan de
-             prestárseles representación y CGM desde la fecha de entrada. -->
-        <div class="flex flex-col gap-1 mb-4">
-          <label class="block text-xs font-medium text-muted-foreground mb-1">Comunidad energética</label>
-          <div class="flex items-center gap-2">
-            <ToggleSwitch v-model="form.es_comunidad_energetica" inputId="ppa-comunidad" />
-            <span class="text-sm text-muted-foreground">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
-          </div>
-          <span class="text-xs text-muted-foreground">
-            A las plantas de este contrato dejan de prestárseles representación y
-            CGM desde la fecha de entrada.
-          </span>
-        </div>
-        <div v-if="form.es_comunidad_energetica" class="grid grid-cols-2 gap-4 mb-4">
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre de la comunidad</label>
-            <InputText v-model="form.nombre_comunidad" class="w-full" placeholder="Opcional" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrada a la comunidad</label>
-            <DatePicker v-model="form.fecha_entrada_comunidad" dateFormat="yy-mm-dd"
-              showIcon class="w-full" />
-            <span class="text-xs text-muted-foreground">
-              Si se deja vacía, la exclusión aplica desde siempre.
-            </span>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-1 mb-1 px-1">
-          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comprador</span>
-          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vendedor</span>
-        </div>
-        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
-          <!-- Comprador -->
-          <div class="space-y-3">
-            <SelectorCliente
-              v-model:id="form.comprador_id"
-              v-model:nombre="form.comprador_nombre"
-              v-model:nit="form.comprador_nit"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <NitDeCliente :nit="form.comprador_nit" />
-          </div>
-          <!-- Vendedor -->
-          <div class="space-y-3">
-            <SelectorCliente
-              v-model:id="form.vendedor_id"
-              v-model:nombre="form.vendedor_nombre"
-              v-model:nit="form.vendedor_nit"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <NitDeCliente :nit="form.vendedor_nit" />
-          </div>
-        </div>
-      </template>
-
-      <!-- ── PASO 2: Condiciones comerciales ───────────────────────────── -->
-      <template v-if="step === 2">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Condiciones comerciales</p>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha inicio de despacho</label>
-              <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha final del despacho</label>
-              <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
-            </div>
-          </div>
-          <div class="grid grid-cols-3 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Índice de indexación</label>
-              <Select v-model="form.indice_indexacion"
-                :options="INDICES_INDEXACION"
-                optionLabel="label" optionValue="value"
-                placeholder="Seleccionar índice"
-                showClear class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad indexación</label>
-              <Select v-model="form.periodicidad_indexacion" :options="PERIODICIDADES"
-                optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Período base (AAAA-MM)</label>
-              <InputText v-model="form.periodo_indexacion_base" placeholder="2023-07" maxlength="7" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Valor base indexación</label>
-              <InputNumber v-model="form.valor_indexacion_base" :maxFractionDigits="4" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad facturación</label>
-              <Select v-model="form.periodicidad_facturacion" :options="PERIODICIDADES"
-                optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Tiempo de pago (días)</label>
-              <InputNumber v-model="form.tiempo_pago" :useGrouping="false" placeholder="15" class="w-full" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Condiciones de pago</label>
-            <Textarea v-model="form.condiciones_pago" rows="2" autoResize class="w-full" />
-          </div>
-        </div>
-      </template>
-
-      <!-- ── PASO 3: Tarifas ────────────────────────────────────────────── -->
-      <template v-if="step === 3">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Tabla de tarifas <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
-        <p class="text-xs text-muted-foreground mb-3">
-          Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas aquí.
-          Acepta tabulaciones o comas como separador. El mes puede ser nombre en español o número.
-        </p>
-        <Textarea
-          v-model="tarifasPaste"
-          rows="6"
-          placeholder="2023&#9;Noviembre&#9;460&#10;2023&#9;Diciembre&#9;460&#10;2024&#9;Enero&#9;460"
-          class="w-full font-mono text-xs"
-          @paste="onPasteTarifas"
-        />
-        <div class="flex items-center gap-2 mt-2">
-          <Button label="Procesar" size="small" severity="secondary" outlined @click="parseTarifas">
-            <template #icon><RefreshCwIcon class="size-4" /></template>
-          </Button>
-          <Button v-if="tarifasRows.length" label="Limpiar" size="small" severity="danger" text @click="tarifasRows = []; tarifasPaste = ''">
-            <template #icon><XIcon class="size-4" /></template>
-          </Button>
-          <span v-if="tarifasRows.length" class="text-xs text-success font-medium">
-            ✓ {{ tarifasRows.length }} filas listas
-          </span>
-          <span v-if="tarifasError" class="text-xs text-destructive">{{ tarifasError }}</span>
-        </div>
-        <div v-if="tarifasRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
-          <table class="w-full text-xs">
-            <thead class="bg-muted">
-              <tr>
-                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
-                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
-                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Tarifa ($/kWh)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, i) in tarifasPreview" :key="i" class="border-t border-muted">
-                <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
-                <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
-                <td class="px-3 py-1 text-right text-foreground">{{ r.tarifa }}</td>
-              </tr>
-              <tr v-if="tarifasRows.length > PREVIEW_ROWS" class="border-t border-muted">
-                <td colspan="3" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ tarifasRows.length - PREVIEW_ROWS }} filas más</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <!-- ── PASO 4: Compromisos de energía ────────────────────────────── -->
-      <template v-if="step === 4">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Compromisos de energía <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
-        <p class="text-xs text-muted-foreground mb-3">
-          Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas aquí
-          (Mín/Máx en MWh/mes; <strong>Plantas contrato</strong> = nº de plantas que el contrato exige ese mes).
-          Las columnas <strong>Máx</strong> y <strong>Plantas contrato</strong> son opcionales. Usa
-          <strong>Descargar plantilla</strong> para editar en Excel y volver a pegar.
-        </p>
-        <Textarea
-          v-model="energiaPaste"
-          rows="6"
-          placeholder="2023&#9;Noviembre&#9;90&#9;180&#9;4&#10;2023&#9;Diciembre&#9;90&#9;180&#9;4"
-          class="w-full font-mono text-xs"
-          @paste="onPasteEnergia"
-        />
-        <div class="flex items-center gap-2 mt-2 flex-wrap">
-          <Button label="Procesar" size="small" severity="secondary" outlined @click="parseEnergia">
-            <template #icon><RefreshCwIcon class="size-4" /></template>
-          </Button>
-          <Button label="Descargar plantilla" size="small" severity="secondary" text @click="descargarPlantillaEnergia">
-            <template #icon><DownloadIcon class="size-4" /></template>
-          </Button>
-          <Button v-if="energiaRows.length" label="Limpiar" size="small" severity="danger" text @click="energiaRows = []; energiaPaste = ''">
-            <template #icon><XIcon class="size-4" /></template>
-          </Button>
-          <span v-if="energiaRows.length" class="text-xs text-success font-medium">
-            ✓ {{ energiaRows.length }} filas listas
-          </span>
-          <span v-if="energiaError" class="text-xs text-destructive">{{ energiaError }}</span>
-        </div>
-        <div v-if="energiaRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
-          <table class="w-full text-xs">
-            <thead class="bg-muted">
-              <tr>
-                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
-                <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
-                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Mín (MWh)</th>
-                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Máx (MWh)</th>
-                <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Plantas contrato</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, i) in energiaPreview" :key="i" class="border-t border-muted">
-                <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
-                <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
-                <td class="px-3 py-1 text-right text-foreground">{{ r.energia_minima }}</td>
-                <td class="px-3 py-1 text-right text-foreground">{{ r.energia_maxima }}</td>
-                <td class="px-3 py-1 text-right text-foreground">{{ r.cantidad_proyectos ?? '—' }}</td>
-              </tr>
-              <tr v-if="energiaRows.length > PREVIEW_ROWS" class="border-t border-muted">
-                <td colspan="5" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ energiaRows.length - PREVIEW_ROWS }} filas más</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <!-- ── PASO 5: GESCON + Resumen ───────────────────────────────────── -->
-      <template v-if="step === 5">
-        <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Resumen</p>
-
-        <!-- Resumen -->
-        <div class="rounded-lg border border-warning/20 bg-warning/10 p-4">
-          <p class="text-xs font-semibold text-warning mb-3">Resumen</p>
-          <div class="mb-2">
-            <span class="text-xs text-muted-foreground">Proyectos:</span>
-            <div class="flex flex-wrap gap-1 mt-1">
-              <span v-for="p in proyectosSeleccionados" :key="p.id"
-                class="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
-                {{ p.nombre_comercial }}
+  <Dialog :open="visible" @update:open="alCambiarVisible">
+    <!-- Sin foco automático al abrir: caería en el buscador de plantas, que abre
+         su lista al enfocarse. -->
+    <DialogContent class="sm:max-w-3xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <!-- Step indicator -->
+      <DialogHeader class="pb-4 border-b border-muted">
+        <DialogTitle>{{ editandoId ? 'Editar contrato PPA' : 'Nuevo contrato PPA' }}</DialogTitle>
+        <DialogDescription class="sr-only">Asistente paso a paso del contrato PPA.</DialogDescription>
+        <div class="flex items-start pt-3">
+          <template v-for="(s, i) in STEPS" :key="i">
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                :class="{
+                  'bg-warning text-white shadow-sm ': step === i,
+                  'bg-warning/80 text-white': step > i,
+                  'bg-muted text-muted-foreground': step < i,
+                }">
+                <CheckIcon class="size-3" v-if="step > i" />
+                <span v-else>{{ i + 1 }}</span>
+              </div>
+              <span class="text-xs text-center leading-tight px-0.5"
+                :class="step === i ? 'text-warning font-semibold' : step > i ? 'text-muted-foreground' : 'text-muted-foreground/60'">
+                {{ s.label }}
               </span>
-              <span v-if="!proyectosSeleccionados.length" class="text-xs text-muted-foreground/60">—</span>
+            </div>
+            <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
+              :class="step > i ? 'bg-warning/80' : 'bg-muted'" />
+          </template>
+        </div>
+      </DialogHeader>
+
+      <!-- Contenido -->
+      <div class="py-2 min-h-72">
+
+        <!-- ── PASO 0: Proyectos e identificación ─────────────────────────── -->
+        <template v-if="step === 0">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Proyectos e identificación</p>
+          <div class="space-y-4">
+            <div class="space-y-1.5">
+              <GLabel>Proyectos asociados <span class="text-muted-foreground">(opcional)</span></GLabel>
+              <MultiComboBox v-model="proyectosIds" :options="opcionesProyecto"
+                placeholder="Buscar y seleccionar proyectos…" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Número de contrato</GLabel>
+                <Input v-model="form.numero_codigo_contrato" placeholder="Ej: UNERGY 001-2023" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Nombre interno</GLabel>
+                <Input v-model="form.nombre_interno" placeholder="Ej: Terpel 1" />
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Responsable</GLabel>
+              <Select :model-value="aValorSelect(form.responsable_id != null ? String(form.responsable_id) : null)"
+                @update:model-value="(v) => { const id = deValorSelect(v); form.responsable_id = id ? Number(id) : null }">
+                <SelectTrigger class="w-full"><SelectValue placeholder="Empresa responsable del PPA" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="VALOR_SELECT_VACIO">Sin responsable</SelectItem>
+                  <SelectItem v-for="r in responsablesOpts" :key="r.value" :value="String(r.value)">{{ r.label }}</SelectItem>
+                </SelectContent>
+              </Select>
+              <span class="text-xs text-muted-foreground">
+                Empresa que gestiona este PPA. Los responsables marcados como no relevantes
+                no aparecen en la Matriz anual de Cumplimiento.
+              </span>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground mt-3">
-            <ResumenFila label="Tipo" :value="form.tipo_contrato === 'compra' ? 'Compra' : 'Venta'" />
-            <ResumenFila label="Número" :value="form.numero_codigo_contrato" />
-            <ResumenFila label="Nombre interno" :value="form.nombre_interno" />
-            <ResumenFila label="Responsable" :value="responsableLabel" />
-            <ResumenFila label="Comprador" :value="form.comprador_nombre" />
-            <ResumenFila label="Vendedor" :value="form.vendedor_nombre" />
-            <ResumenFila label="Inicio despacho" :value="formatFecha(form.fecha_inicio)" />
-            <ResumenFila label="Fin despacho" :value="formatFecha(form.fecha_fin)" />
-            <ResumenFila label="Índice" :value="form.indice_indexacion" />
-            <ResumenFila label="Tiempo de pago" :value="form.tiempo_pago != null ? `${form.tiempo_pago} días` : null" />
-            <ResumenFila label="Tarifas" :value="tarifasRows.length ? `${tarifasRows.length} filas` : null" />
-            <ResumenFila label="Compromisos energía" :value="energiaRows.length ? `${energiaRows.length} filas` : null" />
+        </template>
+
+        <!-- ── PASO 1: Partes ─────────────────────────────────────────────── -->
+        <template v-if="step === 1">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Partes del contrato</p>
+          <div class="space-y-1.5 mb-4">
+            <GLabel>Tipo de contrato</GLabel>
+            <!-- Nunca vacío: volver a hacer clic sobre el elegido no lo desmarca. -->
+            <ToggleGroup :model-value="form.tipo_contrato" type="single" variant="outline"
+              @update:model-value="(v) => { if (v) form.tipo_contrato = v }">
+              <ToggleGroupItem v-for="t in TIPOS_CONTRATO" :key="t.value" :value="t.value">{{ t.label }}</ToggleGroupItem>
+            </ToggleGroup>
+            <span class="block text-xs text-muted-foreground">
+              <strong>Venta:</strong> Unergy vende energía a la contraparte ·
+              <strong>Compra:</strong> Unergy compra energía (ej. a un generador).
+            </span>
           </div>
-        </div>
-      </template>
 
-    </div>
+          <!-- La comunidad se define acá, no en la ficha de la planta: es lo que
+               se negocia en este contrato. A las plantas que cubra dejan de
+               prestárseles representación y CGM desde la fecha de entrada. -->
+          <div class="space-y-1.5 mb-4">
+            <GLabel for="ppa-comunidad">Comunidad energética</GLabel>
+            <div class="flex items-center gap-2">
+              <GSwitch id="ppa-comunidad" v-model="form.es_comunidad_energetica" />
+              <span class="text-sm text-muted-foreground">{{ form.es_comunidad_energetica ? 'Sí' : 'No' }}</span>
+            </div>
+            <span class="block text-xs text-muted-foreground">
+              A las plantas de este contrato dejan de prestárseles representación y
+              CGM desde la fecha de entrada.
+            </span>
+          </div>
+          <div v-if="form.es_comunidad_energetica" class="grid grid-cols-2 gap-4 mb-4">
+            <div class="space-y-1.5">
+              <GLabel>Nombre de la comunidad</GLabel>
+              <Input v-model="form.nombre_comunidad" placeholder="Opcional" />
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Fecha de entrada a la comunidad</GLabel>
+              <DatePicker v-model="form.fecha_entrada_comunidad" clearable />
+              <span class="block text-xs text-muted-foreground">
+                Si se deja vacía, la exclusión aplica desde siempre.
+              </span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-1 mb-1 px-1">
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Comprador</span>
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vendedor</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
+            <!-- Comprador -->
+            <div class="space-y-3">
+              <SelectorCliente
+                v-model:id="form.comprador_id"
+                v-model:nombre="form.comprador_nombre"
+                v-model:nit="form.comprador_nit"
+                label="Nombre / Razón social"
+                requerido
+              />
+              <NitDeCliente :nit="form.comprador_nit" />
+            </div>
+            <!-- Vendedor -->
+            <div class="space-y-3">
+              <SelectorCliente
+                v-model:id="form.vendedor_id"
+                v-model:nombre="form.vendedor_nombre"
+                v-model:nit="form.vendedor_nit"
+                label="Nombre / Razón social"
+                requerido
+              />
+              <NitDeCliente :nit="form.vendedor_nit" />
+            </div>
+          </div>
+        </template>
 
-    <!-- Footer -->
-    <div class="px-6 py-4 border-t border-muted flex justify-between items-center">
-      <Button v-if="step > 0" label="Anterior" severity="secondary" outlined @click="step--">
-        <template #icon><ArrowLeftIcon class="size-4" /></template>
-      </Button>
-      <span v-else />
-      <div class="flex gap-2">
-        <Button label="Cancelar" severity="secondary" text @click="$emit('cerrar')" />
-        <Button v-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse"
-          :disabled="step === 1 && partesPendientes.length > 0"
-          v-tooltip="avisoPartes"
-          @click="avanzar">
-          <template #icon><ArrowRightIcon class="size-4" /></template>
-        </Button>
-        <Button v-else label="Guardar contrato" :loading="guardando"
-          :disabled="partesPendientes.length > 0" v-tooltip="avisoPartes" @click="guardar">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
+        <!-- ── PASO 2: Condiciones comerciales ───────────────────────────── -->
+        <template v-if="step === 2">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Condiciones comerciales</p>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Fecha inicio de despacho</GLabel>
+                <DatePicker v-model="form.fecha_inicio" clearable />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Fecha final del despacho</GLabel>
+                <DatePicker v-model="form.fecha_fin" clearable />
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Índice de indexación</GLabel>
+                <Select :model-value="aValorSelect(form.indice_indexacion)"
+                  @update:model-value="form.indice_indexacion = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar índice" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin índice</SelectItem>
+                    <SelectItem v-for="o in INDICES_INDEXACION" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Periodicidad indexación</GLabel>
+                <Select :model-value="aValorSelect(form.periodicidad_indexacion)"
+                  @update:model-value="form.periodicidad_indexacion = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                    <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Período base (AAAA-MM)</GLabel>
+                <Input v-model="form.periodo_indexacion_base" placeholder="2023-07" maxlength="7" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Valor base indexación</GLabel>
+                <NumberField v-model="form.valor_indexacion_base" :step-snapping="false"
+                  :format-options="{ maximumFractionDigits: 4 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Periodicidad facturación</GLabel>
+                <Select :model-value="aValorSelect(form.periodicidad_facturacion)"
+                  @update:model-value="form.periodicidad_facturacion = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                    <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Tiempo de pago (días)</GLabel>
+                <!-- Días enteros: aquí el ajuste a pasos de 1 es lo correcto. -->
+                <NumberField v-model="form.tiempo_pago" :min="0" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent><NumberFieldInput placeholder="15" /></NumberFieldContent>
+                </NumberField>
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>Condiciones de pago</GLabel>
+              <Textarea v-model="form.condiciones_pago" rows="2" />
+            </div>
+          </div>
+        </template>
+
+        <!-- ── PASO 3: Tarifas ────────────────────────────────────────────── -->
+        <template v-if="step === 3">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Tabla de tarifas <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+          <p class="text-xs text-muted-foreground mb-3">
+            Copia las columnas <strong>Año · Mes · Tarifa</strong> desde Excel y pégalas aquí.
+            Acepta tabulaciones o comas como separador. El mes puede ser nombre en español o número.
+          </p>
+          <Textarea
+            v-model="tarifasPaste"
+            rows="6"
+            placeholder="2023&#9;Noviembre&#9;460&#10;2023&#9;Diciembre&#9;460&#10;2024&#9;Enero&#9;460"
+            class="font-mono text-xs"
+            @paste="onPasteTarifas"
+          />
+          <div class="flex items-center gap-2 mt-2">
+            <Button variant="outline" size="sm" @click="parseTarifas">
+              <RefreshCwIcon class="size-4" /> Procesar
+            </Button>
+            <Button v-if="tarifasRows.length" variant="ghost" size="sm" @click="tarifasRows = []; tarifasPaste = ''">
+              <XIcon class="size-4 text-destructive" /> Limpiar
+            </Button>
+            <span v-if="tarifasRows.length" class="text-xs text-success font-medium">
+              ✓ {{ tarifasRows.length }} filas listas
+            </span>
+            <span v-if="tarifasError" class="text-xs text-destructive">{{ tarifasError }}</span>
+          </div>
+          <div v-if="tarifasRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-muted">
+                <tr>
+                  <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
+                  <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
+                  <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Tarifa ($/kWh)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(r, i) in tarifasPreview" :key="i" class="border-t border-muted">
+                  <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
+                  <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
+                  <td class="px-3 py-1 text-right text-foreground">{{ r.tarifa }}</td>
+                </tr>
+                <tr v-if="tarifasRows.length > PREVIEW_ROWS" class="border-t border-muted">
+                  <td colspan="3" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ tarifasRows.length - PREVIEW_ROWS }} filas más</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- ── PASO 4: Compromisos de energía ────────────────────────────── -->
+        <template v-if="step === 4">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Compromisos de energía <span class="normal-case font-normal text-muted-foreground">(opcional)</span></p>
+          <p class="text-xs text-muted-foreground mb-3">
+            Copia las columnas <strong>Año · Mes · Mín · Máx · Plantas contrato</strong> desde Excel y pégalas aquí
+            (Mín/Máx en MWh/mes; <strong>Plantas contrato</strong> = nº de plantas que el contrato exige ese mes).
+            Las columnas <strong>Máx</strong> y <strong>Plantas contrato</strong> son opcionales. Usa
+            <strong>Descargar plantilla</strong> para editar en Excel y volver a pegar.
+          </p>
+          <Textarea
+            v-model="energiaPaste"
+            rows="6"
+            placeholder="2023&#9;Noviembre&#9;90&#9;180&#9;4&#10;2023&#9;Diciembre&#9;90&#9;180&#9;4"
+            class="font-mono text-xs"
+            @paste="onPasteEnergia"
+          />
+          <div class="flex items-center gap-2 mt-2 flex-wrap">
+            <Button variant="outline" size="sm" @click="parseEnergia">
+              <RefreshCwIcon class="size-4" /> Procesar
+            </Button>
+            <Button variant="ghost" size="sm" @click="descargarPlantillaEnergia">
+              <DownloadIcon class="size-4" /> Descargar plantilla
+            </Button>
+            <Button v-if="energiaRows.length" variant="ghost" size="sm" @click="energiaRows = []; energiaPaste = ''">
+              <XIcon class="size-4 text-destructive" /> Limpiar
+            </Button>
+            <span v-if="energiaRows.length" class="text-xs text-success font-medium">
+              ✓ {{ energiaRows.length }} filas listas
+            </span>
+            <span v-if="energiaError" class="text-xs text-destructive">{{ energiaError }}</span>
+          </div>
+          <div v-if="energiaRows.length" class="mt-3 border border-muted rounded-lg overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-muted">
+                <tr>
+                  <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Año</th>
+                  <th class="px-3 py-1.5 text-left text-muted-foreground font-medium">Mes</th>
+                  <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Mín (MWh)</th>
+                  <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Máx (MWh)</th>
+                  <th class="px-3 py-1.5 text-right text-muted-foreground font-medium">Plantas contrato</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(r, i) in energiaPreview" :key="i" class="border-t border-muted">
+                  <td class="px-3 py-1 text-foreground">{{ r.año }}</td>
+                  <td class="px-3 py-1 text-foreground">{{ r.mes }}</td>
+                  <td class="px-3 py-1 text-right text-foreground">{{ r.energia_minima }}</td>
+                  <td class="px-3 py-1 text-right text-foreground">{{ r.energia_maxima }}</td>
+                  <td class="px-3 py-1 text-right text-foreground">{{ r.cantidad_proyectos ?? '—' }}</td>
+                </tr>
+                <tr v-if="energiaRows.length > PREVIEW_ROWS" class="border-t border-muted">
+                  <td colspan="5" class="px-3 py-1 text-muted-foreground/60 italic">… y {{ energiaRows.length - PREVIEW_ROWS }} filas más</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+
+        <!-- ── PASO 5: Resumen ────────────────────────────────────────────── -->
+        <template v-if="step === 5">
+          <p class="text-xs font-semibold text-warning uppercase tracking-wide mb-4">Resumen</p>
+
+          <div class="rounded-lg border border-warning/20 bg-warning/10 p-4">
+            <p class="text-xs font-semibold text-warning mb-3">Resumen</p>
+            <div class="mb-2">
+              <span class="text-xs text-muted-foreground">Proyectos:</span>
+              <div class="flex flex-wrap gap-1 mt-1">
+                <span v-for="p in proyectosSeleccionados" :key="p.id"
+                  class="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded-full">
+                  {{ p.nombre_comercial }}
+                </span>
+                <span v-if="!proyectosSeleccionados.length" class="text-xs text-muted-foreground/60">—</span>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground mt-3">
+              <div v-for="fila in filasResumen" :key="fila.label">
+                <span class="text-muted-foreground">{{ fila.label }}:</span>
+                <span class="font-medium text-foreground"> {{ fila.value }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+
       </div>
-    </div>
 
-    <!-- Ya hay un PPA vigente que cubre esto. Avisa y deja seguir: una
-         renovación, o un contrato de compra junto a uno de venta, son casos
-         reales. Mismo diálogo que en el wizard de servicios. -->
-    <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
-      header="Ya existe un contrato PPA para esto" modal class="w-full max-w-sm">
-      <p class="text-sm text-muted-foreground">{{ duplicadoContrato?.mensaje }}</p>
-      <p class="text-xs text-muted-foreground mt-2">
-        Si es una renovación o un contrato distinto, podés crearlo igual.
-      </p>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="duplicadoContrato = null" />
-        <Button label="Crear igual" :loading="guardando" @click="crearDeTodosModos" />
-      </template>
-    </Dialog>
+      <!-- Footer -->
+      <DialogFooter class="pt-4 border-t border-muted sm:justify-between">
+        <Button v-if="step > 0" variant="outline" @click="step--">
+          <ArrowLeftIcon class="size-4" /> Anterior
+        </Button>
+        <span v-else />
+        <div class="flex gap-2">
+          <Button variant="ghost" @click="cerrar">Cancelar</Button>
+          <GTooltip v-if="step < STEPS.length - 1" :disabled="!(step === 1 && avisoPartes)">
+            <GTooltipTrigger as-child>
+              <span>
+                <Button :disabled="step === 1 && partesPendientes.length > 0" @click="avanzar">
+                  Siguiente <ArrowRightIcon class="size-4" />
+                </Button>
+              </span>
+            </GTooltipTrigger>
+            <GTooltipContent>{{ avisoPartes }}</GTooltipContent>
+          </GTooltip>
+          <GTooltip v-else :disabled="!avisoPartes">
+            <GTooltipTrigger as-child>
+              <span>
+                <Button :disabled="guardando || partesPendientes.length > 0" @click="guardar">
+                  <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar contrato
+                </Button>
+              </span>
+            </GTooltipTrigger>
+            <GTooltipContent>{{ avisoPartes }}</GTooltipContent>
+          </GTooltip>
+        </div>
+      </DialogFooter>
+
+      <!-- Ya hay un PPA vigente que cubre esto. Avisa y deja seguir: una
+           renovación, o un contrato de compra junto a uno de venta, son casos
+           reales. Mismo diálogo que en el wizard de servicios. -->
+      <Dialog :open="!!duplicadoContrato" @update:open="(v) => { if (!v) duplicadoContrato = null }">
+        <DialogContent class="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ya existe un contrato PPA para esto</DialogTitle>
+            <DialogDescription>{{ duplicadoContrato?.mensaje }}</DialogDescription>
+          </DialogHeader>
+          <p class="text-xs text-muted-foreground">
+            Si es una renovación o un contrato distinto, podés crearlo igual.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" @click="duplicadoContrato = null">Cancelar</Button>
+            <Button :disabled="guardando" @click="crearDeTodosModos">
+              <Spinner v-if="guardando" class="size-4" /> Crear igual
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DialogContent>
   </Dialog>
 </template>
 
 <script setup>
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, DownloadIcon, PlusIcon, RefreshCwIcon, XIcon } from '@lucide/vue'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, DownloadIcon, RefreshCwIcon, XIcon } from '@lucide/vue'
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
-import MultiSelect from 'primevue/multiselect'
-import DatePicker from 'primevue/datepicker'
-import ToggleSwitch from 'primevue/toggleswitch'
-import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { PpaService } from '~/features/contratos/services/ppa'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 
 const ppaService = new PpaService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -406,6 +426,16 @@ const props = defineProps({
   editandoId: { type: Number, default: null },
 })
 const emit = defineEmits(['update:visible', 'cerrar', 'creado', 'editado'])
+
+/** Cerrar por la X, Esc o clic afuera: lo mismo que el botón Cancelar. */
+function alCambiarVisible(abierto) {
+  emit('update:visible', abierto)
+  if (!abierto) emit('cerrar')
+}
+
+function cerrar() {
+  alCambiarVisible(false)
+}
 
 const PREVIEW_ROWS = 5
 
@@ -460,6 +490,35 @@ const responsablesOpts = computed(() => responsables.value.map(r => ({
 const responsableLabel = computed(() =>
   responsables.value.find(r => r.id === form.responsable_id)?.nombre ?? null)
 const proyectosSeleccionados = ref([])
+
+// El buscador múltiple trabaja con los ids como texto; el resto del asistente,
+// con los objetos de planta.
+const opcionesProyecto = computed(() =>
+  todosProyectos.value.map(p => ({ label: p.nombre_comercial ?? `Proyecto ${p.id}`, value: String(p.id) })))
+const proyectosIds = computed({
+  get: () => proyectosSeleccionados.value.map(p => String(p.id)),
+  set: (ids) => {
+    proyectosSeleccionados.value = ids
+      .map(id => todosProyectos.value.find(p => String(p.id) === id))
+      .filter(Boolean)
+  },
+})
+
+/** Las filas del resumen: solo las que tienen valor. */
+const filasResumen = computed(() => [
+  { label: 'Tipo', value: form.tipo_contrato === 'compra' ? 'Compra' : 'Venta' },
+  { label: 'Número', value: form.numero_codigo_contrato },
+  { label: 'Nombre interno', value: form.nombre_interno },
+  { label: 'Responsable', value: responsableLabel.value },
+  { label: 'Comprador', value: form.comprador_nombre },
+  { label: 'Vendedor', value: form.vendedor_nombre },
+  { label: 'Inicio despacho', value: formatFecha(form.fecha_inicio) },
+  { label: 'Fin despacho', value: formatFecha(form.fecha_fin) },
+  { label: 'Índice', value: form.indice_indexacion },
+  { label: 'Tiempo de pago', value: form.tiempo_pago != null ? `${form.tiempo_pago} días` : null },
+  { label: 'Tarifas', value: tarifasRows.value.length ? `${tarifasRows.value.length} filas` : null },
+  { label: 'Compromisos energía', value: energiaRows.value.length ? `${energiaRows.value.length} filas` : null },
+].filter(f => f.value))
 const errores = reactive({})
 
 // Clientes registrados
@@ -731,7 +790,7 @@ async function guardar() {
       }
       emit('creado', contrato)
     }
-    emit('cerrar')
+    cerrar()
   } catch (e) {
     const aviso = duplicadoDe(e)
     if (aviso) {
@@ -756,21 +815,4 @@ onMounted(async () => {
     responsables.value = await ppaService.listarResponsables()
   } catch { /* silencioso */ }
 })
-</script>
-
-<script>
-// Componente auxiliar local (Composition API).
-const ResumenFila = {
-  props: { label: String, value: [String, Number] },
-  setup(props) {
-    return { props }
-  },
-  template: `
-    <div v-if="props.value">
-      <span class="text-muted-foreground">{{ props.label }}:</span>
-      <span class="font-medium text-foreground">{{ props.value }}</span>
-    </div>
-  `,
-}
-export default { components: { ResumenFila } }
 </script>
