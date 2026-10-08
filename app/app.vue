@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ConfigProvider } from 'reka-ui'
 import { APP_BRANDING } from '~/config/app'
 
 // Fallback title/description: a page with its own `useHead` overrides this.
@@ -14,6 +15,10 @@ useHead({
 </script>
 
 <template>
+  <!-- Idioma de los componentes de Reka (NumberField, Calendar…) en toda la app.
+       Sin esto usan inglés: los pesos salían "COP 48,000,000" y el decimal era el
+       punto. Con es-CO se ven "$ 48.000.000" y el decimal se escribe con coma. -->
+  <ConfigProvider locale="es-CO">
   <div>
     <NuxtRouteAnnouncer />
 
@@ -36,4 +41,5 @@ useHead({
          cualquier componente. Ver ~/composables/useConfirm.ts. -->
     <ConfirmDialog />
   </div>
+  </ConfigProvider>
 </template>
