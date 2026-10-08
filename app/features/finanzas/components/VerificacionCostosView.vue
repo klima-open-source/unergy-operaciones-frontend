@@ -7,14 +7,14 @@
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Proyecto…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} proyecto{{ filtrados.length === 1 ? '' : 's' }}
@@ -87,8 +87,8 @@
     <div v-else-if="error" class="bg-card rounded-xl shadow-sm border p-6 text-center">
       <TriangleAlertIcon class="mb-2 block size-6 text-warning" />
       <p class="text-sm text-muted-foreground">{{ error }}</p>
-      <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="outline" size="sm" class="mt-3" @click="cargar">
+        <RefreshCwIcon class="size-4" /> Reintentar
       </Button>
     </div>
 
@@ -130,9 +130,12 @@
               </td>
               <td class="px-4 py-2">
                 <div class="flex justify-end">
-                  <Button text rounded size="small" severity="info" :disabled="!row.nombre_topico" v-tooltip.left="row.nombre_topico ? 'Editar' : 'Falta el código base del proyecto'" @click="abrirEditar(row)">
-                    <template #icon><PencilIcon class="size-4" /></template>
-                  </Button>
+                  <!-- El botón deshabilitado no muestra su `title`: va en el span. -->
+                  <span :title="row.nombre_topico ? 'Editar' : 'Falta el código base del proyecto'">
+                    <Button variant="ghost" size="icon-sm" :disabled="!row.nombre_topico" aria-label="Editar" @click="abrirEditar(row)">
+                      <PencilIcon class="size-4 text-primary" />
+                    </Button>
+                  </span>
                 </div>
               </td>
             </tr>
@@ -148,12 +151,16 @@
     </div>
 
     <!-- Dialog: editar (va a la API de Liquidaciones) -->
-    <Dialog v-model:visible="formVisible" header="Editar verificación de costos" modal class="w-full max-w-md">
-      <form @submit.prevent="guardar" class="space-y-4 pt-1">
-        <div class="text-sm font-medium text-foreground">{{ f.nombre_comercial }}</div>
-        <p class="text-xs text-muted-foreground -mt-2">
-          Se guarda en la API de Liquidaciones (tópico <b>{{ f.nombre_topico }}</b>).
-        </p>
+    <Dialog v-model:open="formVisible">
+      <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Editar verificación de costos</DialogTitle>
+        <DialogDescription>
+          <span class="font-medium text-foreground">{{ f.nombre_comercial }}</span> · se guarda en la API de
+          Liquidaciones (tópico <b>{{ f.nombre_topico }}</b>).
+        </DialogDescription>
+      </DialogHeader>
+      <form @submit.prevent="guardar" class="space-y-4">
 
         <div class="flex items-center justify-between rounded-lg border px-3 py-2">
           <div>
@@ -161,7 +168,7 @@
             <div class="text-xs text-muted-foreground">Recibe los conceptos del agente generador</div>
           </div>
           <div class="flex items-center gap-2">
-            <ToggleSwitch v-model="f.from_generator" />
+            <GSwitch v-model="f.from_generator" aria-label="Costos generador" />
             <span class="text-xs text-muted-foreground">{{ f.from_generator ? 'Sí' : 'No' }}</span>
           </div>
         </div>
@@ -172,37 +179,33 @@
             <div class="text-xs text-muted-foreground">Recibe los conceptos del agente comercializador</div>
           </div>
           <div class="flex items-center gap-2">
-            <ToggleSwitch v-model="f.from_commercializer" />
+            <GSwitch v-model="f.from_commercializer" aria-label="Costos comercializador" />
             <span class="text-xs text-muted-foreground">{{ f.from_commercializer ? 'Sí' : 'No' }}</span>
           </div>
         </div>
 
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">AC Power (kW)</label>
-          <InputNumber v-model="f.ac_power" :maxFractionDigits="2" class="w-full" placeholder="ej: 996" />
+          <NumberField v-model="f.ac_power" :step-snapping="false" :min="0" :format-options="{ maximumFractionDigits: 2 }">
+            <NumberFieldContent><NumberFieldInput placeholder="ej: 996" /></NumberFieldContent>
+          </NumberField>
           <small class="text-xs text-muted-foreground">Divisor de la prorrata al repartir los costos de XM.</small>
         </div>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" label="Cancelar" severity="secondary" @click="formVisible = false" />
-          <Button type="submit" label="Guardar" :loading="guardando">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button type="button" variant="outline" @click="formVisible = false">Cancelar</Button>
+          <Button type="submit" :disabled="guardando">
+            <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar
           </Button>
         </div>
       </form>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import ToggleSwitch from 'primevue/toggleswitch'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
