@@ -605,7 +605,7 @@
                 />
                 <div>
                   <label class="text-xs font-medium text-muted-foreground">Valor base</label>
-                  <NumberField :step-snapping="false" v-model="arrendadorDialog.form.valor_base" locale="es-CO" :format-options="FORMATO_COP">
+                  <NumberField :step-snapping="false" v-model="arrendadorDialog.form.valor_base" :format-options="FORMATO_COP">
                     <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
                   </NumberField>
                 </div>
@@ -794,7 +794,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Valor O&amp;M Anual (BASE) <span class="text-destructive">*</span></label>
-            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_base" locale="es-CO" :format-options="FORMATO_COP"
+            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_base" :format-options="FORMATO_COP"
               @update:model-value="v => { if (Number.isFinite(v)) dialogMant.form.tarifa_mensual = Math.round(v / 12) }">
               <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
             </NumberField>
@@ -802,7 +802,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Valor mensual <span class="text-destructive">*</span></label>
-            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_mensual" locale="es-CO" :format-options="FORMATO_COP">
+            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_mensual" :format-options="FORMATO_COP">
               <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
             </NumberField>
             <p class="text-xs text-muted-foreground">Sugerido: Valor Anual ÷ 12</p>
@@ -864,7 +864,7 @@
             <label class="text-xs font-medium text-muted-foreground">
               {{ dialogEdit.tipo === 'mantenimiento' ? 'Valor O&M Anual BASE (COP)' : 'Valor anual BASE (COP)' }}
             </label>
-            <NumberField :step-snapping="false" v-model="dialogEdit.form.tarifa_base" locale="es-CO" :format-options="FORMATO_COP">
+            <NumberField :step-snapping="false" v-model="dialogEdit.form.tarifa_base" :format-options="FORMATO_COP">
               <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
             </NumberField>
           </div>
@@ -1225,7 +1225,6 @@ onMounted(async () => {
     contratos.mantenimiento = mantRes.status === 'fulfilled' && mantRes.value.length ? mantRes.value[0] : null
     contratos.arriendo      = arrRes.status  === 'fulfilled' && arrRes.value.length  ? arrRes.value[0]  : null
     contratos.internet      = netRes.status  === 'fulfilled' && netRes.value.length  ? netRes.value[0]  : null
-    await initInternetMap(contratos.internet)
 
     await cargarIndexacionOM()
     await cargarArrendadores()
@@ -1235,6 +1234,9 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  // Después de quitar el "cargando": mientras se ve, las pestañas no existen y el
+  // mapa no tiene contenedor donde dibujarse.
+  await initInternetMap(contratos.internet)
 })
 
 // ── Edición de contrato ───────────────────────────────────────────────────────
