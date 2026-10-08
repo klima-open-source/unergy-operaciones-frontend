@@ -21,15 +21,19 @@
       <TriangleAlertIcon class="mr-1.5 size-3" />
       Proyectos pendientes ({{ pendientes.length }})
     </span>
-    <Button label="Revisar" size="small" text class="text-destructive" @click="abrir" />
+    <Button variant="ghost" size="sm" class="text-destructive" @click="abrir">Revisar</Button>
   </div>
 
-  <Dialog v-model:visible="visible" header="Proyectos pendientes" modal class="w-full max-w-3xl">
-    <p class="text-sm mb-4 text-muted-foreground">
-      Sun Factory, Quoia y la API de Unergy reportan estos proyectos. Confirma
-      para crearlos o actualizar el registro existente, o ignóralos si no
-      aplican.
-    </p>
+  <Dialog v-model:open="visible">
+    <DialogContent class="sm:max-w-3xl" @open-auto-focus.prevent>
+    <DialogHeader>
+      <DialogTitle>Proyectos pendientes</DialogTitle>
+      <DialogDescription>
+        Sun Factory, Quoia y la API de Unergy reportan estos proyectos. Confirma
+        para crearlos o actualizar el registro existente, o ignóralos si no
+        aplican.
+      </DialogDescription>
+    </DialogHeader>
     <div v-if="cargando" class="flex items-center justify-center py-8">
       <LoaderCircleIcon class="size-6 animate-spin text-primary" />
     </div>
@@ -54,10 +58,14 @@
               Sugerido: {{ p.nombre_sugerido }}
             </p>
           </div>
-          <Button text severity="secondary" size="small" :loading="p._loading === 'ignorar'"
-                  v-tooltip="'Ignorar'" @click="ignorar(p)">
-            <template #icon><XIcon class="size-4" /></template>
-          </Button>
+          <GTooltip>
+            <GTooltipTrigger as-child>
+              <Button variant="ghost" size="icon-sm" :disabled="p._loading === 'ignorar'" aria-label="Ignorar" @click="ignorar(p)">
+                <Spinner v-if="p._loading === 'ignorar'" class="size-4" /><XIcon v-else class="size-4" />
+              </Button>
+            </GTooltipTrigger>
+            <GTooltipContent>Ignorar</GTooltipContent>
+          </GTooltip>
         </div>
 
         <!-- Cambios sugeridos -->
@@ -77,53 +85,57 @@
         <div v-if="p.tipo_sugerencia === 'crear'" class="flex flex-wrap gap-2 items-end">
           <div>
             <label class="block text-xs font-semibold text-muted-foreground mb-1">Nombre comercial</label>
-            <InputText v-model="p._nombre" />
+            <Input v-model="p._nombre" />
           </div>
           <div>
             <label class="block text-xs font-semibold text-muted-foreground mb-1">Tipo</label>
-            <Select v-model="p._tipo" :options="TIPOS_PROYECTO" placeholder="Tipo" />
+            <Select :model-value="aValorSelect(p._tipo)" @update:model-value="p._tipo = deValorSelect($event) || null">
+              <SelectTrigger class="min-w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in TIPOS_PROYECTO" :key="t" :value="t">{{ t }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Button label="Crear" size="small" :loading="p._loading === 'confirmar'" :disabled="!p._nombre"
-                  class="bg-primary border-primary"
-                  @click="confirmar(p)">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button size="sm" :disabled="p._loading === 'confirmar' || !p._nombre" @click="confirmar(p)">
+            <Spinner v-if="p._loading === 'confirmar'" class="size-4" /><CheckIcon v-else class="size-4" /> Crear
           </Button>
         </div>
         <div v-else class="flex justify-end">
-          <Button label="Actualizar" size="small" :loading="p._loading === 'confirmar'"
-                  class="bg-primary border-primary"
-                  @click="confirmar(p)">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button size="sm" :disabled="p._loading === 'confirmar'" @click="confirmar(p)">
+            <Spinner v-if="p._loading === 'confirmar'" class="size-4" /><CheckIcon v-else class="size-4" /> Actualizar
           </Button>
         </div>
       </div>
     </div>
+    </DialogContent>
   </Dialog>
 
   <!-- El mismo aviso de "nombre parecido" que el alta manual: evita que dos
        candidatos distintos (p. ej. un duplicado de Sun Factory) creen el mismo
        proyecto dos veces sin que nadie se entere. -->
-  <Dialog v-model:visible="duplicadoVisible" header="Proyecto parecido ya existe" modal class="w-full max-w-sm">
-    <p class="text-sm mb-4 text-muted-foreground">
-      {{ duplicadoInfo?.mensaje }}
-      <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
-      (ID {{ duplicadoInfo?.candidato_id }}).
-    </p>
-    <div class="flex justify-end gap-2">
-      <Button label="Cancelar" severity="secondary" @click="duplicadoVisible = false" />
-      <Button label="Crear de todos modos" :loading="forzando"
-              class="bg-primary border-primary"
-              @click="duplicadoConfirmAction && duplicadoConfirmAction()" />
-    </div>
+  <Dialog v-model:open="duplicadoVisible">
+    <DialogContent class="sm:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>Proyecto parecido ya existe</DialogTitle>
+        <DialogDescription>
+          {{ duplicadoInfo?.mensaje }}
+          <strong>{{ duplicadoInfo?.candidato_nombre }}</strong>
+          (ID {{ duplicadoInfo?.candidato_id }}).
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
+        <Button variant="outline" @click="duplicadoVisible = false">Cancelar</Button>
+        <Button :disabled="forzando" @click="duplicadoConfirmAction && duplicadoConfirmAction()">
+          <Spinner v-if="forzando" class="size-4" /> Crear de todos modos
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
+import { aValorSelect, deValorSelect } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { CheckIcon, LoaderCircleIcon, TriangleAlertIcon, XIcon } from '@lucide/vue'
