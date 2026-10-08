@@ -38,6 +38,7 @@ const PESTANAS = [
   { id: 'costos', label: 'Costos CND / ASIC' },
   { id: 'oef', label: 'OEF / CxC' },
   { id: 'contratos', label: 'Contratos / Índice MC' },
+  { id: 'aap', label: 'Arranque & Parada' },
 ] as const
 
 /**
@@ -74,6 +75,23 @@ const DATASETS_OEF = [
  */
 const DATASETS_CONTRATOS = [
   { id: 'A8F4C0', label: 'Índice MC — costo promedio contratos MR' },
+] as const
+
+/**
+ * Arranque y parada: precios de oferta, banderas y generación de seguridad.
+ * Los nueve bajan a planta —verificado el 2026-10-08, todos traen
+ * `CodigoPlanta`—, así que el selector de plantas aplica en todos.
+ */
+const DATASETS_AAP = [
+  { id: 'A1DBD9', label: 'Reconciliación positiva arranque' },
+  { id: 'e427a2', label: 'Precio oferta A&P (COP y USD)' },
+  { id: '909809', label: 'Precio oferta A&P ofertado (PAR)' },
+  { id: '1237df', label: 'Bandera arranque real' },
+  { id: '39726d', label: 'Bandera parada real' },
+  { id: '379022', label: 'Bandera arranque GIdeal' },
+  { id: '94F4A5', label: 'Generación seguridad por tipo' },
+  { id: '842296', label: 'Generación seguridad (magnitud)' },
+  { id: 'D387AB', label: 'Bandera recurso en pruebas' },
 ] as const
 
 type Pestana = (typeof PESTANAS)[number]['id']
@@ -734,6 +752,14 @@ onMounted(cargar)
       <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
         Elige un rango y consulta.
       </div>
+    </template>
+
+    <!-- ═══ Arranque & Parada ═══ -->
+    <template v-else-if="pestana === 'aap'">
+      <SimemPanelDataset
+        :datasets="DATASETS_AAP"
+        ayuda="Precios de oferta de arranque y parada, banderas y generación de seguridad por planta. Pesa para las liquidaciones del ASIC."
+      />
     </template>
 
     <!-- ═══ Contratos / Índice MC ═══ -->
