@@ -37,8 +37,11 @@
       </template>
 
       <template v-else-if="editando === tipo.value">
-        <Select v-model="clienteSeleccionado" :options="clientesOptions" optionLabel="razon_social_nombre"
-          optionValue="id" class="flex-1" filter showClear placeholder="Buscar cliente..." />
+        <div class="flex-1">
+          <ComboBox :model-value="clienteSeleccionado != null ? String(clienteSeleccionado) : null"
+            :options="opcionesClientes" placeholder="Buscar cliente..."
+            @update:model-value="v => { clienteSeleccionado = v ? Number(v) : null }" />
+        </div>
         <button type="button" @click="guardarOverride(tipo.value)" :disabled="!clienteSeleccionado"
           class="p-1.5 rounded-lg hover:bg-success/10 disabled:opacity-40">
           <CheckIcon class="size-3 text-success" />
@@ -59,7 +62,6 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import Select from 'primevue/select'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ArrowRightLeftIcon, CheckIcon, Trash2Icon, XIcon } from '@lucide/vue'
@@ -84,6 +86,9 @@ const TIPOS = [
   { value: 'cgm', label: 'CGM' },
   { value: 'liquidacion', label: 'Liquidación' },
 ]
+
+const opcionesClientes = computed(() =>
+  props.clientesOptions.map(c => ({ value: String(c.id), label: c.razon_social_nombre })))
 
 const overrides = ref({})
 const editando = ref(null)
