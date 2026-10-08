@@ -180,15 +180,6 @@ export interface FronteraProyectoResumen {
   [clave: string]: unknown
 }
 
-// ── Contratos de servicio inline (pestaña Servicios) ──────────────────────────
-
-export interface ContratoServicioResumenProyecto {
-  id: number
-  tipo?: string
-  estado?: string
-  [clave: string]: unknown
-}
-
 // ── Proyectos pendientes (Sun Factory / Quoia) ────────────────────────────────
 
 export type TipoSugerenciaPendiente = 'crear' | 'actualizar' | string

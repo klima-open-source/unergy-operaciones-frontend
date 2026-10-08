@@ -1055,6 +1055,9 @@ const ANIO_ACTUAL        = new Date().getFullYear()
 const showIndexacion          = reactive({ anual: false, mensual: false })
 const showIndexacionArriendo  = reactive({ anual: false, mensual: false })
 
+// Reservadas para un desarrollo posterior (decisión de Sara, 2026-10-08): hoy
+// nada las llena y los acordeones salen vacíos. No borrarlas ni conectarlas a
+// una fuente sin hablarlo primero.
 const facturasCobradas   = ref([])
 const facturasEmitidas   = ref([])
 

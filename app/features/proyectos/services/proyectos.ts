@@ -3,7 +3,6 @@ import type { Proyecto, ProyectoEditable, ProyectoInfoTecnica } from '~/types/pr
 import { comoLista, type ListaODirecto, type Paginado } from '~/types/api'
 import type {
   AreaContactoOverride,
-  ContratoServicioResumenProyecto,
   FronteraProyectoResumen,
   InversionistaProyecto,
   InversorProyecto,
@@ -43,7 +42,6 @@ const RUTAS = {
     `${BASE}/${proyectoId}/vincular-sunfactory/${sunfactoryProjectId}`,
   proyectosLista: '/proyectos/lista',
   fronteras: '/fronteras',
-  contratosServicio: '/contratos-servicio',
 } as const
 
 export class ProyectosService extends BaseService {
@@ -265,14 +263,5 @@ export class ProyectosService extends BaseService {
       query: { proyecto_id: proyectoId },
     })
     return comoLista(data)
-  }
-
-  listarContratosServicioInline(
-    tipo: string,
-    proyectoId: Proyecto['id'],
-  ): Promise<ContratoServicioResumenProyecto[]> {
-    return this.get<ContratoServicioResumenProyecto[]>(RUTAS.contratosServicio, {
-      query: { tipo, proyecto_id: proyectoId },
-    })
   }
 }

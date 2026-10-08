@@ -163,14 +163,6 @@
           <template v-if="!isEditMode">
             <!-- La Ubicación vive en la pestaña General, junto a Departamento y
                  Municipio: es dónde está la planta, no cómo está construida. -->
-            <!-- Documentación -->
-            <div v-if="proyecto.info_tecnica?.retie_url">
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Documentación</p>
-              <a :href="proyecto.info_tecnica.retie_url" target="_blank" rel="noopener"
-                 class="inline-flex items-center gap-1 text-primary hover:underline text-xs">
-                <FileIcon class="size-4" /> RETIE
-              </a>
-            </div>
             <!-- Eléctrico general -->
             <div>
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General</p>
@@ -228,15 +220,6 @@
                 <InfoField label="Internet" :value="proyecto.info_tecnica?.tiene_internet" />
               </div>
             </div>
-            <!-- Almacenamiento -->
-            <div v-if="proyecto.info_tecnica?.tiene_almacenamiento">
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Almacenamiento</p>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Capacidad (kWh)" :value="proyecto.info_tecnica?.capacidad_almacenamiento_kwh" />
-                <InfoField label="Marca" :value="proyecto.info_tecnica?.marca_almacenamiento" />
-                <InfoField label="Modelo" :value="proyecto.info_tecnica?.modelo_almacenamiento" />
-              </div>
-            </div>
           </template>
 
           <!-- Vista edición -->
@@ -247,10 +230,6 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <CoordenadasInput v-model:latitud="editForm.latitud" v-model:longitud="editForm.longitud"
                   v-model:valido="coordenadasValidas" class="md:col-span-2" />
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">RETIE (link Drive)</label>
-                  <Input v-model="editInfoTecnica.retie_url" placeholder="https://drive.google.com/..." />
-                </div>
               </div>
             </div>
             <!-- Eléctrico general -->
@@ -380,28 +359,6 @@
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Internet</label>
                   <Select :model-value="aValorSelect(editInfoTecnica.tiene_internet)" @update:model-value="editInfoTecnica.tiene_internet = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in ['Sí','No']" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
-                </div>
-              </div>
-            </div>
-            <!-- Almacenamiento -->
-            <div>
-              <div class="flex items-center gap-2 mb-3">
-                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Almacenamiento</p>
-                <Checkbox v-model="editInfoTecnica.tiene_almacenamiento" />
-                <span class="text-xs text-muted-foreground">{{ editInfoTecnica.tiene_almacenamiento ? 'Sí' : 'No' }}</span>
-              </div>
-              <div v-if="editInfoTecnica.tiene_almacenamiento" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad (kWh)</label>
-                  <NumberField v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca</label>
-                  <Input v-model="editInfoTecnica.marca_almacenamiento" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Modelo</label>
-                  <Input v-model="editInfoTecnica.modelo_almacenamiento" />
                 </div>
               </div>
             </div>
@@ -576,50 +533,22 @@
             <div
               v-for="srv in SERVICIOS_CARDS" :key="srv.key"
               class="relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 select-none"
-              :class="[
-                srvExpanded === srv.key ? 'ring-2 ring-offset-1 shadow-md' : (srvFlags[srv.key] ? 'shadow-sm' : ''),
-                (srvFlags[srv.key] || srvExpanded === srv.key) ? 'bg-(--bg) border-(--bd)' : 'bg-muted border-border',
-              ]"
+              :class="srvFlags[srv.key] ? 'shadow-sm bg-(--bg) border-(--bd)' : 'bg-muted border-border'"
               :style="{ '--c': srv.color, '--bg': srv.bg, '--bd': srv.color + '40', '--tint': srv.color + '25' }"
               @click="clickServicio(srv)"
             >
               <div class="size-12 rounded-full flex items-center justify-center"
-                :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'bg-(--tint)' : 'bg-border'">
-                <component :is="srv.icon" class="size-6" :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'text-(--c)' : 'text-muted-foreground'" />
+                :class="srvFlags[srv.key] ? 'bg-(--tint)' : 'bg-border'">
+                <component :is="srv.icon" class="size-6" :class="srvFlags[srv.key] ? 'text-(--c)' : 'text-muted-foreground'" />
               </div>
               <span class="text-sm font-semibold text-center"
-                :class="(srvFlags[srv.key] || srvExpanded === srv.key) ? 'text-(--c)' : 'text-muted-foreground'">
+                :class="srvFlags[srv.key] ? 'text-(--c)' : 'text-muted-foreground'">
                 {{ srv.label }}
               </span>
               <span v-if="srvFlags[srv.key]"
                 class="absolute top-2 right-2 size-2 rounded-full bg-(--c)" />
               <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'ppa'" />
             </div>
-          </div>
-
-          <!-- Panel inline de contratos -->
-          <div v-if="srvExpanded" class="rounded-xl border border-border bg-card overflow-hidden"
-            :style="{ '--c': SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.color }">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-border">
-              <div class="flex items-center gap-2">
-                <component :is="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.icon" class="size-4 text-(--c)" />
-                <p class="text-sm font-semibold text-foreground">
-                  Contratos · {{ SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.label }}
-                </p>
-              </div>
-              <Button size="sm" class="bg-(--c)! border-(--c)!" @click="showContratoWizard = true"><PlusIcon class="size-4" /> Nuevo contrato</Button>
-            </div>
-            <DataTable :columns="COLUMNAS_CONTRATOS_SRV" :rows="contratosInline" row-key="id" :loading="loadingInline"
-              empty-message="Sin contratos registrados para este proyecto."
-              @row-click="row => $router.push(`/contratos/${row.id}`)">
-              <template #cell="{ row, column }">
-                <span v-if="column.key === 'numero_contrato'" class="font-mono text-xs text-muted-foreground">{{ row.numero_contrato || '—' }}</span>
-                <template v-else-if="column.key === 'fecha_inicio' || column.key === 'fecha_fin'">{{ formatFechaSrv(row[column.key]) }}</template>
-                <GBadge v-else-if="column.key === 'estado'" :color="ESTADO_SEVERITY_SRV[row.estado]">{{ ESTADO_LABELS_SRV[row.estado] || row.estado }}</GBadge>
-                <Button size="icon-sm" v-else-if="column.key === 'acciones'" variant="ghost" aria-label="Abrir contrato" @click.stop="$router.push(`/contratos/${row.id}`)"><ArrowRightIcon class="size-4" /></Button>
-                <template v-else>{{ row[column.key] || '—' }}</template>
-              </template>
-            </DataTable>
           </div>
 
           <!-- Qué servicios tiene la planta. No se editan: salen de sus contratos
@@ -640,14 +569,6 @@
           </div>
         </div>
 
-        <!-- Wizard nuevo contrato de servicio -->
-        <ContratoServicioWizard
-          v-if="showContratoWizard"
-          :visible="showContratoWizard"
-          :tipo="SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.tipo ?? 'representacion'"
-          :proyecto-id-default="Number(route.params.id)"
-          @cerrar="showContratoWizard = false"
-          @creado="onContratoServicioCreado" />
       </div>
 
       <!-- ══ FRONTERAS ══ -->
@@ -781,7 +702,7 @@
 </template>
 
 <script setup>
-import { ArrowRightIcon, BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DataTable from '~/components/blocks/DataTable.vue'
@@ -792,7 +713,6 @@ import { ClientesService } from '~/features/clientes/services/clientes'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
-import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
@@ -816,16 +736,14 @@ const TIPOS_TECNOLOGIA = ['solar', 'eolica', 'hidraulica', 'biomasa', 'otra']
 const CLASIFICACIONES = ['AGP', 'AGPE', 'AGGE', 'GD', 'DER', 'otra']
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const SERVICIOS_CARDS = [
-  { key: 'ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7', tipo: null },
-  { key: 'operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5', tipo: null },
-  { key: 'representacion', label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff', tipo: 'representacion' },
+  { key: 'ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7' },
+  { key: 'operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5' },
+  { key: 'representacion', label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff' },
 ]
 const SERVICIOS_FLAGS = [
   ...SERVICIOS_CARDS,
   { key: 'cgm',     label: 'CGM',     icon: ChartColumnIcon, color: '#10b981', bg: '#ecfdf5' },
 ]
-const ESTADO_LABELS_SRV = { vigente: 'Vigente', vencido: 'Vencido', terminado: 'Terminado', en_renovacion: 'En renovación' }
-const ESTADO_SEVERITY_SRV = { vigente: 'success', vencido: 'destructive', terminado: 'default', en_renovacion: 'warning' }
 const FRONTERA_ESTADO_SEVERITY = { activa: 'success', en_registro: 'warning', en_falla: 'destructive', cancelada: 'default' }
 
 // ── Estado base ───────────────────────────────────────────────────────────────
@@ -846,10 +764,6 @@ const guardando = ref(false)
 // Qué servicios tiene la planta: `servicios` del backend, calculado de los
 // contratos vigentes. Solo lectura.
 const srvFlags = computed(() => proyecto.value?.servicios ?? {})
-const srvExpanded = ref(null)
-const contratosInline = ref([])
-const loadingInline = ref(false)
-const showContratoWizard = ref(false)
 
 // ── Pestaña activa ──────────────────────────────────────────────────────────
 // Se puede abrir el detalle directo en una pestaña vía ?tab=... (ej. desde la
@@ -926,15 +840,10 @@ const editInfoTecnica = reactive({
   marca_modems_frontera: null,
   ip_modem_reconectador: null,
   url_ubicacion: null,
-  retie_url: null,
   cctv_estado: null,
   marca_cctv: null,
   seguridad_fisica: null,
   tiene_internet: null,
-  tiene_almacenamiento: false,
-  capacidad_almacenamiento_kwh: null,
-  marca_almacenamiento: null,
-  modelo_almacenamiento: null,
 })
 
 // Fechas del proyecto (DatePicker trabaja con Date; el API espera 'YYYY-MM-DD')
@@ -1215,16 +1124,6 @@ const clientesDisponibles = computed(() => {
 const opcionesClientesDisponibles = computed(() =>
   clientesDisponibles.value.map(c => ({ value: String(c.id), label: c.razon_social_nombre })))
 
-const COLUMNAS_CONTRATOS_SRV = [
-  { key: 'numero_contrato', header: 'N° contrato' },
-  { key: 'contratante_nombre', header: 'Contratante' },
-  { key: 'prestador_nombre', header: 'Prestador' },
-  { key: 'fecha_inicio', header: 'Inicio' },
-  { key: 'fecha_fin', header: 'Fin' },
-  { key: 'estado', header: 'Estado' },
-  { key: 'acciones', header: '' },
-]
-
 const COLUMNAS_FRONTERAS = [
   { key: 'codigo_frontera', header: 'Código' },
   { key: 'nombre_frontera', header: 'Nombre' },
@@ -1333,48 +1232,9 @@ async function guardarEdicionInversionista(invId) {
 }
 
 // ── Servicios ─────────────────────────────────────────────────────────────────
+// Cada tarjeta lleva a la pantalla de su servicio, cuya ruta es su `key`.
 function clickServicio(srv) {
-  if (srv.key === 'ppa') {
-    router.push(`/proyectos/${route.params.id}/ppa`)
-    return
-  }
-  if (srv.key === 'operacion') {
-    router.push(`/proyectos/${route.params.id}/operacion`)
-    return
-  }
-  if (srv.key === 'representacion') {
-    router.push(`/proyectos/${route.params.id}/representacion`)
-    return
-  }
-  if (!srv.tipo) return
-  if (srvExpanded.value === srv.key) {
-    srvExpanded.value = null
-    return
-  }
-  srvExpanded.value = srv.key
-  cargarContratosInline(srv.tipo)
-}
-
-async function cargarContratosInline(tipo) {
-  contratosInline.value = []
-  loadingInline.value = true
-  try {
-    contratosInline.value = await proyectosService.listarContratosServicioInline(tipo, route.params.id)
-  } catch {
-    toast.error('Error al cargar contratos', { duration: 3000 })
-  } finally {
-    loadingInline.value = false
-  }
-}
-
-function onContratoServicioCreado() {
-  const srv = SERVICIOS_CARDS.find(s => s.key === srvExpanded.value)
-  if (srv?.tipo) cargarContratosInline(srv.tipo)
-}
-
-function formatFechaSrv(f) {
-  if (!f) return '—'
-  return String(f).slice(0, 10)
+  router.push(`/proyectos/${route.params.id}/${srv.key}`)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
