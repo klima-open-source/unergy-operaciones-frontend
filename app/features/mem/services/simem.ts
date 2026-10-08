@@ -13,6 +13,8 @@
  * recalcularse acá, o los dos números se separan.
  */
 
+import { partirRango, tamanoBloque } from '~/features/mem/utils/simemRangos'
+
 const BASE = 'https://www.simem.co/backend-files/api/PublicData'
 
 /** Registro de agentes del mercado: código SIC, razón social y actividades. */
@@ -91,4 +93,55 @@ export async function obtenerRegistroAgentes(signal?: AbortSignal): Promise<Regi
     return { agentes, fecha }
   }
   return { agentes: {}, fecha: null }
+}
+
+
+// ── Consulta genérica de un dataset ─────────────────────────────────────────
+//
+// Los paneles de costos, OEF y contratos son el mismo gesto: dataset + rango de
+// fechas → filas. Lo único con reglas es partir el rango (ver `simemRangos`) y
+// no disparar las llamadas en paralelo: el SIMEM responde 502 si se le satura.
+
+
+/** Pausa entre bloques, para no saturar al SIMEM. */
+const PAUSA_MS = 400
+
+export interface ProgresoConsulta {
+  bloque: number
+  total: number
+  inicio: string
+  fin: string
+}
+
+async function registrosDelRango(
+  datasetId: string, inicio: string, fin: string, signal?: AbortSignal,
+): Promise<Record<string, unknown>[]> {
+  const url = `${BASE}?startdate=${inicio}&enddate=${fin}&datasetId=${datasetId}`
+  const res = await fetch(url, { signal })
+  if (!res.ok) throw new Error(`El SIMEM respondió ${res.status} para el dataset ${datasetId}`)
+  const json = await res.json() as { result?: { records?: Record<string, unknown>[] } }
+  return json?.result?.records ?? []
+}
+
+/**
+ * Todas las filas del dataset en el rango, partiendo la consulta si hace falta.
+ *
+ * Los bloques van EN SERIE y con una pausa: en paralelo el SIMEM devuelve 502.
+ * `alAvanzar` permite mostrar por dónde va, porque un rango largo tarda.
+ */
+export async function consultarDataset(
+  datasetId: string,
+  inicio: string,
+  fin: string,
+  opciones: { alAvanzar?: (p: ProgresoConsulta) => void, signal?: AbortSignal } = {},
+): Promise<Record<string, unknown>[]> {
+  const bloques = partirRango(inicio, fin, tamanoBloque(datasetId))
+  const filas: Record<string, unknown>[] = []
+
+  for (const [i, b] of bloques.entries()) {
+    opciones.alAvanzar?.({ bloque: i + 1, total: bloques.length, inicio: b.inicio, fin: b.fin })
+    filas.push(...await registrosDelRango(datasetId, b.inicio, b.fin, opciones.signal))
+    if (i < bloques.length - 1) await new Promise((r) => setTimeout(r, PAUSA_MS))
+  }
+  return filas
 }
