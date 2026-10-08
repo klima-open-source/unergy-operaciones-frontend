@@ -28,11 +28,11 @@
       <!-- Acciones -->
       <div class="flex items-center gap-2">
         <input ref="fileInputRef" type="file" accept=".pdf" class="hidden" @change="onFileSelected" />
-        <Button label="Subir PDF" size="small" :loading="procesando" @click="fileInputRef.click()" class="bg-chart-2! border-chart-2!">
-          <template #icon><UploadIcon class="size-4" /></template>
+        <Button size="sm" class="bg-chart-2 hover:bg-chart-2/90" :disabled="procesando" @click="fileInputRef.click()">
+          <Spinner v-if="procesando" class="size-4" /><UploadIcon v-else class="size-4" /> Subir PDF
         </Button>
-        <Button v-if="facturaActual" label="Descargar Excel" size="small" outlined :loading="descargando" @click="descargarExcel" class="border-chart-3! text-chart-3!">
-          <template #icon><DownloadIcon class="size-4" /></template>
+        <Button v-if="facturaActual" variant="outline" size="sm" class="border-chart-3 text-chart-3" :disabled="descargando" @click="descargarExcel">
+          <Spinner v-if="descargando" class="size-4" /><DownloadIcon v-else class="size-4" /> Descargar Excel
         </Button>
       </div>
     </div>
@@ -41,10 +41,10 @@
     <div v-if="facturaActual" class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="filtroTexto" placeholder="Nombre de la minigranja…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="filtroTexto" placeholder="Nombre de la minigranja…" />
+        </InputGroup>
       </div>
       <div class="ml-auto pb-1.5 text-xs text-muted-foreground">{{ filasFiltradas.length }} de {{ lineas.length }}</div>
     </div>
@@ -170,9 +170,13 @@
     </template>
 
     <!-- ── Dialog: confirmar período antes de guardar ────────────────────────── -->
-    <Dialog v-model:visible="showGuardarDialog" modal header="Guardar factura procesada"
-      class="w-full max-w-md" :closable="!guardando">
-      <div class="space-y-4 pt-1">
+    <Dialog :open="showGuardarDialog" @update:open="v => { if (!guardando) showGuardarDialog = v }">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Guardar factura procesada</DialogTitle>
+        <DialogDescription class="sr-only">Confirma el período antes de guardar la factura.</DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
 
         <!-- Alerta de discrepancia si existe -->
         <div v-if="resultadoPendiente?.advertencia"
@@ -213,35 +217,34 @@
         </div>
 
         <div class="flex gap-2 justify-end pt-1">
-          <Button label="Cancelar" size="small" outlined severity="secondary"
-            :disabled="guardando" @click="showGuardarDialog = false" />
-          <Button label="Guardar" size="small" :loading="guardando" :disabled="!periodoParaGuardar" @click="guardarFactura">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" :disabled="guardando" @click="showGuardarDialog = false">Cancelar</Button>
+          <Button size="sm" :disabled="guardando || !periodoParaGuardar" @click="guardarFactura">
+            <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- ── Dialog: asignar minigranja a un sitio sin mapear ─────────────────── -->
-    <Dialog v-model:visible="showAsignarDialog" modal header="Asignar minigranja"
-      class="w-full max-w-md" :closable="!asignando">
-      <div class="space-y-4 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog :open="showAsignarDialog" @update:open="v => { if (!asignando) showAsignarDialog = v }">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Asignar minigranja</DialogTitle>
+        <DialogDescription>
           Sitio Starlink: <strong class="text-foreground">{{ descripcionParaAsignar }}</strong>
-        </p>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
 
         <div class="flex flex-col gap-2">
           <label class="text-xs font-medium text-muted-foreground">Minigranja / proyecto</label>
-          <Select
-            v-model="proyectoParaAsignar"
-            :options="proyectos"
-            optionLabel="nombre_comercial"
-            optionValue="id"
-            placeholder="Selecciona un proyecto…"
-            filter
-            showClear
-            :loading="loadingProyectos"
-            class="w-full" />
+          <!-- `key`: el texto del input se recalcula cuando llega la lista. -->
+          <ComboBox :key="opcionesProyecto.length"
+            :model-value="proyectoParaAsignar != null ? String(proyectoParaAsignar) : null"
+            :options="opcionesProyecto" :disabled="loadingProyectos"
+            :placeholder="loadingProyectos ? 'Cargando proyectos…' : 'Selecciona un proyecto…'"
+            @update:model-value="v => { const id = deValorSelect(v); proyectoParaAsignar = id ? Number(id) : null }" />
         </div>
 
         <p class="text-xs text-muted-foreground">
@@ -250,15 +253,16 @@
         </p>
 
         <div class="flex gap-2 justify-end pt-1">
-          <Button label="No aplica" size="small" outlined severity="secondary"
-            :disabled="asignando" :loading="excluyendo" @click="confirmarExcluirSitio" />
-          <Button label="Cancelar" size="small" outlined severity="secondary"
-            :disabled="asignando || excluyendo" @click="showAsignarDialog = false" />
-          <Button label="Asignar" size="small" :loading="asignando" :disabled="!proyectoParaAsignar || excluyendo" @click="confirmarAsignarMinigranja">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" :disabled="asignando || excluyendo" @click="confirmarExcluirSitio">
+            <Spinner v-if="excluyendo" class="size-4" /> No aplica
+          </Button>
+          <Button variant="outline" size="sm" :disabled="asignando || excluyendo" @click="showAsignarDialog = false">Cancelar</Button>
+          <Button size="sm" :disabled="asignando || !proyectoParaAsignar || excluyendo" @click="confirmarAsignarMinigranja">
+            <Spinner v-if="asignando" class="size-4" /><CheckIcon v-else class="size-4" /> Asignar
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
   </div>
@@ -266,12 +270,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import InputText from 'primevue/inputtext'
+import { deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { StarlinkService } from '~/features/finanzas/services/starlink'
 import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, DownloadIcon, LinkIcon, LoaderCircleIcon, SearchIcon, TriangleAlertIcon, UploadIcon, WifiIcon } from '@lucide/vue'
@@ -462,6 +461,11 @@ async function descargarExcel() {
 // ── Asignar minigranja a sitio sin mapear ──────────────────────────────────────
 const proyectos        = ref([])
 const loadingProyectos = ref(false)
+// La primera opción deja el selector vacío (el showClear de PrimeVue).
+const opcionesProyecto = computed(() => [
+  { value: VALOR_SELECT_VACIO, label: 'Sin proyecto' },
+  ...proyectos.value.map(p => ({ value: String(p.id), label: p.nombre_comercial })),
+])
 
 const showAsignarDialog     = ref(false)
 const descripcionParaAsignar = ref('')
