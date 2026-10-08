@@ -12,7 +12,7 @@
  * las dos cosas pasan calladas.
  */
 import { describe, expect, it } from 'vitest'
-import { diasEntre, esMensual, partirRango, tamanoBloque } from './simemRangos'
+import { DIAS_MAXIMO_PESADO, diasEntre, esMensual, esPesado, partirRango, tamanoBloque } from './simemRangos'
 
 describe('partirRango', () => {
   it('un rango que cabe en un bloque no se parte', () => {
@@ -94,5 +94,49 @@ describe('tamanoBloque', () => {
   it('un dataset desconocido se trata como horario', () => {
     // Pedir de menos nunca rompe; pedir de más devuelve 502.
     expect(tamanoBloque('ZZZZZZ')).toBe(28)
+  })
+})
+
+
+// ── Los datasets de generación, que son enormes ─────────────────────────────
+//
+// Medido contra SIMEM el 2026-10-08: generación real, ideal y disponibilidad
+// traen ~47.000 filas POR DÍA, y entre 3 y 6 segundos cada consulta. Generación
+// programada llegó a 1,44 millones de filas en una semana de 2025.
+//
+// Con bloques de 28 días una sola llamada pediría más de un millón de filas: el
+// SIMEM responde 502 o el navegador se cae. Van de a un día, que además hace
+// visible el progreso.
+
+describe('datasets pesados', () => {
+  it.each(['055A4D', 'E17D25', '2d5afe', 'AB7D7F', '24F4EC', '9E77E5'])(
+    '%s va de a un día', (id) => {
+      expect(esPesado(id)).toBe(true)
+      expect(tamanoBloque(id)).toBe(1)
+    },
+  )
+
+  it('el id no distingue mayúsculas', () => {
+    expect(esPesado('055a4d')).toBe(true)
+  })
+
+  it('pesado le gana a mensual si alguna vez coincidieran', () => {
+    // El bloque chico nunca rompe; el grande sí.
+    expect(tamanoBloque('2d5afe')).toBe(1)
+  })
+
+  it('un rango de una semana son siete bloques', () => {
+    expect(partirRango('2026-09-01', '2026-09-07', tamanoBloque('055A4D'))).toHaveLength(7)
+  })
+
+  it('hay un tope de días declarado para estos', () => {
+    // La vista lo usa para no dejar pedir un mes entero por accidente.
+    expect(DIAS_MAXIMO_PESADO).toBeGreaterThan(0)
+    expect(DIAS_MAXIMO_PESADO).toBeLessThanOrEqual(31)
+  })
+
+  it('un dataset normal no es pesado', () => {
+    expect(esPesado('E4CE10')).toBe(false)
+    expect(tamanoBloque('E4CE10')).toBe(28)
   })
 })

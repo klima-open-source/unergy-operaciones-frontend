@@ -17,6 +17,7 @@ import { consultarDataset } from '~/features/mem/services/simem'
 import { exportarExcel } from '~/utils/exportarExcel'
 import type { PlantaSimem } from '~/features/mem/utils/simemAgentes'
 import { columnaDePlanta, enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
+import { DIAS_MAXIMO_PESADO, diasEntre, esPesado } from '~/features/mem/utils/simemRangos'
 import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
 
 const props = defineProps<{
@@ -46,6 +47,15 @@ const plantas = ref(new Set<string>())
 const catalogo = ref<Record<string, PlantaSimem>>({})
 
 const columnas = computed(() => filas.value.length ? Object.keys(filas.value[0]!) : [])
+
+/**
+ * Los datasets de generación traen ~47.000 filas por día. Un mes serían más de
+ * un millón: ni el SIMEM lo entrega ni el navegador lo muestra. Se avisa y se
+ * bloquea en vez de dejar colgada la consulta.
+ */
+const pesado = computed(() => esPesado(dataset.value))
+const diasPedidos = computed(() => diasEntre(inicio.value, fin.value) + 1)
+const excedeTope = computed(() => pesado.value && diasPedidos.value > DIAS_MAXIMO_PESADO)
 
 const porAgente = computed(() => {
   const q = agente.value.trim().toUpperCase()
@@ -82,6 +92,7 @@ const sinColumnaAgente = computed(() =>
 )
 
 async function consultar() {
+  if (excedeTope.value) return
   cargando.value = true
   error.value = null
   progreso.value = null
@@ -138,7 +149,7 @@ async function exportar() {
         <label class="text-xs font-semibold tracking-wider text-primary uppercase">Agente</label>
         <Input v-model="agente" class="w-28 uppercase" placeholder="UNGG" />
       </div>
-      <Button size="sm" :disabled="cargando" @click="consultar">Consultar</Button>
+      <Button size="sm" :disabled="cargando || excedeTope" @click="consultar">Consultar</Button>
       <Button size="sm" variant="outline" :disabled="cargando || !filtradas.length" @click="exportar">
         <DownloadIcon class="size-3" />
         Exportar
@@ -150,6 +161,18 @@ async function exportar() {
     <div v-if="consultado && tienePlanta" class="flex flex-wrap items-end gap-3 border-t pt-3">
       <SelectorPlantas v-model="plantas" :opciones="opcionesPlanta" />
     </div>
+
+    <div
+      v-if="excedeTope"
+      class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+    >
+      Son <b>{{ diasPedidos }} días</b> de un dataset que trae unas 47.000 filas por día:
+      más de {{ DIAS_MAXIMO_PESADO }} días no se puede traer ni mostrar con sentido.
+      Acorta el rango.
+    </div>
+    <p v-else-if="pesado" class="text-xs text-muted-foreground">
+      Dataset pesado: se consulta día por día y puede tardar varios segundos por cada uno.
+    </p>
 
     <p v-if="ayuda" class="text-xs text-muted-foreground">{{ ayuda }}</p>
 

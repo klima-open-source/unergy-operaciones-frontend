@@ -39,6 +39,7 @@ const PESTANAS = [
   { id: 'oef', label: 'OEF / CxC' },
   { id: 'contratos', label: 'Contratos / Índice MC' },
   { id: 'aap', label: 'Arranque & Parada' },
+  { id: 'generacion', label: 'Generación real' },
 ] as const
 
 /**
@@ -92,6 +93,19 @@ const DATASETS_AAP = [
   { id: '94F4A5', label: 'Generación seguridad por tipo' },
   { id: '842296', label: 'Generación seguridad (magnitud)' },
   { id: 'D387AB', label: 'Bandera recurso en pruebas' },
+] as const
+
+/**
+ * Generación y disponibilidad horaria por recurso. Son los datasets PESADOS
+ * (~47.000 filas por día): el panel los consulta de a un día y topa el rango.
+ */
+const DATASETS_GENERACION = [
+  { id: '055A4D', label: 'Generación real (GReal)' },
+  { id: 'AB7D7F', label: 'Generación ideal (GIdeal)' },
+  { id: '24F4EC', label: 'Disponibilidad comercial' },
+  { id: '9E77E5', label: 'Disponibilidad real' },
+  { id: 'E17D25', label: 'Generación real estimada' },
+  { id: '2d5afe', label: 'Generación programada (GProg)' },
 ] as const
 
 type Pestana = (typeof PESTANAS)[number]['id']
@@ -752,6 +766,14 @@ onMounted(cargar)
       <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
         Elige un rango y consulta.
       </div>
+    </template>
+
+    <!-- ═══ Generación real ═══ -->
+    <template v-else-if="pestana === 'generacion'">
+      <SimemPanelDataset
+        :datasets="DATASETS_GENERACION"
+        ayuda="Generación y disponibilidad horaria por recurso. Generación programada dejó de publicarse en 2026: para verla hay que consultar 2025 o antes."
+      />
     </template>
 
     <!-- ═══ Arranque & Parada ═══ -->
