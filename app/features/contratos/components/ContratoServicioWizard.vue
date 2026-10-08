@@ -1,465 +1,516 @@
 <template>
-  <Dialog :visible="visible" @update:visible="$emit('update:visible', $event)" modal
-    class="w-full max-w-3xl"
-    :header="null" :closable="true" @hide="$emit('cerrar')">
-
-    <!-- Step indicator -->
-    <div class="px-6 pt-5 pb-4 border-b border-muted">
-      <p class="text-sm font-bold mb-4 text-(--c)" :style="{ '--c': tipoColor }">
-        Nuevo contrato · {{ tipoLabel }}
-      </p>
-      <div class="flex items-start">
-        <template v-for="(s, i) in STEPS" :key="i">
-          <div class="flex flex-col items-center gap-1.5 flex-1">
-            <div class="size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-              :style="{ '--c': tipoColor }"
-              :class="step >= i ? 'bg-(--c) text-white' : 'bg-muted text-muted-foreground'">
-              <CheckIcon class="size-3" v-if="step > i" />
-              <span v-else>{{ i + 1 }}</span>
-            </div>
-            <span class="text-xs text-center leading-tight px-0.5 font-medium"
-              :style="{ '--c': tipoColor }"
-              :class="step === i ? 'text-(--c)' : step < i ? 'text-muted-foreground/60' : 'text-muted-foreground'">
-              {{ s.label }}
-            </span>
-          </div>
-          <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
-            :style="{ '--c': tipoColorSuave }"
-            :class="step > i ? 'bg-(--c)' : 'bg-muted'" />
-        </template>
-      </div>
-    </div>
-
-    <!-- Content -->
-    <div class="px-6 py-5 min-h-72">
-
-      <!-- PASO 0 (internet): solo los datos técnicos del servicio -->
-      <template v-if="step === 0 && tipo === 'internet'">
-        <p class="text-sm font-semibold text-foreground mb-4">Datos del servicio</p>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Plan de datos</label>
-              <InputText v-model="form.plan_datos_gb" class="w-full" placeholder="50 GB / Ilimitado" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Velocidad contratada</label>
-              <InputNumber v-model="form.velocidad_mbps" suffix=" Mbps" :useGrouping="false" class="w-full" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de conexión</label>
-            <Select v-model="form.tipo_conexion"
-              :options="[{label:'Starlink',value:'Starlink'},{label:'Fibra',value:'Fibra'},{label:'4G',value:'4G'},{label:'Otro',value:'Otro'}]"
-              optionLabel="label" optionValue="value" editable placeholder="Selecciona…" class="w-full" />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Línea de servicio</label>
-              <InputText v-model="form.linea_servicio" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">ID del router</label>
-              <InputText v-model="form.id_router" class="w-full" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de kit</label>
-              <InputText v-model="form.numero_kit" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Latencia</label>
-              <InputNumber v-model="form.latencia_ms" suffix=" ms" :useGrouping="false" class="w-full" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Seguridad del wifi</label>
-              <Select v-model="form.wifi_seguridad" :options="WIFI_SEGURIDAD_OPTS"
-                optionLabel="label" optionValue="value" showClear placeholder="Selecciona…" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Contraseña wifi</label>
-              <InputText v-model="form.wifi_password" class="w-full" />
-            </div>
-          </div>
-
-          <!-- Ubicación del servicio -->
-          <div class="rounded-lg border border-border p-3">
-            <div class="flex items-center justify-between mb-2">
-              <div>
-                <p class="text-xs font-semibold text-muted-foreground">Ubicación del servicio</p>
-                <p class="text-sm text-foreground">Ubicación: {{ ubicacionLabel }}</p>
+  <Dialog :open="visible" @update:open="alCambiarVisible">
+    <!-- Sin foco automático al abrir: caía en el buscador de proyecto, que abre su
+         lista al enfocarse, y el siguiente clic elegía una planta sin querer. -->
+    <DialogContent class="sm:max-w-3xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <!-- Step indicator -->
+      <DialogHeader class="pb-4 border-b border-muted">
+        <DialogTitle class="text-sm font-bold text-(--c)" :style="{ '--c': tipoColor }">
+          Nuevo contrato · {{ tipoLabel }}
+        </DialogTitle>
+        <DialogDescription class="sr-only">Asistente paso a paso para crear el contrato.</DialogDescription>
+        <div class="flex items-start pt-3">
+          <template v-for="(s, i) in STEPS" :key="i">
+            <div class="flex flex-col items-center gap-1.5 flex-1">
+              <div class="size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                :style="{ '--c': tipoColor }"
+                :class="step >= i ? 'bg-(--c) text-white' : 'bg-muted text-muted-foreground'">
+                <CheckIcon class="size-3" v-if="step > i" />
+                <span v-else>{{ i + 1 }}</span>
               </div>
-              <Button type="button" :label="editandoUbicacion ? 'Listo' : 'Editar'" text size="small"
-                @click="editandoUbicacion = !editandoUbicacion" />
+              <span class="text-xs text-center leading-tight px-0.5 font-medium"
+                :style="{ '--c': tipoColor }"
+                :class="step === i ? 'text-(--c)' : step < i ? 'text-muted-foreground/60' : 'text-muted-foreground'">
+                {{ s.label }}
+              </span>
             </div>
-            <div v-if="editandoUbicacion" class="grid grid-cols-2 gap-4 mb-2">
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-                <InputNumber v-model="form.ubicacion_lat" :minFractionDigits="4" :maxFractionDigits="6" class="w-full" />
+            <div v-if="i < STEPS.length - 1" class="h-0.5 mt-3.5 mx-0.5 transition-all flex-1"
+              :style="{ '--c': tipoColorSuave }"
+              :class="step > i ? 'bg-(--c)' : 'bg-muted'" />
+          </template>
+        </div>
+      </DialogHeader>
+
+      <!-- Content -->
+      <div class="py-2 min-h-72">
+
+        <!-- PASO 0 (internet): solo los datos técnicos del servicio -->
+        <template v-if="step === 0 && tipo === 'internet'">
+          <p class="text-sm font-semibold text-foreground mb-4">Datos del servicio</p>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Plan de datos</GLabel>
+                <Input v-model="form.plan_datos_gb" placeholder="50 GB / Ilimitado" />
               </div>
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-                <InputNumber v-model="form.ubicacion_lng" :minFractionDigits="4" :maxFractionDigits="6" class="w-full" />
+              <div class="space-y-1.5">
+                <GLabel>Velocidad contratada (Mbps)</GLabel>
+                <NumberField :step-snapping="false" v-model="form.velocidad_mbps" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
             </div>
-            <p v-if="editandoUbicacion" class="text-xs text-muted-foreground mb-2">
-              Haz clic en el mapa para ubicar el servicio.
-            </p>
-            <div ref="ubicacionMapEl" class="rounded-md overflow-hidden h-55 bg-muted"></div>
-          </div>
-        </div>
-      </template>
-
-      <!-- PASO 0: Identificación -->
-      <template v-if="step === 0 && tipo !== 'internet'">
-        <p class="text-sm font-semibold text-foreground mb-4">Identificación del contrato</p>
-        <div class="space-y-4">
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Proyecto asociado <span class="text-muted-foreground">(opcional)</span></label>
-            <Select
-              v-model="form.proyecto_id"
-              :options="todosProyectos"
-              optionLabel="nombre_comercial"
-              optionValue="id"
-              placeholder="Seleccionar proyecto"
-              filter
-              filterPlaceholder="Buscar…"
-              showClear
-              class="w-full"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Número de contrato</label>
-              <InputText v-model="form.numero_contrato" placeholder="Ej: REP-001-2024" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Estado</label>
-              <Select v-model="form.estado" :options="ESTADOS" optionLabel="label" optionValue="value" class="w-full" />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha firma <span class="text-muted-foreground">(opcional)</span></label>
-              <DatePicker v-model="form.fecha_firma_contrato" dateFormat="yy-mm-dd" class="w-full" showClear />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Estado del pago <span class="text-muted-foreground">(opcional)</span></label>
-              <Select v-model="form.estado_pago" :options="[{label:'Pendiente',value:'pendiente'},{label:'Revisado',value:'revisado'},{label:'Aprobado',value:'aprobado'}]"
-                optionLabel="label" optionValue="value" placeholder="Seleccionar" showClear class="w-full" />
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="block text-xs font-medium text-muted-foreground mb-1">Enlace contrato en Drive <span class="text-muted-foreground">(opcional)</span></label>
-            <InputText v-model="form.enlace_drive" placeholder="https://drive.google.com/…" class="w-full" />
-          </div>
-        </div>
-      </template>
-
-      <!-- PASO 1: Partes -->
-      <template v-if="step === 1 && tipo !== 'internet'">
-        <p class="text-sm font-semibold text-foreground mb-4">Partes del contrato</p>
-        <div class="grid grid-cols-2 gap-1 mb-1 px-1">
-          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contratante</span>
-          <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prestador</span>
-        </div>
-        <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
-          <!-- Contratante -->
-          <div class="space-y-3">
-            <SelectorCliente
-              v-model:id="form.contratante_id"
-              v-model:nombre="form.contratante_nombre"
-              v-model:nit="form.contratante_nit"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <NitDeCliente :nit="form.contratante_nit" />
-          </div>
-          <!-- Prestador -->
-          <div class="space-y-3">
-            <SelectorCliente
-              v-model:id="form.prestador_id"
-              v-model:nombre="form.prestador_nombre"
-              v-model:nit="form.prestador_nit"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <NitDeCliente :nit="form.prestador_nit" />
-          </div>
-        </div>
-
-        <!-- Inversionista: solo en representación/CGM, que es donde la tarifa
-             varía por inversionista. En una minigranja hay un contrato POR
-             inversionista, y sin decir de quién es, el reparto de costos no
-             puede saber qué tarifa cobrarle a cada quien. -->
-        <template v-if="tipo === 'representacion'">
-          <div class="grid grid-cols-1 gap-1 mb-1 mt-4 px-1">
-            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Inversionista</span>
-          </div>
-          <div class="p-4 rounded-lg bg-muted">
-            <SelectorCliente
-              v-model:id="form.inversionista_id"
-              v-model:nombre="form.inversionista_nombre"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <p class="text-xs text-muted-foreground leading-snug mt-2">
-              En minigranjas hay un contrato por inversionista, y cada uno puede
-              tener su propia tarifa.
-            </p>
-          </div>
-        </template>
-      </template>
-
-      <!-- PASO 2: Términos económicos -->
-      <template v-if="step === 2 && tipo !== 'internet'">
-        <p class="text-sm font-semibold text-foreground mb-4">Términos económicos</p>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha inicio</label>
-              <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin</label>
-              <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon class="w-full" />
-            </div>
-          </div>
-          <!-- Un contrato de este grupo puede cubrir representación, CGM o las dos.
-               Lo dicen las casillas, que viajan como `servicios`; la tarifa ya no
-               decide nada (puede llegar después) y solo se pide la de lo marcado. -->
-          <div v-if="props.tipo === 'representacion'" class="space-y-3">
-            <div class="flex flex-col gap-1">
-              <span class="block text-xs font-medium text-muted-foreground mb-1">Servicios que cubre</span>
-              <div class="flex items-center gap-6">
-                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <Checkbox v-model="form.cubre_representacion" :binary="true" /> Representación
-                </label>
-                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                  <Checkbox v-model="form.cubre_cgm" :binary="true" /> CGM
-                </label>
-              </div>
-              <small v-if="sinServicio" class="text-xs text-destructive leading-snug">Marca al menos uno.</small>
+            <div class="space-y-1.5">
+              <GLabel>Tipo de conexión</GLabel>
+              <Select :model-value="aValorSelect(form.tipo_conexion)"
+                @update:model-value="form.tipo_conexion = deValorSelect($event) || null">
+                <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                  <SelectItem v-for="t in TIPOS_CONEXION" :key="t" :value="t">{{ t }}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div class="grid grid-cols-2 gap-4">
-              <div v-if="form.cubre_representacion" class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa representación (COP/kWh)</label>
-                <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="2"
-                  :maxFractionDigits="6" class="w-full" />
+              <div class="space-y-1.5">
+                <GLabel>Línea de servicio</GLabel>
+                <Input v-model="form.linea_servicio" />
               </div>
-              <div v-if="form.cubre_cgm" class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa CGM (COP/kWh)</label>
-                <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="2"
-                  :maxFractionDigits="6" class="w-full" />
+              <div class="space-y-1.5">
+                <GLabel>ID del router</GLabel>
+                <Input v-model="form.id_router" />
               </div>
             </div>
-          </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Número de kit</GLabel>
+                <Input v-model="form.numero_kit" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Latencia (ms)</GLabel>
+                <NumberField :step-snapping="false" v-model="form.latencia_ms" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Seguridad del wifi</GLabel>
+                <Select :model-value="aValorSelect(form.wifi_seguridad)"
+                  @update:model-value="form.wifi_seguridad = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                    <SelectItem v-for="o in WIFI_SEGURIDAD_OPTS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Contraseña wifi</GLabel>
+                <Input v-model="form.wifi_password" />
+              </div>
+            </div>
 
-          <div class="grid grid-cols-2 gap-4">
-            <div v-if="props.tipo !== 'representacion'" class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Tarifa base (COP/kWh)</label>
-              <InputNumber v-model="form.tarifa_base" :minFractionDigits="2" :maxFractionDigits="4" class="w-full" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Periodicidad de pago</label>
-              <Select v-model="form.periodicidad_pago" :options="PERIODICIDADES"
-                optionLabel="label" optionValue="value" showClear class="w-full" />
-            </div>
-          </div>
-
-          <div class="max-w-xs">
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Índice de indexación</label>
-              <InputText v-model="form.indice_indexacion" placeholder="Ej: IPC, IPP" class="w-full" />
-            </div>
-          </div>
-
-          <!-- Detalles operacionales y contractuales -->
-          <div class="border-t border-muted pt-3">
-            <p class="text-xs font-semibold uppercase tracking-wide mb-3 text-(--c)" :style="{ '--c': tipoColor }">
-              Detalles operacionales y contractuales
-              <span class="normal-case font-normal text-muted-foreground">(opcional)</span>
-            </p>
-            <div class="space-y-4">
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Alcance del servicio</label>
-                <Textarea v-model="form.service_scope" rows="3" autoResize class="w-full"
-                  placeholder="Describe el alcance del servicio…" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Términos específicos del servicio</label>
-                <Textarea v-model="form.specific_service_terms" rows="3" autoResize class="w-full"
-                  placeholder="Términos específicos aplicables al servicio…" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">SLAs (Acuerdos de nivel de servicio)</label>
-                <Textarea v-model="form.slas" rows="3" autoResize class="w-full"
-                  placeholder="Acuerdos de nivel de servicio, tiempos de respuesta…" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Responsabilidades</label>
-                <Textarea v-model="form.responsibilities" rows="3" autoResize class="w-full"
-                  placeholder="Responsabilidades de las partes…" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <!-- PASO 3: Arrendadores (solo ARRIENDO) -->
-      <template v-if="tipo === 'arriendo' && step === STEPS.length - 1">
-        <p class="text-sm font-semibold text-foreground mb-4">Arrendadores</p>
-        <p class="text-xs text-muted-foreground mb-3">
-          El contrato ya se creó. Agrega al menos un arrendador (persona/entidad que recibe el pago) antes de finalizar.
-        </p>
-        <div class="rounded-xl border border-primary/20">
-          <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
-            <span class="text-xs font-semibold flex items-center gap-1.5 text-primary">
-              <UsersIcon class="size-3 text-primary" />Arrendadores
-            </span>
-            <Button label="Agregar arrendador" size="small" text class="text-primary" @click="openArrendadorDialog('crear')">
-              <template #icon><PlusIcon class="size-4" /></template>
-            </Button>
-          </div>
-          <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
-            Sin arrendadores registrados.
-          </div>
-          <div v-else class="divide-y divide-muted">
-            <div v-for="a in arrendadores" :key="a.id"
-              class="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-semibold text-foreground">{{ a.nombre }}</span>
-                <span class="text-sm font-mono tabular-nums text-primary">{{ formatCOP(a.valor_base) }}</span>
-                <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary">Responsable IVA</span>
-              </div>
-              <div class="flex items-center gap-1 flex-shrink-0">
-                <Button size="small" text severity="secondary" @click="openArrendadorDialog('editar', a)">
-                  <template #icon><PencilIcon class="size-4" /></template>
-                </Button>
-                <Button size="small" text severity="danger" @click="eliminarArrendadorWizard(a)">
-                  <template #icon><Trash2Icon class="size-4" /></template>
+            <!-- Ubicación del servicio -->
+            <div class="rounded-lg border border-border p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <p class="text-xs font-semibold text-muted-foreground">Ubicación del servicio</p>
+                  <p class="text-sm text-foreground">Ubicación: {{ ubicacionLabel }}</p>
+                </div>
+                <Button type="button" variant="ghost" size="sm" @click="editandoUbicacion = !editandoUbicacion">
+                  {{ editandoUbicacion ? 'Listo' : 'Editar' }}
                 </Button>
               </div>
+              <div v-if="editandoUbicacion" class="grid grid-cols-2 gap-4 mb-2">
+                <div class="space-y-1.5">
+                  <GLabel>Latitud</GLabel>
+                  <NumberField :step-snapping="false" v-model="form.ubicacion_lat" :format-options="FORMATO_COORDENADA">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>Longitud</GLabel>
+                  <NumberField :step-snapping="false" v-model="form.ubicacion_lng" :format-options="FORMATO_COORDENADA">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
+                </div>
+              </div>
+              <p v-if="editandoUbicacion" class="text-xs text-muted-foreground mb-2">
+                Haz clic en el mapa para ubicar el servicio.
+              </p>
+              <div ref="ubicacionMapEl" class="rounded-md overflow-hidden h-55 bg-muted"></div>
             </div>
           </div>
-        </div>
+        </template>
 
-        <!-- Dialog Arrendador (crear/editar) -->
-        <Dialog v-model:visible="arrendadorDialog.visible" modal
-          :header="arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador'"
-          class="w-full max-w-md">
-          <div class="flex flex-col gap-3 pt-2">
-            <!-- El arrendador FACTURA, así que necesita NIT y razón social: por
-                 eso se vincula a un cliente en vez de escribirse a mano. -->
-            <SelectorCliente
-              v-model:id="arrendadorDialog.form.cliente_id"
-              v-model:nombre="arrendadorDialog.form.nombre"
-              label="Nombre / Razón social"
-              requerido
-            />
-            <div>
-              <label class="text-xs font-medium text-muted-foreground">Valor base</label>
-              <InputNumber v-model="arrendadorDialog.form.valor_base" class="w-full" mode="currency"
-                currency="COP" locale="es-CO" :maxFractionDigits="0" />
+        <!-- PASO 0: Identificación -->
+        <template v-if="step === 0 && tipo !== 'internet'">
+          <p class="text-sm font-semibold text-foreground mb-4">Identificación del contrato</p>
+          <div class="space-y-4">
+            <div class="space-y-1.5">
+              <GLabel>Proyecto asociado <span class="text-muted-foreground">(opcional)</span></GLabel>
+              <div class="flex gap-2">
+                <ComboBox v-model="proyectoIdTexto" :options="opcionesProyecto"
+                  placeholder="Buscar proyecto…" empty-message="Sin proyectos" class="flex-1" />
+                <GTooltip v-if="form.proyecto_id">
+                  <GTooltipTrigger as-child>
+                    <Button variant="outline" size="icon" @click="form.proyecto_id = null">
+                      <XIcon class="size-4" />
+                    </Button>
+                  </GTooltipTrigger>
+                  <GTooltipContent>Quitar el proyecto</GTooltipContent>
+                </GTooltip>
+              </div>
             </div>
-            <div>
-              <label class="text-xs font-medium text-muted-foreground">Responsable IVA</label>
-              <Select v-model="arrendadorDialog.form.responsable_iva"
-                :options="[{label:'Sí',value:true},{label:'No',value:false}]"
-                optionLabel="label" optionValue="value" class="w-full" />
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Número de contrato</GLabel>
+                <Input v-model="form.numero_contrato" placeholder="Ej: REP-001-2024" />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Estado</GLabel>
+                <Select v-model="form.estado">
+                  <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="e in ESTADOS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-muted-foreground">Anticipo pagado desde</label>
-              <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Fecha firma <span class="text-muted-foreground">(opcional)</span></GLabel>
+                <DatePicker v-model="form.fecha_firma_contrato" clearable />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Estado del pago <span class="text-muted-foreground">(opcional)</span></GLabel>
+                <Select :model-value="aValorSelect(form.estado_pago)"
+                  @update:model-value="form.estado_pago = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                    <SelectItem v-for="e in ESTADOS_PAGO" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-muted-foreground">Anticipo pagado hasta</label>
-              <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" dateFormat="yy-mm-dd" class="w-full" showClear placeholder="aaaa-mm-dd" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-medium text-muted-foreground">Observaciones</label>
-              <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" class="w-full" />
+            <div class="space-y-1.5">
+              <GLabel>Enlace contrato en Drive <span class="text-muted-foreground">(opcional)</span></GLabel>
+              <Input v-model="form.enlace_drive" placeholder="https://drive.google.com/…" />
             </div>
           </div>
-          <template #footer>
-            <Button label="Cancelar" text severity="secondary" @click="arrendadorDialog.visible = false" />
-            <Button label="Guardar" :loading="arrendadorDialog.guardando" @click="guardarArrendadorWizard" />
+        </template>
+
+        <!-- PASO 1: Partes -->
+        <template v-if="step === 1 && tipo !== 'internet'">
+          <p class="text-sm font-semibold text-foreground mb-4">Partes del contrato</p>
+          <div class="grid grid-cols-2 gap-1 mb-1 px-1">
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contratante</span>
+            <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prestador</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-muted">
+            <!-- Contratante -->
+            <div class="space-y-3">
+              <SelectorCliente
+                v-model:id="form.contratante_id"
+                v-model:nombre="form.contratante_nombre"
+                v-model:nit="form.contratante_nit"
+                label="Nombre / Razón social"
+                requerido
+              />
+              <NitDeCliente :nit="form.contratante_nit" />
+            </div>
+            <!-- Prestador -->
+            <div class="space-y-3">
+              <SelectorCliente
+                v-model:id="form.prestador_id"
+                v-model:nombre="form.prestador_nombre"
+                v-model:nit="form.prestador_nit"
+                label="Nombre / Razón social"
+                requerido
+              />
+              <NitDeCliente :nit="form.prestador_nit" />
+            </div>
+          </div>
+
+          <!-- Inversionista: solo en representación/CGM, que es donde la tarifa
+               varía por inversionista. En una minigranja hay un contrato POR
+               inversionista, y sin decir de quién es, el reparto de costos no
+               puede saber qué tarifa cobrarle a cada quien. -->
+          <template v-if="tipo === 'representacion'">
+            <div class="grid grid-cols-1 gap-1 mb-1 mt-4 px-1">
+              <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Inversionista</span>
+            </div>
+            <div class="p-4 rounded-lg bg-muted">
+              <SelectorCliente
+                v-model:id="form.inversionista_id"
+                v-model:nombre="form.inversionista_nombre"
+                label="Nombre / Razón social"
+                requerido
+              />
+              <p class="text-xs text-muted-foreground leading-snug mt-2">
+                En minigranjas hay un contrato por inversionista, y cada uno puede
+                tener su propia tarifa.
+              </p>
+            </div>
           </template>
-        </Dialog>
-      </template>
+        </template>
 
-    </div>
+        <!-- PASO 2: Términos económicos -->
+        <template v-if="step === 2 && tipo !== 'internet'">
+          <p class="text-sm font-semibold text-foreground mb-4">Términos económicos</p>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <GLabel>Fecha inicio</GLabel>
+                <DatePicker v-model="form.fecha_inicio" clearable />
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Fecha fin</GLabel>
+                <DatePicker v-model="form.fecha_fin" clearable />
+              </div>
+            </div>
+            <!-- Un contrato de este grupo puede cubrir representación, CGM o las dos.
+                 Lo dicen las casillas, que viajan como `servicios`; la tarifa ya no
+                 decide nada (puede llegar después) y solo se pide la de lo marcado. -->
+            <div v-if="props.tipo === 'representacion'" class="space-y-3">
+              <div class="space-y-1.5">
+                <GLabel>Servicios que cubre</GLabel>
+                <div class="flex items-center gap-6">
+                  <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <Checkbox v-model="form.cubre_representacion" /> Representación
+                  </label>
+                  <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                    <Checkbox v-model="form.cubre_cgm" /> CGM
+                  </label>
+                </div>
+                <small v-if="sinServicio" class="text-xs text-destructive leading-snug">Marca al menos uno.</small>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div v-if="form.cubre_representacion" class="space-y-1.5">
+                  <GLabel>Tarifa representación (COP/kWh)</GLabel>
+                  <NumberField :step-snapping="false" v-model="form.tarifa_representacion" :format-options="FORMATO_TARIFA_KWH">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
+                </div>
+                <div v-if="form.cubre_cgm" class="space-y-1.5">
+                  <GLabel>Tarifa CGM (COP/kWh)</GLabel>
+                  <NumberField :step-snapping="false" v-model="form.tarifa_cgm" :format-options="FORMATO_TARIFA_KWH">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
+                </div>
+              </div>
+            </div>
 
-    <!-- Footer -->
-    <div class="px-6 py-4 border-t border-muted flex justify-between items-center">
-      <Button v-if="step > 0 && !contratoIdCreado" label="Anterior" severity="secondary" outlined @click="step--">
-        <template #icon><ArrowLeftIcon class="size-4" /></template>
-      </Button>
-      <span v-else />
-      <div class="flex gap-2">
-        <Button label="Cancelar" severity="secondary" text @click="$emit('cerrar')" />
-        <Button v-if="tipo === 'arriendo' && step === STEPS.length - 2" label="Crear y continuar" class="flex-row-reverse bg-(--c) border-(--c)"
-          :loading="guardando"
-          :style="{ '--c': tipoColor }"
-          @click="crearYContinuarArriendo">
-          <template #icon><ArrowRightIcon class="size-4" /></template>
-        </Button>
-        <Button v-else-if="tipo === 'arriendo' && step === STEPS.length - 1" label="Finalizar" class="bg-(--c) border-(--c)" :style="{ '--c': tipoColor }" @click="finalizarArriendo">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
-        <Button v-else-if="step < STEPS.length - 1" label="Siguiente" class="flex-row-reverse bg-(--c) border-(--c)"
-          :style="{ '--c': tipoColor }"
-          :disabled="(step === 1 && partesPendientes.length > 0) || (step === 2 && sinServicio)"
-          v-tooltip="avisoPartes"
-          @click="step++">
-          <template #icon><ArrowRightIcon class="size-4" /></template>
-        </Button>
-        <Button v-else label="Crear contrato" class="bg-(--c) border-(--c)" :loading="guardando" :disabled="partesPendientes.length > 0 || sinServicio"
-          v-tooltip="avisoPartes"
-          :style="{ '--c': tipoColor }" @click="guardar">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
+            <div class="grid grid-cols-2 gap-4">
+              <div v-if="props.tipo !== 'representacion'" class="space-y-1.5">
+                <GLabel>Tarifa base (COP/kWh)</GLabel>
+                <NumberField :step-snapping="false" v-model="form.tarifa_base" :format-options="FORMATO_TARIFA_BASE">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
+              </div>
+              <div class="space-y-1.5">
+                <GLabel>Periodicidad de pago</GLabel>
+                <Select :model-value="aValorSelect(form.periodicidad_pago)"
+                  @update:model-value="form.periodicidad_pago = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+                    <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div class="max-w-xs space-y-1.5">
+              <GLabel>Índice de indexación</GLabel>
+              <Input v-model="form.indice_indexacion" placeholder="Ej: IPC, IPP" />
+            </div>
+
+            <!-- Detalles operacionales y contractuales -->
+            <div class="border-t border-muted pt-3">
+              <p class="text-xs font-semibold uppercase tracking-wide mb-3 text-(--c)" :style="{ '--c': tipoColor }">
+                Detalles operacionales y contractuales
+                <span class="normal-case font-normal text-muted-foreground">(opcional)</span>
+              </p>
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <GLabel>Alcance del servicio</GLabel>
+                  <Textarea v-model="form.service_scope" rows="3"
+                    placeholder="Describe el alcance del servicio…" />
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>Términos específicos del servicio</GLabel>
+                  <Textarea v-model="form.specific_service_terms" rows="3"
+                    placeholder="Términos específicos aplicables al servicio…" />
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>SLAs (Acuerdos de nivel de servicio)</GLabel>
+                  <Textarea v-model="form.slas" rows="3"
+                    placeholder="Acuerdos de nivel de servicio, tiempos de respuesta…" />
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>Responsabilidades</GLabel>
+                  <Textarea v-model="form.responsibilities" rows="3"
+                    placeholder="Responsabilidades de las partes…" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- PASO 3: Arrendadores (solo ARRIENDO) -->
+        <template v-if="tipo === 'arriendo' && step === STEPS.length - 1">
+          <p class="text-sm font-semibold text-foreground mb-4">Arrendadores</p>
+          <p class="text-xs text-muted-foreground mb-3">
+            El contrato ya se creó. Agrega al menos un arrendador (persona/entidad que recibe el pago) antes de finalizar.
+          </p>
+          <div class="rounded-xl border border-primary/20">
+            <div class="flex items-center justify-between px-4 py-2.5 bg-primary/5">
+              <span class="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                <UsersIcon class="size-3 text-primary" />Arrendadores
+              </span>
+              <Button variant="ghost" size="sm" @click="openArrendadorDialog('crear')">
+                <PlusIcon class="size-4" /> Agregar arrendador
+              </Button>
+            </div>
+            <div v-if="!arrendadores.length" class="px-4 py-6 text-center text-xs text-muted-foreground">
+              Sin arrendadores registrados.
+            </div>
+            <div v-else class="divide-y divide-muted">
+              <div v-for="a in arrendadores" :key="a.id"
+                class="flex items-center justify-between gap-3 px-4 py-3 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-semibold text-foreground">{{ a.nombre }}</span>
+                  <span class="text-sm font-mono tabular-nums text-primary">{{ formatCOP(a.valor_base) }}</span>
+                  <span v-if="a.responsable_iva" class="text-xs px-1.5 py-0.5 rounded font-bold leading-none bg-primary/10 text-primary">Responsable IVA</span>
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <Button variant="ghost" size="icon" @click="openArrendadorDialog('editar', a)">
+                    <PencilIcon class="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" @click="eliminarArrendadorWizard(a)">
+                    <Trash2Icon class="size-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dialog Arrendador (crear/editar) -->
+          <Dialog v-model:open="arrendadorDialog.visible">
+            <DialogContent class="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{{ arrendadorDialog.modo === 'editar' ? 'Editar arrendador' : 'Agregar arrendador' }}</DialogTitle>
+                <DialogDescription class="sr-only">Quién recibe el pago del arriendo y en qué condiciones.</DialogDescription>
+              </DialogHeader>
+              <div class="flex flex-col gap-3">
+                <!-- El arrendador FACTURA, así que necesita NIT y razón social: por
+                     eso se vincula a un cliente en vez de escribirse a mano. -->
+                <SelectorCliente
+                  v-model:id="arrendadorDialog.form.cliente_id"
+                  v-model:nombre="arrendadorDialog.form.nombre"
+                  label="Nombre / Razón social"
+                  requerido
+                />
+                <div class="space-y-1.5">
+                  <GLabel>Valor base</GLabel>
+                  <NumberField :step-snapping="false" v-model="arrendadorDialog.form.valor_base" :format-options="FORMATO_COP">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                  <Checkbox v-model="arrendadorDialog.form.responsable_iva" /> Responsable de IVA
+                </label>
+                <div class="space-y-1.5">
+                  <GLabel>Anticipo pagado desde</GLabel>
+                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_desde" clearable />
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>Anticipo pagado hasta</GLabel>
+                  <DatePicker v-model="arrendadorDialog.form.anticipo_pagado_hasta" clearable />
+                </div>
+                <div class="space-y-1.5">
+                  <GLabel>Observaciones</GLabel>
+                  <Textarea v-model="arrendadorDialog.form.observaciones" rows="2" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" @click="arrendadorDialog.visible = false">Cancelar</Button>
+                <Button :disabled="arrendadorDialog.guardando" @click="guardarArrendadorWizard">
+                  <Spinner v-if="arrendadorDialog.guardando" class="size-4" /> Guardar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </template>
+
       </div>
-    </div>
 
-    <!-- Ya hay un contrato vigente de este servicio en esta planta. Avisa y deja
-         seguir: la renovación mientras el anterior sigue vigente es un caso
-         legítimo, pero enterarse evita otro MGS Naos 2 (tres filas, un solo
-         contrato). -->
-    <Dialog :visible="!!duplicadoContrato" @update:visible="duplicadoContrato = null"
-      header="Ya existe un contrato para este servicio" modal class="w-full max-w-sm">
-      <p class="text-sm text-muted-foreground">{{ duplicadoContrato?.mensaje }}</p>
-      <p class="text-xs text-muted-foreground mt-2">
-        Si es una renovación o un contrato distinto, podés crearlo igual.
-      </p>
-      <template #footer>
-        <Button label="Cancelar" severity="secondary" text @click="duplicadoContrato = null" />
-        <Button label="Crear igual" :loading="guardando" @click="crearDeTodosModos" />
-      </template>
-    </Dialog>
+      <!-- Footer -->
+      <DialogFooter class="pt-4 border-t border-muted sm:justify-between">
+        <Button v-if="step > 0 && !contratoIdCreado" variant="outline" @click="step--">
+          <ArrowLeftIcon class="size-4" /> Anterior
+        </Button>
+        <span v-else />
+        <div class="flex gap-2">
+          <Button variant="ghost" @click="cerrar">Cancelar</Button>
+          <Button v-if="tipo === 'arriendo' && step === STEPS.length - 2" :disabled="guardando"
+            @click="crearYContinuarArriendo">
+            <Spinner v-if="guardando" class="size-4" /> Crear y continuar <ArrowRightIcon class="size-4" />
+          </Button>
+          <Button v-else-if="tipo === 'arriendo' && step === STEPS.length - 1" @click="finalizarArriendo">
+            <CheckIcon class="size-4" /> Finalizar
+          </Button>
+          <GTooltip v-else-if="step < STEPS.length - 1" :disabled="!avisoPartes">
+            <GTooltipTrigger as-child>
+              <span>
+                <Button :disabled="(step === 1 && partesPendientes.length > 0) || (step === 2 && sinServicio)"
+                  @click="step++">
+                  Siguiente <ArrowRightIcon class="size-4" />
+                </Button>
+              </span>
+            </GTooltipTrigger>
+            <GTooltipContent>{{ avisoPartes }}</GTooltipContent>
+          </GTooltip>
+          <GTooltip v-else :disabled="!avisoPartes">
+            <GTooltipTrigger as-child>
+              <span>
+                <Button :disabled="guardando || partesPendientes.length > 0 || sinServicio" @click="guardar">
+                  <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Crear contrato
+                </Button>
+              </span>
+            </GTooltipTrigger>
+            <GTooltipContent>{{ avisoPartes }}</GTooltipContent>
+          </GTooltip>
+        </div>
+      </DialogFooter>
 
+      <!-- Ya hay un contrato vigente de este servicio en esta planta. Avisa y deja
+           seguir: la renovación mientras el anterior sigue vigente es un caso
+           legítimo, pero enterarse evita otro MGS Naos 2 (tres filas, un solo
+           contrato). -->
+      <Dialog :open="!!duplicadoContrato" @update:open="(v) => { if (!v) duplicadoContrato = null }">
+        <DialogContent class="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ya existe un contrato para este servicio</DialogTitle>
+            <DialogDescription>{{ duplicadoContrato?.mensaje }}</DialogDescription>
+          </DialogHeader>
+          <p class="text-xs text-muted-foreground">
+            Si es una renovación o un contrato distinto, podés crearlo igual.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" @click="duplicadoContrato = null">Cancelar</Button>
+            <Button :disabled="guardando" @click="crearDeTodosModos">
+              <Spinner v-if="guardando" class="size-4" /> Crear igual
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DialogContent>
   </Dialog>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { toast } from 'vue-sonner'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import DatePicker from 'primevue/datepicker'
-import Checkbox from 'primevue/checkbox'
-import Textarea from 'primevue/textarea'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon } from '@lucide/vue'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, PencilIcon, PlusIcon, Trash2Icon, UsersIcon, XIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -472,6 +523,16 @@ const props = defineProps({
   proyectoIdDefault: { type: Number, default: null },
 })
 const emit = defineEmits(['update:visible', 'cerrar', 'creado'])
+
+/** Cerrar por la X, Esc o clic afuera: lo mismo que el botón Cancelar. */
+function alCambiarVisible(abierto) {
+  emit('update:visible', abierto)
+  if (!abierto) emit('cerrar')
+}
+
+function cerrar() {
+  alCambiarVisible(false)
+}
 
 const step = ref(0)
 const guardando = ref(false)
@@ -507,6 +568,30 @@ const ESTADOS = [
   { label: 'En renovación', value: 'en_renovacion' },
   { label: 'Terminado',     value: 'terminado' },
 ]
+
+const ESTADOS_PAGO = [
+  { label: 'Pendiente', value: 'pendiente' },
+  { label: 'Revisado',  value: 'revisado' },
+  { label: 'Aprobado',  value: 'aprobado' },
+]
+
+const TIPOS_CONEXION = ['Starlink', 'Fibra', '4G', 'Otro']
+
+// Formatos de los campos numéricos (Intl.NumberFormat). Todos los NumberField
+// llevan `:step-snapping="false"`: por defecto ajustan lo escrito a pasos de 1 y
+// una tarifa de 5,52826 se guardaba como 6.
+const FORMATO_TARIFA_KWH = { minimumFractionDigits: 2, maximumFractionDigits: 6 }
+const FORMATO_TARIFA_BASE = { minimumFractionDigits: 2, maximumFractionDigits: 4 }
+const FORMATO_COORDENADA = { minimumFractionDigits: 4, maximumFractionDigits: 6, useGrouping: false }
+const FORMATO_COP = { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }
+
+// El buscador de proyecto trabaja con texto; el formulario, con el id.
+const opcionesProyecto = computed(() =>
+  todosProyectos.value.map(p => ({ label: p.nombre_comercial ?? `Proyecto ${p.id}`, value: String(p.id) })))
+const proyectoIdTexto = computed({
+  get: () => (form.proyecto_id != null ? String(form.proyecto_id) : null),
+  set: (v) => { form.proyecto_id = v ? Number(v) : null },
+})
 
 const PERIODICIDADES = [
   { label: 'Mensual',    value: 'mensual' },
@@ -632,11 +717,10 @@ async function initUbicacionMap() {
   ubicacionMapRO.observe(ubicacionMapEl.value)
 }
 
-watch(step, async (s) => {
-  if (s === 0 && props.tipo === 'internet') {
-    await nextTick()
-    await initUbicacionMap()
-  }
+// La ventana dibuja su contenido después de montarse el componente: el mapa se
+// inicia cuando aparece su contenedor, no en `onMounted`.
+watch(ubicacionMapEl, (el) => {
+  if (el && props.tipo === 'internet') initUbicacionMap()
 })
 
 onBeforeUnmount(() => {
@@ -722,8 +806,8 @@ function openArrendadorDialog(modo, arrendador = null) {
   arrendadorDialog.form.valor_base = arrendador?.valor_base ?? null
   arrendadorDialog.form.responsable_iva = arrendador?.responsable_iva ?? false
   arrendadorDialog.form.activo = arrendador?.activo ?? true
-  arrendadorDialog.form.anticipo_pagado_desde = arrendador?.anticipo_pagado_desde ? new Date(arrendador.anticipo_pagado_desde) : null
-  arrendadorDialog.form.anticipo_pagado_hasta = arrendador?.anticipo_pagado_hasta ? new Date(arrendador.anticipo_pagado_hasta) : null
+  arrendadorDialog.form.anticipo_pagado_desde = formatFecha(arrendador?.anticipo_pagado_desde)
+  arrendadorDialog.form.anticipo_pagado_hasta = formatFecha(arrendador?.anticipo_pagado_hasta)
   arrendadorDialog.form.observaciones = arrendador?.observaciones || ''
   arrendadorDialog.visible = true
 }
@@ -738,15 +822,14 @@ async function guardarArrendadorWizard() {
   }
   arrendadorDialog.guardando = true
   try {
-    const toISO = d => d instanceof Date ? d.toISOString().slice(0, 10) : (d || null)
     const payload = {
       nombre: arrendadorDialog.form.nombre.trim(),
       cliente_id: arrendadorDialog.form.cliente_id,
       valor_base: arrendadorDialog.form.valor_base,
       responsable_iva: arrendadorDialog.form.responsable_iva ?? false,
       activo: arrendadorDialog.form.activo ?? true,
-      anticipo_pagado_desde: toISO(arrendadorDialog.form.anticipo_pagado_desde),
-      anticipo_pagado_hasta: toISO(arrendadorDialog.form.anticipo_pagado_hasta),
+      anticipo_pagado_desde: formatFecha(arrendadorDialog.form.anticipo_pagado_desde),
+      anticipo_pagado_hasta: formatFecha(arrendadorDialog.form.anticipo_pagado_hasta),
       observaciones: arrendadorDialog.form.observaciones?.trim() || null,
     }
     if (arrendadorDialog.modo === 'editar' && arrendadorDialog.editId) {
@@ -839,7 +922,7 @@ async function guardar() {
     const data = await crearContrato()
     toast.success('Contrato creado', { duration: 2500 })
     emit('creado', data)
-    emit('cerrar')
+    cerrar()
   } catch (e) {
     const aviso = duplicadoDe(e)
     if (aviso) {
@@ -878,7 +961,7 @@ async function crearYContinuarArriendo() {
 
 function finalizarArriendo() {
   emit('creado', { id: contratoIdCreado.value })
-  emit('cerrar')
+  cerrar()
 }
 
 onMounted(async () => {
@@ -886,9 +969,5 @@ onMounted(async () => {
   // compartido, que hace UNA petición para toda la pantalla.
   todosProyectos.value = await catalogoProyectos.cargar()
   if (props.proyectoIdDefault) form.proyecto_id = props.proyectoIdDefault
-  if (props.tipo === 'internet') {
-    await nextTick()
-    await initUbicacionMap()
-  }
 })
 </script>
