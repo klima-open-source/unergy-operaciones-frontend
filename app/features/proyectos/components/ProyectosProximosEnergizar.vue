@@ -12,8 +12,8 @@
           type="button"
           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs cursor-pointer transition-colors duration-150"
           :class="soloProximosAEnergizar ? 'bg-success/15 border-success/40' : 'bg-success/10 hover:bg-success/15'"
+          title="Tienen frontera asignada o Sun Factory ya los marca 'Próximo a energizar'."
           @click="soloProximosAEnergizar = !soloProximosAEnergizar"
-          v-tooltip.bottom="'Tienen frontera asignada o Sun Factory ya los marca \'Próximo a energizar\'.'"
         >
           <span class="text-base font-extrabold tabular-nums text-warning">{{ proximosAEnergizarCount }}</span>
           <span class="text-muted-foreground whitespace-nowrap">próximos a energizar</span>
@@ -24,19 +24,24 @@
           type="button"
           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-transparent text-xs cursor-pointer transition-colors duration-150"
           :class="soloConFrontera ? 'bg-success/15 border-success/40' : 'bg-success/10 hover:bg-success/15'"
+          title="Ya tienen frontera comercial registrada en Quoia."
           @click="soloConFrontera = !soloConFrontera"
-          v-tooltip.bottom="'Ya tienen frontera comercial registrada en Quoia.'"
         >
           <span class="text-base font-extrabold tabular-nums text-success">{{ conFronteraCount }}</span>
           <span class="text-muted-foreground whitespace-nowrap">con frontera asignada</span>
           <CircleXIcon v-if="soloConFrontera" class="size-3 text-success" />
           <FilterIcon v-else class="size-3 text-success" />
         </button>
-        <Button label="Actualizar" size="small" :loading="syncing" @click="onSync" v-tooltip.bottom="'Trae de nuevo % de obra, estado y fecha estimada desde Sun Factory'">
-          <template #icon><RefreshCwIcon class="size-4" /></template>
-        </Button>
-        <Button label="Descargar Excel" size="small" severity="secondary" outlined @click="descargarExcel">
-          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
+        <GTooltip>
+          <GTooltipTrigger as-child>
+            <Button size="sm" :disabled="syncing" @click="onSync">
+              <Spinner v-if="syncing" class="size-4" /><RefreshCwIcon v-else class="size-4" /> Actualizar
+            </Button>
+          </GTooltipTrigger>
+          <GTooltipContent>Trae de nuevo % de obra, estado y fecha estimada desde Sun Factory</GTooltipContent>
+        </GTooltip>
+        <Button variant="outline" size="sm" @click="descargarExcel">
+          <FileSpreadsheetIcon class="size-4" /> Descargar Excel
         </Button>
       </div>
       <p class="text-xs text-muted-foreground">
@@ -62,151 +67,133 @@
 
     <!-- Table -->
     <div class="p-3 overflow-x-auto">
-      <DataTable
-        :value="filteredProjects"
-        dataKey="id"
-        size="small"
-        stripedRows
-        v-model:expandedRows="expandedRows"
-        class="energ-table"
-      >
-        <template #empty>
-          <div class="text-center py-8 text-sm text-muted-foreground">
-            <template v-if="loading">
-              <LoaderCircleIcon class="size-5 animate-spin text-primary" />
-              <p class="mt-2">Cargando proyectos del pipeline…</p>
-            </template>
-            <template v-else-if="warning">
-              <DatabaseIcon class="size-6 text-muted-foreground/60" />
-              <p class="mt-2">No se pudieron cargar los proyectos.</p>
-              <p class="mt-1 text-xs text-muted-foreground">Revisa el aviso de arriba (configuración / fuente de datos).</p>
-            </template>
-            <template v-else-if="soloConFrontera">
-              Ningún proyecto en construcción tiene frontera asignada todavía.
-            </template>
-            <template v-else>
-              Aún no hay proyectos en el pipeline. Revisa «Proyectos pendientes» en la pestaña Proyectos para traer nuevos desde Sun Factory/Quoia.
-            </template>
-          </div>
-        </template>
-
-        <Column expander />
-
-        <!-- Commercial name (read-only, viene de Sun Factory) -->
-        <Column header="Proyecto" frozen>
-          <template #body="{ data }">
-            <TruncatedText :text="data.commercialName" class="text-sm max-w-80" />
-          </template>
-        </Column>
-
-        <!-- Origina project code (read-only) -->
-        <Column header="Código">
-          <template #body="{ data }">
-            <span class="text-xs font-mono text-muted-foreground">{{ data.name || '—' }}</span>
-          </template>
-        </Column>
-
-        <!-- Status (read-only, viene de Sun Factory) -->
-        <Column header="Estado">
-          <template #body="{ data }">
-            <span class="text-sm">{{ data.status }}</span>
-          </template>
-        </Column>
-
-        <!-- Energization date (read-only, viene de Sun Factory) -->
-        <Column header="Energización">
-          <template #body="{ data }">
-            <span class="text-sm font-mono tabular-nums">{{ formatDate(data.energizationDate) }}</span>
-          </template>
-        </Column>
-
-        <!-- Construction progress (Sun Factory, read-only) -->
-        <Column header="% Obra">
-          <template #body="{ data }">
-            <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums text-foreground">
-              {{ Number(data.avancePct).toFixed(1) }}%
-            </span>
-            <span v-else class="text-sm text-muted-foreground/50">—</span>
-          </template>
-        </Column>
-
-        <!-- Frontera asignada (señal real de energización inminente) -->
-        <Column header="Frontera">
-          <template #body="{ data }">
-            <span v-if="data.tieneFrontera" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate bg-success/10 text-success" v-tooltip.top="data.codigoFrontera">
-              <CircleCheckIcon class="size-4" /> {{ data.codigoFrontera }}
-            </span>
-            <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate text-foreground/30">—</span>
-          </template>
-        </Column>
-
-        <!-- Linked PPA contracts (read-only — se gestionan en el flujo PPA) -->
-        <Column header="Contratos">
-          <template #body="{ data }">
-            <span v-if="data.contracts && data.contracts.length" class="inline-flex items-center gap-1 text-xs whitespace-nowrap font-semibold text-primary"
-                  v-tooltip.top="data.contracts.join(', ')">
-              <FileIcon class="size-4" />
-              {{ data.contracts[0] }}<template v-if="data.contracts.length > 1"> +{{ data.contracts.length - 1 }}</template>
-            </span>
-            <span v-else class="inline-flex items-center gap-1 text-xs whitespace-nowrap text-foreground/35">
-              <span class="size-1.5 rounded-full bg-foreground/25" /> Sin contratos
-            </span>
-          </template>
-        </Column>
-
-        <!-- Expected monthly MWh (read-only, viene de Sun Factory) -->
-        <Column header="MWh / mes">
-          <template #body="{ data }">
-            <span class="text-sm font-mono tabular-nums" :class="{ 'text-foreground/30': !data.monthlyMwh }">
-              {{ Number(data.monthlyMwh).toFixed(2) }}
-            </span>
-          </template>
-        </Column>
-
-        <!-- Actions -->
-        <Column>
-          <template #body="{ data }">
-            <Button severity="danger" text rounded size="small" @click="confirmRemove(data)">
-              <template #icon><Trash2Icon class="size-4" /></template>
-            </Button>
-          </template>
-        </Column>
-
-        <!-- Proyección mensual (detalle expandible por fila) -->
-        <template #expansion="{ data }">
-          <div class="px-5 py-4 bg-primary/5">
-            <p class="text-xs font-semibold uppercase tracking-wide mb-2.5 text-muted-foreground">
-              Proyección MWh/mes — {{ data.commercialName }}
-            </p>
-            <div class="month-grid gap-2">
-              <div
-                v-for="col in monthColumns" :key="col.field"
-                class="rounded-lg border px-1.5 py-2 text-center"
-                :class="isProrated(data, col.year, col.month) ? 'bg-warning/15 border-warning/40' : 'bg-card border-foreground/10'"
-                v-tooltip.top="isProrated(data, col.year, col.month) ? 'Mes parcial — prorrateado desde la energización' : ''"
-              >
-                <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ col.header }}</div>
-                <div
-                  class="text-sm mt-0.5 tabular-nums"
-                  :class="[
-                    calculateGeneration(data, col.year, col.month) === 0 ? 'font-medium' : 'font-bold',
-                    isProrated(data, col.year, col.month) ? 'text-warning' : calculateGeneration(data, col.year, col.month) === 0 ? 'text-foreground/30' : 'text-foreground',
-                  ]"
-                >{{ calculateGeneration(data, col.year, col.month).toFixed(2) }}</div>
-              </div>
+      <!-- GTable a mano y no blocks/DataTable: cada fila se despliega en una
+           segunda con la proyección mensual, y el bloque no tiene filas de detalle. -->
+      <GTable>
+        <GTableHeader>
+          <GTableRow>
+            <GTableHead class="w-10" />
+            <GTableHead v-for="h in ENCABEZADOS" :key="h">{{ h }}</GTableHead>
+            <GTableHead class="w-12" />
+          </GTableRow>
+        </GTableHeader>
+        <GTableBody>
+          <TableEmpty v-if="!filteredProjects.length" :colspan="ENCABEZADOS.length + 2">
+            <div class="text-center py-8 text-sm text-muted-foreground whitespace-normal">
+              <template v-if="loading">
+                <LoaderCircleIcon class="mx-auto size-5 animate-spin text-primary" />
+                <p class="mt-2">Cargando proyectos del pipeline…</p>
+              </template>
+              <template v-else-if="warning">
+                <DatabaseIcon class="mx-auto size-6 text-muted-foreground/60" />
+                <p class="mt-2">No se pudieron cargar los proyectos.</p>
+                <p class="mt-1 text-xs text-muted-foreground">Revisa el aviso de arriba (configuración / fuente de datos).</p>
+              </template>
+              <template v-else-if="soloConFrontera">
+                Ningún proyecto en construcción tiene frontera asignada todavía.
+              </template>
+              <template v-else>
+                Aún no hay proyectos en el pipeline. Revisa «Proyectos pendientes» en la pestaña Proyectos para traer nuevos desde Sun Factory/Quoia.
+              </template>
             </div>
-          </div>
-        </template>
-      </DataTable>
+          </TableEmpty>
+          <template v-for="data in filteredProjects" :key="data.id">
+            <GTableRow>
+              <GTableCell>
+                <Button variant="ghost" size="icon-sm" :aria-expanded="!!expandedRows[data.id]"
+                  aria-label="Ver proyección mensual" @click="alternarFila(data.id)">
+                  <ChevronRightIcon class="size-4 transition-transform" :class="expandedRows[data.id] ? 'rotate-90' : ''" />
+                </Button>
+              </GTableCell>
+              <!-- Commercial name (read-only, viene de Sun Factory) -->
+              <GTableCell><TruncatedText :text="data.commercialName" class="text-sm max-w-80" /></GTableCell>
+              <!-- Origina project code (read-only) -->
+              <GTableCell><span class="text-xs font-mono text-muted-foreground">{{ data.name || '—' }}</span></GTableCell>
+              <!-- Status (read-only, viene de Sun Factory) -->
+              <GTableCell><span class="text-sm">{{ data.status }}</span></GTableCell>
+              <!-- Energization date (read-only, viene de Sun Factory) -->
+              <GTableCell><span class="text-sm font-mono tabular-nums">{{ formatDate(data.energizationDate) }}</span></GTableCell>
+              <!-- Construction progress (Sun Factory, read-only) -->
+              <GTableCell>
+                <span v-if="data.avancePct != null" class="text-sm font-mono tabular-nums text-foreground">
+                  {{ Number(data.avancePct).toFixed(1) }}%
+                </span>
+                <span v-else class="text-sm text-muted-foreground/50">—</span>
+              </GTableCell>
+              <!-- Frontera asignada (señal real de energización inminente) -->
+              <GTableCell>
+                <span v-if="data.tieneFrontera" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate bg-success/10 text-success" :title="data.codigoFrontera">
+                  <CircleCheckIcon class="size-4" /> {{ data.codigoFrontera }}
+                </span>
+                <span v-else class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full max-w-30 truncate text-foreground/30">—</span>
+              </GTableCell>
+              <!-- Linked PPA contracts (read-only — se gestionan en el flujo PPA) -->
+              <GTableCell>
+                <span v-if="data.contracts && data.contracts.length" class="inline-flex items-center gap-1 text-xs whitespace-nowrap font-semibold text-primary"
+                      :title="data.contracts.join(', ')">
+                  <FileIcon class="size-4" />
+                  {{ data.contracts[0] }}<template v-if="data.contracts.length > 1"> +{{ data.contracts.length - 1 }}</template>
+                </span>
+                <span v-else class="inline-flex items-center gap-1 text-xs whitespace-nowrap text-foreground/35">
+                  <span class="size-1.5 rounded-full bg-foreground/25" /> Sin contratos
+                </span>
+              </GTableCell>
+              <!-- Expected monthly MWh (read-only, viene de Sun Factory) -->
+              <GTableCell>
+                <span class="text-sm font-mono tabular-nums" :class="{ 'text-foreground/30': !data.monthlyMwh }">
+                  {{ Number(data.monthlyMwh).toFixed(2) }}
+                </span>
+              </GTableCell>
+              <!-- Actions -->
+              <GTableCell>
+                <Button variant="ghost" size="icon-sm" aria-label="Quitar de la lista" @click="confirmRemove(data)">
+                  <Trash2Icon class="size-4 text-destructive" />
+                </Button>
+              </GTableCell>
+            </GTableRow>
+            <!-- Proyección mensual (detalle expandible por fila) -->
+            <GTableRow v-if="expandedRows[data.id]" class="hover:bg-transparent">
+              <GTableCell :colspan="ENCABEZADOS.length + 2" class="p-0 whitespace-normal">
+                <div class="px-5 py-4 bg-primary/5">
+                  <p class="text-xs font-semibold uppercase tracking-wide mb-2.5 text-muted-foreground">
+                    Proyección MWh/mes — {{ data.commercialName }}
+                  </p>
+                  <div class="month-grid gap-2">
+                    <div
+                      v-for="col in monthColumns" :key="col.field"
+                      class="rounded-lg border px-1.5 py-2 text-center"
+                      :class="isProrated(data, col.year, col.month) ? 'bg-warning/15 border-warning/40' : 'bg-card border-foreground/10'"
+                      :title="isProrated(data, col.year, col.month) ? 'Mes parcial — prorrateado desde la energización' : undefined"
+                    >
+                      <div class="text-xs uppercase tracking-wide text-muted-foreground">{{ col.header }}</div>
+                      <div
+                        class="text-sm mt-0.5 tabular-nums"
+                        :class="[
+                          calculateGeneration(data, col.year, col.month) === 0 ? 'font-medium' : 'font-bold',
+                          isProrated(data, col.year, col.month) ? 'text-warning' : calculateGeneration(data, col.year, col.month) === 0 ? 'text-foreground/30' : 'text-foreground',
+                        ]"
+                      >{{ calculateGeneration(data, col.year, col.month).toFixed(2) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </GTableCell>
+            </GTableRow>
+          </template>
+        </GTableBody>
+      </GTable>
     </div>
 
     <!-- Dialog: sugerencias de vínculo con Sun Factory -->
-    <Dialog v-model:visible="sugerenciasVisible" header="Posibles vínculos con Sun Factory" modal class="w-full max-w-2xl">
-      <p class="text-sm text-muted-foreground mb-3">
-        El sync no encontró un match exacto para estos proyectos de Sun Factory, pero encontró un
-        proyecto existente con un nombre parecido. Para cada uno, responde: <b>¿es el mismo proyecto?</b>
-        Si confirmas que sí, queda vinculado permanentemente y el sync ya no lo vuelve a duplicar.
-      </p>
+    <Dialog v-model:open="sugerenciasVisible">
+      <DialogContent class="sm:max-w-2xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Posibles vínculos con Sun Factory</DialogTitle>
+        <DialogDescription>
+          El sync no encontró un match exacto para estos proyectos de Sun Factory, pero encontró un
+          proyecto existente con un nombre parecido. Para cada uno, responde: <b>¿es el mismo proyecto?</b>
+          Si confirmas que sí, queda vinculado permanentemente y el sync ya no lo vuelve a duplicar.
+        </DialogDescription>
+      </DialogHeader>
       <div v-if="!sugerencias.length" class="text-sm text-muted-foreground py-6 text-center">
         No quedan sugerencias pendientes.
       </div>
@@ -229,28 +216,27 @@
             </div>
           </div>
           <div class="flex gap-2 flex-shrink-0">
-            <Button label="No es el mismo" text severity="secondary" size="small"
-              :disabled="vinculandoId === sug.candidato_id" @click="descartarSugerencia(sug)" />
-            <Button label="Sí, es el mismo" size="small" :loading="vinculandoId === sug.candidato_id"
-              @click="vincular(sug)" />
+            <Button variant="ghost" size="sm" :disabled="vinculandoId === sug.candidato_id" @click="descartarSugerencia(sug)">
+              No es el mismo
+            </Button>
+            <Button size="sm" :disabled="vinculandoId === sug.candidato_id" @click="vincular(sug)">
+              <Spinner v-if="vinculandoId === sug.candidato_id" class="size-4" /> Sí, es el mismo
+            </Button>
           </div>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { useEnergizationProjects } from '~/composables/useEnergizationProjects'
 import { exportarExcel } from '~/utils/exportarExcel'
-import { CircleCheckIcon, CircleXIcon, DatabaseIcon, FileIcon, FileSpreadsheetIcon, FilterIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
+import { ChevronRightIcon, CircleCheckIcon, CircleXIcon, DatabaseIcon, FileIcon, FileSpreadsheetIcon, FilterIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon } from '@lucide/vue'
 
 const proyectosService = new ProyectosService()
 
@@ -262,7 +248,15 @@ const {
 const sugerencias = ref([])
 const sugerenciasVisible = ref(false)
 const vinculandoId = ref(null)
+// Filas desplegadas, por id del proyecto.
 const expandedRows = ref({})
+
+function alternarFila(id) {
+  const { [id]: abierta, ...resto } = expandedRows.value
+  expandedRows.value = abierta ? resto : { ...resto, [id]: true }
+}
+
+const ENCABEZADOS = ['Proyecto', 'Código', 'Estado', 'Energización', '% Obra', 'Frontera', 'Contratos', 'MWh / mes']
 const soloConFrontera = ref(false)
 const soloProximosAEnergizar = ref(false)
 
@@ -435,23 +429,5 @@ function isProrated(project, year, month) {
 .month-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing) * 18.5), 1fr));
-}
-
-/* Estilos de PrimeVue (DataTable): no controlamos su markup. */
-:deep(.energ-table .p-datatable-thead th) {
-  background: color-mix(in oklab, var(--foreground) 5%, transparent);
-  color: var(--muted-foreground);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-wide);
-  padding: calc(var(--spacing) * 2) calc(var(--spacing) * 2.5);
-  white-space: nowrap;
-}
-:deep(.energ-table .p-datatable-tbody td) {
-  padding: calc(var(--spacing) * 1.5) calc(var(--spacing) * 2.5);
-  font-size: var(--text-sm);
-  color: var(--foreground);
-  vertical-align: middle;
 }
 </style>
