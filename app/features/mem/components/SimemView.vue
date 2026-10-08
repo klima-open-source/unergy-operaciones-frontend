@@ -19,6 +19,8 @@ import { enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPla
 import SimemPanelDataset from '~/features/mem/components/SimemPanelDataset.vue'
 import GraficaDiariaBolsa from '~/features/mem/components/GraficaDiariaBolsa.vue'
 import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
+import SimemCatalogo from '~/features/mem/components/SimemCatalogo.vue'
+import { cargarCatalogo } from '~/features/mem/utils/catalogoPlantas'
 import { resumirBolsa } from '~/features/mem/utils/bolsaResumen'
 import { exportarExcel } from '~/utils/exportarExcel'
 import type { BolsaSimemMes } from '~/features/mem/services/bolsaSimem'
@@ -40,6 +42,7 @@ const PESTANAS = [
   { id: 'contratos', label: 'Contratos / Índice MC' },
   { id: 'aap', label: 'Arranque & Parada' },
   { id: 'generacion', label: 'Generación real' },
+  { id: 'catalogo', label: 'Actualizar catálogo' },
 ] as const
 
 /**
@@ -158,8 +161,7 @@ async function cargar() {
     // El catálogo es un JSON estático; el registro, una llamada al SIMEM. Si el
     // SIMEM falla, el catálogo igual sirve —se ven las plantas sin razón social—
     // así que se cargan por separado y solo el primero puede tumbar la vista.
-    const { default: plantas } = await import('~/features/mem/data/plantasSimem.json')
-    catalogo.value = plantas as unknown as Record<string, PlantaSimem>
+    catalogo.value = (await cargarCatalogo()).plantas
     try {
       const reg = await obtenerRegistroAgentes()
       registro.value = reg.agentes
@@ -766,6 +768,13 @@ onMounted(cargar)
       <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
         Elige un rango y consulta.
       </div>
+    </template>
+
+    <!-- ═══ Actualizar catálogo ═══ -->
+    <template v-else-if="pestana === 'catalogo'">
+      <!-- Al adoptar uno nuevo se recarga el de esta vista: los nombres de las
+           otras pestañas tienen que cambiar sin recargar la página. -->
+      <SimemCatalogo @actualizado="cargar" />
     </template>
 
     <!-- ═══ Generación real ═══ -->

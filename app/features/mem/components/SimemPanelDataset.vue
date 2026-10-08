@@ -18,6 +18,7 @@ import { exportarExcel } from '~/utils/exportarExcel'
 import type { PlantaSimem } from '~/features/mem/utils/simemAgentes'
 import { columnaDePlanta, enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
 import { DIAS_MAXIMO_PESADO, diasEntre, esPesado } from '~/features/mem/utils/simemRangos'
+import { cargarCatalogo } from '~/features/mem/utils/catalogoPlantas'
 import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
 
 const props = defineProps<{
@@ -104,8 +105,7 @@ async function consultar() {
     plantas.value = new Set()
     // El catálogo se carga solo si el dataset baja a planta, y una sola vez.
     if (tienePlanta.value && !Object.keys(catalogo.value).length) {
-      catalogo.value = (await import('~/features/mem/data/plantasSimem.json'))
-        .default as unknown as Record<string, PlantaSimem>
+      catalogo.value = (await cargarCatalogo()).plantas
     }
   } catch (e) {
     error.value = normalizeError(e).message
