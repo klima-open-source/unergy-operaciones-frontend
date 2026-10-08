@@ -39,11 +39,22 @@
           <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-muted/60 border-b border-border">
             <FilterIcon class="size-3 text-muted-foreground" />
             <span class="text-xs text-muted-foreground font-medium mr-1">Filtrar:</span>
-            <Select v-model="filtroSol.año" :options="AÑOS_OPT" placeholder="Año"
-              showClear class="text-sm" />
-            <Select v-model="filtroSol.mes" :options="MESES_OPT"
-              optionLabel="label" optionValue="value" placeholder="Mes"
-              showClear class="text-sm" />
+            <Select :model-value="aValorSelect(filtroSol.año != null ? String(filtroSol.año) : null)"
+              @update:model-value="(v) => { const a = deValorSelect(v); filtroSol.año = a ? Number(a) : null }">
+              <SelectTrigger size="sm"><SelectValue placeholder="Año" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="VALOR_SELECT_VACIO">Todos los años</SelectItem>
+                <SelectItem v-for="a in AÑOS_OPT" :key="a" :value="String(a)">{{ a }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select :model-value="aValorSelect(filtroSol.mes != null ? String(filtroSol.mes) : null)"
+              @update:model-value="(v) => { const m = deValorSelect(v); filtroSol.mes = m ? Number(m) : null }">
+              <SelectTrigger size="sm"><SelectValue placeholder="Mes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="VALOR_SELECT_VACIO">Todos los meses</SelectItem>
+                <SelectItem v-for="m in MESES_OPT" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+              </SelectContent>
+            </Select>
             <Button v-if="filtroSol.año || filtroSol.mes" variant="ghost" size="xs"
               class="text-muted-foreground"
               @click="filtroSol.año = null; filtroSol.mes = null">
@@ -198,11 +209,22 @@
           <div class="flex flex-wrap items-center gap-2 px-5 py-3 bg-muted/60 border-b border-border">
             <FilterIcon class="size-3 text-muted-foreground" />
             <span class="text-xs text-muted-foreground font-medium mr-1">Filtrar:</span>
-            <Select v-model="filtroInv.año" :options="AÑOS_OPT" placeholder="Año"
-              showClear class="text-sm" />
-            <Select v-model="filtroInv.mes" :options="MESES_OPT"
-              optionLabel="label" optionValue="value" placeholder="Mes"
-              showClear class="text-sm" />
+            <Select :model-value="aValorSelect(filtroInv.año != null ? String(filtroInv.año) : null)"
+              @update:model-value="(v) => { const a = deValorSelect(v); filtroInv.año = a ? Number(a) : null }">
+              <SelectTrigger size="sm"><SelectValue placeholder="Año" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="VALOR_SELECT_VACIO">Todos los años</SelectItem>
+                <SelectItem v-for="a in AÑOS_OPT" :key="a" :value="String(a)">{{ a }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select :model-value="aValorSelect(filtroInv.mes != null ? String(filtroInv.mes) : null)"
+              @update:model-value="(v) => { const m = deValorSelect(v); filtroInv.mes = m ? Number(m) : null }">
+              <SelectTrigger size="sm"><SelectValue placeholder="Mes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="VALOR_SELECT_VACIO">Todos los meses</SelectItem>
+                <SelectItem v-for="m in MESES_OPT" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+              </SelectContent>
+            </Select>
             <Button v-if="filtroInv.año || filtroInv.mes" variant="ghost" size="xs"
               class="text-muted-foreground"
               @click="filtroInv.año = null; filtroInv.mes = null">
@@ -327,76 +349,76 @@
     </div>
 
     <!-- ══ MODAL: Agregar factura ════════════════════════════════════════════════ -->
-    <Dialog v-model:visible="modal.visible" modal class="w-full max-w-md">
-      <template #header>
-        <div class="flex items-center gap-2.5">
-          <div class="size-7 rounded-lg flex items-center justify-center flex-shrink-0"
-            :class="modal.tipo === 'solenium' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'">
-            <ReceiptIcon class="size-3" />
+    <Dialog v-model:open="modal.visible">
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2.5">
+            <span class="size-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              :class="modal.tipo === 'solenium' ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'">
+              <ReceiptIcon class="size-3" />
+            </span>
+            <span class="text-sm">
+              Agregar factura — {{ modal.tipo === 'solenium' ? 'Solenium' : 'Inversionistas' }}
+            </span>
+          </DialogTitle>
+          <DialogDescription class="sr-only">Datos de la factura del contrato de mantenimiento.</DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <!-- Fecha + N° Factura -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <GLabel required>Fecha (YYYY-MM)</GLabel>
+              <Input v-model="modal.form.fecha" placeholder="2026-01"
+                :aria-invalid="!!modal.errores.fecha" />
+              <p v-if="modal.errores.fecha" class="text-xs text-destructive">{{ modal.errores.fecha }}</p>
+              <p v-else class="text-xs text-muted-foreground">Ej: 2026-03</p>
+            </div>
+            <div class="space-y-1.5">
+              <GLabel>N° Factura</GLabel>
+              <Input v-model="modal.form.numero_factura" placeholder="FE-001234" />
+            </div>
           </div>
-          <span class="font-semibold text-sm text-foreground">
-            Agregar factura — {{ modal.tipo === 'solenium' ? 'Solenium' : 'Inversionistas' }}
-          </span>
-        </div>
-      </template>
-      <div class="space-y-4 pt-1">
-        <!-- Fecha + N° Factura -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-muted-foreground">
-              Fecha (YYYY-MM) <span class="text-destructive">*</span>
-            </label>
-            <InputText v-model="modal.form.fecha"
-              placeholder="2026-01" class="w-full"
-              :invalid="!!modal.errores.fecha" />
-            <p v-if="modal.errores.fecha" class="text-xs text-destructive">{{ modal.errores.fecha }}</p>
-            <p v-else class="text-xs text-muted-foreground">Ej: 2026-03</p>
+          <!-- Inversionista (solo para sección inversionistas) -->
+          <!-- La factura se le emite a alguien: sin cliente vinculado no hay NIT
+               ni razón social con que emitirla. -->
+          <div v-if="modal.tipo === 'inversionistas'" class="space-y-1.5">
+            <SelectorCliente
+              v-model:id="modal.form.inversionista_id"
+              v-model:nombre="modal.form.inversionista_nombre"
+              label="Inversionista"
+              requerido
+            />
+            <!-- Antes el error se calculaba pero no se mostraba: el botón no hacía nada. -->
+            <p v-if="modal.errores.inversionista" class="text-xs text-destructive">{{ modal.errores.inversionista }}</p>
           </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-muted-foreground">N° Factura</label>
-            <InputText v-model="modal.form.numero_factura"
-              placeholder="FE-001234" class="w-full" />
+          <!-- Monto: pesos enteros, como antes (sin centavos). -->
+          <div class="space-y-1.5">
+            <GLabel required>Monto (COP)</GLabel>
+            <NumberField v-model="modal.form.monto" :min="0" :format-options="FORMATO_COP"
+              :aria-invalid="!!modal.errores.monto">
+              <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
+            </NumberField>
+            <p v-if="modal.errores.monto" class="text-xs text-destructive">{{ modal.errores.monto }}</p>
+          </div>
+          <!-- Link soporte -->
+          <div class="space-y-1.5">
+            <GLabel>Link de soporte (Drive)</GLabel>
+            <Input v-model="modal.form.enlace_soporte" placeholder="https://drive.google.com/…"
+              :aria-invalid="!!modal.errores.enlace_soporte" />
+            <p v-if="modal.errores.enlace_soporte" class="text-xs text-destructive">
+              {{ modal.errores.enlace_soporte }}
+            </p>
           </div>
         </div>
-        <!-- Inversionista (solo para sección inversionistas) -->
-        <!-- La factura se le emite a alguien: sin cliente vinculado no hay NIT
-             ni razón social con que emitirla. -->
-        <SelectorCliente v-if="modal.tipo === 'inversionistas'"
-          v-model:id="modal.form.inversionista_id"
-          v-model:nombre="modal.form.inversionista_nombre"
-          label="Inversionista"
-          requerido
-        />
-        <!-- Monto -->
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-muted-foreground">
-            Monto (COP) <span class="text-destructive">*</span>
-          </label>
-          <InputNumber v-model="modal.form.monto"
-            mode="currency" currency="COP" locale="es-CO" :maxFractionDigits="0"
-            class="w-full" placeholder="$ 0"
-            :invalid="!!modal.errores.monto" />
-          <p v-if="modal.errores.monto" class="text-xs text-destructive">{{ modal.errores.monto }}</p>
-        </div>
-        <!-- Link soporte -->
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-muted-foreground">Link de soporte (Drive)</label>
-          <InputText v-model="modal.form.enlace_soporte"
-            placeholder="https://drive.google.com/…" class="w-full"
-            :invalid="!!modal.errores.enlace_soporte" />
-          <p v-if="modal.errores.enlace_soporte" class="text-xs text-destructive">
-            {{ modal.errores.enlace_soporte }}
-          </p>
-        </div>
-      </div>
-      <template #footer>
-        <Button variant="ghost" @click="modal.visible = false">Cancelar</Button>
-        <Button :disabled="saving" @click="guardarFactura">
-          <LoaderCircleIcon v-if="saving" class="animate-spin" />
-          <CheckIcon v-else />
-          Agregar factura
-        </Button>
-      </template>
+        <DialogFooter>
+          <Button variant="ghost" @click="modal.visible = false">Cancelar</Button>
+          <Button :disabled="saving" @click="guardarFactura">
+            <LoaderCircleIcon v-if="saving" class="animate-spin" />
+            <CheckIcon v-else />
+            Agregar factura
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
 
   </template>
@@ -404,14 +426,11 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
 import { toast } from 'vue-sonner'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { CheckIcon, ChevronDownIcon, ExternalLinkIcon, FilterIcon, LoaderCircleIcon, ReceiptIcon, Trash2Icon, UsersIcon, XIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
@@ -430,6 +449,7 @@ const MESES_NOMBRES = [
 const MESES_OPT = MESES_NOMBRES.slice(1).map((m, i) => ({ label: m, value: i + 1 }))
 const AÑO_ACTUAL = new Date().getFullYear()
 const AÑOS_OPT   = Array.from({ length: AÑO_ACTUAL - 2020 + 2 }, (_, i) => 2020 + i)
+const FORMATO_COP = { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }
 
 // ── Estado ─────────────────────────────────────────────────────────────────────
 const facturasSol = ref([])
