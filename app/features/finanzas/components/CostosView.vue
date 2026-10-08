@@ -24,8 +24,8 @@
       <div class="flex items-center gap-2 ml-auto">
         <input type="month" v-model="exportPeriodo"
           class="text-xs border border-border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20" />
-        <Button label="Descargar Excel" size="small" :loading="exportando" @click="onExportExcel" class="bg-primary border-primary">
-          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
+        <Button size="sm" :disabled="exportando" @click="onExportExcel">
+          <Spinner v-if="exportando" class="size-4" /><FileSpreadsheetIcon v-else class="size-4" /> Descargar Excel
         </Button>
       </div>
     </div>
@@ -78,18 +78,14 @@
       <div class="mb-3 flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2">
         <ZapIcon class="flex-shrink-0 size-4 text-primary" />
         <span class="text-sm font-semibold whitespace-nowrap text-foreground">Proyecto</span>
-        <Select
-          v-model="proyectoSeleccionado"
-          :options="proyectos"
-          optionLabel="nombre_comercial"
-          optionValue="id"
-          placeholder="Selecciona un proyecto…"
-          filter
-          showClear
-          :loading="loadingProyectos"
-          class="min-w-50 max-w-95 sm:min-w-65"
-          @change="onProyectoChange"
-        />
+        <!-- `key`: la lista llega después de montar, y el texto del input se recalcula. -->
+        <div class="min-w-50 max-w-95 sm:min-w-65">
+          <ComboBox :key="opcionesProyecto.length"
+            :model-value="proyectoSeleccionado != null ? String(proyectoSeleccionado) : null"
+            :options="opcionesProyecto" :disabled="loadingProyectos"
+            :placeholder="loadingProyectos ? 'Cargando proyectos…' : 'Selecciona un proyecto…'"
+            @update:model-value="v => { const id = deValorSelect(v); proyectoSeleccionado = id ? Number(id) : null; onProyectoChange() }" />
+        </div>
         <span v-if="proyectoSeleccionado && proyectoNombre"
           class="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap bg-primary/10 text-primary"
           >
@@ -282,8 +278,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
+import { deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { StarlinkService } from '~/features/finanzas/services/starlink'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
@@ -381,6 +376,11 @@ const proyectos            = ref([])
 const loadingProyectos     = ref(false)
 const proyectoSeleccionado = ref(null)
 const proyectoNombre       = ref('')
+// La primera opción deja el selector vacío (el showClear de PrimeVue).
+const opcionesProyecto = computed(() => [
+  { value: VALOR_SELECT_VACIO, label: 'Sin proyecto' },
+  ...proyectos.value.map(p => ({ value: String(p.id), label: p.nombre_comercial })),
+])
 
 // ── Contrato de mantenimiento del proyecto seleccionado ────────────────────────
 const contratoMantenimientoId = ref(null)
