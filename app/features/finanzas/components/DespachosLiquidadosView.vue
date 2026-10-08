@@ -6,49 +6,68 @@
         <!-- El IPP que se consultó queda guardado; se muestra aquí para no
              tener que volver a pedirlo solo para verlo. -->
         <span v-if="ippVigente" class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap bg-primary/10 text-primary"
-              v-tooltip.bottom="`Consultado el ${fmtFechaCorta(ippVigente.consultado_el)}`">
+              :title="`Consultado el ${fmtFechaCorta(ippVigente.consultado_el)}`">
           IPP {{ nombreMes(filtros.month) }}: <b>{{ ippVigente.ipp }}</b>
         </span>
         <span v-else class="text-xs px-2.5 py-1.5 rounded-lg self-center whitespace-nowrap bg-muted text-muted-foreground"
               >
           IPP {{ nombreMes(filtros.month) }}: sin consultar
         </span>
-        <Button label="Consultar IPP" size="small" outlined :loading="accion === 'ipp'" @click="abrir('ipp')">
-          <template #icon><PercentIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" :disabled="accion === 'ipp'" @click="abrir('ipp')">
+          <Spinner v-if="accion === 'ipp'" class="size-4" /><PercentIcon v-else class="size-4" /> Consultar IPP
         </Button>
         <!-- El IPP de la API es el MISMO que usa Facturación, pero nuestra
              tabla se llenaba a mano y se quedaba corta. Esto la pone al día. -->
-        <Button label="Guardar IPP en facturación" size="small" outlined severity="secondary"
-                :loading="sincronizandoIpp" @click="sincronizarIpp"
-                v-tooltip.bottom="'Trae el histórico del IPP del DANE y lo guarda donde lo lee Facturación'">
-          <template #icon><RefreshCwIcon class="size-4" /></template>
+        <GTooltip>
+          <GTooltipTrigger as-child>
+            <Button variant="outline" size="sm" :disabled="sincronizandoIpp" @click="sincronizarIpp">
+              <Spinner v-if="sincronizandoIpp" class="size-4" /><RefreshCwIcon v-else class="size-4" /> Guardar IPP en facturación
+            </Button>
+          </GTooltipTrigger>
+          <GTooltipContent>Trae el histórico del IPP del DANE y lo guarda donde lo lee Facturación</GTooltipContent>
+        </GTooltip>
+        <Button variant="outline" size="sm" :disabled="accion === 'ftp'" @click="abrir('ftp')">
+          <Spinner v-if="accion === 'ftp'" class="size-4" /><DownloadIcon v-else class="size-4" /> Consultar FTP
         </Button>
-        <Button label="Consultar FTP" size="small" outlined :loading="accion === 'ftp'" @click="abrir('ftp')">
-          <template #icon><DownloadIcon class="size-4" /></template>
-        </Button>
-        <Button label="Liquidar" size="small" :loading="accion === 'liquidar'" @click="abrir('liquidar')">
-          <template #icon><ZapIcon class="size-4" /></template>
+        <Button size="sm" :disabled="accion === 'liquidar'" @click="abrir('liquidar')">
+          <Spinner v-if="accion === 'liquidar'" class="size-4" /><ZapIcon v-else class="size-4" /> Liquidar
         </Button>
       </template>
     </PageHeader>
 
     <!-- Dialog de acción -->
-    <Dialog v-model:visible="dialogVisible" :header="cfg.header" modal class="w-full max-w-md">
-      <div class="space-y-3 pt-1">
-        <p class="text-xs text-muted-foreground">{{ cfg.ayuda }}</p>
+    <Dialog v-model:open="dialogVisible">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>{{ cfg.header }}</DialogTitle>
+        <DialogDescription>{{ cfg.ayuda }}</DialogDescription>
+      </DialogHeader>
+      <div class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-            <Select v-model="c.mes" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
+            <Select :model-value="String(c.mes)" @update:model-value="c.mes = Number($event)">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-            <InputNumber v-model="c.anio" :useGrouping="false" class="w-full" />
+            <NumberField v-model="c.anio" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <div v-if="cfg.version">
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-          <Select v-model="c.version" :options="VERSIONES" class="w-full" />
+          <Select v-model="c.version">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <p v-if="progreso" class="text-xs text-muted-foreground flex items-center gap-2">
@@ -56,20 +75,26 @@
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button label="Cancelar" severity="secondary" size="small" :disabled="!!accion"
-                  @click="dialogVisible = false" />
-          <Button :label="cfg.submit" size="small" :loading="!!accion" @click="ejecutar" />
+          <Button variant="outline" size="sm" :disabled="!!accion" @click="dialogVisible = false">Cancelar</Button>
+          <Button size="sm" :disabled="!!accion" @click="ejecutar">
+            <Spinner v-if="accion" class="size-4" /> {{ cfg.submit }}
+          </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Diagnóstico de un proyecto -->
-    <Dialog v-model:visible="diagVisible" header="Diagnóstico del proyecto" modal class="w-full max-w-2xl">
-      <div class="space-y-3 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog v-model:open="diagVisible">
+      <DialogContent class="sm:max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>Diagnóstico del proyecto</DialogTitle>
+        <DialogDescription>
           Por qué <strong>{{ diagProyecto }}</strong> sale o no en el estado de resultados
           de {{ filtros.month }}/{{ filtros.year }}.
-        </p>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-3">
         <div v-if="diagCargando" class="py-8 text-center text-muted-foreground">
           <LoaderCircleIcon class="size-6 animate-spin" />
         </div>
@@ -86,38 +111,55 @@
           </div>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Filtros -->
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-        <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
-                @change="cargar" />
+        <Select :model-value="String(filtros.month)" @update:model-value="v => { filtros.month = Number(v); cargar() }">
+          <SelectTrigger class="min-w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-        <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
+        <NumberField v-model="filtros.year" :format-options="{ useGrouping: false }" class="w-28" @update:model-value="cargar">
+          <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
+        <Select :model-value="filtros.version" @update:model-value="v => { filtros.version = v; cargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo</label>
-        <Select v-model="tipoSel" :options="OPCIONES_TIPO" optionLabel="label" optionValue="value"
-                showClear placeholder="Todos" />
+        <Select :model-value="aValorSelect(tipoSel)" @update:model-value="tipoSel = deValorSelect($event) || null">
+          <SelectTrigger class="min-w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="o in OPCIONES_TIPO" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto, contrato, fecha…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Proyecto, contrato, fecha…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center text-right">
         {{ filtrados.length }} registro{{ filtrados.length === 1 ? '' : 's' }}
@@ -182,8 +224,8 @@
                   :class="{ 'text-destructive': row.valor < 0 }">{{ fmtNum(row.valor) }}</td>
               <td class="px-4 py-2 whitespace-nowrap uppercase text-xs">{{ row.version || '—' }}</td>
               <td class="px-4 py-2">
-                <Button text rounded size="small" v-tooltip.left="'Diagnosticar este proyecto'" @click="diagnosticar(row.topico)">
-                  <template #icon><SearchIcon class="size-4" /></template>
+                <Button variant="ghost" size="icon-sm" title="Diagnosticar este proyecto" aria-label="Diagnosticar este proyecto" @click="diagnosticar(row.topico)">
+                  <SearchIcon class="size-4" />
                 </Button>
               </td>
             </tr>
@@ -208,13 +250,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
