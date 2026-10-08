@@ -27,7 +27,7 @@
           </div>
 
           <div class="col-span-2 flex items-center gap-2">
-            <Checkbox v-model="recordarCredenciales" binary inputId="xm-recordar" />
+            <Checkbox id="xm-recordar" v-model="recordarCredenciales" />
             <label for="xm-recordar" class="text-xs text-muted-foreground">
               Recordar en esta sesión del navegador
             </label>
@@ -35,11 +35,21 @@
 
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Tipo de archivo</label>
-            <Select v-model="form.tipo" :options="TIPOS" placeholder="Selecciona…" />
+            <Select v-model="form.tipo">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in TIPOS" :key="o" :value="o">{{ o }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">Extensión</label>
-            <Select v-model="form.extension" :options="EXTENSIONES" placeholder="Selecciona…" />
+            <Select v-model="form.extension">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in EXTENSIONES" :key="o" :value="o">{{ o }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div class="flex flex-col gap-1">
@@ -52,7 +62,7 @@
           </div>
 
           <div class="col-span-2 flex items-center gap-2" v-if="tipoEsFiltrable">
-            <Checkbox v-model="form.enriquecer" binary inputId="xm-enriquecer" />
+            <Checkbox id="xm-enriquecer" v-model="form.enriquecer" />
             <label for="xm-enriquecer" class="text-xs text-muted-foreground">
               {{ etiquetaFiltro }}
             </label>
@@ -61,14 +71,19 @@
           <!-- Elegir agente (solo tipos que filtran por agente, ej. tgrl) -->
           <div class="col-span-2 flex items-center gap-2 pl-6" v-if="tipoFiltraPorAgente && form.enriquecer">
             <label class="text-xs font-medium text-muted-foreground">Agente</label>
-            <Select v-model="form.agenteFiltro" :options="AGENTES" />
+            <Select v-model="form.agenteFiltro">
+              <SelectTrigger size="sm" class="min-w-24"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="a in AGENTES" :key="a" :value="a">{{ a }}</SelectItem>
+              </SelectContent>
+            </Select>
             <span class="text-xs text-muted-foreground">UNGG = generador · UNGC = comercializador</span>
           </div>
         </div>
 
         <div class="mt-4">
-          <Button label="Descargar y unificar" :loading="enProceso" :disabled="!formularioValido || enProceso" @click="onDescargar" class="bg-primary border-primary">
-            <template #icon><DownloadIcon class="size-4" /></template>
+          <Button :disabled="!formularioValido || enProceso" @click="onDescargar">
+            <Spinner v-if="enProceso" class="size-4" /><DownloadIcon v-else class="size-4" /> Descargar y unificar
           </Button>
         </div>
       </div>
@@ -98,11 +113,11 @@
             Códigos sin match en fronteras: {{ estado.codigos_sin_match.join(', ') }}
           </div>
           <div class="flex gap-2">
-            <Button label="Descargar Excel" size="small" @click="onDescargarArchivo('xlsx')">
-              <template #icon><FileSpreadsheetIcon class="size-4" /></template>
+            <Button size="sm" @click="onDescargarArchivo('xlsx')">
+              <FileSpreadsheetIcon class="size-4" /> Descargar Excel
             </Button>
-            <Button label="Descargar TXT" size="small" outlined @click="onDescargarArchivo('txt')">
-              <template #icon><FileIcon class="size-4" /></template>
+            <Button variant="outline" size="sm" @click="onDescargarArchivo('txt')">
+              <FileIcon class="size-4" /> Descargar TXT
             </Button>
           </div>
         </div>
@@ -118,9 +133,6 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import Select from 'primevue/select'
-import Checkbox from 'primevue/checkbox'
-import Button from 'primevue/button'
 import { XmAgenteLocalService } from '~/features/finanzas/services/xm'
 import { CircleAlertIcon, CloudDownloadIcon, DownloadIcon, FileIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon } from '@lucide/vue'
 import { readDetail } from '~/core/errors'
