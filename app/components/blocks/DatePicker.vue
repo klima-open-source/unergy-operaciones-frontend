@@ -65,10 +65,13 @@ const label = computed(() =>
       </PopoverTrigger>
       <PopoverContent class="w-auto p-0" align="start">
         <!-- Abre en el mes de la fecha elegida (sin esto, `ui/calendar` abre siempre
-             en el mes actual) y en español (su idioma por defecto es inglés). -->
+             en el mes actual) y en español (su idioma por defecto es inglés).
+             `prevent-deselect`: un clic en el día ya elegido no borra la fecha
+             (para vaciarla está la ✕ de `clearable`). -->
         <Calendar
           v-model="internal"
           :default-placeholder="internal"
+          prevent-deselect
           locale="es-CO"
           :min-value="internalMin"
           :max-value="internalMax"
