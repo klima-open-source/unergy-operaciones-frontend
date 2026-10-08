@@ -61,6 +61,11 @@
 }
 
 :root {
+  /* Por encima de las ventanas de PrimeVue (capa 1100 y suben con cada una que se
+     abre). Lo usa la lista de SelectorCliente, que se dibuja fuera de la ventana:
+     con la capa 50 de shadcn quedaba DETRÁS y no se veía ninguna sugerencia.
+     Se borra cuando contratos, finanzas y proyectos dejen PrimeVue. */
+  --z-sobre-primevue: 2000;
   --radius: 0.625rem;
   --background: #fdfaf7;
   --foreground: #2c2039;
