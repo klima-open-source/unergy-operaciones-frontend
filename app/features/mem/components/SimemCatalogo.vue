@@ -15,7 +15,9 @@ import { CircleCheckIcon, DownloadIcon, UploadIcon } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
-import { fechaDeNombre, parsearCapains } from '~/features/mem/utils/capains'
+import type { UnidadSimem } from '~/features/mem/utils/capains'
+import { completarConUnidades, fechaDeNombre, parsearCapains } from '~/features/mem/utils/capains'
+import { obtenerRegistroUnidades } from '~/features/mem/services/simem'
 import type { DiferenciasCatalogo } from '~/features/mem/utils/catalogoPlantas'
 import { cargarCatalogo, comparar, guardar, olvidar } from '~/features/mem/utils/catalogoPlantas'
 import type { PlantaSimem } from '~/features/mem/utils/simemAgentes'
@@ -31,6 +33,8 @@ const fechaPropuesta = ref<string | null>(null)
 const nombreArchivo = ref('')
 const diff = ref<DiferenciasCatalogo | null>(null)
 const arrastrando = ref(false)
+const completando = ref(false)
+const plantasAgregadas = ref(0)
 const entrada = ref<HTMLInputElement | null>(null)
 
 const hayCambios = computed(() =>
@@ -56,10 +60,30 @@ async function leerArchivo(file: File) {
       })
       return
     }
-    propuesto.value = plantas
     nombreArchivo.value = file.name
     fechaPropuesta.value = fechaDeNombre(file.name, new Date().getFullYear())
-    diff.value = comparar(actual.value, plantas)
+
+    // El `capains` no trae unidades ni FPO, y se le escapan plantas: se completa
+    // con el registro del SIMEM. Si esa consulta falla, se sigue con el archivo
+    // solo — medio catálogo es mejor que ninguno, y se dice.
+    let completo = plantas
+    completando.value = true
+    try {
+      const unidades = await obtenerRegistroUnidades()
+      completo = completarConUnidades(plantas, unidades as UnidadSimem[])
+      plantasAgregadas.value = Object.keys(completo).length - Object.keys(plantas).length
+    } catch {
+      plantasAgregadas.value = 0
+      toast.warning('No se pudo completar con el registro del SIMEM', {
+        description: 'El catálogo queda sin las unidades Uns ni la FPO.',
+        duration: 7000,
+      })
+    } finally {
+      completando.value = false
+    }
+
+    propuesto.value = completo
+    diff.value = comparar(actual.value, completo)
   } catch (e) {
     toast.error('No se pudo leer el archivo', { description: normalizeError(e).message, duration: 6000 })
   }
@@ -145,7 +169,10 @@ onMounted(refrescarActual)
       <UploadIcon class="mx-auto mb-2 size-6 text-muted-foreground" />
       <p class="text-sm">Arrastra aquí el archivo <code>capainsMMDD.tx1</code> del FTP de XM</p>
       <p class="mt-1 text-xs text-muted-foreground">o</p>
-      <Button size="sm" variant="outline" class="mt-2" @click="entrada?.click()">
+      <p v-if="completando" class="mt-2 text-xs text-muted-foreground">
+        Completando con el registro de unidades del SIMEM…
+      </p>
+      <Button size="sm" variant="outline" class="mt-2" :disabled="completando" @click="entrada?.click()">
         Elegir archivo
       </Button>
       <input ref="entrada" type="file" accept=".tx1,.txt,.csv" class="hidden" @change="alElegir">
@@ -158,6 +185,10 @@ onMounted(refrescarActual)
           <span class="text-xs text-muted-foreground">
             {{ Object.keys(propuesto).length.toLocaleString('es-CO') }} plantas
             <template v-if="fechaPropuesta"> · archivo del {{ fechaPropuesta }}</template>
+            <template v-if="plantasAgregadas">
+              · <b class="text-foreground">{{ plantasAgregadas }}</b> que el capains no trae,
+              completadas desde el SIMEM
+            </template>
           </span>
         </div>
 

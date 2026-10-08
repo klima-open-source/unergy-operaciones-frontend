@@ -72,3 +72,66 @@ export function fechaDeNombre(nombre: string, anio: number): string | null {
   if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return null
   return `${anio}-${m[1]}-${m[2]}`
 }
+
+/** Una fila del registro de unidades del SIMEM (dataset 670221). */
+export interface UnidadSimem {
+  CodigoPlanta?: string
+  CodigoUnidadGeneracion?: string
+  NombreUnidad?: string
+  FPO?: string
+  EstadoRecurso?: string
+}
+
+/**
+ * Le pega al catálogo lo que el `capains` no trae: las unidades `Uns` y la
+ * fecha de entrada en operación. Y agrega las plantas que al `capains` se le
+ * escapan.
+ *
+ * Esas plantas existen: el 2026-10-08, XM liquidaba OEF de `3QPE` (GD BOCAS DEL
+ * PALO) y `5ISY` (GD BLANCA ENERGY III), las dos en operación, y ninguna estaba
+ * en el archivo. Sin esto salen sin nombre en las tablas y parecen un dato
+ * perdido.
+ *
+ * El `capains` MANDA sobre el nombre: es el oficial. A las plantas que solo
+ * existen en el registro de unidades no se les inventa agente ni capacidad —no
+ * están en esa fuente, y un cero afirmaría algo falso.
+ */
+export function completarConUnidades(
+  capains: Record<string, PlantaSimem>,
+  unidades: UnidadSimem[],
+): Record<string, PlantaSimem> {
+  const porPlanta = new Map<string, { un: string[], nombre: string, fpo: string }>()
+  for (const u of unidades) {
+    const planta = limpiar(u.CodigoPlanta)
+    const unidad = limpiar(u.CodigoUnidadGeneracion)
+    if (!planta || !unidad) continue
+    const previo = porPlanta.get(planta)
+    if (previo) {
+      if (!previo.un.includes(unidad)) previo.un.push(unidad)
+      if (!previo.fpo) previo.fpo = limpiar(u.FPO)
+    } else {
+      porPlanta.set(planta, {
+        un: [unidad],
+        // "GD BOCAS DEL PALO 1" es la UNIDAD; la planta es el nombre sin ese
+        // número final. Si no termina en número, se deja igual.
+        nombre: limpiar(u.NombreUnidad).replace(/\s+\d+$/, ''),
+        fpo: limpiar(u.FPO),
+      })
+    }
+  }
+
+  const salida: Record<string, PlantaSimem> = { ...capains }
+  for (const [planta, datos] of porPlanta) {
+    const base = salida[planta]
+    salida[planta] = base
+      ? { ...base, un: datos.un, ...(datos.fpo ? { fpo: datos.fpo } : {}) }
+      : {
+          ag: '',
+          nm: datos.nombre,
+          tc: '',
+          un: datos.un,
+          ...(datos.fpo ? { fpo: datos.fpo } : {}),
+        }
+  }
+  return salida
+}
