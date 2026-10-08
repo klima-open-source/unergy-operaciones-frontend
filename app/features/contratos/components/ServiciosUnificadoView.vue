@@ -545,13 +545,15 @@
       </DialogContent>
     </Dialog>
 
-    <!-- Sigue siendo el Dialog de PrimeVue: `ProyectoForm` (migración de
-         proyectos, pendiente) usa Select y DatePicker de PrimeVue, que abren sus
-         listas fuera del diálogo. Dentro de un Dialog de Reka esas listas no
-         recibirían clics. Se cambia junto con `ProyectoForm`. -->
-    <PrimeDialog v-model:visible="dialogProyecto" header="Nuevo proyecto" modal class="w-full max-w-xl">
-      <ProyectoForm @save="crearProyecto" @cancel="dialogProyecto = false" />
-    </PrimeDialog>
+    <Dialog v-model:open="dialogProyecto">
+      <DialogContent class="sm:max-w-xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+        <DialogHeader>
+          <DialogTitle>Nuevo proyecto</DialogTitle>
+          <DialogDescription class="sr-only">Datos de la planta nueva.</DialogDescription>
+        </DialogHeader>
+        <ProyectoForm @save="crearProyecto" @cancel="dialogProyecto = false" />
+      </DialogContent>
+    </Dialog>
 
     <!-- Asociar un contrato de representación a su planta. Se muestran los datos
          que el contrato trae del acta (nombre de referencia, código Sun Factory)
@@ -613,15 +615,10 @@
          y el de clientes. El de clientes no existía --el 409 salía como un toast
          de error sin salida-- y quien lo veía cerraba y escribía el nombre a
          mano, que es justo lo que duplica los clientes. -->
-    <!-- El aviso sale del mismo tipo de diálogo que el formulario que lo dispara:
-         uno de Reka encima del de PrimeVue queda detrás de su máscara, y uno de
-         PrimeVue encima del de Reka no recibe clics. Cuando `ProyectoForm` deje
-         PrimeVue, el de proyectos pasa a ser este mismo de Reka. -->
-    <Dialog :open="duplicadoVisible && duplicadoTipo === 'cliente'"
-            @update:open="v => { if (!v) duplicadoVisible = false }">
+    <Dialog v-model:open="duplicadoVisible">
       <DialogContent class="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Cliente parecido ya existe</DialogTitle>
+          <DialogTitle>{{ duplicadoTipo === 'cliente' ? 'Cliente parecido ya existe' : 'Proyecto parecido ya existe' }}</DialogTitle>
           <DialogDescription>{{ duplicadoInfo?.mensaje }}</DialogDescription>
         </DialogHeader>
         <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm font-medium text-foreground">
@@ -635,20 +632,6 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    <PrimeDialog :visible="duplicadoVisible && duplicadoTipo === 'proyecto'"
-                 @update:visible="v => { if (!v) duplicadoVisible = false }"
-                 header="Proyecto parecido ya existe" modal class="w-full max-w-sm">
-      <p class="text-sm text-muted-foreground">{{ duplicadoInfo?.mensaje }}</p>
-      <p v-if="duplicadoInfo?.candidato_nombre" class="text-sm mt-2 font-medium text-foreground">
-        {{ duplicadoInfo.candidato_nombre }}
-      </p>
-      <template #footer>
-        <Button variant="ghost" @click="duplicadoVisible = false">Cancelar</Button>
-        <Button :disabled="forzando" @click="crearForzado">
-          <Spinner v-if="forzando" class="size-4" /> Crear igual
-        </Button>
-      </template>
-    </PrimeDialog>
 
     <PPAContratoWizard v-if="showWizardPPA" :visible="showWizardPPA" :initialData="ppaADuplicar"
                        @cerrar="cerrarWizardPPA" @creado="cargarPpa" @editado="cargarPpa" />
@@ -667,9 +650,6 @@
 import { ref, reactive, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
-// Solo para "Nuevo proyecto" y su aviso de nombre parecido: ver el comentario
-// del template. Se va con la migración de `ProyectoForm`.
-import PrimeDialog from 'primevue/dialog'
 import DataTable from '~/components/blocks/DataTable.vue'
 import { useTablaLocal } from '~/composables/useTablaLocal'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'

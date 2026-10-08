@@ -127,7 +127,9 @@ async function crear(
 
 <template>
   <Dialog :open="visible" @update:open="(v: boolean) => !guardando && emit('update:visible', v)">
-    <DialogContent class="sm:max-w-2xl">
+    <!-- max-h + scroll: el formulario de planta es más alto que la pantalla, y sin
+         esto quedaban fuera de vista el nombre y el botón de crear. -->
+    <DialogContent class="sm:max-w-2xl max-h-dvh overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Crear planta</DialogTitle>
         <DialogDescription>

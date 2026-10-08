@@ -3,70 +3,109 @@
     <div class="grid grid-cols-2 gap-4">
       <div class="col-span-2">
         <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre comercial *</label>
-        <InputText v-model="f.nombre_comercial" class="w-full" required />
+        <Input v-model="f.nombre_comercial" required />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de proyecto</label>
-        <Select v-model="f.tipo_proyecto" :options="tipos" class="w-full" placeholder="Seleccionar" showClear />
+        <Select :model-value="aValorSelect(f.tipo_proyecto)" @update:model-value="f.tipo_proyecto = deValorSelect($event) || null">
+          <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+            <SelectItem v-for="o in tipos" :key="o" :value="o">{{ o }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Estado</label>
-        <Select v-model="f.estado" :options="estados" optionLabel="label" optionValue="value" class="w-full" />
+        <Select v-model="f.estado">
+          <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="e in estados" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
-        <InputNumber v-model="potenciaAcKw" :maxFractionDigits="3" locale="en-US" class="w-full" />
+        <NumberField v-model="potenciaAcKw" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }">
+          <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-        <InputNumber v-model="capacidadInstaladaKwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
+        <NumberField v-model="capacidadInstaladaKwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }">
+          <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo tecnología</label>
-        <Select v-model="f.tipo_tecnologia" :options="tecnologias" class="w-full" placeholder="Seleccionar" showClear />
+        <Select :model-value="aValorSelect(f.tipo_tecnologia)" @update:model-value="f.tipo_tecnologia = deValorSelect($event) || null">
+          <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+            <SelectItem v-for="o in tecnologias" :key="o" :value="o">{{ o }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad de paneles</label>
-        <InputNumber v-model="cantidadTotalPaneles" :useGrouping="false" class="w-full" />
+        <NumberField v-model="cantidadTotalPaneles" :step-snapping="false" :format-options="{ useGrouping: false }" :min="0">
+          <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
-        <Select v-model="f.departamento" :options="departamentos" class="w-full" placeholder="Seleccionar" showClear filter />
+        <ComboBox :model-value="f.departamento" :options="opcionesDepartamento" placeholder="Seleccionar"
+          @update:model-value="f.departamento = deValorSelect($event) || null" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Municipio</label>
-        <Select v-model="f.municipio" :options="municipiosDisponibles" class="w-full" placeholder="Seleccionar" showClear filter
-          :disabled="!f.departamento" />
+        <!-- `key`: al cambiar de departamento cambian las opciones, y el input
+             tiene que volver a calcular su texto. -->
+        <ComboBox :key="f.departamento ?? ''" :model-value="f.municipio" :options="opcionesMunicipio" placeholder="Seleccionar"
+          :disabled="!f.departamento" @update:model-value="f.municipio = deValorSelect($event) || null" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red{{ operadorRedObligatorio ? ' *' : '' }}</label>
-        <Select v-model="f.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
-          optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
+        <ComboBox :key="opcionesOperadorRed.length" :model-value="f.operador_red_id != null ? String(f.operador_red_id) : null"
+          :options="opcionesOperadorRed" placeholder="Seleccionar"
+          @update:model-value="v => { const id = deValorSelect(v); f.operador_red_id = id ? Number(id) : null }" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Clasificación regulatoria</label>
-        <Select v-model="f.clasificacion_regulatoria" :options="clasificaciones" class="w-full" placeholder="Seleccionar" showClear />
+        <Select :model-value="aValorSelect(f.clasificacion_regulatoria)" @update:model-value="f.clasificacion_regulatoria = deValorSelect($event) || null">
+          <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
+            <SelectItem v-for="o in clasificaciones" :key="o" :value="o">{{ o }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div class="col-span-2">
         <label class="block text-xs font-medium text-muted-foreground mb-1">Dirección / vereda</label>
-        <InputText v-model="f.direccion_vereda" class="w-full" placeholder="Ej: Vereda El Cerrito, km 4 vía Planeta Rica" />
+        <Input v-model="f.direccion_vereda" placeholder="Ej: Vereda El Cerrito, km 4 vía Planeta Rica" />
       </div>
       <!-- Coordenadas: hasta ahora solo se podían cargar EDITANDO el proyecto, así
            que toda planta nacía sin ubicación en el mapa y sin coordenadas para
            quien integra por API. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-        <InputNumber v-model="f.latitud" :maxFractionDigits="6" locale="en-US" class="w-full" placeholder="8.748000" />
+        <NumberField v-model="f.latitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }">
+          <NumberFieldContent><NumberFieldInput placeholder="8.748000" /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-        <InputNumber v-model="f.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" placeholder="-75.881000" />
+        <NumberField v-model="f.longitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }">
+          <NumberFieldContent><NumberFieldInput placeholder="-75.881000" /></NumberFieldContent>
+        </NumberField>
       </div>
       <!-- El backend acota la altitud a -100..6000 msnm (Colombia llega a ~5.700
            en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
-        <InputNumber v-model="f.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" placeholder="35" />
+        <NumberField v-model="f.altitud_msnm" :step-snapping="false" locale="en-US" :min="-100" :max="6000">
+          <NumberFieldContent><NumberFieldInput placeholder="35" /></NumberFieldContent>
+        </NumberField>
       </div>
       <!-- La comunidad energética se marca en el PPA, no acá: se negocia en ese
            contrato y de ahí deriva a la planta. `proyectos.es_comunidad_energetica`
@@ -75,31 +114,31 @@
            haber marcado la planta y no pasaba nada. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive (código)</label>
-        <InputText v-model="f.carpeta_drive_codigo" class="w-full" />
+        <Input v-model="f.carpeta_drive_codigo" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Código base (topic)</label>
-        <InputText v-model="f.sub_project" class="w-full" placeholder="ej: perija, vallenata" />
+        <Input v-model="f.sub_project" placeholder="ej: perija, vallenata" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Código TSF</label>
-        <InputText v-model="f.codigo_tsf" class="w-full" placeholder="ej: COLCEST58P2" />
+        <Input v-model="f.codigo_tsf" placeholder="ej: COLCEST58P2" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
-        <DatePicker v-model="fechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+        <DatePicker v-model="fechaEntrada" clearable placeholder="Seleccionar" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
-        <DatePicker v-model="fechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+        <DatePicker v-model="fechaOperMant" clearable placeholder="Seleccionar" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
-        <DatePicker v-model="fechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+        <DatePicker v-model="fechaEntrega" clearable placeholder="Seleccionar" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
-        <DatePicker v-model="fechaFinRep" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Vigente" />
+        <DatePicker v-model="fechaFinRep" clearable placeholder="Vigente" />
       </div>
     </div>
 
@@ -113,13 +152,9 @@
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p90-' + i">
             <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-            <InputNumber
-              v-model="p90Array[i]"
-              :maxFractionDigits="1"
-              class="w-full"
-              inputClass="text-center text-xs px-1 py-1"
-              :placeholder="'—'"
-            />
+            <NumberField v-model="p90Array[i]" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
+              <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" placeholder="—" /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
       </div>
@@ -130,13 +165,9 @@
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p50-' + i">
             <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-            <InputNumber
-              v-model="p50Array[i]"
-              :maxFractionDigits="1"
-              class="w-full"
-              inputClass="text-center text-xs px-1 py-1"
-              :placeholder="'—'"
-            />
+            <NumberField v-model="p50Array[i]" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
+              <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" placeholder="—" /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
       </div>
@@ -159,18 +190,19 @@
         />
         <div>
           <label class="block text-xs font-medium text-muted-foreground mb-1">Participación (%)</label>
-          <InputNumber v-model="inversionistaInicial.porcentaje_pct" :min="0" :max="100"
-            :minFractionDigits="2" :maxFractionDigits="7" suffix="%" locale="en-US"
-            class="w-full" placeholder="100" />
+          <NumberField v-model="inversionistaInicial.porcentaje_pct" :step-snapping="false" :min="0" :max="100" locale="en-US"
+            :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
+            <NumberFieldContent><NumberFieldInput placeholder="100" /></NumberFieldContent>
+          </NumberField>
         </div>
       </div>
     </div>
 
     <div class="flex justify-end gap-2 pt-2">
-      <Button type="button" label="Cancelar" severity="secondary" :disabled="guardando"
-        @click="$emit('cancel')" />
-      <Button type="submit" label="Crear proyecto"
-        :loading="guardando" :disabled="!puedeGuardar" />
+      <Button type="button" variant="ghost" :disabled="guardando" @click="$emit('cancel')">Cancelar</Button>
+      <Button type="submit" :disabled="guardando || !puedeGuardar">
+        <Spinner v-if="guardando" class="size-4" /> Crear proyecto
+      </Button>
     </div>
     <p v-if="operadorRedObligatorio && !f.operador_red_id" class="text-xs text-muted-foreground text-right">
       Falta el operador de red: sin él no se puede crear la planta.
@@ -180,11 +212,7 @@
 
 <script setup>
 import { reactive, ref, watch, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import divipola from '~/data/colombia-divipola.json'
@@ -246,6 +274,13 @@ const f = reactive({
 // evitar variantes de escritura que luego no se puedan agrupar/filtrar bien.
 const departamentos = Object.keys(divipola).sort()
 const municipiosDisponibles = computed(() => f.departamento ? (divipola[f.departamento] || []) : [])
+
+/** Opciones de un ComboBox con la primera para dejarlo vacío (el showClear de PrimeVue). */
+function conVacio(opciones) {
+  return [{ value: VALOR_SELECT_VACIO, label: 'Sin definir' }, ...opciones]
+}
+const opcionesDepartamento = conVacio(departamentos.map(d => ({ value: d, label: d })))
+const opcionesMunicipio = computed(() => conVacio(municipiosDisponibles.value.map(m => ({ value: m, label: m }))))
 watch(() => f.departamento, (nuevo, anterior) => {
   if (nuevo !== anterior && f.municipio && !(divipola[nuevo] || []).includes(f.municipio)) {
     f.municipio = null
@@ -255,8 +290,8 @@ watch(() => f.departamento, (nuevo, anterior) => {
 // Catálogo de operadores de red -- select en vez de texto libre, para que
 // coincida con el vínculo real que usa Reporte CGM (Frontera.operador_red_id).
 const operadoresRed = ref([])
-const operadoresRedOptions = computed(() =>
-  operadoresRed.value.map(o => ({ id: o.id, label: o.nombre_comercial || o.nombre_legal }))
+const opcionesOperadorRed = computed(() =>
+  conVacio(operadoresRed.value.map(o => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })))
 )
 onMounted(async () => {
   try {
@@ -276,7 +311,7 @@ const capacidadInstaladaKwp = ref(null)
 // Cantidad de paneles -- también vive en proyecto_info_tecnica; opcional al crear.
 const cantidadTotalPaneles = ref(null)
 
-// Fechas del proyecto (DatePicker usa Date; el API espera 'YYYY-MM-DD')
+// Fechas del proyecto ('YYYY-MM-DD', lo mismo que espera el API)
 const fechaEntrada = ref(null)
 const fechaOperMant = ref(null)
 const fechaEntrega = ref(null)
