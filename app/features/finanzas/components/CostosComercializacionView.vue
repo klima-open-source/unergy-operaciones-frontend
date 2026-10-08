@@ -3,11 +3,11 @@
     <PageHeader title="Costos comercialización"
                 subtitle="Costos e ingresos fijos por proyecto">
       <template #actions>
-        <Button label="Subir Excel costos" size="small" outlined @click="abrirSubirExcel">
-          <template #icon><FileSpreadsheetIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" @click="abrirSubirExcel">
+          <FileSpreadsheetIcon class="size-4" /> Subir Excel costos
         </Button>
-        <Button label="Repartir costos de XM" size="small" @click="abrirAcPower">
-          <template #icon><ZapIcon class="size-4" /></template>
+        <Button size="sm" @click="abrirAcPower">
+          <ZapIcon class="size-4" /> Repartir costos de XM
         </Button>
       </template>
     </PageHeader>
@@ -15,8 +15,13 @@
     <input ref="excelInput" type="file" accept=".xlsx,.xls" class="hidden" @change="onExcelSeleccionado" />
 
     <!-- Dialog: subir Excel -->
-    <Dialog v-model:visible="excelVisible" header="Subir Excel de costos" modal class="w-full max-w-lg">
-      <div class="space-y-4 pt-1">
+    <Dialog v-model:open="excelVisible">
+      <DialogContent class="sm:max-w-lg" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Subir Excel de costos</DialogTitle>
+        <DialogDescription class="sr-only">Excel con los costos de comercialización.</DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
         <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-5.5 transition-colors duration-150 hover:border-primary hover:bg-primary/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendoExcel" @click="seleccionarExcel">
           <FileSpreadsheetIcon class="size-6 text-primary" />
           <p class="text-sm font-semibold text-foreground mt-2">Seleccionar Excel</p>
@@ -38,54 +43,77 @@
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button label="Cerrar" severity="secondary" size="small" :disabled="subiendoExcel"
-                  @click="excelVisible = false" />
-          <Button label="Subir" size="small" :disabled="!excel" :loading="subiendoExcel" @click="subirExcel">
-            <template #icon><UploadIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" :disabled="subiendoExcel" @click="excelVisible = false">Cerrar</Button>
+          <Button size="sm" :disabled="!excel || subiendoExcel" @click="subirExcel">
+            <Spinner v-if="subiendoExcel" class="size-4" /><UploadIcon v-else class="size-4" /> Subir
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Dialog: repartir costos de XM -->
-    <Dialog v-model:visible="acVisible" header="Repartir costos de XM" modal class="w-full max-w-md">
-      <div class="space-y-3 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog v-model:open="acVisible">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Repartir costos de XM</DialogTitle>
+        <DialogDescription>
           Reparte las facturas de XM entre los proyectos a prorrata del AC Power.
           Requiere haber liquidado primero y que las facturas del período estén listas.
-        </p>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-3">
 
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-            <Select v-model="ac.month" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
+            <Select :model-value="ac.month != null ? String(ac.month) : ''" @update:model-value="ac.month = Number($event)">
+              <SelectTrigger class="w-full"><SelectValue placeholder="Mes" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-            <InputNumber v-model="ac.year" :useGrouping="false" class="w-full" />
+            <NumberField v-model="ac.year" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-          <Select v-model="ac.version" :options="VERSIONES" class="w-full" />
+          <Select v-model="ac.version">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <!-- Solo en reliquidaciones: le dice a la API de qué versión viene el
                reparto anterior. En la primera corrida del mes va vacío. -->
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión anterior <span class="text-muted-foreground">(solo al reliquidar)</span></label>
-          <Select v-model="ac.last_version" :options="VERSIONES" class="w-full" showClear
-                  placeholder="Ninguna" />
+          <Select :model-value="aValorSelect(ac.last_version)" @update:model-value="ac.last_version = deValorSelect($event) || null">
+            <SelectTrigger class="w-full"><SelectValue placeholder="Ninguna" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem :value="VALOR_SELECT_VACIO">Ninguna</SelectItem>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">AC Power total del período (kW)</label>
-          <InputNumber v-model="ac.total_ac_power" :maxFractionDigits="4" :useGrouping="false"
-                       class="w-full" placeholder="ej: 12345.6789" />
+          <NumberField v-model="ac.total_ac_power" :step-snapping="false" :min="0"
+                       :format-options="{ maximumFractionDigits: 4, useGrouping: false }">
+            <NumberFieldContent><NumberFieldInput placeholder="ej: 12345,6789" /></NumberFieldContent>
+          </NumberField>
           <p class="text-xs text-muted-foreground mt-1">Es el divisor de la prorrata.</p>
         </div>
 
         <div class="flex items-start gap-2 rounded-lg px-3 py-2 bg-warning/10 border border-warning/30"
              >
-          <Checkbox v-model="ac.override" inputId="ov" binary />
+          <Checkbox id="ov" v-model="ac.override" class="mt-0.5" />
           <label for="ov" class="text-xs leading-snug text-warning">
             <strong>Sobrescribir el reparto anterior.</strong>
             Debe quedar marcado la primera vez que se corre este período: sin marcar y
@@ -98,55 +126,81 @@
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button label="Cancelar" severity="secondary" size="small" :disabled="repartiendo"
-                  @click="acVisible = false" />
-          <Button label="Repartir" size="small" :loading="repartiendo" @click="repartir" />
+          <Button variant="outline" size="sm" :disabled="repartiendo" @click="acVisible = false">Cancelar</Button>
+          <Button size="sm" :disabled="repartiendo" @click="repartir">
+            <Spinner v-if="repartiendo" class="size-4" /> Repartir
+          </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Filtros -->
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
-        <Select v-model="filtros.project" :options="proyectosOptions" optionLabel="label"
-                optionValue="value" showClear filter placeholder="Todos"
-                @change="recargar" />
+        <div class="w-56">
+          <ComboBox :key="proyectosOptions.length" :model-value="filtros.project"
+                    :options="conTodos(proyectosOptions)" placeholder="Todos"
+                    @update:model-value="v => { filtros.project = deValorSelect(v) || null; recargar() }" />
+        </div>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Tipo de costo</label>
-        <Select v-model="filtros.payment_type" :options="tiposOptions" optionLabel="label"
-                optionValue="value" showClear filter placeholder="Todos"
-                @change="recargar" />
+        <div class="w-56">
+          <ComboBox :key="tiposOptions.length" :model-value="filtros.payment_type"
+                    :options="conTodos(tiposOptions)" placeholder="Todos"
+                    @update:model-value="v => { filtros.payment_type = deValorSelect(v) || null; recargar() }" />
+        </div>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-        <Select v-model="filtros.mes" :options="MESES" optionLabel="label" optionValue="value"
-                showClear placeholder="Todos" @change="recargar" />
+<Select :model-value="aValorSelect(filtros.mes != null ? String(filtros.mes) : null)"
+                @update:model-value="v => { const x = deValorSelect(v); filtros.mes = x ? Number(x) : null; recargar() }">
+          <SelectTrigger class="min-w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="o in MESES" :key="o.value" :value="String(o.value)">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-        <Select v-model="filtros.anio" :options="aniosOptions" showClear
-                placeholder="Todos" @change="recargar" />
+<Select :model-value="aValorSelect(filtros.anio != null ? String(filtros.anio) : null)"
+                @update:model-value="v => { const x = deValorSelect(v); filtros.anio = x ? Number(x) : null; recargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="o in aniosOptions" :key="o" :value="String(o)">{{ o }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" showClear
-                placeholder="Todas" @change="recargar" />
+        <Select :model-value="aValorSelect(filtros.version)"
+                @update:model-value="v => { filtros.version = deValorSelect(v) || null; recargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todas</SelectItem>
+            <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar en la página</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto, costo…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Proyecto, costo…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button label="Exportar" size="small" outlined :loading="exportando" :disabled="!total" v-tooltip.top="'Exporta a Excel todo lo que coincide con los filtros'" @click="exportar">
-        <template #icon><FileSpreadsheetIcon class="size-4" /></template>
-      </Button>
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="recargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <span title="Exporta a Excel todo lo que coincide con los filtros">
+        <Button variant="outline" size="sm" :disabled="exportando || !total" @click="exportar">
+          <Spinner v-if="exportando" class="size-4" /><FileSpreadsheetIcon v-else class="size-4" /> Exportar
+        </Button>
+      </span>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="recargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ total.toLocaleString('es-CO') }} registro{{ total === 1 ? '' : 's' }}
@@ -209,11 +263,11 @@
             Math.min(filtros.page * filtros.size, total).toLocaleString('es-CO') }} de {{ total.toLocaleString('es-CO') }}
         </span>
         <div class="flex gap-1">
-          <Button text rounded size="small" :disabled="filtros.page === 1 || loading" @click="irA(filtros.page - 1)">
-            <template #icon><ChevronLeftIcon class="size-4" /></template>
+          <Button variant="ghost" size="icon-sm" aria-label="Página anterior" :disabled="filtros.page === 1 || loading" @click="irA(filtros.page - 1)">
+            <ChevronLeftIcon class="size-4" />
           </Button>
-          <Button text rounded size="small" :disabled="filtros.page >= ultimaPagina || loading" @click="irA(filtros.page + 1)">
-            <template #icon><ChevronRightIcon class="size-4" /></template>
+          <Button variant="ghost" size="icon-sm" aria-label="Página siguiente" :disabled="filtros.page >= ultimaPagina || loading" @click="irA(filtros.page + 1)">
+            <ChevronRightIcon class="size-4" />
           </Button>
         </div>
       </div>
@@ -223,14 +277,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Checkbox from 'primevue/checkbox'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
@@ -267,6 +314,8 @@ const filtros = reactive({
 
 // Catálogos de los selects.
 const proyectosOptions = ref([])
+/** Opciones de un ComboBox de filtro, con «Todos» primero para quitarlo (el showClear de PrimeVue). */
+const conTodos = (opciones) => [{ value: VALOR_SELECT_VACIO, label: 'Todos' }, ...opciones]
 const tiposOptions = ref([])
 const aniosOptions = computed(() => {
   const actual = new Date().getFullYear()
