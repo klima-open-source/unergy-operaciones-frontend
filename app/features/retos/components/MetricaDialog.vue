@@ -175,7 +175,11 @@ function enviar() {
           </div>
           <div class="space-y-1.5">
             <GLabel>Meta del trimestre</GLabel>
-            <NumberField v-model="f.meta" :format-options="{ maximumFractionDigits: 4 }">
+            <NumberField
+              v-model="f.meta"
+              :step-snapping="false"
+              :format-options="{ maximumFractionDigits: 4 }"
+            >
               <NumberFieldContent><NumberFieldInput placeholder="Opcional" /></NumberFieldContent>
             </NumberField>
           </div>

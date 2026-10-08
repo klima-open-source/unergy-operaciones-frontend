@@ -342,6 +342,7 @@ async function guardar() {
           <div class="flex items-center gap-2">
             <NumberField
               v-model="porcentajeDespacho"
+              :step-snapping="false"
               :min="0"
               :max="100"
               class="flex-1"

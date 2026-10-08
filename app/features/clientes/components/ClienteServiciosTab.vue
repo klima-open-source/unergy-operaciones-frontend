@@ -282,7 +282,11 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
           </div>
           <div class="space-y-1.5">
             <GLabel>IVA %</GLabel>
-            <NumberField v-model="formTasa.iva_pct" :format-options="{ maximumFractionDigits: 2 }">
+            <NumberField
+              v-model="formTasa.iva_pct"
+              :step-snapping="false"
+              :format-options="{ maximumFractionDigits: 2 }"
+            >
               <NumberFieldContent
                 ><NumberFieldInput placeholder="Hereda del cliente"
               /></NumberFieldContent>
@@ -292,6 +296,7 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
             <GLabel>Retención %</GLabel>
             <NumberField
               v-model="formTasa.retencion_pct"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 2 }"
             >
               <NumberFieldContent
@@ -303,6 +308,7 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
             <GLabel>ReteIVA %</GLabel>
             <NumberField
               v-model="formTasa.reteiva_pct"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 2 }"
             >
               <NumberFieldContent
@@ -314,6 +320,7 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
             <GLabel>ReteICA %</GLabel>
             <NumberField
               v-model="formTasa.reteica_pct"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 2 }"
             >
               <NumberFieldContent

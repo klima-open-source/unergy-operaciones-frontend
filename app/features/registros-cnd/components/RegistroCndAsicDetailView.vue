@@ -907,7 +907,7 @@ onMounted(cargar)
                   <div class="grid grid-cols-2 gap-2">
                     <div v-for="f in campos93" :key="f.k" class="space-y-1">
                       <GLabel class="text-xs">{{ f.label }}</GLabel>
-                      <NumberField v-model="params[f.k]">
+                      <NumberField v-model="params[f.k]" :step-snapping="false">
                         <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
                       </NumberField>
                     </div>

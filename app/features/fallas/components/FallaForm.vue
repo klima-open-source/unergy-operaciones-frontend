@@ -791,7 +791,12 @@ onMounted(async () => {
                     class="flex-1"
                     @blur="guardarInv(inv)"
                   />
-                  <NumberField v-model="inv.potencia_nominal_kw" :min="0" class="flex-1">
+                  <NumberField
+                    v-model="inv.potencia_nominal_kw"
+                    :step-snapping="false"
+                    :min="0"
+                    class="flex-1"
+                  >
                     <NumberFieldContent
                       ><NumberFieldInput placeholder="kW" @blur="guardarInv(inv)"
                     /></NumberFieldContent>
@@ -811,7 +816,12 @@ onMounted(async () => {
                     placeholder="Nombre nuevo inversor"
                     class="flex-1"
                   />
-                  <NumberField v-model="nuevoInv.potencia_nominal_kw" :min="0" class="flex-1">
+                  <NumberField
+                    v-model="nuevoInv.potencia_nominal_kw"
+                    :step-snapping="false"
+                    :min="0"
+                    class="flex-1"
+                  >
                     <NumberFieldContent><NumberFieldInput placeholder="kW" /></NumberFieldContent>
                   </NumberField>
                   <Button variant="outline" size="icon-sm" @click="agregarInv">

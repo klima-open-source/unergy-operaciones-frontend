@@ -68,6 +68,7 @@ function onOpenChange(open: boolean) {
               <GLabel>PB</GLabel>
               <NumberField
                 v-model="local.pb"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -77,6 +78,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Restricciones</GLabel>
               <NumberField
                 v-model="local.restricciones"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -86,6 +88,7 @@ function onOpenChange(open: boolean) {
               <GLabel>STN</GLabel>
               <NumberField
                 v-model="local.stn"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -95,6 +98,7 @@ function onOpenChange(open: boolean) {
               <GLabel>TRM</GLabel>
               <NumberField
                 v-model="local.trm"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -104,6 +108,7 @@ function onOpenChange(open: boolean) {
               <GLabel>PTB</GLabel>
               <NumberField
                 v-model="local.ptb"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -119,6 +124,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Total UNGC</GLabel>
               <NumberField
                 v-model="local.totalUNGC"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -128,6 +134,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Total UNGG</GLabel>
               <NumberField
                 v-model="local.totalUNGG"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -137,6 +144,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Total a consignar</GLabel>
               <NumberField
                 v-model="local.totalConsignar"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -152,6 +160,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Disponible custodia</GLabel>
               <NumberField
                 v-model="local.disponibleCustodia"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -161,6 +170,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Congelado</GLabel>
               <NumberField
                 v-model="local.congelado"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -170,6 +180,7 @@ function onOpenChange(open: boolean) {
               <GLabel>Saldo</GLabel>
               <NumberField
                 v-model="local.saldo"
+                :step-snapping="false"
                 :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
               >
                 <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
@@ -182,6 +193,7 @@ function onOpenChange(open: boolean) {
           <GLabel>Total ajuste TXR</GLabel>
           <NumberField
             v-model="local.totalAjusteTXR"
+            :step-snapping="false"
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 2 }"
           >
             <NumberFieldContent><NumberFieldInput /></NumberFieldContent>

@@ -1607,7 +1607,13 @@ onMounted(() => {
                 <div class="flex flex-col gap-1.5">
                   <GLabel>% FNCER</GLabel>
                   <div class="flex items-center gap-2">
-                    <NumberField v-model="form.porcentaje_fncer" :min="0" :max="100" class="flex-1">
+                    <NumberField
+                      v-model="form.porcentaje_fncer"
+                      :step-snapping="false"
+                      :min="0"
+                      :max="100"
+                      class="flex-1"
+                    >
                       <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
                     </NumberField>
                     <span class="text-sm text-muted-foreground">%</span>
@@ -1618,6 +1624,7 @@ onMounted(() => {
                   <div class="flex items-center gap-2">
                     <NumberField
                       v-model="form.porcentaje_despacho"
+                      :step-snapping="false"
                       :min="0"
                       :max="100"
                       class="flex-1"

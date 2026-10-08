@@ -506,6 +506,7 @@ watch(
             <!-- 2. Input + referencia de la semana anterior -->
             <div class="mt-1.5 flex min-w-0 items-center gap-2.5">
               <NumberField
+                :step-snapping="false"
                 class="rq-dw-input min-w-0 flex-1"
                 :data-metrica="m.id"
                 :model-value="campos[m.id]?.valor ?? null"

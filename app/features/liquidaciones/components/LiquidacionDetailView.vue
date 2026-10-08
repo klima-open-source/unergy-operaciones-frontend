@@ -316,6 +316,7 @@ onMounted(load)
             <FieldLabel>Tasa de cambio (USD/COP)</FieldLabel>
             <NumberField
               v-model="resumenForm.tasa_cambio"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 4 }"
             >
               <NumberFieldContent><NumberFieldInput /></NumberFieldContent>

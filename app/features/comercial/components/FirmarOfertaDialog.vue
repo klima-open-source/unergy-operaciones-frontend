@@ -234,6 +234,7 @@ async function firmar() {
           <div v-if="f.modo_precio === 'unica'" class="flex max-w-56 items-center gap-2">
             <NumberField
               v-model="f.tarifa_base"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 2 }"
               class="w-full"
             >
@@ -271,6 +272,7 @@ async function firmar() {
               </NumberField>
               <NumberField
                 v-model="p.precio"
+                :step-snapping="false"
                 :format-options="{ maximumFractionDigits: 2 }"
                 class="flex-1"
               >

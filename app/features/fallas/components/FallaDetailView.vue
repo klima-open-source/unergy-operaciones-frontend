@@ -911,6 +911,7 @@ onMounted(() => {
                   <GLabel>Energía perdida (kWh)</GLabel>
                   <NumberField
                     v-model="quickEdit.kwh_perdidos_estimado"
+                    :step-snapping="false"
                     :min="0"
                     :format-options="{ maximumFractionDigits: 2 }"
                   >

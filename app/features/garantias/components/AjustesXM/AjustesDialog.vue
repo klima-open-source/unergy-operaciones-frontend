@@ -41,7 +41,12 @@ function onOpenChange(open: boolean) {
       <div class="space-y-4">
         <div class="space-y-1.5">
           <GLabel>PB semana anterior ($)</GLabel>
-          <NumberField v-model="pbLocal" :min="0" :format-options="{ maximumFractionDigits: 2 }">
+          <NumberField
+            v-model="pbLocal"
+            :step-snapping="false"
+            :min="0"
+            :format-options="{ maximumFractionDigits: 2 }"
+          >
             <NumberFieldContent><NumberFieldInput placeholder="Ej: 547.88" /></NumberFieldContent>
           </NumberField>
           <p class="text-xs text-muted-foreground">

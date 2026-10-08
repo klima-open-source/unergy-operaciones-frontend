@@ -416,6 +416,7 @@ async function guardarRegistro() {
             <GLabel>% variación PB</GLabel>
             <NumberField
               v-model="variacionPb"
+              :step-snapping="false"
               :format-options="{ maximumFractionDigits: 2 }"
               @update:model-value="actualizarMensaje"
             >

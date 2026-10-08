@@ -190,25 +190,41 @@ function submit() {
 
       <div class="space-y-1.5">
         <GLabel>IVA %</GLabel>
-        <NumberField v-model="f.iva_pct" :format-options="{ maximumFractionDigits: 2 }">
+        <NumberField
+          v-model="f.iva_pct"
+          :step-snapping="false"
+          :format-options="{ maximumFractionDigits: 2 }"
+        >
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div class="space-y-1.5">
         <GLabel>ReteFuente %</GLabel>
-        <NumberField v-model="f.retencion_pct" :format-options="{ maximumFractionDigits: 2 }">
+        <NumberField
+          v-model="f.retencion_pct"
+          :step-snapping="false"
+          :format-options="{ maximumFractionDigits: 2 }"
+        >
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div class="space-y-1.5">
         <GLabel>ReteIVA %</GLabel>
-        <NumberField v-model="f.reteiva_pct" :format-options="{ maximumFractionDigits: 2 }">
+        <NumberField
+          v-model="f.reteiva_pct"
+          :step-snapping="false"
+          :format-options="{ maximumFractionDigits: 2 }"
+        >
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>
       <div class="space-y-1.5">
         <GLabel>ReteICA %</GLabel>
-        <NumberField v-model="f.reteica_pct" :format-options="{ maximumFractionDigits: 4 }">
+        <NumberField
+          v-model="f.reteica_pct"
+          :step-snapping="false"
+          :format-options="{ maximumFractionDigits: 4 }"
+        >
           <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
         </NumberField>
       </div>

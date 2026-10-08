@@ -212,6 +212,7 @@ watch(() => props.ofertaId, cargar, { immediate: true })
           </NumberField>
           <NumberField
             v-model="fila.precio"
+            :step-snapping="false"
             :format-options="{ maximumFractionDigits: 4 }"
             class="flex-1"
           >
