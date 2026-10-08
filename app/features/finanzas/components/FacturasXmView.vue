@@ -3,12 +3,11 @@
     <PageHeader title="Facturas de XM"
                 subtitle="Facturas del período y su estado de alistamiento para repartir">
       <template #actions>
-        <Button label="Reliquidar" size="small" outlined severity="secondary"
-                :loading="reliquidando" @click="abrirReliquidar">
-          <template #icon><CopyIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" :disabled="reliquidando" @click="abrirReliquidar">
+          <Spinner v-if="reliquidando" class="size-4" /><CopyIcon v-else class="size-4" /> Reliquidar
         </Button>
-        <Button label="Subir facturas" size="small" @click="abrirSubida">
-          <template #icon><UploadIcon class="size-4" /></template>
+        <Button size="sm" @click="abrirSubida">
+          <UploadIcon class="size-4" /> Subir facturas
         </Button>
       </template>
     </PageHeader>
@@ -17,9 +16,13 @@
            @change="onArchivosSeleccionados" />
 
     <!-- Dialog: Subir facturas -->
-    <Dialog v-model:visible="subidaVisible" header="Subir facturas de XM" modal class="w-full max-w-lg"
-            @hide="alCerrarSubida">
-      <div class="space-y-4 pt-1">
+    <Dialog v-model:open="subidaVisible">
+      <DialogContent class="sm:max-w-lg" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Subir facturas de XM</DialogTitle>
+        <DialogDescription class="sr-only">PDF de las facturas de XM, la versión y la clave de Gemini.</DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
         <button type="button" class="flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-5.5 transition-colors duration-150 hover:border-primary hover:bg-primary/10 disabled:cursor-default disabled:opacity-60" :disabled="subiendo" @click="seleccionarArchivos">
           <CloudUploadIcon class="size-6 text-primary" />
           <p class="text-sm font-semibold text-foreground mt-2">Seleccionar facturas</p>
@@ -30,16 +33,28 @@
 
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-          <Select v-model="versionSubida" :options="VERSIONES" class="w-full" :disabled="subiendo" />
+<Select v-model="versionSubida" :disabled="subiendo">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Clave de Gemini <span class="text-muted-foreground font-normal">(opcional)</span></label>
           <!-- Enmascarada y sin autocompletar: es un secreto. No se guarda en
                ninguna parte — viaja con la subida y se olvida al cerrar. -->
-          <Password v-model="apiKey" :feedback="false" toggleMask class="w-full" inputClass="w-full"
-                    autocomplete="off" :disabled="subiendo"
-                    placeholder="Déjala vacía para usar la del servidor" />
+          <InputGroup>
+            <InputGroupInput v-model="apiKey" :type="mostrarClave ? 'text' : 'password'" autocomplete="off"
+              :disabled="subiendo" placeholder="Déjala vacía para usar la del servidor" />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton size="icon-xs" :aria-label="mostrarClave ? 'Ocultar clave' : 'Mostrar clave'"
+                @click="mostrarClave = !mostrarClave">
+                <EyeOffIcon v-if="mostrarClave" class="size-4" /><EyeIcon v-else class="size-4" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
           <p class="text-xs text-muted-foreground mt-1">
             Con la que la IA lee los PDF. Vacía, se usa la configurada en el servidor.
             No se guarda: se olvida al cerrar esta ventana.
@@ -52,8 +67,8 @@
             <FileTextIcon class="shrink-0 size-4 text-muted-foreground" />
             <TruncatedText :text="a.nombre" class="flex-1 min-w-0 text-xs font-medium text-foreground" />
             <span class="text-xs text-muted-foreground shrink-0">{{ fmtTamano(a.tamano) }}</span>
-            <Button v-if="!subiendo" text rounded size="small" @click="quitarArchivo(a.nombre)">
-              <template #icon><XIcon class="size-4" /></template>
+            <Button v-if="!subiendo" variant="ghost" size="icon-sm" aria-label="Quitar" @click="quitarArchivo(a.nombre)">
+              <XIcon class="size-4" />
             </Button>
           </div>
         </div>
@@ -73,77 +88,114 @@
         </p>
 
         <div class="flex justify-end gap-2 pt-1">
-          <Button label="Cerrar" severity="secondary" size="small" :disabled="subiendo"
-                  @click="subidaVisible = false" />
-          <Button label="Subir" size="small" :disabled="!archivos.length" :loading="subiendo" @click="subir">
-            <template #icon><UploadIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" :disabled="subiendo" @click="subidaVisible = false">Cerrar</Button>
+          <Button size="sm" :disabled="!archivos.length || subiendo" @click="subir">
+            <Spinner v-if="subiendo" class="size-4" /><UploadIcon v-else class="size-4" /> Subir
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Dialog: Reliquidar (copiar las facturas a otra versión) -->
-    <Dialog v-model:visible="reliqVisible" header="Reliquidar el período" modal class="w-full max-w-lg">
-      <div class="space-y-4 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog v-model:open="reliqVisible">
+      <DialogContent class="sm:max-w-lg" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Reliquidar el período</DialogTitle>
+        <DialogDescription>
           Copia las facturas de XM de una versión a otra. Es lo que habilita reliquidar:
           sin este paso, Liquidar y Repartir fallan en la versión nueva porque no hay
           facturas en ella. Después hay que volver a correr FTP, Liquidar y Repartir.
-        </p>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-            <Select v-model="rl.month" :options="MESES" optionLabel="label" optionValue="value" class="w-full" />
+            <Select :model-value="String(rl.month)" @update:model-value="rl.month = Number($event)">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-            <InputNumber v-model="rl.year" :useGrouping="false" class="w-full" />
+            <NumberField v-model="rl.year" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Desde (versión actual)</label>
-            <Select v-model="rl.last_version" :options="VERSIONES" class="w-full" />
+<Select v-model="rl.last_version">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Hacia (versión nueva)</label>
-            <Select v-model="rl.new_version" :options="VERSIONES" class="w-full" />
+<Select v-model="rl.new_version">
+            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+            </SelectContent>
+          </Select>
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-1">
-          <Button label="Cancelar" severity="secondary" size="small" :disabled="reliquidando"
-                  @click="reliqVisible = false" />
-          <Button label="Duplicar facturas" size="small" :loading="reliquidando" @click="reliquidar" />
+          <Button variant="outline" size="sm" :disabled="reliquidando" @click="reliqVisible = false">Cancelar</Button>
+          <Button size="sm" :disabled="reliquidando" @click="reliquidar">
+            <Spinner v-if="reliquidando" class="size-4" /> Duplicar facturas
+          </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- Filtros -->
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-        <Select v-model="filtros.month" :options="MESES" optionLabel="label" optionValue="value"
-                showClear placeholder="Todos" @change="cargar" />
+        <Select :model-value="aValorSelect(filtros.month != null ? String(filtros.month) : null)"
+                @update:model-value="v => { const m = deValorSelect(v); filtros.month = m ? Number(m) : null; cargar() }">
+          <SelectTrigger class="min-w-36"><SelectValue placeholder="Todos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos</SelectItem>
+            <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-        <InputNumber v-model="filtros.year" :useGrouping="false" @update:modelValue="cargar" />
+        <NumberField v-model="filtros.year" :format-options="{ useGrouping: false }" class="w-28" @update:model-value="cargar">
+          <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+        </NumberField>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" showClear
-                placeholder="Todas" @change="cargar" />
+        <Select :model-value="aValorSelect(filtros.version)"
+                @update:model-value="v => { filtros.version = deValorSelect(v) || null; cargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue placeholder="Todas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todas</SelectItem>
+            <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Código, nombre, agente…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Código, nombre, agente…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} factura{{ filtrados.length === 1 ? '' : 's' }}
@@ -202,11 +254,11 @@
               <td class="px-4 py-2 text-right whitespace-nowrap">{{ fmtCOP(row.valor_total) }}</td>
               <td class="px-4 py-2 whitespace-nowrap">
                 <GBadge :color="SEVERIDAD_ESTADO[row.estado_procesamiento] || 'default'">{{ row.estado_procesamiento || '—' }}</GBadge>
-                <InfoIcon class="ml-1 size-3 text-destructive" v-if="row.error"  v-tooltip.top="row.error" />
+                <span v-if="row.error" :title="row.error"><InfoIcon class="ml-1 size-3 text-destructive" /></span>
               </td>
               <td class="px-4 py-2 text-center">
                 <CircleCheckIcon class="size-4 text-success" v-if="row.total_valido" />
-                <CircleXIcon class="size-4 text-destructive" v-else  v-tooltip.top="'El total extraído no cuadra con la suma de los conceptos'" />
+                <span v-else title="El total extraído no cuadra con la suma de los conceptos"><CircleXIcon class="size-4 text-destructive" /></span>
               </td>
               <td class="px-4 py-2 whitespace-nowrap text-xs text-muted-foreground">{{ fmtFecha(row.vencimiento) }}</td>
             </tr>
@@ -229,20 +281,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Password from 'primevue/password'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { VERSIONES, VERSION_INICIAL, MAX_FACTURAS_POR_LOTE, MAX_MB_POR_FACTURA } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatCOP as fmtCOP } from '~/utils/currency'
-import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, CopyIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
+import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, CopyIcon, EyeIcon, EyeOffIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
 
@@ -398,7 +443,13 @@ function abrirSubida() {
 /** Al cerrar se borra la clave: no puede quedar escrita de una subida a otra. */
 function alCerrarSubida() {
   apiKey.value = ''
+  mostrarClave.value = false
 }
+
+// La clave se olvida al cerrar, se cierre como se cierre (botón, Esc o la X):
+// el Dialog de Reka no avisa cuando lo cierra el código.
+const mostrarClave = ref(false)
+watch(subidaVisible, (abierta) => { if (!abierta) alCerrarSubida() })
 
 function seleccionarArchivos() {
   fileInput.value?.click()
