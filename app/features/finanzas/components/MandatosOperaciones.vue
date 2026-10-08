@@ -47,10 +47,17 @@
 
       <!-- F. Filtros -->
       <div class="mb-3 flex flex-wrap items-center gap-2.5">
-        <Select v-model="filtroEstado" :options="ESTADOS_OPCIONES" optionLabel="label" optionValue="value"
-          placeholder="Estado" showClear class="min-w-50" />
-        <Select v-model="filtroTercero" :options="tercerosOpciones" placeholder="Tercero / inversionista"
-          showClear filter class="min-w-50" />
+        <Select :model-value="aValorSelect(filtroEstado)" @update:model-value="filtroEstado = deValorSelect($event) || null">
+          <SelectTrigger class="min-w-50"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="VALOR_SELECT_VACIO">Todos los estados</SelectItem>
+            <SelectItem v-for="e in ESTADOS_OPCIONES" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <div class="w-60">
+          <ComboBox :model-value="aValorSelect(filtroTercero)" :options="opcionesTercero" placeholder="Tercero / inversionista"
+            @update:model-value="filtroTercero = deValorSelect($event) || null" />
+        </div>
         <span class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5"><SearchIcon class="size-4 text-muted-foreground" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" class="border-0 text-sm outline-none" /></span>
       </div>
 
@@ -157,7 +164,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import Select from 'primevue/select'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { MandatosService } from '~/features/finanzas/services/mandatos'
 import { toast } from 'vue-sonner'
 import { CalendarIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleCheckIcon, DownloadIcon, FileInputIcon, LoaderCircleIcon, MailIcon, PaperclipIcon, SearchIcon, SendIcon, Share2Icon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
@@ -338,6 +345,12 @@ const tercerosOpciones = computed(() => {
   const set = new Set(mandatos.value.map(m => m.tercero).filter(Boolean))
   return Array.from(set).sort()
 })
+
+// «Todos» primero: elegirlo quita el filtro (el showClear de PrimeVue).
+const opcionesTercero = computed(() => [
+  { value: VALOR_SELECT_VACIO, label: 'Todos los terceros' },
+  ...tercerosOpciones.value.map(t => ({ value: t, label: t })),
+])
 
 const mandatosFiltrados = computed(() => {
   let lista = mandatos.value
