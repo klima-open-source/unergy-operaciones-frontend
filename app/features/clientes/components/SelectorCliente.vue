@@ -143,9 +143,7 @@ watch(
         <ComboboxAnchor>
           <ComboboxInput :id="inputId" v-model="query" :placeholder="placeholder" />
         </ComboboxAnchor>
-        <!-- Encima de las ventanas de PrimeVue: los asistentes de contratos lo
-             abren dentro de una, y con la capa normal la lista quedaba detrás. -->
-        <ComboboxList align="start" class="z-(--z-sobre-primevue)">
+        <ComboboxList align="start">
           <ComboboxEmpty>Sin resultados</ComboboxEmpty>
           <ComboboxViewport>
             <ComboboxItem v-for="c in sugerencias" :key="c.id" :value="c">
