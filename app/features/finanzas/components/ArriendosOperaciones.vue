@@ -22,8 +22,8 @@
 
       <div class="flex items-center gap-2">
         <div class="relative">
-          <Button label="Columnas" size="small" outlined severity="secondary" @click="showColMenu = !showColMenu">
-            <template #icon><TableIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" @click="showColMenu = !showColMenu">
+            <TableIcon class="size-4" /> Columnas
           </Button>
           <div v-if="showColMenu"
             class="absolute right-0 top-8 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-1"
@@ -36,16 +36,16 @@
             </label>
           </div>
         </div>
-        <Button label="IPC" size="small" outlined @click="showIPCDialog = true" class="border-primary text-primary">
-          <template #icon><ChartLineIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" class="border-primary text-primary" @click="showIPCDialog = true">
+          <ChartLineIcon class="size-4" /> IPC
         </Button>
         <ArriendosZipUpload
           :proyectos="filasParaZip"
           :periodo="periodoActual"
           :periodo-label="periodoLabel"
           @docs-actualizados="() => loadDocs(periodoActual.value)" />
-        <Button label="Guardar selección" size="small" :loading="guardando" class="bg-primary border-primary" @click="guardarSeleccion">
-          <template #icon><SaveIcon class="size-4" /></template>
+        <Button size="sm" :disabled="guardando" @click="guardarSeleccion">
+          <Spinner v-if="guardando" class="size-4" /><SaveIcon v-else class="size-4" /> Guardar selección
         </Button>
       </div>
     </div>
@@ -151,8 +151,8 @@
                   <span class="inline-flex flex-wrap items-center gap-1.5 max-w-full">
                     <button v-if="fila.proyecto_id" type="button"
                             class="text-left hover:underline whitespace-normal" 
-                            @click="irADetalleProyecto(fila)"
-                            v-tooltip.bottom="'Ver detalle del proyecto'">
+                            title="Ver detalle del proyecto"
+                            @click="irADetalleProyecto(fila)">
                       {{ fila.proyecto }}
                     </button>
                     <span v-else class="whitespace-normal">{{ fila.proyecto }}</span>
@@ -278,68 +278,71 @@
     </div>
 
     <!-- ── Diálogo: motivo de exclusión ─────────────────────────────────── -->
-    <Dialog v-model:visible="showExclusionDialog" modal header="Motivo de exclusión" class="w-full max-w-lg">
-      <p class="text-sm text-muted-foreground mb-3">
-        Estos arriendos son facturables este mes pero los desmarcaste. Indica el motivo de cada exclusión (queda registrado):
-      </p>
+    <Dialog v-model:open="showExclusionDialog">
+      <DialogContent class="sm:max-w-lg max-h-dvh overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Motivo de exclusión</DialogTitle>
+        <DialogDescription>
+          Estos arriendos son facturables este mes pero los desmarcaste. Indica el motivo de cada exclusión (queda registrado):
+        </DialogDescription>
+      </DialogHeader>
       <div v-for="e in exclusionPendientes" :key="e.id" class="mb-3">
         <label class="text-xs font-semibold text-foreground">{{ e.nombre }}</label>
-        <textarea v-model="e.motivo" rows="2"
-          class="w-full text-sm border border-border rounded-lg px-2 py-1.5 mt-1"
-          placeholder="Motivo de la exclusión…"></textarea>
+        <Textarea v-model="e.motivo" rows="2" class="mt-1" placeholder="Motivo de la exclusión…" />
       </div>
-      <template #footer>
-        <button type="button" class="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-muted"
-          @click="showExclusionDialog = false">Cancelar</button>
-        <button type="button" :disabled="!exclusionValida"
-          class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          @click="confirmarExclusiones">Guardar</button>
-      </template>
+      <DialogFooter>
+        <Button variant="ghost" size="sm" @click="showExclusionDialog = false">Cancelar</Button>
+        <Button size="sm" :disabled="!exclusionValida" @click="confirmarExclusiones">Guardar</Button>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- ── Dialog IPC ─────────────────────────────────────────────────────── -->
-    <Dialog v-model:visible="showIPCDialog" modal header="Tasas IPC — Arriendos" class="w-full max-w-md">
-      <div class="space-y-3 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog v-model:open="showIPCDialog">
+      <DialogContent class="sm:max-w-md max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Tasas IPC — Arriendos</DialogTitle>
+        <DialogDescription>
           El IPC de diciembre del año N (columna "Año dic") se aplica en el
           <b>aniversario del contrato</b> del año N+1, no cada 1 de enero.
-        </p>
-        <DataTable :value="ipcTasas" class="text-sm" stripedRows>
-          <Column field="año" header="Año dic" />
-          <Column header="Tasa (%)">
-            <template #body="{ data }">{{ (data.tasa * 100).toFixed(2) }}%</template>
-          </Column>
-          <Column header="Estado">
-            <template #body="{ data }">
-              <GBadge :color="data.confirmado ? 'success' : 'warning'">{{ data.confirmado ? 'Confirmado' : 'Pendiente' }}</GBadge>
-            </template>
-          </Column>
-          <Column header="Fuente">
-            <template #body="{ data }">{{ data.fuente || '—' }}</template>
-          </Column>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-3">
+        <DataTable :columns="COLUMNAS_IPC" :rows="ipcTasas" row-key="año">
+          <template #cell="{ row, column }">
+            <template v-if="column.key === 'tasa'">{{ (row.tasa * 100).toFixed(2) }}%</template>
+            <GBadge v-else-if="column.key === 'confirmado'" :color="row.confirmado ? 'success' : 'warning'">{{ row.confirmado ? 'Confirmado' : 'Pendiente' }}</GBadge>
+            <template v-else-if="column.key === 'fuente'">{{ row.fuente || '—' }}</template>
+            <template v-else>{{ row[column.key] }}</template>
+          </template>
         </DataTable>
         <div class="border-t pt-3 space-y-2">
           <p class="text-xs font-semibold text-muted-foreground">Agregar / actualizar tasa</p>
           <div class="grid grid-cols-3 gap-2">
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Año (dic)</label>
-              <InputNumber v-model="ipcForm.año" :useGrouping="false" class="w-full" />
+              <NumberField v-model="ipcForm.año" :format-options="{ useGrouping: false }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Tasa (%)</label>
-              <InputNumber v-model="ipcForm.tasaPct" :minFractionDigits="2" :maxFractionDigits="4"
-                suffix="%" locale="en-US" class="w-full" />
+              <NumberField v-model="ipcForm.tasaPct" :step-snapping="false"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 4 }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Fuente</label>
-              <InputText v-model="ipcForm.fuente" class="w-full" placeholder="DANE" />
+              <Input v-model="ipcForm.fuente" placeholder="DANE" />
             </div>
           </div>
-          <Button label="Guardar tasa" size="small" @click="guardarIPC" class="bg-primary border-primary">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button size="sm" @click="guardarIPC">
+            <CheckIcon class="size-4" /> Guardar tasa
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
     <!-- ── Popover desglose del canon (hover sobre ⚠️) ───────────────────────── -->
@@ -355,12 +358,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import Button      from 'primevue/button'
-import Dialog      from 'primevue/dialog'
-import DataTable   from 'primevue/datatable'
-import Column      from 'primevue/column'
-import InputNumber from 'primevue/inputnumber'
-import InputText   from 'primevue/inputtext'
+import DataTable from '~/components/blocks/DataTable.vue'
 import { toast } from 'vue-sonner'
 import { ArriendosCalculoService } from '~/features/finanzas/services/arriendos-calculo'
 import ArriendosZipUpload from './ArriendosZipUpload.vue'
@@ -449,6 +447,12 @@ const guardando = ref(false)
 const filas     = ref([])
 const seleccion = reactive({})   // { [id]: bool }
 const ipcTasas  = ref([])
+const COLUMNAS_IPC = [
+  { key: 'año', header: 'Año dic' },
+  { key: 'tasa', header: 'Tasa (%)' },
+  { key: 'confirmado', header: 'Estado' },
+  { key: 'fuente', header: 'Fuente' },
+]
 
 async function cargarDatos() {
   loading.value = true
