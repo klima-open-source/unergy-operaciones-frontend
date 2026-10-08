@@ -1,6 +1,10 @@
 <template>
   <!-- Popover de desglose del cálculo IPC. Mismo formato visual que Mantenimiento. -->
-  <Popover ref="pop">
+  <!-- Se abre a mano (show/hide desde el padre, al pasar el mouse por el ⚠️) y
+       se ancla al elemento que lo disparó. Sin foco: es solo lectura. -->
+  <Popover :open="abierto" @update:open="abierto = $event">
+    <PopoverAnchor :reference="ancla" />
+    <PopoverContent class="w-auto" @open-auto-focus.prevent @close-auto-focus.prevent>
     <div class="text-xs text-foreground">
       <p class="font-semibold mb-2 flex items-center gap-1.5 text-primary">
         <ChartColumnIcon class="text-xs size-4" /> Cálculo del Valor a Facturar
@@ -30,12 +34,12 @@
         </div>
       </div>
     </div>
+    </PopoverContent>
   </Popover>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import Popover from 'primevue/popover'
 import { formatCOP } from '~/utils/currency'
 import { ChartColumnIcon } from '@lucide/vue'
 
@@ -45,10 +49,15 @@ defineProps({
   valorAFacturar: { type: Number, default: null },
 })
 
-const pop = ref(null)
+const abierto = ref(false)
+const ancla = ref(null)
 
-// Reexpone los métodos del Popover de PrimeVue al padre.
-function show(ev) { pop.value?.show(ev) }
-function hide()   { pop.value?.hide() }
+// La misma interfaz que tenía con el Popover de PrimeVue: el padre llama
+// show(evento) y hide().
+function show(ev) {
+  ancla.value = ev?.currentTarget ?? ev?.target ?? null
+  abierto.value = true
+}
+function hide() { abierto.value = false }
 defineExpose({ show, hide })
 </script>
