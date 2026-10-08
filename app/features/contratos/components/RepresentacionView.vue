@@ -17,9 +17,7 @@
 
     <!-- Migas -->
     <div class="flex items-center gap-2">
-      <Button text severity="secondary" @click="$router.back()" class="-ml-1">
-        <template #icon><ArrowLeftIcon class="size-4" /></template>
-      </Button>
+      <Button variant="ghost" size="icon-sm" class="-ml-1" @click="$router.back()"><ArrowLeftIcon class="size-4" /></Button>
       <div>
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
@@ -31,16 +29,12 @@
         <h2 class="text-lg font-bold text-foreground">Representación CGM</h2>
       </div>
       <div class="ml-auto flex items-center gap-2">
-        <Button v-if="c" label="Eliminar" size="small" outlined severity="danger" @click="confirmarEliminar">
-          <template #icon><Trash2Icon class="size-4" /></template>
-        </Button>
-        <Button label="Nuevo contrato" size="small" @click="nuevoContrato">
-          <template #icon><PlusIcon class="size-4" /></template>
-        </Button>
+        <Button variant="outline" size="sm" v-if="c" @click="confirmarEliminar"><Trash2Icon class="size-4 text-destructive" /> Eliminar</Button>
+        <Button size="sm" @click="nuevoContrato"><PlusIcon class="size-4" /> Nuevo contrato</Button>
       </div>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-20"><ProgressSpinner /></div>
+    <div v-if="loading" class="flex justify-center py-20"><Spinner class="size-8" /></div>
 
     <div v-else-if="!contratos.length"
       class="rounded-xl border border-dashed border-primary/25 p-10 text-center">
@@ -51,9 +45,7 @@
       <p class="text-xs text-muted-foreground">
         Esta planta no tiene contratos de representación asociados.
       </p>
-      <Button label="Crear el primero" size="small" class="mt-3" @click="nuevoContrato">
-        <template #icon><PlusIcon class="size-4" /></template>
-      </Button>
+      <Button size="sm" class="mt-3" @click="nuevoContrato"><PlusIcon class="size-4" /> Crear el primero</Button>
     </div>
 
     <template v-else>
@@ -83,9 +75,7 @@
             eliminan los demás. Ningún valor se sobreescribe.
           </p>
         </div>
-        <Button label="Fusionar" size="small" class="ml-auto shrink-0" :loading="fusionando" @click="fusionar">
-          <template #icon><CheckIcon class="size-4" /></template>
-        </Button>
+        <Button size="sm" class="ml-auto shrink-0" :disabled="fusionando" @click="fusionar"><Spinner v-if="fusionando" class="size-4" /> <CheckIcon v-else class="size-4" /> Fusionar</Button>
       </div>
 
       <div v-else-if="grupoEnConflicto" class="flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-xs border bg-warning/10 border-warning/30 text-warning">
@@ -142,18 +132,11 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><IdCardIcon class="size-3" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Identificación</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="edit !== 'id'" label="Editar" size="small" text severity="secondary" @click="abrir('id')">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="edit !== 'id'" @click="abrir('id')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando"
-                  :disabled="!form.inversionista_id"
-                  v-tooltip="form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.'"
-                  @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
-                                   'codigo_sun_factory', 'nombre_proyecto_ref'])">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
+                <GTooltip :disabled="!(form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || !form.inversionista_id" @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
+                                   'codigo_sun_factory', 'nombre_proyecto_ref'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button></span></GTooltipTrigger><GTooltipContent>{{ form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.' }}</GTooltipContent></GTooltip>
               </template>
             </div>
           </header>
@@ -174,8 +157,8 @@
             </div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Número de contrato</label>
-                <InputText v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" class="w-full" />
+                <GLabel>Número de contrato</GLabel>
+                <Input v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" />
               </div>
               <SelectorCliente
                 v-model:id="form.inversionista_id"
@@ -184,16 +167,16 @@
                 requerido
               />
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Portafolio</label>
-                <InputText v-model="form.portafolio" class="w-full" />
+                <GLabel>Portafolio</GLabel>
+                <Input v-model="form.portafolio" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Código Sun Factory</label>
-                <InputText v-model="form.codigo_sun_factory" class="w-full" />
+                <GLabel>Código Sun Factory</GLabel>
+                <Input v-model="form.codigo_sun_factory" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Proyecto según el contrato</label>
-                <InputText v-model="form.nombre_proyecto_ref" class="w-full" />
+                <GLabel>Proyecto según el contrato</GLabel>
+                <Input v-model="form.nombre_proyecto_ref" />
               </div>
             </div>
           </div>
@@ -205,17 +188,10 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-primary/10 text-primary"><UsersIcon class="size-3" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Partes del contrato</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="edit !== 'partes'" label="Editar" size="small" text severity="secondary" @click="abrir('partes')">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="edit !== 'partes'" @click="abrir('partes')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando"
-                  :disabled="!form.contratante_id || !form.prestador_id"
-                  v-tooltip="(form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.'"
-                  @click="guardar(['contratante_id', 'prestador_id'])">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
+                <GTooltip :disabled="!((form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || (!form.contratante_id || !form.prestador_id)" @click="guardar(['contratante_id', 'prestador_id'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button></span></GTooltipTrigger><GTooltipContent>{{ (form.contratante_id && form.prestador_id) ? undefined : 'Vincula las dos partes a un cliente registrado.' }}</GTooltipContent></GTooltip>
               </template>
             </div>
           </header>
@@ -266,15 +242,11 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-success/10 text-success"><CalendarIcon class="size-3" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Vigencia</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="edit !== 'vigencia'" label="Editar" size="small" text severity="secondary" @click="abrir('vigencia')">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="edit !== 'vigencia'" @click="abrir('vigencia')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" @click="guardar(['estado', 'fecha_firma_contrato', 'fecha_inicio', 'fecha_fin',
-                                   'renovacion_automatica'])">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
+                <Button size="sm" :disabled="guardando" @click="guardar(['estado', 'fecha_firma_contrato', 'fecha_inicio', 'fecha_fin',
+                                   'renovacion_automatica'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
               </template>
             </div>
           </header>
@@ -304,29 +276,37 @@
             </div>
             <div v-else class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Estado</label>
-                <Select v-model="form.estado" :options="ESTADOS_OPCIONES" optionLabel="label"
-                  optionValue="value" class="w-full" />
+                <GLabel>Estado</GLabel>
+                <Select v-model="form.estado">
+                  <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="e in ESTADOS_OPCIONES" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Fecha de firma</label>
-                <DatePicker v-model="form.fecha_firma_contrato" dateFormat="yy-mm-dd" showIcon
-                  :manualInput="true" class="w-full" />
+                <GLabel>Fecha de firma</GLabel>
+                <DatePicker v-model="form.fecha_firma_contrato" clearable />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Fecha inicio</label>
-                <DatePicker v-model="form.fecha_inicio" dateFormat="yy-mm-dd" showIcon
-                  :manualInput="true" class="w-full" />
+                <GLabel>Fecha inicio</GLabel>
+                <DatePicker v-model="form.fecha_inicio" clearable />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Fecha fin</label>
-                <DatePicker v-model="form.fecha_fin" dateFormat="yy-mm-dd" showIcon
-                  :manualInput="true" class="w-full" />
+                <GLabel>Fecha fin</GLabel>
+                <DatePicker v-model="form.fecha_fin" clearable />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Renovación automática</label>
-                <Select v-model="form.renovacion_automatica" :options="SI_NO" optionLabel="label"
-                  optionValue="value" class="w-full" placeholder="Sin dato" showClear />
+                <GLabel>Renovación automática</GLabel>
+                <Select :model-value="aValorSelect(siNoATexto(form.renovacion_automatica))"
+                  @update:model-value="form.renovacion_automatica = textoASiNo($event)">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Sin dato" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin dato</SelectItem>
+                    <SelectItem value="si">Sí</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -338,17 +318,12 @@
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10 text-warning"><DollarSignIcon class="size-3" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Condiciones comerciales</h3>
             <div class="ml-auto flex items-center gap-1">
-              <Button v-if="edit !== 'comercial'" label="Editar" size="small" text severity="secondary" @click="abrir('comercial')">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="edit !== 'comercial'" @click="abrir('comercial')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" :disabled="!form.cubre_representacion && !form.cubre_cgm"
-                  @click="guardar(['servicios', 'tarifa_admin', 'tarifa_cgm', 'tarifa_representacion',
+                <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
+                <Button size="sm" :disabled="guardando || (!form.cubre_representacion && !form.cubre_cgm)" @click="guardar(['servicios', 'tarifa_admin', 'tarifa_cgm', 'tarifa_representacion',
                                    'indice_indexacion', 'periodicidad_pago', 'responsable_iva',
-                                   'enlace_drive'])">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                                   'enlace_drive'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
               </template>
             </div>
           </header>
@@ -384,48 +359,65 @@
                 <span class="text-xs font-medium text-muted-foreground">Servicios que cubre</span>
                 <div class="flex items-center gap-6">
                   <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                    <Checkbox v-model="form.cubre_representacion" :binary="true" /> Representación
+                    <Checkbox v-model="form.cubre_representacion" /> Representación
                   </label>
                   <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-                    <Checkbox v-model="form.cubre_cgm" :binary="true" /> CGM
+                    <Checkbox v-model="form.cubre_cgm" /> CGM
                   </label>
                 </div>
                 <small v-if="!form.cubre_representacion && !form.cubre_cgm"
                   class="text-xs text-destructive leading-snug">Marca al menos uno.</small>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Tarifa admin (%)</label>
-                <InputNumber v-model="form.tarifa_admin_pct" :minFractionDigits="1" :maxFractionDigits="2"
-                  suffix=" %" locale="en-US" class="w-full" />
+                <GLabel>Tarifa admin (%)</GLabel>
+                <NumberField v-model="form.tarifa_admin_pct" :step-snapping="false"
+                  :format-options="{ minimumFractionDigits: 1, maximumFractionDigits: 2 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Tarifa CGM base ($/kWh)</label>
-                <InputNumber v-model="form.tarifa_cgm" :minFractionDigits="0" :maxFractionDigits="6"
-                  locale="en-US" class="w-full" />
+                <GLabel>Tarifa CGM base ($/kWh)</GLabel>
+                <NumberField v-model="form.tarifa_cgm" :step-snapping="false"
+                  :format-options="{ maximumFractionDigits: 6 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Tarifa representación base ($/kWh)</label>
-                <InputNumber v-model="form.tarifa_representacion" :minFractionDigits="0"
-                  :maxFractionDigits="6" locale="en-US" class="w-full" />
+                <GLabel>Tarifa representación base ($/kWh)</GLabel>
+                <NumberField v-model="form.tarifa_representacion" :step-snapping="false"
+                  :format-options="{ maximumFractionDigits: 6 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Índice de indexación</label>
-                <InputText v-model="form.indice_indexacion" placeholder="Ej: IPC" class="w-full" />
+                <GLabel>Índice de indexación</GLabel>
+                <Input v-model="form.indice_indexacion" placeholder="Ej: IPC" />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Periodicidad de pago</label>
-                <Select v-model="form.periodicidad_pago" :options="PERIODICIDADES" optionLabel="label"
-                  optionValue="value" class="w-full" placeholder="Sin dato" showClear />
+                <GLabel>Periodicidad de pago</GLabel>
+                <Select :model-value="aValorSelect(form.periodicidad_pago)"
+                  @update:model-value="form.periodicidad_pago = deValorSelect($event) || null">
+                  <SelectTrigger class="w-full"><SelectValue placeholder="Sin dato" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="VALOR_SELECT_VACIO">Sin dato</SelectItem>
+                    <SelectItem v-for="p in PERIODICIDADES" :key="p.value" :value="p.value">{{ p.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Responsable de IVA</label>
-                <Select v-model="form.responsable_iva" :options="SI_NO" optionLabel="label"
-                  optionValue="value" class="w-full" />
+                <GLabel>Responsable de IVA</GLabel>
+                <Select :model-value="form.responsable_iva ? 'si' : 'no'"
+                  @update:model-value="form.responsable_iva = $event === 'si'">
+                  <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="si">Sí</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div class="col-span-full flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Contrato en Drive</label>
-                <InputText v-model="form.enlace_drive" placeholder="https://drive.google.com/..."
-                  class="w-full" />
+                <GLabel>Contrato en Drive</GLabel>
+                <Input v-model="form.enlace_drive" placeholder="https://drive.google.com/..." />
               </div>
             </div>
           </div>
@@ -438,14 +430,10 @@
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">{{ t.titulo }}</h3>
             <div class="ml-auto flex items-center gap-1">
               <span v-if="edit !== t.clave" class="text-xs mr-1 text-muted-foreground">Hoy: {{ hoy }}</span>
-              <Button v-if="edit !== t.clave" label="Editar" size="small" text severity="secondary" @click="abrirIdx(t.clave)">
-                <template #icon><PencilIcon class="size-4" /></template>
-              </Button>
+              <Button variant="ghost" size="sm" v-if="edit !== t.clave" @click="abrirIdx(t.clave)"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
-                <Button label="Cancelar" size="small" text severity="secondary" @click="edit = null" />
-                <Button label="Guardar" size="small" :loading="guardando" @click="guardarIdx(t.clave)">
-                  <template #icon><CheckIcon class="size-4" /></template>
-                </Button>
+                <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
+                <Button size="sm" :disabled="guardando" @click="guardarIdx(t.clave)"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
               </template>
             </div>
           </header>
@@ -454,33 +442,34 @@
           <div v-if="edit === t.clave" class="p-3.5 space-y-2">
             <div v-for="(f, i) in filasEdit" :key="i" class="grid grid-cols-2 md:grid-cols-4 gap-2.5 border border-border rounded-lg px-3 py-2.5 bg-muted/30">
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Año</label>
-                <InputNumber v-model="f.anio" :useGrouping="false" :min="2000" :max="2100"
-                  class="w-full" />
+                <GLabel>Año</GLabel>
+                <NumberField v-model="f.anio" :min="2000" :max="2100" :format-options="{ useGrouping: false }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">IPC (%)</label>
-                <InputNumber v-model="f.ipc" :minFractionDigits="1" :maxFractionDigits="3"
-                  :disabled="f.esBase" placeholder="—" locale="en-US" class="w-full" />
+                <GLabel>IPC (%)</GLabel>
+                <NumberField v-model="f.ipc" :step-snapping="false" :disabled="f.esBase"
+                  :format-options="{ minimumFractionDigits: 1, maximumFractionDigits: 3 }">
+                  <NumberFieldContent><NumberFieldInput placeholder="—" /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Valor ($/kWh)</label>
-                <InputNumber v-model="f.valor" :minFractionDigits="0" :maxFractionDigits="6"
-                  locale="en-US" class="w-full" />
+                <GLabel>Valor ($/kWh)</GLabel>
+                <NumberField v-model="f.valor" :step-snapping="false"
+                  :format-options="{ maximumFractionDigits: 6 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-muted-foreground">Base</label>
+                <GLabel>Base</GLabel>
                 <div class="flex items-center gap-2 h-9">
-                  <Checkbox v-model="f.esBase" :binary="true" @change="marcarBase(i)" />
-                  <Button text severity="danger" size="small" v-tooltip.bottom="'Quitar fila'" @click="filasEdit.splice(i, 1)">
-                    <template #icon><Trash2Icon class="size-4" /></template>
-                  </Button>
+                  <Checkbox :model-value="f.esBase" @update:model-value="(v) => { f.esBase = v === true; marcarBase(i) }" />
+                  <GTooltip><GTooltipTrigger as-child><Button variant="ghost" size="icon-sm" @click="filasEdit.splice(i, 1)" aria-label="Quitar fila"><Trash2Icon class="size-4 text-destructive" /></Button></GTooltipTrigger><GTooltipContent>Quitar fila</GTooltipContent></GTooltip>
                 </div>
               </div>
             </div>
-            <Button label="Agregar año" size="small" text @click="agregarFilaIdx">
-              <template #icon><PlusIcon class="size-4" /></template>
-            </Button>
+            <Button variant="ghost" size="sm" @click="agregarFilaIdx"><PlusIcon class="size-4" /> Agregar año</Button>
             <p class="text-xs text-muted-foreground">
               El año marcado como base es la tarifa inicial y no lleva IPC. Los demás llevan el
               IPC con que se indexó ese aniversario.
@@ -546,13 +535,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Select from 'primevue/select'
-import DatePicker from 'primevue/datepicker'
-import Checkbox from 'primevue/checkbox'
-import ProgressSpinner from 'primevue/progressspinner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
@@ -567,6 +549,7 @@ import {
   valorVigente as tarifaVigenteDeFilas,
 } from '~/features/contratos/tarifasCgm'
 import { hoyColombia } from '~/utils/fecha'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
 
 const contratosServicioService = new ContratosServicioService()
@@ -589,7 +572,9 @@ const ESTADOS_OPCIONES = [
   { value: 'en_renovacion', label: 'En renovación' },
   { value: 'terminado', label: 'Terminado' },
 ]
-const SI_NO = [{ value: true, label: 'Sí' }, { value: false, label: 'No' }]
+// Renovación automática admite "sin dato" (null): las listas de shadcn trabajan con texto.
+function siNoATexto(v) { return v == null ? null : (v ? 'si' : 'no') }
+function textoASiNo(t) { const v = deValorSelect(t); return v ? v === 'si' : null }
 const PERIODICIDADES = ['mensual', 'bimestral', 'trimestral', 'semestral', 'anual']
   .map(v => ({ value: v, label: v.charAt(0).toUpperCase() + v.slice(1) }))
 
@@ -824,7 +809,8 @@ function serviciosTexto(x) {
   return subserviciosDe(x).map(s => nombres[s] ?? s).join(' y ')
 }
 
-function aFecha(v) { return v ? new Date(`${String(v).slice(0, 10)}T00:00:00`) : null }
+// El DatePicker de blocks/ trabaja con 'aaaa-mm-dd', no con Date.
+function aFecha(v) { return v ? String(v).slice(0, 10) : null }
 function deFecha(v) {
   if (!v) return null
   if (typeof v === 'string') return v.slice(0, 10)
