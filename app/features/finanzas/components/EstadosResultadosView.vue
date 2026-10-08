@@ -3,11 +3,11 @@
     <PageHeader title="Estados de resultados"
                 subtitle="Archivos generados en Drive · estados de resultados y cruce de facturas">
       <template #actions>
-        <Button label="Crear cruce facturas" size="small" outlined @click="abrirCrudo">
-          <template #icon><FileIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" @click="abrirCrudo">
+          <FileIcon class="size-4" /> Crear cruce facturas
         </Button>
-        <Button label="Generar estado de resultados" size="small" @click="abrirEstado">
-          <template #icon><ChartLineIcon class="size-4" /></template>
+        <Button size="sm" @click="abrirEstado">
+          <ChartLineIcon class="size-4" /> Generar estado de resultados
         </Button>
       </template>
     </PageHeader>
@@ -28,32 +28,43 @@
 
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Período</label>
-        <Select v-model="periodoSel" :options="opcionesPeriodo" optionLabel="label" optionValue="value"
-                :loading="cargandoPeriodos" />
+        <Select v-model="periodoSel" :disabled="cargandoPeriodos">
+          <SelectTrigger class="min-w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in opcionesPeriodo" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <!-- La versión (txf, tx3…tx8) solo está en el nombre del cruce de facturas;
            los estados de resultados no la llevan, así que el filtro no aplica ahí. -->
       <div v-if="versiones.length">
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-        <Select v-model="versionSel" :options="opcionesVersion" optionLabel="label" optionValue="value" />
+        <Select v-model="versionSel">
+          <SelectTrigger class="min-w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in opcionesVersion" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Cliente o proyecto…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Cliente o proyecto…" />
+        </InputGroup>
       </div>
 
       <div class="flex-1" />
 
-      <Button label="Descargar ZIP" size="small" outlined :loading="descargandoZip" :disabled="!archivos.length" v-tooltip.top="'Descarga en un ZIP todo lo que coincide con los filtros'" @click="descargarZip">
-        <template #icon><DownloadIcon class="size-4" /></template>
-      </Button>
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar desde Drive'" @click="cargar(true)">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <span title="Descarga en un ZIP todo lo que coincide con los filtros">
+        <Button variant="outline" size="sm" :disabled="descargandoZip || !archivos.length" @click="descargarZip">
+          <Spinner v-if="descargandoZip" class="size-4" /><DownloadIcon v-else class="size-4" /> Descargar ZIP
+        </Button>
+      </span>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar desde Drive" aria-label="Recargar desde Drive" @click="cargar(true)">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filas.length }} archivo{{ filas.length === 1 ? '' : 's' }}
@@ -76,8 +87,8 @@
       <div v-else-if="error" class="p-10 text-center">
         <CircleXIcon class="mb-2 block size-6 text-destructive" />
         <p class="text-sm text-muted-foreground">{{ error }}</p>
-        <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar(true)">
-          <template #icon><RefreshCwIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" class="mt-3" @click="cargar(true)">
+          <RefreshCwIcon class="size-4" /> Reintentar
         </Button>
       </div>
 
@@ -115,14 +126,14 @@
               <td class="px-4 py-2 text-right text-xs font-mono text-muted-foreground">{{ fmtTamano(a.tamano) }}</td>
               <td class="px-4 py-2">
                 <div class="flex justify-end gap-1">
-                  <Button text rounded size="small" severity="secondary" :loading="descargando === a.id" v-tooltip.left="'Descargar archivo'" @click="descargarUno(a)">
-                    <template #icon><DownloadIcon class="size-4" /></template>
+                  <Button variant="ghost" size="icon-sm" :disabled="descargando === a.id" title="Descargar archivo" aria-label="Descargar archivo" @click="descargarUno(a)">
+                    <Spinner v-if="descargando === a.id" class="size-4" /><DownloadIcon v-else class="size-4" />
                   </Button>
-                  <a v-if="a.link" :href="a.link" target="_blank" rel="noopener">
-                    <Button text rounded size="small" severity="info" v-tooltip.left="'Abrir en Drive'">
-                      <template #icon><ExternalLinkIcon class="size-4" /></template>
-                    </Button>
-                  </a>
+                  <Button v-if="a.link" as-child variant="ghost" size="icon-sm">
+                    <a :href="a.link" target="_blank" rel="noopener" title="Abrir en Drive" aria-label="Abrir en Drive">
+                      <ExternalLinkIcon class="size-4 text-primary" />
+                    </a>
+                  </Button>
                 </div>
               </td>
             </tr>
@@ -138,31 +149,50 @@
     </div>
 
     <!-- Dialog: Generar estado de resultados -->
-    <Dialog v-model:visible="estadoVisible" header="Generar estado de resultados" modal class="w-full max-w-md">
-      <form @submit.prevent="generarEstado" class="space-y-4 pt-1">
+    <Dialog v-model:open="estadoVisible">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Generar estado de resultados</DialogTitle>
+        <DialogDescription class="sr-only">Período, versiones y proyecto del estado de resultados.</DialogDescription>
+      </DialogHeader>
+      <form @submit.prevent="generarEstado" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-            <InputNumber v-model="er.mes" :min="1" :max="12" :useGrouping="false" class="w-full" placeholder="1–12" />
+<NumberField v-model="er.mes" :format-options="{ useGrouping: false }" :min="1" :max="12">
+              <NumberFieldContent><NumberFieldInput placeholder="1–12" /></NumberFieldContent>
+            </NumberField>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-            <InputNumber v-model="er.anio" :useGrouping="false" class="w-full" placeholder="ej: 2026" />
+<NumberField v-model="er.anio" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput placeholder="ej: 2026" /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Desde (versión de las facturas)</label>
-            <Select v-model="er.last_version" :options="VERSIONES" class="w-full" />
+<Select v-model="er.last_version">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Hacia (versión nueva)</label>
-            <Select v-model="er.new_version" :options="VERSIONES" class="w-full" />
+<Select v-model="er.new_version">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto <span class="text-muted-foreground">(opcional)</span></label>
-          <InputText v-model="er.project" class="w-full" placeholder="Tópico, ej: bayunca — vacío = todos" />
+          <Input v-model="er.project" placeholder="Tópico, ej: bayunca — vacío = todos" />
         </div>
         <p class="text-xs text-muted-foreground">
           <InfoIcon class="mr-1 size-4" />
@@ -174,31 +204,45 @@
           <LoaderCircleIcon class="size-4 animate-spin" /> {{ progresoEr }}
         </p>
         <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" label="Cancelar" severity="secondary" :disabled="generandoEr"
-                  @click="estadoVisible = false" />
-          <Button type="submit" label="Generar" :loading="generandoEr">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button type="button" variant="outline" :disabled="generandoEr" @click="estadoVisible = false">Cancelar</Button>
+          <Button type="submit" :disabled="generandoEr">
+            <Spinner v-if="generandoEr" class="size-4" /><CheckIcon v-else class="size-4" /> Generar
           </Button>
         </div>
       </form>
+      </DialogContent>
     </Dialog>
 
     <!-- Dialog: Crear cruce facturas -->
-    <Dialog v-model:visible="crudoVisible" header="Crear cruce facturas" modal class="w-full max-w-md">
-      <form @submit.prevent="generarCrudo" class="space-y-4 pt-1">
+    <Dialog v-model:open="crudoVisible">
+      <DialogContent class="sm:max-w-md" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Crear cruce facturas</DialogTitle>
+        <DialogDescription class="sr-only">Período y versión del cruce de facturas.</DialogDescription>
+      </DialogHeader>
+      <form @submit.prevent="generarCrudo" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-            <InputNumber v-model="cr.mes" :min="1" :max="12" :useGrouping="false" class="w-full" placeholder="1–12" />
+<NumberField v-model="cr.mes" :format-options="{ useGrouping: false }" :min="1" :max="12">
+              <NumberFieldContent><NumberFieldInput placeholder="1–12" /></NumberFieldContent>
+            </NumberField>
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-            <InputNumber v-model="cr.anio" :useGrouping="false" class="w-full" placeholder="ej: 2026" />
+<NumberField v-model="cr.anio" :format-options="{ useGrouping: false }">
+              <NumberFieldContent><NumberFieldInput placeholder="ej: 2026" /></NumberFieldContent>
+            </NumberField>
           </div>
         </div>
         <div>
           <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-          <Select v-model="cr.version" :options="VERSIONES" class="w-full" />
+<Select v-model="cr.version">
+              <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+              </SelectContent>
+            </Select>
         </div>
         <p class="text-xs text-muted-foreground">
           <InfoIcon class="mr-1 size-4" />
@@ -208,26 +252,19 @@
           <LoaderCircleIcon class="size-4 animate-spin" /> {{ progresoCruce }}
         </p>
         <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" label="Cancelar" severity="secondary" :disabled="generandoCruce"
-                  @click="crudoVisible = false" />
-          <Button type="submit" label="Generar" :loading="generandoCruce">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button type="button" variant="outline" :disabled="generandoCruce" @click="crudoVisible = false">Cancelar</Button>
+          <Button type="submit" :disabled="generandoCruce">
+            <Spinner v-if="generandoCruce" class="size-4" /><CheckIcon v-else class="size-4" /> Generar
           </Button>
         </div>
       </form>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Select from 'primevue/select'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { EstadosResultadosService } from '~/features/finanzas/services/estados-resultados'
 import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
