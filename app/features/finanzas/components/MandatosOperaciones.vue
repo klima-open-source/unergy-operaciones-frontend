@@ -55,7 +55,7 @@
           </SelectContent>
         </Select>
         <div class="w-60">
-          <ComboBox :model-value="aValorSelect(filtroTercero)" :options="opcionesTercero" placeholder="Tercero / inversionista"
+          <ComboBox :model-value="filtroTercero" :options="opcionesTercero" placeholder="Tercero / inversionista"
             @update:model-value="filtroTercero = deValorSelect($event) || null" />
         </div>
         <span class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5"><SearchIcon class="size-4 text-muted-foreground" /><input v-model="buscarCmu" type="text" placeholder="Buscar CMU…" class="border-0 text-sm outline-none" /></span>

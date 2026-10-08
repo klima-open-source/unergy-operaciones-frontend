@@ -137,8 +137,8 @@
       </div>
       <div class="flex flex-col gap-1 w-52">
         <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
-        <ComboBox :model-value="aValorSelect(filtrosProyectos.portafolio_id.value != null ? String(filtrosProyectos.portafolio_id.value) : null)"
-                  :options="conTodos(opcionesPortafolioProyectos)"
+        <ComboBox :model-value="filtrosProyectos.portafolio_id.value != null ? String(filtrosProyectos.portafolio_id.value) : null"
+                  :options="conTodos(opcionesPortafolioProyectos)" placeholder="Todos"
                   @update:model-value="v => { const id = deValorSelect(v); filtrosProyectos.portafolio_id.value = id ? Number(id) : null }" />
       </div>
       <div class="flex flex-col gap-1 w-64">
@@ -180,12 +180,12 @@
         </div>
         <div class="flex flex-col gap-1 w-56">
           <label class="text-xs font-semibold text-muted-foreground">Comprador</label>
-          <ComboBox :model-value="aValorSelect(filtrosPpa.comprador)" :options="conTodos(opcionesPpaComprador)"
+          <ComboBox placeholder="Todos" :model-value="filtrosPpa.comprador" :options="conTodos(opcionesPpaComprador)"
                     @update:model-value="filtrosPpa.comprador = deValorSelect($event) || null" />
         </div>
         <div class="flex flex-col gap-1 w-56">
           <label class="text-xs font-semibold text-muted-foreground">Vendedor</label>
-          <ComboBox :model-value="aValorSelect(filtrosPpa.vendedor)" :options="conTodos(opcionesPpaVendedor)"
+          <ComboBox placeholder="Todos" :model-value="filtrosPpa.vendedor" :options="conTodos(opcionesPpaVendedor)"
                     @update:model-value="filtrosPpa.vendedor = deValorSelect($event) || null" />
         </div>
         <Button v-if="nFiltrosPpaActivos" variant="ghost" size="sm" @click="limpiarFiltrosPpa">Limpiar filtros</Button>
@@ -216,12 +216,12 @@
         </div>
         <div v-if="esRepresentacion" class="flex flex-col gap-1 w-56">
           <label class="text-xs font-semibold text-muted-foreground">Inversionista</label>
-          <ComboBox :model-value="aValorSelect(filtrosServicio.inversionista)" :options="conTodos(opcionesInversionista)"
+          <ComboBox placeholder="Todos" :model-value="filtrosServicio.inversionista" :options="conTodos(opcionesInversionista)"
                     @update:model-value="filtrosServicio.inversionista = deValorSelect($event) || null" />
         </div>
         <div v-if="esRepresentacion" class="flex flex-col gap-1 w-56">
           <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
-          <ComboBox :model-value="aValorSelect(filtrosServicio.portafolio)" :options="conTodos(opcionesPortafolio)"
+          <ComboBox placeholder="Todos" :model-value="filtrosServicio.portafolio" :options="conTodos(opcionesPortafolio)"
                     @update:model-value="filtrosServicio.portafolio = deValorSelect($event) || null" />
         </div>
         <!-- Solo si hay más de una clase entre los contratos cargados: con una

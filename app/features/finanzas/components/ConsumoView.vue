@@ -14,7 +14,7 @@
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
         <div class="w-56">
-          <ComboBox :model-value="aValorSelect(filtros.proyecto)" :options="opcionesProyecto" placeholder="Todos"
+          <ComboBox :model-value="filtros.proyecto" :options="opcionesProyecto" placeholder="Todos"
                     @update:model-value="filtros.proyecto = deValorSelect($event) || null" />
         </div>
       </div>
@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
+import { deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { VERSIONES, VERSION_INICIAL } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { CircleXIcon, DownloadIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, ZapIcon } from '@lucide/vue'
