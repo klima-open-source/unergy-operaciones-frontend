@@ -22,8 +22,8 @@
 
       <div class="flex items-center gap-2">
         <div class="relative">
-          <Button label="Columnas" size="small" outlined severity="secondary" @click="showColMenu = !showColMenu">
-            <template #icon><TableIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" @click="showColMenu = !showColMenu">
+            <TableIcon class="size-4" /> Columnas
           </Button>
           <div v-if="showColMenu"
             class="absolute right-0 top-8 z-50 bg-card border border-border rounded-xl shadow-lg p-3 space-y-1 min-w-60">
@@ -35,11 +35,11 @@
             </label>
           </div>
         </div>
-        <Button label="IPC" size="small" outlined @click="showIPCDialog = true">
-          <template #icon><ChartLineIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" @click="showIPCDialog = true">
+          <ChartLineIcon class="size-4" /> IPC
         </Button>
-        <Button label="Guardar selección" size="small" :loading="guardando" @click="guardarSeleccion">
-          <template #icon><SaveIcon class="size-4" /></template>
+        <Button size="sm" :disabled="guardando" @click="guardarSeleccion">
+          <Spinner v-if="guardando" class="size-4" /><SaveIcon v-else class="size-4" /> Guardar selección
         </Button>
       </div>
     </div>
@@ -48,22 +48,37 @@
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="filtroTexto" placeholder="Nombre del proyecto…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="filtroTexto" placeholder="Nombre del proyecto…" />
+        </InputGroup>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Aplica este mes</label>
-        <Select v-model="filtroAplica" :options="APLICA_OPTIONS" optionLabel="label" optionValue="value" />
+<Select v-model="filtroAplica">
+          <SelectTrigger class="min-w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in APLICA_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Periodicidad</label>
-        <Select v-model="filtroPeriodicidad" :options="PERIODICIDAD_OPTIONS" optionLabel="label" optionValue="value" />
+<Select v-model="filtroPeriodicidad">
+          <SelectTrigger class="min-w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in PERIODICIDAD_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Estado contrato</label>
-        <Select v-model="filtroEstadoContrato" :options="ESTADO_CONTRATO_OPTIONS" optionLabel="label" optionValue="value" />
+<Select v-model="filtroEstadoContrato">
+          <SelectTrigger class="min-w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in ESTADO_CONTRATO_OPTIONS" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div class="ml-auto pb-1.5 text-xs text-muted-foreground">
         {{ filasFiltradas.length }} de {{ filas.length }}
@@ -173,8 +188,8 @@
                 </span>
                 <button v-if="fila.proyecto_id" type="button"
                         class="text-left hover:underline text-foreground"
-                        @click="irADetalleProyecto(fila)"
-                        v-tooltip.bottom="'Ver detalle del proyecto'">
+                        title="Ver detalle del proyecto"
+                        @click="irADetalleProyecto(fila)">
                   {{ fila.nombre_proyecto }}
                 </button>
                 <span v-else>{{ fila.nombre_proyecto }}</span>
@@ -330,25 +345,31 @@
     </div>
 
     <!-- ── Diálogo: motivo de exclusión (Task 7d) ─────────────────────── -->
-    <Dialog v-model:visible="showExclusionDialog" modal header="Motivo de exclusión"
-      class="w-full max-w-lg">
-      <p class="text-sm text-muted-foreground mb-3">
-        Estos proyectos <b>aplican este mes</b> pero los desmarcaste. Indica el motivo de cada exclusión (queda registrado):
-      </p>
+    <Dialog v-model:open="showExclusionDialog">
+      <DialogContent class="sm:max-w-lg max-h-dvh overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>Motivo de exclusión</DialogTitle>
+        <DialogDescription>
+          Estos proyectos <b>aplican este mes</b> pero los desmarcaste. Indica el motivo de cada exclusión (queda registrado):
+        </DialogDescription>
+      </DialogHeader>
       <div v-for="e in exclusionPendientes" :key="e.contrato_id" class="mb-3">
         <label class="text-xs font-semibold text-foreground">{{ e.nombre }}</label>
-        <textarea v-model="e.motivo" rows="2"
-          class="w-full text-sm border border-border rounded-lg px-2 py-1.5 mt-1"
-          placeholder="Motivo de la exclusión…"></textarea>
+        <Textarea v-model="e.motivo" rows="2" class="mt-1" placeholder="Motivo de la exclusión…" />
       </div>
-      <template #footer>
-        <Button label="Cancelar" text @click="showExclusionDialog = false" />
-        <Button label="Guardar" :disabled="!exclusionValida" @click="confirmarExclusiones" />
-      </template>
+      <DialogFooter>
+        <Button variant="ghost" size="sm" @click="showExclusionDialog = false">Cancelar</Button>
+        <Button size="sm" :disabled="!exclusionValida" @click="confirmarExclusiones">Guardar</Button>
+      </DialogFooter>
+      </DialogContent>
     </Dialog>
 
     <!-- ── Popover: desglose del cálculo ──────────────────────────────── -->
-    <Popover ref="infoPopover">
+    <!-- Se abre al hacer clic en el ícono de la fila y se ancla a él; se cierra con
+         un clic afuera o al revertir. -->
+    <Popover :open="infoAbierto" @update:open="infoAbierto = $event">
+      <PopoverAnchor :reference="infoAncla" />
+      <PopoverContent class="w-auto" @open-auto-focus.prevent>
       <div v-if="filaInfo" class="text-xs min-w-70 text-foreground">
         <p class="font-semibold mb-2 flex items-center gap-1.5 text-primary">
           <ChartColumnIcon class="size-3" /> Cálculo del Valor a Facturar
@@ -407,52 +428,56 @@
           </div>
         </div>
       </div>
+      </PopoverContent>
     </Popover>
 
     <!-- ── Dialog administración IPC ─────────────────────────────────── -->
-    <Dialog v-model:visible="showIPCDialog" modal header="Tasas IPC" class="w-full max-w-md">
-      <div class="space-y-3 pt-1">
-        <p class="text-xs text-muted-foreground">
+    <Dialog v-model:open="showIPCDialog">
+      <DialogContent class="sm:max-w-md max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+      <DialogHeader>
+        <DialogTitle>Tasas IPC</DialogTitle>
+        <DialogDescription>
           La tasa del año en que cae cada aniversario del contrato se aplica desde ese
           aniversario, no desde enero. El aniversario se cuenta desde la fecha base —
           max(suscripción, inicio de operación) — y solo indexa una vez que ya se cumplió.
-        </p>
-        <DataTable :value="ipcTasas" class="text-sm" stripedRows>
-          <Column field="año" header="Año" />
-          <Column header="Tasa (%)">
-            <template #body="{ data }">{{ (data.tasa * 100).toFixed(2) }}%</template>
-          </Column>
-          <Column header="Estado">
-            <template #body="{ data }">
-              <GBadge :color="data.confirmado ? 'success' : 'warning'">{{ data.confirmado ? 'Confirmado' : 'Pendiente' }}</GBadge>
-            </template>
-          </Column>
-          <Column header="Fuente">
-            <template #body="{ data }">{{ data.fuente || '—' }}</template>
-          </Column>
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-3">
+        <DataTable :columns="COLUMNAS_IPC" :rows="ipcTasas" row-key="año">
+          <template #cell="{ row, column }">
+            <template v-if="column.key === 'tasa'">{{ (row.tasa * 100).toFixed(2) }}%</template>
+            <GBadge v-else-if="column.key === 'confirmado'" :color="row.confirmado ? 'success' : 'warning'">{{ row.confirmado ? 'Confirmado' : 'Pendiente' }}</GBadge>
+            <template v-else-if="column.key === 'fuente'">{{ row.fuente || '—' }}</template>
+            <template v-else>{{ row[column.key] }}</template>
+          </template>
         </DataTable>
         <div class="border-t pt-3 space-y-2">
           <p class="text-xs font-semibold text-muted-foreground">Agregar / actualizar tasa</p>
           <div class="grid grid-cols-3 gap-2">
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Año</label>
-              <InputNumber v-model="ipcForm.año" :useGrouping="false" class="w-full" />
+              <NumberField v-model="ipcForm.año" :format-options="{ useGrouping: false }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Tasa (%)</label>
-              <InputNumber v-model="ipcForm.tasaPct" :minFractionDigits="2" :maxFractionDigits="4"
-                suffix="%" locale="en-US" class="w-full" />
+              <NumberField v-model="ipcForm.tasaPct" :step-snapping="false"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 4 }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Fuente</label>
-              <InputText v-model="ipcForm.fuente" class="w-full" placeholder="DANE" />
+              <Input v-model="ipcForm.fuente" placeholder="DANE" />
             </div>
           </div>
-          <Button label="Guardar tasa" size="small" :loading="guardandoIPC" @click="guardarIPC">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button size="sm" :disabled="guardandoIPC" @click="guardarIPC">
+            <Spinner v-if="guardandoIPC" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar tasa
           </Button>
         </div>
       </div>
+      </DialogContent>
     </Dialog>
 
   </div>
@@ -461,17 +486,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter }  from 'vue-router'
-import Button        from 'primevue/button'
-import ProgressSpinner from 'primevue/progressspinner'
-import Dialog        from 'primevue/dialog'
-import DataTable     from 'primevue/datatable'
-import Column        from 'primevue/column'
-import InputNumber   from 'primevue/inputnumber'
-import InputText     from 'primevue/inputtext'
-import Select        from 'primevue/select'
-import IconField     from 'primevue/iconfield'
-import InputIcon     from 'primevue/inputicon'
-import Popover       from 'primevue/popover'
+import DataTable from '~/components/blocks/DataTable.vue'
 import { toast } from 'vue-sonner'
 import { OmService } from '~/features/finanzas/services/om'
 import DocumentoIcon  from '~/features/finanzas/components/DocumentoIcon.vue'
@@ -543,7 +558,16 @@ const ipcForm = reactive({ año: new Date().getFullYear(), tasaPct: null, fuente
 const overrides   = reactive({})   // { [contrato_id]: { valor:Number|null, dirty:Boolean } }
 const editando    = ref(null)      // contrato_id de la celda en modo input
 const inputBuffer = ref('')        // texto crudo del input activo
-const infoPopover = ref(null)      // ref al <Popover>
+// Popover del cálculo: abierto y anclado al ícono que se tocó.
+const infoAbierto = ref(false)
+const infoAncla = ref(null)
+
+const COLUMNAS_IPC = [
+  { key: 'año', header: 'Año' },
+  { key: 'tasa', header: 'Tasa (%)' },
+  { key: 'confirmado', header: 'Estado' },
+  { key: 'fuente', header: 'Fuente' },
+]
 const filaInfo    = ref(null)      // fila cuyo desglose se muestra
 
 const conContrato = (f) => (f.estado_contrato || 'con_contrato') === 'con_contrato'
@@ -687,12 +711,13 @@ function cancelarEdicion() {
 function revertirCalculado(fila) {
   // marca para enviar valor_manual:null → vuelve al valor calculado por IPC
   overrides[fila.contrato_id] = { valor: null, dirty: true }
-  infoPopover.value?.hide()
+  infoAbierto.value = false
 }
 
 function mostrarInfo(ev, fila) {
   filaInfo.value = fila
-  infoPopover.value?.show(ev)
+  infoAncla.value = ev?.currentTarget ?? ev?.target ?? null
+  infoAbierto.value = true
 }
 
 function ipcAcumPct(fila) {
