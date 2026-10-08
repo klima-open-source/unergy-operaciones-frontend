@@ -64,7 +64,15 @@ const label = computed(() =>
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-auto p-0" align="start">
-        <Calendar v-model="internal" :min-value="internalMin" :max-value="internalMax" />
+        <!-- Abre en el mes de la fecha elegida (sin esto, `ui/calendar` abre siempre
+             en el mes actual) y en español (su idioma por defecto es inglés). -->
+        <Calendar
+          v-model="internal"
+          :default-placeholder="internal"
+          locale="es-CO"
+          :min-value="internalMin"
+          :max-value="internalMax"
+        />
       </PopoverContent>
     </Popover>
     <Button v-if="clearable && modelValue" variant="outline" @click="modelValue = null">
