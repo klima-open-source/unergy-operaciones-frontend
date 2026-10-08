@@ -15,6 +15,7 @@ import type { ProgresoConsulta } from '~/features/mem/services/simem'
 import { consultarDataset, obtenerRegistroAgentes } from '~/features/mem/services/simem'
 import type { AgenteSimem, FilaAgente, PlantaDeAgente, PlantaSimem } from '~/features/mem/utils/simemAgentes'
 import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/mem/utils/simemAgentes'
+import { enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
 import { exportarExcel } from '~/utils/exportarExcel'
 import type { BolsaSimemMes } from '~/features/mem/services/bolsaSimem'
 import { BolsaSimemService } from '~/features/mem/services/bolsaSimem'
@@ -31,6 +32,7 @@ const PESTANAS = [
   { id: 'agentes', label: 'Códigos de agente' },
   { id: 'bolsa', label: 'Precio de bolsa' },
   { id: 'costos', label: 'Costos CND / ASIC' },
+  { id: 'oef', label: 'OEF / CxC' },
 ] as const
 
 /**
@@ -44,6 +46,16 @@ const DATASETS_COSTOS = [
   { id: 'B1009C', label: 'Valor compras en bolsa' },
   { id: 'F387F3', label: 'Valor ventas en bolsa' },
 ] as const
+
+/** Los datasets del panel OEF: todos bajan a PLANTA, por eso se enriquecen. */
+const DATASETS_OEF = [
+  { id: 'BE51B1', label: 'OEF + Cargo por confiabilidad' },
+  { id: '9CBA0C', label: 'Disponibilidad declarada OEF' },
+  { id: 'E14D70', label: 'Energía ventas en bolsa' },
+  { id: 'F387F3', label: 'Valor ventas en bolsa' },
+  { id: '42EDC9', label: 'Energía compras en bolsa' },
+] as const
+
 type Pestana = (typeof PESTANAS)[number]['id']
 
 /** Agentes de la casa: se muestran primero y resaltados. */
@@ -249,6 +261,92 @@ async function exportarCostos() {
     `SIMEM_${nombre.replace(/[^\w]+/g, '_')}_${cInicio.value}_${cFin.value}.xlsx`,
     'Datos',
   )
+}
+
+// ── OEF / CxC ──────────────────────────────────────────────────────────────
+// Mismo gesto que Costos, pero estos datasets bajan a PLANTA: las filas se
+// cruzan con el catálogo y eso habilita filtrar por tecnología y por tamaño.
+const oDataset = ref<string>(DATASETS_OEF[0].id)
+const oInicio = ref(haceUnMes.toISOString().slice(0, 10))
+const oFin = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 0).toISOString().slice(0, 10))
+const oAgente = ref('UNGG')
+const oTecnologia = ref('')
+const oCapMin = ref<string>('')
+const oCapMax = ref<string>('')
+const oFilas = ref<Record<string, unknown>[]>([])
+const oCargando = ref(false)
+const oError = ref<string | null>(null)
+const oProgreso = ref<ProgresoConsulta | null>(null)
+const oConsultado = ref(false)
+
+const oColumnas = computed(() => oFilas.value.length ? Object.keys(oFilas.value[0]!) : [])
+
+/**
+ * El agente se filtra donde esté: si el dataset trae su columna, ahí; si no
+ * —varios de estos solo traen el código de planta— con el agente del catálogo,
+ * más abajo. Sin esto el campo «Agente» no haría nada en la mitad de ellos.
+ */
+const oColumnaAgente = computed(() => oColumnas.value.find((c) => COLUMNA_AGENTE.test(c)))
+
+const oPorAgente = computed(() => {
+  const q = oAgente.value.trim().toUpperCase()
+  const col = oColumnaAgente.value
+  if (!q || !col) return oFilas.value
+  return oFilas.value.filter((f) => String(f[col] ?? '').toUpperCase() === q)
+})
+
+const oEnriquecidas = computed(() => enriquecerFilas(oPorAgente.value, catalogo.value))
+
+const numeroOrNull = (v: string) => v.trim() === '' ? undefined : Number(v)
+
+const oFiltradas = computed(() => filtrarPorPlanta(oEnriquecidas.value, {
+  // Solo cuando la fila no trae el agente: si lo trae, ya se filtró arriba.
+  agente: oColumnaAgente.value ? undefined : (oAgente.value.trim() || undefined),
+  tecnologia: oTecnologia.value || undefined,
+  capMin: numeroOrNull(oCapMin.value),
+  capMax: numeroOrNull(oCapMax.value),
+}))
+
+/** Tecnologías presentes en lo consultado, no el catálogo entero. */
+const oTecnologias = computed(() =>
+  [...new Set(oEnriquecidas.value.map((f) => f.planta?.tecnologia).filter(Boolean))].sort() as string[],
+)
+
+const oSinCatalogo = computed(() => oEnriquecidas.value.filter((f) => !f.planta).length)
+
+async function consultarOef() {
+  oCargando.value = true
+  oError.value = null
+  oProgreso.value = null
+  try {
+    oFilas.value = await consultarDataset(oDataset.value, oInicio.value, oFin.value, {
+      alAvanzar: (p) => { oProgreso.value = p.total > 1 ? p : null },
+    })
+    oConsultado.value = true
+  } catch (e) {
+    oError.value = normalizeError(e).message
+    oFilas.value = []
+  } finally {
+    oCargando.value = false
+    oProgreso.value = null
+  }
+}
+
+async function exportarOef() {
+  if (!oFiltradas.value.length) return
+  const nombre = DATASETS_OEF.find((d) => d.id === oDataset.value)?.label ?? oDataset.value
+  // Las columnas del SIMEM tal cual, y al final lo que agrega el catálogo.
+  await exportarExcel(oFiltradas.value, [
+    ...oColumnas.value.map((c) => ({
+      header: c, value: (r: typeof oFiltradas.value[number]) => r.fila[c] ?? '',
+    })),
+    { header: 'Planta', value: (r: typeof oFiltradas.value[number]) => r.planta?.nombre ?? '' },
+    { header: 'Tecnología', value: (r: typeof oFiltradas.value[number]) =>
+      r.planta ? (TECNOLOGIAS[r.planta.tecnologia] ?? r.planta.tecnologia) : '' },
+    { header: 'Capacidad (kW)', value: (r: typeof oFiltradas.value[number]) => r.planta?.capacidadKw ?? '' },
+    { header: 'Uns (SIMEM)', value: (r: typeof oFiltradas.value[number]) => r.planta?.unidades.join(', ') ?? '' },
+    { header: 'Pls (SRC)', value: (r: typeof oFiltradas.value[number]) => r.planta?.pls ?? '' },
+  ], `SIMEM_${nombre.replace(/[^\w]+/g, '_')}_${oInicio.value}_${oFin.value}.xlsx`, 'Datos')
 }
 
 onMounted(cargar)
@@ -547,6 +645,127 @@ onMounted(cargar)
           </table>
         </div>
         <p v-if="cFiltradas.length > 500" class="text-xs text-muted-foreground">
+          Se muestran las primeras 500 filas. El Excel las trae todas.
+        </p>
+      </template>
+
+      <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
+        Elige un rango y consulta.
+      </div>
+    </template>
+
+    <!-- ═══ OEF / CxC ═══ -->
+    <template v-else-if="pestana === 'oef'">
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Dataset</label>
+          <select v-model="oDataset" class="h-9 rounded-md border bg-background px-2 text-sm">
+            <option v-for="d in DATASETS_OEF" :key="d.id" :value="d.id">{{ d.label }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Desde</label>
+          <Input v-model="oInicio" type="date" class="w-40" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Hasta</label>
+          <Input v-model="oFin" type="date" class="w-40" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Agente</label>
+          <Input v-model="oAgente" class="w-28 uppercase" placeholder="UNGG" />
+        </div>
+        <Button size="sm" :disabled="oCargando" @click="consultarOef">Consultar</Button>
+        <Button
+          size="sm" variant="outline"
+          :disabled="oCargando || !oFiltradas.length" @click="exportarOef"
+        >
+          <DownloadIcon class="size-3" />
+          Exportar
+        </Button>
+      </div>
+
+      <!-- Filtros que solo existen gracias al cruce con el catálogo. -->
+      <div v-if="oConsultado" class="flex flex-wrap items-end gap-3 border-t pt-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Tecnología</label>
+          <select v-model="oTecnologia" class="h-9 rounded-md border bg-background px-2 text-sm">
+            <option value="">Todas</option>
+            <option v-for="t in oTecnologias" :key="t" :value="t">{{ TECNOLOGIAS[t] ?? t }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Cap. mín (kW)</label>
+          <Input v-model="oCapMin" type="number" class="w-28" placeholder="0" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Cap. máx (kW)</label>
+          <Input v-model="oCapMax" type="number" class="w-28" placeholder="∞" />
+        </div>
+      </div>
+
+      <p v-if="oProgreso" class="text-xs text-muted-foreground">
+        Consultando bloque {{ oProgreso.bloque }} de {{ oProgreso.total }}
+        ({{ oProgreso.inicio }} → {{ oProgreso.fin }})…
+      </p>
+
+      <div v-if="oError" class="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+        {{ oError }}
+      </div>
+
+      <Spinner v-else-if="oCargando" class="mx-auto my-10 block size-6 text-muted-foreground" />
+
+      <template v-else-if="oConsultado">
+        <p class="text-sm text-muted-foreground">
+          <b class="text-foreground">{{ oFiltradas.length.toLocaleString('es-CO') }}</b> filas
+          <span v-if="oFiltradas.length !== oFilas.length">
+            (de {{ oFilas.length.toLocaleString('es-CO') }} traídas)
+          </span>
+          <!-- El catálogo es una foto y va atrás de XM: decirlo evita que una
+               planta nueva parezca un dato perdido. -->
+          <span v-if="oSinCatalogo" class="text-amber-700">
+            · {{ oSinCatalogo }} sin planta en el catálogo
+          </span>
+        </p>
+
+        <div v-if="!oFiltradas.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
+          Sin resultados con esos filtros.
+        </div>
+
+        <div v-else class="max-h-[32rem] overflow-auto rounded-md border">
+          <table class="w-full text-xs">
+            <thead class="sticky top-0 bg-muted">
+              <tr class="border-b">
+                <th
+                  v-for="c in oColumnas" :key="c"
+                  class="px-2 py-2 text-left font-medium whitespace-nowrap text-muted-foreground"
+                >
+                  {{ c }}
+                </th>
+                <th class="px-2 py-2 text-left font-medium whitespace-nowrap text-primary">Planta</th>
+                <th class="px-2 py-2 text-left font-medium whitespace-nowrap text-primary">Tecnología</th>
+                <th class="px-2 py-2 text-right font-medium whitespace-nowrap text-primary">Cap. (kW)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in oFiltradas.slice(0, 500)" :key="i" class="border-t hover:bg-muted/40">
+                <td v-for="c in oColumnas" :key="c" class="px-2 py-1.5 whitespace-nowrap">
+                  {{ r.fila[c] }}
+                </td>
+                <td class="px-2 py-1.5 whitespace-nowrap" :class="{ 'text-muted-foreground': !r.planta }">
+                  {{ r.planta?.nombre ?? '—' }}
+                </td>
+                <td class="px-2 py-1.5 whitespace-nowrap">
+                  {{ r.planta ? (TECNOLOGIAS[r.planta.tecnologia] ?? r.planta.tecnologia) : '—' }}
+                </td>
+                <td class="px-2 py-1.5 text-right tabular-nums">
+                  {{ r.planta?.capacidadKw?.toLocaleString('es-CO') ?? '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-if="oFiltradas.length > 500" class="text-xs text-muted-foreground">
           Se muestran las primeras 500 filas. El Excel las trae todas.
         </p>
       </template>
