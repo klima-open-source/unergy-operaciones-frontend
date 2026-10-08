@@ -6,23 +6,23 @@
                    :tabs="TABS" v-model="activeTab">
       <!-- En modo edicion, nombre y estado se editan en la misma miga -->
       <template v-if="isEditMode" #titulo>
-        <InputText v-model="editForm.nombre_comercial" size="small" />
-        <Select v-model="editForm.estado" :options="ESTADOS" optionLabel="label" optionValue="value"
-                size="small" />
+        <Input v-model="editForm.nombre_comercial" class="h-8 w-64" />
+        <Select v-model="editForm.estado">
+          <SelectTrigger size="sm" class="min-w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="e in ESTADOS" :key="e.value" :value="e.value">{{ e.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </template>
       <template v-if="!isEditMode" #chips>
         <GBadge :color="estadoSeverity(proyecto.estado)" class="text-xs">{{ proyecto.estado }}</GBadge>
       </template>
       <template #acciones>
         <template v-if="isEditMode">
-          <Button label="Cancelar" severity="secondary" outlined size="small" @click="cancelEdit" />
-          <Button label="Guardar cambios" size="small" :loading="guardando" @click="saveEdit">
-            <template #icon><CheckIcon class="size-4" /></template>
-          </Button>
+          <Button variant="outline" size="sm" @click="cancelEdit">Cancelar</Button>
+          <Button size="sm" :disabled="guardando" @click="saveEdit"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar cambios</Button>
         </template>
-        <Button v-else label="Editar" outlined size="small" @click="enterEditMode">
-          <template #icon><PencilIcon class="size-4" /></template>
-        </Button>
+        <Button variant="outline" size="sm" v-else @click="enterEditMode"><PencilIcon class="size-4" /> Editar</Button>
       </template>
       <template #default="{ tab }">
       <!-- ══ GENERAL ══ -->
@@ -76,76 +76,80 @@
           <template v-else>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de proyecto</label>
-              <Select v-model="editForm.tipo_proyecto" :options="TIPOS_PROYECTO" class="w-full" placeholder="Seleccionar" showClear />
+              <Select :model-value="aValorSelect(editForm.tipo_proyecto)" @update:model-value="editForm.tipo_proyecto = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in TIPOS_PROYECTO" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Tecnología</label>
-              <Select v-model="editForm.tipo_tecnologia" :options="TIPOS_TECNOLOGIA" class="w-full" placeholder="Seleccionar" showClear />
+              <Select :model-value="aValorSelect(editForm.tipo_tecnologia)" @update:model-value="editForm.tipo_tecnologia = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in TIPOS_TECNOLOGIA" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-              <InputNumber v-model="editInfoTecnica.capacidad_instalada_kwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
+              <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
-              <Select v-model="editForm.departamento" :options="departamentos" class="w-full" placeholder="Seleccionar" showClear filter />
+              <ComboBox :model-value="editForm.departamento" :options="opcionesDepartamento" placeholder="Seleccionar"
+                @update:model-value="editForm.departamento = deValorSelect($event) || null" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Municipio</label>
-              <Select v-model="editForm.municipio" :options="municipiosDisponibles" class="w-full" placeholder="Seleccionar" showClear filter
-                :disabled="!editForm.departamento" />
+              <!-- `key`: al cambiar de departamento cambian las opciones y el texto del input se recalcula. -->
+              <ComboBox :key="editForm.departamento ?? ''" :model-value="editForm.municipio" :options="opcionesMunicipio"
+                placeholder="Seleccionar" :disabled="!editForm.departamento"
+                @update:model-value="editForm.municipio = deValorSelect($event) || null" />
             </div>
             <!-- La Ubicación se edita donde se lee. Estos dos campos habían
                  quedado en Técnico cuando la vista de lectura pasó a General. -->
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Dirección</label>
-              <InputText v-model="editForm.direccion_vereda" class="w-full" />
+              <Input v-model="editForm.direccion_vereda" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Link Google Maps</label>
-              <InputText v-model="editInfoTecnica.url_ubicacion" class="w-full" placeholder="https://maps.app.goo.gl/..." />
+              <Input v-model="editInfoTecnica.url_ubicacion" placeholder="https://maps.app.goo.gl/..." />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red</label>
-              <Select v-model="editForm.operador_red_id" :options="operadoresRedOptions" optionLabel="label"
-                optionValue="id" class="w-full" placeholder="Seleccionar" showClear filter />
+              <ComboBox :key="opcionesOperadorRed.length" :model-value="editForm.operador_red_id != null ? String(editForm.operador_red_id) : null"
+                :options="opcionesOperadorRed" placeholder="Seleccionar"
+                @update:model-value="v => { const id = deValorSelect(v); editForm.operador_red_id = id ? Number(id) : null }" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Clasificación regulatoria</label>
-              <Select v-model="editForm.clasificacion_regulatoria" :options="CLASIFICACIONES" class="w-full" placeholder="Seleccionar" showClear />
+              <Select :model-value="aValorSelect(editForm.clasificacion_regulatoria)" @update:model-value="editForm.clasificacion_regulatoria = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in CLASIFICACIONES" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive</label>
-              <InputText v-model="editForm.carpeta_drive_codigo" class="w-full" />
+              <Input v-model="editForm.carpeta_drive_codigo" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">API ID Unergy</label>
-              <InputText v-model="editForm.sub_project" class="w-full" placeholder="ej: ibirico, bayunca" />
+              <Input v-model="editForm.sub_project" placeholder="ej: ibirico, bayunca" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Código TSF</label>
-              <InputText v-model="editForm.codigo_tsf" class="w-full" />
+              <Input v-model="editForm.codigo_tsf" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
-              <DatePicker v-model="editFechaEntrada" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+              <DatePicker v-model="editFechaEntrada" clearable placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Inicio de comercialización (pruebas)</label>
-              <DatePicker v-model="editFechaComerc" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Auto (1er día con generación)" />
+              <DatePicker v-model="editFechaComerc" clearable placeholder="Auto (1er día con generación)" />
               <small class="text-xs text-muted-foreground">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
-              <DatePicker v-model="editFechaOperMant" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+              <DatePicker v-model="editFechaOperMant" clearable placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
-              <DatePicker v-model="editFechaEntrega" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Seleccionar" />
+              <DatePicker v-model="editFechaEntrega" clearable placeholder="Seleccionar" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
-              <DatePicker v-model="editFechaFinRep" dateFormat="yy-mm-dd" showIcon showClear class="w-full" placeholder="Vigente" />
+              <DatePicker v-model="editFechaFinRep" clearable placeholder="Vigente" />
             </div>
           </template>
         </div>
@@ -243,15 +247,15 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-                  <InputNumber v-model="editForm.latitud" :maxFractionDigits="6" locale="en-US" class="w-full" />
+                  <NumberField v-model="editForm.latitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-                  <InputNumber v-model="editForm.longitud" :maxFractionDigits="6" locale="en-US" class="w-full" />
+                  <NumberField v-model="editForm.longitud" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">RETIE (link Drive)</label>
-                  <InputText v-model="editInfoTecnica.retie_url" class="w-full" placeholder="https://drive.google.com/..." />
+                  <Input v-model="editInfoTecnica.retie_url" placeholder="https://drive.google.com/..." />
                 </div>
               </div>
             </div>
@@ -261,27 +265,27 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
-                  <InputNumber v-model="editInfoTecnica.potencia_ac_kw" :maxFractionDigits="3" locale="en-US" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.potencia_ac_kw" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-                  <InputNumber v-model="editInfoTecnica.capacidad_instalada_kwp" :maxFractionDigits="3" locale="en-US" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Voltaje red</label>
-                  <InputText v-model="editInfoTecnica.voltaje_red" class="w-full" placeholder="ej: 13.8/800" />
+                  <Input v-model="editInfoTecnica.voltaje_red" placeholder="ej: 13.8/800" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo tracker</label>
-                  <Select v-model="editInfoTecnica.tipo_tracker" :options="['1P','2P']" class="w-full" showClear placeholder="Seleccionar" />
+                  <Select :model-value="aValorSelect(editInfoTecnica.tipo_tracker)" @update:model-value="editInfoTecnica.tipo_tracker = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in ['1P','2P']" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Producción específica (kWh/kWp)</label>
-                  <InputNumber v-model="editForm.produccion_especifica_kwh_kwp" :maxFractionDigits="2" locale="en-US" class="w-full" />
+                  <NumberField v-model="editForm.produccion_especifica_kwh_kwp" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 2 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Altitud (msnm)</label>
-                  <InputNumber v-model="editForm.altitud_msnm" :min="-100" :max="6000" locale="en-US" class="w-full" />
+                  <NumberField v-model="editForm.altitud_msnm" :step-snapping="false" locale="en-US" :min="-100" :max="6000" ><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
               </div>
             </div>
@@ -291,15 +295,15 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad de paneles</label>
-                  <InputNumber v-model="editInfoTecnica.cantidad_total_paneles" :useGrouping="false" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.cantidad_total_paneles" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia panel (kWp)</label>
-                  <InputText v-model="editInfoTecnica.potencia_panel_kwp" class="w-full" placeholder="ej: 0.58" />
+                  <Input v-model="editInfoTecnica.potencia_panel_kwp" placeholder="ej: 0.58" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Marca paneles</label>
-                  <InputText v-model="editInfoTecnica.marca_paneles" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_paneles" />
                 </div>
               </div>
             </div>
@@ -309,19 +313,19 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad inversores</label>
-                  <InputNumber v-model="editInfoTecnica.cantidad_inversores" :useGrouping="false" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.cantidad_inversores" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia inversores (kWp)</label>
-                  <InputText v-model="editInfoTecnica.potencia_inversores_kwp" class="w-full" placeholder="ej: 300, 50 y 40" />
+                  <Input v-model="editInfoTecnica.potencia_inversores_kwp" placeholder="ej: 300, 50 y 40" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Marca inversores</label>
-                  <InputText v-model="editInfoTecnica.marca_inversores" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_inversores" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad strings</label>
-                  <InputNumber v-model="editInfoTecnica.cantidad_strings" :useGrouping="false" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.cantidad_strings" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
               </div>
             </div>
@@ -331,35 +335,35 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Transformador</label>
-                  <InputText v-model="editInfoTecnica.marca_transformador" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_transformador" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Reconectador / Relé</label>
-                  <InputText v-model="editInfoTecnica.marca_reconectador_rele" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_reconectador_rele" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Totalizador</label>
-                  <InputText v-model="editInfoTecnica.marca_totalizador" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_totalizador" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Seguidor solar</label>
-                  <InputText v-model="editInfoTecnica.marca_seguidor_solar" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_seguidor_solar" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Medidores frontera</label>
-                  <InputText v-model="editInfoTecnica.marca_medidores_frontera" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_medidores_frontera" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Módem reconectador/relé</label>
-                  <InputText v-model="editInfoTecnica.marca_modem_reconectador" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_modem_reconectador" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Módems frontera</label>
-                  <InputText v-model="editInfoTecnica.marca_modems_frontera" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_modems_frontera" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">IP módem reconectador</label>
-                  <InputText v-model="editInfoTecnica.ip_modem_reconectador" class="w-full" />
+                  <Input v-model="editInfoTecnica.ip_modem_reconectador" />
                 </div>
               </div>
             </div>
@@ -369,19 +373,19 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1 md:col-span-2">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Estado CCTV</label>
-                  <InputText v-model="editInfoTecnica.cctv_estado" class="w-full" />
+                  <Input v-model="editInfoTecnica.cctv_estado" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Marca CCTV</label>
-                  <InputText v-model="editInfoTecnica.marca_cctv" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_cctv" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Seguridad física</label>
-                  <InputText v-model="editInfoTecnica.seguridad_fisica" class="w-full" />
+                  <Input v-model="editInfoTecnica.seguridad_fisica" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Internet</label>
-                  <Select v-model="editInfoTecnica.tiene_internet" :options="['Sí','No']" class="w-full" showClear placeholder="Seleccionar" />
+                  <Select :model-value="aValorSelect(editInfoTecnica.tiene_internet)" @update:model-value="editInfoTecnica.tiene_internet = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in ['Sí','No']" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
                 </div>
               </div>
             </div>
@@ -389,21 +393,21 @@
             <div>
               <div class="flex items-center gap-2 mb-3">
                 <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Almacenamiento</p>
-                <Checkbox v-model="editInfoTecnica.tiene_almacenamiento" binary />
+                <Checkbox v-model="editInfoTecnica.tiene_almacenamiento" />
                 <span class="text-xs text-muted-foreground">{{ editInfoTecnica.tiene_almacenamiento ? 'Sí' : 'No' }}</span>
               </div>
               <div v-if="editInfoTecnica.tiene_almacenamiento" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad (kWh)</label>
-                  <InputNumber v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :maxFractionDigits="3" locale="en-US" class="w-full" />
+                  <NumberField v-model="editInfoTecnica.capacidad_almacenamiento_kwh" :step-snapping="false" locale="en-US" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Marca</label>
-                  <InputText v-model="editInfoTecnica.marca_almacenamiento" class="w-full" />
+                  <Input v-model="editInfoTecnica.marca_almacenamiento" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Modelo</label>
-                  <InputText v-model="editInfoTecnica.modelo_almacenamiento" class="w-full" />
+                  <Input v-model="editInfoTecnica.modelo_almacenamiento" />
                 </div>
               </div>
             </div>
@@ -416,9 +420,7 @@
       <div v-if="tab === 'simulacion'">
         <div class="space-y-6">
           <div v-if="!isEditMode && hasSimulacionData" class="flex justify-end">
-            <Button label="Descargar Excel" size="small" outlined severity="success" @click="descargarSimulacionExcel">
-              <template #icon><FileSpreadsheetIcon class="size-4" /></template>
-            </Button>
+            <Button variant="outline" size="sm" @click="descargarSimulacionExcel"><FileSpreadsheetIcon class="size-4" /> Descargar Excel</Button>
           </div>
           <div v-for="sim in SIMULACIONES" :key="sim.key">
             <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
@@ -427,13 +429,10 @@
             <div class="grid grid-cols-6 gap-2">
               <div v-for="(mes, i) in MESES" :key="sim.key + '-' + i">
                 <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-                <InputNumber
-                  v-if="isEditMode"
-                  v-model="sim.editArray.value[i]"
-                  :maxFractionDigits="1"
-                  locale="en-US"
-                  class="w-full"
-                  inputClass="text-center text-xs px-1 py-1" />
+                <NumberField v-if="isEditMode" v-model="sim.editArray.value[i]" :step-snapping="false" locale="en-US"
+                  :format-options="{ maximumFractionDigits: 1 }">
+                  <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" /></NumberFieldContent>
+                </NumberField>
                 <p v-else class="text-center text-sm font-semibold text-foreground bg-muted rounded py-1.5 px-1 tabular-nums">
                   {{ sim.displayArray.value[i] != null ? Math.round(sim.displayArray.value[i]).toLocaleString('es-CO') : '—' }}
                 </p>
@@ -446,75 +445,67 @@
       <!-- ══ INVERSIONISTAS ══ -->
       <div v-if="tab === 'inversionistas'">
         <div class="space-y-4">
-          <DataTable :value="proyecto.inversionistas" class="text-sm" stripedRows>
-            <Column field="cliente_nombre" header="Inversionista" />
-            <Column header="Participación (%)">
-              <template #body="{ data }">
-                <template v-if="editandoInvId === data.id">
-                  <InputNumber v-model="editPct" :min="0" :max="100" :minFractionDigits="2" :maxFractionDigits="7"
-                    suffix="%" locale="en-US" />
-                </template>
-                <template v-else>
-                  {{ data.porcentaje_participacion != null ? (data.porcentaje_participacion * 100).toFixed(4) + '%' : '—' }}
-                </template>
-              </template>
-            </Column>
-            <Column header="Inicio">
-              <template #body="{ data }">
-                <DatePicker v-if="editandoInvId === data.id" v-model="editFechaInicio" dateFormat="yy-mm-dd"
-                  showIcon showClear placeholder="—" />
-                <span v-else>{{ fmtFecha(data.fecha_inicio) }}</span>
-              </template>
-            </Column>
-            <Column header="Fin">
-              <template #body="{ data }">
-                <DatePicker v-if="editandoInvId === data.id" v-model="editFechaFin" dateFormat="yy-mm-dd"
-                  showIcon showClear placeholder="Vigente" />
-                <span v-else>{{ data.fecha_fin ? fmtFecha(data.fecha_fin) : 'Vigente' }}</span>
-              </template>
-            </Column>
-            <Column header="Patrimonio autónomo">
-              <template #body="{ data }">
-                <GBadge :color="data.es_patrimonio_autonomo ? 'information' : 'default'">{{ data.es_patrimonio_autonomo ? 'Sí' : 'No' }}</GBadge>
-              </template>
-            </Column>
-            <Column header="">
-              <template #body="{ data }">
-                <div class="flex gap-1">
-                  <template v-if="editandoInvId === data.id">
-                    <Button text severity="success" size="small" :loading="guardando" @click="guardarEdicionInversionista(data.id)" v-tooltip="'Guardar'">
-                      <template #icon><CheckIcon class="size-4" /></template>
-                    </Button>
-                    <Button text severity="secondary" size="small" @click="editandoInvId = null" v-tooltip="'Cancelar'">
-                      <template #icon><XIcon class="size-4" /></template>
-                    </Button>
-                  </template>
+          <!-- GTable a mano: la fila se edita en el sitio y la tabla lleva una
+               fila de total, que blocks/DataTable no tiene. -->
+          <GTable>
+            <GTableHeader>
+              <GTableRow>
+                <GTableHead>Inversionista</GTableHead>
+                <GTableHead>Participación (%)</GTableHead>
+                <GTableHead>Inicio</GTableHead>
+                <GTableHead>Fin</GTableHead>
+                <GTableHead>Patrimonio autónomo</GTableHead>
+                <GTableHead />
+              </GTableRow>
+            </GTableHeader>
+            <GTableBody>
+              <TableEmpty v-if="!proyecto.inversionistas?.length" :colspan="6">
+                <p class="text-center text-muted-foreground py-4">Sin inversionistas registrados.</p>
+              </TableEmpty>
+              <GTableRow v-for="data in proyecto.inversionistas" :key="data.id">
+                <GTableCell>{{ data.cliente_nombre }}</GTableCell>
+                <GTableCell>
+                  <NumberField v-if="editandoInvId === data.id" v-model="editPct" :step-snapping="false" :min="0" :max="100"
+                    locale="en-US" :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }" class="w-36">
+                    <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                  </NumberField>
                   <template v-else>
-                    <Button text severity="info" size="small" @click="iniciarEdicionInversionista(data)" v-tooltip="'Editar'">
-                      <template #icon><PencilIcon class="size-4" /></template>
-                    </Button>
-                    <Button text severity="danger" size="small" @click="eliminarInversionista(data.id)" v-tooltip="'Eliminar'">
-                      <template #icon><Trash2Icon class="size-4" /></template>
-                    </Button>
+                    {{ data.porcentaje_participacion != null ? (data.porcentaje_participacion * 100).toFixed(4) + '%' : '—' }}
                   </template>
-                </div>
-              </template>
-            </Column>
-            <template #empty>
-              <p class="text-center text-muted-foreground py-4">Sin inversionistas registrados.</p>
-            </template>
-            <ColumnGroup type="footer">
-              <Row>
-                <Column footer="Total" footerStyle="font-weight:600" />
-                <Column :footer="tieneVariosPeriodos ? '— (ver períodos)' : totalParticipacion.toFixed(4) + '%'"
-                  footerStyle="font-weight:600" />
-                <Column />
-                <Column />
-                <Column />
-                <Column />
-              </Row>
-            </ColumnGroup>
-          </DataTable>
+                </GTableCell>
+                <GTableCell>
+                  <div v-if="editandoInvId === data.id" class="w-48"><DatePicker v-model="editFechaInicio" clearable placeholder="—" /></div>
+                  <span v-else>{{ fmtFecha(data.fecha_inicio) }}</span>
+                </GTableCell>
+                <GTableCell>
+                  <div v-if="editandoInvId === data.id" class="w-48"><DatePicker v-model="editFechaFin" clearable placeholder="Vigente" /></div>
+                  <span v-else>{{ data.fecha_fin ? fmtFecha(data.fecha_fin) : 'Vigente' }}</span>
+                </GTableCell>
+                <GTableCell>
+                  <GBadge :color="data.es_patrimonio_autonomo ? 'information' : 'default'">{{ data.es_patrimonio_autonomo ? 'Sí' : 'No' }}</GBadge>
+                </GTableCell>
+                <GTableCell>
+                  <div class="flex gap-1">
+                    <template v-if="editandoInvId === data.id">
+                      <Button size="icon-sm" :disabled="guardando" variant="ghost" title="Guardar" aria-label="Guardar" @click="guardarEdicionInversionista(data.id)"><Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4 text-success" /></Button>
+                      <Button size="icon-sm" variant="ghost" title="Cancelar" aria-label="Cancelar" @click="editandoInvId = null"><XIcon class="size-4" /></Button>
+                    </template>
+                    <template v-else>
+                      <Button size="icon-sm" variant="ghost" title="Editar" aria-label="Editar" @click="iniciarEdicionInversionista(data)"><PencilIcon class="size-4 text-primary" /></Button>
+                      <Button size="icon-sm" variant="ghost" title="Eliminar" aria-label="Eliminar" @click="eliminarInversionista(data.id)"><Trash2Icon class="size-4 text-destructive" /></Button>
+                    </template>
+                  </div>
+                </GTableCell>
+              </GTableRow>
+            </GTableBody>
+            <GTableFooter>
+              <GTableRow>
+                <GTableCell class="font-semibold">Total</GTableCell>
+                <GTableCell class="font-semibold">{{ tieneVariosPeriodos ? '— (ver períodos)' : totalParticipacion.toFixed(4) + '%' }}</GTableCell>
+                <GTableCell :colspan="4" />
+              </GTableRow>
+            </GTableFooter>
+          </GTable>
 
           <!-- Histórico por período (cuando hay inversionistas de distintas fechas) -->
           <div v-if="tieneVariosPeriodos" class="rounded-lg bg-muted border border-border p-3 space-y-2">
@@ -531,46 +522,44 @@
               </span>
               <span class="font-semibold tabular-nums" :class="per.ok ? 'text-success' : 'text-warning'">
                 {{ per.total.toFixed(2) }}%
-                <TriangleAlertIcon class="ml-1 size-3" v-if="!per.ok" v-tooltip.left="'No suma ~100% en este período'" />
+                <span v-if="!per.ok" title="No suma ~100% en este período"><TriangleAlertIcon class="ml-1 size-3" /></span>
               </span>
             </div>
           </div>
 
-          <Divider />
+          <Separator />
           <p class="font-semibold text-foreground">Agregar inversionista</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Cliente</label>
-              <Select v-model="nuevoInv.cliente_id" :options="clientesDisponibles"
-                optionLabel="razon_social_nombre" optionValue="id"
-                placeholder="Seleccionar cliente" filter class="w-full" />
+              <ComboBox :model-value="nuevoInv.cliente_id != null ? String(nuevoInv.cliente_id) : null"
+                :options="opcionesClientesDisponibles" placeholder="Seleccionar cliente"
+                @update:model-value="v => { nuevoInv.cliente_id = v ? Number(v) : null }" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Porcentaje de participación (%)</label>
-              <InputNumber v-model="nuevoInv.porcentaje_pct" :min="0" :max="100"
-                :minFractionDigits="2" :maxFractionDigits="7" suffix="%" locale="en-US" class="w-full" />
+              <NumberField v-model="nuevoInv.porcentaje_pct" :step-snapping="false" :min="0" :max="100" locale="en-US"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Fecha inicio</label>
-              <DatePicker v-model="nuevoInv.fecha_inicio" dateFormat="yy-mm-dd" showIcon showClear
-                class="w-full" placeholder="—" />
+              <DatePicker v-model="nuevoInv.fecha_inicio" clearable placeholder="—" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Fecha fin (opcional = vigente)</label>
-              <DatePicker v-model="nuevoInv.fecha_fin" dateFormat="yy-mm-dd" showIcon showClear
-                class="w-full" placeholder="Vigente" />
+              <DatePicker v-model="nuevoInv.fecha_fin" clearable placeholder="Vigente" />
             </div>
             <div class="flex flex-col gap-1">
               <label class="text-xs text-muted-foreground">Patrimonio autónomo</label>
               <div class="flex items-center gap-2 h-10">
-                <ToggleSwitch v-model="nuevoInv.es_patrimonio_autonomo" />
+                <GSwitch v-model="nuevoInv.es_patrimonio_autonomo" />
                 <span class="text-sm text-muted-foreground">{{ nuevoInv.es_patrimonio_autonomo ? 'Sí' : 'No' }}</span>
               </div>
             </div>
           </div>
-          <Button label="Agregar" :loading="guardando" :disabled="!nuevoInv.cliente_id" @click="agregarInversionista" class="mt-2">
-            <template #icon><PlusIcon class="size-4" /></template>
-          </Button>
+          <Button class="mt-2" :disabled="guardando || !nuevoInv.cliente_id" @click="agregarInversionista"><Spinner v-if="guardando" class="size-4" /> <PlusIcon v-else class="size-4" /> Agregar</Button>
         </div>
       </div>
 
@@ -624,48 +613,18 @@
                   Contratos · {{ SERVICIOS_CARDS.find(s => s.key === srvExpanded)?.label }}
                 </p>
               </div>
-              <Button label="Nuevo contrato" size="small" class="bg-(--c)! border-(--c)!" @click="showContratoWizard = true">
-                <template #icon><PlusIcon class="size-4" /></template>
-              </Button>
+              <Button size="sm" class="bg-(--c)! border-(--c)!" @click="showContratoWizard = true"><PlusIcon class="size-4" /> Nuevo contrato</Button>
             </div>
-            <DataTable
-              :value="contratosInline"
-              :loading="loadingInline"
-              stripedRows
-              class="text-sm"
-              rowHover
-              emptyMessage="Sin contratos registrados para este proyecto."
-              @row-click="(e) => $router.push(`/contratos/${e.data.id}`)"
-            >
-              <Column field="numero_contrato" header="N° contrato">
-                <template #body="{ data }">
-                  <span class="font-mono text-xs text-muted-foreground">{{ data.numero_contrato || '—' }}</span>
-                </template>
-              </Column>
-              <Column header="Contratante">
-                <template #body="{ data }">{{ data.contratante_nombre || '—' }}</template>
-              </Column>
-              <Column header="Prestador">
-                <template #body="{ data }">{{ data.prestador_nombre || '—' }}</template>
-              </Column>
-              <Column field="fecha_inicio" header="Inicio">
-                <template #body="{ data }">{{ formatFechaSrv(data.fecha_inicio) }}</template>
-              </Column>
-              <Column field="fecha_fin" header="Fin">
-                <template #body="{ data }">{{ formatFechaSrv(data.fecha_fin) }}</template>
-              </Column>
-              <Column header="Estado">
-                <template #body="{ data }">
-                  <GBadge :color="ESTADO_SEVERITY_SRV[data.estado]">{{ ESTADO_LABELS_SRV[data.estado] || data.estado }}</GBadge>
-                </template>
-              </Column>
-              <Column>
-                <template #body="{ data }">
-                  <Button text size="small" severity="secondary" @click.stop="$router.push(`/contratos/${data.id}`)">
-                    <template #icon><ArrowRightIcon class="size-4" /></template>
-                  </Button>
-                </template>
-              </Column>
+            <DataTable :columns="COLUMNAS_CONTRATOS_SRV" :rows="contratosInline" row-key="id" :loading="loadingInline"
+              empty-message="Sin contratos registrados para este proyecto."
+              @row-click="row => $router.push(`/contratos/${row.id}`)">
+              <template #cell="{ row, column }">
+                <span v-if="column.key === 'numero_contrato'" class="font-mono text-xs text-muted-foreground">{{ row.numero_contrato || '—' }}</span>
+                <template v-else-if="column.key === 'fecha_inicio' || column.key === 'fecha_fin'">{{ formatFechaSrv(row[column.key]) }}</template>
+                <GBadge v-else-if="column.key === 'estado'" :color="ESTADO_SEVERITY_SRV[row.estado]">{{ ESTADO_LABELS_SRV[row.estado] || row.estado }}</GBadge>
+                <Button size="icon-sm" v-else-if="column.key === 'acciones'" variant="ghost" aria-label="Abrir contrato" @click.stop="$router.push(`/contratos/${row.id}`)"><ArrowRightIcon class="size-4" /></Button>
+                <template v-else>{{ row[column.key] || '—' }}</template>
+              </template>
             </DataTable>
           </div>
 
@@ -700,17 +659,12 @@
       <!-- ══ FRONTERAS ══ -->
       <div v-if="tab === 'fronteras'">
         <div>
-          <DataTable :value="fronteras" class="text-sm" stripedRows>
-            <Column field="codigo_frontera" header="Código">
-              <template #body="{ data }">{{ data.codigo_frontera || '—' }}</template>
-            </Column>
-            <Column field="nombre_frontera" header="Nombre" />
-            <Column field="tipo_frontera" header="Tipo" />
-            <Column header="Estado">
-              <template #body="{ data }">
-                <GBadge :color="FRONTERA_ESTADO_SEVERITY[data.estado] || 'information'">{{ data.estado }}</GBadge>
-              </template>
-            </Column>
+          <DataTable :columns="COLUMNAS_FRONTERAS" :rows="fronteras" row-key="id">
+            <template #cell="{ row, column }">
+              <GBadge v-if="column.key === 'estado'" :color="FRONTERA_ESTADO_SEVERITY[row.estado] || 'information'">{{ row.estado }}</GBadge>
+              <template v-else-if="column.key === 'codigo_frontera'">{{ row.codigo_frontera || '—' }}</template>
+              <template v-else>{{ row[column.key] }}</template>
+            </template>
           </DataTable>
           <p class="text-xs mt-3 text-muted-foreground">
             Ve a la pestaña Fronteras del menú si deseas reasignar el proyecto.
@@ -742,16 +696,15 @@
             <template v-else>
               <div class="flex flex-col gap-1">
                 <label class="block text-xs font-medium text-muted-foreground mb-1">SIC generación</label>
-                <InputText v-model="editLiq.sic_gen" class="w-full" placeholder="ej: 3A44" />
+                <Input v-model="editLiq.sic_gen" placeholder="ej: 3A44" />
               </div>
               <div class="flex flex-col gap-1">
                 <label class="block text-xs font-medium text-muted-foreground mb-1">SIC consumo</label>
-                <InputText v-model="editLiq.sic_con" class="w-full" placeholder="ej: 3A3P" />
+                <Input v-model="editLiq.sic_con" placeholder="ej: 3A3P" />
               </div>
               <div class="flex flex-col gap-1">
                 <label class="block text-xs font-medium text-muted-foreground mb-1">Tópico en Liquidaciones</label>
-                <InputText v-model="editForm.topico_liquidaciones" class="w-full"
-                           :placeholder="proyecto.sub_project || 'ej: mgs18'" />
+                <Input v-model="editForm.topico_liquidaciones" :placeholder="proyecto.sub_project || 'ej: mgs18'" />
                 <small class="text-xs text-muted-foreground">
                   Solo si esta planta se llama distinto allá que en generación. Vacío = se
                   usa el API ID Unergy.
@@ -802,15 +755,15 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">ID Reporte Generación Quoia</label>
-                  <InputText v-model="sub.quoia_report_gen_id" maxlength="4" class="w-full" />
+                  <Input v-model="sub.quoia_report_gen_id" maxlength="4" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">ID Reporte Consumo Quoia</label>
-                  <InputText v-model="sub.quoia_report_con_id" maxlength="4" class="w-full" />
+                  <Input v-model="sub.quoia_report_con_id" maxlength="4" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">ID de Nodo Quoia</label>
-                  <InputText v-model="sub.quoia_node_id" maxlength="50" class="w-full" />
+                  <Input v-model="sub.quoia_node_id" maxlength="50" />
                 </div>
               </div>
             </div>
@@ -823,15 +776,13 @@
   </div>
 
   <div v-else-if="loading" class="flex justify-center py-20">
-    <ProgressSpinner />
+    <Spinner class="size-8" />
   </div>
 
   <div v-else class="flex flex-col items-center py-20 gap-3 text-muted-foreground">
     <CircleAlertIcon class="text-destructive size-8" />
     <p class="text-sm">{{ errorMsg || 'No se pudo cargar el proyecto.' }}</p>
-    <Button label="Reintentar" outlined size="small" @click="$router.go(0)">
-      <template #icon><RefreshCwIcon class="size-4" /></template>
-    </Button>
+    <Button variant="outline" size="sm" @click="$router.go(0)"><RefreshCwIcon class="size-4" /> Reintentar</Button>
   </div>
 </template>
 
@@ -839,19 +790,8 @@
 import { ArrowRightIcon, BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import Button from 'primevue/button'
-import ToggleSwitch from 'primevue/toggleswitch'
-import ProgressSpinner from 'primevue/progressspinner'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import ColumnGroup from 'primevue/columngroup'
-import Row from 'primevue/row'
-import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import DatePicker from 'primevue/datepicker'
-import Checkbox from 'primevue/checkbox'
-import Divider from 'primevue/divider'
+import DataTable from '~/components/blocks/DataTable.vue'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
@@ -1011,11 +951,12 @@ const editFechaEntrega = ref(null)
 const editFechaFinRep = ref(null)
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
-function toDate(v) {
+/** Fecha del API -> 'aaaa-mm-dd', que es lo que usa DatePicker (y lo que `formatFecha` devuelve tal cual). */
+function aFecha(v) {
   if (!v) return null
   const [y, m, d] = String(v).slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return null
-  return new Date(y, m - 1, d) // medianoche local (evita corrimiento de zona horaria)
+  return String(v).slice(0, 10)
 }
 function formatFecha(v) {
   if (!v) return null
@@ -1114,11 +1055,11 @@ function populateEditForm() {
   editP90.value = parseMonthArray(p.p90_mensual_kwh)
   editP50.value = parseMonthArray(p.p50_mensual_kwh)
   editP99.value = parseMonthArray(p.p99_mensual_kwh)
-  editFechaEntrada.value = toDate(p.fecha_entrada_operacion)
-  editFechaComerc.value = toDate(p.fecha_inicio_comercializacion)
-  editFechaOperMant.value = toDate(p.fecha_operacion_mantenimiento)
-  editFechaEntrega.value = toDate(p.fecha_entrega_proyecto)
-  editFechaFinRep.value = toDate(p.fecha_fin_representacion)
+  editFechaEntrada.value = aFecha(p.fecha_entrada_operacion)
+  editFechaComerc.value = aFecha(p.fecha_inicio_comercializacion)
+  editFechaOperMant.value = aFecha(p.fecha_operacion_mantenimiento)
+  editFechaEntrega.value = aFecha(p.fecha_entrega_proyecto)
+  editFechaFinRep.value = aFecha(p.fecha_fin_representacion)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
   editSubproyectos.value = (liqConfig.value?.subproyectos ?? []).map(s => ({
@@ -1267,6 +1208,26 @@ const clientesDisponibles = computed(() => {
   return clientes.value.filter(c => !yaAgregados.has(c.id))
 })
 
+const opcionesClientesDisponibles = computed(() =>
+  clientesDisponibles.value.map(c => ({ value: String(c.id), label: c.razon_social_nombre })))
+
+const COLUMNAS_CONTRATOS_SRV = [
+  { key: 'numero_contrato', header: 'N° contrato' },
+  { key: 'contratante_nombre', header: 'Contratante' },
+  { key: 'prestador_nombre', header: 'Prestador' },
+  { key: 'fecha_inicio', header: 'Inicio' },
+  { key: 'fecha_fin', header: 'Fin' },
+  { key: 'estado', header: 'Estado' },
+  { key: 'acciones', header: '' },
+]
+
+const COLUMNAS_FRONTERAS = [
+  { key: 'codigo_frontera', header: 'Código' },
+  { key: 'nombre_frontera', header: 'Nombre' },
+  { key: 'tipo_frontera', header: 'Tipo' },
+  { key: 'estado', header: 'Estado' },
+]
+
 const totalParticipacion = computed(() => {
   if (!proyecto.value?.inversionistas?.length) return 0
   return proyecto.value.inversionistas.reduce((sum, i) => sum + (i.porcentaje_participacion ?? 0) * 100, 0)
@@ -1342,8 +1303,8 @@ async function eliminarInversionista(invId) {
 function iniciarEdicionInversionista(inv) {
   editandoInvId.value = inv.id
   editPct.value = inv.porcentaje_participacion != null ? +(inv.porcentaje_participacion * 100).toFixed(7) : null
-  editFechaInicio.value = toDate(inv.fecha_inicio)
-  editFechaFin.value = toDate(inv.fecha_fin)
+  editFechaInicio.value = aFecha(inv.fecha_inicio)
+  editFechaFin.value = aFecha(inv.fecha_fin)
 }
 
 async function guardarEdicionInversionista(invId) {
@@ -1420,7 +1381,14 @@ const estadoSeverity = (e) => (
 // Departamento/municipio -- select en vez de texto libre (DIVIPOLA), para
 // evitar variantes de escritura que luego no se puedan agrupar/filtrar bien.
 const departamentos = Object.keys(divipola).sort()
+
+/** Opciones de un ComboBox con la primera para dejarlo vacío (el showClear de PrimeVue). */
+function conVacio(opciones) {
+  return [{ value: VALOR_SELECT_VACIO, label: 'Sin definir' }, ...opciones]
+}
+const opcionesDepartamento = conVacio(departamentos.map(d => ({ value: d, label: d })))
 const municipiosDisponibles = computed(() => editForm.departamento ? (divipola[editForm.departamento] || []) : [])
+const opcionesMunicipio = computed(() => conVacio(municipiosDisponibles.value.map(m => ({ value: m, label: m }))))
 watch(() => editForm.departamento, (nuevo, anterior) => {
   if (nuevo !== anterior && editForm.municipio && !(divipola[nuevo] || []).includes(editForm.municipio)) {
     editForm.municipio = null
@@ -1430,8 +1398,8 @@ watch(() => editForm.departamento, (nuevo, anterior) => {
 // Catálogo de operadores de red -- select en vez de texto libre, para que
 // coincida con el vínculo real que usa Reporte CGM (Frontera.operador_red_id).
 const operadoresRed = ref([])
-const operadoresRedOptions = computed(() =>
-  operadoresRed.value.map(o => ({ id: o.id, label: o.nombre_comercial || o.nombre_legal }))
+const opcionesOperadorRed = computed(() =>
+  conVacio(operadoresRed.value.map(o => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })))
 )
 
 // ── Carga inicial ─────────────────────────────────────────────────────────────
