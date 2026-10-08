@@ -17,6 +17,8 @@ import type { AgenteSimem, FilaAgente, PlantaDeAgente, PlantaSimem } from '~/fea
 import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/mem/utils/simemAgentes'
 import { enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
 import SimemPanelDataset from '~/features/mem/components/SimemPanelDataset.vue'
+import GraficaDiariaBolsa from '~/features/mem/components/GraficaDiariaBolsa.vue'
+import { resumirBolsa } from '~/features/mem/utils/bolsaResumen'
 import { exportarExcel } from '~/utils/exportarExcel'
 import type { BolsaSimemMes } from '~/features/mem/services/bolsaSimem'
 import { BolsaSimemService } from '~/features/mem/services/bolsaSimem'
@@ -187,6 +189,7 @@ const hoy = new Date()
 const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
 const periodo = ref(`${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth() + 1).padStart(2, '0')}`)
 const bolsa = ref<BolsaSimemMes | null>(null)
+const bolsaPrevia = ref<BolsaSimemMes | null>(null)
 const cargandoBolsa = ref(false)
 const errorBolsa = ref<string | null>(null)
 
@@ -200,14 +203,32 @@ function promedioDia(dia: string): number | null {
   return horas.length ? horas.reduce((s, v) => s + v, 0) / horas.length : null
 }
 
+/** `+3,2 %` / `−1,8 %`. El signo va explícito; el color no juzga. */
+const signo = (v: number) =>
+  `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`
+
 const fmtPrecio = (v: number | null | undefined) =>
   v == null ? '—' : v.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** El período anterior al pedido (`YYYY-MM`), para la variación. */
+function periodoAnterior(per: string): string {
+  const [a, m] = per.split('-').map(Number)
+  const d = new Date(a!, m! - 2, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+const resumen = computed(() =>
+  resumirBolsa(bolsa.value?.detalle ?? {}, bolsaPrevia.value?.detalle ?? null),
+)
 
 async function cargarBolsa() {
   cargandoBolsa.value = true
   errorBolsa.value = null
   try {
     bolsa.value = await bolsaService.obtenerMes(periodo.value)
+    // El mes anterior es para comparar: si falla, la vista sirve igual y la
+    // variación simplemente no se muestra.
+    bolsaPrevia.value = await bolsaService.obtenerMes(periodoAnterior(periodo.value)).catch(() => null)
   } catch (e) {
     errorBolsa.value = normalizeError(e).message
     bolsa.value = null
@@ -474,25 +495,66 @@ onMounted(cargar)
       <Spinner v-else-if="cargandoBolsa" class="mx-auto my-10 block size-6 text-muted-foreground" />
 
       <template v-else-if="bolsa">
-        <div class="flex flex-wrap gap-4 text-sm">
-          <div class="rounded-md border px-4 py-2">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-md border px-4 py-3">
+            <div class="text-xs text-muted-foreground">Último precio</div>
+            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(resumen.ultimo?.precio) }}</div>
+            <div class="text-[11px] text-muted-foreground">
+              <template v-if="resumen.ultimo">
+                {{ resumen.ultimo.dia }} · {{ resumen.ultimo.hora }}:00
+              </template>
+              <template v-else>sin datos</template>
+            </div>
+          </div>
+
+          <div class="rounded-md border px-4 py-3">
             <div class="text-xs text-muted-foreground">PNBA del mes</div>
-            <div class="text-lg font-semibold tabular-nums">{{ fmtPrecio(bolsa.precio_bolsa) }}</div>
-            <div class="text-[11px] text-muted-foreground">COP/kWh</div>
+            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(bolsa.precio_bolsa) }}</div>
+            <div class="text-[11px] text-muted-foreground">
+              <span v-if="resumen.variacionMes != null">
+                {{ signo(resumen.variacionMes) }} vs. mes anterior
+              </span>
+              <span v-else>{{ bolsa.horas }} h · {{ bolsa.dias }} días</span>
+            </div>
           </div>
-          <div class="rounded-md border px-4 py-2">
-            <div class="text-xs text-muted-foreground">Horas</div>
-            <div class="text-lg font-semibold tabular-nums">{{ bolsa.horas }}</div>
-            <div class="text-[11px] text-muted-foreground">{{ bolsa.dias }} días</div>
+
+          <div class="rounded-md border px-4 py-3">
+            <div class="text-xs text-muted-foreground">Últimos 7 días</div>
+            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(resumen.promedio7d) }}</div>
+            <div class="text-[11px] text-muted-foreground">
+              <span v-if="resumen.variacion7d != null">
+                {{ signo(resumen.variacion7d) }} vs. 7 previos
+              </span>
+              <span v-else>sin período previo para comparar</span>
+            </div>
           </div>
-          <!-- Se nombra siempre que exista: son horas con el precio por encima
-               del de escasez, y antes salían como huecos. -->
-          <div v-if="bolsa.horas_ptb" class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2">
-            <div class="text-xs text-amber-900">Horas del PTB</div>
-            <div class="text-lg font-semibold text-amber-900 tabular-nums">{{ bolsa.horas_ptb }}</div>
-            <div class="text-[11px] text-amber-900">precio sobre el de escasez</div>
+
+          <div class="rounded-md border px-4 py-3">
+            <div class="text-xs text-muted-foreground">Máximo / mínimo</div>
+            <div class="text-lg font-semibold tabular-nums">
+              {{ fmtPrecio(resumen.maximo?.precio) }} <span class="text-muted-foreground">/</span>
+              {{ fmtPrecio(resumen.minimo?.precio) }}
+            </div>
+            <div class="text-[11px] text-muted-foreground">
+              <template v-if="resumen.maximo && resumen.minimo">
+                {{ resumen.maximo.dia.slice(5) }} {{ resumen.maximo.hora }}h ·
+                {{ resumen.minimo.dia.slice(5) }} {{ resumen.minimo.hora }}h
+              </template>
+            </div>
           </div>
         </div>
+
+        <!-- Las horas del PTB van aparte y nombradas: son horas con el precio
+             por encima del de escasez, no un dato cualquiera. -->
+        <div
+          v-if="bolsa.horas_ptb"
+          class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+        >
+          <b>{{ bolsa.horas_ptb }}</b> hora(s) tomadas del PTB — el precio de bolsa superó el de
+          escasez de activación y XM publica el precio de transacciones en su lugar.
+        </div>
+
+        <GraficaDiariaBolsa :serie="resumen.serie" />
 
         <div v-if="!diasBolsa.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
           El SIMEM no devolvió datos para este período.
