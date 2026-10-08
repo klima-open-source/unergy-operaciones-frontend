@@ -2,18 +2,21 @@
   <!-- Botón trigger -->
   <div class="inline-block">
     <input ref="zipInputRef" type="file" accept=".zip" class="hidden" @change="onZipSelected" />
-    <Button label="Cargar ZIP" size="small" outlined :loading="procesando" @click="zipInputRef.click()" class="border-primary text-primary">
-      <template #icon><UploadIcon class="size-4" /></template>
+    <Button variant="outline" size="sm" class="border-primary text-primary" :disabled="procesando" @click="zipInputRef.click()">
+      <Spinner v-if="procesando" class="size-4" /><UploadIcon v-else class="size-4" /> Cargar ZIP
     </Button>
   </div>
 
   <!-- ── Dialog preview ──────────────────────────────────────────────────── -->
-  <Dialog v-model:visible="showDialog" modal
-    header="Vista previa — Predios por documento"
-    class="w-full max-w-6xl"
-    :closable="!guardando">
+  <!-- No se cierra mientras guarda (el :closable de PrimeVue). -->
+  <Dialog :open="showDialog" @update:open="v => { if (!guardando) showDialog = v }">
+    <DialogContent class="sm:max-w-6xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
+    <DialogHeader>
+      <DialogTitle>Vista previa — Predios por documento</DialogTitle>
+      <DialogDescription class="sr-only">Predios encontrados en el ZIP y el proyecto de cada uno.</DialogDescription>
+    </DialogHeader>
 
-    <div class="space-y-4 pt-1">
+    <div class="space-y-4">
 
       <!-- Período detectado del ZIP -->
       <div v-if="periodoZip && periodoZip !== periodo"
@@ -150,20 +153,26 @@
           {{ prediosListos }} con match
         </span>
         <div class="flex gap-2">
-          <Button label="Cancelar" size="small" outlined severity="secondary"
-            :disabled="guardando" @click="showDialog = false" />
-          <Button :label="hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar'" size="small" :loading="guardando" :disabled="totalPredios === 0" @click="confirmar" class="bg-primary border-primary">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button variant="outline" size="sm" :disabled="guardando" @click="showDialog = false">Cancelar</Button>
+          <Button size="sm" :disabled="guardando || totalPredios === 0" @click="confirmar">
+            <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" />
+            {{ hayDuplicados ? 'Reemplazar y guardar' : 'Confirmar y guardar' }}
           </Button>
         </div>
       </div>
 
     </div>
+    </DialogContent>
   </Dialog>
 
   <!-- ── Dialog resumen post-guardado ────────────────────────────────────── -->
-  <Dialog v-model:visible="showResumen" modal header="Resultado del procesamiento" class="w-full max-w-xl">
-    <div class="space-y-3 pt-1 text-sm">
+  <Dialog v-model:open="showResumen">
+    <DialogContent class="sm:max-w-xl">
+    <DialogHeader>
+      <DialogTitle>Resultado del procesamiento</DialogTitle>
+      <DialogDescription class="sr-only">Predios asociados y sin match del ZIP.</DialogDescription>
+    </DialogHeader>
+    <div class="space-y-3 text-sm">
       <!-- Asociados -->
       <div class="rounded-lg border p-3 space-y-1.5 bg-success/10 border-success/30">
         <p class="text-xs font-semibold text-success">
@@ -199,16 +208,15 @@
         <span><FolderIcon class="mr-1 size-4" />{{ resumen.carpetasProcesadas }} carpetas procesadas</span>
       </div>
     </div>
-    <template #footer>
-      <Button label="Cerrar" size="small" @click="cerrarResumen" />
-    </template>
+    <DialogFooter>
+      <Button size="sm" @click="cerrarResumen">Cerrar</Button>
+    </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
 import { toast } from 'vue-sonner'
 import { logger } from '~/core/logger'
 import JSZip from 'jszip'
