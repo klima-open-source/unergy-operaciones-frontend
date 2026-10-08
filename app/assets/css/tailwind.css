@@ -61,11 +61,12 @@
 }
 
 :root {
-  /* Por encima de las ventanas de PrimeVue (capa 1100 y suben con cada una que se
-     abre). Lo usa la lista de SelectorCliente, que se dibuja fuera de la ventana:
-     con la capa 50 de shadcn quedaba DETRÁS y no se veía ninguna sugerencia.
-     Se borra cuando contratos, finanzas y proyectos dejen PrimeVue. */
-  --z-sobre-primevue: 2000;
+  /* Por encima de las ventanas de PrimeVue. Su capa NO es fija en 1100: cada
+     ventana o menú que se abre suma 1100 sobre lo que ya está abierto (ZIndex de
+     @primeuix/utils), así que con dos abiertas pasa de 2000. Lo usa la lista de
+     SelectorCliente, que se dibuja fuera de la ventana; con la capa 50 de shadcn
+     quedaba DETRÁS. Se borra cuando contratos, finanzas y proyectos dejen PrimeVue. */
+  --z-sobre-primevue: 100000;
   --radius: 0.625rem;
   --background: #fdfaf7;
   --foreground: #2c2039;
