@@ -18,6 +18,7 @@ import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/me
 import { enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
 import SimemPanelDataset from '~/features/mem/components/SimemPanelDataset.vue'
 import GraficaDiariaBolsa from '~/features/mem/components/GraficaDiariaBolsa.vue'
+import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
 import { resumirBolsa } from '~/features/mem/utils/bolsaResumen'
 import { exportarExcel } from '~/utils/exportarExcel'
 import type { BolsaSimemMes } from '~/features/mem/services/bolsaSimem'
@@ -255,6 +256,7 @@ const oAgente = ref('UNGG')
 const oTecnologia = ref('')
 const oCapMin = ref<string>('')
 const oCapMax = ref<string>('')
+const oPlantas = ref(new Set<string>())
 const oFilas = ref<Record<string, unknown>[]>([])
 const oCargando = ref(false)
 const oError = ref<string | null>(null)
@@ -287,7 +289,22 @@ const oFiltradas = computed(() => filtrarPorPlanta(oEnriquecidas.value, {
   tecnologia: oTecnologia.value || undefined,
   capMin: numeroOrNull(oCapMin.value),
   capMax: numeroOrNull(oCapMax.value),
+  codigos: oPlantas.value,
 }))
+
+/**
+ * Las plantas que se pueden elegir son las que la consulta TRAJO, no el
+ * catálogo entero: ofrecer una sin datos sería ofrecer un filtro que vacía la
+ * tabla. Se deduplican por código.
+ */
+const oOpcionesPlanta = computed(() => {
+  const vistas = new Map<string, string>()
+  for (const f of oEnriquecidas.value) {
+    if (f.planta) vistas.set(f.planta.codigo, f.planta.nombre)
+    else if (f.codigo) vistas.set(f.codigo, f.codigo) // sin catálogo: al menos el código
+  }
+  return [...vistas].map(([codigo, nombre]) => ({ codigo, nombre }))
+})
 
 /** Tecnologías presentes en lo consultado, no el catálogo entero. */
 const oTecnologias = computed(() =>
@@ -630,6 +647,7 @@ onMounted(cargar)
 
       <!-- Filtros que solo existen gracias al cruce con el catálogo. -->
       <div v-if="oConsultado" class="flex flex-wrap items-end gap-3 border-t pt-3">
+        <SelectorPlantas v-model="oPlantas" :opciones="oOpcionesPlanta" />
         <div class="flex flex-col gap-1">
           <label class="text-xs font-semibold tracking-wider text-primary uppercase">Tecnología</label>
           <select v-model="oTecnologia" class="h-9 rounded-md border bg-background px-2 text-sm">

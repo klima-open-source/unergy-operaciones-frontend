@@ -15,6 +15,9 @@ import { normalizeError } from '~/core/errors'
 import type { ProgresoConsulta } from '~/features/mem/services/simem'
 import { consultarDataset } from '~/features/mem/services/simem'
 import { exportarExcel } from '~/utils/exportarExcel'
+import type { PlantaSimem } from '~/features/mem/utils/simemAgentes'
+import { columnaDePlanta, enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
+import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
 
 const props = defineProps<{
   datasets: readonly { id: string, label: string }[]
@@ -39,16 +42,39 @@ const cargando = ref(false)
 const error = ref<string | null>(null)
 const progreso = ref<ProgresoConsulta | null>(null)
 const consultado = ref(false)
+const plantas = ref(new Set<string>())
+const catalogo = ref<Record<string, PlantaSimem>>({})
 
 const columnas = computed(() => filas.value.length ? Object.keys(filas.value[0]!) : [])
 
-const filtradas = computed(() => {
+const porAgente = computed(() => {
   const q = agente.value.trim().toUpperCase()
   const col = columnas.value.find((c) => COLUMNA_AGENTE.test(c))
   // Sin columna de agente el filtro no aplica: se muestran todas en vez de
   // dejar la tabla vacía, que se leería como «no hay datos».
   if (!q || !col) return filas.value
   return filas.value.filter((f) => String(f[col] ?? '').toUpperCase() === q)
+})
+
+/** Solo los datasets que bajan a planta pueden filtrarse por planta. */
+const tienePlanta = computed(() => !!columnas.value.length && !!columnaDePlanta(columnas.value))
+
+const enriquecidas = computed(() =>
+  tienePlanta.value ? enriquecerFilas(porAgente.value, catalogo.value) : [],
+)
+
+const opcionesPlanta = computed(() => {
+  const vistas = new Map<string, string>()
+  for (const f of enriquecidas.value) {
+    if (f.planta) vistas.set(f.planta.codigo, f.planta.nombre)
+    else if (f.codigo) vistas.set(f.codigo, f.codigo)
+  }
+  return [...vistas].map(([codigo, nombre]) => ({ codigo, nombre }))
+})
+
+const filtradas = computed(() => {
+  if (!tienePlanta.value || !plantas.value.size) return porAgente.value
+  return filtrarPorPlanta(enriquecidas.value, { codigos: plantas.value }).map((f) => f.fila)
 })
 
 const sinColumnaAgente = computed(() =>
@@ -64,6 +90,12 @@ async function consultar() {
       alAvanzar: (p) => { progreso.value = p.total > 1 ? p : null },
     })
     consultado.value = true
+    plantas.value = new Set()
+    // El catálogo se carga solo si el dataset baja a planta, y una sola vez.
+    if (tienePlanta.value && !Object.keys(catalogo.value).length) {
+      catalogo.value = (await import('~/features/mem/data/plantasSimem.json'))
+        .default as unknown as Record<string, PlantaSimem>
+    }
   } catch (e) {
     error.value = normalizeError(e).message
     filas.value = []
@@ -111,6 +143,12 @@ async function exportar() {
         <DownloadIcon class="size-3" />
         Exportar
       </Button>
+    </div>
+
+    <!-- Solo aparece cuando el dataset trae plantas: un filtro que no aplica
+         confunde más de lo que ayuda. -->
+    <div v-if="consultado && tienePlanta" class="flex flex-wrap items-end gap-3 border-t pt-3">
+      <SelectorPlantas v-model="plantas" :opciones="opcionesPlanta" />
     </div>
 
     <p v-if="ayuda" class="text-xs text-muted-foreground">{{ ayuda }}</p>
