@@ -245,14 +245,8 @@
             <div>
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ubicación</p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-                  <NumberField v-model="editForm.latitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-                  <NumberField v-model="editForm.longitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
+                <CoordenadasInput v-model:latitud="editForm.latitud" v-model:longitud="editForm.longitud"
+                  v-model:valido="coordenadasValidas" class="md:col-span-2" />
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">RETIE (link Drive)</label>
                   <Input v-model="editInfoTecnica.retie_url" placeholder="https://drive.google.com/..." />
@@ -1095,7 +1089,17 @@ function cancelEdit() {
   router.replace({ query: {} })
 }
 
+// Ver CoordenadasInput: con una coordenada ilegible en pantalla no se guarda.
+const coordenadasValidas = ref(true)
+
 async function saveEdit() {
+  if (!coordenadasValidas.value) {
+    toast.error('Coordenada inválida', {
+      description: 'Revisa la latitud y la longitud en la pestaña Técnico.',
+      duration: 4000,
+    })
+    return
+  }
   if (!editForm.nombre_comercial?.trim()) {
     toast.error('Falta el nombre', {
       description: 'El nombre comercial no puede quedar vacío.',

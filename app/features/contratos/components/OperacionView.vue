@@ -931,8 +931,10 @@
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">
               Ubicación del servicio
-              <span class="text-muted-foreground font-normal">— haz clic en el mapa para ubicarlo</span>
+              <span class="text-muted-foreground font-normal">— escríbela, pégala o haz clic en el mapa</span>
             </label>
+            <CoordenadasInput v-model:latitud="dialogEdit.form.ubicacion_lat" v-model:longitud="dialogEdit.form.ubicacion_lng"
+              v-model:valido="coordenadasInternetValidas" />
             <div ref="dialogEditMapEl" class="rounded-md overflow-hidden h-50 bg-muted"></div>
           </div>
         </template>
@@ -977,7 +979,7 @@
 
 <script setup>
 import { ArrowLeftIcon, BoxIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CheckIcon, ChevronDownIcon, CirclePlusIcon, CreditCardIcon, DatabaseIcon, DollarSignIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, FileIcon, FileInputIcon, FileOutputIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, GaugeIcon, HouseIcon, LinkIcon, LockIcon, MonitorIcon, NetworkIcon, PencilIcon, PlusIcon, ShieldIcon, TableIcon, Trash2Icon, UserIcon, UsersIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
@@ -1136,11 +1138,16 @@ async function initInternetMap(c) {
 const dialogEditMapEl = ref(null)
 let dialogEditMap = null
 let dialogEditMarker = null
+let maplibreDialogo = null
+
+// Ver CoordenadasInput: con una coordenada ilegible en pantalla no se guarda.
+const coordenadasInternetValidas = ref(true)
 let dialogEditMapRO = null
 
 async function initDialogEditMap() {
   if (!dialogEditMapEl.value || dialogEditMap) return
   const { default: maplibregl } = await import('maplibre-gl')
+  maplibreDialogo = maplibregl
   await import('maplibre-gl/dist/maplibre-gl.css')
   if (!dialogEditMapEl.value || dialogEditMap) return
 
@@ -1209,6 +1216,17 @@ const dialogEdit = reactive({
     linea_servicio: '', id_router: '', numero_kit: '', latencia_ms: null, wifi_seguridad: null, wifi_password: '', ubicacion_lat: null, ubicacion_lng: null },
 })
 
+// Escribir o pegar la coordenada mueve el marcador (el clic en el mapa hace lo
+// inverso). El mapa solo se desplaza si el punto quedó fuera de la vista, para
+// que un clic no lo recentre.
+watch(() => [dialogEdit.form.ubicacion_lat, dialogEdit.form.ubicacion_lng], ([lat, lng]) => {
+  if (!dialogEditMap || !maplibreDialogo || lat == null || lng == null) return
+  const punto = [Number(lng), Number(lat)]
+  if (dialogEditMarker) dialogEditMarker.setLngLat(punto)
+  else dialogEditMarker = new maplibreDialogo.Marker({ color: 'var(--chart-2)' }).setLngLat(punto).addTo(dialogEditMap)
+  if (!dialogEditMap.getBounds().contains(punto)) dialogEditMap.easeTo({ center: punto, zoom: Math.max(dialogEditMap.getZoom(), 12) })
+})
+
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 onMounted(async () => {
   const proyId = route.params.id
@@ -1274,6 +1292,10 @@ function openEditContrato(tipo) {
 async function saveContrato() {
   const tipo = dialogEdit.tipo
   if (!contratos[tipo]) return
+  if (tipo === 'internet' && !coordenadasInternetValidas.value) {
+    toast.error('Coordenada inválida', { description: 'Revisa la latitud y la longitud del servicio.', duration: 4000 })
+    return
+  }
   guardandoContrato.value = true
   try {
     const toISO = d => d instanceof Date ? d.toISOString().slice(0, 10) : (d || null)

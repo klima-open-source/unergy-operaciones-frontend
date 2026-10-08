@@ -87,18 +87,8 @@
       <!-- Coordenadas: hasta ahora solo se podían cargar EDITANDO el proyecto, así
            que toda planta nacía sin ubicación en el mapa y sin coordenadas para
            quien integra por API. -->
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Latitud</label>
-        <NumberField v-model="f.latitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }">
-          <NumberFieldContent><NumberFieldInput placeholder="8.748000" /></NumberFieldContent>
-        </NumberField>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Longitud</label>
-        <NumberField v-model="f.longitud" :step-snapping="false" :format-options="{ maximumFractionDigits: 6 }">
-          <NumberFieldContent><NumberFieldInput placeholder="-75.881000" /></NumberFieldContent>
-        </NumberField>
-      </div>
+      <CoordenadasInput v-model:latitud="f.latitud" v-model:longitud="f.longitud"
+        v-model:valido="coordenadasValidas" class="col-span-2" />
       <!-- El backend acota la altitud a -100..6000 msnm (Colombia llega a ~5.700
            en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
       <div>
@@ -239,8 +229,13 @@ const props = defineProps({
 })
 const emit = defineEmits(['save', 'cancel'])
 
+// Mientras una coordenada escrita no se pueda leer, no se guarda: se mandaría
+// la anterior sin que se note.
+const coordenadasValidas = ref(true)
+
 const puedeGuardar = computed(() =>
-  !!f.nombre_comercial && (!props.operadorRedObligatorio || !!f.operador_red_id))
+  !!f.nombre_comercial && coordenadasValidas.value
+  && (!props.operadorRedObligatorio || !!f.operador_red_id))
 
 const estados = [
   { label: 'En desarrollo', value: 'en_desarrollo' },
