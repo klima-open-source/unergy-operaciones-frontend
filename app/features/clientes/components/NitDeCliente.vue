@@ -12,7 +12,7 @@ defineProps<{ nit?: string | null }>()
 <template>
   <div class="flex flex-col gap-1">
     <GLabel>NIT</GLabel>
-    <InputText :model-value="nit ?? ''" class="w-full" disabled placeholder="—" />
+    <Input :model-value="nit ?? ''" disabled placeholder="—" />
     <p class="text-xs text-muted-foreground">Sale de la ficha del cliente; se corrige allá.</p>
   </div>
 </template>
