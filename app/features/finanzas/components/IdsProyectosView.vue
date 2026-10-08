@@ -7,14 +7,14 @@
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Nombre del proyecto…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Nombre del proyecto…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} proyecto{{ filtrados.length === 1 ? '' : 's' }}
@@ -31,8 +31,8 @@
     <div v-else-if="errorApi" class="bg-card rounded-xl shadow-sm border p-6 text-center border-border">
       <TriangleAlertIcon class="mb-2 block size-6 text-warning" />
       <p class="text-sm text-muted-foreground">{{ errorApi }}</p>
-      <Button label="Reintentar" size="small" outlined class="mt-3" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="outline" size="sm" class="mt-3" @click="cargar">
+        <RefreshCwIcon class="size-4" /> Reintentar
       </Button>
     </div>
 
@@ -84,14 +84,16 @@
                     class="px-3 py-2 text-center cursor-pointer hover:bg-primary/10"
                     :class="{ 'border-l border-border': col.groupStart }"
                     @click="irAlDetalle(row.proyecto_id, col.tab)"
-                    v-tooltip.bottom="tieneValor(row[col.key]) ? String(row[col.key]) : 'Sin registrar · clic para abrir el proyecto'">
+                    :title="tieneValor(row[col.key]) ? String(row[col.key]) : 'Sin registrar · clic para abrir el proyecto'">
                   <CircleCheckIcon class="size-4 text-success" v-if="tieneValor(row[col.key])" />
                   <span v-else class="text-muted-foreground/50">—</span>
                 </td>
                 <td class="px-3 py-2">
-                  <Button text rounded size="small" severity="info" :disabled="!row.nombre_topico" v-tooltip.left="row.nombre_topico ? 'Editar códigos SIC' : 'Falta el código base del proyecto'" @click="abrirEditar(row)">
-                    <template #icon><PencilIcon class="size-4" /></template>
-                  </Button>
+                  <span :title="row.nombre_topico ? 'Editar códigos SIC' : 'Falta el código base del proyecto'">
+                    <Button variant="ghost" size="icon-sm" :disabled="!row.nombre_topico" aria-label="Editar códigos SIC" @click="abrirEditar(row)">
+                      <PencilIcon class="size-4 text-primary" />
+                    </Button>
+                  </span>
                 </td>
               </tr>
               </template>
@@ -102,29 +104,34 @@
     </template>
 
     <!-- Dialog: editar códigos de liquidaciones (van a la API de Liquidaciones) -->
-    <Dialog v-model:visible="formVisible" header="Editar códigos SIC" modal class="w-full max-w-md">
-      <form @submit.prevent="guardar" class="space-y-4 pt-1">
-        <div class="text-sm font-medium text-foreground">{{ f.nombre_comercial }}</div>
-        <p class="text-xs text-muted-foreground -mt-2">
-          Se guardan en la API de Liquidaciones (tópico <b>{{ f.nombre_topico }}</b>).
-        </p>
+    <Dialog v-model:open="formVisible">
+      <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Editar códigos SIC</DialogTitle>
+        <DialogDescription>
+          <span class="font-medium text-foreground">{{ f.nombre_comercial }}</span> · se guardan en la API de
+          Liquidaciones (tópico <b>{{ f.nombre_topico }}</b>).
+        </DialogDescription>
+      </DialogHeader>
+      <form @submit.prevent="guardar" class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">SIC generación</label>
-            <InputText v-model="f.sic_gen" class="w-full" placeholder="ej: 3A44" />
+            <Input v-model="f.sic_gen" placeholder="ej: 3A44" />
           </div>
           <div>
             <label class="mb-1 block text-xs font-medium text-muted-foreground">SIC consumo</label>
-            <InputText v-model="f.sic_con" class="w-full" placeholder="ej: 3A3P" />
+            <Input v-model="f.sic_con" placeholder="ej: 3A3P" />
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-1">
-          <Button type="button" label="Cancelar" severity="secondary" @click="formVisible = false" />
-          <Button type="submit" label="Guardar" :loading="guardando">
-            <template #icon><CheckIcon class="size-4" /></template>
+          <Button type="button" variant="outline" @click="formVisible = false">Cancelar</Button>
+          <Button type="submit" :disabled="guardando">
+            <Spinner v-if="guardando" class="size-4" /><CheckIcon v-else class="size-4" /> Guardar
           </Button>
         </div>
       </form>
+      </DialogContent>
     </Dialog>
   </div>
 </template>
@@ -132,11 +139,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import InputText from 'primevue/inputtext'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import { toast } from 'vue-sonner'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
