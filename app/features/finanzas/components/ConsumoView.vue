@@ -3,9 +3,8 @@
     <PageHeader title="Consumo"
                 subtitle="Energía contratada hora por hora, según el FTP de XM">
       <template #actions>
-        <Button label="Exportar" size="small" outlined
-                :disabled="!filtrados.length" @click="exportar">
-          <template #icon><DownloadIcon class="size-4" /></template>
+        <Button variant="outline" size="sm" :disabled="!filtrados.length" @click="exportar">
+          <DownloadIcon class="size-4" /> Exportar
         </Button>
       </template>
     </PageHeader>
@@ -14,34 +13,50 @@
     <div class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border border-border">
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Proyecto</label>
-        <Select v-model="filtros.proyecto" :options="proyectosOptions" optionLabel="label" optionValue="value"
-                showClear filter placeholder="Todos" />
+        <div class="w-56">
+          <ComboBox :model-value="aValorSelect(filtros.proyecto)" :options="opcionesProyecto" placeholder="Todos"
+                    @update:model-value="filtros.proyecto = deValorSelect($event) || null" />
+        </div>
       </div>
       <!-- Mes, año y versión definen el período que se le pide a XM: no se
            filtran en pantalla, se recarga. Por eso no admiten "todos". -->
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Mes</label>
-        <Select v-model="filtros.mes" :options="MESES" optionLabel="label" optionValue="value"
-                @change="cargar" />
+        <Select :model-value="String(filtros.mes)" @update:model-value="v => { filtros.mes = Number(v); cargar() }">
+          <SelectTrigger class="min-w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="m in MESES" :key="m.value" :value="String(m.value)">{{ m.label }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Año</label>
-        <Select v-model="filtros.anio" :options="aniosOptions" @change="cargar" />
+        <Select :model-value="String(filtros.anio)" @update:model-value="v => { filtros.anio = Number(v); cargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="a in aniosOptions" :key="a" :value="String(a)">{{ a }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Versión</label>
-        <Select v-model="filtros.version" :options="VERSIONES" @change="cargar" />
+        <Select :model-value="filtros.version" @update:model-value="v => { filtros.version = v; cargar() }">
+          <SelectTrigger class="min-w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="v in VERSIONES" :key="v" :value="v">{{ v }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Buscar</label>
-        <IconField>
-          <InputIcon><SearchIcon class="size-4" /></InputIcon>
-          <InputText v-model="q" placeholder="Proyecto…" />
-        </IconField>
+        <InputGroup>
+          <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
+          <InputGroupInput v-model="q" placeholder="Proyecto…" />
+        </InputGroup>
       </div>
       <div class="flex-1" />
-      <Button size="small" text rounded :loading="loading" v-tooltip.left="'Recargar'" @click="cargar">
-        <template #icon><RefreshCwIcon class="size-4" /></template>
+      <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
+        <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
         {{ filtrados.length }} registro{{ filtrados.length === 1 ? '' : 's' }}
@@ -112,11 +127,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { VERSIONES, VERSION_INICIAL } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { CircleXIcon, DownloadIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, ZapIcon } from '@lucide/vue'
@@ -151,6 +162,8 @@ const loading = ref(false)
 const error = ref('')
 const consumos = ref([])
 const proyectosOptions = ref([])
+// «Todos» primero: elegirlo quita el filtro (el showClear de PrimeVue).
+const opcionesProyecto = computed(() => [{ value: VALOR_SELECT_VACIO, label: 'Todos' }, ...proyectosOptions.value])
 
 // El período ya viene filtrado del servidor; aquí solo se afina por proyecto.
 const filtrados = computed(() => {
