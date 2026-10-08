@@ -11,14 +11,11 @@ import { BuildingIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon, SearchIc
 import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
-import type { ProgresoConsulta } from '~/features/mem/services/simem'
-import { consultarDataset, obtenerRegistroAgentes } from '~/features/mem/services/simem'
+import { obtenerRegistroAgentes } from '~/features/mem/services/simem'
 import type { AgenteSimem, FilaAgente, PlantaDeAgente, PlantaSimem } from '~/features/mem/utils/simemAgentes'
 import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/mem/utils/simemAgentes'
-import { enriquecerFilas, filtrarPorPlanta } from '~/features/mem/utils/simemPlantas'
 import SimemPanelDataset from '~/features/mem/components/SimemPanelDataset.vue'
 import GraficaDiariaBolsa from '~/features/mem/components/GraficaDiariaBolsa.vue'
-import SelectorPlantas from '~/features/mem/components/SelectorPlantas.vue'
 import SimemCatalogo from '~/features/mem/components/SimemCatalogo.vue'
 import { cargarCatalogo } from '~/features/mem/utils/catalogoPlantas'
 import { resumirBolsa } from '~/features/mem/utils/bolsaResumen'
@@ -70,15 +67,18 @@ const DATASETS_OEF = [
  * Datasets de contratos bilaterales e índice MC. MENSUALES: aguantan rangos
  * largos (ver `simemRangos`).
  *
- * Va solo el índice MC. Los otros cuatro que traía el HTML suelto —SICEP
- * cantidad y valor de ventas (EEDA4A, FB23CF) y contratos LP de compras y
- * ventas despachadas (C8381F, E60CE2)— el SIMEM los rechaza hoy con **HTTP
- * 400**, probado también contra 2024 y 2025: no es rezago de publicación, son
- * ids que ya no existen. Se dejan fuera en vez de ofrecer opciones que siempre
- * fallan; si XM los repone, cada uno es una línea.
+ * Los cuatro que no son el índice MC el SIMEM los rechaza hoy con **HTTP 400**
+ * —probado contra 2024, 2025 y 2026—, pero se dejan en la lista: son los mismos
+ * que ofrecía la herramienta anterior, y si el rechazo depende de algún
+ * parámetro o se repone del lado de XM, están a un clic. Cuando fallan, el panel
+ * muestra el error del SIMEM tal cual.
  */
 const DATASETS_CONTRATOS = [
   { id: 'A8F4C0', label: 'Índice MC — costo promedio contratos MR' },
+  { id: 'EEDA4A', label: 'Contratos SICEP — cantidad ventas' },
+  { id: 'FB23CF', label: 'Contratos SICEP — valor ventas' },
+  { id: 'C8381F', label: 'Contratos LP — compras despachadas' },
+  { id: 'E60CE2', label: 'Contratos LP — ventas despachadas' },
 ] as const
 
 /**
@@ -275,112 +275,6 @@ async function cargarBolsa() {
 watch(pestana, (p) => {
   if (p === 'bolsa' && !bolsa.value && !cargandoBolsa.value) cargarBolsa()
 })
-
-// ── OEF / CxC ──────────────────────────────────────────────────────────────
-/** El nombre de la columna del agente cambia entre datasets: se busca. */
-const COLUMNA_AGENTE = /codigosicagente|codigoagente/i
-const haceUnMes = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
-
-// Mismo gesto que Costos, pero estos datasets bajan a PLANTA: las filas se
-// cruzan con el catálogo y eso habilita filtrar por tecnología y por tamaño.
-const oDataset = ref<string>(DATASETS_OEF[0].id)
-const oInicio = ref(haceUnMes.toISOString().slice(0, 10))
-const oFin = ref(new Date(hoy.getFullYear(), hoy.getMonth(), 0).toISOString().slice(0, 10))
-const oAgente = ref('UNGG')
-const oTecnologia = ref('')
-const oCapMin = ref<string>('')
-const oCapMax = ref<string>('')
-const oPlantas = ref(new Set<string>())
-const oFilas = ref<Record<string, unknown>[]>([])
-const oCargando = ref(false)
-const oError = ref<string | null>(null)
-const oProgreso = ref<ProgresoConsulta | null>(null)
-const oConsultado = ref(false)
-
-const oColumnas = computed(() => oFilas.value.length ? Object.keys(oFilas.value[0]!) : [])
-
-/**
- * El agente se filtra donde esté: si el dataset trae su columna, ahí; si no
- * —varios de estos solo traen el código de planta— con el agente del catálogo,
- * más abajo. Sin esto el campo «Agente» no haría nada en la mitad de ellos.
- */
-const oColumnaAgente = computed(() => oColumnas.value.find((c) => COLUMNA_AGENTE.test(c)))
-
-const oPorAgente = computed(() => {
-  const q = oAgente.value.trim().toUpperCase()
-  const col = oColumnaAgente.value
-  if (!q || !col) return oFilas.value
-  return oFilas.value.filter((f) => String(f[col] ?? '').toUpperCase() === q)
-})
-
-const oEnriquecidas = computed(() => enriquecerFilas(oPorAgente.value, catalogo.value))
-
-const numeroOrNull = (v: string) => v.trim() === '' ? undefined : Number(v)
-
-const oFiltradas = computed(() => filtrarPorPlanta(oEnriquecidas.value, {
-  // Solo cuando la fila no trae el agente: si lo trae, ya se filtró arriba.
-  agente: oColumnaAgente.value ? undefined : (oAgente.value.trim() || undefined),
-  tecnologia: oTecnologia.value || undefined,
-  capMin: numeroOrNull(oCapMin.value),
-  capMax: numeroOrNull(oCapMax.value),
-  codigos: oPlantas.value,
-}))
-
-/**
- * Las plantas que se pueden elegir son las que la consulta TRAJO, no el
- * catálogo entero: ofrecer una sin datos sería ofrecer un filtro que vacía la
- * tabla. Se deduplican por código.
- */
-const oOpcionesPlanta = computed(() => {
-  const vistas = new Map<string, string>()
-  for (const f of oEnriquecidas.value) {
-    if (f.planta) vistas.set(f.planta.codigo, f.planta.nombre)
-    else if (f.codigo) vistas.set(f.codigo, f.codigo) // sin catálogo: al menos el código
-  }
-  return [...vistas].map(([codigo, nombre]) => ({ codigo, nombre }))
-})
-
-/** Tecnologías presentes en lo consultado, no el catálogo entero. */
-const oTecnologias = computed(() =>
-  [...new Set(oEnriquecidas.value.map((f) => f.planta?.tecnologia).filter(Boolean))].sort() as string[],
-)
-
-const oSinCatalogo = computed(() => oEnriquecidas.value.filter((f) => !f.planta).length)
-
-async function consultarOef() {
-  oCargando.value = true
-  oError.value = null
-  oProgreso.value = null
-  try {
-    oFilas.value = await consultarDataset(oDataset.value, oInicio.value, oFin.value, {
-      alAvanzar: (p) => { oProgreso.value = p.total > 1 ? p : null },
-    })
-    oConsultado.value = true
-  } catch (e) {
-    oError.value = normalizeError(e).message
-    oFilas.value = []
-  } finally {
-    oCargando.value = false
-    oProgreso.value = null
-  }
-}
-
-async function exportarOef() {
-  if (!oFiltradas.value.length) return
-  const nombre = DATASETS_OEF.find((d) => d.id === oDataset.value)?.label ?? oDataset.value
-  // Las columnas del SIMEM tal cual, y al final lo que agrega el catálogo.
-  await exportarExcel(oFiltradas.value, [
-    ...oColumnas.value.map((c) => ({
-      header: c, value: (r: typeof oFiltradas.value[number]) => r.fila[c] ?? '',
-    })),
-    { header: 'Planta', value: (r: typeof oFiltradas.value[number]) => r.planta?.nombre ?? '' },
-    { header: 'Tecnología', value: (r: typeof oFiltradas.value[number]) =>
-      r.planta ? (TECNOLOGIAS[r.planta.tecnologia] ?? r.planta.tecnologia) : '' },
-    { header: 'Capacidad (kW)', value: (r: typeof oFiltradas.value[number]) => r.planta?.capacidadKw ?? '' },
-    { header: 'Uns (SIMEM)', value: (r: typeof oFiltradas.value[number]) => r.planta?.unidades.join(', ') ?? '' },
-    { header: 'Pls (SRC)', value: (r: typeof oFiltradas.value[number]) => r.planta?.pls ?? '' },
-  ], `SIMEM_${nombre.replace(/[^\w]+/g, '_')}_${oInicio.value}_${oFin.value}.xlsx`, 'Datos')
-}
 
 onMounted(cargar)
 </script>
@@ -643,131 +537,41 @@ onMounted(cargar)
     <!-- ═══ Costos CND / ASIC ═══ -->
     <template v-else-if="pestana === 'costos'">
       <SimemPanelDataset
-        :datasets="DATASETS_COSTOS"
+        :datasets="DATASETS_COSTOS" :agentes="registro"
         ayuda="Costos liquidados por agente."
       />
     </template>
 
     <!-- ═══ OEF / CxC ═══ -->
     <template v-else-if="pestana === 'oef'">
-      <div class="flex flex-wrap items-end gap-3">
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Dataset</label>
-          <select v-model="oDataset" class="h-9 rounded-md border bg-background px-2 text-sm">
-            <option v-for="d in DATASETS_OEF" :key="d.id" :value="d.id">{{ d.label }}</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Desde</label>
-          <Input v-model="oInicio" type="date" class="w-40" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Hasta</label>
-          <Input v-model="oFin" type="date" class="w-40" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Agente</label>
-          <Input v-model="oAgente" class="w-28 uppercase" placeholder="UNGG" />
-        </div>
-        <Button size="sm" :disabled="oCargando" @click="consultarOef">Consultar</Button>
-        <Button
-          size="sm" variant="outline"
-          :disabled="oCargando || !oFiltradas.length" @click="exportarOef"
-        >
-          <DownloadIcon class="size-3" />
-          Exportar
-        </Button>
-      </div>
+      <SimemPanelDataset
+        :datasets="DATASETS_OEF" :agentes="registro"
+        ayuda="OEF y cargo por confiabilidad por planta. Estos datasets bajan a planta, así que se cruzan con el catálogo."
+      />
+    </template>
 
-      <!-- Filtros que solo existen gracias al cruce con el catálogo. -->
-      <div v-if="oConsultado" class="flex flex-wrap items-end gap-3 border-t pt-3">
-        <SelectorPlantas v-model="oPlantas" :opciones="oOpcionesPlanta" />
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Tecnología</label>
-          <select v-model="oTecnologia" class="h-9 rounded-md border bg-background px-2 text-sm">
-            <option value="">Todas</option>
-            <option v-for="t in oTecnologias" :key="t" :value="t">{{ TECNOLOGIAS[t] ?? t }}</option>
-          </select>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Cap. mín (kW)</label>
-          <Input v-model="oCapMin" type="number" class="w-28" placeholder="0" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Cap. máx (kW)</label>
-          <Input v-model="oCapMax" type="number" class="w-28" placeholder="∞" />
-        </div>
-      </div>
+    <!-- ═══ Contratos / Índice MC ═══ -->
+    <template v-else-if="pestana === 'contratos'">
+      <SimemPanelDataset
+        :datasets="DATASETS_CONTRATOS" :agentes="registro"
+        ayuda="Contratos bilaterales e índice MC. Son datasets mensuales: aguantan rangos largos."
+      />
+    </template>
 
-      <p v-if="oProgreso" class="text-xs text-muted-foreground">
-        Consultando bloque {{ oProgreso.bloque }} de {{ oProgreso.total }}
-        ({{ oProgreso.inicio }} → {{ oProgreso.fin }})…
-      </p>
+    <!-- ═══ Arranque & Parada ═══ -->
+    <template v-else-if="pestana === 'aap'">
+      <SimemPanelDataset
+        :datasets="DATASETS_AAP" :agentes="registro"
+        ayuda="Precios de oferta de arranque y parada, banderas y generación de seguridad por planta. Pesa para las liquidaciones del ASIC."
+      />
+    </template>
 
-      <div v-if="oError" class="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
-        {{ oError }}
-      </div>
-
-      <Spinner v-else-if="oCargando" class="mx-auto my-10 block size-6 text-muted-foreground" />
-
-      <template v-else-if="oConsultado">
-        <p class="text-sm text-muted-foreground">
-          <b class="text-foreground">{{ oFiltradas.length.toLocaleString('es-CO') }}</b> filas
-          <span v-if="oFiltradas.length !== oFilas.length">
-            (de {{ oFilas.length.toLocaleString('es-CO') }} traídas)
-          </span>
-          <!-- El catálogo es una foto y va atrás de XM: decirlo evita que una
-               planta nueva parezca un dato perdido. -->
-          <span v-if="oSinCatalogo" class="text-amber-700">
-            · {{ oSinCatalogo }} sin planta en el catálogo
-          </span>
-        </p>
-
-        <div v-if="!oFiltradas.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
-          Sin resultados con esos filtros.
-        </div>
-
-        <div v-else class="max-h-[32rem] overflow-auto rounded-md border">
-          <table class="w-full text-xs">
-            <thead class="sticky top-0 bg-muted">
-              <tr class="border-b">
-                <th
-                  v-for="c in oColumnas" :key="c"
-                  class="px-2 py-2 text-left font-medium whitespace-nowrap text-muted-foreground"
-                >
-                  {{ c }}
-                </th>
-                <th class="px-2 py-2 text-left font-medium whitespace-nowrap text-primary">Planta</th>
-                <th class="px-2 py-2 text-left font-medium whitespace-nowrap text-primary">Tecnología</th>
-                <th class="px-2 py-2 text-right font-medium whitespace-nowrap text-primary">Cap. (kW)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, i) in oFiltradas.slice(0, 500)" :key="i" class="border-t hover:bg-muted/40">
-                <td v-for="c in oColumnas" :key="c" class="px-2 py-1.5 whitespace-nowrap">
-                  {{ r.fila[c] }}
-                </td>
-                <td class="px-2 py-1.5 whitespace-nowrap" :class="{ 'text-muted-foreground': !r.planta }">
-                  {{ r.planta?.nombre ?? '—' }}
-                </td>
-                <td class="px-2 py-1.5 whitespace-nowrap">
-                  {{ r.planta ? (TECNOLOGIAS[r.planta.tecnologia] ?? r.planta.tecnologia) : '—' }}
-                </td>
-                <td class="px-2 py-1.5 text-right tabular-nums">
-                  {{ r.planta?.capacidadKw?.toLocaleString('es-CO') ?? '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="oFiltradas.length > 500" class="text-xs text-muted-foreground">
-          Se muestran las primeras 500 filas. El Excel las trae todas.
-        </p>
-      </template>
-
-      <div v-else class="rounded-md border p-8 text-center text-sm text-muted-foreground">
-        Elige un rango y consulta.
-      </div>
+    <!-- ═══ Generación real ═══ -->
+    <template v-else-if="pestana === 'generacion'">
+      <SimemPanelDataset
+        :datasets="DATASETS_GENERACION" :agentes="registro"
+        ayuda="Generación y disponibilidad horaria por recurso. Generación programada dejó de publicarse en 2026: para verla hay que consultar 2025 o antes."
+      />
     </template>
 
     <!-- ═══ Actualizar catálogo ═══ -->
@@ -775,30 +579,6 @@ onMounted(cargar)
       <!-- Al adoptar uno nuevo se recarga el de esta vista: los nombres de las
            otras pestañas tienen que cambiar sin recargar la página. -->
       <SimemCatalogo @actualizado="cargar" />
-    </template>
-
-    <!-- ═══ Generación real ═══ -->
-    <template v-else-if="pestana === 'generacion'">
-      <SimemPanelDataset
-        :datasets="DATASETS_GENERACION"
-        ayuda="Generación y disponibilidad horaria por recurso. Generación programada dejó de publicarse en 2026: para verla hay que consultar 2025 o antes."
-      />
-    </template>
-
-    <!-- ═══ Arranque & Parada ═══ -->
-    <template v-else-if="pestana === 'aap'">
-      <SimemPanelDataset
-        :datasets="DATASETS_AAP"
-        ayuda="Precios de oferta de arranque y parada, banderas y generación de seguridad por planta. Pesa para las liquidaciones del ASIC."
-      />
-    </template>
-
-    <!-- ═══ Contratos / Índice MC ═══ -->
-    <template v-else-if="pestana === 'contratos'">
-      <SimemPanelDataset
-        :datasets="DATASETS_CONTRATOS"
-        ayuda="Índice MC: costo promedio de los contratos del mercado regulado. Dataset mensual, aguanta rangos largos."
-      />
     </template>
   </div>
 </template>

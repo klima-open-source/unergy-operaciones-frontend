@@ -28,11 +28,14 @@ const DIAS_MENSUAL = 365
 const DIAS_PESADO = 1
 
 /**
- * Tope de días que la vista deja pedir de un dataset pesado. A 47.000 filas por
- * día, una semana ya son ~330.000: más que eso no se puede ni mostrar ni
- * exportar con sentido.
+ * Tope de días de un dataset pesado. Es el mismo límite que anunciaba la
+ * herramienta anterior, y el que aguanta la traída por bloques de a un día.
+ *
+ * No se topa por el volumen de filas: para eso está el troceado, que ya hace
+ * una llamada por día. Se topa porque un mes de estos datasets son ~1,4
+ * millones de filas y pasada esa raya la espera deja de tener sentido.
  */
-export const DIAS_MAXIMO_PESADO = 7
+export const DIAS_MAXIMO_PESADO = 31
 
 const UN_DIA_MS = 86_400_000
 

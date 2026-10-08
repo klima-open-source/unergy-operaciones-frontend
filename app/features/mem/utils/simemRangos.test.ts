@@ -129,10 +129,10 @@ describe('datasets pesados', () => {
     expect(partirRango('2026-09-01', '2026-09-07', tamanoBloque('055A4D'))).toHaveLength(7)
   })
 
-  it('hay un tope de días declarado para estos', () => {
-    // La vista lo usa para no dejar pedir un mes entero por accidente.
-    expect(DIAS_MAXIMO_PESADO).toBeGreaterThan(0)
-    expect(DIAS_MAXIMO_PESADO).toBeLessThanOrEqual(31)
+  it('el tope deja pedir un mes completo', () => {
+    // La traída por bloques ya resuelve el volumen: el tope no debe impedir lo
+    // que la herramienta anterior sí permitía.
+    expect(DIAS_MAXIMO_PESADO).toBeGreaterThanOrEqual(31)
   })
 
   it('un dataset normal no es pesado', () => {
