@@ -26,6 +26,8 @@ export interface PlantaSimem {
   un?: string[]
   /** Despacho: ND (no centralizado) | DC (centralizado). */
   dp?: string
+  /** Tipo de recurso, como lo clasifica XM en el `capains`. */
+  tp?: string
   /** Fecha de puesta en operación. */
   fpo?: string
 }

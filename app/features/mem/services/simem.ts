@@ -20,6 +20,9 @@ const BASE = 'https://www.simem.co/backend-files/api/PublicData'
 /** Registro de agentes del mercado: código SIC, razón social y actividades. */
 const DATASET_AGENTES = '972263'
 
+/** Registro de unidades de generación: planta, unidad `Uns`, nombre y FPO. */
+const DATASET_UNIDADES = '670221'
+
 /**
  * Es un dataset DIARIO y el día de hoy puede no estar publicado todavía, así
  * que se retrocede día a día hasta encontrar uno con datos.
@@ -144,4 +147,21 @@ export async function consultarDataset(
     if (i < bloques.length - 1) await new Promise((r) => setTimeout(r, PAUSA_MS))
   }
   return filas
+}
+
+
+/**
+ * El registro de unidades de los últimos días.
+ *
+ * Es lo que completa el catálogo: el `capains` no trae las unidades `Uns` ni la
+ * FPO, y además se le escapan plantas que XM sí liquida. Se piden varios días
+ * porque es un dataset diario y el de hoy puede no estar publicado.
+ */
+export async function obtenerRegistroUnidades(dias = 7, signal?: AbortSignal): Promise<Record<string, unknown>[]> {
+  const fin = new Date()
+  const inicio = new Date()
+  inicio.setDate(inicio.getDate() - dias)
+  return registrosDelRango(
+    DATASET_UNIDADES, inicio.toISOString().slice(0, 10), fin.toISOString().slice(0, 10), signal,
+  )
 }
