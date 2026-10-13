@@ -14,6 +14,7 @@ import {
   nombreDesdeCodigo,
   POR_ETAPA,
   toProyectoTsf,
+  toArriendoTsf,
 } from './originabot-api'
 
 // La forma real de originabot dev (2026-10-13), recortada a lo que se lee.
@@ -96,6 +97,7 @@ describe('toProyectoTsf', () => {
       tecnico: null,
       voltajeRed: null,
       ecs: null,
+      arriendo: null,
       // El que solo está interesado no invierte: no se trae.
       inversionistas: [
         { id: 95, nombre: 'Unergy Interno' },
@@ -444,5 +446,76 @@ describe('ECS', () => {
     expect(await ecsDeTsf(EVENT, BEARER, 'X', 46730)).toBeNull()
     vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(500)))
     expect(await ecsDeTsf(EVENT, BEARER, 'X', 46730)).toBeNull()
+  })
+})
+
+describe('toArriendoTsf', () => {
+  // Terreno 369 de dev: el contrato 179 es del proyecto 1191; la termsheet 321
+  // la comparten 4 proyectos.
+  const contrato = {
+    id: 179,
+    project: { id: 1191 },
+    termsheet: 321,
+    signed_at: null,
+    is_signed: true,
+  }
+  const termsheet = {
+    frequency: 'monthly',
+    signed_at: '2024-02-15T17:00:00Z',
+    is_signed: true,
+    actual_rent_annual_cost_cop: 64381107.0,
+    projects_data: [{ id: 1191 }, { id: 266 }, { id: 265 }, { id: 18 }],
+  }
+  const propietarios = [
+    {
+      landlord: { id: 1997, name: 'Mandy Clayton', document_number: '36****11', person_type: 'NP' },
+      payment_percentage: 0.0,
+      termsheet_receiver: false,
+    },
+    {
+      landlord: {
+        id: 596,
+        name: 'Charlene Valentine',
+        document_number: '19****53',
+        person_type: 'LP',
+      },
+      payment_percentage: 100.0,
+      termsheet_receiver: true,
+    },
+    { landlord: { id: null, name: 'sin id' }, payment_percentage: 5 },
+  ]
+
+  it('reparte el canon entre los proyectos del terreno y trae a los propietarios', () => {
+    expect(toArriendoTsf(contrato, termsheet, propietarios)).toEqual({
+      contratoId: 179,
+      firmado: true,
+      fechaFirma: '2024-02-15',
+      periodicidad: 'mensual',
+      canonAnual: 16095277,
+      proyectosTerreno: 4,
+      arrendadores: [
+        {
+          id: 1997,
+          nombre: 'Mandy Clayton',
+          documento: '36****11',
+          tipoPersona: 'natural',
+          porcentaje: 0,
+          recibePago: false,
+        },
+        {
+          id: 596,
+          nombre: 'Charlene Valentine',
+          documento: '19****53',
+          tipoPersona: 'juridica',
+          porcentaje: 100,
+          recibePago: true,
+        },
+      ],
+    })
+  })
+
+  it('la fecha es la de Bogotá: las 2 a. m. UTC todavía son el día anterior', () => {
+    const r = toArriendoTsf(contrato, { ...termsheet, signed_at: '2024-02-15T02:00:00Z' }, [])
+    expect(r?.fechaFirma).toBe('2024-02-14')
   })
 })

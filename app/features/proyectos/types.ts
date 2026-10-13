@@ -281,6 +281,37 @@ export interface ProyectoTsf {
   voltajeRed: string | null
   /** El ECS (Estudio de Conexión Simplificado) del proyecto en TSF. */
   ecs: EcsTsf | null
+  /** El contrato de arrendamiento del proyecto en TSF, con sus propietarios. */
+  arriendo: ArriendoTsf | null
+}
+
+/** Un propietario del terreno según TSF. */
+export interface ArrendadorTsf {
+  id: number
+  nombre: string
+  /** Tal como lo da TSF; en dev llega enmascarado («19****53»). */
+  documento: string | null
+  tipoPersona: 'natural' | 'juridica' | null
+  /** Su parte del canon, 0–100. */
+  porcentaje: number
+  /** Quien recibe el pago según la termsheet. */
+  recibePago: boolean
+}
+
+export type PeriodicidadArriendo = 'mensual' | 'bimestral' | 'trimestral' | 'semestral' | 'anual'
+
+/** El contrato de arrendamiento del proyecto en TSF. */
+export interface ArriendoTsf {
+  /** El `LeasingContract`: la llave con `contratos.originabot_arriendo_id`. */
+  contratoId: number
+  firmado: boolean
+  /** ISO `YYYY-MM-DD`, en hora de Bogotá. */
+  fechaFirma: string | null
+  periodicidad: PeriodicidadArriendo | null
+  /** El canon anual del terreno entre sus proyectos, en partes iguales. */
+  canonAnual: number | null
+  proyectosTerreno: number
+  arrendadores: ArrendadorTsf[]
 }
 
 /** Un panel o inversor según su archivo de PVsyst. Panel: W pico; inversor: kW AC. */

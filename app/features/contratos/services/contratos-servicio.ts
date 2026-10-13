@@ -124,9 +124,10 @@ export class ContratosServicioService extends BaseService {
     return this.post<Arrendador>(RUTAS.arrendadores(id), payload)
   }
 
+  /** PUT, pero el backend deja como están los campos que no vienen (salvo `nombre`). */
   actualizarArrendador(
     arrendadorId: Arrendador['id'],
-    payload: PayloadArrendador,
+    payload: Partial<PayloadArrendador> & Pick<PayloadArrendador, 'nombre'>,
   ): Promise<Arrendador> {
     return this.put<Arrendador>(RUTAS.arrendador(arrendadorId), payload)
   }

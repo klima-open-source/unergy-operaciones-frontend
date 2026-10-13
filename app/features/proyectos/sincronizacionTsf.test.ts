@@ -43,6 +43,7 @@ const TSF: ProyectoTsf = {
     archivoUrl: 'https://b2/ecs.pdf',
     conformidadUrl: null,
   },
+  arriendo: null,
 }
 
 const DIVIPOLA = { 'La Guajira': ['El Molino', 'Riohacha'] }

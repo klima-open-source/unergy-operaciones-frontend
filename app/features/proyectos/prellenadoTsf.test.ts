@@ -21,6 +21,7 @@ const TSF: ProyectoTsf = {
   tecnico: null,
   voltajeRed: null,
   ecs: null,
+  arriendo: null,
 }
 
 const DIVIPOLA = { Cesar: ['Agustín Codazzi', 'Bosconia'], 'Bogotá D.C.': ['Bogotá D.C.'] }

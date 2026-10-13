@@ -26,6 +26,11 @@ const RUTAS = {
   validacion: (minigranjaId: number) => `/api/roles/electrical/${minigranjaId}/project-validation/`,
   /** Insumos del punto de conexión (ECS), del servicio `requests`. */
   insumos: '/api/connection/supplies-info/',
+  /** Contratos de arrendamiento del terreno: uno por proyecto, todos de la misma termsheet. */
+  arriendos: '/api/contract/leasing_contract/',
+  termsheet: (id: number) => `/api/termsheet/v2/termsheet/${id}/`,
+  /** Los propietarios del terreno con su porcentaje del canon. */
+  propietarios: '/api/termsheet/landlord_terrain/',
 } as const
 
 /** Nombres de los campos de `simulation` en la validación eléctrica de TSF. */
@@ -73,6 +78,7 @@ export interface ExternalMinigranja {
     latitude?: unknown
     longitude?: unknown
     grid_operator?: unknown
+    terrain_id?: unknown
     location?: { city?: unknown; region?: unknown }
   }
 }
@@ -99,6 +105,63 @@ interface ExternalInsumo {
   type_supply?: { value?: unknown }
   last_status?: { text?: unknown }
   remaining_days?: { text?: unknown }
+}
+
+interface ExternalArriendo {
+  id?: unknown
+  project?: { id?: unknown }
+  termsheet?: unknown
+  signed_at?: unknown
+  is_signed?: unknown
+}
+
+interface ExternalTermsheet {
+  frequency?: unknown
+  signed_at?: unknown
+  is_signed?: unknown
+  /** El canon anual del TERRENO, que comparten todos sus proyectos. */
+  actual_rent_annual_cost_cop?: unknown
+  projects_data?: unknown[]
+}
+
+interface ExternalPropietario {
+  landlord?: {
+    id?: unknown
+    name?: unknown
+    document_type?: unknown
+    document_number?: unknown
+    person_type?: unknown
+  }
+  payment_percentage?: unknown
+  termsheet_receiver?: unknown
+}
+
+/** Un propietario del terreno según TSF. */
+export interface ArrendadorTsf {
+  id: number
+  nombre: string
+  /** Tal como lo da TSF; en dev llega enmascarado («19****53»). */
+  documento: string | null
+  tipoPersona: 'natural' | 'juridica' | null
+  /** Su parte del canon, 0–100. */
+  porcentaje: number
+  /** Quien recibe el pago según la termsheet. */
+  recibePago: boolean
+}
+
+/** El contrato de arrendamiento del proyecto en TSF. */
+export interface ArriendoTsf {
+  /** El `LeasingContract`: la llave con `contratos.originabot_arriendo_id`. */
+  contratoId: number
+  firmado: boolean
+  /** ISO `YYYY-MM-DD`, en hora de Bogotá. */
+  fechaFirma: string | null
+  periodicidad: 'mensual' | 'bimestral' | 'trimestral' | 'semestral' | 'anual' | null
+  /** El canon anual del terreno entre sus proyectos, en partes iguales. */
+  canonAnual: number | null
+  /** Cuántos proyectos comparten el terreno (y el canon). */
+  proyectosTerreno: number
+  arrendadores: ArrendadorTsf[]
 }
 
 /** El ECS del proyecto en TSF. */
@@ -161,6 +224,7 @@ export interface ProyectoTsf {
   /** «Nivel de tensión» de la validación eléctrica (kV de media tensión, p. ej. «13.8»). */
   voltajeRed: string | null
   ecs: EcsTsf | null
+  arriendo: ArriendoTsf | null
 }
 
 function texto(v: unknown): string | null {
@@ -251,6 +315,7 @@ export function toProyectoTsf(
     tecnico: null,
     voltajeRed: null,
     ecs: null,
+    arriendo: null,
     inversionistas: (m.investments ?? [])
       .filter((i) => i.status === 'investment')
       .map((i) => ({ id: numero(i.id), nombre: texto(i.name) }))
@@ -489,6 +554,95 @@ export async function ecsDeTsf(
   }
 }
 
+const PERIODICIDAD: Record<string, ArriendoTsf['periodicidad']> = {
+  monthly: 'mensual',
+  bimonthly: 'bimestral',
+  quarterly: 'trimestral',
+  biannual: 'semestral',
+  semiannual: 'semestral',
+  annual: 'anual',
+  yearly: 'anual',
+}
+
+/** `2024-02-15T03:00:00Z` → `2024-02-14`: la fecha en Bogotá (UTC−5, sin horario de verano). */
+function fechaBogota(v: unknown): string | null {
+  const t = typeof v === 'string' ? Date.parse(v) : NaN
+  return Number.isFinite(t) ? new Date(t - 5 * 3600_000).toISOString().slice(0, 10) : null
+}
+
+export function toArrendadorTsf(p: ExternalPropietario): ArrendadorTsf | null {
+  const id = numero(p.landlord?.id)
+  const nombre = texto(p.landlord?.name)
+  if (!id || !nombre) return null
+  const tipo = p.landlord?.person_type
+  return {
+    id,
+    nombre,
+    documento: texto(p.landlord?.document_number),
+    tipoPersona: tipo === 'NP' ? 'natural' : tipo === 'LP' ? 'juridica' : null,
+    porcentaje: numero(p.payment_percentage) ?? 0,
+    recibePago: p.termsheet_receiver === true,
+  }
+}
+
+export function toArriendoTsf(
+  contrato: ExternalArriendo,
+  termsheet: ExternalTermsheet,
+  propietarios: ExternalPropietario[],
+): ArriendoTsf | null {
+  const contratoId = numero(contrato.id)
+  if (!contratoId) return null
+  const proyectos = Math.max(termsheet.projects_data?.length ?? 0, 1)
+  const canon = numero(termsheet.actual_rent_annual_cost_cop)
+  return {
+    contratoId,
+    firmado: contrato.is_signed === true || termsheet.is_signed === true,
+    // El contrato casi nunca trae su fecha; la de la termsheet es la que se firmó.
+    fechaFirma: fechaBogota(contrato.signed_at) ?? fechaBogota(termsheet.signed_at),
+    periodicidad: PERIODICIDAD[String(termsheet.frequency)] ?? null,
+    canonAnual: canon === null ? null : Math.round(canon / proyectos),
+    proyectosTerreno: proyectos,
+    arrendadores: propietarios.map(toArrendadorTsf).filter((a): a is ArrendadorTsf => a !== null),
+  }
+}
+
+/**
+ * El contrato de arrendamiento del proyecto: el `LeasingContract` del terreno que
+ * es de ESTE proyecto, su termsheet (canon, periodicidad, firma) y los
+ * propietarios con su porcentaje. Nunca lanza: sin contrato, null.
+ */
+export async function arriendoDeTsf(
+  event: H3Event,
+  autorizacion: string,
+  proyectoId: number,
+  terrenoId: number,
+): Promise<ArriendoTsf | null> {
+  try {
+    const query = { terrain: terrenoId }
+    const [contratos, propietarios] = await Promise.all([
+      $fetch<ExternalArriendo[] | { results?: ExternalArriendo[] }>(RUTAS.arriendos, {
+        ...opciones(event, autorizacion),
+        query,
+      }),
+      $fetch<{ results?: ExternalPropietario[] }>(RUTAS.propietarios, {
+        ...opciones(event, autorizacion),
+        query: { ...query, page_size: 100 },
+      }),
+    ])
+    const lista = Array.isArray(contratos) ? contratos : (contratos.results ?? [])
+    const contrato = lista.find((c) => numero(c.project?.id) === proyectoId)
+    const termsheetId = numero(contrato?.termsheet)
+    if (!contrato || !termsheetId) return null
+    const termsheet = await $fetch<ExternalTermsheet>(
+      RUTAS.termsheet(termsheetId),
+      opciones(event, autorizacion),
+    )
+    return toArriendoTsf(contrato, termsheet, propietarios.results ?? [])
+  } catch {
+    return null
+  }
+}
+
 export async function minigranjaDeTsf(
   event: H3Event,
   autorizacion: string,
@@ -514,11 +668,15 @@ export async function minigranjaDeTsf(
       ).catch(() => null)
     : null
 
-  const [presimulacion, ecs] = await Promise.all([
+  const terrenoId = numero(minigranja.project?.terrain_id)
+  const [presimulacion, ecs, arriendo] = await Promise.all([
     presimulacionDeTsf(event, autorizacion, id),
     proyectoId && texto(minigranja.name)
       ? ecsDeTsf(event, autorizacion, texto(minigranja.name)!, proyectoId)
       : Promise.resolve(null),
+    proyectoId && terrenoId
+      ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId)
+      : Promise.resolve(null),
   ])
-  return { ...toProyectoTsf(minigranja, proyecto), ...presimulacion, ecs }
+  return { ...toProyectoTsf(minigranja, proyecto), ...presimulacion, ecs, arriendo }
 }

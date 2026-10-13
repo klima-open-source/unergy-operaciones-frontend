@@ -7,13 +7,20 @@ const state = useConfirmState()
 
 // Cerrar el diálogo es cancelar, salvo que el cierre venga de Confirmar: quien
 // pidió la confirmación puede tener que seguir por el otro camino (`onCancel`).
+// `AlertDialogAction` cierra el diálogo ANTES de que corra su `@click`, así que
+// se espera una vuelta del event loop para saber si el cierre fue un Confirmar.
 let confirmado = false
 
 const open = computed({
   get: () => state.value.open,
   set: (value: boolean) => {
-    if (!value && state.value.open && !confirmado) state.value.options?.onCancel?.()
-    confirmado = false
+    if (!value && state.value.open) {
+      const onCancel = state.value.options?.onCancel
+      setTimeout(() => {
+        if (!confirmado) onCancel?.()
+        confirmado = false
+      })
+    }
     state.value = { ...state.value, open: value }
   },
 })

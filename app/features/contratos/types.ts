@@ -310,6 +310,8 @@ export interface ContratoServicio {
   tarifa_cgm?: number | null
   tarifa_representacion?: number | null
   periodicidad_pago?: string | null
+  /** El `LeasingContract` de TSF que es este arriendo (lo fija «Sincronizar con TSF»). */
+  originabot_arriendo_id?: number | null
   indice_indexacion?: string | null
   responsable_iva?: boolean | null
   service_scope?: string | null
@@ -373,6 +375,11 @@ export interface SerieIndexacionCalculada {
 export interface Arrendador {
   id: number
   nombre: string
+  cliente_id?: number | null
+  /** El propietario (`LandLord`) de TSF; lo fija «Sincronizar con TSF». */
+  originabot_landlord_id?: number | null
+  /** Su parte del canon según TSF, 0–100. */
+  porcentaje_pago?: string | number | null
   valor_base?: number | null
   responsable_iva?: boolean
   activo?: boolean
@@ -391,6 +398,9 @@ export interface PayloadArrendador {
   anticipo_pagado_desde: string | null
   anticipo_pagado_hasta: string | null
   observaciones: string | null
+  cliente_id?: number | null
+  originabot_landlord_id?: number | null
+  porcentaje_pago?: number | null
 }
 
 export interface PagoContratoServicio {

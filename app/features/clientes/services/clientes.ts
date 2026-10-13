@@ -42,6 +42,7 @@ const RUTAS = {
     `${BASE}/${id}/contactos/${contactoId}`,
   testCorreo: (id: number) => `${BASE}/${id}/test-correo`,
   originabot: `${BASE}/originabot`,
+  originabotArrendador: `${BASE}/originabot-arrendador`,
 } as const
 
 /** `POST /clientes/originabot`: el cliente de un inversionista de TSF, o qué pasaría. */
@@ -51,7 +52,31 @@ export interface VinculoInversionistaOriginabot {
   razon_social_nombre: string
 }
 
+/** Un propietario (`LandLord`) de TSF, como lo pide `POST /clientes/originabot-arrendador`. */
+export interface ArrendadorOriginabot {
+  landlord_id: number
+  nombre: string
+  documento: string | null
+  tipo_persona: 'natural' | 'juridica' | null
+}
+
 export class ClientesService extends BaseService {
+  /** Vincula (o crea) el cliente de un propietario de TSF. Idempotente. */
+  vincularArrendadorOriginabot(
+    arrendador: ArrendadorOriginabot,
+  ): Promise<VinculoInversionistaOriginabot> {
+    return this.post<VinculoInversionistaOriginabot>(RUTAS.originabotArrendador, arrendador)
+  }
+
+  /** Qué haría `vincularArrendadorOriginabot` sin escribir: para confirmar antes de CREAR. */
+  simularArrendadorOriginabot(
+    arrendador: ArrendadorOriginabot,
+  ): Promise<VinculoInversionistaOriginabot> {
+    return this.post<VinculoInversionistaOriginabot>(RUTAS.originabotArrendador, arrendador, {
+      query: { simular: true },
+    })
+  }
+
   /** Vincula (o crea) el cliente de un inversionista de TSF. Idempotente. */
   vincularInversionistaOriginabot(
     investmentId: number,
