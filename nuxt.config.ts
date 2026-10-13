@@ -129,6 +129,45 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    /**
+     * Solo afecta a `bun run dev`. Vite descubre las dependencias a medida que se
+     * navega: la primera vez que una página importa una librería nueva, la
+     * re-empaqueta y fuerza una recarga completa del navegador. Declararlas aquí
+     * hace que se pre-empaqueten todas al arrancar y la navegación no recargue.
+     *
+     * Si una página nueva importa una librería que no está en la lista, el log
+     * del dev server lo dice («dependencies optimized: …»): agrégala aquí.
+     */
+    optimizeDeps: {
+      include: [
+        '@internationalized/date',
+        '@lucide/vue',
+        '@vueuse/core',
+        'chart.js',
+        'class-variance-authority',
+        'clsx',
+        'embla-carousel-vue',
+        'exceljs',
+        'jspdf',
+        'jspdf-autotable',
+        'jszip',
+        'maplibre-gl',
+        'ofetch',
+        'ogl',
+        'pdfjs-dist',
+        'reka-ui',
+        'reka-ui/date',
+        'tailwind-merge',
+        'vee-validate',
+        'vue-chartjs',
+        'vue-input-otp',
+        'vue-sonner',
+        'vuedraggable',
+        'xlsx',
+        'xlsx-js-style',
+        'zod',
+      ],
+    },
   },
 
   /**
