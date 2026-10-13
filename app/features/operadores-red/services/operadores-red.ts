@@ -2,6 +2,7 @@
 import type {
   ContactoOperadorRed,
   OperadorRed,
+  SimulacionVinculoOriginabot,
   PayloadContactoOperadorRed,
   PayloadOperadorRed,
 } from '~/features/operadores-red/types'
@@ -41,6 +42,15 @@ export class OperadoresRedService extends BaseService {
    */
   vincularOriginabot(codigo: string, nombre: string): Promise<OperadorRed> {
     return this.post<OperadorRed>(RUTAS.originabot, { codigo, nombre })
+  }
+
+  /** Qué haría `vincularOriginabot` sin escribir: para confirmar antes de CREAR. */
+  simularVinculoOriginabot(codigo: string, nombre: string): Promise<SimulacionVinculoOriginabot> {
+    return this.post<SimulacionVinculoOriginabot>(
+      RUTAS.originabot,
+      { codigo, nombre },
+      { query: { simular: true } },
+    )
   }
 
   actualizar(id: OperadorRed['id'], payload: PayloadOperadorRed): Promise<OperadorRed> {

@@ -22,6 +22,7 @@ const props = defineProps<{ contrato: ContratoPpa }>()
 const emit = defineEmits<{ actualizado: [contrato: ContratoPpa] }>()
 
 const servicio = new PpaService()
+const confirm = useConfirm()
 
 const ESTADOS = {
   sincronizado: { label: 'Sincronizado', color: 'success' },
@@ -66,6 +67,32 @@ async function cargarOpciones() {
   }
 }
 
+const plantas = computed(() => props.contrato.proyectos?.length ?? 0)
+const nombre = computed(
+  () => props.contrato.nombre_interno || props.contrato.numero_codigo_contrato || `PPA #${props.contrato.id}`,
+)
+
+// Crear y vincular escriben en originabot: siempre con confirmación.
+function confirmarCrear() {
+  const offTaker = opcionesOfftaker.value.find((o) => o.value === offTakerElegido.value)?.label
+  confirm({
+    title: 'Esta acción creará el PPA en TSF. ¿Desea continuar?',
+    description: `Se creará «${nombre.value}» en originabot con ${plantas.value} plantas y el off taker «${offTaker}». Borrarlo después hay que hacerlo en originabot.`,
+    confirmLabel: 'Sí, crear en TSF',
+    onConfirm: () => sincronizar({ crear: true, off_taker_id: Number(offTakerElegido.value) }),
+  })
+}
+
+function confirmarVincular() {
+  const ppa = opcionesPpa.value.find((o) => o.value === ppaElegido.value)?.label
+  confirm({
+    title: 'Esta acción modificará un PPA en TSF. ¿Desea continuar?',
+    description: `Se vinculará este contrato con «${ppa}» de originabot y se le agregarán sus ${plantas.value} plantas. Las que ya tenga allá se conservan.`,
+    confirmLabel: 'Sí, vincular',
+    onConfirm: () => sincronizar({ originabot_ppa_id: Number(ppaElegido.value) }),
+  })
+}
+
 async function sincronizar(payload: PayloadSyncOriginabot = {}) {
   sincronizando.value = true
   try {
@@ -108,7 +135,7 @@ async function sincronizar(payload: PayloadSyncOriginabot = {}) {
           Vincular o crear
         </Button>
         <Button
-          v-if="vinculado || contrato.originabot_sync_estado"
+          v-if="vinculado"
           variant="outline"
           size="sm"
           :disabled="sincronizando"
@@ -133,7 +160,7 @@ async function sincronizar(payload: PayloadSyncOriginabot = {}) {
           size="sm"
           variant="outline"
           :disabled="!ppaElegido || sincronizando"
-          @click="sincronizar({ originabot_ppa_id: Number(ppaElegido) })"
+          @click="confirmarVincular"
         >
           <LinkIcon class="size-4" /> Vincular
         </Button>
@@ -145,7 +172,7 @@ async function sincronizar(payload: PayloadSyncOriginabot = {}) {
         <Button
           size="sm"
           :disabled="!offTakerElegido || sincronizando"
-          @click="sincronizar({ off_taker_id: Number(offTakerElegido) })"
+          @click="confirmarCrear"
         >
           <PlusIcon class="size-4" /> Crear en originabot
         </Button>

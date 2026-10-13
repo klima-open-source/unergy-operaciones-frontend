@@ -29,6 +29,37 @@ const MINIMO = 3
 
 const servicio = new OriginabotService()
 const operadoresRed = new OperadoresRedService()
+const confirm = useConfirm()
+
+function confirmar(titulo: string, descripcion: string): Promise<boolean> {
+  return new Promise((resolver) =>
+    confirm({
+      title: titulo,
+      description: descripcion,
+      confirmLabel: 'Sí, crear',
+      onConfirm: () => resolver(true),
+      onCancel: () => resolver(false),
+    }),
+  )
+}
+
+/** Vincula el operador de TSF; si eso lo CREARÍA en Operaciones, pregunta antes. */
+async function vincularOperador(codigo: string, nombre: string) {
+  try {
+    const simulacion = await operadoresRed.simularVinculoOriginabot(codigo, nombre)
+    if (simulacion.estado === 'existente') return
+    if (simulacion.estado === 'creado') {
+      const si = await confirmar(
+        `Esta acción creará el operador de red «${nombre}» en Operaciones`,
+        'Viene de TSF y aún no está en el catálogo. ¿Desea continuar? Si no, el operador queda para elegirlo a mano en el formulario.',
+      )
+      if (!si) return
+    }
+    await operadoresRed.vincularOriginabot(codigo, nombre)
+  } catch {
+    // Sin vínculo el formulario cae al nombre y, si no encaja, lo deja editable.
+  }
+}
 
 const busqueda = ref('')
 const resultados = ref<ResultadoTsf[]>([])
@@ -76,10 +107,10 @@ async function elegir(resultado: ResultadoTsf) {
       return
     }
     // Que el operador de TSF exista en el catálogo con su llave antes de abrir
-    // el formulario, que cruza por ella. Si falla, el formulario cae al nombre y,
-    // si tampoco encaja, deja el campo editable y avisado.
+    // el formulario, que cruza por ella. Si falla o la persona no confirma crearlo,
+    // el formulario cae al nombre y, si tampoco encaja, deja el campo editable.
     if (proyecto.operadorRedCodigo && proyecto.operadorRed) {
-      await operadoresRed.vincularOriginabot(proyecto.operadorRedCodigo, proyecto.operadorRed).catch(() => null)
+      await vincularOperador(proyecto.operadorRedCodigo, proyecto.operadorRed)
     }
     emit('seleccionar', proyecto)
   } catch (e) {

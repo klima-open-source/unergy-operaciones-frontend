@@ -458,4 +458,6 @@ export interface OpcionesOriginabot {
 export interface PayloadSyncOriginabot {
   originabot_ppa_id?: number
   off_taker_id?: number
+  /** Crear el PPA en originabot. La ficha lo manda solo tras confirmar. */
+  crear?: boolean
 }

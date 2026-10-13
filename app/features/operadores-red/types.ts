@@ -91,3 +91,10 @@ export interface EnvioInforme {
   proyectos?: string
   proyectos_total?: number | null
 }
+
+/** `POST /operadores-red/originabot?simular=true`: lo que pasaría, sin escribir. */
+export interface SimulacionVinculoOriginabot {
+  estado: 'existente' | 'vinculado' | 'creado'
+  id: number | null
+  nombre_comercial: string
+}

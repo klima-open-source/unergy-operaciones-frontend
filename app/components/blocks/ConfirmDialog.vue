@@ -5,14 +5,21 @@ import { TriangleAlertIcon } from '@lucide/vue'
 // (ver app/components/gandalf/README.md).
 const state = useConfirmState()
 
+// Cerrar el diálogo es cancelar, salvo que el cierre venga de Confirmar: quien
+// pidió la confirmación puede tener que seguir por el otro camino (`onCancel`).
+let confirmado = false
+
 const open = computed({
   get: () => state.value.open,
   set: (value: boolean) => {
+    if (!value && state.value.open && !confirmado) state.value.options?.onCancel?.()
+    confirmado = false
     state.value = { ...state.value, open: value }
   },
 })
 
 function onConfirm() {
+  confirmado = true
   state.value.options?.onConfirm()
 }
 </script>

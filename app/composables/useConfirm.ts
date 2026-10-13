@@ -16,6 +16,8 @@ export interface ConfirmOptions {
   /** `'destructive'` para eliminar o cualquier acción que no se puede deshacer. */
   variant?: 'default' | 'destructive'
   onConfirm: () => void
+  /** Se cerró sin confirmar (Cancelar, Escape, clic fuera). */
+  onCancel?: () => void
 }
 
 interface ConfirmState {
