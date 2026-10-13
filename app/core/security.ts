@@ -23,6 +23,7 @@
 import type { User } from '~/types/user'
 
 const TOKEN_KEY = 'token'
+const REFRESH_KEY = 'refresh_token'
 const USER_KEY = 'user'
 
 /**
@@ -63,6 +64,27 @@ export function setAccessToken(token: string | null): void {
   }
 }
 
+// ── Refresh token (solo sesiones de Unergy Auth) ────────────────────────────
+// El login propio del backend no emite refresh: su token dura 8 h (30 días en
+// móvil). Con Unergy Auth el access es corto y este es el que lo renueva — ver
+// `tokenVigente()` en `~/core/client.ts`. Misma advertencia de XSS que arriba.
+export function getRefreshToken(): string | null {
+  try {
+    return almacen()?.getItem(REFRESH_KEY) ?? null
+  } catch {
+    return null
+  }
+}
+
+export function setRefreshToken(token: string | null): void {
+  try {
+    if (token) almacen()?.setItem(REFRESH_KEY, token)
+    else almacen()?.removeItem(REFRESH_KEY)
+  } catch {
+    /* almacenamiento no disponible */
+  }
+}
+
 // ── Usuario en caché ─────────────────────────────────────────────────────────
 export function getStoredUser(): User | null {
   try {
@@ -86,6 +108,7 @@ export function setStoredUser(user: User | null): void {
 export function clearTokens(): void {
   try {
     almacen()?.removeItem(TOKEN_KEY)
+    almacen()?.removeItem(REFRESH_KEY)
     almacen()?.removeItem(USER_KEY)
   } catch {
     /* almacenamiento no disponible */
@@ -108,11 +131,15 @@ export function decodeJwtPayload(jwt: string | null | undefined): JwtPayload | n
   }
 }
 
-/** Un token sin `exp` legible se considera vencido: no se confía en lo que no se puede comprobar. */
-export function isTokenExpired(jwt: string | null | undefined): boolean {
+/**
+ * Un token sin `exp` legible se considera vencido: no se confía en lo que no se
+ * puede comprobar. `margenSegundos` lo da por vencido un poco antes, para
+ * renovarlo antes de que una petición en vuelo llegue al backend ya caducada.
+ */
+export function isTokenExpired(jwt: string | null | undefined, margenSegundos = 0): boolean {
   const payload = decodeJwtPayload(jwt)
   if (!payload?.exp) return true
-  return Date.now() >= payload.exp * 1000
+  return Date.now() >= (payload.exp - margenSegundos) * 1000
 }
 
 /**

@@ -21,7 +21,9 @@ const TEST_RUNTIME_CONFIG = {
   // session logic even though it ships off (`authSessionCookiesEnabled` in
   // nuxt.config.ts) until the real backend exposes `/auth/me`.
   authSessionCookiesEnabled: true,
+  unergyAuthUrl: 'https://unergy-auth.test',
   public: {
+    unergyAuthEnabled: true,
     apiBaseUrl: 'https://api.test',
     authEnabled: true,
     authPasswordEnabled: true,

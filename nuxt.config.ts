@@ -106,8 +106,21 @@ export default defineNuxtConfig({
      * every proxied `/api/v1/*` call and redirect every page on first load.
      */
     authSessionCookiesEnabled: false,
+    /**
+     * Unergy Auth (authentication-system). Server-only: el navegador habla con
+     * `server/routes/unergy-auth/*`, nunca con el servicio. Ver
+     * `server/utils/unergy-auth-api.ts`.
+     */
+    unergyAuthUrl: 'https://auth.unergy.io',
 
     public: {
+      /**
+       * Login con Unergy Auth en vez del login propio del backend. Apagado por
+       * defecto: el backend tiene que tener `GRPC_HOST` configurado para aceptar
+       * esos tokens, o cada petición respondería 401. La app móvil sigue con el
+       * login propio (token de 30 días) mientras tanto.
+       */
+      unergyAuthEnabled: false,
       apiBaseUrl: '',
       /**
        * Fase 3, ola 1: el guard del template (`auth.global.ts`) gobierna la

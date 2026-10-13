@@ -12,8 +12,16 @@
  * servidor. En cuanto ese endpoint exista, el transporte cambia aquí — el resto
  * de la app (`access.ts`, `auth.global.ts`, `~/config/permissions`) ya trabaja
  * sobre `User`/`Permission` y no se entera.
+ *
+ * Dos orígenes de sesión mientras dura la migración a Unergy Auth
+ * (`public.unergyAuthEnabled`):
+ *   - login propio: el JWT del backend trae el usuario en sus claims;
+ *   - Unergy Auth: el JWT es de authentication-system y no sabe nada de
+ *     Operaciones, así que el usuario sale de `GET /api/v1/auth/me` y la sesión
+ *     guarda además un refresh token (`~/core/client.ts` lo usa).
  */
 import type { RespuestaToken } from '~/features/auth/services/operaciones-auth'
+import type { UsuarioOperaciones } from '~/features/auth/services/unergy-auth'
 import type { Permission } from '~/config/permissions'
 import type { User } from '~/types/user'
 import { ROLE_PERMISSIONS } from '~/config/permissions'
@@ -22,13 +30,16 @@ import {
   clearTokens,
   decodeJwtPayload,
   getAccessToken,
+  getRefreshToken,
   getStoredUser,
   isTokenExpired,
   setAccessToken,
+  setRefreshToken,
   setStoredUser,
 } from '~/core/security'
 import { hasPermission } from '~/core/permissions'
 import { OperacionesAuthService } from '~/features/auth/services/operaciones-auth'
+import { UnergyAuthService } from '~/features/auth/services/unergy-auth'
 
 export interface AuthState {
   user: User | null
@@ -54,6 +65,20 @@ function userFromToken(jwt: string): User | null {
   }
 }
 
+/** El usuario de Operaciones que el backend resolvió para un token de Unergy Auth. */
+function userFromOperaciones(usuario: UsuarioOperaciones): User {
+  return {
+    id: String(usuario.id),
+    email: usuario.email,
+    name: usuario.nombre,
+    // Verbatim, igual que en `userFromToken`: un rol desconocido debe denegar.
+    role: usuario.rol as User['role'],
+    avatar: null,
+    created_at: usuario.created_at,
+    updated_at: usuario.updated_at,
+  }
+}
+
 /**
  * El estado inicial, leído de `localStorage`. En el servidor `getAccessToken()`
  * devuelve `null` (`~/core/security` resuelve el storage solo en cliente), así
@@ -62,7 +87,11 @@ function userFromToken(jwt: string): User | null {
  */
 function initialAuthState(): AuthState {
   const token = getAccessToken()
-  if (!token || isTokenExpired(token)) {
+  // Una sesión de Unergy Auth con el access vencido sigue viva si tiene refresh:
+  // la primera petición lo renueva (`~/core/client.ts`). Si el refresh también
+  // venció, esa petición recibe 401 y vuelve al login como cualquier otra.
+  const renovable = !!getRefreshToken() && !!getStoredUser()
+  if (!token || (isTokenExpired(token) && !renovable)) {
     if (token) clearTokens()
     return { user: null, accessToken: null }
   }
@@ -104,12 +133,32 @@ export function useAuth() {
 
     state.value = { user, accessToken: token.access_token }
     setAccessToken(token.access_token)
+    // El login propio no tiene refresh: uno que quedara de una sesión de Unergy
+    // anterior haría que `~/core/client.ts` intentara renovar este token.
+    setRefreshToken(null)
     setStoredUser(user)
   }
 
   async function signIn(credentials: { email: string; password: string }): Promise<void> {
+    if (useRuntimeConfig().public.unergyAuthEnabled) {
+      await signInUnergy(credentials)
+      return
+    }
     const token = await new OperacionesAuthService().login(credentials.email, credentials.password)
     aplicarToken(token)
+  }
+
+  async function signInUnergy(credentials: { email: string; password: string }): Promise<void> {
+    const servicio = new UnergyAuthService()
+    const tokens = await servicio.login(credentials.email, credentials.password)
+    // Si el backend no reconoce el email (403) esto lanza y no queda nada
+    // guardado: un token de Unergy sin usuario de Operaciones no es una sesión.
+    const user = userFromOperaciones(await servicio.usuarioActual(tokens.access))
+
+    state.value = { user, accessToken: tokens.access }
+    setAccessToken(tokens.access)
+    setRefreshToken(tokens.refresh)
+    setStoredUser(user)
   }
 
   /** Login de la app móvil: mismo usuario, token de larga duración (30 días). */
