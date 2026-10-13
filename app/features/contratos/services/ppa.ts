@@ -87,7 +87,7 @@ export class PpaService extends BaseService {
 
   /**
    * Lleva a originabot lo pendiente del PPA; con `originabot_ppa_id` lo vincula a
-   * uno existente (solo agrega plantas), con `off_taker_id` lo crea allá. El
+   * uno existente (y le reemplaza las minigranjas por las de aquí), con `off_taker_id` lo crea allá. El
    * resultado viaja en `originabot_sync_*` del contrato que devuelve.
    */
   sincronizarOriginabot(

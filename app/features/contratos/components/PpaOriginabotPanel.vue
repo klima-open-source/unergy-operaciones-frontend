@@ -86,8 +86,8 @@ function confirmarCrear() {
 function confirmarVincular() {
   const ppa = opcionesPpa.value.find((o) => o.value === ppaElegido.value)?.label
   confirm({
-    title: 'Esta acción modificará un PPA en TSF. ¿Desea continuar?',
-    description: `Se vinculará este contrato con «${ppa}» de originabot y se le agregarán sus ${plantas.value} plantas. Las que ya tenga allá se conservan.`,
+    title: 'Esta acción reemplazará las minigranjas de un PPA en TSF. ¿Desea continuar?',
+    description: `Se vinculará este contrato con «${ppa}» de originabot y su lista de minigranjas quedará igual a las ${plantas.value} plantas de este contrato: las que tenga allá y no estén aquí se quitarán.`,
     confirmLabel: 'Sí, vincular',
     onConfirm: () => sincronizar({ originabot_ppa_id: Number(ppaElegido.value) }),
   })
@@ -155,7 +155,7 @@ async function sincronizar(payload: PayloadSyncOriginabot = {}) {
       <div class="flex flex-col gap-1.5">
         <GLabel>Vincular a un PPA que ya existe allá</GLabel>
         <ComboBox v-model="ppaElegido" :options="opcionesPpa" placeholder="PPA de originabot…" />
-        <p class="text-xs text-muted-foreground">Solo se le agregan las plantas de este contrato.</p>
+        <p class="text-xs text-muted-foreground">Sus minigranjas se reemplazan por las plantas de este contrato.</p>
         <Button
           size="sm"
           variant="outline"
