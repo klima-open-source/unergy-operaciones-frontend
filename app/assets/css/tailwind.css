@@ -144,6 +144,20 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /*
+   * `@tailwindcss/forms` le da borde, fondo, padding, esquinas, `text-base` y
+   * anillo de foco a todo `<input>`. Estas primitivas de shadcn no traen clases
+   * que lo pisen porque no tienen borde propio: se lo pone su contenedor
+   * (`InputGroup`, el wrapper de `Command`). Sin esto se ve un
+   * rectángulo dentro del campo. `ui/` no se toca, así que se neutraliza aquí;
+   * las clases del componente (p. ej. el `pl-1.5` de `InputGroup`) siguen
+   * ganando, porque son utilidades.
+   */
+  [data-slot='combobox-input'],
+  [data-slot='command-input'] {
+    @apply rounded-none border-0 bg-transparent py-0 pr-3 text-sm shadow-none focus:ring-0 focus:outline-hidden;
+  }
 }
 
 /* Utilidades que Tailwind no trae: evitan `[scrollbar-width:thin]` y `[writing-mode:…]` arbitrarios. */
