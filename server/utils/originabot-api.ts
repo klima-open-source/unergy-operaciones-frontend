@@ -120,6 +120,8 @@ interface ExternalArriendo {
   id?: unknown
   project?: { id?: unknown }
   termsheet?: unknown
+  /** URL firmada del PDF firmado a mano; de ahí sale su key en el bucket. */
+  file_mannually_signed?: unknown
   signed_at?: unknown
   is_signed?: unknown
 }
@@ -674,10 +676,38 @@ async function campoContratoArriendo(
   }
 }
 
-/** La pestaña legal del terreno en la app de TSF. */
-function enlaceLegal(event: H3Event, terrenoId: number): string | null {
-  const base = useRuntimeConfig(event).tsfUrl
-  return base ? `${String(base).replace(/\/$/, '')}/minifarms/lands/${terrenoId}?tab=legal` : null
+/**
+ * La key del archivo en el bucket, a partir de lo que originabot da: una URL
+ * firmada (`https://f005.backblazeb2.com/file/<bucket>/<key>?Authorization=…` o
+ * `https://s3.…/<bucket>/<key>?X-Amz-…`) o la key cruda (a veces con `/media/`
+ * delante, que no es parte de la key). null si no se reconoce.
+ */
+export function keyDeArchivo(valor: unknown): string | null {
+  const v = texto(valor)
+  if (!v) return null
+  if (!/^https?:\/\//i.test(v)) return v.replace(/^\/?(media\/)?/, '') || null
+  try {
+    const partes = new URL(v).pathname.split('/').filter(Boolean).map(decodeURIComponent)
+    // Backblaze nativo: /file/<bucket>/<key>; S3: /<bucket>/<key>.
+    const resto = partes[0] === 'file' ? partes.slice(2) : partes.slice(1)
+    return resto.length ? resto.join('/') : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * La pestaña legal del terreno en la app de TSF; con la key del archivo, abre
+ * directo el visualizador de ese documento (`&file=`).
+ */
+export function enlaceLegal(
+  base: unknown,
+  terrenoId: number,
+  archivo: string | null = null,
+): string | null {
+  if (!base) return null
+  const url = `${String(base).replace(/\/$/, '')}/minifarms/lands/${terrenoId}?tab=legal`
+  return archivo ? `${url}&file=${encodeURIComponent(archivo)}` : url
 }
 
 /**
@@ -694,7 +724,7 @@ export async function arriendoDeTsf(
   terrenoId: number,
   minigranjaId: number,
 ): Promise<ArriendoTsf | null> {
-  const enlace = enlaceLegal(event, terrenoId)
+  const base = useRuntimeConfig(event).tsfUrl
   try {
     const query = { terrain: terrenoId }
     const [contratos, propietarios] = await Promise.all([
@@ -714,14 +744,28 @@ export async function arriendoDeTsf(
       const campo = await campoContratoArriendo(event, autorizacion, minigranjaId)
       const proyectos = new Set(lista.map((c) => numero(c.project?.id))).size || 1
       return campo
-        ? toArriendoDocumento(campo, propietarios.results ?? [], enlace, proyectos)
+        ? toArriendoDocumento(
+            campo,
+            propietarios.results ?? [],
+            enlaceLegal(base, terrenoId, keyDeArchivo(campo.value)),
+            proyectos,
+          )
         : null
     }
     const termsheet = await $fetch<ExternalTermsheet>(
       RUTAS.termsheet(termsheetId),
       opciones(event, autorizacion),
     )
-    return toArriendoTsf(contrato, termsheet, propietarios.results ?? [], enlace)
+    // El PDF firmado del contrato nuevo; si no lo tiene, el del campo legacy.
+    const archivo =
+      keyDeArchivo(contrato.file_mannually_signed) ??
+      keyDeArchivo((await campoContratoArriendo(event, autorizacion, minigranjaId))?.value)
+    return toArriendoTsf(
+      contrato,
+      termsheet,
+      propietarios.results ?? [],
+      enlaceLegal(base, terrenoId, archivo),
+    )
   } catch {
     return null
   }

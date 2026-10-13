@@ -121,7 +121,7 @@ export default defineNuxtConfig({
     /**
      * La app de TSF (unergy-platform), para enlazar documentos que solo viven
      * allá, como el PDF del contrato de arrendamiento (`NUXT_TSF_URL`; en dev,
-     * `https://devtsf.uner.gy`).
+     * `https://develop-sun-factory.user5c.workers.dev`).
      */
     tsfUrl: 'https://tsf.unergy.io',
 

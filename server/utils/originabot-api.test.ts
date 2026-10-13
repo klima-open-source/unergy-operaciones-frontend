@@ -16,6 +16,8 @@ import {
   toProyectoTsf,
   toArriendoTsf,
   toArriendoDocumento,
+  keyDeArchivo,
+  enlaceLegal,
 } from './originabot-api'
 
 // La forma real de originabot dev (2026-10-13), recortada a lo que se lee.
@@ -566,5 +568,37 @@ describe('toArriendoDocumento', () => {
 
   it('sin PDF no hay contrato', () => {
     expect(toArriendoDocumento({ value: null }, propietarios, enlace, 1)).toBeNull()
+  })
+})
+
+describe('enlace al visualizador de documentos de TSF', () => {
+  it('saca la key de la URL firmada de Backblaze, de S3 o de la key cruda', () => {
+    expect(
+      keyDeArchivo(
+        'https://f005.backblazeb2.com/file/originabotdevelop/validation/207201/Contrato_de_arrendamiento.pdf?Authorization=3_x',
+      ),
+    ).toBe('validation/207201/Contrato_de_arrendamiento.pdf')
+    expect(
+      keyDeArchivo(
+        'https://s3.us-east-005.backblazeb2.com/originabotdevelop/validation/275491/ContratoArrendamiento_Romelia%202.docx.pdf?X-Amz-Algorithm=x',
+      ),
+    ).toBe('validation/275491/ContratoArrendamiento_Romelia 2.docx.pdf')
+    expect(keyDeArchivo('/media/validation/1/a.pdf')).toBe('validation/1/a.pdf')
+    expect(keyDeArchivo(null)).toBeNull()
+  })
+
+  it('abre la pestaña legal del terreno con el archivo', () => {
+    expect(
+      enlaceLegal(
+        'https://develop-sun-factory.user5c.workers.dev/',
+        424,
+        'validation/207201/Contrato_de_arrendamiento.pdf',
+      ),
+    ).toBe(
+      'https://develop-sun-factory.user5c.workers.dev/minifarms/lands/424?tab=legal&file=validation%2F207201%2FContrato_de_arrendamiento.pdf',
+    )
+    expect(enlaceLegal('https://tsf.test', 424)).toBe(
+      'https://tsf.test/minifarms/lands/424?tab=legal',
+    )
   })
 })
