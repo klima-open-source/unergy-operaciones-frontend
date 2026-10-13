@@ -2,12 +2,13 @@
 // Pestaña Pendientes de Gestión de Fallas.
 //
 // Qué es pendiente lo decide el backend (`Falla.en_pendientes`: sin cerrar, y
-// en garantía o de tracker/string/medidor/estación). Acá solo se filtra por
-// los filtros rápidos de la pestaña y se ordena: por proyecto, y dentro de
-// cada proyecto de la identificada más reciente a la más antigua.
+// en garantía o de tracker/string/medidor/estación). Acá solo se ordena —por
+// proyecto, y dentro de cada proyecto de la identificada más reciente a la más
+// antigua— y se aplican los filtros rápidos de la pestaña.
 // ──────────────────────────────────────────────────────────────────────────
 
 import type { EquipoFalla, Falla } from '~/features/fallas/types'
+import { compararTextoDesc } from '~/features/fallas/utils/ordenFallas'
 
 type FallaPendiente = Pick<
   Falla,
@@ -20,32 +21,26 @@ export interface FiltrosPendientes {
   soloGarantia?: boolean
 }
 
-function compararPendientes(a: FallaPendiente, b: FallaPendiente): number {
-  const porProyecto = (a.proyecto?.nombre_comercial ?? '').localeCompare(
-    b.proyecto?.nombre_comercial ?? '',
-    'es',
-  )
-  if (porProyecto) return porProyecto
-  // `YYYY-MM-DD` ordena como texto; las que no tienen fecha van al final.
-  const fa = a.fecha_identificacion?.slice(0, 10) ?? ''
-  const fb = b.fecha_identificacion?.slice(0, 10) ?? ''
-  if (fa === fb) return 0
-  if (!fa) return 1
-  if (!fb) return -1
-  return fa < fb ? 1 : -1
+export function esPendiente(falla: Pick<Falla, 'en_pendientes'>): boolean {
+  return falla.en_pendientes === true
 }
 
-/** Las fallas marcadas como pendientes, con los filtros rápidos aplicados y ordenadas. */
-export function fallasPendientes<T extends FallaPendiente>(
-  fallas: readonly T[],
-  { equipo = null, soloGarantia = false }: FiltrosPendientes = {},
-): T[] {
-  return fallas
-    .filter(
-      (f) =>
-        f.en_pendientes === true &&
-        (!equipo || f.equipo === equipo) &&
-        (!soloGarantia || f.en_garantia === true),
-    )
-    .sort(compararPendientes)
+function compararPendientes(a: FallaPendiente, b: FallaPendiente): number {
+  return (
+    (a.proyecto?.nombre_comercial ?? '').localeCompare(b.proyecto?.nombre_comercial ?? '', 'es') ||
+    compararTextoDesc(a.fecha_identificacion?.slice(0, 10), b.fecha_identificacion?.slice(0, 10))
+  )
+}
+
+/** Las fallas marcadas como pendientes, ordenadas. No altera la lista recibida. */
+export function fallasPendientes<T extends FallaPendiente>(fallas: readonly T[]): T[] {
+  return fallas.filter(esPendiente).sort(compararPendientes)
+}
+
+/** Si una pendiente pasa los filtros rápidos de la pestaña (no reordena nada). */
+export function cumpleFiltrosPendientes(
+  falla: FallaPendiente,
+  { equipo = null, soloGarantia = false }: FiltrosPendientes,
+): boolean {
+  return (!equipo || falla.equipo === equipo) && (!soloGarantia || falla.en_garantia === true)
 }

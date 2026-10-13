@@ -1255,7 +1255,7 @@
 import type { Component } from 'vue'
 import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
 import type { CatalogosFalla, Falla, PayloadFalla } from '~/features/fallas/types'
-import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import type { ProyectoLiviano } from '~/features/proyectos/types'
 import { EstadoFallaCodigo, GrupoEstadoFalla, PestanaGestionFallas } from '~/features/fallas/types'
 import {
   BellIcon,
@@ -1313,17 +1313,21 @@ import {
 import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
 import { formatoFechaDia as fmtFecha } from '~/features/fallas/utils/formatoFecha'
 import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
+import type { FiltrosVistaFallas } from '~/features/fallas/utils/filtrosVista'
+import { cumpleFiltrosVista, inicioDeCarga } from '~/features/fallas/utils/filtrosVista'
 import {
+  codigoEstadoFiltro,
   esGrupoEstadoFalla,
+  esPestanaGestionFallas,
   estadosSeleccionables,
   etiquetaEstado,
   grupoEstadoFalla,
   perteneceAGrupo,
 } from '~/features/fallas/utils/grupoEstado'
 import { compararFallasRecientes } from '~/features/fallas/utils/ordenFallas'
-import { fallasPendientes } from '~/features/fallas/utils/pendientes'
+import { esPendiente } from '~/features/fallas/utils/pendientes'
 import { fallasProgramadasHoy } from '~/features/fallas/utils/programadasHoy'
-import { hoyColombia } from '~/utils/fecha'
+import { hoyColombia, msHastaMedianocheColombia } from '~/utils/fecha'
 import { ParamQueryFallas, RUTAS_FALLAS } from '~/features/fallas/utils/rutas'
 import AvisoProgramadasHoy from './AvisoProgramadasHoy.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
@@ -1355,10 +1359,6 @@ const TABS: MonitoreoTab[] = [
   { key: PestanaGestionFallas.PENDIENTES, label: 'Pendientes', icon: ClipboardListIcon },
 ]
 const activeTab = ref<PestanaGestionFallas>(PestanaGestionFallas.FALLAS)
-
-function esPestanaGestionFallas(v: unknown): v is PestanaGestionFallas {
-  return Object.values(PestanaGestionFallas).includes(v as PestanaGestionFallas)
-}
 
 // ── Pestañas de estado ────────────────────────────────────────────────────
 // Agrupan estados del catálogo: "En gestión" incluye en espera, y "Abierta"
@@ -1411,7 +1411,7 @@ const AVATAR_PALETTE = [
 
 // ── Estado base ───────────────────────────────────────────────────────────
 const allFallas = ref<Falla[]>([])
-const proyectos = ref<ProyectoConDetalle[]>([])
+const proyectos = ref<ProyectoLiviano[]>([])
 const catalogos = ref<CatalogosFalla>({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -1431,7 +1431,8 @@ const filtroProyecto = ref<number | null>(
   route.query.proyecto ? Number(route.query.proyecto) : null,
 )
 const filtroPrioridad = ref<string | null>(queryStr(route.query.prioridad) || null)
-const filtroEstado = ref<string | null>(queryStr(route.query.estado) || null)
+// `en_espera` se filtra como "En gestión": un enlace viejo no deja el selector en blanco.
+const filtroEstado = ref<string | null>(codigoEstadoFiltro(queryStr(route.query.estado)))
 const filtroFechaDesde = ref<string | null>(queryStr(route.query.desde) || null)
 const filtroFechaHasta = ref<string | null>(queryStr(route.query.hasta) || null)
 const soloVencidas = ref(route.query.vencidas === '1')
@@ -1524,51 +1525,36 @@ const counts = computed(() => {
   return c
 })
 
-const totalPendientes = computed(() => fallasPendientes(allFallas.value).length)
+const totalPendientes = computed(() => allFallas.value.filter(esPendiente).length)
 
-/** Las programadas para hoy, en hora de Colombia (sin cerrar y en estado programado). */
-const programadasHoy = computed(() => fallasProgramadasHoy(allFallas.value, hoyColombia()))
+/**
+ * Hoy en Colombia. Es un ref (y no `hoyColombia()` dentro del computed, que no
+ * depende de nada reactivo y no se recalcularía): se pone al día en cada carga
+ * y con un temporizador a la medianoche (`programarCambioDeDia`).
+ */
+const hoy = ref(hoyColombia())
+
+/** Las programadas para hoy (sin cerrar y en estado programado). */
+const programadasHoy = computed(() => fallasProgramadasHoy(allFallas.value, hoy.value))
 
 const porGrupo = computed(() => allFallas.value.filter((f) => perteneceAGrupo(f, grupo.value)))
 
-/** Sin cerrar y con el SLA vencido: lo que marca la etiqueta "Vencido" de la fila. */
-function esVencida(f: Falla): boolean {
-  return !f.estado?.es_estado_final && slaSeverity(f) === 'destructive'
-}
+const filtrosVista = computed<FiltrosVistaFallas>(() => ({
+  texto: search.value,
+  proyectoId: filtroProyecto.value,
+  prioridad: filtroPrioridad.value,
+  estado: filtroEstado.value,
+  desde: filtroFechaDesde.value,
+  hasta: filtroFechaHasta.value,
+  soloVencidas: soloVencidas.value,
+}))
 
-const filtradas = computed(() => {
-  let arr = porGrupo.value
-  const q = search.value.trim().toLowerCase()
-  if (q) {
-    arr = arr.filter(
-      (f) =>
-        (f.codigo_interno || '').toLowerCase().includes(q) ||
-        (f.descripcion || '').toLowerCase().includes(q) ||
-        (f.proyecto?.nombre_comercial || '').toLowerCase().includes(q) ||
-        tituloFalla(f).toLowerCase().includes(q) ||
-        categoriaFalla(f).etiqueta.toLowerCase().includes(q),
-    )
-  }
-  if (filtroProyecto.value) arr = arr.filter((f) => f.proyecto?.id === filtroProyecto.value)
-  if (filtroPrioridad.value) arr = arr.filter((f) => f.prioridad?.codigo === filtroPrioridad.value)
-  if (filtroEstado.value) arr = arr.filter((f) => f.estado?.codigo === filtroEstado.value)
-  if (filtroFechaDesde.value) {
-    const desde = startOfDay(filtroFechaDesde.value)
-    arr = arr.filter(
-      (f) => f.fecha_identificacion && new Date(`${f.fecha_identificacion}T00:00:00`) >= desde,
-    )
-  }
-  if (filtroFechaHasta.value) {
-    const hasta = startOfDay(filtroFechaHasta.value)
-    hasta.setHours(23, 59, 59, 999)
-    arr = arr.filter(
-      (f) => f.fecha_identificacion && new Date(`${f.fecha_identificacion}T00:00:00`) <= hasta,
-    )
-  }
-  if (soloVencidas.value) arr = arr.filter(esVencida)
-  // De la más reciente a la más antigua; lo vencido se encuentra con "Solo vencidas".
-  return [...arr].sort(compararFallasRecientes)
-})
+// De la más reciente a la más antigua; lo vencido se encuentra con "Solo vencidas".
+const filtradas = computed(() =>
+  porGrupo.value
+    .filter((f) => cumpleFiltrosVista(f, filtrosVista.value))
+    .sort(compararFallasRecientes),
+)
 
 const hayFiltros = computed(
   () =>
@@ -1611,7 +1597,7 @@ const emptySubtitulo = computed(() =>
  * Si la URL trae una planta que ya no lo tiene (un enlace viejo), se agrega
  * con el nombre que traen sus fallas, para que el filtro no quede en blanco.
  */
-const proyectosFiltro = computed<Pick<ProyectoConDetalle, 'id' | 'nombre_comercial'>[]>(() => {
+const proyectosFiltro = computed<Pick<ProyectoLiviano, 'id' | 'nombre_comercial'>[]>(() => {
   const id = filtroProyecto.value
   if (!id || proyectos.value.some((p) => p.id === id)) return proyectos.value
   const nombre = allFallas.value.find((f) => f.proyecto?.id === id)?.proyecto?.nombre_comercial
@@ -1700,14 +1686,14 @@ const navIndex = computed(() => {
 /** Cuanto historial de fallas CERRADAS se trae sin que nadie lo pida. */
 const DIAS_HISTORIAL = 90
 
-/** Desde que fecha estan cargadas las cerradas. */
-const ventanaDesde = ref<Date | null>(null)
+/** Desde que fecha (`YYYY-MM-DD`) estan cargadas las cerradas. */
+const ventanaDesde = ref<string | null>(null)
 
-function haceDias(dias: number): Date {
+function haceDias(dias: number): string {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
   d.setDate(d.getDate() - dias)
-  return d
+  return fechaLocalISO(d)
 }
 
 /**
@@ -1724,18 +1710,36 @@ function fechaLocalISO(d: Date): string {
   return `${d.getFullYear()}-${mes}-${dia}`
 }
 
-/** Se resuelve cuando llegaron los catálogos (hace falta el id de "sin solución"). */
-let catalogosListos: Promise<void> = Promise.resolve()
+/**
+ * Los catálogos, si todavía no están. Se llama en cada `cargar`: si fallaron
+ * al abrir la vista, "Actualizar" los vuelve a pedir (antes el error se
+ * tragaba y quedaban vacíos hasta recargar la página). La petición en vuelo se
+ * comparte.
+ */
+let catalogosEnVuelo: Promise<void> | null = null
+function asegurarCatalogos(): Promise<void> {
+  if (catalogos.value.estados.length) return Promise.resolve()
+  catalogosEnVuelo ??= fallasService
+    .obtenerCatalogos()
+    .then((c) => {
+      catalogos.value = c
+    })
+    .finally(() => {
+      catalogosEnVuelo = null
+    })
+  return catalogosEnVuelo
+}
 
+/** Hace falta el id de "sin solución", que sale de los catálogos. */
 async function listarSinSolucion(): Promise<Falla[]> {
-  await catalogosListos
+  await asegurarCatalogos()
   const estado = catalogos.value.estados.find((e) => e.codigo === EstadoFallaCodigo.SIN_SOLUCION)
   if (!estado) return []
   const data = await fallasService.listar({ estado_id: estado.id, size: 500 })
   return data.items ?? []
 }
 
-async function cargar(desde: Date | null = null) {
+async function cargar(desde: string | null = null) {
   loading.value = true
   error.value = null
   const inicio = desde ?? haceDias(DIAS_HISTORIAL)
@@ -1745,8 +1749,16 @@ async function cargar(desde: Date | null = null) {
       // cupieran, `completarPaginas` no se activa sin `size` -- por eso va
       // explicito y holgado.
       fallasService.listar({ solo_activas: true, size: 500 }),
-      fallasService.listar({ fecha_identificacion_desde: fechaLocalISO(inicio), size: 500 }),
-      listarSinSolucion(),
+      fallasService.listar({ fecha_identificacion_desde: inicio, size: 500 }),
+      // Complementaria: si falla (o fallan los catálogos), se avisa y la lista
+      // se muestra igual, en vez de tumbarla entera por un 503.
+      listarSinSolucion().catch((e: unknown): Falla[] => {
+        toast.warning('No se cargaron las fallas «sin solución»', {
+          description: `${normalizeError(e).message}. Usa Actualizar para reintentar.`,
+          duration: 6000,
+        })
+        return []
+      }),
     ])
     // Las listas se solapan (una falla abierta identificada dentro de la
     // ventana esta en dos), asi que se unen por id.
@@ -1756,6 +1768,7 @@ async function cargar(desde: Date | null = null) {
     }
     allFallas.value = [...porId.values()]
     ventanaDesde.value = inicio
+    hoy.value = hoyColombia()
   } catch (e) {
     error.value = normalizeError(e).message
   } finally {
@@ -1766,18 +1779,8 @@ async function cargar(desde: Date | null = null) {
 // Pedir una fecha anterior a la cargada trae ese tramo del historico. Al
 // revés no: estrechar el filtro se resuelve en el navegador, sin ir a la red.
 watch(filtroFechaDesde, (nueva) => {
-  if (nueva && ventanaDesde.value && startOfDay(nueva) < ventanaDesde.value) {
-    cargar(startOfDay(nueva))
-  }
+  if (nueva && ventanaDesde.value && nueva < ventanaDesde.value) cargar(nueva)
 })
-
-async function cargarCatalogos() {
-  try {
-    catalogos.value = await fallasService.obtenerCatalogos()
-  } catch {
-    /* no crítico */
-  }
-}
 
 async function cargarProyectos() {
   try {
@@ -1830,9 +1833,22 @@ function irAEditar(falla: Falla) {
   router.push({ path: RUTAS_FALLAS.editar(falla.id), query: route.query })
 }
 
-/** Desde el calendario, Pendientes o el aviso de hoy: va a la pestaña Fallas y abre el panel. */
+/**
+ * Desde el calendario, Pendientes, el aviso de hoy o al volver del formulario:
+ * va a la pestaña Fallas, a la pestaña de estado de la falla y abre su panel.
+ * Si los filtros la esconden se limpian (y se avisa): con la falla fuera de la
+ * lista, la fila no se resalta y las flechas de navegación no funcionan.
+ */
 function verFallaEnLista(falla: Falla) {
   activeTab.value = PestanaGestionFallas.FALLAS
+  grupo.value = grupoEstadoFalla(falla)
+  if (!cumpleFiltrosVista(falla, filtrosVista.value)) {
+    limpiarFiltros()
+    toast.info('Se limpiaron los filtros', {
+      description: `Para mostrar la falla ${falla.codigo_interno ?? falla.id}.`,
+      duration: 3000,
+    })
+  }
   nextTick(() => abrirDrawer(falla))
 }
 
@@ -1920,7 +1936,7 @@ async function confirmarResolve() {
 async function reabrirFalla() {
   if (!drawerFalla.value) return
   const abierta =
-    catalogos.value.estados.find((e) => e.codigo === 'abierta') ??
+    catalogos.value.estados.find((e) => e.codigo === EstadoFallaCodigo.ABIERTA) ??
     catalogos.value.estados.find((e) => !e.es_estado_final)
   if (!abierta) {
     toast.warning('Sin estado abierto configurado', { duration: 3000 })
@@ -2119,12 +2135,6 @@ function relativeTime(d?: string | null): string {
   return rel
 }
 
-function startOfDay(d: string | Date): Date {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
-}
-
 // ── Keyboard shortcuts ────────────────────────────────────────────────────
 function onKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement
@@ -2161,21 +2171,52 @@ function measureHeader() {
 }
 
 /**
- * `/fallas?falla=123` (al volver de editar): abre el panel de esa falla y
- * saca el parámetro de la URL, que no es un filtro.
+ * `/fallas?falla=123` (al volver de editar): la falla cuyo panel se abre al
+ * terminar la carga. Se lee una vez al montar y se saca de la URL de
+ * inmediato (no es un filtro): así no se pierde si se toca un filtro antes de
+ * que termine la carga —el watch de filtros reescribe la query— ni si la carga
+ * falla.
  */
-function abrirFallaDeLaUrl() {
-  const id = Number(route.query[ParamQueryFallas.ABRIR_FALLA])
-  if (!id) return
-  const { [ParamQueryFallas.ABRIR_FALLA]: _abrir, ...resto } = route.query
-  router.replace({ query: resto })
-  const falla = allFallas.value.find((f) => f.id === id)
-  if (falla) abrirDrawer(falla)
+const idFallaDeLaUrl = Number(route.query[ParamQueryFallas.ABRIR_FALLA]) || null
+
+/** La busca en lo cargado y, si no está (cerrada fuera de la ventana), la pide. */
+async function abrirFallaPorId(id: Falla['id']) {
+  let falla = allFallas.value.find((f) => f.id === id)
+  if (!falla) {
+    try {
+      falla = await fallasService.obtener(id)
+    } catch (e) {
+      toast.warning('No se pudo abrir la falla', {
+        description: normalizeError(e).message,
+        duration: 4000,
+      })
+      return
+    }
+  }
+  verFallaEnLista(falla)
+}
+
+// La lista se pone al día sola a la medianoche (el aviso de programadas de hoy).
+let _cambioDeDia: ReturnType<typeof setTimeout> | null = null
+function programarCambioDeDia() {
+  // Un segundo de margen para caer ya del otro lado de la medianoche.
+  _cambioDeDia = setTimeout(() => {
+    hoy.value = hoyColombia()
+    programarCambioDeDia()
+  }, msHastaMedianocheColombia() + 1000)
 }
 
 onMounted(() => {
-  catalogosListos = cargarCatalogos()
-  cargar().then(abrirFallaDeLaUrl)
+  if (idFallaDeLaUrl) {
+    const { [ParamQueryFallas.ABRIR_FALLA]: _abrir, ...resto } = route.query
+    router.replace({ query: resto })
+  }
+  // Al volver del formulario con `?desde=` anterior a la ventana por defecto,
+  // se carga desde ahí (el watch de `filtroFechaDesde` solo mira cambios).
+  cargar(inicioDeCarga(filtroFechaDesde.value, haceDias(DIAS_HISTORIAL))).then(() => {
+    if (idFallaDeLaUrl) abrirFallaPorId(idFallaDeLaUrl)
+  })
+  programarCambioDeDia()
   cargarProyectos()
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
@@ -2195,6 +2236,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  if (_cambioDeDia) clearTimeout(_cambioDeDia)
   _headerRO?.disconnect()
   _tabBarRO?.disconnect()
 })
@@ -2203,7 +2245,9 @@ onBeforeUnmount(() => {
 watch(drawerVisible, (val) => {
   if (!val) {
     setTimeout(() => {
-      drawerFalla.value = null
+      // Si en esos 200 ms se abrió otra (cerrar y abrir en el mismo tick, como
+      // al saltar de pestaña con `verFallaEnLista`), no se borra.
+      if (!drawerVisible.value) drawerFalla.value = null
     }, 200)
   }
 })

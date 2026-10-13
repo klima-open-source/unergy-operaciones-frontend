@@ -11,7 +11,7 @@ import type { Falla } from '~/features/fallas/types'
 type FallaOrdenable = Pick<Falla, 'fecha_identificacion' | 'hora_identificacion' | 'created_at'>
 
 /** Descendente, con los vacíos al final. Las fechas `YYYY-MM-DD` y horas `HH:MM[:SS]` ordenan como texto. */
-function compararTextoDesc(a: string | null | undefined, b: string | null | undefined): number {
+export function compararTextoDesc(a: string | null | undefined, b: string | null | undefined): number {
   if (a === b) return 0
   if (!a) return 1
   if (!b) return -1

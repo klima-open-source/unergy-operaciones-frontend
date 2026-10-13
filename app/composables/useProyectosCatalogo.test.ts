@@ -193,9 +193,12 @@ describe('useProyectosCatalogo', () => {
   })
 
   it('sin catálogo cargado, cargarOperativos pide solo las operadas al backend', async () => {
-    // `GET /proyectos?servicio=operacion`: no hace falta traer las 188 plantas.
+    // `GET /proyectos/lista?servicio=operacion`: liviano y ya filtrado por el
+    // backend, así que no trae `servicios` y no se vuelve a filtrar acá.
     const usar = await cargarComposable()
-    listarConServicioOperacion.mockResolvedValue(MEZCLA.slice(0, 1))
+    listarConServicioOperacion.mockResolvedValue([
+      { id: 1, nombre_comercial: 'Opera Y La Operamos', potencia_ac_kw: '990.000' },
+    ])
 
     const operativos = await usar().cargarOperativos()
     await usar().cargarOperativos()

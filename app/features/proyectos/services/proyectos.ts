@@ -142,15 +142,16 @@ export class ProyectosService extends BaseService {
   }
 
   /**
-   * Las plantas con servicio de operación (`servicios.operacion`): en operación
-   * y con contrato de operación vigente. El filtro lo resuelve el backend, así
-   * que no hace falta traer el catálogo completo para quedarse con una parte.
+   * Las plantas con servicio de operación (en operación y con contrato de
+   * operación vigente), en la forma LIVIANA de `GET /proyectos/lista`: el
+   * filtro lo resuelve el backend y para los desplegables de Fallas no hacen
+   * falta las cinco relaciones anidadas del objeto completo.
    */
-  async listarConServicioOperacion(): Promise<ProyectoConDetalle[]> {
-    const data = await this.get<ListaODirecto<ProyectoConDetalle>>(RUTAS.proyectos, {
-      query: { servicio: ServicioPlanta.OPERACION, size: 500 },
+  async listarConServicioOperacion(): Promise<ProyectoLiviano[]> {
+    const data = await this.get<{ total: number; items: ProyectoLiviano[] }>(RUTAS.proyectosLista, {
+      query: { servicio: ServicioPlanta.OPERACION },
     })
-    return comoLista(data)
+    return data.items ?? []
   }
 
   /**

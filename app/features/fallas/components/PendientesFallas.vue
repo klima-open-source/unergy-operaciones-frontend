@@ -11,7 +11,7 @@ import { EQUIPOS_FALLA, ETIQUETA_EQUIPO, etiquetaEquipo } from '~/features/falla
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
 import { formatoFechaDia } from '~/features/fallas/utils/formatoFecha'
 import { etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
-import { fallasPendientes } from '~/features/fallas/utils/pendientes'
+import { cumpleFiltrosPendientes, fallasPendientes } from '~/features/fallas/utils/pendientes'
 
 const props = defineProps<{ fallas: Falla[] }>()
 const emit = defineEmits<{ abrir: [falla: Falla] }>()
@@ -19,17 +19,19 @@ const emit = defineEmits<{ abrir: [falla: Falla] }>()
 const filtroEquipo = ref<EquipoFalla | null>(null)
 const soloGarantia = ref(false)
 
+/** Ordenadas una sola vez; los filtros rápidos solo recortan. */
 const pendientes = computed(() => fallasPendientes(props.fallas))
 /** Cada fila con su título y el detalle libre del subtipo, si el título no lo trae ya. */
 const filas = computed(() =>
-  fallasPendientes(pendientes.value, {
-    equipo: filtroEquipo.value,
-    soloGarantia: soloGarantia.value,
-  }).map((falla) => {
-    const titulo = tituloFalla(falla)
-    const detalle = falla.subtipo_detalle?.trim()
-    return { falla, titulo, detalle: detalle && !titulo.includes(detalle) ? detalle : null }
-  }),
+  pendientes.value
+    .filter((f) =>
+      cumpleFiltrosPendientes(f, { equipo: filtroEquipo.value, soloGarantia: soloGarantia.value }),
+    )
+    .map((falla) => {
+      const titulo = tituloFalla(falla)
+      const detalle = falla.subtipo_detalle?.trim()
+      return { falla, titulo, detalle: detalle && !titulo.includes(detalle) ? detalle : null }
+    }),
 )
 
 /** Los equipos que tienen alguna pendiente, con cuántas: los únicos que vale la pena ofrecer. */
@@ -111,9 +113,12 @@ function limpiarFiltros() {
             v-for="{ falla: f, titulo, detalle } in filas"
             :key="f.id"
             class="cursor-pointer"
+            role="button"
             tabindex="0"
+            :aria-label="`Abrir falla ${f.codigo_interno ?? f.id}`"
             @click="emit('abrir', f)"
-            @keydown.enter="emit('abrir', f)"
+            @keydown.enter.prevent="emit('abrir', f)"
+            @keydown.space.prevent="emit('abrir', f)"
           >
             <GTableCell class="font-semibold">{{ f.proyecto?.nombre_comercial || '—' }}</GTableCell>
             <GTableCell>{{ etiquetaEquipo(f.equipo) }}</GTableCell>

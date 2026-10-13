@@ -52,7 +52,7 @@ const servicio = new ProyectosService()
  */
 let enVuelo: Promise<ProyectoConDetalle[]> | null = null
 let livianoEnVuelo: Promise<ProyectoLiviano[]> | null = null
-let operativosEnVuelo: Promise<ProyectoConDetalle[]> | null = null
+let operativosEnVuelo: Promise<ProyectoLiviano[]> | null = null
 
 function esOperada(p: ProyectoConDetalle): boolean {
   return !!p.servicios?.operacion
@@ -64,7 +64,7 @@ export function useProyectosCatalogo() {
   const livianoEn = useState<number>('proyectos-catalogo-liviano-ts', () => 0)
   const cargadoEn = useState<number>('proyectos-catalogo-ts', () => 0)
   const cargando = useState<boolean>('proyectos-catalogo-cargando', () => false)
-  const operativos = useState<ProyectoConDetalle[]>('proyectos-catalogo-operativos', () => [])
+  const operativos = useState<ProyectoLiviano[]>('proyectos-catalogo-operativos', () => [])
   const operativosEn = useState<number>('proyectos-catalogo-operativos-ts', () => 0)
 
   function estaVigente(): boolean {
@@ -118,12 +118,15 @@ export function useProyectosCatalogo() {
    * puesta a mano.
    *
    * Si el catálogo completo ya está cargado (o en camino), se filtra de ahí,
-   * sin una petición aparte. Si no, se le pide al backend solo esa parte
-   * (`GET /proyectos?servicio=operacion`), con caché propio: la lista de
-   * fallas y su formulario no necesitan las 188 plantas para quedarse con las
-   * que operamos.
+   * sin una petición aparte. Si no, se le pide al backend solo esa parte en la
+   * forma liviana (`GET /proyectos/lista?servicio=operacion`), con caché
+   * propio: la lista de fallas y su formulario solo miran id, nombre y
+   * potencia AC.
+   *
+   * Por eso devuelve `ProyectoLiviano`: aunque salga del catálogo completo, el
+   * que la consuma no puede contar con más campos que esos.
    */
-  async function cargarOperativos(): Promise<ProyectoConDetalle[]> {
+  async function cargarOperativos(): Promise<ProyectoLiviano[]> {
     if (estaVigente()) return proyectos.value.filter(esOperada)
     if (enVuelo) return (await enVuelo).filter(esOperada)
     if (operativos.value.length && Date.now() - operativosEn.value < VIGENCIA_MS) {
@@ -132,9 +135,8 @@ export function useProyectosCatalogo() {
     if (operativosEnVuelo) return operativosEnVuelo
     operativosEnVuelo = (async () => {
       try {
-        // El backend ya filtra; se vuelve a mirar `servicios.operacion` para que
-        // la regla sea la misma venga de donde venga la lista.
-        operativos.value = (await servicio.listarConServicioOperacion()).filter(esOperada)
+        // El backend filtra: el listado liviano no trae `servicios` para mirarlo acá.
+        operativos.value = await servicio.listarConServicioOperacion()
         operativosEn.value = Date.now()
         return operativos.value
       } catch (err) {

@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { hoyColombia } from './fecha'
+import { hoyColombia, msHastaMedianocheColombia } from './fecha'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -42,5 +42,20 @@ describe('hoyColombia', () => {
   it('devuelve el formato YYYY-MM-DD', () => {
     enBogota('2026-09-10T15:00:00Z')
     expect(hoyColombia()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('msHastaMedianocheColombia', () => {
+  it('a las 23:59 de Bogotá falta un minuto', () => {
+    // 04:59Z = 23:59 en Bogotá.
+    expect(msHastaMedianocheColombia(Date.parse('2026-12-22T04:59:00Z'))).toBe(60_000)
+  })
+
+  it('justo a la medianoche de Bogotá falta un día entero', () => {
+    expect(msHastaMedianocheColombia(Date.parse('2026-12-22T05:00:00Z'))).toBe(86_400_000)
+  })
+
+  it('a la medianoche de UTC (19:00 en Bogotá) faltan cinco horas', () => {
+    expect(msHastaMedianocheColombia(Date.parse('2026-12-22T00:00:00Z'))).toBe(5 * 3_600_000)
   })
 })

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { EstadoFallaCodigo, GrupoEstadoFalla } from '~/features/fallas/types'
+import { EstadoFallaCodigo, GrupoEstadoFalla, PestanaGestionFallas } from '~/features/fallas/types'
 import {
+  codigoEstadoFiltro,
   esGrupoEstadoFalla,
+  esPestanaGestionFallas,
   estadosSeleccionables,
   etiquetaEstado,
   grupoEstadoFalla,
@@ -95,5 +97,25 @@ describe('estadosSeleccionables', () => {
 
   it('lo conserva si es el estado actual de la falla', () => {
     expect(estadosSeleccionables(estados, 2).map((e) => e.id)).toEqual([1, 2])
+  })
+})
+
+describe('codigoEstadoFiltro', () => {
+  it('en espera se filtra como en gestión', () => {
+    expect(codigoEstadoFiltro(EstadoFallaCodigo.EN_ESPERA)).toBe(EstadoFallaCodigo.EN_GESTION)
+    expect(codigoEstadoFiltro(EstadoFallaCodigo.EN_GESTION)).toBe(EstadoFallaCodigo.EN_GESTION)
+  })
+
+  it('el resto queda igual y vacío es null', () => {
+    expect(codigoEstadoFiltro(EstadoFallaCodigo.CERRADA)).toBe(EstadoFallaCodigo.CERRADA)
+    expect(codigoEstadoFiltro('')).toBeNull()
+    expect(codigoEstadoFiltro(undefined)).toBeNull()
+  })
+})
+
+describe('esPestanaGestionFallas', () => {
+  it('reconoce solo las pestañas del enum', () => {
+    expect(esPestanaGestionFallas(PestanaGestionFallas.PENDIENTES)).toBe(true)
+    expect(esPestanaGestionFallas('0')).toBe(false)
   })
 })

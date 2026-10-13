@@ -8,7 +8,7 @@
 // ──────────────────────────────────────────────────────────────────────────
 
 import type { CatalogoItemFalla, Falla } from '~/features/fallas/types'
-import { EstadoFallaCodigo, GrupoEstadoFalla } from '~/features/fallas/types'
+import { EstadoFallaCodigo, GrupoEstadoFalla, PestanaGestionFallas } from '~/features/fallas/types'
 
 /** Un grupo concreto: todos menos `TODAS`, que no agrupa nada. */
 export type GrupoEstadoConcreto = Exclude<GrupoEstadoFalla, GrupoEstadoFalla.TODAS>
@@ -75,4 +75,19 @@ export function estadosSeleccionables(
   return estados.filter(
     (e) => e.id === actualId || !ESTADOS_NO_SELECCIONABLES.has(e.codigo ?? ''),
   )
+}
+
+/**
+ * El código con que se FILTRA por estado: como "en espera" se muestra y se
+ * gestiona como "En gestión" (y el selector ya no lo ofrece), filtrar por
+ * "En gestión" debe traer las dos, y un `?estado=en_espera` viejo debe dejar el
+ * selector en "En gestión" y no en blanco.
+ */
+export function codigoEstadoFiltro(codigo: string | null | undefined): string | null {
+  if (!codigo) return null
+  return codigo === EstadoFallaCodigo.EN_ESPERA ? EstadoFallaCodigo.EN_GESTION : codigo
+}
+
+export function esPestanaGestionFallas(valor: unknown): valor is PestanaGestionFallas {
+  return Object.values(PestanaGestionFallas).includes(valor as PestanaGestionFallas)
 }
