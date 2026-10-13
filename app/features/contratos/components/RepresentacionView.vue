@@ -160,10 +160,10 @@
                 <GLabel>Número de contrato</GLabel>
                 <Input v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" />
               </div>
-              <SelectorCliente
+              <SelectorInversionistaDePlanta
                 v-model:id="form.inversionista_id"
                 v-model:nombre="form.inversionista_nombre"
-                label="Inversionista"
+                :proyecto-id="proyectoIdRuta"
                 requerido
               />
               <div class="flex flex-col gap-1">
@@ -539,6 +539,7 @@ import { ContratosServicioService } from '~/features/contratos/services/contrato
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import SelectorInversionistaDePlanta from './SelectorInversionistaDePlanta.vue'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import {
   anioDeFila,
@@ -556,6 +557,8 @@ const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
 
 const route = useRoute()
+/** La planta de esta vista: el inversionista del contrato es uno de los suyos. */
+const proyectoIdRuta = computed(() => Number(route.params.id))
 const confirm = useConfirm()
 
 const ESTADO_LABELS = {
@@ -850,7 +853,8 @@ async function enviar(payload) {
     edit.value = null
     toast.success('Cambios guardados', { duration: 2500 })
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.data?.detail || e.message, duration: 4000 })
+    const motivo = e.data?.detail || e.data?.inversionista_id?.[0] || e.data?.proyecto_id?.[0] || e.message
+    toast.error('No se pudo guardar', { description: motivo, duration: 6000 })
   } finally {
     guardando.value = false
   }
