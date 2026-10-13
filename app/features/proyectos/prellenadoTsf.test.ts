@@ -13,12 +13,18 @@ const TSF: ProyectoTsf = {
   latitud: 9.88,
   longitud: -73.76,
   operadorRed: 'Afinia',
+  operadorRedCodigo: 'afinia',
   tipoProyecto: 'minigranja',
 }
 
 const DIVIPOLA = { Cesar: ['Agustín Codazzi', 'Bosconia'], 'Bogotá D.C.': ['Bogotá D.C.'] }
 const OPERADORES = [
-  { id: 4, nombre_comercial: 'AFINIA', nombre_legal: 'Caribe Mar de la Costa S.A.S. E.S.P.' },
+  {
+    id: 4,
+    nombre_comercial: 'AFINIA',
+    nombre_legal: 'Caribe Mar de la Costa S.A.S. E.S.P.',
+    codigo_originabot: 'afinia',
+  },
   { id: 5, nombre_comercial: null, nombre_legal: 'Electrificadora del Huila' },
 ]
 
@@ -36,7 +42,6 @@ describe('prellenadoDesdeTsf', () => {
       municipio: 'Bosconia',
       latitud: 9.88,
       longitud: -73.76,
-      // "Afinia" contra "AFINIA": se compara sin mayúsculas ni tildes.
       operador_red_id: 4,
     })
     expect(p.bloqueados.sort()).toEqual(
@@ -58,6 +63,21 @@ describe('prellenadoDesdeTsf', () => {
     )
   })
 
+  it('el operador se cruza por su code de originabot, aunque el nombre no se parezca', () => {
+    const p = prellenadoDesdeTsf(
+      { ...TSF, operadorRed: 'Caribemar', operadorRedCodigo: 'afinia' },
+      DIVIPOLA,
+      OPERADORES,
+    )
+    expect(p.valores.operador_red_id).toBe(4)
+    expect(p.bloqueados).toContain('operador_red_id')
+  })
+
+  it('sin code (TSF no lo trajo), cae al nombre: sin mayúsculas ni tildes', () => {
+    const p = prellenadoDesdeTsf({ ...TSF, operadorRedCodigo: null }, DIVIPOLA, OPERADORES)
+    expect(p.valores.operador_red_id).toBe(4)
+  })
+
   it('compara sin tildes: "Agustin Codazzi" de TSF encaja con el de DIVIPOLA', () => {
     const p = prellenadoDesdeTsf({ ...TSF, municipio: 'Agustin Codazzi' }, DIVIPOLA, OPERADORES)
     expect(p.valores.municipio).toBe('Agustín Codazzi')
@@ -65,7 +85,13 @@ describe('prellenadoDesdeTsf', () => {
 
   it('lo que no está en el catálogo queda vacío, editable y avisado', () => {
     const p = prellenadoDesdeTsf(
-      { ...TSF, departamento: 'Cundinamarca', municipio: 'Cota', operadorRed: 'Enel' },
+      {
+        ...TSF,
+        departamento: 'Cundinamarca',
+        municipio: 'Cota',
+        operadorRed: 'Enel',
+        operadorRedCodigo: 'enel',
+      },
       DIVIPOLA,
       OPERADORES,
     )

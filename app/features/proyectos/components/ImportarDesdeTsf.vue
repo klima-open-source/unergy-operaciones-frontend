@@ -11,6 +11,7 @@ import { LoaderCircleIcon, SearchIcon } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { normalizeError } from '~/core/errors'
 import { proyectoExistente } from '~/features/proyectos/prellenadoTsf'
+import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
 import type { ProyectoTsf, ResultadoTsf } from '~/features/proyectos/types'
 
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 const MINIMO = 3
 
 const servicio = new OriginabotService()
+const operadoresRed = new OperadoresRedService()
 
 const busqueda = ref('')
 const resultados = ref<ResultadoTsf[]>([])
@@ -72,6 +74,12 @@ async function elegir(resultado: ResultadoTsf) {
     if (existente) {
       error.value = `${proyecto.codigoOrigina} ya existe en Operaciones como «${existente.nombre_comercial}».`
       return
+    }
+    // Que el operador de TSF exista en el catálogo con su llave antes de abrir
+    // el formulario, que cruza por ella. Si falla, el formulario cae al nombre y,
+    // si tampoco encaja, deja el campo editable y avisado.
+    if (proyecto.operadorRedCodigo && proyecto.operadorRed) {
+      await operadoresRed.vincularOriginabot(proyecto.operadorRedCodigo, proyecto.operadorRed).catch(() => null)
     }
     emit('seleccionar', proyecto)
   } catch (e) {

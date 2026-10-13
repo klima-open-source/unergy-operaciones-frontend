@@ -12,6 +12,8 @@ export interface OperadorRed {
   id: number
   nombre_legal: string
   nombre_comercial?: string | null
+  /** El `code` del operador en originabot (TSF): la llave para importar proyectos. */
+  codigo_originabot?: string | null
   contactos: ContactoOperadorRed[]
   fronteras_vinculadas: number
 }

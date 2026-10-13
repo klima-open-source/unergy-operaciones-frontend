@@ -14,6 +14,7 @@ const RUTAS = {
   operador: (id: OperadorRed['id']) => `${BASE}/${id}`,
   contactos: (operadorId: OperadorRed['id']) => `${BASE}/${operadorId}/contactos`,
   contacto: (contactoId: ContactoOperadorRed['id']) => `${BASE}/contactos/${contactoId}`,
+  originabot: `${BASE}/originabot`,
 } as const
 
 export class OperadoresRedService extends BaseService {
@@ -32,6 +33,14 @@ export class OperadoresRedService extends BaseService {
    */
   crear(payload: PayloadOperadorRed, forzar = false): Promise<OperadorRed> {
     return this.post<OperadorRed>(RUTAS.operadores, payload, { query: { forzar } })
+  }
+
+  /**
+   * El operador de Operaciones para un `code` de originabot: lo vincula por nombre
+   * o lo crea si aún no está. Idempotente. Lo usa «importar desde TSF».
+   */
+  vincularOriginabot(codigo: string, nombre: string): Promise<OperadorRed> {
+    return this.post<OperadorRed>(RUTAS.originabot, { codigo, nombre })
   }
 
   actualizar(id: OperadorRed['id'], payload: PayloadOperadorRed): Promise<OperadorRed> {

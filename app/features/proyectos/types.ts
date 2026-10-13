@@ -267,5 +267,7 @@ export interface ProyectoTsf {
   latitud: number | null
   longitud: number | null
   operadorRed: string | null
+  /** El `code` de originabot (`afinia`): la llave con `operadores_red.codigo_originabot`. */
+  operadorRedCodigo: string | null
   tipoProyecto: string | null
 }

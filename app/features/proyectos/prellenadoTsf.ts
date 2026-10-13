@@ -2,7 +2,9 @@
  * Lo que un proyecto de TSF prellena en `ProyectoForm`, y qué queda bloqueado.
  *
  * La regla: **un campo se bloquea solo si el dato vino de TSF y encajó** en lo que
- * Operaciones acepta. Departamento, municipio y operador de red son catálogos
+ * Operaciones acepta. El operador de red se cruza por llave (`codigo_originabot`,
+ * que `ImportarDesdeTsf` vincula antes de abrir el formulario); el nombre solo se
+ * usa si TSF no trajo el code. Departamento, municipio y operador de red son catálogos
  * (DIVIPOLA, operadores de red): si TSF trae un nombre que no está, el campo
  * queda vacío y editable, y se avisa — bloquear un campo vacío dejaría el
  * proyecto sin ese dato para siempre.
@@ -21,6 +23,7 @@ export interface OperadorRedCatalogo {
   id: number
   nombre_comercial?: string | null
   nombre_legal?: string | null
+  codigo_originabot?: string | null
 }
 
 export interface PrellenadoTsf {
@@ -69,7 +72,10 @@ export function prellenadoDesdeTsf(
   if (municipio) bloqueados.push('municipio')
   else if (tsf.municipio) sinCoincidencia.push(`Municipio: «${tsf.municipio}»`)
 
-  const operador = buscar(operadores, tsf.operadorRed, (o) => [o.nombre_comercial, o.nombre_legal])
+  const operador =
+    (tsf.operadorRedCodigo
+      ? operadores.find((o) => o.codigo_originabot === tsf.operadorRedCodigo)
+      : null) ?? buscar(operadores, tsf.operadorRed, (o) => [o.nombre_comercial, o.nombre_legal])
   if (operador) bloqueados.push('operador_red_id')
   else if (tsf.operadorRed) sinCoincidencia.push(`Operador de red: «${tsf.operadorRed}»`)
 

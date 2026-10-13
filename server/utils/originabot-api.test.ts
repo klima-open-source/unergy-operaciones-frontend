@@ -29,6 +29,7 @@ const MINIGRANJA = {
   ],
   grid_operator: 'Afinia',
   project: {
+    id: 45467,
     project_type: 'minifarm',
     latitude: 9.883090609100089,
     longitude: -73.76277027483552,
@@ -77,8 +78,17 @@ describe('toProyectoTsf', () => {
       latitud: 9.883090609100089,
       longitud: -73.76277027483552,
       operadorRed: 'Afinia',
+      operadorRedCodigo: null,
       tipoProyecto: 'minigranja',
     })
+  })
+
+  it('el code del operador sale del detalle de proyecto, que es el único que lo trae', () => {
+    const p = toProyectoTsf(MINIGRANJA, {
+      grid_operator_data: { value: 'afinia', label: 'Afinia' },
+    })
+    expect(p.operadorRedCodigo).toBe('afinia')
+    expect(p.operadorRed).toBe('Afinia')
   })
 
   it('lo que no viene queda en null, para que el campo siga editable', () => {
@@ -164,17 +174,40 @@ describe('buscarEnTsf', () => {
 })
 
 describe('minigranjaDeTsf', () => {
-  it('pide el detalle con el token de quien importa', async () => {
-    const fetch = vi.fn().mockResolvedValue(MINIGRANJA)
+  it('pide la minigranja y su proyecto (por el code del operador), con el token de quien importa', async () => {
+    const fetch = vi.fn(async (ruta: string) =>
+      ruta.includes('/minifarm/projects/')
+        ? { grid_operator_data: { value: 'afinia', label: 'Afinia' } }
+        : MINIGRANJA,
+    )
     vi.stubGlobal('$fetch', fetch)
 
     await expect(minigranjaDeTsf(EVENT, BEARER, 1913)).resolves.toMatchObject({
       codigoTsf: 'COLCEST456P1',
+      operadorRedCodigo: 'afinia',
     })
     expect(fetch).toHaveBeenCalledWith(
       '/api/investment/minifarm/1913/',
       expect.objectContaining({ headers: { Authorization: BEARER } }),
     )
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/minifarm/projects/45467/',
+      expect.objectContaining({ headers: { Authorization: BEARER } }),
+    )
+  })
+
+  it('si el detalle de proyecto falla, el import sigue sin code (cae al nombre)', async () => {
+    vi.stubGlobal(
+      '$fetch',
+      vi.fn(async (ruta: string) => {
+        if (ruta.includes('/minifarm/projects/')) throw errorHttp(500)
+        return MINIGRANJA
+      }),
+    )
+    await expect(minigranjaDeTsf(EVENT, BEARER, 1913)).resolves.toMatchObject({
+      operadorRed: 'Afinia',
+      operadorRedCodigo: null,
+    })
   })
 
   it('una minigranja que no existe sale como 404', async () => {

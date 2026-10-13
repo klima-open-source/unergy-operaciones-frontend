@@ -19,6 +19,8 @@ import { FetchError } from 'ofetch'
 const RUTAS = {
   busqueda: '/api/v2/origination/portfolio-manager/projects/',
   minigranja: (id: number) => `/api/investment/minifarm/${id}/`,
+  /** El detalle de proyecto es el único que trae el `code` del operador de red. */
+  proyecto: (id: number) => `/api/minifarm/projects/${id}/`,
 } as const
 
 /** Una etapa trae como mucho esto. La búsqueda es para encontrar uno, no para listar. */
@@ -51,12 +53,17 @@ export interface ExternalMinigranja {
   stage_options?: { stage?: unknown; label?: unknown }[]
   grid_operator?: unknown
   project?: {
+    id?: unknown
     project_type?: unknown
     latitude?: unknown
     longitude?: unknown
     grid_operator?: unknown
     location?: { city?: unknown; region?: unknown }
   }
+}
+
+interface ExternalProyecto {
+  grid_operator_data?: { value?: unknown; label?: unknown }
 }
 
 // ── Lo que ve la app. ──
@@ -92,6 +99,8 @@ export interface ProyectoTsf {
   latitud: number | null
   longitud: number | null
   operadorRed: string | null
+  /** El `code` de originabot (`afinia`): la llave con `operadores_red.codigo_originabot`. */
+  operadorRedCodigo: string | null
   tipoProyecto: string | null
 }
 
@@ -150,7 +159,10 @@ export function toResultadoTsf(
   }
 }
 
-export function toProyectoTsf(m: ExternalMinigranja): ProyectoTsf {
+export function toProyectoTsf(
+  m: ExternalMinigranja,
+  proyecto?: ExternalProyecto | null,
+): ProyectoTsf {
   const id = numero(m.id)
   const codigo = texto(m.name)
   if (id === null || !codigo) {
@@ -170,7 +182,11 @@ export function toProyectoTsf(m: ExternalMinigranja): ProyectoTsf {
     municipio: texto(m.project?.location?.city),
     latitud: numero(m.project?.latitude),
     longitud: numero(m.project?.longitude),
-    operadorRed: texto(m.project?.grid_operator) ?? texto(m.grid_operator),
+    operadorRed:
+      texto(proyecto?.grid_operator_data?.label) ??
+      texto(m.project?.grid_operator) ??
+      texto(m.grid_operator),
+    operadorRedCodigo: texto(proyecto?.grid_operator_data?.value),
     // El único tipo que TSF y Operaciones nombran distinto y que se reconoce.
     tipoProyecto: tipo === 'minifarm' ? 'minigranja' : null,
   }
@@ -244,12 +260,25 @@ export async function minigranjaDeTsf(
   autorizacion: string,
   id: number,
 ): Promise<ProyectoTsf> {
+  let minigranja: ExternalMinigranja
   try {
-    return toProyectoTsf(
-      await $fetch<ExternalMinigranja>(RUTAS.minigranja(id), opciones(event, autorizacion)),
+    minigranja = await $fetch<ExternalMinigranja>(
+      RUTAS.minigranja(id),
+      opciones(event, autorizacion),
     )
   } catch (err) {
-    if (err instanceof Error && 'statusCode' in err && !(err instanceof FetchError)) throw err
     throw errorDeOriginabot(err)
   }
+
+  // Segunda llamada solo por el `code` del operador de red. Si falla, el import
+  // sigue: el operador cae al cruce por nombre y, si no encaja, queda editable.
+  const proyectoId = numero(minigranja.project?.id)
+  const proyecto = proyectoId
+    ? await $fetch<ExternalProyecto>(
+        RUTAS.proyecto(proyectoId),
+        opciones(event, autorizacion),
+      ).catch(() => null)
+    : null
+
+  return toProyectoTsf(minigranja, proyecto)
 }
