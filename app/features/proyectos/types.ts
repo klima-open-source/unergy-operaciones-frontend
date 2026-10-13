@@ -154,6 +154,12 @@ export interface PayloadActualizarProyecto {
   [clave: string]: unknown
 }
 
+/** Valores de `GET /proyectos?servicio=…`: los servicios contratados de una planta (ver `ServiciosPlanta`). */
+export enum ServicioPlanta {
+  OPERACION = 'operacion',
+  REPRESENTACION = 'representacion',
+}
+
 export interface ServiciosPlanta {
   operacion: boolean
   representacion: boolean

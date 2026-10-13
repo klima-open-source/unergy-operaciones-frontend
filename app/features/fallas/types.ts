@@ -12,6 +12,28 @@ import type { FallaClasificacion } from '~/features/fallas/utils/fallaTitulo'
  * tipos `OperadorMapa`/`DatosMapa` que solo ellas usaban.
  */
 
+/** `codigo` de los estados del catálogo (`GET /fallas/catalogos` → `estados`). */
+export enum EstadoFallaCodigo {
+  PROGRAMADO = 'programado',
+  ABIERTA = 'abierta',
+  EN_GESTION = 'en_gestion',
+  EN_ESPERA = 'en_espera',
+  CERRADA = 'cerrada',
+  SIN_SOLUCION = 'sin_solucion',
+}
+
+/**
+ * Las pestañas de estado de la lista de fallas (`MonitoreoView.vue`). No son
+ * los estados del catálogo: agrupan varios (ver `utils/grupoEstado.ts`).
+ */
+export enum GrupoEstadoFalla {
+  ABIERTA = 'abierta',
+  EN_GESTION = 'en_gestion',
+  PROGRAMADO = 'programado',
+  CERRADA = 'cerrada',
+  TODAS = 'todas',
+}
+
 /** Un ítem de catálogo (`tipos`, `estados`, `prioridades`, `resoluciones`…): `{id, etiqueta}` y poco más. */
 export interface CatalogoItemFalla {
   id: number
@@ -158,6 +180,16 @@ export interface Falla {
   causa_raiz?: string | null
   acciones_correctivas?: string | null
   kwh_perdidos_estimado?: number | null
+  /** % de la potencia de la planta afectada (0–100). Lo calcula el backend. */
+  pct_afectado?: number | null
+  /** Energía perdida estimada con la simulación P90, en kWh. Lo calcula el backend. */
+  kwh_perdidos_p90?: number | null
+  /**
+   * `codigo` de la prioridad que el backend deriva de `pct_afectado`
+   * (critica/grave/media/leve). `null` si no se puede calcular: entonces rige
+   * la que se eligió en el formulario.
+   */
+  prioridad_calculada?: string | null
   /** Costo estimado del impacto económico, en COP (ver `MonitoreoView.vue`). */
   impacto_economico_cop?: number | null
   /** Id de la alarma de monitoreo que generó la falla automáticamente, si aplica (ver `MonitoreoView.vue`). */
@@ -178,6 +210,8 @@ export interface Falla {
    * `cumple` en una falla ABIERTA significa "por ahora va dentro del plazo", no
    * "cumplio". `null` --igual que `dias`-- cuando no se puede juzgar: una falla
    * en estado final sin `fecha_resolucion` (dato legacy).
+   *
+   * `etiqueta` puede venir "Leve (sin pérdida)" cuando la falla no quita energía.
    */
   sla_contractual?: {
     dias: number | null
@@ -243,6 +277,9 @@ export type PayloadFalla = Partial<
     | 'registrado_por'
     | 'clasificacion'
     | 'inversores_afectados'
+    | 'pct_afectado'
+    | 'kwh_perdidos_p90'
+    | 'prioridad_calculada'
   >
 > & {
   proyecto_id?: number

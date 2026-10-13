@@ -52,6 +52,11 @@ const servicio = new ProyectosService()
  */
 let enVuelo: Promise<ProyectoConDetalle[]> | null = null
 let livianoEnVuelo: Promise<ProyectoLiviano[]> | null = null
+let operativosEnVuelo: Promise<ProyectoConDetalle[]> | null = null
+
+function esOperada(p: ProyectoConDetalle): boolean {
+  return !!p.servicios?.operacion
+}
 
 export function useProyectosCatalogo() {
   const proyectos = useState<ProyectoConDetalle[]>('proyectos-catalogo', () => [])
@@ -59,6 +64,8 @@ export function useProyectosCatalogo() {
   const livianoEn = useState<number>('proyectos-catalogo-liviano-ts', () => 0)
   const cargadoEn = useState<number>('proyectos-catalogo-ts', () => 0)
   const cargando = useState<boolean>('proyectos-catalogo-cargando', () => false)
+  const operativos = useState<ProyectoConDetalle[]>('proyectos-catalogo-operativos', () => [])
+  const operativosEn = useState<number>('proyectos-catalogo-operativos-ts', () => 0)
 
   function estaVigente(): boolean {
     return proyectos.value.length > 0 && Date.now() - cargadoEn.value < VIGENCIA_MS
@@ -108,11 +115,36 @@ export function useProyectosCatalogo() {
    *
    * Lo decide el backend: `servicios.operacion` es "en operación y con contrato
    * de operación vigente", la misma regla del sondeo MGS. Antes era una bandera
-   * puesta a mano. Se filtra del catálogo ya cargado, sin una petición aparte.
+   * puesta a mano.
+   *
+   * Si el catálogo completo ya está cargado (o en camino), se filtra de ahí,
+   * sin una petición aparte. Si no, se le pide al backend solo esa parte
+   * (`GET /proyectos?servicio=operacion`), con caché propio: la lista de
+   * fallas y su formulario no necesitan las 188 plantas para quedarse con las
+   * que operamos.
    */
   async function cargarOperativos(): Promise<ProyectoConDetalle[]> {
-    const todos = await cargar()
-    return todos.filter((p) => p.servicios?.operacion)
+    if (estaVigente()) return proyectos.value.filter(esOperada)
+    if (enVuelo) return (await enVuelo).filter(esOperada)
+    if (operativos.value.length && Date.now() - operativosEn.value < VIGENCIA_MS) {
+      return operativos.value
+    }
+    if (operativosEnVuelo) return operativosEnVuelo
+    operativosEnVuelo = (async () => {
+      try {
+        // El backend ya filtra; se vuelve a mirar `servicios.operacion` para que
+        // la regla sea la misma venga de donde venga la lista.
+        operativos.value = (await servicio.listarConServicioOperacion()).filter(esOperada)
+        operativosEn.value = Date.now()
+        return operativos.value
+      } catch (err) {
+        logger.error(SCOPE, err)
+        return operativos.value
+      } finally {
+        operativosEnVuelo = null
+      }
+    })()
+    return operativosEnVuelo
   }
 
   /**

@@ -18,10 +18,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const listar = vi.fn()
+const listarConServicioOperacion = vi.fn()
 
 vi.mock('~/features/proyectos/services/proyectos', () => ({
   ProyectosService: class {
     listar = listar
+    listarConServicioOperacion = listarConServicioOperacion
   },
 }))
 
@@ -69,6 +71,7 @@ beforeEach(() => {
   almacen.clear()
   listar.mockReset()
   listar.mockResolvedValue(PLANTAS)
+  listarConServicioOperacion.mockReset()
   vi.useRealTimers()
 })
 
@@ -170,12 +173,14 @@ describe('useProyectosCatalogo', () => {
     const usar = await cargarComposable()
     listar.mockResolvedValue(MEZCLA)
 
-    const operativos = await usar().cargarOperativos()
+    const c = usar()
+    await c.cargar()
+    const operativos = await c.cargarOperativos()
 
     expect(operativos.map((p) => p.nombre_comercial)).toEqual(['Opera Y La Operamos'])
   })
 
-  it('cargarOperativos no gasta una petición aparte', async () => {
+  it('cargarOperativos no gasta una petición aparte si el catálogo ya está', async () => {
     // `servicios` viene en cada fila: se filtra lo ya cargado.
     const usar = await cargarComposable()
     listar.mockResolvedValue(MEZCLA)
@@ -184,6 +189,20 @@ describe('useProyectosCatalogo', () => {
     await usar().cargarOperativos()
 
     expect(listar).toHaveBeenCalledTimes(1)
+    expect(listarConServicioOperacion).not.toHaveBeenCalled()
+  })
+
+  it('sin catálogo cargado, cargarOperativos pide solo las operadas al backend', async () => {
+    // `GET /proyectos?servicio=operacion`: no hace falta traer las 188 plantas.
+    const usar = await cargarComposable()
+    listarConServicioOperacion.mockResolvedValue(MEZCLA.slice(0, 1))
+
+    const operativos = await usar().cargarOperativos()
+    await usar().cargarOperativos()
+
+    expect(operativos.map((p) => p.nombre_comercial)).toEqual(['Opera Y La Operamos'])
+    expect(listarConServicioOperacion).toHaveBeenCalledTimes(1)
+    expect(listar).not.toHaveBeenCalled()
   })
 
   it('cargarOperativos deja intacto el catálogo completo', async () => {
@@ -193,6 +212,7 @@ describe('useProyectosCatalogo', () => {
     listar.mockResolvedValue(MEZCLA)
 
     const c = usar()
+    await c.cargar()
     await c.cargarOperativos()
 
     expect(c.proyectos.value).toHaveLength(MEZCLA.length)

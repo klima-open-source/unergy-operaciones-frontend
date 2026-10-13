@@ -18,6 +18,7 @@ import type {
   ProyectoPendiente,
   ReporteBackfillInversores,
 } from '~/features/proyectos/types'
+import { ServicioPlanta } from '~/features/proyectos/types'
 import { BaseService } from '~/core/service'
 
 const BASE = '/proyectos'
@@ -135,7 +136,19 @@ export class ProyectosService extends BaseService {
   /** Las plantas con contrato de representación, con el resumen de ese contrato ya embebido. */
   async listarConServicioRepresentacion(): Promise<ProyectoConServicioRepresentacion[]> {
     const data = await this.get<ListaODirecto<ProyectoConServicioRepresentacion>>(RUTAS.proyectos, {
-      query: { servicio: 'representacion', size: 500 },
+      query: { servicio: ServicioPlanta.REPRESENTACION, size: 500 },
+    })
+    return comoLista(data)
+  }
+
+  /**
+   * Las plantas con servicio de operación (`servicios.operacion`): en operación
+   * y con contrato de operación vigente. El filtro lo resuelve el backend, así
+   * que no hace falta traer el catálogo completo para quedarse con una parte.
+   */
+  async listarConServicioOperacion(): Promise<ProyectoConDetalle[]> {
+    const data = await this.get<ListaODirecto<ProyectoConDetalle>>(RUTAS.proyectos, {
+      query: { servicio: ServicioPlanta.OPERACION, size: 500 },
     })
     return comoLista(data)
   }
