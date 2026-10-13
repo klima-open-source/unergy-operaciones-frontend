@@ -62,6 +62,8 @@ export interface ExternalMinigranja {
   stage?: unknown
   stage_options?: { stage?: unknown; label?: unknown }[]
   grid_operator?: unknown
+  /** Los inversionistas de la minigranja; `status: 'investment'` = invierten de verdad. */
+  investments?: { id?: unknown; name?: unknown; status?: unknown }[]
   project?: {
     id?: unknown
     project_type?: unknown
@@ -130,6 +132,8 @@ export interface ProyectoTsf {
    */
   p50MensualKwh: number[] | null
   p90MensualKwh: number[] | null
+  /** Los inversionistas de TSF (`Investment`), para vincularlos con clientes de Operaciones. */
+  inversionistas: { id: number; nombre: string }[]
 }
 
 function texto(v: unknown): string | null {
@@ -217,6 +221,10 @@ export function toProyectoTsf(
     operadorRedCodigo: texto(proyecto?.grid_operator_data?.value),
     p50MensualKwh: null,
     p90MensualKwh: null,
+    inversionistas: (m.investments ?? [])
+      .filter((i) => i.status === 'investment')
+      .map((i) => ({ id: numero(i.id), nombre: texto(i.name) }))
+      .filter((i): i is { id: number; nombre: string } => i.id !== null && i.nombre !== null),
     // El único tipo que TSF y Operaciones nombran distinto y que se reconoce.
     tipoProyecto: tipo === 'minifarm' ? 'minigranja' : null,
   }

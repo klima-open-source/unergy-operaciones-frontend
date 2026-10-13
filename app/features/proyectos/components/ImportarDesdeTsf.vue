@@ -11,9 +11,15 @@ import { LoaderCircleIcon, SearchIcon } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { normalizeError } from '~/core/errors'
 import { proyectoExistente } from '~/features/proyectos/prellenadoTsf'
+import { ClientesService } from '~/features/clientes/services/clientes'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
-import type { ProyectoTsf, ResultadoTsf } from '~/features/proyectos/types'
+import type {
+  ImportacionTsf,
+  InversionistaTsfResuelto,
+  ProyectoTsf,
+  ResultadoTsf,
+} from '~/features/proyectos/types'
 
 const props = defineProps<{
   /** Los proyectos ya cargados en la vista, para detectar el duplicado. */
@@ -21,7 +27,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  seleccionar: [proyecto: ProyectoTsf]
+  seleccionar: [importacion: ImportacionTsf]
   volver: []
 }>()
 
@@ -29,6 +35,7 @@ const MINIMO = 3
 
 const servicio = new OriginabotService()
 const operadoresRed = new OperadoresRedService()
+const clientes = new ClientesService()
 const confirm = useConfirm()
 
 function confirmar(titulo: string, descripcion: string): Promise<boolean> {
@@ -44,6 +51,34 @@ function confirmar(titulo: string, descripcion: string): Promise<boolean> {
 }
 
 /** Vincula el operador de TSF; si eso lo CREARÍA en Operaciones, pregunta antes. */
+/**
+ * El cliente de Operaciones de cada inversionista de TSF. Si vincularlo lo
+ * CREARÍA, pregunta antes; el que no se confirme (o falle) no entra: el
+ * formulario permite agregarlo a mano.
+ */
+async function resolverInversionistas(
+  inversionistas: ProyectoTsf['inversionistas'],
+): Promise<InversionistaTsfResuelto[]> {
+  const resueltos: InversionistaTsfResuelto[] = []
+  for (const inv of inversionistas) {
+    try {
+      const simulacion = await clientes.simularInversionistaOriginabot(inv.id, inv.nombre)
+      if (simulacion.estado === 'creado') {
+        const si = await confirmar(
+          `Esta acción creará el cliente «${inv.nombre}» en Operaciones`,
+          'Es inversionista del proyecto en TSF y aún no existe como cliente. ¿Desea continuar? Si no, puedes agregarlo a mano en el formulario.',
+        )
+        if (!si) continue
+      }
+      const cliente = await clientes.vincularInversionistaOriginabot(inv.id, inv.nombre)
+      if (cliente.id) resueltos.push({ cliente_id: cliente.id, nombre: cliente.razon_social_nombre })
+    } catch {
+      // Sin vínculo no entra; se agrega a mano en el formulario.
+    }
+  }
+  return resueltos
+}
+
 async function vincularOperador(codigo: string, nombre: string) {
   try {
     const simulacion = await operadoresRed.simularVinculoOriginabot(codigo, nombre)
@@ -112,7 +147,8 @@ async function elegir(resultado: ResultadoTsf) {
     if (proyecto.operadorRedCodigo && proyecto.operadorRed) {
       await vincularOperador(proyecto.operadorRedCodigo, proyecto.operadorRed)
     }
-    emit('seleccionar', proyecto)
+    const inversionistasResueltos = await resolverInversionistas(proyecto.inversionistas)
+    emit('seleccionar', { ...proyecto, inversionistasResueltos })
   } catch (e) {
     error.value = normalizeError(e).message
   } finally {

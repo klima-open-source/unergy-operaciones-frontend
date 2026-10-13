@@ -197,28 +197,42 @@
       </div>
     </div>
 
-    <!-- Inversionista inicial, opcional. Antes la planta nacía suelta y había
-         que ir a su detalle a vincular el cliente, que es un paso que se olvida.
-         Acá cabe el caso común --un inversionista al 100%--; los demás se
-         agregan en el detalle, que admite fechas y patrimonio autónomo. -->
-    <div class="border-t border-muted pt-4 mt-2">
-      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        Inversionista <span class="normal-case font-normal">(opcional)</span>
+    <!-- Inversionistas, opcional. Antes la planta nacía suelta y había que ir a
+         su detalle a vincular el cliente, que es un paso que se olvida. Al importar
+         desde TSF llegan sus inversionistas con el cliente fijo y aquí se configura
+         la participación; fechas y patrimonio autónomo se ajustan en el detalle. -->
+    <div class="border-t border-muted pt-4 mt-2 space-y-3">
+      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        Inversionistas <span class="normal-case font-normal">(opcional)</span>
       </p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div v-for="(inv, i) in inversionistas" :key="i" class="flex flex-col gap-2 md:flex-row md:items-end">
         <SelectorCliente
-          v-model:id="inversionistaInicial.cliente_id"
-          v-model:nombre="inversionistaInicial.nombre"
-          label="Cliente"
+          v-model:id="inv.cliente_id"
+          v-model:nombre="inv.nombre"
+          class="flex-1"
+          :disabled="inv.desdeTsf"
+          :label="inv.desdeTsf ? 'Cliente (de TSF)' : 'Cliente'"
           placeholder="Buscar o crear el cliente…"
         />
         <div>
           <label class="block text-xs font-medium text-muted-foreground mb-1">Participación (%)</label>
-          <NumberField v-model="inversionistaInicial.porcentaje_pct" :step-snapping="false" :min="0" :max="100"
+          <NumberField v-model="inv.porcentaje_pct" :step-snapping="false" :min="0" :max="100"
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
-            <NumberFieldContent><NumberFieldInput placeholder="100" /></NumberFieldContent>
+            <NumberFieldContent><NumberFieldInput :placeholder="inversionistas.length === 1 ? '100' : '—'" /></NumberFieldContent>
           </NumberField>
         </div>
+        <Button v-if="!inv.desdeTsf && inversionistas.length > 1" type="button" variant="ghost" size="icon"
+          aria-label="Quitar inversionista" @click="quitarInversionista(i)">
+          <XIcon class="size-4" />
+        </Button>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <Button type="button" variant="outline" size="sm" @click="inversionistas.push(nuevoInversionista())">
+          <PlusIcon class="size-4" /> Agregar inversionista
+        </Button>
+        <p v-if="!participacionValida" class="text-xs text-destructive">
+          Las participaciones deben sumar 100 % y cada inversionista llevar la suya (van {{ sumaParticipacion }} %).
+        </p>
       </div>
     </div>
 
@@ -236,7 +250,7 @@
 
 <script setup>
 import { reactive, ref, watch, computed, onMounted } from 'vue'
-import { LockIcon } from '@lucide/vue'
+import { LockIcon, PlusIcon, XIcon } from '@lucide/vue'
 import { prellenadoDesdeTsf } from '~/features/proyectos/prellenadoTsf'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
@@ -245,12 +259,31 @@ import divipola from '~/data/colombia-divipola.json'
 
 const operadoresRedService = new OperadoresRedService()
 
-/** El inversionista que se vincula junto con la planta. Ver el bloque del form. */
-const inversionistaInicial = reactive({
-  cliente_id: null,
-  nombre: null,
-  porcentaje_pct: null,
+/**
+ * Los inversionistas que se vinculan junto con la planta, con su participación.
+ * Los que vienen de TSF (`desdeTsf`) llegan con el cliente fijo: aquí solo se
+ * configura su porcentaje. Ver el bloque del form.
+ */
+function nuevoInversionista(datos = {}) {
+  return { cliente_id: null, nombre: null, porcentaje_pct: null, desdeTsf: false, ...datos }
+}
+const inversionistas = ref([nuevoInversionista()])
+const inversionistasConCliente = computed(() => inversionistas.value.filter(i => i.cliente_id))
+const sumaParticipacion = computed(() =>
+  inversionistasConCliente.value.reduce((s, i) => s + (Number(i.porcentaje_pct) || 0), 0))
+// Uno solo sin porcentaje es el 100 %, como siempre. Con varios, cada uno lleva
+// su porcentaje y entre todos suman 100: si no, la planta quedaría repartida de más o de menos.
+const participacionValida = computed(() => {
+  const lista = inversionistasConCliente.value
+  if (lista.length === 0) return true
+  if (lista.length === 1 && lista[0].porcentaje_pct == null) return true
+  if (lista.some(i => i.porcentaje_pct == null)) return false
+  return Math.abs(sumaParticipacion.value - 100) < 0.0001
 })
+function quitarInversionista(i) {
+  inversionistas.value.splice(i, 1)
+  if (!inversionistas.value.length) inversionistas.value.push(nuevoInversionista())
+}
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
@@ -276,7 +309,7 @@ const emit = defineEmits(['save', 'cancel'])
 const coordenadasValidas = ref(true)
 
 const puedeGuardar = computed(() =>
-  !!f.nombre_comercial && coordenadasValidas.value
+  !!f.nombre_comercial && coordenadasValidas.value && participacionValida.value
   && (!props.operadorRedObligatorio || !!f.operador_red_id))
 
 const estados = [
@@ -323,6 +356,16 @@ function aplicarPrellenadoTsf() {
     props.importado, divipola, operadoresRed.value,
   )
   Object.assign(f, valores)
+  // Los inversionistas de TSF, ya vinculados con su cliente: el % se configura aquí.
+  const deTsf = props.importado.inversionistasResueltos ?? []
+  if (deTsf.length) {
+    inversionistas.value = deTsf.map(inv => nuevoInversionista({
+      cliente_id: inv.cliente_id,
+      nombre: inv.nombre,
+      desdeTsf: true,
+      porcentaje_pct: deTsf.length === 1 ? 100 : null,
+    }))
+  }
   if (simulacion.p50) p50Array.value = [...simulacion.p50]
   if (simulacion.p90) p90Array.value = [...simulacion.p90]
   bloqueados.value = new Set(campos)
@@ -443,13 +486,11 @@ function submit() {
   // El inversionista no va en el payload del proyecto: es otra tabla, y se
   // agrega después de crear la planta (necesita su id). Viaja aparte, como
   // `infoTecnica`.
-  const inversionista = inversionistaInicial.cliente_id
-    ? {
-        cliente_id: inversionistaInicial.cliente_id,
-        porcentaje_participacion: (inversionistaInicial.porcentaje_pct ?? 100) / 100,
-      }
-    : null
+  const listaInversionistas = inversionistasConCliente.value.map(i => ({
+    cliente_id: i.cliente_id,
+    porcentaje_participacion: (i.porcentaje_pct ?? 100) / 100,
+  }))
 
-  emit('save', payload, infoTecnica, inversionista)
+  emit('save', payload, infoTecnica, listaInversionistas)
 }
 </script>

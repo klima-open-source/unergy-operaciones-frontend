@@ -24,6 +24,11 @@ const BEARER = 'Bearer tok'
 
 const MINIGRANJA = {
   id: 1913,
+  investments: [
+    { id: 95, name: 'Unergy Interno', status: 'investment' },
+    { id: 21, name: 'Solenium', status: 'investment' },
+    { id: 40, name: 'Solo interesado', status: 'interested' },
+  ],
   name: 'COLCEST456P1_BOSCONIA_ORIENTE',
   stage: 'signed',
   stage_options: [
@@ -85,6 +90,11 @@ describe('toProyectoTsf', () => {
       tipoProyecto: 'minigranja',
       p50MensualKwh: null,
       p90MensualKwh: null,
+      // El que solo está interesado no invierte: no se trae.
+      inversionistas: [
+        { id: 95, nombre: 'Unergy Interno' },
+        { id: 21, nombre: 'Solenium' },
+      ],
     })
   })
 

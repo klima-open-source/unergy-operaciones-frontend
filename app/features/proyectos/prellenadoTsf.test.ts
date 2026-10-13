@@ -17,6 +17,7 @@ const TSF: ProyectoTsf = {
   tipoProyecto: 'minigranja',
   p50MensualKwh: Array(12).fill(100_000),
   p90MensualKwh: null,
+  inversionistas: [],
 }
 
 const DIVIPOLA = { Cesar: ['Agustín Codazzi', 'Bosconia'], 'Bogotá D.C.': ['Bogotá D.C.'] }

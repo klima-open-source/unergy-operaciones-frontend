@@ -1901,23 +1901,26 @@ async function guardarInfoTecnicaSiAplica(proyectoId, infoTecnica) {
  * Va DESPUÉS de crear el proyecto porque necesita su id, y no tumba la creación
  * si falla: la planta ya existe, y el vínculo se puede agregar desde su detalle.
  */
-async function vincularInversionistaSiAplica(proyectoId, inversionista) {
-  if (!inversionista?.cliente_id) return
-  try {
-    await proyectosService.agregarInversionista(proyectoId, inversionista)
-  } catch (e) {
-    toast.warning('Proyecto creado, pero el inversionista no se pudo vincular', {
-      description: e.data?.detail,
-      duration: 5000,
-    })
+/** `ProyectoForm` emite la lista de inversionistas (puede venir vacía). */
+async function vincularInversionistaSiAplica(proyectoId, inversionistas) {
+  for (const inversionista of inversionistas ?? []) {
+    if (!inversionista?.cliente_id) continue
+    try {
+      await proyectosService.agregarInversionista(proyectoId, inversionista)
+    } catch (e) {
+      toast.warning('Proyecto creado, pero un inversionista no se pudo vincular', {
+        description: e.data?.detail,
+        duration: 5000,
+      })
+    }
   }
 }
 
-async function crearProyecto(payload, infoTecnica, inversionista) {
+async function crearProyecto(payload, infoTecnica, inversionistas) {
   try {
     const proyecto = await proyectosService.crear(payload)
     await guardarInfoTecnicaSiAplica(proyecto.id, infoTecnica)
-    await vincularInversionistaSiAplica(proyecto.id, inversionista)
+    await vincularInversionistaSiAplica(proyecto.id, inversionistas)
     toast.success('Proyecto creado', { duration: 3000 })
     dialogProyecto.value = false
     cargarProyectos()
@@ -1930,7 +1933,7 @@ async function crearProyecto(payload, infoTecnica, inversionista) {
       duplicadoTipo.value = 'proyecto'
       pendingPayload.value = payload
       pendingInfoTecnica.value = infoTecnica
-      pendingInversionista.value = inversionista
+      pendingInversionista.value = inversionistas
       duplicadoVisible.value = true
       return
     }

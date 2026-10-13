@@ -31,7 +31,10 @@ const props = defineProps<{
   /** La oferta a la que se le pega la planta. Sin ella se crea suelta. */
   oferta?: Oferta | null
 }>()
-const emit = defineEmits<{ 'update:visible': [visible: boolean]; creado: [proyecto: { id: number; nombre_comercial: string }] }>()
+const emit = defineEmits<{
+  'update:visible': [visible: boolean]
+  creado: [proyecto: { id: number; nombre_comercial: string }]
+}>()
 
 const confirm = useConfirm()
 const comercialService = new ComercialService()
@@ -41,7 +44,10 @@ const guardando = ref(false)
 const error = ref('')
 
 const codigoOferta = computed(
-  () => props.oferta?.codigo_seguimiento || props.oferta?.numero_oferta || `la oferta #${props.oferta?.id}`,
+  () =>
+    props.oferta?.codigo_seguimiento ||
+    props.oferta?.numero_oferta ||
+    `la oferta #${props.oferta?.id}`,
 )
 
 watch(
@@ -57,7 +63,7 @@ function mensajeError(err: unknown): string {
 }
 
 /**
- * ProyectoForm emite (payload, infoTecnica, inversionista). Las dos últimas
+ * ProyectoForm emite (payload, infoTecnica, inversionistas). Las dos últimas
  * necesitan un proyecto ya creado, así que van en llamadas posteriores — igual
  * que en /proyectos. Si alguna falla no se deshace la planta: existe y está
  * vinculada, que es lo que importa; se avisa y se completa desde el proyecto.
@@ -69,13 +75,16 @@ function mensajeError(err: unknown): string {
 async function crear(
   payload: ProyectoEditable,
   infoTecnica?: ProyectoInfoTecnica | null,
-  inversionista: PayloadInversionista | null = null,
+  inversionistas: PayloadInversionista[] = [],
   forzar = false,
 ) {
   guardando.value = true
   error.value = ''
   try {
-    const filtros = { ...(forzar ? { forzar: true } : {}), ...(props.oferta?.id ? { oferta_id: props.oferta.id } : {}) }
+    const filtros = {
+      ...(forzar ? { forzar: true } : {}),
+      ...(props.oferta?.id ? { oferta_id: props.oferta.id } : {}),
+    }
     const data = await comercialService.crearProyectoDesdeCRM(props.oportunidadId, payload, filtros)
 
     if (infoTecnica && Object.keys(infoTecnica).length) {
@@ -89,11 +98,12 @@ async function crear(
       }
     }
 
-    if (inversionista?.cliente_id) {
+    for (const inversionista of inversionistas) {
+      if (!inversionista?.cliente_id) continue
       try {
         await proyectosService.agregarInversionista(data.id, inversionista)
       } catch {
-        toast.warning('La planta se creó, pero el inversionista no se vinculó', {
+        toast.warning('La planta se creó, pero un inversionista no se vinculó', {
           description: 'Agregalo desde el proyecto.',
           duration: 6000,
         })
@@ -101,7 +111,9 @@ async function crear(
     }
 
     toast.success(`Planta «${data.nombre_comercial}» creada`, {
-      description: props.oferta ? `Vinculada a ${codigoOferta.value}.` : 'Sin vincular a ninguna oferta.',
+      description: props.oferta
+        ? `Vinculada a ${codigoOferta.value}.`
+        : 'Sin vincular a ninguna oferta.',
     })
     emit('creado', data)
     emit('update:visible', false)
@@ -114,7 +126,7 @@ async function crear(
         description: `${det.mensaje}. ¿Crear de todos modos?`,
         confirmLabel: 'Crear igual',
         cancelLabel: 'Cancelar',
-        onConfirm: () => crear(payload, infoTecnica, inversionista, true),
+        onConfirm: () => crear(payload, infoTecnica, inversionistas, true),
       })
     } else {
       error.value = mensajeError(err)
@@ -129,7 +141,7 @@ async function crear(
   <Dialog :open="visible" @update:open="(v: boolean) => !guardando && emit('update:visible', v)">
     <!-- max-h + scroll: el formulario de planta es más alto que la pantalla, y sin
          esto quedaban fuera de vista el nombre y el botón de crear. -->
-    <DialogContent class="sm:max-w-2xl max-h-dvh overflow-y-auto">
+    <DialogContent class="max-h-dvh overflow-y-auto sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>Crear planta</DialogTitle>
         <DialogDescription>
@@ -142,8 +154,8 @@ async function crear(
         <TriangleAlertIcon class="text-warning" />
         <AlertDescription>
           Se va a crear sin vincular a ninguna oferta. Cumplimiento y
-          <code>/comercial/proyectos-operando</code> no la van a ver hasta que la
-          vincules desde el panel de una oferta.
+          <code>/comercial/proyectos-operando</code> no la van a ver hasta que la vincules desde el
+          panel de una oferta.
         </AlertDescription>
       </Alert>
 

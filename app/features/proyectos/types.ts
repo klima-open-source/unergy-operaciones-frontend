@@ -273,4 +273,17 @@ export interface ProyectoTsf {
   /** Generación simulada mensual (kWh): forma del zip de PVsyst, total del anual de TSF. */
   p50MensualKwh: number[] | null
   p90MensualKwh: number[] | null
+  /** Los inversionistas en TSF (`Investment`): id y nombre allá. */
+  inversionistas: { id: number; nombre: string }[]
+}
+
+/** Un inversionista de TSF ya vinculado con su cliente de Operaciones. */
+export interface InversionistaTsfResuelto {
+  cliente_id: number
+  nombre: string
+}
+
+/** Lo que `ImportarDesdeTsf` entrega al formulario: el proyecto y sus inversionistas ya resueltos. */
+export interface ImportacionTsf extends ProyectoTsf {
+  inversionistasResueltos: InversionistaTsfResuelto[]
 }

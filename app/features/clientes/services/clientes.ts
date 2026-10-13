@@ -41,9 +41,40 @@ const RUTAS = {
   contacto: (id: number, contactoId: ContactoCliente['id']) =>
     `${BASE}/${id}/contactos/${contactoId}`,
   testCorreo: (id: number) => `${BASE}/${id}/test-correo`,
+  originabot: `${BASE}/originabot`,
 } as const
 
+/** `POST /clientes/originabot`: el cliente de un inversionista de TSF, o qué pasaría. */
+export interface VinculoInversionistaOriginabot {
+  estado: 'existente' | 'vinculado' | 'creado'
+  id: number | null
+  razon_social_nombre: string
+}
+
 export class ClientesService extends BaseService {
+  /** Vincula (o crea) el cliente de un inversionista de TSF. Idempotente. */
+  vincularInversionistaOriginabot(
+    investmentId: number,
+    nombre: string,
+  ): Promise<VinculoInversionistaOriginabot> {
+    return this.post<VinculoInversionistaOriginabot>(RUTAS.originabot, {
+      investment_id: investmentId,
+      nombre,
+    })
+  }
+
+  /** Qué haría `vincularInversionistaOriginabot` sin escribir: para confirmar antes de CREAR. */
+  simularInversionistaOriginabot(
+    investmentId: number,
+    nombre: string,
+  ): Promise<VinculoInversionistaOriginabot> {
+    return this.post<VinculoInversionistaOriginabot>(
+      RUTAS.originabot,
+      { investment_id: investmentId, nombre },
+      { query: { simular: true } },
+    )
+  }
+
   listarVistaComercial(): Promise<ClienteVistaComercial[]> {
     return this.get<ClienteVistaComercial[]>(RUTAS.vistaComercial)
   }
