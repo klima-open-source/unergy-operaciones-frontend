@@ -9,18 +9,24 @@
         <ZapIcon class="size-4 text-primary" />
         Gestión de Fallas
       </div>
-      <GTabs :model-value="String(activeTab)" @update:model-value="(v) => (activeTab = Number(v))">
+      <GTabs
+        :model-value="activeTab"
+        @update:model-value="(v) => (activeTab = esPestanaGestionFallas(v) ? v : activeTab)"
+      >
         <GTabsList variant="outline">
-          <GTabsTrigger v-for="(tab, i) in TABS" :key="i" :value="String(i)" variant="outline">
+          <GTabsTrigger v-for="tab in TABS" :key="tab.key" :value="tab.key" variant="outline">
             <component :is="tab.icon" class="size-4" />
             {{ tab.label }}
+            <template v-if="tab.key === PestanaGestionFallas.PENDIENTES">
+              · {{ totalPendientes }}</template
+            >
           </GTabsTrigger>
         </GTabsList>
       </GTabs>
     </div>
 
-    <!-- ══ TAB 0 — FALLAS ════════════════════════════════════════════════ -->
-    <template v-if="activeTab === 0">
+    <!-- ══ TAB FALLAS ════════════════════════════════════════════════════ -->
+    <template v-if="activeTab === PestanaGestionFallas.FALLAS">
       <!-- ══ STICKY HEADER ════════════════════════════════════════════════ -->
       <div
         ref="stickyHeaderRef"
@@ -189,6 +195,8 @@
         </div>
       </div>
       <!-- /gf-sticky-header -->
+
+      <AvisoProgramadasHoy :fallas="programadasHoy" class="mb-3" @abrir="verFallaEnLista" />
 
       <div
         :class="
@@ -539,6 +547,43 @@
                   />
                   <h3 class="text-sm font-bold text-foreground">Equipo / clasificación</h3>
                 </header>
+
+                <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <CpuIcon class="size-3" /> Equipo
+                    </dt>
+                    <dd class="text-sm font-medium text-foreground">
+                      {{ etiquetaEquipo(drawerFalla.equipo) }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <ShieldCheckIcon class="size-3" /> Garantía
+                    </dt>
+                    <dd
+                      class="text-sm font-medium"
+                      :class="drawerFalla.en_garantia ? 'text-success' : 'text-muted-foreground'"
+                    >
+                      {{ drawerFalla.en_garantia ? 'En garantía' : 'No' }}
+                    </dd>
+                  </div>
+                  <div
+                    v-if="drawerFalla.en_garantia && drawerFalla.garantia_detalle"
+                    class="col-span-2 flex flex-col gap-0.5"
+                  >
+                    <dt class="text-xs font-semibold text-muted-foreground uppercase">
+                      Detalle de la garantía
+                    </dt>
+                    <dd class="text-sm whitespace-pre-line text-foreground">
+                      {{ drawerFalla.garantia_detalle }}
+                    </dd>
+                  </div>
+                </dl>
 
                 <template v-if="clasifDrawer">
                   <div class="flex flex-wrap items-center gap-2">
@@ -1173,17 +1218,33 @@
         </DialogContent>
       </Dialog>
     </template>
-    <!-- /TAB 0 -->
+    <!-- /TAB FALLAS -->
 
-    <!-- ══ TAB 1 — CALENDARIO ══════════════════════════════════════════════ -->
-    <div v-if="activeTab === 1" class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted">
+    <!-- ══ TAB CALENDARIO ══════════════════════════════════════════════════ -->
+    <div
+      v-if="activeTab === PestanaGestionFallas.CALENDARIO"
+      class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted"
+    >
+      <AvisoProgramadasHoy
+        :fallas="programadasHoy"
+        class="mx-3.5 mt-3.5 w-auto"
+        @abrir="verFallaEnLista"
+      />
       <CalendarioFallas
         :refresh-key="calRefreshKey"
         @editar="irAEditar"
-        @ver-falla="irAFallaDesdeCalendario"
+        @ver-falla="verFallaEnLista"
       />
     </div>
-    <!-- /TAB 1 -->
+    <!-- /TAB CALENDARIO -->
+
+    <!-- ══ TAB PENDIENTES ══════════════════════════════════════════════════ -->
+    <PendientesFallas
+      v-if="activeTab === PestanaGestionFallas.PENDIENTES"
+      :fallas="allFallas"
+      @abrir="verFallaEnLista"
+    />
+    <!-- /TAB PENDIENTES -->
 
     <!-- ══ BOTÓN FLOTANTE: Diagrama fasorial ══════════════════════════════ -->
     <FasorialButton />
@@ -1195,7 +1256,7 @@ import type { Component } from 'vue'
 import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
 import type { CatalogosFalla, Falla, PayloadFalla } from '~/features/fallas/types'
 import type { ProyectoConDetalle } from '~/features/proyectos/types'
-import { EstadoFallaCodigo, GrupoEstadoFalla } from '~/features/fallas/types'
+import { EstadoFallaCodigo, GrupoEstadoFalla, PestanaGestionFallas } from '~/features/fallas/types'
 import {
   BellIcon,
   BriefcaseIcon,
@@ -1210,7 +1271,9 @@ import {
   CircleCheckIcon,
   CircleDotIcon,
   CircleXIcon,
+  ClipboardListIcon,
   ClockIcon,
+  CpuIcon,
   DollarSignIcon,
   ExternalLinkIcon,
   HourglassIcon,
@@ -1227,6 +1290,7 @@ import {
   SearchIcon,
   SendIcon,
   ServerIcon,
+  ShieldCheckIcon,
   SlidersHorizontalIcon,
   TimerIcon,
   Trash2Icon,
@@ -1246,6 +1310,8 @@ import {
   clasificacionDetalle,
   tituloFalla,
 } from '~/features/fallas/utils/fallaTitulo'
+import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
+import { formatoFechaDia as fmtFecha } from '~/features/fallas/utils/formatoFecha'
 import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
 import {
   esGrupoEstadoFalla,
@@ -1255,8 +1321,13 @@ import {
   perteneceAGrupo,
 } from '~/features/fallas/utils/grupoEstado'
 import { compararFallasRecientes } from '~/features/fallas/utils/ordenFallas'
+import { fallasPendientes } from '~/features/fallas/utils/pendientes'
+import { fallasProgramadasHoy } from '~/features/fallas/utils/programadasHoy'
+import { hoyColombia } from '~/utils/fecha'
 import { ParamQueryFallas, RUTAS_FALLAS } from '~/features/fallas/utils/rutas'
+import AvisoProgramadasHoy from './AvisoProgramadasHoy.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
+import PendientesFallas from './PendientesFallas.vue'
 import FallaArchivos from './FallaArchivos.vue'
 import FasorialButton from '~/features/fallas/components/FasorialButton.vue'
 
@@ -1274,14 +1345,20 @@ const calRefreshKey = ref(0)
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
 interface MonitoreoTab {
+  key: PestanaGestionFallas
   label: string
   icon: Component
 }
 const TABS: MonitoreoTab[] = [
-  { label: 'Fallas', icon: ZapIcon },
-  { label: 'Calendario', icon: CalendarIcon },
+  { key: PestanaGestionFallas.FALLAS, label: 'Fallas', icon: ZapIcon },
+  { key: PestanaGestionFallas.CALENDARIO, label: 'Calendario', icon: CalendarIcon },
+  { key: PestanaGestionFallas.PENDIENTES, label: 'Pendientes', icon: ClipboardListIcon },
 ]
-const activeTab = ref(0)
+const activeTab = ref<PestanaGestionFallas>(PestanaGestionFallas.FALLAS)
+
+function esPestanaGestionFallas(v: unknown): v is PestanaGestionFallas {
+  return Object.values(PestanaGestionFallas).includes(v as PestanaGestionFallas)
+}
 
 // ── Pestañas de estado ────────────────────────────────────────────────────
 // Agrupan estados del catálogo: "En gestión" incluye en espera, y "Abierta"
@@ -1446,6 +1523,11 @@ const counts = computed(() => {
   for (const f of allFallas.value) c[grupoEstadoFalla(f)]++
   return c
 })
+
+const totalPendientes = computed(() => fallasPendientes(allFallas.value).length)
+
+/** Las programadas para hoy, en hora de Colombia (sin cerrar y en estado programado). */
+const programadasHoy = computed(() => fallasProgramadasHoy(allFallas.value, hoyColombia()))
 
 const porGrupo = computed(() => allFallas.value.filter((f) => perteneceAGrupo(f, grupo.value)))
 
@@ -1748,9 +1830,9 @@ function irAEditar(falla: Falla) {
   router.push({ path: RUTAS_FALLAS.editar(falla.id), query: route.query })
 }
 
-function irAFallaDesdeCalendario(falla: Falla) {
-  // Cambia al tab Fallas y abre el drawer con la falla seleccionada
-  activeTab.value = 0
+/** Desde el calendario, Pendientes o el aviso de hoy: va a la pestaña Fallas y abre el panel. */
+function verFallaEnLista(falla: Falla) {
+  activeTab.value = PestanaGestionFallas.FALLAS
   nextTick(() => abrirDrawer(falla))
 }
 
@@ -1989,15 +2071,6 @@ function slaSeverity(falla: Falla): GandalfBadgeColor {
   return 'default'
 }
 
-function fmtFecha(d?: string | null): string {
-  if (!d) return '—'
-  return new Date(`${d}T00:00:00`).toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
 // Fecha + hora para campos datetime (ocurrencia, resolución).
 function fmtFechaHora(dt?: string | null): string {
   if (!dt) return '—'
@@ -2057,7 +2130,7 @@ function onKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement
   const t = target.tagName
   if (t === 'INPUT' || t === 'TEXTAREA' || target.isContentEditable) return
-  if (activeTab.value !== 0) return
+  if (activeTab.value !== PestanaGestionFallas.FALLAS) return
   if (e.key === '/') {
     e.preventDefault()
     nextTick(() => searchInputRef.value?.$el?.focus())
