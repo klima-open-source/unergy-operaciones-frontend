@@ -12,7 +12,7 @@
  * Lo derivado (el nombre comercial, sacado del código como hace `tsf_sync`) se
  * prellena pero no se bloquea: no es un dato de TSF.
  */
-import type { ProyectoTsf } from '~/features/proyectos/types'
+import type { ProyectoTsf, ResultadoTsf } from '~/features/proyectos/types'
 import { slugify } from '~/utils/string'
 
 /** Los campos de `ProyectoForm` que TSF puede fijar. */
@@ -116,19 +116,51 @@ export function prellenadoDesdeTsf(
   }
 }
 
+/** Lo que hace falta de una planta de Operaciones para reconocerla en TSF. */
+export interface PlantaConCodigos {
+  codigo_tsf?: string | null
+  origina_code?: string | null
+  originabot_minifarm_id?: number | null
+}
+
+const PREFIJO_CREG = /^COL[A-Z0-9]+$/
+
+/** `COLCEST456P1_BOSCONIA_ORIENTE` → `COLCEST456P1`; null si el nombre no empieza por un código CREG. */
+function codigoTsfDe(codigo: string): string | null {
+  const prefijo = codigo.split('_', 1)[0] ?? ''
+  return PREFIJO_CREG.test(prefijo) ? prefijo : null
+}
+
 /**
- * El proyecto de Operaciones que ya corresponde a este de TSF, si lo hay. Cruza
- * por los mismos dos códigos que `tsf_sync` (y `codigo_tsf` es único en la base):
- * importarlo otra vez sería el duplicado que esa sincronización evita.
+ * El proyecto de Operaciones que ya corresponde a este de TSF, si lo hay. Primero
+ * por llave (`originabot_minifarm_id`, ver `vincular_minigranjas_originabot`) y
+ * después por los dos códigos que cruza `tsf_sync` (`codigo_tsf` es único en la
+ * base): importarlo otra vez sería el duplicado que esa sincronización evita.
  */
-export function proyectoExistente<
-  T extends { codigo_tsf?: string | null; origina_code?: string | null },
->(tsf: Pick<ProyectoTsf, 'codigoTsf' | 'codigoOrigina'>, proyectos: T[]): T | null {
+export function proyectoExistente<T extends PlantaConCodigos>(
+  tsf: Pick<ProyectoTsf, 'codigoTsf' | 'codigoOrigina'> & { minigranjaId?: number },
+  proyectos: T[],
+): T | null {
   return (
     proyectos.find(
       (p) =>
+        (tsf.minigranjaId !== undefined && p.originabot_minifarm_id === tsf.minigranjaId) ||
         (!!tsf.codigoTsf && p.codigo_tsf === tsf.codigoTsf) ||
         (!!p.origina_code && p.origina_code === tsf.codigoOrigina),
     ) ?? null
+  )
+}
+
+/** Los proyectos de TSF (en construcción u operación) que aún no están en Operaciones. */
+export function faltanEnOperaciones(
+  resultados: ResultadoTsf[],
+  proyectos: PlantaConCodigos[],
+): ResultadoTsf[] {
+  return resultados.filter(
+    (r) =>
+      !proyectoExistente(
+        { minigranjaId: r.minigranjaId, codigoTsf: codigoTsfDe(r.codigo), codigoOrigina: r.codigo },
+        proyectos,
+      ),
   )
 }

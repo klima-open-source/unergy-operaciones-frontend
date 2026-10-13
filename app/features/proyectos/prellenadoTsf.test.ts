@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ProyectoTsf } from '~/features/proyectos/types'
-import { prellenadoDesdeTsf, proyectoExistente } from './prellenadoTsf'
+import { faltanEnOperaciones, prellenadoDesdeTsf, proyectoExistente } from './prellenadoTsf'
 
 const TSF: ProyectoTsf = {
   minigranjaId: 1913,
@@ -160,5 +160,48 @@ describe('simulación mensual', () => {
     expect(p.simulacion).toEqual({ p50: Array(12).fill(100_000), p90: null })
     expect(p.bloqueados).toContain('p50_mensual')
     expect(p.bloqueados).not.toContain('p90_mensual')
+  })
+})
+
+describe('faltanEnOperaciones', () => {
+  const resultado = (minigranjaId: number, codigo: string) => ({
+    minigranjaId,
+    codigo,
+    etapa: 'operation',
+    etapaLabel: 'Operación',
+    ubicacion: null,
+    operadorRed: null,
+  })
+
+  it('sugiere solo los de TSF que no tienen planta aquí', () => {
+    const tsf = [
+      resultado(1913, 'COLCEST456P1_BOSCONIA_ORIENTE'), // por código CREG
+      resultado(253, 'Minigranja 0030 - Chimá Oriente'), // renombrada: solo por id
+      resultado(77, 'COLX77P1_SITIO'), // por origina_code
+      resultado(500, 'MiniGranja - Malula - Mendoza'), // no está
+    ]
+    const plantas = [
+      { codigo_tsf: 'COLCEST456P1' },
+      { originabot_minifarm_id: 253, codigo_tsf: 'COLCORT7P1' },
+      { origina_code: 'COLX77P1_SITIO' },
+    ]
+    expect(faltanEnOperaciones(tsf, plantas).map((r) => r.minigranjaId)).toEqual([500])
+  })
+
+  it('una renombrada sin la llave guardada se sugiere: por eso existe vincular_minigranjas_originabot', () => {
+    const tsf = [resultado(253, 'Minigranja 0030 - Chimá Oriente')]
+    expect(faltanEnOperaciones(tsf, [{ codigo_tsf: 'COLCORT7P1' }])).toHaveLength(1)
+  })
+})
+
+describe('proyectoExistente por llave', () => {
+  it('reconoce la planta por su minigranja aunque no compartan código', () => {
+    const plantas = [{ id: 9, originabot_minifarm_id: 1913, codigo_tsf: null, origina_code: null }]
+    expect(
+      proyectoExistente(
+        { minigranjaId: 1913, codigoTsf: null, codigoOrigina: 'Otro nombre' },
+        plantas,
+      )?.id,
+    ).toBe(9)
   })
 })

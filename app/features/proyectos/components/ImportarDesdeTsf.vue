@@ -23,7 +23,14 @@ import type {
 
 const props = defineProps<{
   /** Los proyectos ya cargados en la vista, para detectar el duplicado. */
-  proyectosExistentes: { nombre_comercial: string; codigo_tsf?: string | null; origina_code?: string | null }[]
+  proyectosExistentes: {
+    nombre_comercial: string
+    codigo_tsf?: string | null
+    origina_code?: string | null
+    originabot_minifarm_id?: number | null
+  }[]
+  /** Un proyecto ya elegido (p. ej. sugerido en el modal): se trae sin buscar. */
+  preseleccion?: ResultadoTsf | null
 }>()
 
 const emit = defineEmits<{
@@ -155,6 +162,13 @@ async function elegir(resultado: ResultadoTsf) {
     cargandoId.value = null
   }
 }
+
+onMounted(() => {
+  if (props.preseleccion) {
+    busqueda.value = props.preseleccion.codigo
+    elegir(props.preseleccion)
+  }
+})
 </script>
 
 <template>

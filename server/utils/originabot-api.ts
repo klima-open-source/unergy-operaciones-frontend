@@ -257,6 +257,45 @@ function opciones(event: H3Event, autorizacion: string) {
   }
 }
 
+/** Las etapas en que un proyecto de TSF ya debería existir en Operaciones. */
+export const ETAPAS_SUGERIDAS = { construction: 'Construcción', operation: 'Operación' } as const
+
+/** Tope de páginas por etapa: una etapa nunca tendría tantos proyectos; corta un bucle si `next` se rompe. */
+const MAX_PAGINAS = 20
+
+/**
+ * TODOS los proyectos de TSF en las etapas dadas (Portfolio Manager), página por
+ * página. Para sugerir al crear un proyecto los que aún no están en Operaciones.
+ */
+export async function proyectosEnEtapas(
+  event: H3Event,
+  autorizacion: string,
+  etapas: Record<string, string> = ETAPAS_SUGERIDAS,
+): Promise<ResultadoTsf[]> {
+  try {
+    const porEtapa = await Promise.all(
+      Object.entries(etapas).map(async ([etapa, etiqueta]) => {
+        const resultados: ResultadoTsf[] = []
+        for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
+          const datos = await $fetch<ExternalPaginaEtapa & { next?: unknown }>(RUTAS.busqueda, {
+            ...opciones(event, autorizacion),
+            query: { stage: etapa, page: pagina, page_size: POR_ETAPA },
+          })
+          for (const r of datos.results ?? []) {
+            const resultado = toResultadoTsf(r, etapa, etiqueta)
+            if (resultado) resultados.push(resultado)
+          }
+          if (!datos.next) break
+        }
+        return resultados
+      }),
+    )
+    return porEtapa.flat()
+  } catch (err) {
+    throw errorDeOriginabot(err)
+  }
+}
+
 export async function buscarEnTsf(
   event: H3Event,
   autorizacion: string,

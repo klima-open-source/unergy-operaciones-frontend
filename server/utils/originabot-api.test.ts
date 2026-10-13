@@ -4,6 +4,7 @@ import type { H3Event } from 'h3'
 import JSZip from 'jszip'
 import {
   buscarEnTsf,
+  proyectosEnEtapas,
   simulacionDeTsf,
   urlDeArchivo,
   codigoTsfDe,
@@ -342,5 +343,35 @@ describe('urlDeArchivo', () => {
     expect(urlDeArchivo({ value: { url: 'https://x/a.zip' } })).toBe('https://x/a.zip')
     expect(urlDeArchivo({ value: null, extra_file: { file: '/b.zip' } })).toBe('/b.zip')
     expect(urlDeArchivo({ value: null, extra_file: null })).toBeNull()
+  })
+})
+
+describe('proyectosEnEtapas', () => {
+  it('recorre todas las páginas de cada etapa', async () => {
+    const fetch = vi.fn(async (_ruta: string, opts: { query: Record<string, unknown> }) => {
+      const { stage, page } = opts.query
+      const id = (stage === 'operation' ? 1000 : 2000) + Number(page)
+      return {
+        next: page === 1 && stage === 'operation' ? 'p2' : null,
+        results: [{ id, name: `COLX${id}P1_S` }],
+      }
+    })
+    vi.stubGlobal('$fetch', fetch)
+
+    const r = await proyectosEnEtapas(EVENT, BEARER)
+    expect(r.map((x) => [x.minigranjaId, x.etapaLabel]).sort()).toEqual([
+      [1001, 'Operación'],
+      [1002, 'Operación'],
+      [2001, 'Construcción'],
+    ])
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/v2/origination/portfolio-manager/projects/',
+      expect.objectContaining({ query: { stage: 'construction', page: 1, page_size: POR_ETAPA } }),
+    )
+  })
+
+  it('un token rechazado sale como 403', async () => {
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(401)))
+    await expect(proyectosEnEtapas(EVENT, BEARER)).rejects.toMatchObject({ statusCode: 403 })
   })
 })

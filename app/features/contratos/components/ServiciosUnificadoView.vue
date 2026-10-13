@@ -573,9 +573,36 @@
                 : 'Requiere iniciar sesión con Unergy Auth.' }}
             </span>
           </button>
+          <div v-if="unergyAuthActivo" class="flex flex-col gap-2 border-t border-border pt-3 sm:col-span-2">
+            <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              En TSF y aún no en Operaciones
+              <span v-if="!cargandoSugerencias && !errorSugerencias" class="normal-case font-normal">· construcción u operación</span>
+            </p>
+            <p v-if="cargandoSugerencias" class="flex items-center gap-2 text-xs text-muted-foreground">
+              <Spinner class="size-3" /> Revisando los proyectos de TSF…
+            </p>
+            <p v-else-if="errorSugerencias" class="text-xs text-muted-foreground">{{ errorSugerencias }}</p>
+            <p v-else-if="!sugerenciasTsf.length" class="text-xs text-muted-foreground">
+              Todos los proyectos de TSF en construcción u operación ya están aquí.
+            </p>
+            <ul v-else class="flex max-h-64 flex-col gap-1.5 overflow-y-auto">
+              <li v-for="r in sugerenciasTsf" :key="r.minigranjaId"
+                class="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+                <div class="flex min-w-0 flex-1 flex-col">
+                  <TruncatedText :text="r.codigo" class="text-sm font-medium" />
+                  <span class="text-xs text-muted-foreground">{{ r.ubicacion || 'Sin ubicación en TSF' }}</span>
+                </div>
+                <GBadge class="text-xs">{{ r.etapaLabel }}</GBadge>
+                <Button size="sm" variant="outline" @click="importarSugerido(r)">
+                  <DownloadIcon class="size-4" /> Importar
+                </Button>
+              </li>
+            </ul>
+          </div>
         </div>
         <ImportarDesdeTsf v-else-if="modoProyecto === 'tsf' && !proyectoTsf" :proyectos-existentes="proyectos"
-          @seleccionar="proyectoTsf = $event" @volver="modoProyecto = 'elegir'" />
+          :preseleccion="preseleccionTsf"
+          @seleccionar="proyectoTsf = $event" @volver="modoProyecto = 'elegir'; preseleccionTsf = null" />
         <ProyectoForm v-else :key="proyectoTsf?.minigranjaId ?? 'cero'" :importado="proyectoTsf"
           @save="crearProyecto" @cancel="dialogProyecto = false" />
       </DialogContent>
@@ -682,6 +709,8 @@ import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import ProyectosPendientesPanel from '~/features/proyectos/components/ProyectosPendientesPanel.vue'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
+import { OriginabotService } from '~/features/proyectos/services/originabot'
+import { faltanEnOperaciones } from '~/features/proyectos/prellenadoTsf'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
@@ -1855,7 +1884,39 @@ const unergyAuthActivo = useRuntimeConfig().public.unergyAuthEnabled
 function abrirNuevoProyecto() {
   modoProyecto.value = 'elegir'
   proyectoTsf.value = null
+  preseleccionTsf.value = null
   dialogProyecto.value = true
+  cargarSugerenciasTsf()
+}
+
+// Proyectos de TSF en construcción u operación que aún no están aquí: se sugieren
+// al abrir «Nuevo proyecto». Qué falta se decide contra las plantas ya cargadas,
+// primero por minigranja (`originabot_minifarm_id`) y luego por códigos.
+const originabotService = new OriginabotService()
+const sugerenciasTsf = ref([])
+const cargandoSugerencias = ref(false)
+const errorSugerencias = ref('')
+const preseleccionTsf = ref(null)
+
+async function cargarSugerenciasTsf() {
+  if (!unergyAuthActivo) return
+  cargandoSugerencias.value = true
+  errorSugerencias.value = ''
+  try {
+    if (!proyectosCargados.value) await cargarProyectos()
+    const enTsf = await originabotService.sugerencias()
+    sugerenciasTsf.value = faltanEnOperaciones(enTsf, proyectos.value)
+  } catch (e) {
+    sugerenciasTsf.value = []
+    errorSugerencias.value = mensajeDeError(e, 'No se pudo consultar TSF.')
+  } finally {
+    cargandoSugerencias.value = false
+  }
+}
+
+function importarSugerido(resultado) {
+  preseleccionTsf.value = resultado
+  modoProyecto.value = 'tsf'
 }
 const duplicadoVisible = ref(false)
 const duplicadoInfo = ref(null)
