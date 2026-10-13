@@ -304,6 +304,8 @@ const f = reactive({
   // Solo al importar desde TSF: los mismos códigos que guarda `tsf_sync`, para
   // que la sincronización reconozca la planta y no la duplique.
   origina_code: null,
+  // La minigranja de originabot: une la planta con TSF (p. ej. los PPAs).
+  originabot_minifarm_id: null,
   origen: null,
 })
 

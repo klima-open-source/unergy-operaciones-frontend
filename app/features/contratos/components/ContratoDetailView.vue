@@ -633,6 +633,7 @@
 
       <!-- ══ PROYECTOS ══ -->
       <div v-if="tab === 'proyectos'" class="space-y-4">
+        <PpaOriginabotPanel :contrato="contrato" @actualizado="c => contrato = { ...contrato, ...c }" />
         <div class="flex items-center gap-2.5 flex-wrap px-3 py-2 rounded-lg bg-muted/50 border border-border">
           <span class="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase text-foreground [&>svg]:text-primary">
             <ZapIcon class="size-4" />
@@ -716,6 +717,7 @@ import DataTable from '~/components/blocks/DataTable.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 import InfoField from '~/components/blocks/InfoField.vue'
 import PPAContratoWizard from '~/features/contratos/components/PPAContratoWizard.vue'
+import PpaOriginabotPanel from '~/features/contratos/components/PpaOriginabotPanel.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
@@ -1335,12 +1337,20 @@ async function asociarProyecto() {
     const data = await ppaService.actualizar(contrato.value.id, {
       proyecto_ids: idsConPlantaAgregada(actual.proyectos, proyectoSeleccionado.value),
     })
-    contrato.value.proyectos = data.proyectos
+    contrato.value = { ...contrato.value, ...data }
     showAsociar.value = false
     toast.success('Proyecto asociado', {
       description: proyectoSeleccionado.value.nombre_comercial,
       duration: 2500,
     })
+    // Operaciones ya guardó; originabot puede no haberse enterado (sin sesión de
+    // Unergy, sin off taker, caída). El panel de originabot permite reintentar.
+    if (data.originabot_sync_estado && data.originabot_sync_estado !== 'sincronizado') {
+      toast.warning('El cambio no llegó a originabot', {
+        description: data.originabot_sync_detalle || undefined,
+        duration: 6000,
+      })
+    }
   } catch (e) {
     toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
   } finally {

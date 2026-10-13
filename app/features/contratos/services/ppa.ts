@@ -2,12 +2,14 @@
 import type {
   CompromisoEnergiaPpa,
   ContratoPpa,
+  OpcionesOriginabot,
   PayloadAsic,
   PayloadAsicModificacion,
   PayloadAsicTerminacion,
   PayloadAsignarResponsablesPpa,
   PayloadPpa,
   PayloadResponsablePpa,
+  PayloadSyncOriginabot,
   PlantasInscritasPorMes,
   RegistroAsic,
   ResponsablePpa,
@@ -25,6 +27,8 @@ const RUTAS = {
   contrato: (id: ContratoPpa['id']) => `${BASE}/${id}`,
   tarifas: (id: ContratoPpa['id']) => `${BASE}/${id}/tarifas`,
   compromisos: (id: ContratoPpa['id']) => `${BASE}/${id}/compromisos`,
+  originabot: (id: ContratoPpa['id']) => `${BASE}/${id}/originabot`,
+  originabotOpciones: `${BASE}/originabot/opciones`,
   responsables: `${BASE}/responsables`,
   responsable: (id: ResponsablePpa['id']) => `${BASE}/responsables/${id}`,
   responsablesAsignar: `${BASE}/responsables/asignar`,
@@ -74,6 +78,23 @@ export class PpaService extends BaseService {
     compromisos: CompromisoEnergiaPpa[],
   ): Promise<CompromisoEnergiaPpa[]> {
     return this.put<CompromisoEnergiaPpa[]>(RUTAS.compromisos(id), compromisos)
+  }
+
+  /** PPAs y off takers de originabot. Requiere sesión de Unergy Auth (si no, 403). */
+  opcionesOriginabot(): Promise<OpcionesOriginabot> {
+    return this.get<OpcionesOriginabot>(RUTAS.originabotOpciones)
+  }
+
+  /**
+   * Lleva a originabot lo pendiente del PPA; con `originabot_ppa_id` lo vincula a
+   * uno existente (solo agrega plantas), con `off_taker_id` lo crea allá. El
+   * resultado viaja en `originabot_sync_*` del contrato que devuelve.
+   */
+  sincronizarOriginabot(
+    id: ContratoPpa['id'],
+    payload: PayloadSyncOriginabot = {},
+  ): Promise<ContratoPpa> {
+    return this.post<ContratoPpa>(RUTAS.originabot(id), payload)
   }
 
   // Para fijar las plantas de un contrato NO hay un endpoint aparte: va en

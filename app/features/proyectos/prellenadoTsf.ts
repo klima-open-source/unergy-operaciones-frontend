@@ -31,6 +31,7 @@ export interface PrellenadoTsf {
     nombre_comercial: string
     codigo_tsf: string | null
     origina_code: string
+    originabot_minifarm_id: number
     origen: 'originabot'
     tipo_proyecto: string | null
     departamento: string | null
@@ -89,6 +90,7 @@ export function prellenadoDesdeTsf(
       nombre_comercial: tsf.nombreSugerido,
       codigo_tsf: tsf.codigoTsf,
       origina_code: tsf.codigoOrigina,
+      originabot_minifarm_id: tsf.minigranjaId,
       origen: 'originabot',
       tipo_proyecto: tsf.tipoProyecto,
       departamento,

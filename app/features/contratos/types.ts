@@ -54,8 +54,19 @@ export interface ProyectoPpaResumen {
 }
 
 /** `GET /ppa/:id` (y su forma en el listado `GET /ppa`). */
+/** Cómo va la unión del PPA con originabot (`apps/ppa/services/originabot_sync.py`). */
+export type EstadoSyncOriginabot = 'sincronizado' | 'pendiente' | 'error'
+
 export interface ContratoPpa {
   id: number
+  /** El PPA de originabot (`investment.PPA`) al que corresponde; null = sin vínculo. */
+  readonly originabot_ppa_id?: number | null
+  readonly originabot_sync_estado?: EstadoSyncOriginabot | null
+  /** Por qué no llegó, o qué plantas no se llevaron (sin minigranja en TSF). */
+  readonly originabot_sync_detalle?: string | null
+  readonly originabot_sync_at?: string | null
+  /** Plantas cuyo cambio aún no llega a originabot. */
+  readonly originabot_pendiente?: { agregar: number[]; quitar: number[] } | null
   numero_codigo_contrato?: string | null
   nombre_interno?: string | null
   tipo_contrato?: string | null
@@ -435,4 +446,16 @@ export interface RespuestaFusionarRepresentacion {
   contratos_eliminados: number
   grupos_fusionados?: number
   [clave: string]: unknown
+}
+
+/** `GET /ppa/originabot/opciones`: para vincular un PPA a mano o crearlo allá. */
+export interface OpcionesOriginabot {
+  ppas: { id: number; nombre: string; minigranjas: number; contrato_id: number | null }[]
+  offtakers: { id: number; nombre: string }[]
+}
+
+/** `POST /ppa/{id}/originabot`. Vacío = reintentar lo pendiente. */
+export interface PayloadSyncOriginabot {
+  originabot_ppa_id?: number
+  off_taker_id?: number
 }

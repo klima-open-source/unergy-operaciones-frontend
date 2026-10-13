@@ -36,6 +36,7 @@ describe('prellenadoDesdeTsf', () => {
       nombre_comercial: 'Bosconia Oriente',
       codigo_tsf: 'COLCEST456P1',
       origina_code: 'COLCEST456P1_BOSCONIA_ORIENTE',
+      originabot_minifarm_id: 1913,
       origen: 'originabot',
       tipo_proyecto: 'minigranja',
       departamento: 'Cesar',
