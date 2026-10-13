@@ -270,4 +270,7 @@ export interface ProyectoTsf {
   /** El `code` de originabot (`afinia`): la llave con `operadores_red.codigo_originabot`. */
   operadorRedCodigo: string | null
   tipoProyecto: string | null
+  /** Generación simulada mensual (kWh): forma del zip de PVsyst, total del anual de TSF. */
+  p50MensualKwh: number[] | null
+  p90MensualKwh: number[] | null
 }

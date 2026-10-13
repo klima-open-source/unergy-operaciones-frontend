@@ -17,7 +17,14 @@ import { slugify } from '~/utils/string'
 
 /** Los campos de `ProyectoForm` que TSF puede fijar. */
 export type CampoTsf =
-  'codigo_tsf' | 'tipo_proyecto' | 'departamento' | 'municipio' | 'coordenadas' | 'operador_red_id'
+  | 'codigo_tsf'
+  | 'tipo_proyecto'
+  | 'departamento'
+  | 'municipio'
+  | 'coordenadas'
+  | 'operador_red_id'
+  | 'p50_mensual'
+  | 'p90_mensual'
 
 export interface OperadorRedCatalogo {
   id: number
@@ -40,6 +47,8 @@ export interface PrellenadoTsf {
     longitud: number | null
     operador_red_id: number | null
   }
+  /** Generación simulada mensual (kWh); null = TSF no tiene zip o anual para esa fila. */
+  simulacion: { p50: number[] | null; p90: number[] | null }
   bloqueados: CampoTsf[]
   /** Lo que TSF trae pero no encajó: «Departamento: "Cundinamarca D.C."». */
   sinCoincidencia: string[]
@@ -84,6 +93,8 @@ export function prellenadoDesdeTsf(
   if (tsf.tipoProyecto) bloqueados.push('tipo_proyecto')
   const conCoordenadas = tsf.latitud !== null && tsf.longitud !== null
   if (conCoordenadas) bloqueados.push('coordenadas')
+  if (tsf.p50MensualKwh) bloqueados.push('p50_mensual')
+  if (tsf.p90MensualKwh) bloqueados.push('p90_mensual')
 
   return {
     valores: {
@@ -99,6 +110,7 @@ export function prellenadoDesdeTsf(
       longitud: conCoordenadas ? tsf.longitud : null,
       operador_red_id: operador?.id ?? null,
     },
+    simulacion: { p50: tsf.p50MensualKwh, p90: tsf.p90MensualKwh },
     bloqueados,
     sinCoincidencia,
   }

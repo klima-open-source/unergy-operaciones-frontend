@@ -15,6 +15,8 @@ const TSF: ProyectoTsf = {
   operadorRed: 'Afinia',
   operadorRedCodigo: 'afinia',
   tipoProyecto: 'minigranja',
+  p50MensualKwh: Array(12).fill(100_000),
+  p90MensualKwh: null,
 }
 
 const DIVIPOLA = { Cesar: ['Agustín Codazzi', 'Bosconia'], 'Bogotá D.C.': ['Bogotá D.C.'] }
@@ -52,6 +54,7 @@ describe('prellenadoDesdeTsf', () => {
         'departamento',
         'municipio',
         'operador_red_id',
+        'p50_mensual',
         'tipo_proyecto',
       ].sort(),
     )
@@ -147,5 +150,14 @@ describe('proyectoExistente', () => {
     expect(
       proyectoExistente({ codigoTsf: 'COLX1P1', codigoOrigina: 'COLX1P1_X' }, proyectos),
     ).toBeNull()
+  })
+})
+
+describe('simulación mensual', () => {
+  it('la fila que TSF trae se prellena y se bloquea; la que no, queda editable', () => {
+    const p = prellenadoDesdeTsf(TSF, DIVIPOLA, OPERADORES)
+    expect(p.simulacion).toEqual({ p50: Array(12).fill(100_000), p90: null })
+    expect(p.bloqueados).toContain('p50_mensual')
+    expect(p.bloqueados).not.toContain('p90_mensual')
   })
 })

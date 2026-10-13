@@ -168,11 +168,13 @@
 
       <!-- P90 -->
       <div>
-        <p class="text-xs font-medium text-muted-foreground mb-2">P90</p>
+        <p class="text-xs font-medium text-muted-foreground mb-2">
+          P90 <LockIcon v-if="bloqueado('p90_mensual')" class="inline size-3" />
+        </p>
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p90-' + i">
             <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-            <NumberField v-model="p90Array[i]" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
+            <NumberField v-model="p90Array[i]" :disabled="bloqueado('p90_mensual')" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
               <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" placeholder="—" /></NumberFieldContent>
             </NumberField>
           </div>
@@ -181,11 +183,13 @@
 
       <!-- P50 -->
       <div>
-        <p class="text-xs font-medium text-muted-foreground mb-2">P50</p>
+        <p class="text-xs font-medium text-muted-foreground mb-2">
+          P50 <LockIcon v-if="bloqueado('p50_mensual')" class="inline size-3" />
+        </p>
         <div class="grid grid-cols-6 gap-2">
           <div v-for="(mes, i) in MESES" :key="'p50-' + i">
             <label class="block text-xs text-muted-foreground mb-0.5 text-center">{{ mes }}</label>
-            <NumberField v-model="p50Array[i]" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
+            <NumberField v-model="p50Array[i]" :disabled="bloqueado('p50_mensual')" :step-snapping="false" :format-options="{ maximumFractionDigits: 1 }">
               <NumberFieldContent><NumberFieldInput class="px-1 text-center text-xs" placeholder="—" /></NumberFieldContent>
             </NumberField>
           </div>
@@ -315,10 +319,12 @@ const sinCoincidenciaTsf = ref([])
 const bloqueado = (campo) => bloqueados.value.has(campo)
 
 function aplicarPrellenadoTsf() {
-  const { valores, bloqueados: campos, sinCoincidencia } = prellenadoDesdeTsf(
+  const { valores, simulacion, bloqueados: campos, sinCoincidencia } = prellenadoDesdeTsf(
     props.importado, divipola, operadoresRed.value,
   )
   Object.assign(f, valores)
+  if (simulacion.p50) p50Array.value = [...simulacion.p50]
+  if (simulacion.p90) p90Array.value = [...simulacion.p90]
   bloqueados.value = new Set(campos)
   sinCoincidenciaTsf.value = sinCoincidencia
 }

@@ -1,8 +1,11 @@
 import { FetchError } from 'ofetch'
 import { describe, expect, it, vi } from 'vitest'
 import type { H3Event } from 'h3'
+import JSZip from 'jszip'
 import {
   buscarEnTsf,
+  simulacionDeTsf,
+  urlDeArchivo,
   codigoTsfDe,
   minigranjaDeTsf,
   nombreDesdeCodigo,
@@ -80,6 +83,8 @@ describe('toProyectoTsf', () => {
       operadorRed: 'Afinia',
       operadorRedCodigo: null,
       tipoProyecto: 'minigranja',
+      p50MensualKwh: null,
+      p90MensualKwh: null,
     })
   })
 
@@ -221,5 +226,111 @@ describe('minigranjaDeTsf', () => {
       statusCode: 502,
       statusMessage: 'originabot respondió una minigranja sin id ni código.',
     })
+  })
+})
+
+describe('simulacionDeTsf', () => {
+  // Una variante mínima con E_Grid: 1 hora por mes, todas iguales → pesos de 1/12.
+  const ALF = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.'
+  const cod = (n: number) => '+' + ALF[Math.floor(n / 64)] + ALF[n % 64]
+  const variante = [
+    'PVObject_=pvVCalcul',
+    '    VarSimul_140=E_Grid',
+    ...Array.from(
+      { length: 12 },
+      (_, m) => `        Day_01${String(m + 1).padStart(2, '0')}=${cod(1000)}`,
+    ),
+    '    End of VarSimul=viE_Grid',
+  ].join('\r\n')
+
+  async function zipPvsyst() {
+    const z = new JSZip()
+    z.file('P_Project.VCD', variante)
+    return z.generateAsync({ type: 'arraybuffer' })
+  }
+
+  function validacion(campos: Record<string, unknown>) {
+    return { simulation: Object.entries(campos).map(([name, value]) => ({ name, value })) }
+  }
+
+  it('con zip y anuales: reparte el P50 y el P90 de TSF según la forma del zip', async () => {
+    const zip = await zipPvsyst()
+    const fetch = vi.fn(async (ruta: string) =>
+      ruta.includes('project-validation')
+        ? validacion({
+            'P50 MWh/year': 1200,
+            'P90 MWh/year': 1080,
+            'Pre-simulación': '/media/presim.zip',
+          })
+        : zip,
+    )
+    vi.stubGlobal('$fetch', fetch)
+
+    const r = await simulacionDeTsf(EVENT, BEARER, 21)
+    expect(r.p50MensualKwh).toEqual(Array(12).fill(100_000))
+    expect(r.p90MensualKwh).toEqual(Array(12).fill(90_000))
+    expect(fetch).toHaveBeenCalledWith(
+      '/media/presim.zip',
+      expect.objectContaining({ headers: { Authorization: BEARER }, responseType: 'arrayBuffer' }),
+    )
+  })
+
+  it('sin zip no se llena nada, aunque haya anuales', async () => {
+    vi.stubGlobal(
+      '$fetch',
+      vi.fn().mockResolvedValue(validacion({ 'P50 MWh/year': 1200, 'Pre-simulación': null })),
+    )
+    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+      p50MensualKwh: null,
+      p90MensualKwh: null,
+    })
+  })
+
+  it('una fila sin anual en TSF queda vacía', async () => {
+    const zip = await zipPvsyst()
+    vi.stubGlobal(
+      '$fetch',
+      vi.fn(async (ruta: string) =>
+        ruta.includes('project-validation')
+          ? validacion({ 'P50 MWh/year': 1200, 'Pre-simulación': 'x.zip' })
+          : zip,
+      ),
+    )
+    const r = await simulacionDeTsf(EVENT, BEARER, 21)
+    expect(r.p50MensualKwh).toHaveLength(12)
+    expect(r.p90MensualKwh).toBeNull()
+  })
+
+  it('un archivo que no es zip (un PDF, un HTML de error) no se lee', async () => {
+    const pdf = new TextEncoder().encode('%PDF-1.7').buffer
+    vi.stubGlobal(
+      '$fetch',
+      vi.fn(async (ruta: string) =>
+        ruta.includes('project-validation')
+          ? validacion({ 'P50 MWh/year': 1200, 'Pre-simulación': 'x.pdf' })
+          : pdf,
+      ),
+    )
+    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+      p50MensualKwh: null,
+      p90MensualKwh: null,
+    })
+  })
+
+  it('si originabot falla, el import sigue sin simulación', async () => {
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(500)))
+    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+      p50MensualKwh: null,
+      p90MensualKwh: null,
+    })
+  })
+})
+
+describe('urlDeArchivo', () => {
+  it('acepta el archivo como texto o como objeto, en value o en extra_file', () => {
+    expect(urlDeArchivo({ value: ' /media/a.zip ' })).toBe('/media/a.zip')
+    expect(urlDeArchivo({ value: { url: 'https://x/a.zip' } })).toBe('https://x/a.zip')
+    expect(urlDeArchivo({ value: null, extra_file: { file: '/b.zip' } })).toBe('/b.zip')
+    expect(urlDeArchivo({ value: null, extra_file: null })).toBeNull()
   })
 })

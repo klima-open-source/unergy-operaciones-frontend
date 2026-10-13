@@ -15,12 +15,22 @@
  */
 import type { H3Event } from 'h3'
 import { FetchError } from 'ofetch'
+import { pesosDeZip, repartir } from './pvsyst'
 
 const RUTAS = {
   busqueda: '/api/v2/origination/portfolio-manager/projects/',
   minigranja: (id: number) => `/api/investment/minifarm/${id}/`,
   /** El detalle de proyecto es el único que trae el `code` del operador de red. */
   proyecto: (id: number) => `/api/minifarm/projects/${id}/`,
+  /** Campos de validación eléctrica: los anuales P50/P90 y el zip de pre-simulación. */
+  validacion: (minigranjaId: number) => `/api/roles/electrical/${minigranjaId}/project-validation/`,
+} as const
+
+/** Nombres de los campos de `simulation` en la validación eléctrica de TSF. */
+const CAMPO = {
+  p50Anual: 'P50 MWh/year',
+  p90Anual: 'P90 MWh/year',
+  preSimulacion: 'Pre-simulación',
 } as const
 
 /** Una etapa trae como mucho esto. La búsqueda es para encontrar uno, no para listar. */
@@ -66,6 +76,17 @@ interface ExternalProyecto {
   grid_operator_data?: { value?: unknown; label?: unknown }
 }
 
+interface ExternalCampoValidacion {
+  name?: unknown
+  type?: unknown
+  value?: unknown
+  extra_file?: unknown
+}
+
+interface ExternalValidacion {
+  simulation?: ExternalCampoValidacion[]
+}
+
 // ── Lo que ve la app. ──
 
 export interface ResultadoTsf {
@@ -102,6 +123,13 @@ export interface ProyectoTsf {
   /** El `code` de originabot (`afinia`): la llave con `operadores_red.codigo_originabot`. */
   operadorRedCodigo: string | null
   tipoProyecto: string | null
+  /**
+   * Generación simulada mensual (kWh, 12 meses). Solo si TSF tiene el zip de
+   * pre-simulación Y el anual correspondiente: la forma sale del zip y el total del
+   * anual de TSF (ver `./pvsyst.ts`). Si falta algo, null: no se inventa.
+   */
+  p50MensualKwh: number[] | null
+  p90MensualKwh: number[] | null
 }
 
 function texto(v: unknown): string | null {
@@ -187,6 +215,8 @@ export function toProyectoTsf(
       texto(m.project?.grid_operator) ??
       texto(m.grid_operator),
     operadorRedCodigo: texto(proyecto?.grid_operator_data?.value),
+    p50MensualKwh: null,
+    p90MensualKwh: null,
     // El único tipo que TSF y Operaciones nombran distinto y que se reconoce.
     tipoProyecto: tipo === 'minifarm' ? 'minigranja' : null,
   }
@@ -255,6 +285,72 @@ export async function buscarEnTsf(
   }
 }
 
+function campo(
+  validacion: ExternalValidacion | null,
+  nombre: string,
+): ExternalCampoValidacion | null {
+  return validacion?.simulation?.find((c) => c.name === nombre) ?? null
+}
+
+/**
+ * La URL del archivo de un campo de validación. En dev ningún proyecto lo tiene
+ * cargado, así que la forma no está confirmada: se acepta texto o un objeto con
+ * `url`/`file`, en `value` o en `extra_file`.
+ */
+export function urlDeArchivo(c: ExternalCampoValidacion | null): string | null {
+  for (const v of [c?.value, c?.extra_file]) {
+    if (typeof v === 'string' && v.trim()) return v.trim()
+    if (v && typeof v === 'object') {
+      const o = v as { url?: unknown; file?: unknown }
+      const u = texto(o.url) ?? texto(o.file)
+      if (u) return u
+    }
+  }
+  return null
+}
+
+/** Un zip empieza por `PK\x03\x04`; cualquier otra cosa (un PDF, un HTML de error) no se lee. */
+function esZip(datos: ArrayBuffer): boolean {
+  const b = new Uint8Array(datos, 0, Math.min(4, datos.byteLength))
+  return b.length === 4 && b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04
+}
+
+/**
+ * P50/P90 mensuales desde la validación eléctrica de TSF. Nunca lanza: la
+ * simulación es un extra del import, y sin ella el formulario queda como antes.
+ */
+export async function simulacionDeTsf(
+  event: H3Event,
+  autorizacion: string,
+  minigranjaId: number,
+): Promise<Pick<ProyectoTsf, 'p50MensualKwh' | 'p90MensualKwh'>> {
+  const vacio = { p50MensualKwh: null, p90MensualKwh: null }
+  try {
+    const validacion = await $fetch<ExternalValidacion>(
+      RUTAS.validacion(minigranjaId),
+      opciones(event, autorizacion),
+    )
+    const p50 = numero(campo(validacion, CAMPO.p50Anual)?.value)
+    const p90 = numero(campo(validacion, CAMPO.p90Anual)?.value)
+    const url = urlDeArchivo(campo(validacion, CAMPO.preSimulacion))
+    if (!url || (p50 === null && p90 === null)) return vacio
+
+    const zip = await $fetch<ArrayBuffer>(url, {
+      ...opciones(event, autorizacion),
+      responseType: 'arrayBuffer',
+    })
+    if (!esZip(zip)) return vacio
+    const pesos = await pesosDeZip(zip)
+    if (!pesos) return vacio
+    return {
+      p50MensualKwh: p50 !== null ? repartir(pesos, p50 * 1000) : null,
+      p90MensualKwh: p90 !== null ? repartir(pesos, p90 * 1000) : null,
+    }
+  } catch {
+    return vacio
+  }
+}
+
 export async function minigranjaDeTsf(
   event: H3Event,
   autorizacion: string,
@@ -280,5 +376,8 @@ export async function minigranjaDeTsf(
       ).catch(() => null)
     : null
 
-  return toProyectoTsf(minigranja, proyecto)
+  return {
+    ...toProyectoTsf(minigranja, proyecto),
+    ...(await simulacionDeTsf(event, autorizacion, id)),
+  }
 }
