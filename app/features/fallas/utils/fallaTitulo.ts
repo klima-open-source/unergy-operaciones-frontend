@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { CircleQuestionMarkIcon, GaugeIcon, ServerIcon, TagIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { CircleQuestionMarkIcon, CogIcon, GaugeIcon, ServerIcon, TagIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 import { COLOR_CATEGORIA } from '~/features/fallas/utils/colores'
 // Título y categoría de una falla, derivados de la CLASIFICACIÓN ESTRUCTURADA
 // reportada (equipo / evento / detalle del elemento), con respaldo al tipo legacy
@@ -52,6 +52,7 @@ const ICONO_CAT: Record<string, Component> = {
   inversores: ServerIcon,
   generando_sin_datos: CircleQuestionMarkIcon,
   eventos_adversos: TriangleAlertIcon,
+  equipos: CogIcon,
 }
 
 /** Ícono del sistema afectado, por código de categoría del backend. */

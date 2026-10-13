@@ -52,6 +52,11 @@ const servicio = new ProyectosService()
  */
 let enVuelo: Promise<ProyectoConDetalle[]> | null = null
 let livianoEnVuelo: Promise<ProyectoLiviano[]> | null = null
+let operativosEnVuelo: Promise<ProyectoLiviano[]> | null = null
+
+function esOperada(p: ProyectoConDetalle): boolean {
+  return !!p.servicios?.operacion
+}
 
 export function useProyectosCatalogo() {
   const proyectos = useState<ProyectoConDetalle[]>('proyectos-catalogo', () => [])
@@ -59,6 +64,8 @@ export function useProyectosCatalogo() {
   const livianoEn = useState<number>('proyectos-catalogo-liviano-ts', () => 0)
   const cargadoEn = useState<number>('proyectos-catalogo-ts', () => 0)
   const cargando = useState<boolean>('proyectos-catalogo-cargando', () => false)
+  const operativos = useState<ProyectoLiviano[]>('proyectos-catalogo-operativos', () => [])
+  const operativosEn = useState<number>('proyectos-catalogo-operativos-ts', () => 0)
 
   function estaVigente(): boolean {
     return proyectos.value.length > 0 && Date.now() - cargadoEn.value < VIGENCIA_MS
@@ -108,11 +115,38 @@ export function useProyectosCatalogo() {
    *
    * Lo decide el backend: `servicios.operacion` es "en operación y con contrato
    * de operación vigente", la misma regla del sondeo MGS. Antes era una bandera
-   * puesta a mano. Se filtra del catálogo ya cargado, sin una petición aparte.
+   * puesta a mano.
+   *
+   * Si el catálogo completo ya está cargado (o en camino), se filtra de ahí,
+   * sin una petición aparte. Si no, se le pide al backend solo esa parte en la
+   * forma liviana (`GET /proyectos/lista?servicio=operacion`), con caché
+   * propio: la lista de fallas y su formulario solo miran id, nombre y
+   * potencia AC.
+   *
+   * Por eso devuelve `ProyectoLiviano`: aunque salga del catálogo completo, el
+   * que la consuma no puede contar con más campos que esos.
    */
-  async function cargarOperativos(): Promise<ProyectoConDetalle[]> {
-    const todos = await cargar()
-    return todos.filter((p) => p.servicios?.operacion)
+  async function cargarOperativos(): Promise<ProyectoLiviano[]> {
+    if (estaVigente()) return proyectos.value.filter(esOperada)
+    if (enVuelo) return (await enVuelo).filter(esOperada)
+    if (operativos.value.length && Date.now() - operativosEn.value < VIGENCIA_MS) {
+      return operativos.value
+    }
+    if (operativosEnVuelo) return operativosEnVuelo
+    operativosEnVuelo = (async () => {
+      try {
+        // El backend filtra: el listado liviano no trae `servicios` para mirarlo acá.
+        operativos.value = await servicio.listarConServicioOperacion()
+        operativosEn.value = Date.now()
+        return operativos.value
+      } catch (err) {
+        logger.error(SCOPE, err)
+        return operativos.value
+      } finally {
+        operativosEnVuelo = null
+      }
+    })()
+    return operativosEnVuelo
   }
 
   /**

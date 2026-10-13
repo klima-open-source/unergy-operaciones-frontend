@@ -21,3 +21,14 @@ const DESFASE_COLOMBIA_MS = 5 * 60 * 60 * 1000
 export function hoyColombia(): string {
   return new Date(Date.now() - DESFASE_COLOMBIA_MS).toISOString().slice(0, 10)
 }
+
+const MS_POR_DIA = 24 * 60 * 60 * 1000
+
+/**
+ * Cuánto falta para la próxima medianoche de Colombia, en ms. Para refrescar
+ * lo que depende de "hoy" (p.ej. el aviso de fallas programadas) sin recargar.
+ */
+export function msHastaMedianocheColombia(ahora: number = Date.now()): number {
+  const transcurrido = (ahora - DESFASE_COLOMBIA_MS) % MS_POR_DIA
+  return MS_POR_DIA - (transcurrido < 0 ? transcurrido + MS_POR_DIA : transcurrido)
+}

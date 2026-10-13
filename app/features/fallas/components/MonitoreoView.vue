@@ -9,18 +9,24 @@
         <ZapIcon class="size-4 text-primary" />
         Gestión de Fallas
       </div>
-      <GTabs :model-value="String(activeTab)" @update:model-value="(v) => (activeTab = Number(v))">
+      <GTabs
+        :model-value="activeTab"
+        @update:model-value="(v) => (activeTab = esPestanaGestionFallas(v) ? v : activeTab)"
+      >
         <GTabsList variant="outline">
-          <GTabsTrigger v-for="(tab, i) in TABS" :key="i" :value="String(i)" variant="outline">
+          <GTabsTrigger v-for="tab in TABS" :key="tab.key" :value="tab.key" variant="outline">
             <component :is="tab.icon" class="size-4" />
             {{ tab.label }}
+            <template v-if="tab.key === PestanaGestionFallas.PENDIENTES">
+              · {{ totalPendientes }}</template
+            >
           </GTabsTrigger>
         </GTabsList>
       </GTabs>
     </div>
 
-    <!-- ══ TAB 0 — FALLAS ════════════════════════════════════════════════ -->
-    <template v-if="activeTab === 0">
+    <!-- ══ TAB FALLAS ════════════════════════════════════════════════════ -->
+    <template v-if="activeTab === PestanaGestionFallas.FALLAS">
       <!-- ══ STICKY HEADER ════════════════════════════════════════════════ -->
       <div
         ref="stickyHeaderRef"
@@ -28,12 +34,15 @@
       >
         <!-- ── Topbar ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <!-- Buckets -->
-          <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v as BucketKey)">
+          <!-- Pestañas de estado -->
+          <GTabs
+            :model-value="grupo"
+            @update:model-value="(v) => (grupo = esGrupoEstadoFalla(v) ? v : grupo)"
+          >
             <GTabsList variant="outline">
-              <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
-                <component :is="b.icon" class="size-4" />
-                {{ b.label }} · {{ counts[b.key] }}
+              <GTabsTrigger v-for="g in GRUPOS" :key="g.key" :value="g.key" variant="outline">
+                <component :is="g.icon" class="size-4" />
+                {{ g.label }} · {{ counts[g.key] }}
               </GTabsTrigger>
             </GTabsList>
           </GTabs>
@@ -49,7 +58,7 @@
               <LoaderCircleIcon v-if="loading" class="animate-spin" />
               <RefreshCwIcon v-else />
             </Button>
-            <Button size="sm" @click="abrirCrear"> <PlusIcon /> Nueva falla </Button>
+            <Button size="sm" @click="irANueva"> <PlusIcon /> Nueva falla </Button>
           </div>
         </div>
 
@@ -89,7 +98,7 @@
                     <ComboboxAnchor>
                       <ComboboxInput
                         :display-value="
-                          (v) => proyectos.find((p) => p.id === v)?.nombre_comercial ?? ''
+                          (v) => proyectosFiltro.find((p) => p.id === v)?.nombre_comercial ?? ''
                         "
                         placeholder="Todos los proyectos"
                       />
@@ -97,7 +106,7 @@
                     <ComboboxList>
                       <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
                       <ComboboxViewport>
-                        <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
+                        <ComboboxItem v-for="p in proyectosFiltro" :key="p.id" :value="p.id">
                           {{ p.nombre_comercial }}
                           <ComboboxItemIndicator>
                             <CheckIcon />
@@ -139,10 +148,10 @@
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
-                        v-for="e in catalogos.estados"
+                        v-for="e in estadosSeleccionables(catalogos.estados)"
                         :key="e.codigo"
                         :value="e.codigo!"
-                        >{{ e.etiqueta }}</SelectItem
+                        >{{ etiquetaEstado(e) }}</SelectItem
                       >
                     </SelectContent>
                   </Select>
@@ -167,6 +176,12 @@
                   </div>
                 </div>
 
+                <label class="flex items-center gap-2 text-sm text-foreground">
+                  <Checkbox v-model="soloVencidas" />
+                  Solo vencidas
+                  <span class="text-xs text-muted-foreground">(SLA vencido, sin cerrar)</span>
+                </label>
+
                 <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
                   <XIcon /> Limpiar filtros
                 </Button>
@@ -175,11 +190,13 @@
           </Popover>
 
           <span v-if="!loading" class="ml-auto text-xs whitespace-nowrap text-muted-foreground">
-            {{ filtradas.length }} / {{ porBucket.length }}
+            {{ filtradas.length }} / {{ porGrupo.length }}
           </span>
         </div>
       </div>
       <!-- /gf-sticky-header -->
+
+      <AvisoProgramadasHoy :fallas="programadasHoy" class="mb-3" @abrir="verFallaEnLista" />
 
       <div
         :class="
@@ -187,7 +204,7 @@
         "
       >
         <div class="min-w-0 lg:col-span-1">
-          <!-- ══ COLA DE TRIAGE (ordenada por urgencia de SLA) ═══════════ -->
+          <!-- ══ LISTA DE FALLAS (de la más reciente a la más antigua) ═════ -->
           <div class="flex flex-col rounded-lg border border-border bg-card">
             <div
               class="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-bold tracking-wide text-muted-foreground uppercase"
@@ -212,18 +229,18 @@
               class="flex flex-col items-center gap-2 py-14 text-muted-foreground"
             >
               <component
-                :is="bucketActual.icon"
+                :is="grupoActual.icon"
                 class="size-8 text-(--c)"
-                :style="{ '--c': bucketActual.color }"
+                :style="{ '--c': grupoActual.color }"
               />
               <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
               <p class="text-xs">{{ emptySubtitulo }}</p>
               <Button
-                v-if="bucket === 'activas' && !hayFiltros"
+                v-if="grupo === GrupoEstadoFalla.ABIERTA && !hayFiltros"
                 variant="outline"
                 size="sm"
                 class="mt-2"
-                @click="abrirCrear"
+                @click="irANueva"
               >
                 <PlusIcon /> Registrar primera falla
               </Button>
@@ -283,6 +300,9 @@
                     "
                     class="text-xs text-muted-foreground"
                   />
+                  <p v-if="(f.kwh_perdidos_p90 ?? 0) > 0" class="text-xs text-destructive">
+                    {{ formatoEnergia(f.kwh_perdidos_p90) }} perdidos (P90)
+                  </p>
                 </div>
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-1.5 md:flex">
@@ -290,7 +310,7 @@
                     class="size-1.5 rounded-full bg-(--c)"
                     :style="{ '--c': colorEstado(f.estado?.codigo, 'var(--muted-foreground)') }"
                   />
-                  <span class="text-xs text-muted-foreground">{{ f.estado?.etiqueta || '—' }}</span>
+                  <span class="text-xs text-muted-foreground">{{ etiquetaEstado(f.estado) }}</span>
                 </div>
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 text-right text-xs lg:block">
@@ -325,7 +345,7 @@
                   >
                     <CircleCheckIcon />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" title="Editar" @click="abrirEditar(f)">
+                  <Button variant="ghost" size="icon-sm" title="Editar" @click="irAEditar(f)">
                     <PencilIcon />
                   </Button>
                 </div>
@@ -404,7 +424,7 @@
                 variant="ghost"
                 size="icon-sm"
                 title="Abrir página completa"
-                @click="router.push(`/fallas/${drawerFalla.id}`)"
+                @click="router.push(RUTAS_FALLAS.detalle(drawerFalla.id))"
               >
                 <ExternalLinkIcon />
               </Button>
@@ -429,7 +449,7 @@
                   <p class="text-base font-bold text-foreground">{{ tituloFalla(drawerFalla) }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{
-                      drawerFalla.estado?.etiqueta
+                      etiquetaEstado(drawerFalla.estado)
                     }}</GBadge>
                     <GBadge :color="prioColor(drawerFalla.prioridad?.codigo)">{{
                       drawerFalla.prioridad?.etiqueta
@@ -527,6 +547,43 @@
                   />
                   <h3 class="text-sm font-bold text-foreground">Equipo / clasificación</h3>
                 </header>
+
+                <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <CpuIcon class="size-3" /> Equipo
+                    </dt>
+                    <dd class="text-sm font-medium text-foreground">
+                      {{ etiquetaEquipo(drawerFalla.equipo) }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <ShieldCheckIcon class="size-3" /> Garantía
+                    </dt>
+                    <dd
+                      class="text-sm font-medium"
+                      :class="drawerFalla.en_garantia ? 'text-success' : 'text-muted-foreground'"
+                    >
+                      {{ drawerFalla.en_garantia ? 'En garantía' : 'No' }}
+                    </dd>
+                  </div>
+                  <div
+                    v-if="drawerFalla.en_garantia && drawerFalla.garantia_detalle"
+                    class="col-span-2 flex flex-col gap-0.5"
+                  >
+                    <dt class="text-xs font-semibold text-muted-foreground uppercase">
+                      Detalle de la garantía
+                    </dt>
+                    <dd class="text-sm whitespace-pre-line text-foreground">
+                      {{ drawerFalla.garantia_detalle }}
+                    </dd>
+                  </div>
+                </dl>
 
                 <template v-if="clasifDrawer">
                   <div class="flex flex-wrap items-center gap-2">
@@ -797,6 +854,33 @@
                       {{ Number(drawerFalla.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh
                     </dd>
                   </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <PercentIcon class="size-3" /> % afectado
+                    </dt>
+                    <dd class="text-sm font-semibold text-foreground">
+                      {{ formatoPctAfectado(drawerFalla.pct_afectado) }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <ZapIcon class="size-3" /> Energía perdida (P90)
+                    </dt>
+                    <dd
+                      class="text-sm font-semibold"
+                      :class="
+                        (drawerFalla.kwh_perdidos_p90 ?? 0) > 0
+                          ? 'text-destructive'
+                          : 'text-foreground'
+                      "
+                    >
+                      {{ formatoEnergia(drawerFalla.kwh_perdidos_p90) }}
+                    </dd>
+                  </div>
                   <div
                     v-if="drawerFalla.impacto_economico_cop != null"
                     class="flex flex-col gap-0.5"
@@ -866,10 +950,13 @@
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(
+                            catalogos.estados,
+                            drawerFalla.estado?.id,
+                          )"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -976,10 +1063,10 @@
                       <SelectContent>
                         <SelectItem value="__sin_cambio__">Sin cambio de estado</SelectItem>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(catalogos.estados)"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -1034,7 +1121,7 @@
 
               <!-- ── ACCIONES PRINCIPALES ───────────────────────────── -->
               <div class="flex flex-wrap gap-2 pt-1">
-                <Button variant="outline" class="flex-1" @click="editarDesdeDrawer">
+                <Button variant="outline" class="flex-1" @click="irAEditar(drawerFalla)">
                   <PencilIcon /> Editar completa
                 </Button>
                 <Button
@@ -1063,30 +1150,6 @@
         </aside>
       </div>
       <!-- /layout -->
-
-      <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
-      <Dialog v-model:open="formDialogVisible">
-        <DialogContent
-          class="flex max-h-11/12 max-w-3xl flex-col"
-          :show-close-button="!savingForm"
-          @escape-key-down="(e) => savingForm && e.preventDefault()"
-          @pointer-down-outside="(e) => savingForm && e.preventDefault()"
-        >
-          <DialogHeader>
-            <DialogTitle>{{
-              editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
-            }}</DialogTitle>
-          </DialogHeader>
-          <div class="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
-            <FallaForm
-              :initial="editingFalla"
-              :catalogos="catalogos"
-              @save="onSaveForm"
-              @cancel="formDialogVisible = false"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <!-- ══ DIALOG RESOLVER FALLA ══════════════════════════════════════════ -->
       <Dialog v-model:open="resolveDialogVisible">
@@ -1155,17 +1218,33 @@
         </DialogContent>
       </Dialog>
     </template>
-    <!-- /TAB 0 -->
+    <!-- /TAB FALLAS -->
 
-    <!-- ══ TAB 1 — CALENDARIO ══════════════════════════════════════════════ -->
-    <div v-if="activeTab === 1" class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted">
+    <!-- ══ TAB CALENDARIO ══════════════════════════════════════════════════ -->
+    <div
+      v-if="activeTab === PestanaGestionFallas.CALENDARIO"
+      class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted"
+    >
+      <AvisoProgramadasHoy
+        :fallas="programadasHoy"
+        class="mx-3.5 mt-3.5 w-auto"
+        @abrir="verFallaEnLista"
+      />
       <CalendarioFallas
         :refresh-key="calRefreshKey"
-        @editar="abrirEditar"
-        @ver-falla="irAFallaDesdeCalendario"
+        @editar="irAEditar"
+        @ver-falla="verFallaEnLista"
       />
     </div>
-    <!-- /TAB 1 -->
+    <!-- /TAB CALENDARIO -->
+
+    <!-- ══ TAB PENDIENTES ══════════════════════════════════════════════════ -->
+    <PendientesFallas
+      v-if="activeTab === PestanaGestionFallas.PENDIENTES"
+      :fallas="allFallas"
+      @abrir="verFallaEnLista"
+    />
+    <!-- /TAB PENDIENTES -->
 
     <!-- ══ BOTÓN FLOTANTE: Diagrama fasorial ══════════════════════════════ -->
     <FasorialButton />
@@ -1175,27 +1254,26 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
-import type {
-  CatalogosFalla,
-  Falla,
-  PayloadFalla,
-  PayloadFallaForm,
-  ResultadoNotificacionFalla,
-} from '~/features/fallas/types'
+import type { CatalogosFalla, Falla, PayloadFalla } from '~/features/fallas/types'
 import type { ProyectoLiviano } from '~/features/proyectos/types'
+import { EstadoFallaCodigo, GrupoEstadoFalla, PestanaGestionFallas } from '~/features/fallas/types'
 import {
   BellIcon,
   BriefcaseIcon,
   BuildingIcon,
   CalendarIcon,
+  CalendarClockIcon,
   CalendarPlusIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  CircleDotIcon,
   CircleXIcon,
+  ClipboardListIcon,
   ClockIcon,
+  CpuIcon,
   DollarSignIcon,
   ExternalLinkIcon,
   HourglassIcon,
@@ -1205,12 +1283,14 @@ import {
   LoaderCircleIcon,
   MessagesSquareIcon,
   PencilIcon,
+  PercentIcon,
   PlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
   SearchIcon,
   SendIcon,
   ServerIcon,
+  ShieldCheckIcon,
   SlidersHorizontalIcon,
   TimerIcon,
   Trash2Icon,
@@ -1230,9 +1310,29 @@ import {
   clasificacionDetalle,
   tituloFalla,
 } from '~/features/fallas/utils/fallaTitulo'
+import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
+import { formatoFechaDia as fmtFecha } from '~/features/fallas/utils/formatoFecha'
+import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
+import type { FiltrosVistaFallas } from '~/features/fallas/utils/filtrosVista'
+import { cumpleFiltrosVista, inicioDeCarga } from '~/features/fallas/utils/filtrosVista'
+import {
+  codigoEstadoFiltro,
+  esGrupoEstadoFalla,
+  esPestanaGestionFallas,
+  estadosSeleccionables,
+  etiquetaEstado,
+  grupoEstadoFalla,
+  perteneceAGrupo,
+} from '~/features/fallas/utils/grupoEstado'
+import { compararFallasRecientes } from '~/features/fallas/utils/ordenFallas'
+import { esPendiente } from '~/features/fallas/utils/pendientes'
+import { fallasProgramadasHoy } from '~/features/fallas/utils/programadasHoy'
+import { hoyColombia, msHastaMedianocheColombia } from '~/utils/fecha'
+import { ParamQueryFallas, RUTAS_FALLAS } from '~/features/fallas/utils/rutas'
+import AvisoProgramadasHoy from './AvisoProgramadasHoy.vue'
 import CalendarioFallas from './CalendarioFallas.vue'
+import PendientesFallas from './PendientesFallas.vue'
 import FallaArchivos from './FallaArchivos.vue'
-import FallaForm from './FallaForm.vue'
 import FasorialButton from '~/features/fallas/components/FasorialButton.vue'
 
 const fallasService = new FallasService()
@@ -1244,34 +1344,59 @@ const route = useRoute()
 const router = useRouter()
 const confirm = useConfirm()
 
-// ── Calendario: refresh automático al guardar fallas ─────────────────────
+// ── Calendario: refresh automático al resolver / cambiar estado ──────────
 const calRefreshKey = ref(0)
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
 interface MonitoreoTab {
+  key: PestanaGestionFallas
   label: string
   icon: Component
 }
 const TABS: MonitoreoTab[] = [
-  { label: 'Fallas', icon: ZapIcon },
-  { label: 'Calendario', icon: CalendarIcon },
+  { key: PestanaGestionFallas.FALLAS, label: 'Fallas', icon: ZapIcon },
+  { key: PestanaGestionFallas.CALENDARIO, label: 'Calendario', icon: CalendarIcon },
+  { key: PestanaGestionFallas.PENDIENTES, label: 'Pendientes', icon: ClipboardListIcon },
 ]
-const activeTab = ref(0)
+const activeTab = ref<PestanaGestionFallas>(PestanaGestionFallas.FALLAS)
 
-// ── Buckets ───────────────────────────────────────────────────────────────
-type BucketKey = 'activas' | 'alerta' | 'cerradas' | 'todas'
-interface Bucket {
-  key: BucketKey
+// ── Pestañas de estado ────────────────────────────────────────────────────
+// Agrupan estados del catálogo: "En gestión" incluye en espera, y "Abierta"
+// incluye sin solución (ver `utils/grupoEstado.ts`).
+interface PestanaEstado {
+  key: GrupoEstadoFalla
   label: string
   icon: Component
   color: string
 }
-const BUCKETS: Bucket[] = [
-  { key: 'activas', label: 'Activas', icon: ZapIcon, color: 'var(--destructive)' },
-  { key: 'alerta', label: 'Alerta SLA', icon: CircleAlertIcon, color: 'var(--warning)' },
-  { key: 'cerradas', label: 'Cerradas', icon: CircleCheckIcon, color: 'var(--success)' },
-  { key: 'todas', label: 'Todas', icon: ListIcon, color: 'var(--primary)' },
+const GRUPOS: PestanaEstado[] = [
+  {
+    key: GrupoEstadoFalla.ABIERTA,
+    label: 'Abierta',
+    icon: CircleDotIcon,
+    color: 'var(--destructive)',
+  },
+  {
+    key: GrupoEstadoFalla.EN_GESTION,
+    label: 'En gestión',
+    icon: WrenchIcon,
+    color: 'var(--warning)',
+  },
+  {
+    key: GrupoEstadoFalla.PROGRAMADO,
+    label: 'Programado',
+    icon: CalendarClockIcon,
+    color: 'var(--primary)',
+  },
+  {
+    key: GrupoEstadoFalla.CERRADA,
+    label: 'Cerrada',
+    icon: CircleCheckIcon,
+    color: 'var(--success)',
+  },
+  { key: GrupoEstadoFalla.TODAS, label: 'Todas', icon: ListIcon, color: 'var(--primary)' },
 ]
+const GRUPO_POR_DEFECTO = GrupoEstadoFalla.ABIERTA
 
 const AVATAR_PALETTE = [
   'var(--primary)',
@@ -1292,31 +1417,47 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 // ── Filtros ───────────────────────────────────────────────────────────────
-// Sincronizados con la URL (?q=&proyecto=&prioridad=&estado=&desde=&hasta=)
-// para que se sostengan al volver con "atras" o al refrescar.
+// Sincronizados con la URL (?grupo=&q=&proyecto=&prioridad=&estado=&desde=&hasta=&vencidas=)
+// para que se sostengan al volver con "atras", al refrescar y al volver del
+// formulario de crear/editar (que devuelve la misma query).
 function queryStr(v: unknown): string {
   return typeof v === 'string' ? v : ''
 }
-const bucket = ref<BucketKey>('activas')
+const grupo = ref<GrupoEstadoFalla>(
+  esGrupoEstadoFalla(route.query.grupo) ? route.query.grupo : GRUPO_POR_DEFECTO,
+)
 const search = ref(queryStr(route.query.q))
 const filtroProyecto = ref<number | null>(
   route.query.proyecto ? Number(route.query.proyecto) : null,
 )
 const filtroPrioridad = ref<string | null>(queryStr(route.query.prioridad) || null)
-const filtroEstado = ref<string | null>(queryStr(route.query.estado) || null)
+// `en_espera` se filtra como "En gestión": un enlace viejo no deja el selector en blanco.
+const filtroEstado = ref<string | null>(codigoEstadoFiltro(queryStr(route.query.estado)))
 const filtroFechaDesde = ref<string | null>(queryStr(route.query.desde) || null)
 const filtroFechaHasta = ref<string | null>(queryStr(route.query.hasta) || null)
+const soloVencidas = ref(route.query.vencidas === '1')
 
 watch(
-  [search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
-  ([q, proyecto, prioridad, estado, desde, hasta]) => {
+  [
+    grupo,
+    search,
+    filtroProyecto,
+    filtroPrioridad,
+    filtroEstado,
+    filtroFechaDesde,
+    filtroFechaHasta,
+    soloVencidas,
+  ],
+  ([g, q, proyecto, prioridad, estado, desde, hasta, vencidas]) => {
     const query: Record<string, string> = {}
+    if (g !== GRUPO_POR_DEFECTO) query.grupo = String(g)
     if (q) query.q = String(q)
     if (proyecto) query.proyecto = String(proyecto)
     if (prioridad) query.prioridad = String(prioridad)
     if (estado) query.estado = String(estado)
     if (desde) query.desde = String(desde)
     if (hasta) query.hasta = String(hasta)
+    if (vencidas) query.vencidas = '1'
     router.replace({ query })
   },
 )
@@ -1329,6 +1470,7 @@ const filtrosActivosCount = computed(
       filtroEstado.value,
       filtroFechaDesde.value,
       filtroFechaHasta.value,
+      soloVencidas.value || null,
     ].filter((v) => v != null && v !== '').length,
 )
 
@@ -1370,80 +1512,49 @@ const slaLimiteHorasModel = computed<number | undefined>({
   },
 })
 
-// ── Dialog formulario ─────────────────────────────────────────────────────
-const formDialogVisible = ref(false)
-const editingFalla = ref<Falla | null>(null)
-const savingForm = ref(false)
-
-// ── Computed: lógica de buckets ───────────────────────────────────────────
-function esAlertaSLA(f: Falla): boolean {
-  return !f.estado?.es_estado_final && (f.sla_cumplido === false || (f.dias_abierta ?? 0) >= 7)
-}
-
+// ── Computed: pestañas de estado ──────────────────────────────────────────
 const counts = computed(() => {
-  const c: Record<BucketKey, number> = {
-    activas: 0,
-    alerta: 0,
-    cerradas: 0,
-    todas: allFallas.value.length,
+  const c: Record<GrupoEstadoFalla, number> = {
+    [GrupoEstadoFalla.ABIERTA]: 0,
+    [GrupoEstadoFalla.EN_GESTION]: 0,
+    [GrupoEstadoFalla.PROGRAMADO]: 0,
+    [GrupoEstadoFalla.CERRADA]: 0,
+    [GrupoEstadoFalla.TODAS]: allFallas.value.length,
   }
-  for (const f of allFallas.value) {
-    if (f.estado?.es_estado_final) {
-      c.cerradas++
-    } else {
-      c.activas++
-      if (esAlertaSLA(f)) c.alerta++
-    }
-  }
+  for (const f of allFallas.value) c[grupoEstadoFalla(f)]++
   return c
 })
 
-const porBucket = computed(() => {
-  if (bucket.value === 'todas') return allFallas.value
-  if (bucket.value === 'cerradas') return allFallas.value.filter((f) => f.estado?.es_estado_final)
-  if (bucket.value === 'alerta')
-    return allFallas.value.filter((f) => !f.estado?.es_estado_final && esAlertaSLA(f))
-  // activas
-  return allFallas.value.filter((f) => !f.estado?.es_estado_final)
-})
+const totalPendientes = computed(() => allFallas.value.filter(esPendiente).length)
 
-const filtradas = computed(() => {
-  let arr = porBucket.value
-  const q = search.value.trim().toLowerCase()
-  if (q) {
-    arr = arr.filter(
-      (f) =>
-        (f.codigo_interno || '').toLowerCase().includes(q) ||
-        (f.descripcion || '').toLowerCase().includes(q) ||
-        (f.proyecto?.nombre_comercial || '').toLowerCase().includes(q) ||
-        tituloFalla(f).toLowerCase().includes(q) ||
-        categoriaFalla(f).etiqueta.toLowerCase().includes(q),
-    )
-  }
-  if (filtroProyecto.value) arr = arr.filter((f) => f.proyecto?.id === filtroProyecto.value)
-  if (filtroPrioridad.value) arr = arr.filter((f) => f.prioridad?.codigo === filtroPrioridad.value)
-  if (filtroEstado.value) arr = arr.filter((f) => f.estado?.codigo === filtroEstado.value)
-  if (filtroFechaDesde.value) {
-    const desde = startOfDay(filtroFechaDesde.value)
-    arr = arr.filter(
-      (f) => f.fecha_identificacion && new Date(`${f.fecha_identificacion}T00:00:00`) >= desde,
-    )
-  }
-  if (filtroFechaHasta.value) {
-    const hasta = startOfDay(filtroFechaHasta.value)
-    hasta.setHours(23, 59, 59, 999)
-    arr = arr.filter(
-      (f) => f.fecha_identificacion && new Date(`${f.fecha_identificacion}T00:00:00`) <= hasta,
-    )
-  }
-  // Cola de triage: primero lo más urgente por SLA (vencido > en alerta > ok),
-  // y dentro de la misma severidad, lo que lleva más días abierta.
-  return [...arr].sort((a, b) => {
-    const diff = slaSeverityRank(a) - slaSeverityRank(b)
-    if (diff !== 0) return diff
-    return (b.dias_abierta ?? 0) - (a.dias_abierta ?? 0)
-  })
-})
+/**
+ * Hoy en Colombia. Es un ref (y no `hoyColombia()` dentro del computed, que no
+ * depende de nada reactivo y no se recalcularía): se pone al día en cada carga
+ * y con un temporizador a la medianoche (`programarCambioDeDia`).
+ */
+const hoy = ref(hoyColombia())
+
+/** Las programadas para hoy (sin cerrar y en estado programado). */
+const programadasHoy = computed(() => fallasProgramadasHoy(allFallas.value, hoy.value))
+
+const porGrupo = computed(() => allFallas.value.filter((f) => perteneceAGrupo(f, grupo.value)))
+
+const filtrosVista = computed<FiltrosVistaFallas>(() => ({
+  texto: search.value,
+  proyectoId: filtroProyecto.value,
+  prioridad: filtroPrioridad.value,
+  estado: filtroEstado.value,
+  desde: filtroFechaDesde.value,
+  hasta: filtroFechaHasta.value,
+  soloVencidas: soloVencidas.value,
+}))
+
+// De la más reciente a la más antigua; lo vencido se encuentra con "Solo vencidas".
+const filtradas = computed(() =>
+  porGrupo.value
+    .filter((f) => cumpleFiltrosVista(f, filtrosVista.value))
+    .sort(compararFallasRecientes),
+)
 
 const hayFiltros = computed(
   () =>
@@ -1453,32 +1564,45 @@ const hayFiltros = computed(
       filtroPrioridad.value ||
       filtroEstado.value ||
       filtroFechaDesde.value ||
-      filtroFechaHasta.value
+      filtroFechaHasta.value ||
+      soloVencidas.value
     ),
 )
 
-const bucketActual = computed(() => BUCKETS.find((b) => b.key === bucket.value) ?? BUCKETS[0]!)
+const grupoActual = computed(() => GRUPOS.find((g) => g.key === grupo.value) ?? GRUPOS[0]!)
 
-const EMPTY_TITULO: Record<BucketKey, string> = {
-  activas: 'No hay fallas activas',
-  alerta: 'Sin fallas en alerta SLA',
-  cerradas: 'Sin fallas cerradas',
-  todas: 'No hay fallas registradas',
+const EMPTY_TITULO: Record<GrupoEstadoFalla, string> = {
+  [GrupoEstadoFalla.ABIERTA]: 'No hay fallas abiertas',
+  [GrupoEstadoFalla.EN_GESTION]: 'No hay fallas en gestión',
+  [GrupoEstadoFalla.PROGRAMADO]: 'No hay fallas programadas',
+  [GrupoEstadoFalla.CERRADA]: 'Sin fallas cerradas',
+  [GrupoEstadoFalla.TODAS]: 'No hay fallas registradas',
 }
-const EMPTY_SUBTITULO: Record<BucketKey, string> = {
-  activas: 'Todas las incidencias están bajo control',
-  alerta: 'Ninguna falla supera el umbral de SLA',
-  cerradas: 'Aún no se han cerrado fallas',
-  todas: 'Registra la primera para empezar',
+const EMPTY_SUBTITULO: Record<GrupoEstadoFalla, string> = {
+  [GrupoEstadoFalla.ABIERTA]: 'Todas las incidencias están bajo control',
+  [GrupoEstadoFalla.EN_GESTION]: 'Ninguna falla está en gestión ni en espera',
+  [GrupoEstadoFalla.PROGRAMADO]: 'No hay intervenciones planificadas',
+  [GrupoEstadoFalla.CERRADA]: 'Aún no se han cerrado fallas',
+  [GrupoEstadoFalla.TODAS]: 'Registra la primera para empezar',
 }
 const emptyTitulo = computed(() =>
-  hayFiltros.value ? 'Sin resultados con los filtros aplicados' : EMPTY_TITULO[bucket.value],
+  hayFiltros.value ? 'Sin resultados con los filtros aplicados' : EMPTY_TITULO[grupo.value],
 )
 const emptySubtitulo = computed(() =>
-  hayFiltros.value
-    ? 'Prueba con otros filtros o limpia la búsqueda'
-    : EMPTY_SUBTITULO[bucket.value],
+  hayFiltros.value ? 'Prueba con otros filtros o limpia la búsqueda' : EMPTY_SUBTITULO[grupo.value],
 )
+
+/**
+ * Opciones del filtro "Proyecto": solo las plantas con servicio de operación.
+ * Si la URL trae una planta que ya no lo tiene (un enlace viejo), se agrega
+ * con el nombre que traen sus fallas, para que el filtro no quede en blanco.
+ */
+const proyectosFiltro = computed<Pick<ProyectoLiviano, 'id' | 'nombre_comercial'>[]>(() => {
+  const id = filtroProyecto.value
+  if (!id || proyectos.value.some((p) => p.id === id)) return proyectos.value
+  const nombre = allFallas.value.find((f) => f.proyecto?.id === id)?.proyecto?.nombre_comercial
+  return nombre ? [{ id, nombre_comercial: nombre }, ...proyectos.value] : proyectos.value
+})
 
 const sortedSeguimientos = computed(() =>
   [...(drawerFalla.value?.seguimientos ?? [])].sort(
@@ -1549,7 +1673,9 @@ const navIndex = computed(() => {
 //
 //   · las abiertas, TODAS, filtradas en el servidor (`solo_activas`, un filtro
 //     que ya existia y nadie usaba). Son las que alimentan las pestanas
-//     Activas y Alerta, que es para lo que se abre esta pantalla.
+//     Abierta, En gestion y Programado, que es para lo que se abre esta pantalla.
+//   · las "sin solucion", TODAS: es un estado final, asi que `solo_activas` no
+//     las trae, pero el equipo las sigue viendo en la pestana Abierta.
 //   · las cerradas de una ventana de tiempo, porque el historico completo no
 //     se lee con el scroll -- se busca.
 //
@@ -1560,14 +1686,14 @@ const navIndex = computed(() => {
 /** Cuanto historial de fallas CERRADAS se trae sin que nadie lo pida. */
 const DIAS_HISTORIAL = 90
 
-/** Desde que fecha estan cargadas las cerradas. */
-const ventanaDesde = ref<Date | null>(null)
+/** Desde que fecha (`YYYY-MM-DD`) estan cargadas las cerradas. */
+const ventanaDesde = ref<string | null>(null)
 
-function haceDias(dias: number): Date {
+function haceDias(dias: number): string {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
   d.setDate(d.getDate() - dias)
-  return d
+  return fechaLocalISO(d)
 }
 
 /**
@@ -1584,26 +1710,65 @@ function fechaLocalISO(d: Date): string {
   return `${d.getFullYear()}-${mes}-${dia}`
 }
 
-async function cargar(desde: Date | null = null) {
+/**
+ * Los catálogos, si todavía no están. Se llama en cada `cargar`: si fallaron
+ * al abrir la vista, "Actualizar" los vuelve a pedir (antes el error se
+ * tragaba y quedaban vacíos hasta recargar la página). La petición en vuelo se
+ * comparte.
+ */
+let catalogosEnVuelo: Promise<void> | null = null
+function asegurarCatalogos(): Promise<void> {
+  if (catalogos.value.estados.length) return Promise.resolve()
+  catalogosEnVuelo ??= fallasService
+    .obtenerCatalogos()
+    .then((c) => {
+      catalogos.value = c
+    })
+    .finally(() => {
+      catalogosEnVuelo = null
+    })
+  return catalogosEnVuelo
+}
+
+/** Hace falta el id de "sin solución", que sale de los catálogos. */
+async function listarSinSolucion(): Promise<Falla[]> {
+  await asegurarCatalogos()
+  const estado = catalogos.value.estados.find((e) => e.codigo === EstadoFallaCodigo.SIN_SOLUCION)
+  if (!estado) return []
+  const data = await fallasService.listar({ estado_id: estado.id, size: 500 })
+  return data.items ?? []
+}
+
+async function cargar(desde: string | null = null) {
   loading.value = true
   error.value = null
   const inicio = desde ?? haceDias(DIAS_HISTORIAL)
   try {
-    const [abiertas, cerradas] = await Promise.all([
+    const [abiertas, cerradas, sinSolucion] = await Promise.all([
       // Sin `size`: son ~115 y caben en una respuesta. Si algun dia no
       // cupieran, `completarPaginas` no se activa sin `size` -- por eso va
       // explicito y holgado.
       fallasService.listar({ solo_activas: true, size: 500 }),
-      fallasService.listar({ fecha_identificacion_desde: fechaLocalISO(inicio), size: 500 }),
+      fallasService.listar({ fecha_identificacion_desde: inicio, size: 500 }),
+      // Complementaria: si falla (o fallan los catálogos), se avisa y la lista
+      // se muestra igual, en vez de tumbarla entera por un 503.
+      listarSinSolucion().catch((e: unknown): Falla[] => {
+        toast.warning('No se cargaron las fallas «sin solución»', {
+          description: `${normalizeError(e).message}. Usa Actualizar para reintentar.`,
+          duration: 6000,
+        })
+        return []
+      }),
     ])
-    // Las dos listas se solapan (una falla abierta identificada dentro de la
-    // ventana esta en ambas), asi que se unen por id.
+    // Las listas se solapan (una falla abierta identificada dentro de la
+    // ventana esta en dos), asi que se unen por id.
     const porId = new Map<number, Falla>()
-    for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? [])]) {
+    for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? []), ...sinSolucion]) {
       porId.set(f.id, f)
     }
     allFallas.value = [...porId.values()]
     ventanaDesde.value = inicio
+    hoy.value = hoyColombia()
   } catch (e) {
     error.value = normalizeError(e).message
   } finally {
@@ -1614,24 +1779,15 @@ async function cargar(desde: Date | null = null) {
 // Pedir una fecha anterior a la cargada trae ese tramo del historico. Al
 // revés no: estrechar el filtro se resuelve en el navegador, sin ir a la red.
 watch(filtroFechaDesde, (nueva) => {
-  if (nueva && ventanaDesde.value && startOfDay(nueva) < ventanaDesde.value) {
-    cargar(startOfDay(nueva))
-  }
+  if (nueva && ventanaDesde.value && nueva < ventanaDesde.value) cargar(nueva)
 })
-
-async function cargarCatalogos() {
-  try {
-    catalogos.value = await fallasService.obtenerCatalogos()
-  } catch {
-    /* no crítico */
-  }
-}
 
 async function cargarProyectos() {
   try {
-    // Solo alimenta el desplegable "Proyecto" de los filtros: `id` y
-    // `nombre_comercial`. El catalogo completo son 538 kB en dos peticiones.
-    proyectos.value = await catalogoProyectos.cargarLiviano()
+    // Solo alimenta el desplegable "Proyecto" de los filtros, y solo con las
+    // plantas que operamos (`GET /proyectos?servicio=operacion`). Las fallas
+    // de plantas que ya no tienen el servicio siguen en la lista.
+    proyectos.value = await catalogoProyectos.cargarOperativos()
   } catch {
     /* no crítico */
   }
@@ -1645,6 +1801,7 @@ function limpiarFiltros() {
   filtroEstado.value = null
   filtroFechaDesde.value = null
   filtroFechaHasta.value = null
+  soloVencidas.value = false
 }
 
 function navegar(delta: number) {
@@ -1666,133 +1823,33 @@ function abrirDrawer(falla: Falla) {
   drawerVisible.value = true
 }
 
-function abrirCrear() {
-  editingFalla.value = null
-  formDialogVisible.value = true
+// Crear y editar tienen página propia; la query (los filtros) viaja con la
+// navegación y el formulario la devuelve al volver.
+function irANueva() {
+  router.push({ path: RUTAS_FALLAS.nueva, query: route.query })
 }
 
-function abrirEditar(falla: Falla) {
-  editingFalla.value = falla
-  formDialogVisible.value = true
+function irAEditar(falla: Falla) {
+  router.push({ path: RUTAS_FALLAS.editar(falla.id), query: route.query })
 }
 
-async function _mostrarResultadoNotificacion(fallaIds: number[]) {
-  // Envía notificación para cada falla y muestra un toast con el resultado.
-  // Si alguna falla, muestra advertencia pero NO bloquea el flujo.
-  const resultados: ResultadoNotificacionFalla[] = await Promise.all(
-    fallaIds.map((id) =>
-      fallasService.notificar(id).catch((err): ResultadoNotificacionFalla => ({
-        ok: false,
-        enviados: [],
-        errores: [normalizeError(err).message],
-        sin_correos: false,
-      })),
-    ),
-  )
-
-  const todosOk = resultados.every((r) => r.ok)
-  const sinCorreos = resultados.some((r) => r.sin_correos)
-  const enviados = [...new Set(resultados.flatMap((r) => r.enviados || []))]
-  const errores = resultados.flatMap((r) => r.errores || []).filter(Boolean)
-
-  if (todosOk) {
-    toast.success('✉️ Notificación enviada', {
-      description: `Correo enviado a: ${enviados.join(', ')}`,
-      duration: 5000,
-    })
-  } else if (sinCorreos) {
-    toast.warning('⚠️ Sin correos configurados', {
-      description:
-        'La falla fue guardada pero el cliente no tiene correos operacionales configurados. Agrégalos en Clientes → Correos Operacionales.',
-      duration: 8000,
-    })
-  } else {
-    // Obtener el error SMTP más descriptivo
-    const errorSmtp = errores.find(
-      (e) => e.includes('534') || e.includes('Application-specific') || e.includes('password'),
-    )
-    toast.error('✉️ Error al enviar notificación', {
-      description: errorSmtp
-        ? 'Error de autenticación SMTP: Gmail requiere una App Password (contraseña de aplicación). Configúrala en las variables de Railway.'
-        : `Error: ${errores[0] || 'Error desconocido'}`,
-      duration: 10000,
+/**
+ * Desde el calendario, Pendientes, el aviso de hoy o al volver del formulario:
+ * va a la pestaña Fallas, a la pestaña de estado de la falla y abre su panel.
+ * Si los filtros la esconden se limpian (y se avisa): con la falla fuera de la
+ * lista, la fila no se resalta y las flechas de navegación no funcionan.
+ */
+function verFallaEnLista(falla: Falla) {
+  activeTab.value = PestanaGestionFallas.FALLAS
+  grupo.value = grupoEstadoFalla(falla)
+  if (!cumpleFiltrosVista(falla, filtrosVista.value)) {
+    limpiarFiltros()
+    toast.info('Se limpiaron los filtros', {
+      description: `Para mostrar la falla ${falla.codigo_interno ?? falla.id}.`,
+      duration: 3000,
     })
   }
-}
-
-function irAFallaDesdeCalendario(falla: Falla) {
-  // Cambia al tab Fallas y abre el drawer con la falla seleccionada
-  activeTab.value = 0
   nextTick(() => abrirDrawer(falla))
-}
-
-function editarDesdeDrawer() {
-  if (!drawerFalla.value) return
-  editingFalla.value = drawerFalla.value
-  formDialogVisible.value = true
-}
-
-async function onSaveForm(payload: PayloadFallaForm) {
-  savingForm.value = true
-  try {
-    const notificar = !!payload.notificacion
-
-    if (editingFalla.value) {
-      // ── Edición (un solo proyecto) ──────────────────────────────────────
-      const fallaId = editingFalla.value.id
-      const { nota_inicial: notaInicial, _archivos: archivosEdit, ...patchPayload } = payload
-      await fallasService.actualizar(fallaId, patchPayload)
-      if (notaInicial) await fallasService.crearSeguimiento(fallaId, { nota: notaInicial })
-      if (archivosEdit?.length) {
-        await Promise.all(archivosEdit.map((file) => fallasService.subirArchivo(fallaId, file)))
-      }
-      toast.success('Falla actualizada', { duration: 2500 })
-
-      // Notificación tras edición
-      if (notificar) await _mostrarResultadoNotificacion([fallaId])
-    } else {
-      // ── Creación (uno o más proyectos) ──────────────────────────────────
-      const { proyecto_ids, nota_inicial: notaInicial, _archivos: archivos, ...base } = payload
-      const ids = proyecto_ids ?? []
-
-      // Una falla por proyecto, en paralelo
-      const nuevas = await Promise.all(
-        ids.map((pid) => fallasService.crear({ ...base, proyecto_id: pid })),
-      )
-      // Nota inicial para cada falla creada (si la hay)
-      if (notaInicial) {
-        await Promise.all(
-          nuevas.map((f) => fallasService.crearSeguimiento(f.id, { nota: notaInicial })),
-        )
-      }
-      // Subir archivos adjuntos a cada falla (si los hay)
-      if (archivos?.length) {
-        await Promise.all(
-          nuevas.flatMap((f) => archivos.map((file) => fallasService.subirArchivo(f.id, file))),
-        )
-      }
-      const n = nuevas.length
-      toast.success(n === 1 ? 'Falla registrada' : `${n} fallas registradas`, {
-        description:
-          n > 1 ? 'Se creó una falla independiente por cada proyecto seleccionado' : undefined,
-        duration: 3000,
-      })
-
-      // Notificación tras creación
-      if (notificar && nuevas.length) await _mostrarResultadoNotificacion(nuevas.map((f) => f.id))
-    }
-    formDialogVisible.value = false
-    calRefreshKey.value++ // ← dispara recarga del calendario
-    await cargar()
-    if (drawerFalla.value && editingFalla.value) {
-      const refreshed = allFallas.value.find((f) => f.id === editingFalla.value!.id)
-      if (refreshed) abrirDrawer(refreshed)
-    }
-  } catch (err) {
-    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-  } finally {
-    savingForm.value = false
-  }
 }
 
 // Autosave con debounce
@@ -1879,7 +1936,7 @@ async function confirmarResolve() {
 async function reabrirFalla() {
   if (!drawerFalla.value) return
   const abierta =
-    catalogos.value.estados.find((e) => e.codigo === 'abierta') ??
+    catalogos.value.estados.find((e) => e.codigo === EstadoFallaCodigo.ABIERTA) ??
     catalogos.value.estados.find((e) => !e.es_estado_final)
   if (!abierta) {
     toast.warning('Sin estado abierto configurado', { duration: 3000 })
@@ -2030,27 +2087,6 @@ function slaSeverity(falla: Falla): GandalfBadgeColor {
   return 'default'
 }
 
-// Orden de urgencia para la cola de triage: vencido primero, luego alerta,
-// luego sin dato de SLA, y al final lo que ya cumple/está resuelto.
-const SLA_SEVERITY_RANK: Record<string, number> = {
-  destructive: 0,
-  warning: 1,
-  default: 2,
-  success: 3,
-}
-function slaSeverityRank(falla: Falla): number {
-  return SLA_SEVERITY_RANK[slaSeverity(falla)] ?? 2
-}
-
-function fmtFecha(d?: string | null): string {
-  if (!d) return '—'
-  return new Date(`${d}T00:00:00`).toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
 // Fecha + hora para campos datetime (ocurrencia, resolución).
 function fmtFechaHora(dt?: string | null): string {
   if (!dt) return '—'
@@ -2099,24 +2135,18 @@ function relativeTime(d?: string | null): string {
   return rel
 }
 
-function startOfDay(d: string | Date): Date {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
-}
-
 // ── Keyboard shortcuts ────────────────────────────────────────────────────
 function onKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement
   const t = target.tagName
   if (t === 'INPUT' || t === 'TEXTAREA' || target.isContentEditable) return
-  if (activeTab.value !== 0) return
+  if (activeTab.value !== PestanaGestionFallas.FALLAS) return
   if (e.key === '/') {
     e.preventDefault()
     nextTick(() => searchInputRef.value?.$el?.focus())
   } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
-    abrirCrear()
+    irANueva()
   } else if (e.key === 'Escape' && drawerVisible.value) {
     drawerVisible.value = false
   } else if (drawerVisible.value && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -2140,9 +2170,53 @@ function measureHeader() {
   }
 }
 
+/**
+ * `/fallas?falla=123` (al volver de editar): la falla cuyo panel se abre al
+ * terminar la carga. Se lee una vez al montar y se saca de la URL de
+ * inmediato (no es un filtro): así no se pierde si se toca un filtro antes de
+ * que termine la carga —el watch de filtros reescribe la query— ni si la carga
+ * falla.
+ */
+const idFallaDeLaUrl = Number(route.query[ParamQueryFallas.ABRIR_FALLA]) || null
+
+/** La busca en lo cargado y, si no está (cerrada fuera de la ventana), la pide. */
+async function abrirFallaPorId(id: Falla['id']) {
+  let falla = allFallas.value.find((f) => f.id === id)
+  if (!falla) {
+    try {
+      falla = await fallasService.obtener(id)
+    } catch (e) {
+      toast.warning('No se pudo abrir la falla', {
+        description: normalizeError(e).message,
+        duration: 4000,
+      })
+      return
+    }
+  }
+  verFallaEnLista(falla)
+}
+
+// La lista se pone al día sola a la medianoche (el aviso de programadas de hoy).
+let _cambioDeDia: ReturnType<typeof setTimeout> | null = null
+function programarCambioDeDia() {
+  // Un segundo de margen para caer ya del otro lado de la medianoche.
+  _cambioDeDia = setTimeout(() => {
+    hoy.value = hoyColombia()
+    programarCambioDeDia()
+  }, msHastaMedianocheColombia() + 1000)
+}
+
 onMounted(() => {
-  cargar()
-  cargarCatalogos()
+  if (idFallaDeLaUrl) {
+    const { [ParamQueryFallas.ABRIR_FALLA]: _abrir, ...resto } = route.query
+    router.replace({ query: resto })
+  }
+  // Al volver del formulario con `?desde=` anterior a la ventana por defecto,
+  // se carga desde ahí (el watch de `filtroFechaDesde` solo mira cambios).
+  cargar(inicioDeCarga(filtroFechaDesde.value, haceDias(DIAS_HISTORIAL))).then(() => {
+    if (idFallaDeLaUrl) abrirFallaPorId(idFallaDeLaUrl)
+  })
+  programarCambioDeDia()
   cargarProyectos()
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
@@ -2162,6 +2236,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  if (_cambioDeDia) clearTimeout(_cambioDeDia)
   _headerRO?.disconnect()
   _tabBarRO?.disconnect()
 })
@@ -2170,7 +2245,9 @@ onBeforeUnmount(() => {
 watch(drawerVisible, (val) => {
   if (!val) {
     setTimeout(() => {
-      drawerFalla.value = null
+      // Si en esos 200 ms se abrió otra (cerrar y abrir en el mismo tick, como
+      // al saltar de pestaña con `verFallaEnLista`), no se borra.
+      if (!drawerVisible.value) drawerFalla.value = null
     }, 200)
   }
 })
@@ -2184,17 +2261,9 @@ watch(activeTab, () => {
   })
 })
 
-// Si cambia bucket y la falla abierta no pertenece al nuevo bucket, cerrar panel
-watch(bucket, (newBucket) => {
+// Si cambia la pestaña y la falla abierta no pertenece a ella, cerrar panel
+watch(grupo, (nuevo) => {
   if (!drawerVisible.value || !drawerFalla.value) return
-  if (newBucket === 'todas') return
-  const pertenece = (() => {
-    const f = drawerFalla.value!
-    if (newBucket === 'cerradas') return !!f.estado?.es_estado_final
-    if (newBucket === 'alerta') return !f.estado?.es_estado_final && esAlertaSLA(f)
-    if (newBucket === 'activas') return !f.estado?.es_estado_final
-    return true
-  })()
-  if (!pertenece) drawerVisible.value = false
+  if (!perteneceAGrupo(drawerFalla.value, nuevo)) drawerVisible.value = false
 })
 </script>
