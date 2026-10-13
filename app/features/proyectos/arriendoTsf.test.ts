@@ -225,3 +225,20 @@ describe('planArriendo cuando en TSF nadie recibe pago', () => {
     expect(plan.contrato!.cambios.map((c) => c.clave)).not.toContain('prestador_id')
   })
 })
+
+describe('enlace al PDF del contrato', () => {
+  it('reemplaza un enlace viejo a TSF, pero no uno puesto a mano', () => {
+    const viejo = {
+      ...CONTRATO_342,
+      enlace_drive: 'https://devtsf.uner.gy/minifarms/lands/369?tab=legal',
+    }
+    const cambio = planArriendo(TSF, viejo, [], CTX).contrato!.cambios.find(
+      (c) => c.clave === 'enlace_drive',
+    )
+    expect(cambio).toMatchObject({ valor: TSF.enlace, actualTexto: 'Enlace anterior a TSF' })
+
+    const drive = { ...CONTRATO_342, enlace_drive: 'https://drive.google.com/file/d/x' }
+    const claves = planArriendo(TSF, drive, [], CTX).contrato!.cambios.map((c) => c.clave)
+    expect(claves).not.toContain('enlace_drive')
+  })
+})

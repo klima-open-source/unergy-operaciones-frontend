@@ -102,6 +102,11 @@ function iguales(a: unknown, b: unknown): boolean {
   return String(a) === String(b)
 }
 
+/** Un enlace a la pestaña legal de un terreno en TSF (lo que pone esta sincronización). */
+export function esEnlaceTsf(url: string): boolean {
+  return /\/minifarms\/lands\/\d+\?tab=legal/.test(url)
+}
+
 /** El contrato de arriendo de Operaciones que corresponde al de TSF. */
 export function contratoDeArriendo(
   tsf: ArriendoTsf,
@@ -170,13 +175,14 @@ function planContrato(
       (v) => `#${v}`,
     ],
     ['fecha_firma_contrato', 'Fecha de firma', actual?.fecha_firma_contrato, tsf.fechaFirma],
-    // Solo si no tiene enlace: uno que una persona puso (p. ej. el Drive) no se pisa.
+    // Si está vacío o es un enlace a TSF que quedó viejo (otro host, sin el
+    // archivo): uno que una persona puso (p. ej. el Drive) no se pisa.
     [
       'enlace_drive',
       'Contrato firmado',
       actual?.enlace_drive,
-      actual?.enlace_drive ? null : tsf.enlace,
-      () => 'PDF en TSF',
+      !actual?.enlace_drive || esEnlaceTsf(actual.enlace_drive) ? tsf.enlace : null,
+      (v) => (v === tsf.enlace ? 'PDF en TSF' : 'Enlace anterior a TSF'),
     ],
     ['tarifa_base', 'Canon anual', actual?.tarifa_base, tsf.canonAnual, cop],
     [
