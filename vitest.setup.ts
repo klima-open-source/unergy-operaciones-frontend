@@ -22,6 +22,7 @@ const TEST_RUNTIME_CONFIG = {
   // nuxt.config.ts) until the real backend exposes `/auth/me`.
   authSessionCookiesEnabled: true,
   unergyAuthUrl: 'https://unergy-auth.test',
+  originabotUrl: 'https://originabot.test',
   public: {
     unergyAuthEnabled: true,
     apiBaseUrl: 'https://api.test',
@@ -42,6 +43,7 @@ const GLOBALS: Record<string, unknown> = {
   deleteCookie: h3.deleteCookie,
   getQuery: h3.getQuery,
   getRouterParam: h3.getRouterParam,
+  getHeader: h3.getHeader,
   getRequestURL: h3.getRequestURL,
   readBody: h3.readBody,
   sendRedirect: h3.sendRedirect,

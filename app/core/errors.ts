@@ -162,6 +162,10 @@ export function readDetail(data: unknown): string | undefined {
     }
   }
 
+  // Las rutas propias de Nitro: `createError({ data: { detail } })` responde
+  // `{ statusMessage, data: { detail } }`, con el detalle un nivel más abajo.
+  if (detail === undefined && isRecord(data.data)) return readDetail(data.data)
+
   return undefined
 }
 

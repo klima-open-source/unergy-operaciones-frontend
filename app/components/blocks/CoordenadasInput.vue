@@ -7,7 +7,7 @@
  * `valido` dice si lo escrito se pudo leer: quien guarda lo consulta para no
  * mandar una coordenada vieja mientras el campo muestra otra cosa.
  */
-import { ExternalLinkIcon } from '@lucide/vue'
+import { ExternalLinkIcon, LockIcon } from '@lucide/vue'
 import {
   avisosCoordenadas,
   enlaceGoogleMaps,
@@ -17,6 +17,9 @@ import {
 } from '~/utils/coordenadas'
 
 type Valor = number | string | null | undefined
+
+/** Solo lectura: p. ej. coordenadas que vienen de TSF al importar un proyecto. */
+defineProps<{ disabled?: boolean }>()
 
 const latitud = defineModel<Valor>('latitud', { default: null })
 const longitud = defineModel<Valor>('longitud', { default: null })
@@ -28,15 +31,24 @@ const textoLongitud = ref(mostrarCoordenada(longitud.value))
 const errorLatitud = computed(() => leerCoordenada(textoLatitud.value) === undefined)
 const errorLongitud = computed(() => leerCoordenada(textoLongitud.value) === undefined)
 
-const numero = (v: Valor): number | null => (v === null || v === undefined || v === '' ? null : Number(v))
+const numero = (v: Valor): number | null =>
+  v === null || v === undefined || v === '' ? null : Number(v)
 const avisos = computed(() => avisosCoordenadas(numero(latitud.value), numero(longitud.value)))
 const enlace = computed(() => {
   const lat = numero(latitud.value)
   const lon = numero(longitud.value)
-  return lat != null && lon != null && !errorLatitud.value && !errorLongitud.value ? enlaceGoogleMaps(lat, lon) : null
+  return lat != null && lon != null && !errorLatitud.value && !errorLongitud.value
+    ? enlaceGoogleMaps(lat, lon)
+    : null
 })
 
-watch([errorLatitud, errorLongitud], ([a, b]) => { valido.value = !a && !b }, { immediate: true })
+watch(
+  [errorLatitud, errorLongitud],
+  ([a, b]) => {
+    valido.value = !a && !b
+  },
+  { immediate: true },
+)
 
 function alEscribir(campo: 'latitud' | 'longitud', texto: string) {
   const par = leerPar(texto)
@@ -67,32 +79,51 @@ watch(longitud, (v) => {
 <template>
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div class="flex flex-col gap-1">
-      <label class="text-xs font-medium text-muted-foreground">Latitud</label>
+      <label class="text-xs font-medium text-muted-foreground">
+        Latitud <LockIcon v-if="disabled" class="inline size-3" />
+      </label>
       <Input
         :model-value="textoLatitud"
+        :disabled="disabled"
         inputmode="decimal"
         placeholder="6,244203"
         :aria-invalid="errorLatitud || undefined"
         @update:model-value="alEscribir('latitud', String($event))"
       />
-      <p v-if="errorLatitud" class="text-xs text-destructive">No es una coordenada: usa un número como 6,244203.</p>
+      <p v-if="errorLatitud" class="text-xs text-destructive">
+        No es una coordenada: usa un número como 6,244203.
+      </p>
     </div>
     <div class="flex flex-col gap-1">
-      <label class="text-xs font-medium text-muted-foreground">Longitud</label>
+      <label class="text-xs font-medium text-muted-foreground">
+        Longitud <LockIcon v-if="disabled" class="inline size-3" />
+      </label>
       <Input
         :model-value="textoLongitud"
+        :disabled="disabled"
         inputmode="decimal"
         placeholder="-75,581211"
         :aria-invalid="errorLongitud || undefined"
         @update:model-value="alEscribir('longitud', String($event))"
       />
-      <p v-if="errorLongitud" class="text-xs text-destructive">No es una coordenada: usa un número como -75,581211.</p>
+      <p v-if="errorLongitud" class="text-xs text-destructive">
+        No es una coordenada: usa un número como -75,581211.
+      </p>
     </div>
     <div class="flex flex-col gap-1 md:col-span-2">
       <p v-for="aviso in avisos" :key="aviso" class="text-xs text-warning">{{ aviso }}</p>
       <p class="text-xs text-muted-foreground">
-        Puedes pegar las dos juntas, como las copia Google Maps («6.244203, -75.581211»).
-        <a v-if="enlace" :href="enlace" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-primary hover:underline">
+        <template v-if="!disabled"
+          >Puedes pegar las dos juntas, como las copia Google Maps («6.244203,
+          -75.581211»).</template
+        >
+        <a
+          v-if="enlace"
+          :href="enlace"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-1 text-primary hover:underline"
+        >
           <ExternalLinkIcon class="size-3" /> Ver en Google Maps
         </a>
       </p>

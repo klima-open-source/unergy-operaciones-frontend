@@ -112,6 +112,12 @@ export default defineNuxtConfig({
      * `server/utils/unergy-auth-api.ts`.
      */
     unergyAuthUrl: 'https://auth.unergy.io',
+    /**
+     * originabot (TSF), para importar proyectos. Server-only, como el de Auth:
+     * el navegador habla con `server/routes/originabot/*`. Cambia por entorno
+     * (`NUXT_ORIGINABOT_URL`): un token de devauth solo sirve contra el de dev.
+     */
+    originabotUrl: 'https://originabot.uner.gy',
 
     public: {
       /**

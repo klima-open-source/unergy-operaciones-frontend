@@ -31,7 +31,7 @@
         <Button v-if="vista === 'clientes'" size="sm" @click="dialogCliente = true">
           <PlusIcon class="size-4" /> Nuevo cliente
         </Button>
-        <Button v-else-if="vista === 'proyectos'" size="sm" @click="dialogProyecto = true">
+        <Button v-else-if="vista === 'proyectos'" size="sm" @click="abrirNuevoProyecto">
           <PlusIcon class="size-4" /> Nuevo proyecto
         </Button>
         <Button v-else-if="vista === 'servicios' && servicio === 'ppa'" size="sm" class="bg-warning border-warning hover:bg-warning/90" @click="abrirWizardPPA(null)">
@@ -548,10 +548,36 @@
     <Dialog v-model:open="dialogProyecto">
       <DialogContent class="sm:max-w-xl max-h-dvh overflow-y-auto" @open-auto-focus.prevent>
         <DialogHeader>
-          <DialogTitle>Nuevo proyecto</DialogTitle>
-          <DialogDescription class="sr-only">Datos de la planta nueva.</DialogDescription>
+          <DialogTitle>{{ modoProyecto === 'tsf' ? 'Importar proyecto desde TSF' : 'Nuevo proyecto' }}</DialogTitle>
+          <DialogDescription :class="modoProyecto === 'elegir' ? undefined : 'sr-only'">
+            {{ modoProyecto === 'elegir' ? '¿De dónde sale la planta?' : 'Datos de la planta nueva.' }}
+          </DialogDescription>
         </DialogHeader>
-        <ProyectoForm @save="crearProyecto" @cancel="dialogProyecto = false" />
+        <!-- Importar desde TSF trae los datos de originabot y los deja en solo
+             lectura; desde cero es el formulario de siempre. -->
+        <div v-if="modoProyecto === 'elegir'" class="grid gap-3 pt-2 sm:grid-cols-2">
+          <button type="button" class="flex flex-col gap-2 rounded-lg border border-border p-4 text-left hover:bg-muted"
+            @click="modoProyecto = 'cero'">
+            <FilePlusIcon class="size-5 text-primary" />
+            <span class="text-sm font-medium">Crear desde cero</span>
+            <span class="text-xs text-muted-foreground">Llenas todos los datos a mano.</span>
+          </button>
+          <button type="button" :disabled="!unergyAuthActivo"
+            class="flex flex-col gap-2 rounded-lg border border-border p-4 text-left hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent"
+            @click="modoProyecto = 'tsf'">
+            <DownloadIcon class="size-5 text-primary" />
+            <span class="text-sm font-medium">Importar desde TSF</span>
+            <span class="text-xs text-muted-foreground">
+              {{ unergyAuthActivo
+                ? 'Buscas el proyecto en originabot y sus datos llegan prellenados.'
+                : 'Requiere iniciar sesión con Unergy Auth.' }}
+            </span>
+          </button>
+        </div>
+        <ImportarDesdeTsf v-else-if="modoProyecto === 'tsf' && !proyectoTsf" :proyectos-existentes="proyectos"
+          @seleccionar="proyectoTsf = $event" @volver="modoProyecto = 'elegir'" />
+        <ProyectoForm v-else :key="proyectoTsf?.minigranjaId ?? 'cero'" :importado="proyectoTsf"
+          @save="crearProyecto" @cancel="dialogProyecto = false" />
       </DialogContent>
     </Dialog>
 
@@ -677,7 +703,7 @@ import {
   tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, FilePenIcon, FilePlusIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -689,6 +715,7 @@ const serviciosService = new ServiciosService()
 // Los formularios y wizards pesan; sólo se descargan cuando alguien crea algo.
 const ClienteForm = defineAsyncComponent(() => import('~/features/clientes/components/ClienteForm.vue'))
 const ProyectoForm = defineAsyncComponent(() => import('~/features/proyectos/components/ProyectoForm.vue'))
+const ImportarDesdeTsf = defineAsyncComponent(() => import('~/features/proyectos/components/ImportarDesdeTsf.vue'))
 const PPAContratoWizard = defineAsyncComponent(() => import('~/features/contratos/components/PPAContratoWizard.vue'))
 const ContratoServicioWizard = defineAsyncComponent(() => import('~/features/contratos/components/ContratoServicioWizard.vue'))
 
@@ -1819,6 +1846,17 @@ function confirmarBorrarContratoServicio(row) {
 
 // ── Creación de proyecto (con el aviso de nombre parecido) ───────────────────
 const dialogProyecto = ref(false)
+/** 'elegir' → 'cero' (form vacío) o 'tsf' (buscar en originabot → form prellenado). */
+const modoProyecto = ref('elegir')
+const proyectoTsf = ref(null)
+// originabot valida el token de Unergy Auth: con el login propio no hay con qué.
+const unergyAuthActivo = useRuntimeConfig().public.unergyAuthEnabled
+
+function abrirNuevoProyecto() {
+  modoProyecto.value = 'elegir'
+  proyectoTsf.value = null
+  dialogProyecto.value = true
+}
 const duplicadoVisible = ref(false)
 const duplicadoInfo = ref(null)
 // 'proyecto' | 'cliente': el mismo aviso sirve para los dos, y el tipo decide a

@@ -230,3 +230,42 @@ export interface ProyectoLiviano {
   sub_project?: string | null
   codigo_tsf?: string | null
 }
+
+// ── Importar desde TSF (originabot) ──────────────────────────────────────────
+// La forma que entregan `server/routes/originabot/*`, ya traducida por
+// `server/utils/originabot-api.ts`: nada de lo crudo de originabot llega aquí.
+
+/** Un resultado de la búsqueda de Portfolio Manager. */
+export interface ResultadoTsf {
+  minigranjaId: number
+  /** El `base_name` de TSF: `COLCEST456P1_BOSCONIA_ORIENTE`. */
+  codigo: string
+  etapa: string
+  etapaLabel: string
+  ubicacion: string | null
+  operadorRed: string | null
+}
+
+export interface BusquedaTsf {
+  resultados: ResultadoTsf[]
+  /** Alguna etapa tenía más resultados de los que se muestran: afinar la búsqueda. */
+  truncado: boolean
+}
+
+/** Lo que TSF dice de una minigranja. `null` = no lo trae, y el campo queda editable. */
+export interface ProyectoTsf {
+  minigranjaId: number
+  /** Va a `origina_code`, entero. */
+  codigoOrigina: string
+  /** Va a `codigo_tsf`: el prefijo CREG. */
+  codigoTsf: string | null
+  /** Derivado del código (como `tsf_sync`): no es un dato de TSF y se puede editar. */
+  nombreSugerido: string
+  etapa: string | null
+  departamento: string | null
+  municipio: string | null
+  latitud: number | null
+  longitud: number | null
+  operadorRed: string | null
+  tipoProyecto: string | null
+}

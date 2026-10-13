@@ -158,6 +158,14 @@ describe('normalizeError (ofetch responses)', () => {
 })
 
 describe('readDetail (the legacy API answers with `detail`, not `message`)', () => {
+  it("reads a Nitro route's detail, nested under `data`", () => {
+    // `createError({ data: { detail } })` en `server/routes/*`.
+    expect(
+      readDetail({ statusMessage: 'x', data: { detail: 'originabot rechazó tu sesión.' } }),
+    ).toBe('originabot rechazó tu sesión.')
+    expect(readDetail({ detail: 'raíz', data: { detail: 'anidado' } })).toBe('raíz')
+  })
+
   it('reads a plain string, and treats a blank one as absent', () => {
     expect(readDetail({ detail: 'El contrato ya existe' })).toBe('El contrato ya existe')
     expect(readDetail({ detail: '   ' })).toBeUndefined()

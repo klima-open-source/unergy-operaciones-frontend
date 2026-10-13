@@ -1,13 +1,30 @@
 <template>
   <form @submit.prevent="submit" class="space-y-4 pt-2">
+    <Alert v-if="importado">
+      <LockIcon />
+      <AlertTitle>Importado de TSF: {{ importado.codigoOrigina }}</AlertTitle>
+      <AlertDescription>
+        <p>
+          Etapa en TSF: {{ importado.etapa ?? 'sin dato' }}. Los campos con candado vienen de originabot y no se
+          editan aquí, para que los dos sistemas digan lo mismo.
+        </p>
+        <p v-if="sinCoincidenciaTsf.length" class="text-warning">
+          TSF trae datos que no están en los catálogos de Operaciones; complétalos a mano:
+          {{ sinCoincidenciaTsf.join(' · ') }}.
+        </p>
+      </AlertDescription>
+    </Alert>
     <div class="grid grid-cols-2 gap-4">
       <div class="col-span-2">
         <label class="block text-xs font-medium text-muted-foreground mb-1">Nombre comercial *</label>
         <Input v-model="f.nombre_comercial" required />
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo de proyecto</label>
-        <Select :model-value="aValorSelect(f.tipo_proyecto)" @update:model-value="f.tipo_proyecto = deValorSelect($event) || null">
+        <label class="block text-xs font-medium text-muted-foreground mb-1">
+          Tipo de proyecto <LockIcon v-if="bloqueado('tipo_proyecto')" class="inline size-3" />
+        </label>
+        <Select :model-value="aValorSelect(f.tipo_proyecto)" :disabled="bloqueado('tipo_proyecto')"
+          @update:model-value="f.tipo_proyecto = deValorSelect($event) || null">
           <SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
           <SelectContent>
             <SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem>
@@ -53,20 +70,31 @@
         </NumberField>
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
-        <ComboBox :model-value="f.departamento" :options="opcionesDepartamento" placeholder="Seleccionar"
+        <label class="block text-xs font-medium text-muted-foreground mb-1">
+          Departamento <LockIcon v-if="bloqueado('departamento')" class="inline size-3" />
+        </label>
+        <!-- `key`: el ComboBox calcula su texto al montar; al prellenar desde TSF
+             el valor llega después. -->
+        <ComboBox :key="`dep-${bloqueado('departamento')}`" :model-value="f.departamento" :options="opcionesDepartamento"
+          placeholder="Seleccionar" :disabled="bloqueado('departamento')"
           @update:model-value="f.departamento = deValorSelect($event) || null" />
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Municipio</label>
+        <label class="block text-xs font-medium text-muted-foreground mb-1">
+          Municipio <LockIcon v-if="bloqueado('municipio')" class="inline size-3" />
+        </label>
         <!-- `key`: al cambiar de departamento cambian las opciones, y el input
              tiene que volver a calcular su texto. -->
         <ComboBox :key="f.departamento ?? ''" :model-value="f.municipio" :options="opcionesMunicipio" placeholder="Seleccionar"
-          :disabled="!f.departamento" @update:model-value="f.municipio = deValorSelect($event) || null" />
+          :disabled="!f.departamento || bloqueado('municipio')" @update:model-value="f.municipio = deValorSelect($event) || null" />
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red{{ operadorRedObligatorio ? ' *' : '' }}</label>
-        <ComboBox :key="opcionesOperadorRed.length" :model-value="f.operador_red_id != null ? String(f.operador_red_id) : null"
+        <label class="block text-xs font-medium text-muted-foreground mb-1">
+          Operador de red{{ operadorRedObligatorio ? ' *' : '' }}
+          <LockIcon v-if="bloqueado('operador_red_id')" class="inline size-3" />
+        </label>
+        <ComboBox :key="`${opcionesOperadorRed.length}-${bloqueado('operador_red_id')}`"
+          :disabled="bloqueado('operador_red_id')" :model-value="f.operador_red_id != null ? String(f.operador_red_id) : null"
           :options="opcionesOperadorRed" placeholder="Seleccionar"
           @update:model-value="v => { const id = deValorSelect(v); f.operador_red_id = id ? Number(id) : null }" />
       </div>
@@ -88,7 +116,7 @@
            que toda planta nacía sin ubicación en el mapa y sin coordenadas para
            quien integra por API. -->
       <CoordenadasInput v-model:latitud="f.latitud" v-model:longitud="f.longitud"
-        v-model:valido="coordenadasValidas" class="col-span-2" />
+        v-model:valido="coordenadasValidas" :disabled="bloqueado('coordenadas')" class="col-span-2" />
       <!-- El backend acota la altitud a -100..6000 msnm (Colombia llega a ~5.700
            en el Ritacuba): un dedazo de 60.000 se rechaza con 422. -->
       <div>
@@ -111,8 +139,10 @@
         <Input v-model="f.sub_project" placeholder="ej: perija, vallenata" />
       </div>
       <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Código TSF</label>
-        <Input v-model="f.codigo_tsf" placeholder="ej: COLCEST58P2" />
+        <label class="block text-xs font-medium text-muted-foreground mb-1">
+          Código TSF <LockIcon v-if="bloqueado('codigo_tsf')" class="inline size-3" />
+        </label>
+        <Input v-model="f.codigo_tsf" placeholder="ej: COLCEST58P2" :disabled="bloqueado('codigo_tsf')" />
       </div>
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
@@ -202,6 +232,8 @@
 
 <script setup>
 import { reactive, ref, watch, computed, onMounted } from 'vue'
+import { LockIcon } from '@lucide/vue'
+import { prellenadoDesdeTsf } from '~/features/proyectos/prellenadoTsf'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
@@ -226,6 +258,12 @@ const props = defineProps({
    */
   operadorRedObligatorio: { type: Boolean, default: false },
   guardando: { type: Boolean, default: false },
+  /**
+   * Proyecto de TSF (`ProyectoTsf`, de originabot) a importar. Prellena el form y
+   * deja en solo lectura lo que vino de TSF, para que Operaciones no diverja de
+   * originabot. Ver `~/features/proyectos/prellenadoTsf`.
+   */
+  importado: { type: Object, default: null },
 })
 const emit = defineEmits(['save', 'cancel'])
 
@@ -263,7 +301,25 @@ const f = reactive({
   carpeta_drive_codigo: null,
   sub_project: null,
   codigo_tsf: null,
+  // Solo al importar desde TSF: los mismos códigos que guarda `tsf_sync`, para
+  // que la sincronización reconozca la planta y no la duplique.
+  origina_code: null,
+  origen: null,
 })
+
+// Importar desde TSF: qué campos quedaron fijados y qué no encajó en los catálogos.
+const bloqueados = ref(new Set())
+const sinCoincidenciaTsf = ref([])
+const bloqueado = (campo) => bloqueados.value.has(campo)
+
+function aplicarPrellenadoTsf() {
+  const { valores, bloqueados: campos, sinCoincidencia } = prellenadoDesdeTsf(
+    props.importado, divipola, operadoresRed.value,
+  )
+  Object.assign(f, valores)
+  bloqueados.value = new Set(campos)
+  sinCoincidenciaTsf.value = sinCoincidencia
+}
 
 // Departamento/municipio -- select en vez de texto libre (DIVIPOLA), para
 // evitar variantes de escritura que luego no se puedan agrupar/filtrar bien.
@@ -292,6 +348,9 @@ onMounted(async () => {
   try {
     operadoresRed.value = await operadoresRedService.listar()
   } catch { /* graceful degrade -- el select queda vacío */ }
+  // Después del catálogo: el operador de TSF se busca en él. Si no cargó, el
+  // operador queda editable y avisado, como cualquier otro que no encaje.
+  if (props.importado) aplicarPrellenadoTsf()
 })
 
 // Potencia AC y capacidad instalada -- viven en proyecto_info_tecnica (pestaña
