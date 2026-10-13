@@ -673,6 +673,7 @@
             :initial="editingFalla"
             :catalogos="catalogos"
             :proyectos="proyectos"
+            :guardando="savingForm"
             @save="onSaveForm"
             @cancel="formDialogVisible = false"
           />
@@ -1175,6 +1176,7 @@ function editarDesdeDrawer() {
 }
 
 async function onSaveForm(payload: PayloadFallaForm) {
+  if (savingForm.value) return
   savingForm.value = true
   try {
     if (editingFalla.value) {

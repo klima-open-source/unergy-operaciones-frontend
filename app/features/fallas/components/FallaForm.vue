@@ -19,7 +19,7 @@ import type {
   Falla,
   PayloadFallaForm,
 } from '~/features/fallas/types'
-import type { InversorProyecto, ProyectoConDetalle } from '~/features/proyectos/types'
+import type { InversorProyecto, ProyectoLiviano } from '~/features/proyectos/types'
 import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
 import {
   AlignLeftIcon,
@@ -51,6 +51,7 @@ import {
 import { normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
 import { iconoCategoriaFalla } from '~/features/fallas/utils/fallaTitulo'
+import { EstadoFallaCodigo } from '~/features/fallas/types'
 import { estadosSeleccionables, etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import { getEstructuraFallas } from '~/features/fallas/utils/fallasEstructuraCache'
 import DatePicker from '~/components/blocks/DatePicker.vue'
@@ -75,22 +76,19 @@ const props = withDefaults(
   defineProps<{
     initial?: Falla | null
     catalogos: CatalogosFalla
-    /** Pre-seleccionar proyectos al crear. */
-    prefillProyectoIds?: number[]
     /** Si el padre ya los tiene cargados, se reusan (evita refetch cada vez que se abre el diálogo). */
-    proyectos?: ProyectoConDetalle[]
-    /** El padre está guardando lo emitido: deshabilita el botón de guardar. */
+    proyectos?: ProyectoLiviano[]
+    /** El padre está guardando lo emitido (o navegando tras guardar): bloquea el envío. */
     guardando?: boolean
   }>(),
-  { initial: null, prefillProyectoIds: () => [], proyectos: () => [], guardando: false },
+  { initial: null, proyectos: () => [], guardando: false },
 )
 const emit = defineEmits<{
   save: [payload: PayloadFallaForm]
   cancel: []
 }>()
 
-const proyectos = ref<ProyectoConDetalle[]>(props.proyectos)
-const saving = ref(false)
+const proyectos = ref<ProyectoLiviano[]>(props.proyectos)
 const errors = ref<Record<string, string>>({})
 /** Archivos staged en el dropzone — solo al crear/editar, se suben tras guardar. */
 const archivosStaged = ref<File[]>([])
@@ -131,7 +129,7 @@ function onFileInputChange(e: Event) {
 // Fecha + hora de identificación en un solo campo. Al crear se sugiere el momento actual.
 const form = ref({
   proyecto_id: props.initial?.proyecto?.id ?? props.initial?.proyecto_id ?? null,
-  proyecto_ids: [...(props.prefillProyectoIds ?? [])] as number[],
+  proyecto_ids: [] as number[],
   tipo_id: props.initial?.tipo?.id ?? null,
   estado_id: props.initial?.estado?.id ?? null,
   prioridad_id: props.initial?.prioridad?.id ?? null,
@@ -161,7 +159,7 @@ const form = ref({
 const esEstadoProgramado = computed(() => {
   if (!form.value.estado_id) return false
   const estado = props.catalogos.estados?.find((e) => e.id === form.value.estado_id)
-  return estado?.codigo === 'programado'
+  return estado?.codigo === EstadoFallaCodigo.PROGRAMADO
 })
 
 // Detectar si el estado seleccionado es final (falla cerrada/resuelta)
@@ -300,14 +298,19 @@ const nuevoInv = ref<{ nombre: string; potencia_nominal_kw: number | null }>({
   potencia_nominal_kw: null,
 })
 const invError = ref('')
-/** Potencia AC del proyecto, en kW. Vive en el proyecto (`potencia_ac_kw`), no en `info_tecnica`. */
-const potenciaAc = ref<number | null>(null)
-
 /** DRF manda los decimales como texto (`"990.000"`). */
 function numeroONull(v: number | string | null | undefined): number | null {
   const n = Number(v)
   return v == null || v === '' || !Number.isFinite(n) ? null : n
 }
+
+/**
+ * Potencia AC del proyecto, en kW, de la lista de proyectos ya cargada (vive
+ * en el proyecto, `potencia_ac_kw`, no en `info_tecnica`).
+ */
+const potenciaAc = computed(() =>
+  numeroONull(proyectos.value.find((p) => p.id === proyectoUnicoId.value)?.potencia_ac_kw),
+)
 
 function potenciaInversor(inv: InversorProyecto): string {
   return inv.potencia_nominal_kw != null ? `${inv.potencia_nominal_kw} kW` : 's/d'
@@ -319,29 +322,24 @@ const sumaExcede = computed(
   () => potenciaAc.value != null && sumaInversores.value > potenciaAc.value + 0.001,
 )
 
+/** Cuenta las cargas: si se cambia de proyecto rápido, solo vale la respuesta de la última. */
+let cargaInversores = 0
+
 async function cargarInversores(pid: number | null) {
+  const esta = ++cargaInversores
   if (!pid) {
     inversoresProyecto.value = []
     return
   }
   cargandoInv.value = true
   try {
-    // La potencia AC (para la regla "la suma de inversores no excede la planta")
-    // no es crítica: si falla, la lista de inversores igual se muestra.
-    const [data, potencia] = await Promise.all([
-      proyectosService.listarInversores(pid),
-      proyectosService
-        .obtener(pid)
-        .then((p) => numeroONull(p.potencia_ac_kw))
-        .catch(() => null),
-    ])
-    inversoresProyecto.value = data ?? []
-    potenciaAc.value = potencia
+    const data = await proyectosService.listarInversores(pid)
+    if (esta === cargaInversores) inversoresProyecto.value = data ?? []
   } catch (err) {
     logger.error('fallas.form', err)
-    inversoresProyecto.value = []
+    if (esta === cargaInversores) inversoresProyecto.value = []
   } finally {
-    cargandoInv.value = false
+    if (esta === cargaInversores) cargandoInv.value = false
   }
 }
 
@@ -522,85 +520,77 @@ const tiempoAfectacionTexto = computed(() => {
   return fmtDuracion(horas)
 })
 
-async function submit() {
-  if (!validate()) return
-  saving.value = true
-  try {
-    const base: PayloadFallaForm = {
-      tipo_id: form.value.tipo_id,
-      estado_id: form.value.estado_id,
-      prioridad_id: form.value.prioridad_id,
-      descripcion: form.value.descripcion,
-      fecha_identificacion: formatFechaLocal(form.value.fecha_identificacion),
-      // La hora se deriva del mismo campo combinado de identificación.
-      hora_identificacion: formatHora(form.value.fecha_identificacion),
-    }
-    // Al editar se manda explícito (incluso null, para poder quitar una personalización
-    // ya guardada) -- al crear el campo ni se muestra, así que no hay nada que mandar.
-    if (props.initial) base.sla_limite_horas = form.value.sla_limite_horas || null
-    if (form.value.fecha_ocurrencia)
-      base.fecha_ocurrencia = form.value.fecha_ocurrencia.toISOString()
-    // La fecha de solución solo aplica cuando el estado es final (cerrada).
-    if (esEstadoFinal.value && form.value.fecha_resolucion) {
-      base.fecha_resolucion = form.value.fecha_resolucion.toISOString()
-    }
-    if (esEstadoFinal.value && form.value.resolucion_id)
-      base.resolucion_id = form.value.resolucion_id
-    if (form.value.causa_raiz?.trim()) base.causa_raiz = form.value.causa_raiz.trim()
-    if (form.value.acciones_correctivas?.trim())
-      base.acciones_correctivas = form.value.acciones_correctivas.trim()
-    if (form.value.nota_inicial?.trim()) base.nota_inicial = form.value.nota_inicial.trim()
-    if (form.value.fecha_programada) base.fecha_programada = form.value.fecha_programada
-    base.notificacion = !!form.value.notificacion
-    base.en_garantia = form.value.en_garantia
-    // Al quitar la garantía se borra el detalle que hubiera quedado guardado.
-    base.garantia_detalle = form.value.en_garantia
-      ? form.value.garantia_detalle.trim() || null
-      : null
+function submit() {
+  // `guardando` lo controla el padre mientras guarda y navega: evita el doble envío.
+  if (props.guardando || !validate()) return
+  const base: PayloadFallaForm = {
+    tipo_id: form.value.tipo_id,
+    estado_id: form.value.estado_id,
+    prioridad_id: form.value.prioridad_id,
+    descripcion: form.value.descripcion,
+    fecha_identificacion: formatFechaLocal(form.value.fecha_identificacion),
+    // La hora se deriva del mismo campo combinado de identificación.
+    hora_identificacion: formatHora(form.value.fecha_identificacion),
+  }
+  // Al editar se manda explícito (incluso null, para poder quitar una personalización
+  // ya guardada) -- al crear el campo ni se muestra, así que no hay nada que mandar.
+  if (props.initial) base.sla_limite_horas = form.value.sla_limite_horas || null
+  if (form.value.fecha_ocurrencia) base.fecha_ocurrencia = form.value.fecha_ocurrencia.toISOString()
+  // La fecha de solución solo aplica cuando el estado es final (cerrada).
+  if (esEstadoFinal.value && form.value.fecha_resolucion) {
+    base.fecha_resolucion = form.value.fecha_resolucion.toISOString()
+  }
+  if (esEstadoFinal.value && form.value.resolucion_id) base.resolucion_id = form.value.resolucion_id
+  if (form.value.causa_raiz?.trim()) base.causa_raiz = form.value.causa_raiz.trim()
+  if (form.value.acciones_correctivas?.trim())
+    base.acciones_correctivas = form.value.acciones_correctivas.trim()
+  if (form.value.nota_inicial?.trim()) base.nota_inicial = form.value.nota_inicial.trim()
+  if (form.value.fecha_programada) base.fecha_programada = form.value.fecha_programada
+  base.notificacion = !!form.value.notificacion
+  base.en_garantia = form.value.en_garantia
+  // Al quitar la garantía se borra el detalle que hubiera quedado guardado.
+  base.garantia_detalle = form.value.en_garantia ? form.value.garantia_detalle.trim() || null : null
 
-    // ── Clasificación estructurada ─────────────────────────────────────────
-    let forzarProyectoUnico: number | null = null
-    if (usarEstructura.value && cls.value.categoria) {
-      base.categoria_codigo = cls.value.categoria
-      const cat = catActual.value
-      if (cat?.tipo === 'inversores') {
-        // tipos compartidos aplicados a cada inversor seleccionado
-        const tipos = [...cls.value.inversores_tipos]
-        base.inversores = cls.value.inversores_ids.map((id) => {
-          const inv = inversoresProyecto.value.find((x) => x.id === id)
-          return {
-            proyecto_inversor_id: id,
-            nombre: inv?.nombre ?? null,
-            potencia_kw: inv?.potencia_nominal_kw ?? null,
-            tipos,
-          }
-        })
-        base.tipo_id = null // el backend deriva el tipo
-        forzarProyectoUnico = proyectoUnicoId.value
-      } else {
-        base.subtipo_codigo = cls.value.subtipo
-        if (cls.value.detalle?.trim()) base.subtipo_detalle = cls.value.detalle.trim()
-        if (cat?.tipo === 'equipo') {
-          base.frontera_afecta_medicion = !!cls.value.afecta_medicion
-          base.frontera_perdida_comunicacion = !!cls.value.perdida_comunicacion
+  // ── Clasificación estructurada ─────────────────────────────────────────
+  let forzarProyectoUnico: number | null = null
+  if (usarEstructura.value && cls.value.categoria) {
+    base.categoria_codigo = cls.value.categoria
+    const cat = catActual.value
+    if (cat?.tipo === 'inversores') {
+      // tipos compartidos aplicados a cada inversor seleccionado
+      const tipos = [...cls.value.inversores_tipos]
+      base.inversores = cls.value.inversores_ids.map((id) => {
+        const inv = inversoresProyecto.value.find((x) => x.id === id)
+        return {
+          proyecto_inversor_id: id,
+          nombre: inv?.nombre ?? null,
+          potencia_kw: inv?.potencia_nominal_kw ?? null,
+          tipos,
         }
-        base.tipo_id = null // el backend mapea subtipo → tipo
-      }
-    }
-
-    if (props.initial) {
-      emit('save', {
-        ...base,
-        proyecto_id: form.value.proyecto_id ?? undefined,
-        _archivos: archivosStaged.value,
       })
+      base.tipo_id = null // el backend deriva el tipo
+      forzarProyectoUnico = proyectoUnicoId.value
     } else {
-      // Para inversores se fuerza un único proyecto (los inversores le pertenecen).
-      const ids = forzarProyectoUnico ? [forzarProyectoUnico] : form.value.proyecto_ids
-      emit('save', { ...base, proyecto_ids: ids, _archivos: archivosStaged.value })
+      base.subtipo_codigo = cls.value.subtipo
+      if (cls.value.detalle?.trim()) base.subtipo_detalle = cls.value.detalle.trim()
+      if (cat?.tipo === 'equipo') {
+        base.frontera_afecta_medicion = !!cls.value.afecta_medicion
+        base.frontera_perdida_comunicacion = !!cls.value.perdida_comunicacion
+      }
+      base.tipo_id = null // el backend mapea subtipo → tipo
     }
-  } finally {
-    saving.value = false
+  }
+
+  if (props.initial) {
+    emit('save', {
+      ...base,
+      proyecto_id: form.value.proyecto_id ?? undefined,
+      _archivos: archivosStaged.value,
+    })
+  } else {
+    // Para inversores se fuerza un único proyecto (los inversores le pertenecen).
+    const ids = forzarProyectoUnico ? [forzarProyectoUnico] : form.value.proyecto_ids
+    emit('save', { ...base, proyecto_ids: ids, _archivos: archivosStaged.value })
   }
 }
 
@@ -1343,7 +1333,7 @@ onMounted(async () => {
 
     <div class="mt-1 flex justify-end gap-2 border-t pt-3">
       <Button type="button" variant="secondary" @click="emit('cancel')">Cancelar</Button>
-      <Button type="submit" :disabled="saving || guardando">
+      <Button type="submit" :disabled="guardando">
         <LoaderCircleIcon v-if="guardando" class="size-4 animate-spin" />
         <CheckIcon v-else class="size-4" />
         {{ initial ? 'Guardar cambios' : 'Registrar falla' }}

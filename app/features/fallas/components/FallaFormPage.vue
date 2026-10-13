@@ -34,21 +34,13 @@ const { guardando, guardar } = useGuardarFalla()
 
 const editando = computed(() => props.fallaId != null)
 
-/** `?proyectos=12,45` → `[12, 45]`. */
-const prefillProyectoIds = computed<number[]>(() => {
-  const crudo = route.query[ParamQueryFallas.PREFILL_PROYECTOS]
-  const texto = Array.isArray(crudo) ? crudo.join(',') : (crudo ?? '')
-  return texto
-    .split(',')
-    .map(Number)
-    .filter((id) => Number.isInteger(id) && id > 0)
-})
-
-/** La query de la lista, sin los parámetros propios del formulario. */
-function queryDeLista(): LocationQuery {
-  const { [ParamQueryFallas.PREFILL_PROYECTOS]: _prefill, ...resto } = route.query
-  return resto
-}
+/**
+ * Entre que termina de guardar y termina de navegar, el formulario sigue
+ * montado: sin esto, el botón se habilitaba en esa ventana y un segundo clic
+ * guardaba otra vez.
+ */
+const navegando = ref(false)
+const bloqueado = computed(() => guardando.value || navegando.value)
 
 function cargar() {
   return query.run(async () => {
@@ -63,16 +55,26 @@ function cargar() {
 /**
  * De vuelta a la lista con sus filtros. Al editar (guardando o cancelando) se
  * vuelve con el panel de esa falla abierto, como pasaba con el diálogo.
+ *
+ * `replace` y no `push`: el formulario sale del historial, así "Atrás" desde
+ * la lista no vuelve a él (y a reenviarlo).
  */
 function volver() {
-  const destino = queryDeLista()
+  const destino: LocationQuery = { ...route.query }
   if (props.fallaId != null) destino[ParamQueryFallas.ABRIR_FALLA] = String(props.fallaId)
-  return router.push({ path: RUTAS_FALLAS.lista, query: destino })
+  return router.replace({ path: RUTAS_FALLAS.lista, query: destino })
 }
 
 async function onSave(payload: PayloadFallaForm) {
+  if (bloqueado.value) return
   const ids = await guardar(payload, query.data?.falla ?? null)
-  if (ids) await volver()
+  if (!ids) return
+  navegando.value = true
+  try {
+    await volver()
+  } finally {
+    navegando.value = false
+  }
 }
 
 onMounted(cargar)
@@ -121,8 +123,7 @@ onMounted(cargar)
           <FallaForm
             :initial="data.falla"
             :catalogos="data.catalogos"
-            :prefill-proyecto-ids="prefillProyectoIds"
-            :guardando="guardando"
+            :guardando="bloqueado"
             @save="onSave"
             @cancel="volver()"
           />

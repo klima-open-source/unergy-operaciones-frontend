@@ -329,8 +329,8 @@ export type PayloadFalla = Partial<
 
 /**
  * Emitido por `FallaForm`'s `save`: `PayloadFalla` más los campos que solo
- * existen en el formulario — cada consumidor (`MonitoreoView.vue`,
- * `FallaDetailView.vue`, `GestionFallasView.vue`) los separa antes de mandar
+ * existen en el formulario. `useGuardarFalla` (que usan `FallaFormPage.vue` y
+ * `FallaDetailView.vue`) y `GestionFallasView.vue` los separan antes de mandar
  * el resto a la API.
  */
 export interface PayloadFallaForm extends PayloadFalla {

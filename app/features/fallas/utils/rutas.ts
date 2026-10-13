@@ -16,8 +16,6 @@ export const RUTAS_FALLAS = {
  * volver la lista quede como se dejó.
  */
 export enum ParamQueryFallas {
-  /** `/fallas/nueva?proyectos=12,45`: proyectos preseleccionados. */
-  PREFILL_PROYECTOS = 'proyectos',
   /** `/fallas?falla=123`: abrir el panel de esa falla al cargar la lista. */
   ABRIR_FALLA = 'falla',
 }

@@ -53,6 +53,7 @@ import {
 } from '~/features/fallas/utils/fallaTitulo'
 import { FallasService } from '~/features/fallas/services/fallas'
 import FallaForm from './FallaForm.vue'
+import { useGuardarFalla } from '~/features/fallas/composables/useGuardarFalla'
 import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
 import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
 
@@ -262,21 +263,16 @@ async function loadCatalogos() {
 }
 
 // ── Acciones ────────────────────────────────────────────────────────────
+// Mismo guardado que la página del formulario: adjuntos y notificación
+// incluidos, y lo que falle después del PATCH se avisa sin repetir el PATCH.
+const { guardando, guardar } = useGuardarFalla()
+
 async function onUpdate(payload: PayloadFallaForm) {
-  if (!query.data) return
-  const id = query.data.id
-  const { _archivos, ...rest } = payload
-  try {
-    await fallasService.actualizar(id, rest)
-    if (_archivos?.length) {
-      await Promise.all(_archivos.map((file) => fallasService.subirArchivo(id, file)))
-    }
-    toast.success('Falla actualizada', { duration: 3000 })
-    editMode.value = false
-    await load()
-  } catch (err) {
-    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-  }
+  if (!query.data || guardando.value) return
+  const ids = await guardar(payload, query.data)
+  if (!ids) return
+  editMode.value = false
+  await load()
 }
 
 async function saveQuickEdit() {
@@ -498,6 +494,7 @@ onMounted(() => {
           <FallaForm
             :initial="falla"
             :catalogos="catalogos"
+            :guardando="guardando"
             @save="onUpdate"
             @cancel="editMode = false"
           />
