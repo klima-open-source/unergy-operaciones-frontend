@@ -4,6 +4,12 @@ import { normalizeError } from '~/core/errors'
 
 const { signIn } = useAuth()
 
+// Unergy Auth acepta usuario o correo (`server/utils/unergy-auth-api.ts` decide
+// cuál mandar), así que el campo no puede ser `type="email"`: el navegador
+// rechazaría un usuario sin `@` antes de enviar. Su contraseña tampoco se
+// recupera aquí: el restablecimiento de esta app es el del login propio.
+const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
+
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -28,7 +34,11 @@ async function submit() {
     <div class="flex flex-col items-center gap-2 text-center">
       <h1 class="text-2xl font-bold">Inicia sesión en tu cuenta</h1>
       <p class="text-sm text-balance text-muted-foreground">
-        Ingresa tu correo y contraseña para iniciar sesión.
+        {{
+          unergyAuth
+            ? 'Ingresa tu usuario o correo de Unergy y tu contraseña.'
+            : 'Ingresa tu correo y contraseña para iniciar sesión.'
+        }}
       </p>
     </div>
 
@@ -38,13 +48,15 @@ async function submit() {
 
     <FieldGroup>
       <Field>
-        <FieldLabel for="email">Correo electrónico</FieldLabel>
+        <FieldLabel for="email">{{
+          unergyAuth ? 'Usuario o correo' : 'Correo electrónico'
+        }}</FieldLabel>
         <Input
           id="email"
           v-model="email"
-          type="email"
+          :type="unergyAuth ? 'text' : 'email'"
           placeholder="tu@unergy.io"
-          autocomplete="email"
+          :autocomplete="unergyAuth ? 'username' : 'email'"
           required
         />
       </Field>
@@ -52,6 +64,7 @@ async function submit() {
         <div class="flex items-center">
           <FieldLabel for="password">Contraseña</FieldLabel>
           <NuxtLink
+            v-if="!unergyAuth"
             to="/forgot-password"
             class="ml-auto text-sm underline-offset-4 hover:underline"
           >

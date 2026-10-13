@@ -90,7 +90,7 @@ export async function loginUnergy(
     })
     return toUnergyTokens(respuesta)
   } catch (err) {
-    throw errorDeUnergy(err, 'Correo o contraseña incorrectos.')
+    throw errorDeUnergy(err, 'Usuario o contraseña incorrectos.')
   }
 }
 

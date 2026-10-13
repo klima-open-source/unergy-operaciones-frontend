@@ -38,15 +38,22 @@ export interface UsuarioOperaciones {
   updated_at: string
 }
 
+/**
+ * Los dos cuerpos de error que llegan aquí: el del backend de operaciones
+ * (`{ detail }`, DRF) y el de las rutas de Nitro (`createError` responde
+ * `{ message, data: { detail } }`, con el detalle anidado).
+ */
 interface DetalleError {
   detail?: string
+  data?: { detail?: string }
 }
 
 function comoAppError(err: unknown): AppError {
   if (!isFetchError<DetalleError>(err))
     return new AppError('UNKNOWN', err instanceof Error ? err.message : String(err))
 
-  return new AppError(codeFromHttpStatus(err.status ?? 0), err.data?.detail, { cause: err })
+  const detalle = err.data?.detail ?? err.data?.data?.detail
+  return new AppError(codeFromHttpStatus(err.status ?? 0), detalle, { cause: err })
 }
 
 export class UnergyAuthService extends BaseService {
