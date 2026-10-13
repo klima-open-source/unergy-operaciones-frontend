@@ -22,7 +22,8 @@ export const COLOR_ESTADO: Record<string, string> = {
   programado: '#3B82F6',
   abierta: '#EF4444',
   en_gestion: '#F97316',
-  en_espera: '#EAB308',
+  // "En espera" se muestra como "En gestión" (ver utils/grupoEstado.ts): mismo color.
+  en_espera: '#F97316',
   cerrada: '#22C55E',
   sin_solucion: '#6B7280',
 }

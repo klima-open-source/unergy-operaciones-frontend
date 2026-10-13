@@ -8,6 +8,7 @@
  * se duplica ese mapa acá).
  */
 import type { CatalogoItemFalla, Falla } from '~/features/fallas/types'
+import { EstadoFallaCodigo } from '~/features/fallas/types'
 import {
   AlignLeftIcon,
   ArrowRightIcon,
@@ -370,7 +371,7 @@ onMounted(cargar)
         Ejecutada / Cerrada
       </span>
       <span
-        v-for="codigo in ['abierta', 'en_gestion', 'en_espera']"
+        v-for="codigo in [EstadoFallaCodigo.ABIERTA, EstadoFallaCodigo.EN_GESTION]"
         :key="codigo"
         class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
       >
@@ -378,7 +379,7 @@ onMounted(cargar)
           class="size-2.5 shrink-0 rounded-full bg-(--c)"
           :style="{ '--c': colorEstado(codigo) }"
         />
-        {{ estados.find((e) => e.codigo === codigo)?.etiqueta ?? codigo }}
+        {{ etiquetaEstado(estados.find((e) => e.codigo === codigo)) }}
       </span>
     </div>
 
