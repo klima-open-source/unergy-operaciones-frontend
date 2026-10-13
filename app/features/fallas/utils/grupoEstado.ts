@@ -7,7 +7,7 @@
 // poder resolver). Por eso las pestañas no son los estados tal cual.
 // ──────────────────────────────────────────────────────────────────────────
 
-import type { Falla } from '~/features/fallas/types'
+import type { CatalogoItemFalla, Falla } from '~/features/fallas/types'
 import { EstadoFallaCodigo, GrupoEstadoFalla } from '~/features/fallas/types'
 
 /** Un grupo concreto: todos menos `TODAS`, que no agrupa nada. */
@@ -45,4 +45,34 @@ export function perteneceAGrupo(falla: Pick<Falla, 'estado'>, grupo: GrupoEstado
 
 export function esGrupoEstadoFalla(valor: unknown): valor is GrupoEstadoFalla {
   return Object.values(GrupoEstadoFalla).includes(valor as GrupoEstadoFalla)
+}
+
+/** "En espera" se nombra "En gestión" (decisión de Operaciones, 2026-10-13). */
+const ETIQUETA_POR_ESTADO: Partial<Record<EstadoFallaCodigo, string>> = {
+  [EstadoFallaCodigo.EN_ESPERA]: 'En gestión',
+}
+
+/** Estados que ya no se ofrecen al elegir: las fallas viejas los conservan. */
+const ESTADOS_NO_SELECCIONABLES = new Set<string>([EstadoFallaCodigo.EN_ESPERA])
+
+/** La etiqueta con que se muestra un estado, aplicando los renombres del equipo. */
+export function etiquetaEstado(estado: Pick<CatalogoItemFalla, 'codigo' | 'etiqueta'> | null | undefined): string {
+  if (!estado) return '—'
+  const codigo = estado.codigo
+  const renombre = codigo && esCodigoConocido(codigo) ? ETIQUETA_POR_ESTADO[codigo] : undefined
+  return renombre ?? estado.etiqueta ?? '—'
+}
+
+/**
+ * Los estados que se pueden elegir en un selector. `actualId` se conserva
+ * aunque no sea seleccionable, para que una falla vieja no quede con el
+ * selector en blanco.
+ */
+export function estadosSeleccionables(
+  estados: CatalogoItemFalla[],
+  actualId?: number | null,
+): CatalogoItemFalla[] {
+  return estados.filter(
+    (e) => e.id === actualId || !ESTADOS_NO_SELECCIONABLES.has(e.codigo ?? ''),
+  )
 }

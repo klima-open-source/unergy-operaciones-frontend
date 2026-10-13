@@ -45,6 +45,7 @@ import {
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
 import { colorEstado } from '~/features/fallas/utils/colores'
+import { estadosSeleccionables, etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import {
   categoriaFalla,
   clasificacionDetalle,
@@ -428,7 +429,7 @@ onMounted(() => {
             <div>
               <div class="mb-1.5 flex items-center gap-2">
                 <GBadge :color="colorEstado(falla.estado?.codigo)">{{
-                  falla.estado?.etiqueta || '—'
+                  etiquetaEstado(falla.estado)
                 }}</GBadge>
                 <GBadge :color="prioSeverity(falla.prioridad?.codigo)">{{
                   falla.prioridad?.etiqueta || '—'
@@ -785,10 +786,10 @@ onMounted(() => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(catalogos.estados)"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -884,10 +885,10 @@ onMounted(() => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
-                        v-for="e in catalogos.estados"
+                        v-for="e in estadosSeleccionables(catalogos.estados, falla.estado?.id)"
                         :key="e.id"
                         :value="String(e.id)"
-                        >{{ e.etiqueta }}</SelectItem
+                        >{{ etiquetaEstado(e) }}</SelectItem
                       >
                     </SelectContent>
                   </Select>

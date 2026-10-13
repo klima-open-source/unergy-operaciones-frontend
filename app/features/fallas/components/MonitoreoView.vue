@@ -142,10 +142,10 @@
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
-                        v-for="e in catalogos.estados"
+                        v-for="e in estadosSeleccionables(catalogos.estados)"
                         :key="e.codigo"
                         :value="e.codigo!"
-                        >{{ e.etiqueta }}</SelectItem
+                        >{{ etiquetaEstado(e) }}</SelectItem
                       >
                     </SelectContent>
                   </Select>
@@ -302,7 +302,7 @@
                     class="size-1.5 rounded-full bg-(--c)"
                     :style="{ '--c': colorEstado(f.estado?.codigo, 'var(--muted-foreground)') }"
                   />
-                  <span class="text-xs text-muted-foreground">{{ f.estado?.etiqueta || '—' }}</span>
+                  <span class="text-xs text-muted-foreground">{{ etiquetaEstado(f.estado) }}</span>
                 </div>
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 text-right text-xs lg:block">
@@ -441,7 +441,7 @@
                   <p class="text-base font-bold text-foreground">{{ tituloFalla(drawerFalla) }}</p>
                   <div class="mt-2 flex flex-wrap gap-1.5">
                     <GBadge :color="colorEstado(drawerFalla.estado?.codigo)">{{
-                      drawerFalla.estado?.etiqueta
+                      etiquetaEstado(drawerFalla.estado)
                     }}</GBadge>
                     <GBadge :color="prioColor(drawerFalla.prioridad?.codigo)">{{
                       drawerFalla.prioridad?.etiqueta
@@ -905,10 +905,13 @@
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(
+                            catalogos.estados,
+                            drawerFalla.estado?.id,
+                          )"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -1015,10 +1018,10 @@
                       <SelectContent>
                         <SelectItem value="__sin_cambio__">Sin cambio de estado</SelectItem>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(catalogos.estados)"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -1246,6 +1249,8 @@ import {
 import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
 import {
   esGrupoEstadoFalla,
+  estadosSeleccionables,
+  etiquetaEstado,
   grupoEstadoFalla,
   perteneceAGrupo,
 } from '~/features/fallas/utils/grupoEstado'

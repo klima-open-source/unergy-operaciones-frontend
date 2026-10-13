@@ -26,6 +26,7 @@ import {
   ZapIcon,
 } from '@lucide/vue'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
+import { etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import { formatoLimiteSla } from '~/features/fallas/utils/formatoSla'
 import { rangoDelMes } from '~/features/fallas/utils/rangoMes'
 import { FallasService } from '~/features/fallas/services/fallas'
@@ -432,7 +433,7 @@ onMounted(cargar)
               class="flex items-center gap-1 overflow-hidden rounded border-l-3 border-l-(--c) bg-(--c)/12 px-1.5 py-0.5 text-left transition-opacity hover:opacity-80"
               :class="esFinal(ev) && 'opacity-90'"
               :style="{ '--c': colorEvento(ev) }"
-              :title="`[${ev.estado?.etiqueta}] ${ev.proyecto?.nombre_comercial} — ${ev.descripcion}`"
+              :title="`[${etiquetaEstado(ev.estado)}] ${ev.proyecto?.nombre_comercial} — ${ev.descripcion}`"
               @click="abrirDetalle(ev)"
             >
               <CircleCheckIcon v-if="esFinal(ev)" class="size-3 shrink-0 text-primary" />
@@ -463,7 +464,7 @@ onMounted(cargar)
           <DialogTitle class="flex items-center gap-2">
             <span class="font-mono">{{ detalle.codigo_interno }}</span>
             <GBadge :color="colorEstado(detalle.estado?.codigo)">{{
-              detalle.estado?.etiqueta
+              etiquetaEstado(detalle.estado)
             }}</GBadge>
           </DialogTitle>
         </DialogHeader>

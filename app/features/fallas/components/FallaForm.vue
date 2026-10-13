@@ -49,6 +49,7 @@ import {
 import { normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
 import { iconoCategoriaFalla } from '~/features/fallas/utils/fallaTitulo'
+import { estadosSeleccionables, etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import { getEstructuraFallas } from '~/features/fallas/utils/fallasEstructuraCache'
 import DatePicker from '~/components/blocks/DatePicker.vue'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
@@ -951,9 +952,12 @@ onMounted(async () => {
                   ><SelectValue placeholder="Seleccionar estado"
                 /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="e in catalogos.estados" :key="e.id" :value="String(e.id)">{{
-                    e.etiqueta
-                  }}</SelectItem>
+                  <SelectItem
+                    v-for="e in estadosSeleccionables(catalogos.estados, initial?.estado?.id)"
+                    :key="e.id"
+                    :value="String(e.id)"
+                    >{{ etiquetaEstado(e) }}</SelectItem
+                  >
                 </SelectContent>
               </Select>
               <p v-if="errors.estado_id" class="text-xs text-destructive">{{ errors.estado_id }}</p>
