@@ -5,7 +5,9 @@ import JSZip from 'jszip'
 import {
   buscarEnTsf,
   proyectosEnEtapas,
-  simulacionDeTsf,
+  presimulacionDeTsf,
+  ecsDeTsf,
+  toEcsTsf,
   urlDeArchivo,
   codigoTsfDe,
   minigranjaDeTsf,
@@ -91,6 +93,9 @@ describe('toProyectoTsf', () => {
       tipoProyecto: 'minigranja',
       p50MensualKwh: null,
       p90MensualKwh: null,
+      tecnico: null,
+      voltajeRed: null,
+      ecs: null,
       // El que solo está interesado no invierte: no se trae.
       inversionistas: [
         { id: 95, nombre: 'Unergy Interno' },
@@ -240,7 +245,7 @@ describe('minigranjaDeTsf', () => {
   })
 })
 
-describe('simulacionDeTsf', () => {
+describe('presimulacionDeTsf', () => {
   // Una variante mínima con E_Grid: 1 hora por mes, todas iguales → pesos de 1/12.
   const ALF = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.'
   const cod = (n: number) => '+' + ALF[Math.floor(n / 64)] + ALF[n % 64]
@@ -277,7 +282,7 @@ describe('simulacionDeTsf', () => {
     )
     vi.stubGlobal('$fetch', fetch)
 
-    const r = await simulacionDeTsf(EVENT, BEARER, 21)
+    const r = await presimulacionDeTsf(EVENT, BEARER, 21)
     expect(r.p50MensualKwh).toEqual(Array(12).fill(100_000))
     expect(r.p90MensualKwh).toEqual(Array(12).fill(90_000))
     expect(fetch).toHaveBeenCalledWith(
@@ -291,9 +296,11 @@ describe('simulacionDeTsf', () => {
       '$fetch',
       vi.fn().mockResolvedValue(validacion({ 'P50 MWh/year': 1200, 'Pre-simulación': null })),
     )
-    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+    expect(await presimulacionDeTsf(EVENT, BEARER, 21)).toEqual({
       p50MensualKwh: null,
       p90MensualKwh: null,
+      tecnico: null,
+      voltajeRed: null,
     })
   })
 
@@ -307,7 +314,7 @@ describe('simulacionDeTsf', () => {
           : zip,
       ),
     )
-    const r = await simulacionDeTsf(EVENT, BEARER, 21)
+    const r = await presimulacionDeTsf(EVENT, BEARER, 21)
     expect(r.p50MensualKwh).toHaveLength(12)
     expect(r.p90MensualKwh).toBeNull()
   })
@@ -322,17 +329,21 @@ describe('simulacionDeTsf', () => {
           : pdf,
       ),
     )
-    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+    expect(await presimulacionDeTsf(EVENT, BEARER, 21)).toEqual({
       p50MensualKwh: null,
       p90MensualKwh: null,
+      tecnico: null,
+      voltajeRed: null,
     })
   })
 
   it('si originabot falla, el import sigue sin simulación', async () => {
     vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(500)))
-    expect(await simulacionDeTsf(EVENT, BEARER, 21)).toEqual({
+    expect(await presimulacionDeTsf(EVENT, BEARER, 21)).toEqual({
       p50MensualKwh: null,
       p90MensualKwh: null,
+      tecnico: null,
+      voltajeRed: null,
     })
   })
 })
@@ -373,5 +384,65 @@ describe('proyectosEnEtapas', () => {
   it('un token rechazado sale como 403', async () => {
     vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(401)))
     await expect(proyectosEnEtapas(EVENT, BEARER)).rejects.toMatchObject({ statusCode: 403 })
+  })
+})
+
+describe('presimulacionDeTsf: nivel de tensión', () => {
+  it('lee el «Nivel de tensión» de la sección general, aunque no haya zip', async () => {
+    vi.stubGlobal(
+      '$fetch',
+      vi.fn().mockResolvedValue({
+        general: [{ name: 'Nivel de tensión', value: '13.8' }],
+        simulation: [{ name: 'Pre-simulación', value: null }],
+      }),
+    )
+    expect((await presimulacionDeTsf(EVENT, BEARER, 21)).voltajeRed).toBe('13.8')
+  })
+})
+
+describe('ECS', () => {
+  const insumo = {
+    project: 46730,
+    external_code: '32313468',
+    ecs_file: 'https://b2/ecs.pdf',
+    ecs_conformity_file: '',
+    type_supply: { value: 'active' },
+    last_status: { text: 'ECS aprobado' },
+    remaining_days: { text: '10' },
+  }
+
+  it('traduce el insumo; el vencimiento es hoy + los días que le quedan', () => {
+    const hoy = new Date()
+    hoy.setUTCDate(hoy.getUTCDate() + 10)
+    expect(toEcsTsf(insumo)).toEqual({
+      estado: 'ECS aprobado',
+      codigoInsumo: '32313468',
+      vencimiento: hoy.toISOString().slice(0, 10),
+      archivoUrl: 'https://b2/ecs.pdf',
+      conformidadUrl: null,
+    })
+  })
+
+  it('busca por nombre y se queda con el insumo principal DE ESE proyecto', async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      results: [
+        { ...insumo, project: 999, last_status: { text: 'De otro proyecto' } },
+        { ...insumo, type_supply: { value: 'secondary' }, last_status: { text: 'Secundario' } },
+        insumo,
+      ],
+    })
+    vi.stubGlobal('$fetch', fetch)
+    expect((await ecsDeTsf(EVENT, BEARER, 'COLX_1', 46730))?.estado).toBe('ECS aprobado')
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/connection/supplies-info/',
+      expect.objectContaining({ query: { search: 'COLX_1' } }),
+    )
+  })
+
+  it('sin insumo del proyecto, o si originabot falla, no hay ECS', async () => {
+    vi.stubGlobal('$fetch', vi.fn().mockResolvedValue({ results: [{ ...insumo, project: 1 }] }))
+    expect(await ecsDeTsf(EVENT, BEARER, 'X', 46730)).toBeNull()
+    vi.stubGlobal('$fetch', vi.fn().mockRejectedValue(errorHttp(500)))
+    expect(await ecsDeTsf(EVENT, BEARER, 'X', 46730)).toBeNull()
   })
 })

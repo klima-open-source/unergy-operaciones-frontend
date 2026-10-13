@@ -11,8 +11,8 @@ import { LoaderCircleIcon, SearchIcon } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
 import { normalizeError } from '~/core/errors'
 import { proyectoExistente } from '~/features/proyectos/prellenadoTsf'
+import { useVinculoOperadorTsf } from '~/features/proyectos/vinculoOperadorTsf'
 import { ClientesService } from '~/features/clientes/services/clientes'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
 import type {
   ImportacionTsf,
@@ -41,20 +41,11 @@ const emit = defineEmits<{
 const MINIMO = 3
 
 const servicio = new OriginabotService()
-const operadoresRed = new OperadoresRedService()
 const clientes = new ClientesService()
-const confirm = useConfirm()
+const { confirmar: confirmarCon, vincularOperador: vincular } = useVinculoOperadorTsf()
 
 function confirmar(titulo: string, descripcion: string): Promise<boolean> {
-  return new Promise((resolver) =>
-    confirm({
-      title: titulo,
-      description: descripcion,
-      confirmLabel: 'Sí, crear',
-      onConfirm: () => resolver(true),
-      onCancel: () => resolver(false),
-    }),
-  )
+  return confirmarCon({ title: titulo, description: descripcion, confirmLabel: 'Sí, crear' })
 }
 
 /** Vincula el operador de TSF; si eso lo CREARÍA en Operaciones, pregunta antes. */
@@ -86,22 +77,6 @@ async function resolverInversionistas(
   return resueltos
 }
 
-async function vincularOperador(codigo: string, nombre: string) {
-  try {
-    const simulacion = await operadoresRed.simularVinculoOriginabot(codigo, nombre)
-    if (simulacion.estado === 'existente') return
-    if (simulacion.estado === 'creado') {
-      const si = await confirmar(
-        `Esta acción creará el operador de red «${nombre}» en Operaciones`,
-        'Viene de TSF y aún no está en el catálogo. ¿Desea continuar? Si no, el operador queda para elegirlo a mano en el formulario.',
-      )
-      if (!si) return
-    }
-    await operadoresRed.vincularOriginabot(codigo, nombre)
-  } catch {
-    // Sin vínculo el formulario cae al nombre y, si no encaja, lo deja editable.
-  }
-}
 
 const busqueda = ref('')
 const resultados = ref<ResultadoTsf[]>([])
@@ -152,7 +127,11 @@ async function elegir(resultado: ResultadoTsf) {
     // el formulario, que cruza por ella. Si falla o la persona no confirma crearlo,
     // el formulario cae al nombre y, si tampoco encaja, deja el campo editable.
     if (proyecto.operadorRedCodigo && proyecto.operadorRed) {
-      await vincularOperador(proyecto.operadorRedCodigo, proyecto.operadorRed)
+      await vincular(
+        proyecto.operadorRedCodigo,
+        proyecto.operadorRed,
+        'Si no, el operador queda para elegirlo a mano en el formulario.',
+      )
     }
     const inversionistasResueltos = await resolverInversionistas(proyecto.inversionistas)
     emit('seleccionar', { ...proyecto, inversionistasResueltos })

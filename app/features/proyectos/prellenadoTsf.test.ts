@@ -18,6 +18,9 @@ const TSF: ProyectoTsf = {
   p50MensualKwh: Array(12).fill(100_000),
   p90MensualKwh: null,
   inversionistas: [],
+  tecnico: null,
+  voltajeRed: null,
+  ecs: null,
 }
 
 const DIVIPOLA = { Cesar: ['Agustín Codazzi', 'Bosconia'], 'Bogotá D.C.': ['Bogotá D.C.'] }
@@ -56,7 +59,6 @@ describe('prellenadoDesdeTsf', () => {
         'municipio',
         'operador_red_id',
         'p50_mensual',
-        'tipo_proyecto',
       ].sort(),
     )
     expect(p.sinCoincidencia).toEqual([])
@@ -122,7 +124,6 @@ describe('prellenadoDesdeTsf', () => {
     )
     expect(p.bloqueados).not.toContain('codigo_tsf')
     expect(p.bloqueados).not.toContain('coordenadas')
-    expect(p.bloqueados).not.toContain('tipo_proyecto')
     expect(p.valores.longitud).toBeNull()
     expect(p.sinCoincidencia).toEqual([])
   })
@@ -203,5 +204,13 @@ describe('proyectoExistente por llave', () => {
         plantas,
       )?.id,
     ).toBe(9)
+  })
+})
+
+describe('tipo de proyecto', () => {
+  it('se prellena pero nunca se bloquea: en TSF todo es minifarm y la planta puede ser gd', () => {
+    const p = prellenadoDesdeTsf(TSF, DIVIPOLA, OPERADORES)
+    expect(p.valores.tipo_proyecto).toBe('minigranja')
+    expect(p.bloqueados).not.toContain('tipo_proyecto')
   })
 })

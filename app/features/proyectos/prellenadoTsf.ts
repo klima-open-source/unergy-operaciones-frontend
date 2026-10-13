@@ -90,7 +90,8 @@ export function prellenadoDesdeTsf(
   else if (tsf.operadorRed) sinCoincidencia.push(`Operador de red: «${tsf.operadorRed}»`)
 
   if (tsf.codigoTsf) bloqueados.push('codigo_tsf')
-  if (tsf.tipoProyecto) bloqueados.push('tipo_proyecto')
+  // `tipo_proyecto` se prellena pero no se bloquea: en TSF todo es `minifarm`, y
+  // una planta puede ser `gd` en Operaciones.
   const conCoordenadas = tsf.latitud !== null && tsf.longitud !== null
   if (conCoordenadas) bloqueados.push('coordenadas')
   if (tsf.p50MensualKwh) bloqueados.push('p50_mensual')

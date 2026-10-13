@@ -1,6 +1,13 @@
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
-import { eGridMensualCrudo, pesosDeVariantes, pesosDeZip, repartir } from './pvsyst'
+import {
+  eGridMensualCrudo,
+  leerPresimulacion,
+  pesosDeVariantes,
+  pesosDeZip,
+  repartir,
+  tecnicoDeVariante,
+} from './pvsyst'
 
 // Variantes sintéticas con el mismo formato que PVsyst: se codifica en el test y
 // se comprueba que el decodificador recupere exactamente lo codificado. (El
@@ -115,5 +122,66 @@ describe('pesosDeZip', () => {
     const zip = new JSZip()
     zip.file('informe.pdf', '%PDF')
     expect(await pesosDeZip(await zip.generateAsync({ type: 'arraybuffer' }))).toBeNull()
+  })
+})
+
+describe('tecnicoDeVariante', () => {
+  const sub = (panel: string, inv: string, serie: number, strings: number, n: number, ac: number) =>
+    [
+      '    PVObject_=pvSubArray',
+      `      PVModule=${panel}`,
+      `      GInverter=${inv}`,
+      `      NModSerie=${serie}`,
+      `      NStringCh=${strings}`,
+      `      NInverter=${n}`,
+      `      PNomAC_InMPPT=${ac}`,
+      '    End of PVObject pvSubArray',
+    ].join('\r\n')
+  const variante = [
+    'PVObject_=pvVCalcul',
+    '  SystemKind=Tracker Zentrack 1P',
+    '  SubArrays=Start',
+    sub('Panel.PAN', 'Inv.OND', 28, 18, 1, 247.5),
+    sub('Panel.PAN', 'Inv.OND', 28, 18, 1, 247.5),
+  ].join('\r\n')
+  const equipos: Record<string, string> = {
+    'Panel.PAN':
+      'PVObject_=pvModule\r\n    Manufacturer=Jinkosolar 2025\r\n    Model=JKM655N\r\n  PNom=655.0',
+    'Inv.OND':
+      'PVObject_=pvGInverter\r\n    Manufacturer=Huawei Technologies\r\n    Model=SUN2000\r\n    PNomConv=247.500',
+  }
+
+  it('suma el arreglo de todos los subarreglos y lee los equipos de sus archivos', () => {
+    expect(tecnicoDeVariante(variante, (n) => equipos[n] ?? null)).toEqual({
+      modulos: 1008,
+      strings: 36,
+      inversores: 2,
+      kwpDc: 660.24,
+      kwAc: 495,
+      paneles: [{ fabricante: 'Jinkosolar 2025', modelo: 'JKM655N', potencia: 655 }],
+      equiposInversor: [{ fabricante: 'Huawei Technologies', modelo: 'SUN2000', potencia: 247.5 }],
+      sistema: 'Tracker Zentrack 1P',
+    })
+  })
+
+  it('sin el .PAN no hay kWp: no se inventa la potencia del panel', () => {
+    const t = tecnicoDeVariante(variante, () => null)!
+    expect(t.modulos).toBe(1008)
+    expect(t.kwpDc).toBeNull()
+    expect(t.paneles).toEqual([])
+  })
+
+  it('una variante sin subarreglos no tiene datos técnicos', () => {
+    expect(tecnicoDeVariante('PVObject_=pvVCalcul', () => null)).toBeNull()
+  })
+
+  it('el zip completo: equipos por nombre de archivo, sin importar mayúsculas ni carpeta', async () => {
+    const zip = new JSZip()
+    zip.file('Proyecto/P_Project.VCD', variante)
+    zip.file('Proyecto/panel.pan', equipos['Panel.PAN']!)
+    zip.file('Proyecto/INV.ond', equipos['Inv.OND']!)
+    const r = await leerPresimulacion(await zip.generateAsync({ type: 'arraybuffer' }))
+    expect(r.tecnico?.kwpDc).toBe(660.24)
+    expect(r.tecnico?.equiposInversor[0]?.modelo).toBe('SUN2000')
   })
 })

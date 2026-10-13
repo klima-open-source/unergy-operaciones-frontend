@@ -75,13 +75,151 @@ export function repartir(pesos: number[], totalKwh: number): number[] {
   return pesos.map((p) => Math.round(p * totalKwh))
 }
 
+// ── Datos técnicos: subarreglos de la variante + archivos .PAN y .OND ────────
+
+/** Un equipo (panel o inversor) tal como lo describe su archivo de PVsyst. */
+export interface EquipoPvsyst {
+  fabricante: string | null
+  modelo: string | null
+  /** Panel: W pico. Inversor: kW AC nominal. */
+  potencia: number | null
+}
+
+export interface TecnicoPvsyst {
+  modulos: number
+  strings: number
+  inversores: number
+  /** Σ módulos × potencia del panel, en kWp. null si falta el .PAN de algún subarreglo. */
+  kwpDc: number | null
+  /** Σ inversores × potencia AC del subarreglo, en kW. */
+  kwAc: number | null
+  paneles: EquipoPvsyst[]
+  equiposInversor: EquipoPvsyst[]
+  /** `SystemKind` de la variante: «Tracker Zentrack 1P», «Fixed tilted plane»… */
+  sistema: string | null
+}
+
+function valor(texto: string, clave: string): string | null {
+  const m = texto.match(new RegExp(`^\\s*${clave}=(.*)$`, 'm'))
+  const v = m?.[1]?.trim()
+  return v ? v : null
+}
+
+function numeroDe(texto: string, clave: string): number | null {
+  const v = valor(texto, clave)
+  const n = v === null ? NaN : Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Fabricante, modelo y potencia de un .PAN (`PNom`, W) o un .OND (`PNomConv`, kW). */
+export function equipoDe(texto: string, clavePotencia: 'PNom' | 'PNomConv'): EquipoPvsyst {
+  const limpio = texto.replace(/\r/g, '')
+  return {
+    fabricante: valor(limpio, 'Manufacturer'),
+    modelo: valor(limpio, 'Model'),
+    potencia: numeroDe(limpio, clavePotencia),
+  }
+}
+
+interface Subarreglo {
+  panel: string | null
+  inversor: string | null
+  serie: number
+  strings: number
+  inversores: number
+  acPorInversor: number | null
+}
+
+function subarreglos(variante: string): Subarreglo[] {
+  const texto = variante.replace(/\r/g, '')
+  const bloques = texto.split('PVObject_=pvSubArray').slice(1)
+  return bloques.map((b) => ({
+    panel: valor(b, 'PVModule'),
+    inversor: valor(b, 'GInverter'),
+    serie: numeroDe(b, 'NModSerie') ?? 0,
+    strings: numeroDe(b, 'NStringCh') ?? 0,
+    inversores: numeroDe(b, 'NInverter') ?? 0,
+    acPorInversor: numeroDe(b, 'PNomAC_InMPPT'),
+  }))
+}
+
+/**
+ * El arreglo de UNA variante (el diseño no cambia entre años: solo la
+ * degradación), con los equipos leídos de sus archivos. `equipos` resuelve un
+ * nombre de archivo (`PVModule=…`, `GInverter=…`) a su texto.
+ */
+export function tecnicoDeVariante(
+  variante: string,
+  equipos: (nombre: string) => string | null,
+): TecnicoPvsyst | null {
+  const subs = subarreglos(variante)
+  if (!subs.length) return null
+  const panelDe = (n: string | null) => {
+    const t = n ? equipos(n) : null
+    return t ? equipoDe(t, 'PNom') : null
+  }
+  const inversorDe = (n: string | null) => {
+    const t = n ? equipos(n) : null
+    return t ? equipoDe(t, 'PNomConv') : null
+  }
+
+  let kwpDc: number | null = 0
+  let kwAc: number | null = 0
+  for (const s of subs) {
+    const panel = panelDe(s.panel)
+    kwpDc =
+      kwpDc !== null && panel?.potencia != null
+        ? kwpDc + (s.serie * s.strings * panel.potencia) / 1000
+        : null
+    const ac = s.acPorInversor ?? inversorDe(s.inversor)?.potencia ?? null
+    kwAc = kwAc !== null && ac !== null ? kwAc + s.inversores * ac : null
+  }
+  const distintos = <T>(xs: (T | null)[]) =>
+    xs
+      .filter((x): x is T => x !== null)
+      .filter((x, i, a) => a.findIndex((y) => JSON.stringify(y) === JSON.stringify(x)) === i)
+
+  return {
+    modulos: subs.reduce((n, s) => n + s.serie * s.strings, 0),
+    strings: subs.reduce((n, s) => n + s.strings, 0),
+    inversores: subs.reduce((n, s) => n + s.inversores, 0),
+    kwpDc: kwpDc === null ? null : Math.round(kwpDc * 1000) / 1000,
+    kwAc: kwAc === null ? null : Math.round(kwAc * 1000) / 1000,
+    paneles: distintos(subs.map((s) => panelDe(s.panel))),
+    equiposInversor: distintos(subs.map((s) => inversorDe(s.inversor))),
+    sistema: valor(variante.replace(/\r/g, ''), 'SystemKind'),
+  }
+}
+
+export interface Presimulacion {
+  /** Peso de cada mes en el año (suman 1), promedio de todas las variantes. */
+  pesos: number[] | null
+  tecnico: TecnicoPvsyst | null
+}
+
+/** Todo lo que se lee del zip de pre-simulación. */
+export async function leerPresimulacion(zip: ArrayBuffer): Promise<Presimulacion> {
+  const archivo = await JSZip.loadAsync(zip)
+  const archivos = Object.values(archivo.files).filter((f) => !f.dir)
+  const textos = new Map<string, string>()
+  for (const f of archivos) {
+    if (/\.(vc[a-z0-9]|pan|ond)$/i.test(f.name)) {
+      textos.set(f.name.split('/').pop()!.toLowerCase(), await f.async('string'))
+    }
+  }
+  const variantes = [...textos.entries()]
+    .filter(([n]) => VARIANTE.test(n))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, t]) => t)
+  const equipos = (nombre: string) => textos.get(nombre.split(/[\\/]/).pop()!.toLowerCase()) ?? null
+  return {
+    pesos: pesosDeVariantes(variantes),
+    // La primera variante (año 0): el arreglo es el mismo en todas.
+    tecnico: variantes.map((v) => tecnicoDeVariante(v, equipos)).find((t) => t !== null) ?? null,
+  }
+}
+
 /** Los pesos mensuales desde el zip de pre-simulación. null si no es un proyecto de PVsyst legible. */
 export async function pesosDeZip(zip: ArrayBuffer): Promise<number[] | null> {
-  const archivo = await JSZip.loadAsync(zip)
-  const variantes = await Promise.all(
-    Object.values(archivo.files)
-      .filter((f) => !f.dir && VARIANTE.test(f.name))
-      .map((f) => f.async('string')),
-  )
-  return pesosDeVariantes(variantes)
+  return (await leerPresimulacion(zip)).pesos
 }

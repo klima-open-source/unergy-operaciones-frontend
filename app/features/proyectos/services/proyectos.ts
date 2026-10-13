@@ -26,6 +26,7 @@ const RUTAS = {
   proyectos: BASE,
   proyecto: (id: Proyecto['id']) => `${BASE}/${id}`,
   infoTecnica: (id: Proyecto['id']) => `${BASE}/${id}/info-tecnica`,
+  minigranjaOriginabot: (id: Proyecto['id']) => `${BASE}/${id}/originabot/minigranja`,
   inversionistas: (id: Proyecto['id']) => `${BASE}/${id}/inversionistas`,
   inversionista: (id: Proyecto['id'], invId: InversionistaProyecto['id']) =>
     `${BASE}/${id}/inversionistas/${invId}`,
@@ -148,6 +149,14 @@ export class ProyectosService extends BaseService {
     return this.post<ProyectoConDetalle>(RUTAS.proyectos, payload, { query: { forzar } })
   }
 
+  /**
+   * La minigranja de la planta en TSF; si no la tenía guardada, el backend la
+   * resuelve y la guarda. Requiere sesión de Unergy Auth.
+   */
+  minigranjaOriginabot(id: Proyecto['id']): Promise<{ originabot_minifarm_id: number }> {
+    return this.post<{ originabot_minifarm_id: number }>(RUTAS.minigranjaOriginabot(id))
+  }
+
   actualizar(id: Proyecto['id'], payload: PayloadActualizarProyecto): Promise<ProyectoConDetalle> {
     return this.patch<ProyectoConDetalle>(RUTAS.proyecto(id), payload)
   }
@@ -156,7 +165,8 @@ export class ProyectosService extends BaseService {
     return this.delete<unknown>(RUTAS.proyecto(id))
   }
 
-  guardarInfoTecnica(id: Proyecto['id'], payload: ProyectoInfoTecnica): Promise<unknown> {
+  /** PUT parcial: si la ficha ya existe, solo cambia lo que viene. */
+  guardarInfoTecnica(id: Proyecto['id'], payload: Partial<ProyectoInfoTecnica>): Promise<unknown> {
     return this.put<unknown>(RUTAS.infoTecnica(id), payload)
   }
 

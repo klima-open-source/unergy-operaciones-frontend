@@ -22,7 +22,11 @@
           <Button variant="outline" size="sm" @click="cancelEdit">Cancelar</Button>
           <Button size="sm" :disabled="guardando" @click="saveEdit"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar cambios</Button>
         </template>
-        <Button variant="outline" size="sm" v-else @click="enterEditMode"><PencilIcon class="size-4" /> Editar</Button>
+        <template v-else>
+          <!-- Trae de TSF lo que difiera (técnico, simulación, ECS…) y deja elegir qué aplicar. -->
+          <SincronizarTsf v-if="unergyAuth" :proyecto="proyecto" @actualizado="recargarProyecto" />
+          <Button variant="outline" size="sm" @click="enterEditMode"><PencilIcon class="size-4" /> Editar</Button>
+        </template>
       </template>
       <template #default="{ tab }">
       <!-- ══ GENERAL ══ -->
@@ -52,6 +56,16 @@
             <InfoField label="Carpeta Drive" :value="proyecto.carpeta_drive_codigo" />
             <InfoField label="API ID Unergy" :value="proyecto.sub_project" />
             <InfoField label="Código TSF" :value="proyecto.codigo_tsf" />
+            <!-- ECS (Estudio de Conexión Simplificado) de TSF: lo trae «Sincronizar con TSF». -->
+            <div v-if="proyecto.ecs_estado || proyecto.ecs_codigo_insumo" class="flex flex-col gap-1">
+              <p class="text-xs text-muted-foreground uppercase tracking-wide">ECS</p>
+              <p>{{ proyecto.ecs_estado || '—' }}<span v-if="proyecto.ecs_codigo_insumo" class="text-muted-foreground"> · insumo {{ proyecto.ecs_codigo_insumo }}</span></p>
+              <p class="text-xs text-muted-foreground">
+                <template v-if="proyecto.ecs_vencimiento">Vence {{ fmtFecha(proyecto.ecs_vencimiento) }}</template>
+                <a v-if="proyecto.ecs_archivo_url" :href="proyecto.ecs_archivo_url" target="_blank" rel="noopener" class="ml-2 text-primary hover:underline">Archivo</a>
+                <a v-if="proyecto.ecs_conformidad_url" :href="proyecto.ecs_conformidad_url" target="_blank" rel="noopener" class="ml-2 text-primary hover:underline">Conformidad</a>
+              </p>
+            </div>
             <InfoField label="Fecha de operación en MEM" :value="fmtFecha(proyecto.fecha_entrada_operacion)" />
             <InfoField
               label="Inicio de comercialización (pruebas)"
@@ -714,6 +728,7 @@ import { OperadoresRedService } from '~/features/operadores-red/services/operado
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
+import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
@@ -1265,6 +1280,17 @@ const operadoresRed = ref([])
 const opcionesOperadorRed = computed(() =>
   conVacio(operadoresRed.value.map(o => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })))
 )
+
+// «Sincronizar con TSF» necesita el token de Unergy Auth: con el login propio no se muestra.
+const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
+
+async function recargarProyecto() {
+  const [proy, inversionistas] = await Promise.all([
+    proyectosService.obtener(route.params.id),
+    proyectosService.listarInversionistas(route.params.id),
+  ])
+  proyecto.value = { ...proy, inversionistas }
+}
 
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 onMounted(async () => {

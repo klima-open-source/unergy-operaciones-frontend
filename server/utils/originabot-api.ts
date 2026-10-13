@@ -15,7 +15,7 @@
  */
 import type { H3Event } from 'h3'
 import { FetchError } from 'ofetch'
-import { pesosDeZip, repartir } from './pvsyst'
+import { leerPresimulacion, repartir, type TecnicoPvsyst } from './pvsyst'
 
 const RUTAS = {
   busqueda: '/api/v2/origination/portfolio-manager/projects/',
@@ -24,6 +24,8 @@ const RUTAS = {
   proyecto: (id: number) => `/api/minifarm/projects/${id}/`,
   /** Campos de validación eléctrica: los anuales P50/P90 y el zip de pre-simulación. */
   validacion: (minigranjaId: number) => `/api/roles/electrical/${minigranjaId}/project-validation/`,
+  /** Insumos del punto de conexión (ECS), del servicio `requests`. */
+  insumos: '/api/connection/supplies-info/',
 } as const
 
 /** Nombres de los campos de `simulation` en la validación eléctrica de TSF. */
@@ -31,6 +33,7 @@ const CAMPO = {
   p50Anual: 'P50 MWh/year',
   p90Anual: 'P90 MWh/year',
   preSimulacion: 'Pre-simulación',
+  nivelTension: 'Nivel de tensión',
 } as const
 
 /** Una etapa trae como mucho esto. La búsqueda es para encontrar uno, no para listar. */
@@ -85,8 +88,27 @@ interface ExternalCampoValidacion {
   extra_file?: unknown
 }
 
-interface ExternalValidacion {
-  simulation?: ExternalCampoValidacion[]
+/** La validación eléctrica: secciones (`general`, `simulation`…) con sus campos. */
+type ExternalValidacion = Record<string, ExternalCampoValidacion[] | undefined>
+
+interface ExternalInsumo {
+  project?: unknown
+  external_code?: unknown
+  ecs_file?: unknown
+  ecs_conformity_file?: unknown
+  type_supply?: { value?: unknown }
+  last_status?: { text?: unknown }
+  remaining_days?: { text?: unknown }
+}
+
+/** El ECS del proyecto en TSF. */
+export interface EcsTsf {
+  estado: string | null
+  codigoInsumo: string | null
+  /** ISO `YYYY-MM-DD`: hoy + los días que TSF dice que le quedan. */
+  vencimiento: string | null
+  archivoUrl: string | null
+  conformidadUrl: string | null
 }
 
 // ── Lo que ve la app. ──
@@ -134,6 +156,11 @@ export interface ProyectoTsf {
   p90MensualKwh: number[] | null
   /** Los inversionistas de TSF (`Investment`), para vincularlos con clientes de Operaciones. */
   inversionistas: { id: number; nombre: string }[]
+  /** Datos técnicos del proyecto de PVsyst de la pre-simulación; null si no hay zip. */
+  tecnico: TecnicoPvsyst | null
+  /** «Nivel de tensión» de la validación eléctrica (kV de media tensión, p. ej. «13.8»). */
+  voltajeRed: string | null
+  ecs: EcsTsf | null
 }
 
 function texto(v: unknown): string | null {
@@ -221,6 +248,9 @@ export function toProyectoTsf(
     operadorRedCodigo: texto(proyecto?.grid_operator_data?.value),
     p50MensualKwh: null,
     p90MensualKwh: null,
+    tecnico: null,
+    voltajeRed: null,
+    ecs: null,
     inversionistas: (m.investments ?? [])
       .filter((i) => i.status === 'investment')
       .map((i) => ({ id: numero(i.id), nombre: texto(i.name) }))
@@ -332,11 +362,16 @@ export async function buscarEnTsf(
   }
 }
 
+/** Un campo de la validación por su nombre, en cualquier sección. */
 function campo(
   validacion: ExternalValidacion | null,
   nombre: string,
 ): ExternalCampoValidacion | null {
-  return validacion?.simulation?.find((c) => c.name === nombre) ?? null
+  for (const seccion of Object.values(validacion ?? {})) {
+    const c = Array.isArray(seccion) ? seccion.find((x) => x?.name === nombre) : undefined
+    if (c) return c
+  }
+  return null
 }
 
 /**
@@ -366,35 +401,91 @@ function esZip(datos: ArrayBuffer): boolean {
  * P50/P90 mensuales desde la validación eléctrica de TSF. Nunca lanza: la
  * simulación es un extra del import, y sin ella el formulario queda como antes.
  */
-export async function simulacionDeTsf(
+/**
+ * Lo que sale de la validación eléctrica de TSF: la generación simulada mensual
+ * (forma del zip de pre-simulación × anuales de TSF), los datos técnicos del
+ * proyecto de PVsyst y el nivel de tensión. Nunca lanza: es un extra, y sin él
+ * todo queda como antes.
+ */
+export async function presimulacionDeTsf(
   event: H3Event,
   autorizacion: string,
   minigranjaId: number,
-): Promise<Pick<ProyectoTsf, 'p50MensualKwh' | 'p90MensualKwh'>> {
-  const vacio = { p50MensualKwh: null, p90MensualKwh: null }
+): Promise<Pick<ProyectoTsf, 'p50MensualKwh' | 'p90MensualKwh' | 'tecnico' | 'voltajeRed'>> {
+  const vacio = { p50MensualKwh: null, p90MensualKwh: null, tecnico: null, voltajeRed: null }
+  let validacion: ExternalValidacion
   try {
-    const validacion = await $fetch<ExternalValidacion>(
+    validacion = await $fetch<ExternalValidacion>(
       RUTAS.validacion(minigranjaId),
       opciones(event, autorizacion),
     )
-    const p50 = numero(campo(validacion, CAMPO.p50Anual)?.value)
-    const p90 = numero(campo(validacion, CAMPO.p90Anual)?.value)
-    const url = urlDeArchivo(campo(validacion, CAMPO.preSimulacion))
-    if (!url || (p50 === null && p90 === null)) return vacio
+  } catch {
+    return vacio
+  }
+  const voltajeRed = texto(campo(validacion, CAMPO.nivelTension)?.value)
+  const p50 = numero(campo(validacion, CAMPO.p50Anual)?.value)
+  const p90 = numero(campo(validacion, CAMPO.p90Anual)?.value)
+  const url = urlDeArchivo(campo(validacion, CAMPO.preSimulacion))
+  if (!url) return { ...vacio, voltajeRed }
 
+  try {
     const zip = await $fetch<ArrayBuffer>(url, {
       ...opciones(event, autorizacion),
       responseType: 'arrayBuffer',
     })
-    if (!esZip(zip)) return vacio
-    const pesos = await pesosDeZip(zip)
-    if (!pesos) return vacio
+    if (!esZip(zip)) return { ...vacio, voltajeRed }
+    const { pesos, tecnico } = await leerPresimulacion(zip)
     return {
-      p50MensualKwh: p50 !== null ? repartir(pesos, p50 * 1000) : null,
-      p90MensualKwh: p90 !== null ? repartir(pesos, p90 * 1000) : null,
+      p50MensualKwh: pesos && p50 !== null ? repartir(pesos, p50 * 1000) : null,
+      p90MensualKwh: pesos && p90 !== null ? repartir(pesos, p90 * 1000) : null,
+      tecnico,
+      voltajeRed,
     }
   } catch {
-    return vacio
+    return { ...vacio, voltajeRed }
+  }
+}
+
+/** Fecha ISO de hoy + `dias` (puede ser negativo: ya venció). */
+function enDias(dias: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + dias)
+  return d.toISOString().slice(0, 10)
+}
+
+export function toEcsTsf(registro: ExternalInsumo): EcsTsf {
+  const dias = Number(texto(registro.remaining_days?.text))
+  return {
+    estado: texto(registro.last_status?.text),
+    codigoInsumo: texto(registro.external_code),
+    vencimiento: Number.isFinite(dias) ? enDias(dias) : null,
+    archivoUrl: texto(registro.ecs_file),
+    conformidadUrl: texto(registro.ecs_conformity_file),
+  }
+}
+
+/**
+ * El ECS (Estudio de Conexión Simplificado) del proyecto: su insumo principal en
+ * `requests`, que originabot lista en `supplies-info`. Esa lista solo filtra por
+ * texto, así que se busca por el nombre y se queda con el del proyecto. Nunca
+ * lanza: sin ECS, null.
+ */
+export async function ecsDeTsf(
+  event: H3Event,
+  autorizacion: string,
+  nombre: string,
+  proyectoId: number,
+): Promise<EcsTsf | null> {
+  try {
+    const datos = await $fetch<{ results?: ExternalInsumo[] }>(RUTAS.insumos, {
+      ...opciones(event, autorizacion),
+      query: { search: nombre },
+    })
+    const delProyecto = (datos.results ?? []).filter((r) => r.project === proyectoId)
+    const principal = delProyecto.find((r) => r.type_supply?.value === 'active') ?? delProyecto[0]
+    return principal ? toEcsTsf(principal) : null
+  } catch {
+    return null
   }
 }
 
@@ -423,8 +514,11 @@ export async function minigranjaDeTsf(
       ).catch(() => null)
     : null
 
-  return {
-    ...toProyectoTsf(minigranja, proyecto),
-    ...(await simulacionDeTsf(event, autorizacion, id)),
-  }
+  const [presimulacion, ecs] = await Promise.all([
+    presimulacionDeTsf(event, autorizacion, id),
+    proyectoId && texto(minigranja.name)
+      ? ecsDeTsf(event, autorizacion, texto(minigranja.name)!, proyectoId)
+      : Promise.resolve(null),
+  ])
+  return { ...toProyectoTsf(minigranja, proyecto), ...presimulacion, ecs }
 }

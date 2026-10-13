@@ -275,6 +275,39 @@ export interface ProyectoTsf {
   p90MensualKwh: number[] | null
   /** Los inversionistas en TSF (`Investment`): id y nombre allá. */
   inversionistas: { id: number; nombre: string }[]
+  /** Datos técnicos del proyecto de PVsyst de la pre-simulación; null si no hay zip. */
+  tecnico: TecnicoTsf | null
+  /** «Nivel de tensión» de la validación eléctrica (kV de media tensión). */
+  voltajeRed: string | null
+  /** El ECS (Estudio de Conexión Simplificado) del proyecto en TSF. */
+  ecs: EcsTsf | null
+}
+
+/** Un panel o inversor según su archivo de PVsyst. Panel: W pico; inversor: kW AC. */
+export interface EquipoTsf {
+  fabricante: string | null
+  modelo: string | null
+  potencia: number | null
+}
+
+export interface TecnicoTsf {
+  modulos: number
+  strings: number
+  inversores: number
+  kwpDc: number | null
+  kwAc: number | null
+  paneles: EquipoTsf[]
+  equiposInversor: EquipoTsf[]
+  /** «Tracker Zentrack 1P», «Fixed tilted plane»… */
+  sistema: string | null
+}
+
+export interface EcsTsf {
+  estado: string | null
+  codigoInsumo: string | null
+  vencimiento: string | null
+  archivoUrl: string | null
+  conformidadUrl: string | null
 }
 
 /** Un inversionista de TSF ya vinculado con su cliente de Operaciones. */
