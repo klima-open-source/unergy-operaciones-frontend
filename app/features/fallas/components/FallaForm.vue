@@ -40,7 +40,9 @@ import {
   PlusIcon,
   SearchIcon,
   SendIcon,
+  ServerIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   TagIcon,
   Trash2Icon,
   UploadIcon,
@@ -63,8 +65,6 @@ interface ClasificacionForm {
   inversores_ids: number[]
   inversores_tipos: string[]
 }
-
-type InversorConLabel = InversorProyecto & { _label: string }
 
 const proyectosService = new ProyectosService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -153,6 +153,8 @@ const form = ref({
   /** Fecha únicamente (sin hora): `blocks/DatePicker` ya trabaja en ISO `yyyy-mm-dd`. */
   fecha_programada: props.initial?.fecha_programada ?? (null as string | null),
   notificacion: false, // siempre OFF por defecto — el usuario lo activa explícitamente
+  en_garantia: props.initial?.en_garantia ?? false,
+  garantia_detalle: props.initial?.garantia_detalle ?? '',
 })
 
 // Detectar si el estado seleccionado es "programado"
@@ -228,11 +230,17 @@ const proyectoUnicoId = computed(() => {
 })
 // Etiqueta del selector de opciones: la define la propia estructura
 // (`opciones_label`) para categorías cuyas opciones no son "eventos"
-// (p.ej. la verificación en sitio de "generando pero sin datos").
+// (p.ej. la verificación en sitio de "generando pero sin datos"); si no la
+// trae, la de la categoría y si no, "Evento".
+const LABEL_OPCIONES_POR_CATEGORIA: Record<string, string> = {
+  red: 'Evento de red',
+  equipos: 'Equipo',
+}
 const labelOpciones = computed(
   () =>
     catActual.value?.opciones_label ||
-    (catActual.value?.codigo === 'red' ? 'Evento de red' : 'Evento'),
+    LABEL_OPCIONES_POR_CATEGORIA[catActual.value?.codigo ?? ''] ||
+    'Evento',
 )
 
 function seleccionarCategoria(codigo: string) {
@@ -278,15 +286,13 @@ const proyectoIdsStr = computed<string[]>({
     form.value.proyecto_ids = v.map(Number)
   },
 })
-const inversoresIdsStr = computed<string[]>({
-  get: () => cls.value.inversores_ids.map(String),
-  set: (v) => {
-    cls.value.inversores_ids = v.map(Number)
-  },
-})
+function alternarInversor(id: number) {
+  const ids = cls.value.inversores_ids
+  cls.value.inversores_ids = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+}
 
 // ── Inversores del proyecto (parametrizable) ────────────────────────────────
-const inversoresProyecto = ref<InversorConLabel[]>([])
+const inversoresProyecto = ref<InversorProyecto[]>([])
 const cargandoInv = ref(false)
 const gestionInversores = ref(false)
 const nuevoInv = ref<{ nombre: string; potencia_nominal_kw: number | null }>({
@@ -294,15 +300,18 @@ const nuevoInv = ref<{ nombre: string; potencia_nominal_kw: number | null }>({
   potencia_nominal_kw: null,
 })
 const invError = ref('')
+/** Potencia AC del proyecto, en kW. Vive en el proyecto (`potencia_ac_kw`), no en `info_tecnica`. */
 const potenciaAc = ref<number | null>(null)
 
-function labelInversor(inv: InversorProyecto): string {
-  const kw = inv.potencia_nominal_kw != null ? `${inv.potencia_nominal_kw} kW` : 's/d'
-  return `${inv.nombre || 'Inversor'} · ${kw}`
+/** DRF manda los decimales como texto (`"990.000"`). */
+function numeroONull(v: number | string | null | undefined): number | null {
+  const n = Number(v)
+  return v == null || v === '' || !Number.isFinite(n) ? null : n
 }
-const inversorOpciones = computed<ComboBoxOption[]>(() =>
-  inversoresProyecto.value.map((i) => ({ label: i._label, value: String(i.id) })),
-)
+
+function potenciaInversor(inv: InversorProyecto): string {
+  return inv.potencia_nominal_kw != null ? `${inv.potencia_nominal_kw} kW` : 's/d'
+}
 const sumaInversores = computed(() =>
   inversoresProyecto.value.reduce((s, i) => s + (Number(i.potencia_nominal_kw) || 0), 0),
 )
@@ -317,16 +326,17 @@ async function cargarInversores(pid: number | null) {
   }
   cargandoInv.value = true
   try {
-    const data = await proyectosService.listarInversores(pid)
-    inversoresProyecto.value = (data ?? []).map((i) => ({ ...i, _label: labelInversor(i) }))
-    // potencia AC nominal del proyecto (para feedback de la regla de suma)
-    try {
-      const p = await proyectosService.obtener(pid)
-      potenciaAc.value =
-        p?.info_tecnica?.potencia_ac_kw != null ? Number(p.info_tecnica.potencia_ac_kw) : null
-    } catch {
-      potenciaAc.value = null
-    }
+    // La potencia AC (para la regla "la suma de inversores no excede la planta")
+    // no es crítica: si falla, la lista de inversores igual se muestra.
+    const [data, potencia] = await Promise.all([
+      proyectosService.listarInversores(pid),
+      proyectosService
+        .obtener(pid)
+        .then((p) => numeroONull(p.potencia_ac_kw))
+        .catch(() => null),
+    ])
+    inversoresProyecto.value = data ?? []
+    potenciaAc.value = potencia
   } catch (err) {
     logger.error('fallas.form', err)
     inversoresProyecto.value = []
@@ -335,7 +345,7 @@ async function cargarInversores(pid: number | null) {
   }
 }
 
-async function guardarInv(inv: InversorConLabel) {
+async function guardarInv(inv: InversorProyecto) {
   invError.value = ''
   if (!proyectoUnicoId.value) return
   try {
@@ -343,7 +353,7 @@ async function guardarInv(inv: InversorConLabel) {
       nombre: inv.nombre,
       potencia_nominal_kw: inv.potencia_nominal_kw,
     })
-    Object.assign(inv, data, { _label: labelInversor(data) })
+    Object.assign(inv, data)
   } catch (err) {
     invError.value = normalizeError(err).message || 'No se pudo guardar el inversor'
     await cargarInversores(proyectoUnicoId.value)
@@ -365,7 +375,7 @@ async function agregarInv() {
     invError.value = normalizeError(err).message || 'No se pudo agregar el inversor'
   }
 }
-async function eliminarInv(inv: InversorConLabel) {
+async function eliminarInv(inv: InversorProyecto) {
   invError.value = ''
   if (!proyectoUnicoId.value) return
   try {
@@ -542,6 +552,11 @@ async function submit() {
     if (form.value.nota_inicial?.trim()) base.nota_inicial = form.value.nota_inicial.trim()
     if (form.value.fecha_programada) base.fecha_programada = form.value.fecha_programada
     base.notificacion = !!form.value.notificacion
+    base.en_garantia = form.value.en_garantia
+    // Al quitar la garantía se borra el detalle que hubiera quedado guardado.
+    base.garantia_detalle = form.value.en_garantia
+      ? form.value.garantia_detalle.trim() || null
+      : null
 
     // ── Clasificación estructurada ─────────────────────────────────────────
     let forzarProyectoUnico: number | null = null
@@ -769,23 +784,63 @@ onMounted(async () => {
                   </p>
                   <div
                     v-else-if="!inversoresProyecto.length && !gestionInversores"
-                    class="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
+                    class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
                   >
-                    Este proyecto no tiene inversores configurados.
+                    <span>Este proyecto no tiene inversores cargados.</span>
+                    <button
+                      type="button"
+                      class="font-semibold underline"
+                      @click="prefillMinigranja"
+                    >
+                      Usar config típica minigranja
+                    </button>
                     <button
                       type="button"
                       class="font-semibold underline"
                       @click="gestionInversores = true"
                     >
-                      Configurar
+                      Configurar a mano
                     </button>
                   </div>
-                  <MultiComboBox
-                    v-else-if="inversoresProyecto.length"
-                    v-model="inversoresIdsStr"
-                    :options="inversorOpciones"
-                    placeholder="Seleccionar inversor(es)"
-                  />
+                  <template v-else-if="inversoresProyecto.length">
+                    <div class="mt-1 flex flex-wrap gap-1.5">
+                      <button
+                        v-for="inv in inversoresProyecto"
+                        :key="inv.id"
+                        type="button"
+                        :aria-pressed="cls.inversores_ids.includes(inv.id)"
+                        class="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-xs transition-colors hover:border-primary/40 aria-pressed:border-primary aria-pressed:bg-primary/10"
+                        @click="alternarInversor(inv.id)"
+                      >
+                        <CheckIcon
+                          v-if="cls.inversores_ids.includes(inv.id)"
+                          class="size-3.5 text-primary"
+                        />
+                        <ServerIcon v-else class="size-3.5 text-muted-foreground" />
+                        <span class="font-semibold text-foreground">{{
+                          inv.nombre || 'Inversor'
+                        }}</span>
+                        <span class="text-muted-foreground">{{ potenciaInversor(inv) }}</span>
+                      </button>
+                    </div>
+                    <p class="mt-1.5 text-xs text-muted-foreground">
+                      {{ inversoresProyecto.length }} inversor{{
+                        inversoresProyecto.length !== 1 ? 'es' : ''
+                      }}
+                      · suma
+                      <strong :class="sumaExcede ? 'text-destructive' : 'text-foreground'"
+                        >{{ sumaInversores }} kW</strong
+                      >
+                      de
+                      <strong class="text-foreground">{{
+                        potenciaAc != null ? `${potenciaAc} kW AC` : 'potencia AC sin definir'
+                      }}</strong>
+                    </p>
+                    <p v-if="sumaExcede" class="text-xs text-destructive">
+                      La suma de los inversores excede la potencia AC del proyecto: revisa la
+                      configuración en «Gestionar inversores».
+                    </p>
+                  </template>
                   <p v-if="errors.inversores" class="text-xs text-destructive">
                     {{ errors.inversores }}
                   </p>
@@ -909,6 +964,28 @@ onMounted(async () => {
                 </SelectContent>
               </Select>
               <p v-if="errors.tipo_id" class="text-xs text-destructive">{{ errors.tipo_id }}</p>
+            </div>
+
+            <!-- Garantía del equipo afectado (lleva la falla a Pendientes) -->
+            <div class="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3 @md:col-span-2">
+              <label
+                class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-foreground"
+              >
+                <GSwitch v-model="form.en_garantia" />
+                <ShieldCheckIcon class="size-4 text-primary" />
+                Equipo en garantía
+              </label>
+              <div v-if="form.en_garantia" class="flex flex-col gap-1">
+                <GLabel>Detalle de la garantía</GLabel>
+                <Textarea
+                  v-model="form.garantia_detalle"
+                  rows="2"
+                  placeholder="Proveedor, RMA, serial…"
+                />
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Mientras no se cierre, una falla en garantía aparece en la pestaña Pendientes.
+              </p>
             </div>
 
             <div class="flex flex-col gap-1">

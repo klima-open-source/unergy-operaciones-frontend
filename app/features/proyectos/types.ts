@@ -90,6 +90,12 @@ export interface ContratoPpaResumenProyecto {
 export interface ProyectoConDetalle extends Proyecto {
   inversionistas: InversionistaProyecto[]
   info_tecnica?: ProyectoInfoTecnica
+  /**
+   * Potencia AC de la planta, en kW. Vive en el proyecto desde el 2026-09-10
+   * (`info_tecnica.potencia_ac_kw` es una copia que solo existe si la planta
+   * tiene fila de info técnica). DRF la manda como texto decimal.
+   */
+  potencia_ac_kw?: number | string | null
   ppa_contratos?: ContratoPpaResumenProyecto[]
   portafolio_id?: number | null
   fecha_inicio_comercializacion?: string | null

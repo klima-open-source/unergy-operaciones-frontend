@@ -54,6 +54,7 @@ import {
 import { FallasService } from '~/features/fallas/services/fallas'
 import FallaForm from './FallaForm.vue'
 import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
+import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
 
 const fallasService = new FallasService()
 
@@ -608,6 +609,13 @@ onMounted(() => {
               <div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
                 <InfoField label="Proyecto" :value="falla.proyecto?.nombre_comercial" highlight />
                 <InfoField label="Equipo / evento" :value="titulo" />
+                <InfoField label="Equipo" :value="etiquetaEquipo(falla.equipo)" />
+                <InfoField label="Garantía" :value="falla.en_garantia ? 'En garantía' : 'No'" />
+                <InfoField
+                  v-if="falla.en_garantia && falla.garantia_detalle"
+                  label="Detalle de la garantía"
+                  :value="falla.garantia_detalle"
+                />
                 <InfoField label="Registrado por" :value="falla.registrado_por?.nombre" />
                 <InfoField label="Fecha ocurrencia" :value="fmtDatetime(falla.fecha_ocurrencia)" />
                 <InfoField

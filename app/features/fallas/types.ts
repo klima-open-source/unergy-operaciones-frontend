@@ -34,6 +34,27 @@ export enum GrupoEstadoFalla {
   TODAS = 'todas',
 }
 
+/**
+ * El equipo físico afectado por una falla. Lo deduce el backend de la
+ * clasificación (`estructura.equipo_de`): no se elige en el formulario.
+ * Etiquetas en `utils/equipo.ts`.
+ */
+export enum EquipoFalla {
+  INVERSOR = 'inversor',
+  SMARTLOGGER = 'smartlogger',
+  TRACKER = 'tracker',
+  STRING = 'string',
+  MEDIDOR = 'medidor',
+  ESTACION_METEOROLOGICA = 'estacion_meteorologica',
+}
+
+/** Las pestañas de la barra superior de Gestión de Fallas (`MonitoreoView.vue`). */
+export enum PestanaGestionFallas {
+  FALLAS = 'fallas',
+  CALENDARIO = 'calendario',
+  PENDIENTES = 'pendientes',
+}
+
 /** Un ítem de catálogo (`tipos`, `estados`, `prioridades`, `resoluciones`…): `{id, etiqueta}` y poco más. */
 export interface CatalogoItemFalla {
   id: number
@@ -248,6 +269,18 @@ export interface Falla {
   tipo_libre?: string | null
   /** `desconexion_sin_identificar` es un estado temporal: queda así hasta reclasificar. */
   pendiente_reclasificar?: boolean
+  /** Equipo afectado, deducido de la clasificación por el backend. Solo lectura. */
+  equipo?: EquipoFalla | null
+  /** El equipo afectado está en garantía con su proveedor. */
+  en_garantia?: boolean
+  /** Proveedor, RMA, serial… de la garantía. */
+  garantia_detalle?: string | null
+  /**
+   * Va a la pestaña Pendientes: sin cerrar, y en garantía o de un equipo que
+   * suele quedar esperando repuesto (tracker/string/medidor/estación). Lo
+   * calcula el backend (`dominio.en_pendientes`). Solo lectura.
+   */
+  en_pendientes?: boolean
   inversores_afectados?: {
     proyecto_inversor_id?: number
     nombre?: string | null
@@ -280,6 +313,8 @@ export type PayloadFalla = Partial<
     | 'pct_afectado'
     | 'kwh_perdidos_p90'
     | 'prioridad_calculada'
+    | 'equipo'
+    | 'en_pendientes'
   >
 > & {
   proyecto_id?: number

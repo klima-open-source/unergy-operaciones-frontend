@@ -41,6 +41,7 @@ export const COLOR_CATEGORIA: Record<string, string> = {
   inversores: '#915BD8',
   generando_sin_datos: '#64748B',
   eventos_adversos: '#EF4444',
+  equipos: '#8B5CF6',
 }
 
 const COLOR_DEFECTO = '#915BD8'
