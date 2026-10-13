@@ -338,6 +338,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
+                  <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="Number(route.params.id)" @actualizado="recargarArriendo" />
                   <Button variant="ghost" size="sm" @click="openEditContrato('arriendo')"><PencilIcon class="size-4" /> Editar</Button>
                 </div>
               </div>
@@ -643,7 +644,10 @@
               </div>
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de arriendo registrado</p>
               <p class="text-xs text-muted-foreground mb-4">No se encontró contrato de arriendo para este proyecto</p>
-              <Button size="sm" class="bg-primary border-primary" @click="openWizard('arriendo')"><PlusIcon class="size-4" /> Crear contrato</Button>
+              <div class="flex items-center justify-center gap-2">
+                <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="Number(route.params.id)" @actualizado="recargarArriendo" />
+                <Button size="sm" class="bg-primary border-primary" @click="openWizard('arriendo')"><PlusIcon class="size-4" /> Crear contrato</Button>
+              </div>
             </div>
           </template>
 
@@ -987,6 +991,7 @@ import { ContratosServicioService } from '~/features/contratos/services/contrato
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { formatCOP } from '~/utils/currency'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
+import SincronizarArriendoTsf from '~/features/proyectos/components/SincronizarArriendoTsf.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import {
   clientePorNombre,
@@ -1353,6 +1358,20 @@ async function saveContrato() {
 function openWizard(tipo) {
   wizardTipo.value = tipo
   wizardVisible.value = true
+}
+
+const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
+
+/** Tras «Sincronizar con TSF»: el contrato, sus arrendadores y su indexación. */
+async function recargarArriendo() {
+  try {
+    const data = await contratosServicioService.listar({ tipo: 'arriendo', proyecto_id: route.params.id })
+    contratos.arriendo = data.length ? data[0] : null
+    await cargarArrendadores()
+    await cargarIndexacionArriendo()
+  } catch (e) {
+    toast.error('No se pudo recargar el arriendo', { description: e.message })
+  }
 }
 
 async function onContratoCreado() {

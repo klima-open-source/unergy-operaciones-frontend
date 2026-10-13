@@ -321,3 +321,29 @@ export function payloadArrendadorNuevo(cambios: Record<string, unknown>): Payloa
     ...cambios,
   }
 }
+
+/** Las acciones marcadas. Sin contrato en Operaciones, dependen de crearlo. */
+export function accionesSeleccionadas(
+  plan: PlanArriendo,
+  conContrato: boolean,
+  elegidas: boolean[],
+): AccionArrendador[] {
+  const contratoNuevo = plan.contrato?.id === null
+  return plan.arrendadores.filter((_, i) => elegidas[i] && (!contratoNuevo || conContrato))
+}
+
+/** Lo que queda marcado al abrir: todo lo que se puede aplicar. */
+export function seleccionInicial(plan: PlanArriendo): {
+  conContrato: boolean
+  elegidas: boolean[]
+} {
+  return {
+    conContrato: !!plan.contrato && !plan.contrato.faltan.length,
+    elegidas: plan.arrendadores.map(() => true),
+  }
+}
+
+/** ¿Hay algo que proponer? */
+export function hayCambiosArriendo(plan: PlanArriendo | null): boolean {
+  return !!plan && (!!plan.contrato || plan.arrendadores.length > 0)
+}

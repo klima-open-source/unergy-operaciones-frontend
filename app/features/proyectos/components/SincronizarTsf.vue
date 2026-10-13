@@ -20,7 +20,12 @@ import { OperadoresRedService } from '~/features/operadores-red/services/operado
 import type { OperadorRedCatalogo } from '~/features/proyectos/prellenadoTsf'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
-import CambioArriendoTsf from '~/features/proyectos/components/CambioArriendoTsf.vue'
+import PlanArriendoTsf from '~/features/proyectos/components/PlanArriendoTsf.vue'
+import {
+  accionesSeleccionadas as accionesMarcadas,
+  hayCambiosArriendo,
+  seleccionInicial,
+} from '~/features/proyectos/arriendoTsf'
 import {
   useSincronizacionArriendo,
   type ArriendoPreparado,
@@ -63,12 +68,10 @@ const arriendo = ref<ArriendoPreparado | null>(null)
 const conContrato = ref(false)
 const accionesElegidas = ref<boolean[]>([])
 const planArriendo = computed(() => arriendo.value?.plan ?? null)
-/** Sin contrato en Operaciones, los arrendadores dependen de crearlo. */
-const contratoNuevo = computed(() => planArriendo.value?.contrato?.id === null)
 const accionesSeleccionadas = computed(() =>
-  (planArriendo.value?.arrendadores ?? []).filter(
-    (_, i) => accionesElegidas.value[i] && (!contratoNuevo.value || conContrato.value),
-  ),
+  planArriendo.value
+    ? accionesMarcadas(planArriendo.value, conContrato.value, accionesElegidas.value)
+    : [],
 )
 const totalElegidos = computed(
   () =>
@@ -76,13 +79,6 @@ const totalElegidos = computed(
     (conContrato.value ? 1 : 0) +
     accionesSeleccionadas.value.length,
 )
-const TITULO_ACCION = { crear: 'Nuevo arrendador', actualizar: 'Arrendador', desactivar: 'Desactivar arrendador' }
-
-function marcarAccion(i: number, valor: boolean) {
-  const nuevas = [...accionesElegidas.value]
-  nuevas[i] = valor
-  accionesElegidas.value = nuevas
-}
 
 /** El arriendo nunca impide sincronizar lo demás: si falla, se avisa y sigue. */
 async function prepararArriendo(tsf: ProyectoTsf) {
@@ -95,8 +91,9 @@ async function prepararArriendo(tsf: ProyectoTsf) {
       tsf.arriendo,
     )
     arriendo.value = p
-    conContrato.value = !!p.plan.contrato && !p.plan.contrato.faltan.length
-    accionesElegidas.value = p.plan.arrendadores.map(() => true)
+    const inicial = seleccionInicial(p.plan)
+    conContrato.value = inicial.conContrato
+    accionesElegidas.value = inicial.elegidas
   } catch (e) {
     toast.warning('No se pudo comparar el arriendo', { description: normalizeError(e).message })
   }
@@ -126,8 +123,7 @@ async function consultar() {
     const catalogo = (await operadoresRed.listar()) as OperadorRedCatalogo[]
     cambios.value = cambiosDesdeTsf(tsf, props.proyecto, divipola, catalogo)
     await prepararArriendo(tsf)
-    const hayArriendo = !!planArriendo.value?.contrato || !!planArriendo.value?.arrendadores.length
-    if (!cambios.value.length && !hayArriendo) {
+    if (!cambios.value.length && !hayCambiosArriendo(planArriendo.value)) {
       toast.success('Todo coincide con TSF', { description: 'No hay datos nuevos para traer.' })
       return
     }
@@ -198,26 +194,13 @@ async function aplicar() {
           </span>
         </label>
       </div>
-      <template v-if="planArriendo && (planArriendo.contrato || planArriendo.arrendadores.length)">
+      <template v-if="planArriendo && hayCambiosArriendo(planArriendo)">
         <p class="text-sm font-semibold text-foreground">Contrato de arrendamiento</p>
-        <div class="flex flex-col divide-y divide-border rounded-md border border-border">
-          <CambioArriendoTsf
-            v-if="planArriendo.contrato"
-            v-model="conContrato"
-            :titulo="contratoNuevo ? 'Crear el contrato de arriendo' : `Contrato de arriendo #${planArriendo.contrato.id}`"
-            :cambios="planArriendo.contrato.cambios"
-            :avisos="planArriendo.contrato.faltan"
-          />
-          <CambioArriendoTsf
-            v-for="(a, i) in planArriendo.arrendadores"
-            :key="`${a.tipo}:${a.id ?? a.landlord?.id}`"
-            :model-value="!!accionesElegidas[i] && (!contratoNuevo || conContrato)"
-            :titulo="`${TITULO_ACCION[a.tipo]}: ${a.nombre}`"
-            :cambios="a.cambios"
-            :deshabilitado="contratoNuevo && !conContrato"
-            @update:model-value="marcarAccion(i, $event)"
-          />
-        </div>
+        <PlanArriendoTsf
+          v-model:con-contrato="conContrato"
+          v-model:elegidas="accionesElegidas"
+          :plan="planArriendo"
+        />
       </template>
       <DialogFooter>
         <Button variant="outline" @click="abierto = false">Cancelar</Button>

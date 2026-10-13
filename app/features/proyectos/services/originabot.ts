@@ -10,11 +10,17 @@
  * llega como 403, no 401: ver `server/utils/originabot-api.ts`.
  */
 import { BaseService } from '~/core/service'
-import type { BusquedaTsf, ProyectoTsf, ResultadoTsf } from '~/features/proyectos/types'
+import type {
+  ArriendoTsf,
+  BusquedaTsf,
+  ProyectoTsf,
+  ResultadoTsf,
+} from '~/features/proyectos/types'
 
 const RUTAS = {
   busqueda: '/originabot/minigranjas',
   minigranja: (id: number) => `/originabot/minigranjas/${id}`,
+  arriendo: (id: number) => `/originabot/minigranjas/${id}/arriendo`,
   sugerencias: '/originabot/sugerencias',
 } as const
 
@@ -31,5 +37,13 @@ export class OriginabotService extends BaseService {
 
   minigranja(id: number): Promise<ProyectoTsf> {
     return this.get<ProyectoTsf>(RUTAS.minigranja(id), { baseURL: '' })
+  }
+
+  /** Solo el contrato de arrendamiento; null si TSF no lo tiene. */
+  async arriendo(minigranjaId: number): Promise<ArriendoTsf | null> {
+    const datos = await this.get<{ arriendo: ArriendoTsf | null }>(RUTAS.arriendo(minigranjaId), {
+      baseURL: '',
+    })
+    return datos.arriendo
   }
 }

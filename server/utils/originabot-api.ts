@@ -643,6 +643,26 @@ export async function arriendoDeTsf(
   }
 }
 
+/** El arriendo de una minigranja, sin el resto del detalle. Lanza solo si la minigranja no se puede leer. */
+export async function arriendoDeMinigranja(
+  event: H3Event,
+  autorizacion: string,
+  id: number,
+): Promise<ArriendoTsf | null> {
+  let minigranja: ExternalMinigranja
+  try {
+    minigranja = await $fetch<ExternalMinigranja>(
+      RUTAS.minigranja(id),
+      opciones(event, autorizacion),
+    )
+  } catch (err) {
+    throw errorDeOriginabot(err)
+  }
+  const proyectoId = numero(minigranja.project?.id)
+  const terrenoId = numero(minigranja.project?.terrain_id)
+  return proyectoId && terrenoId ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId) : null
+}
+
 export async function minigranjaDeTsf(
   event: H3Event,
   autorizacion: string,
