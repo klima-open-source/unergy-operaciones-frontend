@@ -15,6 +15,7 @@ import {
   POR_ETAPA,
   toProyectoTsf,
   toArriendoTsf,
+  toArriendoDocumento,
 } from './originabot-api'
 
 // La forma real de originabot dev (2026-10-13), recortada a lo que se lee.
@@ -487,7 +488,9 @@ describe('toArriendoTsf', () => {
 
   it('reparte el canon entre los proyectos del terreno y trae a los propietarios', () => {
     expect(toArriendoTsf(contrato, termsheet, propietarios)).toEqual({
+      origen: 'contrato',
       contratoId: 179,
+      enlace: null,
       firmado: true,
       fechaFirma: '2024-02-15',
       periodicidad: 'mensual',
@@ -517,5 +520,51 @@ describe('toArriendoTsf', () => {
   it('la fecha es la de Bogotá: las 2 a. m. UTC todavía son el día anterior', () => {
     const r = toArriendoTsf(contrato, { ...termsheet, signed_at: '2024-02-15T02:00:00Z' }, [])
     expect(r?.fechaFirma).toBe('2024-02-14')
+  })
+})
+
+describe('toArriendoDocumento', () => {
+  // La Paz Leyenda (minigranja 238, terreno 424): sin termsheet ni contract.Contract,
+  // el contrato firmado es solo el PDF del campo «(S) Contrato de arrendamiento».
+  const propietarios = [
+    {
+      landlord: {
+        id: 611,
+        name: 'Katherine Arellano',
+        document_number: '26****78',
+        person_type: 'NP',
+      },
+      payment_percentage: 0.0,
+      termsheet_receiver: false,
+    },
+  ]
+  const enlace = 'https://tsf.test/minifarms/lands/424?tab=legal'
+
+  it('con PDF: firmado, con enlace a TSF y sin canon ni fechas inventados', () => {
+    expect(
+      toArriendoDocumento(
+        {
+          uuid: 'a9a6ccb8-276e-4947-8be7-e2e08390e260',
+          value: 'https://b2/Contrato.pdf',
+          status: 'approved',
+        },
+        propietarios,
+        enlace,
+        1,
+      ),
+    ).toMatchObject({
+      origen: 'documento',
+      contratoId: null,
+      enlace,
+      firmado: true,
+      fechaFirma: null,
+      periodicidad: null,
+      canonAnual: null,
+      arrendadores: [{ id: 611, nombre: 'Katherine Arellano', porcentaje: 0 }],
+    })
+  })
+
+  it('sin PDF no hay contrato', () => {
+    expect(toArriendoDocumento({ value: null }, propietarios, enlace, 1)).toBeNull()
   })
 })

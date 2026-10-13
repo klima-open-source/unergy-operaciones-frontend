@@ -12,7 +12,9 @@ import type { ArriendoTsf } from '~/features/proyectos/types'
 // El terreno 369 de dev: 4 proyectos comparten un canon de 64.381.107/año; un
 // propietario recibe el 100 % y el otro figura al 0 %.
 const TSF: ArriendoTsf = {
+  origen: 'contrato',
   contratoId: 179,
+  enlace: 'https://tsf.test/minifarms/lands/369?tab=legal',
   firmado: true,
   fechaFirma: '2024-02-15',
   periodicidad: 'mensual',
@@ -81,6 +83,7 @@ describe('planArriendo sobre un contrato que ya existe', () => {
     const porClave = Object.fromEntries(plan.contrato!.cambios.map((c) => [c.clave, c]))
     expect(Object.keys(porClave).sort()).toEqual([
       'contratante_id',
+      'enlace_drive',
       'fecha_firma_contrato',
       'originabot_arriendo_id',
       'periodicidad_pago',
@@ -151,7 +154,13 @@ describe('planArriendo ya sincronizado', () => {
         activo: false,
       },
     ]
-    expect(planArriendo(TSF, contrato, actuales, ctx)).toEqual({ contrato: null, arrendadores: [] })
+    expect(
+      planArriendo(TSF, { ...contrato, enlace_drive: 'https://drive/x' }, actuales, ctx),
+    ).toEqual({
+      contrato: null,
+      arrendadores: [],
+      nota: null,
+    })
   })
 })
 
@@ -171,5 +180,48 @@ describe('planArriendo sin contrato en Operaciones', () => {
       CTX,
     )
     expect(plan.arrendadores[0]).toMatchObject({ tipo: 'actualizar', id: 5 })
+  })
+})
+
+describe('planArriendo con solo el PDF en TSF', () => {
+  // La Paz Leyenda: sin termsheet, el contrato es el campo «(S) Contrato de arrendamiento».
+  const DOC: ArriendoTsf = {
+    ...TSF,
+    origen: 'documento',
+    contratoId: null,
+    fechaFirma: null,
+    periodicidad: null,
+    canonAnual: null,
+  }
+
+  it('trae el enlace, la firma y los arrendadores, y avisa que el canon va a mano', () => {
+    const plan = planArriendo(DOC, CONTRATO_342, [], CTX)
+    const claves = plan.contrato!.cambios.map((c) => c.clave)
+    expect(claves).toContain('enlace_drive')
+    expect(claves).not.toContain('tarifa_base')
+    expect(claves).not.toContain('originabot_arriendo_id')
+    expect(plan.nota).toMatch(/a mano/)
+    // Sin canon no se inventa el valor de cada arrendador.
+    const charlene = plan.arrendadores.find((a) => a.landlord?.id === 596)!
+    expect(charlene.cambios.map((c) => c.clave)).not.toContain('valor_base')
+  })
+
+  it('el enlace que ya tiene el contrato no se reemplaza', () => {
+    const plan = planArriendo(DOC, { ...CONTRATO_342, enlace_drive: 'https://drive/x' }, [], CTX)
+    expect(plan.contrato!.cambios.map((c) => c.clave)).not.toContain('enlace_drive')
+  })
+})
+
+describe('planArriendo cuando en TSF nadie recibe pago', () => {
+  it('no desactiva a los arrendadores de Operaciones y lo explica', () => {
+    const sinPago: ArriendoTsf = {
+      ...TSF,
+      arrendadores: TSF.arrendadores.map((a) => ({ ...a, porcentaje: 0, recibePago: false })),
+    }
+    const plan = planArriendo(sinPago, CONTRATO_342, [ARRENDADOR_28], CTX)
+    expect(plan.arrendadores.map((a) => a.tipo)).not.toContain('desactivar')
+    expect(plan.nota).toMatch(/activos/)
+    // Nadie al 0 % se propone como quien recibe el pago.
+    expect(plan.contrato!.cambios.map((c) => c.clave)).not.toContain('prestador_id')
   })
 })

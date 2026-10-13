@@ -118,6 +118,12 @@ export default defineNuxtConfig({
      * (`NUXT_ORIGINABOT_URL`): un token de devauth solo sirve contra el de dev.
      */
     originabotUrl: 'https://originabot.uner.gy',
+    /**
+     * La app de TSF (unergy-platform), para enlazar documentos que solo viven
+     * allá, como el PDF del contrato de arrendamiento (`NUXT_TSF_URL`; en dev,
+     * `https://devtsf.uner.gy`).
+     */
+    tsfUrl: 'https://tsf.unergy.io',
 
     public: {
       /**

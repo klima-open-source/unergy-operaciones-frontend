@@ -27,6 +27,9 @@ function marcar(i: number, valor: boolean) {
 </script>
 
 <template>
+  <p v-if="plan.nota" class="rounded-md border border-warning bg-warning/10 px-3 py-2 text-xs text-foreground">
+    {{ plan.nota }}
+  </p>
   <div class="flex flex-col divide-y divide-border rounded-md border border-border">
     <CambioArriendoTsf
       v-if="plan.contrato"

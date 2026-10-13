@@ -58,7 +58,17 @@ export interface PlanArriendo {
   /** null = el contrato ya coincide con TSF. */
   contrato: PlanContratoArriendo | null
   arrendadores: AccionArrendador[]
+  /** Lo que TSF no tiene y hay que llenar a mano. */
+  nota: string | null
 }
+
+/** En TSF ningún propietario tiene porcentaje: no se desactiva a nadie. */
+export const NOTA_SIN_PAGO =
+  'En TSF ningún propietario tiene porcentaje del canon, así que los arrendadores actuales de Operaciones se dejan activos.'
+
+/** TSF solo tiene el PDF: lo que la persona tiene que leer de él. */
+export const NOTA_SOLO_DOCUMENTO =
+  'En TSF este contrato solo está como PDF firmado («(S) Contrato de arrendamiento»), sin termsheet: el canon, la fecha de firma y la periodicidad no están como datos. Llénalos a mano leyendo el PDF.'
 
 export interface ContextoArriendo {
   /** Por id de propietario en TSF. */
@@ -136,13 +146,17 @@ function planContrato(
 ): PlanContratoArriendo | null {
   const receptor =
     tsf.arrendadores.find((a) => a.recibePago) ??
-    [...tsf.arrendadores].sort((a, b) => b.porcentaje - a.porcentaje)[0] ??
+    [...tsf.arrendadores]
+      .filter((a) => a.porcentaje > 0)
+      .sort((a, b) => b.porcentaje - a.porcentaje)[0] ??
     null
   const faltan: string[] = []
   if (!actual && !ctx.arrendatario) {
     faltan.push('El proyecto no tiene inversionista: no hay arrendatario para el contrato.')
   }
-  if (!actual && !receptor) faltan.push('TSF no tiene propietarios para este terreno.')
+  if (!actual && !receptor) {
+    faltan.push('En TSF ningún propietario recibe el pago: no hay arrendador para el contrato.')
+  }
 
   // El prestador (quien recibe el pago) y el arrendatario solo se llenan si faltan:
   // uno que una persona ya eligió no se reemplaza.
@@ -156,6 +170,14 @@ function planContrato(
       (v) => `#${v}`,
     ],
     ['fecha_firma_contrato', 'Fecha de firma', actual?.fecha_firma_contrato, tsf.fechaFirma],
+    // Solo si no tiene enlace: uno que una persona puso (p. ej. el Drive) no se pisa.
+    [
+      'enlace_drive',
+      'Contrato firmado',
+      actual?.enlace_drive,
+      actual?.enlace_drive ? null : tsf.enlace,
+      () => 'PDF en TSF',
+    ],
     ['tarifa_base', 'Canon anual', actual?.tarifa_base, tsf.canonAnual, cop],
     [
       'periodicidad_pago',
@@ -268,8 +290,11 @@ export function planArriendo(
       cambios,
     })
   }
+  // Si en TSF nadie recibe pago (todos al 0 %, datos incompletos), desactivar a
+  // los de Operaciones dejaría el contrato sin a quién pagarle: no se propone.
+  const tsfPaga = tsf.arrendadores.some((l) => l.porcentaje > 0)
   for (const a of actuales) {
-    if (usados.has(a.id) || a.activo === false) continue
+    if (!tsfPaga || usados.has(a.id) || a.activo === false) continue
     acciones.push({
       tipo: 'desactivar',
       id: a.id,
@@ -286,7 +311,14 @@ export function planArriendo(
       ],
     })
   }
-  return { contrato: planContrato(tsf, contrato, ctx), arrendadores: acciones }
+  return {
+    contrato: planContrato(tsf, contrato, ctx),
+    arrendadores: acciones,
+    nota:
+      [tsf.origen === 'documento' ? NOTA_SOLO_DOCUMENTO : null, tsfPaga ? null : NOTA_SIN_PAGO]
+        .filter(Boolean)
+        .join(' ') || null,
+  }
 }
 
 /** Los propietarios cuyo cliente hay que CREAR para aplicar estos cambios. */

@@ -302,8 +302,15 @@ export type PeriodicidadArriendo = 'mensual' | 'bimestral' | 'trimestral' | 'sem
 
 /** El contrato de arrendamiento del proyecto en TSF. */
 export interface ArriendoTsf {
-  /** El `LeasingContract`: la llave con `contratos.originabot_arriendo_id`. */
-  contratoId: number
+  /**
+   * `contrato`: el `contract.Contract` con su termsheet (canon, fechas…).
+   * `documento`: solo el PDF firmado del campo «(S) Contrato de arrendamiento».
+   */
+  origen: 'contrato' | 'documento'
+  /** El `contract.Contract`: la llave con `contratos.originabot_arriendo_id`. null si es solo el documento. */
+  contratoId: number | null
+  /** La pestaña legal del terreno en TSF, donde está el PDF. */
+  enlace: string | null
   firmado: boolean
   /** ISO `YYYY-MM-DD`, en hora de Bogotá. */
   fechaFirma: string | null

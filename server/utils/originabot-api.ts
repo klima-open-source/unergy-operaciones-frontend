@@ -31,7 +31,16 @@ const RUTAS = {
   termsheet: (id: number) => `/api/termsheet/v2/termsheet/${id}/`,
   /** Los propietarios del terreno con su porcentaje del canon. */
   propietarios: '/api/termsheet/landlord_terrain/',
+  /** Campos de validación escogidos de la minigranja; entre ellos «(S) Contrato de arrendamiento». */
+  camposClave: '/api/minifarm/validations/by-uuid/',
 } as const
+
+/**
+ * «Suscripción de contratos → (S) Contrato de arrendamiento»: el campo legacy
+ * donde vive el contrato firmado (un PDF) de los proyectos que no tienen
+ * `contract.Contract` — originabot no migró los que no tienen termsheet.
+ */
+const CAMPO_CONTRATO_ARRIENDO = 'a9a6ccb8-276e-4947-8be7-e2e08390e260'
 
 /** Nombres de los campos de `simulation` en la validación eléctrica de TSF. */
 const CAMPO = {
@@ -136,6 +145,12 @@ interface ExternalPropietario {
   termsheet_receiver?: unknown
 }
 
+interface ExternalCampoClave {
+  uuid?: unknown
+  value?: unknown
+  status?: unknown
+}
+
 /** Un propietario del terreno según TSF. */
 export interface ArrendadorTsf {
   id: number
@@ -151,8 +166,16 @@ export interface ArrendadorTsf {
 
 /** El contrato de arrendamiento del proyecto en TSF. */
 export interface ArriendoTsf {
-  /** El `LeasingContract`: la llave con `contratos.originabot_arriendo_id`. */
-  contratoId: number
+  /**
+   * `contrato`: el `contract.Contract` con su termsheet (canon, fechas…).
+   * `documento`: solo el PDF firmado del campo «(S) Contrato de arrendamiento»;
+   * canon, fecha y periodicidad no son datos en TSF.
+   */
+  origen: 'contrato' | 'documento'
+  /** El `contract.Contract`: la llave con `contratos.originabot_arriendo_id`. null si es solo el documento. */
+  contratoId: number | null
+  /** La pestaña legal del terreno en TSF, donde está el PDF. */
+  enlace: string | null
   firmado: boolean
   /** ISO `YYYY-MM-DD`, en hora de Bogotá. */
   fechaFirma: string | null
@@ -589,13 +612,16 @@ export function toArriendoTsf(
   contrato: ExternalArriendo,
   termsheet: ExternalTermsheet,
   propietarios: ExternalPropietario[],
+  enlace: string | null = null,
 ): ArriendoTsf | null {
   const contratoId = numero(contrato.id)
   if (!contratoId) return null
   const proyectos = Math.max(termsheet.projects_data?.length ?? 0, 1)
   const canon = numero(termsheet.actual_rent_annual_cost_cop)
   return {
+    origen: 'contrato',
     contratoId,
+    enlace,
     firmado: contrato.is_signed === true || termsheet.is_signed === true,
     // El contrato casi nunca trae su fecha; la de la termsheet es la que se firmó.
     fechaFirma: fechaBogota(contrato.signed_at) ?? fechaBogota(termsheet.signed_at),
@@ -607,16 +633,68 @@ export function toArriendoTsf(
 }
 
 /**
- * El contrato de arrendamiento del proyecto: el `LeasingContract` del terreno que
- * es de ESTE proyecto, su termsheet (canon, periodicidad, firma) y los
- * propietarios con su porcentaje. Nunca lanza: sin contrato, null.
+ * Solo el PDF firmado («(S) Contrato de arrendamiento»): el contrato está
+ * firmado si el campo tiene archivo, y los propietarios son los del terreno.
+ * Canon, fecha y periodicidad quedan en null: TSF no los tiene como datos.
+ */
+export function toArriendoDocumento(
+  campo: ExternalCampoClave,
+  propietarios: ExternalPropietario[],
+  enlace: string | null,
+  proyectosTerreno: number,
+): ArriendoTsf | null {
+  if (!texto(campo.value)) return null
+  return {
+    origen: 'documento',
+    contratoId: null,
+    enlace,
+    firmado: true,
+    fechaFirma: null,
+    periodicidad: null,
+    canonAnual: null,
+    proyectosTerreno: Math.max(proyectosTerreno, 1),
+    arrendadores: propietarios.map(toArrendadorTsf).filter((a): a is ArrendadorTsf => a !== null),
+  }
+}
+
+/** El campo «(S) Contrato de arrendamiento» de la minigranja, o null. Nunca lanza. */
+async function campoContratoArriendo(
+  event: H3Event,
+  autorizacion: string,
+  minigranjaId: number,
+): Promise<ExternalCampoClave | null> {
+  try {
+    const datos = await $fetch<{ data?: ExternalCampoClave[] }>(RUTAS.camposClave, {
+      ...opciones(event, autorizacion),
+      query: { minifarm: minigranjaId },
+    })
+    return (datos.data ?? []).find((c) => c.uuid === CAMPO_CONTRATO_ARRIENDO) ?? null
+  } catch {
+    return null
+  }
+}
+
+/** La pestaña legal del terreno en la app de TSF. */
+function enlaceLegal(event: H3Event, terrenoId: number): string | null {
+  const base = useRuntimeConfig(event).tsfUrl
+  return base ? `${String(base).replace(/\/$/, '')}/minifarms/lands/${terrenoId}?tab=legal` : null
+}
+
+/**
+ * El contrato de arrendamiento del proyecto. Primero el `contract.Contract` del
+ * terreno que es de ESTE proyecto, con su termsheet (canon, periodicidad, firma);
+ * si no hay —los proyectos sin termsheet nunca se migraron—, el PDF del campo
+ * «(S) Contrato de arrendamiento». Los propietarios, con su porcentaje, son los
+ * del terreno en ambos casos. Nunca lanza: sin nada, null.
  */
 export async function arriendoDeTsf(
   event: H3Event,
   autorizacion: string,
   proyectoId: number,
   terrenoId: number,
+  minigranjaId: number,
 ): Promise<ArriendoTsf | null> {
+  const enlace = enlaceLegal(event, terrenoId)
   try {
     const query = { terrain: terrenoId }
     const [contratos, propietarios] = await Promise.all([
@@ -632,12 +710,18 @@ export async function arriendoDeTsf(
     const lista = Array.isArray(contratos) ? contratos : (contratos.results ?? [])
     const contrato = lista.find((c) => numero(c.project?.id) === proyectoId)
     const termsheetId = numero(contrato?.termsheet)
-    if (!contrato || !termsheetId) return null
+    if (!contrato || !termsheetId) {
+      const campo = await campoContratoArriendo(event, autorizacion, minigranjaId)
+      const proyectos = new Set(lista.map((c) => numero(c.project?.id))).size || 1
+      return campo
+        ? toArriendoDocumento(campo, propietarios.results ?? [], enlace, proyectos)
+        : null
+    }
     const termsheet = await $fetch<ExternalTermsheet>(
       RUTAS.termsheet(termsheetId),
       opciones(event, autorizacion),
     )
-    return toArriendoTsf(contrato, termsheet, propietarios.results ?? [])
+    return toArriendoTsf(contrato, termsheet, propietarios.results ?? [], enlace)
   } catch {
     return null
   }
@@ -660,7 +744,9 @@ export async function arriendoDeMinigranja(
   }
   const proyectoId = numero(minigranja.project?.id)
   const terrenoId = numero(minigranja.project?.terrain_id)
-  return proyectoId && terrenoId ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId) : null
+  return proyectoId && terrenoId
+    ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId, id)
+    : null
 }
 
 export async function minigranjaDeTsf(
@@ -695,7 +781,7 @@ export async function minigranjaDeTsf(
       ? ecsDeTsf(event, autorizacion, texto(minigranja.name)!, proyectoId)
       : Promise.resolve(null),
     proyectoId && terrenoId
-      ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId)
+      ? arriendoDeTsf(event, autorizacion, proyectoId, terrenoId, id)
       : Promise.resolve(null),
   ])
   return { ...toProyectoTsf(minigranja, proyecto), ...presimulacion, ecs, arriendo }

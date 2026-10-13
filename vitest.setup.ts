@@ -23,6 +23,7 @@ const TEST_RUNTIME_CONFIG = {
   authSessionCookiesEnabled: true,
   unergyAuthUrl: 'https://unergy-auth.test',
   originabotUrl: 'https://originabot.test',
+  tsfUrl: 'https://tsf.test',
   public: {
     unergyAuthEnabled: true,
     apiBaseUrl: 'https://api.test',

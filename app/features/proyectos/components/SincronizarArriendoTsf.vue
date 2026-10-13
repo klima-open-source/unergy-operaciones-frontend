@@ -61,7 +61,9 @@ async function consultar() {
     }
     const p = await sincronizacion.preparar(props.proyectoId, proyecto.inversionistas ?? [], tsf)
     if (!hayCambiosArriendo(p.plan)) {
-      toast.success('El arriendo coincide con TSF', { description: 'No hay cambios para traer.' })
+      toast.success('El arriendo coincide con TSF', {
+        description: p.plan.nota ?? 'No hay cambios para traer.',
+      })
       return
     }
     preparado.value = p
