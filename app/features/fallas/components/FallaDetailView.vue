@@ -52,6 +52,7 @@ import {
 } from '~/features/fallas/utils/fallaTitulo'
 import { FallasService } from '~/features/fallas/services/fallas'
 import FallaForm from './FallaForm.vue'
+import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
 
 const fallasService = new FallasService()
 
@@ -957,6 +958,22 @@ onMounted(() => {
                   <span class="text-muted-foreground">Energía perdida</span>
                   <span class="font-semibold text-destructive"
                     >{{ falla.kwh_perdidos_estimado.toLocaleString('es-CO') }} kWh</span
+                  >
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-muted-foreground">% afectado</span>
+                  <span class="font-semibold text-foreground">{{
+                    formatoPctAfectado(falla.pct_afectado)
+                  }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-muted-foreground">Energía perdida (P90)</span>
+                  <span
+                    class="font-semibold"
+                    :class="
+                      (falla.kwh_perdidos_p90 ?? 0) > 0 ? 'text-destructive' : 'text-foreground'
+                    "
+                    >{{ formatoEnergia(falla.kwh_perdidos_p90) }}</span
                   >
                 </div>
                 <div v-if="falla.sla_cumplido != null" class="flex items-center justify-between">

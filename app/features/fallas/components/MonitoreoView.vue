@@ -28,12 +28,15 @@
       >
         <!-- ── Topbar ── -->
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <!-- Buckets -->
-          <GTabs :model-value="bucket" @update:model-value="(v) => (bucket = v as BucketKey)">
+          <!-- Pestañas de estado -->
+          <GTabs
+            :model-value="grupo"
+            @update:model-value="(v) => (grupo = esGrupoEstadoFalla(v) ? v : grupo)"
+          >
             <GTabsList variant="outline">
-              <GTabsTrigger v-for="b in BUCKETS" :key="b.key" :value="b.key" variant="outline">
-                <component :is="b.icon" class="size-4" />
-                {{ b.label }} · {{ counts[b.key] }}
+              <GTabsTrigger v-for="g in GRUPOS" :key="g.key" :value="g.key" variant="outline">
+                <component :is="g.icon" class="size-4" />
+                {{ g.label }} · {{ counts[g.key] }}
               </GTabsTrigger>
             </GTabsList>
           </GTabs>
@@ -49,7 +52,7 @@
               <LoaderCircleIcon v-if="loading" class="animate-spin" />
               <RefreshCwIcon v-else />
             </Button>
-            <Button size="sm" @click="abrirCrear"> <PlusIcon /> Nueva falla </Button>
+            <Button size="sm" @click="irANueva"> <PlusIcon /> Nueva falla </Button>
           </div>
         </div>
 
@@ -89,7 +92,7 @@
                     <ComboboxAnchor>
                       <ComboboxInput
                         :display-value="
-                          (v) => proyectos.find((p) => p.id === v)?.nombre_comercial ?? ''
+                          (v) => proyectosFiltro.find((p) => p.id === v)?.nombre_comercial ?? ''
                         "
                         placeholder="Todos los proyectos"
                       />
@@ -97,7 +100,7 @@
                     <ComboboxList>
                       <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
                       <ComboboxViewport>
-                        <ComboboxItem v-for="p in proyectos" :key="p.id" :value="p.id">
+                        <ComboboxItem v-for="p in proyectosFiltro" :key="p.id" :value="p.id">
                           {{ p.nombre_comercial }}
                           <ComboboxItemIndicator>
                             <CheckIcon />
@@ -167,6 +170,12 @@
                   </div>
                 </div>
 
+                <label class="flex items-center gap-2 text-sm text-foreground">
+                  <Checkbox v-model="soloVencidas" />
+                  Solo vencidas
+                  <span class="text-xs text-muted-foreground">(SLA vencido, sin cerrar)</span>
+                </label>
+
                 <Button v-if="hayFiltros" variant="ghost" size="sm" @click="limpiarFiltros">
                   <XIcon /> Limpiar filtros
                 </Button>
@@ -175,7 +184,7 @@
           </Popover>
 
           <span v-if="!loading" class="ml-auto text-xs whitespace-nowrap text-muted-foreground">
-            {{ filtradas.length }} / {{ porBucket.length }}
+            {{ filtradas.length }} / {{ porGrupo.length }}
           </span>
         </div>
       </div>
@@ -187,7 +196,7 @@
         "
       >
         <div class="min-w-0 lg:col-span-1">
-          <!-- ══ COLA DE TRIAGE (ordenada por urgencia de SLA) ═══════════ -->
+          <!-- ══ LISTA DE FALLAS (de la más reciente a la más antigua) ═════ -->
           <div class="flex flex-col rounded-lg border border-border bg-card">
             <div
               class="flex items-center justify-between border-b border-border px-3 py-2 text-xs font-bold tracking-wide text-muted-foreground uppercase"
@@ -212,18 +221,18 @@
               class="flex flex-col items-center gap-2 py-14 text-muted-foreground"
             >
               <component
-                :is="bucketActual.icon"
+                :is="grupoActual.icon"
                 class="size-8 text-(--c)"
-                :style="{ '--c': bucketActual.color }"
+                :style="{ '--c': grupoActual.color }"
               />
               <p class="text-sm font-semibold text-foreground">{{ emptyTitulo }}</p>
               <p class="text-xs">{{ emptySubtitulo }}</p>
               <Button
-                v-if="bucket === 'activas' && !hayFiltros"
+                v-if="grupo === GrupoEstadoFalla.ABIERTA && !hayFiltros"
                 variant="outline"
                 size="sm"
                 class="mt-2"
-                @click="abrirCrear"
+                @click="irANueva"
               >
                 <PlusIcon /> Registrar primera falla
               </Button>
@@ -283,6 +292,9 @@
                     "
                     class="text-xs text-muted-foreground"
                   />
+                  <p v-if="(f.kwh_perdidos_p90 ?? 0) > 0" class="text-xs text-destructive">
+                    {{ formatoEnergia(f.kwh_perdidos_p90) }} perdidos (P90)
+                  </p>
                 </div>
 
                 <div v-if="!drawerVisible" class="hidden shrink-0 items-center gap-1.5 md:flex">
@@ -325,7 +337,7 @@
                   >
                     <CircleCheckIcon />
                   </Button>
-                  <Button variant="ghost" size="icon-sm" title="Editar" @click="abrirEditar(f)">
+                  <Button variant="ghost" size="icon-sm" title="Editar" @click="irAEditar(f)">
                     <PencilIcon />
                   </Button>
                 </div>
@@ -404,7 +416,7 @@
                 variant="ghost"
                 size="icon-sm"
                 title="Abrir página completa"
-                @click="router.push(`/fallas/${drawerFalla.id}`)"
+                @click="router.push(RUTAS_FALLAS.detalle(drawerFalla.id))"
               >
                 <ExternalLinkIcon />
               </Button>
@@ -797,6 +809,33 @@
                       {{ Number(drawerFalla.kwh_perdidos_estimado).toLocaleString('es-CO') }} kWh
                     </dd>
                   </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <PercentIcon class="size-3" /> % afectado
+                    </dt>
+                    <dd class="text-sm font-semibold text-foreground">
+                      {{ formatoPctAfectado(drawerFalla.pct_afectado) }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-0.5">
+                    <dt
+                      class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase"
+                    >
+                      <ZapIcon class="size-3" /> Energía perdida (P90)
+                    </dt>
+                    <dd
+                      class="text-sm font-semibold"
+                      :class="
+                        (drawerFalla.kwh_perdidos_p90 ?? 0) > 0
+                          ? 'text-destructive'
+                          : 'text-foreground'
+                      "
+                    >
+                      {{ formatoEnergia(drawerFalla.kwh_perdidos_p90) }}
+                    </dd>
+                  </div>
                   <div
                     v-if="drawerFalla.impacto_economico_cop != null"
                     class="flex flex-col gap-0.5"
@@ -1034,7 +1073,7 @@
 
               <!-- ── ACCIONES PRINCIPALES ───────────────────────────── -->
               <div class="flex flex-wrap gap-2 pt-1">
-                <Button variant="outline" class="flex-1" @click="editarDesdeDrawer">
+                <Button variant="outline" class="flex-1" @click="irAEditar(drawerFalla)">
                   <PencilIcon /> Editar completa
                 </Button>
                 <Button
@@ -1063,30 +1102,6 @@
         </aside>
       </div>
       <!-- /layout -->
-
-      <!-- ══ DIALOG CREAR / EDITAR ════════════════════════════════════════ -->
-      <Dialog v-model:open="formDialogVisible">
-        <DialogContent
-          class="flex max-h-11/12 max-w-3xl flex-col"
-          :show-close-button="!savingForm"
-          @escape-key-down="(e) => savingForm && e.preventDefault()"
-          @pointer-down-outside="(e) => savingForm && e.preventDefault()"
-        >
-          <DialogHeader>
-            <DialogTitle>{{
-              editingFalla ? `Editar falla ${editingFalla.codigo_interno}` : 'Nueva falla'
-            }}</DialogTitle>
-          </DialogHeader>
-          <div class="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
-            <FallaForm
-              :initial="editingFalla"
-              :catalogos="catalogos"
-              @save="onSaveForm"
-              @cancel="formDialogVisible = false"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <!-- ══ DIALOG RESOLVER FALLA ══════════════════════════════════════════ -->
       <Dialog v-model:open="resolveDialogVisible">
@@ -1161,7 +1176,7 @@
     <div v-if="activeTab === 1" class="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted">
       <CalendarioFallas
         :refresh-key="calRefreshKey"
-        @editar="abrirEditar"
+        @editar="irAEditar"
         @ver-falla="irAFallaDesdeCalendario"
       />
     </div>
@@ -1175,25 +1190,22 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import type { GandalfBadgeColor } from '~/components/gandalf/base/badge'
-import type {
-  CatalogosFalla,
-  Falla,
-  PayloadFalla,
-  PayloadFallaForm,
-  ResultadoNotificacionFalla,
-} from '~/features/fallas/types'
-import type { ProyectoLiviano } from '~/features/proyectos/types'
+import type { CatalogosFalla, Falla, PayloadFalla } from '~/features/fallas/types'
+import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import { EstadoFallaCodigo, GrupoEstadoFalla } from '~/features/fallas/types'
 import {
   BellIcon,
   BriefcaseIcon,
   BuildingIcon,
   CalendarIcon,
+  CalendarClockIcon,
   CalendarPlusIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  CircleDotIcon,
   CircleXIcon,
   ClockIcon,
   DollarSignIcon,
@@ -1205,6 +1217,7 @@ import {
   LoaderCircleIcon,
   MessagesSquareIcon,
   PencilIcon,
+  PercentIcon,
   PlusIcon,
   RefreshCwIcon,
   RotateCcwIcon,
@@ -1230,9 +1243,16 @@ import {
   clasificacionDetalle,
   tituloFalla,
 } from '~/features/fallas/utils/fallaTitulo'
+import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
+import {
+  esGrupoEstadoFalla,
+  grupoEstadoFalla,
+  perteneceAGrupo,
+} from '~/features/fallas/utils/grupoEstado'
+import { compararFallasRecientes } from '~/features/fallas/utils/ordenFallas'
+import { ParamQueryFallas, RUTAS_FALLAS } from '~/features/fallas/utils/rutas'
 import CalendarioFallas from './CalendarioFallas.vue'
 import FallaArchivos from './FallaArchivos.vue'
-import FallaForm from './FallaForm.vue'
 import FasorialButton from '~/features/fallas/components/FasorialButton.vue'
 
 const fallasService = new FallasService()
@@ -1244,7 +1264,7 @@ const route = useRoute()
 const router = useRouter()
 const confirm = useConfirm()
 
-// ── Calendario: refresh automático al guardar fallas ─────────────────────
+// ── Calendario: refresh automático al resolver / cambiar estado ──────────
 const calRefreshKey = ref(0)
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
@@ -1258,20 +1278,43 @@ const TABS: MonitoreoTab[] = [
 ]
 const activeTab = ref(0)
 
-// ── Buckets ───────────────────────────────────────────────────────────────
-type BucketKey = 'activas' | 'alerta' | 'cerradas' | 'todas'
-interface Bucket {
-  key: BucketKey
+// ── Pestañas de estado ────────────────────────────────────────────────────
+// Agrupan estados del catálogo: "En gestión" incluye en espera, y "Abierta"
+// incluye sin solución (ver `utils/grupoEstado.ts`).
+interface PestanaEstado {
+  key: GrupoEstadoFalla
   label: string
   icon: Component
   color: string
 }
-const BUCKETS: Bucket[] = [
-  { key: 'activas', label: 'Activas', icon: ZapIcon, color: 'var(--destructive)' },
-  { key: 'alerta', label: 'Alerta SLA', icon: CircleAlertIcon, color: 'var(--warning)' },
-  { key: 'cerradas', label: 'Cerradas', icon: CircleCheckIcon, color: 'var(--success)' },
-  { key: 'todas', label: 'Todas', icon: ListIcon, color: 'var(--primary)' },
+const GRUPOS: PestanaEstado[] = [
+  {
+    key: GrupoEstadoFalla.ABIERTA,
+    label: 'Abierta',
+    icon: CircleDotIcon,
+    color: 'var(--destructive)',
+  },
+  {
+    key: GrupoEstadoFalla.EN_GESTION,
+    label: 'En gestión',
+    icon: WrenchIcon,
+    color: 'var(--warning)',
+  },
+  {
+    key: GrupoEstadoFalla.PROGRAMADO,
+    label: 'Programado',
+    icon: CalendarClockIcon,
+    color: 'var(--primary)',
+  },
+  {
+    key: GrupoEstadoFalla.CERRADA,
+    label: 'Cerrada',
+    icon: CircleCheckIcon,
+    color: 'var(--success)',
+  },
+  { key: GrupoEstadoFalla.TODAS, label: 'Todas', icon: ListIcon, color: 'var(--primary)' },
 ]
+const GRUPO_POR_DEFECTO = GrupoEstadoFalla.ABIERTA
 
 const AVATAR_PALETTE = [
   'var(--primary)',
@@ -1286,18 +1329,21 @@ const AVATAR_PALETTE = [
 
 // ── Estado base ───────────────────────────────────────────────────────────
 const allFallas = ref<Falla[]>([])
-const proyectos = ref<ProyectoLiviano[]>([])
+const proyectos = ref<ProyectoConDetalle[]>([])
 const catalogos = ref<CatalogosFalla>({ estados: [], prioridades: [], tipos: [], resoluciones: [] })
 const loading = ref(false)
 const error = ref<string | null>(null)
 
 // ── Filtros ───────────────────────────────────────────────────────────────
-// Sincronizados con la URL (?q=&proyecto=&prioridad=&estado=&desde=&hasta=)
-// para que se sostengan al volver con "atras" o al refrescar.
+// Sincronizados con la URL (?grupo=&q=&proyecto=&prioridad=&estado=&desde=&hasta=&vencidas=)
+// para que se sostengan al volver con "atras", al refrescar y al volver del
+// formulario de crear/editar (que devuelve la misma query).
 function queryStr(v: unknown): string {
   return typeof v === 'string' ? v : ''
 }
-const bucket = ref<BucketKey>('activas')
+const grupo = ref<GrupoEstadoFalla>(
+  esGrupoEstadoFalla(route.query.grupo) ? route.query.grupo : GRUPO_POR_DEFECTO,
+)
 const search = ref(queryStr(route.query.q))
 const filtroProyecto = ref<number | null>(
   route.query.proyecto ? Number(route.query.proyecto) : null,
@@ -1306,17 +1352,29 @@ const filtroPrioridad = ref<string | null>(queryStr(route.query.prioridad) || nu
 const filtroEstado = ref<string | null>(queryStr(route.query.estado) || null)
 const filtroFechaDesde = ref<string | null>(queryStr(route.query.desde) || null)
 const filtroFechaHasta = ref<string | null>(queryStr(route.query.hasta) || null)
+const soloVencidas = ref(route.query.vencidas === '1')
 
 watch(
-  [search, filtroProyecto, filtroPrioridad, filtroEstado, filtroFechaDesde, filtroFechaHasta],
-  ([q, proyecto, prioridad, estado, desde, hasta]) => {
+  [
+    grupo,
+    search,
+    filtroProyecto,
+    filtroPrioridad,
+    filtroEstado,
+    filtroFechaDesde,
+    filtroFechaHasta,
+    soloVencidas,
+  ],
+  ([g, q, proyecto, prioridad, estado, desde, hasta, vencidas]) => {
     const query: Record<string, string> = {}
+    if (g !== GRUPO_POR_DEFECTO) query.grupo = String(g)
     if (q) query.q = String(q)
     if (proyecto) query.proyecto = String(proyecto)
     if (prioridad) query.prioridad = String(prioridad)
     if (estado) query.estado = String(estado)
     if (desde) query.desde = String(desde)
     if (hasta) query.hasta = String(hasta)
+    if (vencidas) query.vencidas = '1'
     router.replace({ query })
   },
 )
@@ -1329,6 +1387,7 @@ const filtrosActivosCount = computed(
       filtroEstado.value,
       filtroFechaDesde.value,
       filtroFechaHasta.value,
+      soloVencidas.value || null,
     ].filter((v) => v != null && v !== '').length,
 )
 
@@ -1370,45 +1429,28 @@ const slaLimiteHorasModel = computed<number | undefined>({
   },
 })
 
-// ── Dialog formulario ─────────────────────────────────────────────────────
-const formDialogVisible = ref(false)
-const editingFalla = ref<Falla | null>(null)
-const savingForm = ref(false)
-
-// ── Computed: lógica de buckets ───────────────────────────────────────────
-function esAlertaSLA(f: Falla): boolean {
-  return !f.estado?.es_estado_final && (f.sla_cumplido === false || (f.dias_abierta ?? 0) >= 7)
-}
-
+// ── Computed: pestañas de estado ──────────────────────────────────────────
 const counts = computed(() => {
-  const c: Record<BucketKey, number> = {
-    activas: 0,
-    alerta: 0,
-    cerradas: 0,
-    todas: allFallas.value.length,
+  const c: Record<GrupoEstadoFalla, number> = {
+    [GrupoEstadoFalla.ABIERTA]: 0,
+    [GrupoEstadoFalla.EN_GESTION]: 0,
+    [GrupoEstadoFalla.PROGRAMADO]: 0,
+    [GrupoEstadoFalla.CERRADA]: 0,
+    [GrupoEstadoFalla.TODAS]: allFallas.value.length,
   }
-  for (const f of allFallas.value) {
-    if (f.estado?.es_estado_final) {
-      c.cerradas++
-    } else {
-      c.activas++
-      if (esAlertaSLA(f)) c.alerta++
-    }
-  }
+  for (const f of allFallas.value) c[grupoEstadoFalla(f)]++
   return c
 })
 
-const porBucket = computed(() => {
-  if (bucket.value === 'todas') return allFallas.value
-  if (bucket.value === 'cerradas') return allFallas.value.filter((f) => f.estado?.es_estado_final)
-  if (bucket.value === 'alerta')
-    return allFallas.value.filter((f) => !f.estado?.es_estado_final && esAlertaSLA(f))
-  // activas
-  return allFallas.value.filter((f) => !f.estado?.es_estado_final)
-})
+const porGrupo = computed(() => allFallas.value.filter((f) => perteneceAGrupo(f, grupo.value)))
+
+/** Sin cerrar y con el SLA vencido: lo que marca la etiqueta "Vencido" de la fila. */
+function esVencida(f: Falla): boolean {
+  return !f.estado?.es_estado_final && slaSeverity(f) === 'destructive'
+}
 
 const filtradas = computed(() => {
-  let arr = porBucket.value
+  let arr = porGrupo.value
   const q = search.value.trim().toLowerCase()
   if (q) {
     arr = arr.filter(
@@ -1436,13 +1478,9 @@ const filtradas = computed(() => {
       (f) => f.fecha_identificacion && new Date(`${f.fecha_identificacion}T00:00:00`) <= hasta,
     )
   }
-  // Cola de triage: primero lo más urgente por SLA (vencido > en alerta > ok),
-  // y dentro de la misma severidad, lo que lleva más días abierta.
-  return [...arr].sort((a, b) => {
-    const diff = slaSeverityRank(a) - slaSeverityRank(b)
-    if (diff !== 0) return diff
-    return (b.dias_abierta ?? 0) - (a.dias_abierta ?? 0)
-  })
+  if (soloVencidas.value) arr = arr.filter(esVencida)
+  // De la más reciente a la más antigua; lo vencido se encuentra con "Solo vencidas".
+  return [...arr].sort(compararFallasRecientes)
 })
 
 const hayFiltros = computed(
@@ -1453,32 +1491,45 @@ const hayFiltros = computed(
       filtroPrioridad.value ||
       filtroEstado.value ||
       filtroFechaDesde.value ||
-      filtroFechaHasta.value
+      filtroFechaHasta.value ||
+      soloVencidas.value
     ),
 )
 
-const bucketActual = computed(() => BUCKETS.find((b) => b.key === bucket.value) ?? BUCKETS[0]!)
+const grupoActual = computed(() => GRUPOS.find((g) => g.key === grupo.value) ?? GRUPOS[0]!)
 
-const EMPTY_TITULO: Record<BucketKey, string> = {
-  activas: 'No hay fallas activas',
-  alerta: 'Sin fallas en alerta SLA',
-  cerradas: 'Sin fallas cerradas',
-  todas: 'No hay fallas registradas',
+const EMPTY_TITULO: Record<GrupoEstadoFalla, string> = {
+  [GrupoEstadoFalla.ABIERTA]: 'No hay fallas abiertas',
+  [GrupoEstadoFalla.EN_GESTION]: 'No hay fallas en gestión',
+  [GrupoEstadoFalla.PROGRAMADO]: 'No hay fallas programadas',
+  [GrupoEstadoFalla.CERRADA]: 'Sin fallas cerradas',
+  [GrupoEstadoFalla.TODAS]: 'No hay fallas registradas',
 }
-const EMPTY_SUBTITULO: Record<BucketKey, string> = {
-  activas: 'Todas las incidencias están bajo control',
-  alerta: 'Ninguna falla supera el umbral de SLA',
-  cerradas: 'Aún no se han cerrado fallas',
-  todas: 'Registra la primera para empezar',
+const EMPTY_SUBTITULO: Record<GrupoEstadoFalla, string> = {
+  [GrupoEstadoFalla.ABIERTA]: 'Todas las incidencias están bajo control',
+  [GrupoEstadoFalla.EN_GESTION]: 'Ninguna falla está en gestión ni en espera',
+  [GrupoEstadoFalla.PROGRAMADO]: 'No hay intervenciones planificadas',
+  [GrupoEstadoFalla.CERRADA]: 'Aún no se han cerrado fallas',
+  [GrupoEstadoFalla.TODAS]: 'Registra la primera para empezar',
 }
 const emptyTitulo = computed(() =>
-  hayFiltros.value ? 'Sin resultados con los filtros aplicados' : EMPTY_TITULO[bucket.value],
+  hayFiltros.value ? 'Sin resultados con los filtros aplicados' : EMPTY_TITULO[grupo.value],
 )
 const emptySubtitulo = computed(() =>
-  hayFiltros.value
-    ? 'Prueba con otros filtros o limpia la búsqueda'
-    : EMPTY_SUBTITULO[bucket.value],
+  hayFiltros.value ? 'Prueba con otros filtros o limpia la búsqueda' : EMPTY_SUBTITULO[grupo.value],
 )
+
+/**
+ * Opciones del filtro "Proyecto": solo las plantas con servicio de operación.
+ * Si la URL trae una planta que ya no lo tiene (un enlace viejo), se agrega
+ * con el nombre que traen sus fallas, para que el filtro no quede en blanco.
+ */
+const proyectosFiltro = computed<Pick<ProyectoConDetalle, 'id' | 'nombre_comercial'>[]>(() => {
+  const id = filtroProyecto.value
+  if (!id || proyectos.value.some((p) => p.id === id)) return proyectos.value
+  const nombre = allFallas.value.find((f) => f.proyecto?.id === id)?.proyecto?.nombre_comercial
+  return nombre ? [{ id, nombre_comercial: nombre }, ...proyectos.value] : proyectos.value
+})
 
 const sortedSeguimientos = computed(() =>
   [...(drawerFalla.value?.seguimientos ?? [])].sort(
@@ -1549,7 +1600,9 @@ const navIndex = computed(() => {
 //
 //   · las abiertas, TODAS, filtradas en el servidor (`solo_activas`, un filtro
 //     que ya existia y nadie usaba). Son las que alimentan las pestanas
-//     Activas y Alerta, que es para lo que se abre esta pantalla.
+//     Abierta, En gestion y Programado, que es para lo que se abre esta pantalla.
+//   · las "sin solucion", TODAS: es un estado final, asi que `solo_activas` no
+//     las trae, pero el equipo las sigue viendo en la pestana Abierta.
 //   · las cerradas de una ventana de tiempo, porque el historico completo no
 //     se lee con el scroll -- se busca.
 //
@@ -1584,22 +1637,34 @@ function fechaLocalISO(d: Date): string {
   return `${d.getFullYear()}-${mes}-${dia}`
 }
 
+/** Se resuelve cuando llegaron los catálogos (hace falta el id de "sin solución"). */
+let catalogosListos: Promise<void> = Promise.resolve()
+
+async function listarSinSolucion(): Promise<Falla[]> {
+  await catalogosListos
+  const estado = catalogos.value.estados.find((e) => e.codigo === EstadoFallaCodigo.SIN_SOLUCION)
+  if (!estado) return []
+  const data = await fallasService.listar({ estado_id: estado.id, size: 500 })
+  return data.items ?? []
+}
+
 async function cargar(desde: Date | null = null) {
   loading.value = true
   error.value = null
   const inicio = desde ?? haceDias(DIAS_HISTORIAL)
   try {
-    const [abiertas, cerradas] = await Promise.all([
+    const [abiertas, cerradas, sinSolucion] = await Promise.all([
       // Sin `size`: son ~115 y caben en una respuesta. Si algun dia no
       // cupieran, `completarPaginas` no se activa sin `size` -- por eso va
       // explicito y holgado.
       fallasService.listar({ solo_activas: true, size: 500 }),
       fallasService.listar({ fecha_identificacion_desde: fechaLocalISO(inicio), size: 500 }),
+      listarSinSolucion(),
     ])
-    // Las dos listas se solapan (una falla abierta identificada dentro de la
-    // ventana esta en ambas), asi que se unen por id.
+    // Las listas se solapan (una falla abierta identificada dentro de la
+    // ventana esta en dos), asi que se unen por id.
     const porId = new Map<number, Falla>()
-    for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? [])]) {
+    for (const f of [...(abiertas.items ?? []), ...(cerradas.items ?? []), ...sinSolucion]) {
       porId.set(f.id, f)
     }
     allFallas.value = [...porId.values()]
@@ -1629,9 +1694,10 @@ async function cargarCatalogos() {
 
 async function cargarProyectos() {
   try {
-    // Solo alimenta el desplegable "Proyecto" de los filtros: `id` y
-    // `nombre_comercial`. El catalogo completo son 538 kB en dos peticiones.
-    proyectos.value = await catalogoProyectos.cargarLiviano()
+    // Solo alimenta el desplegable "Proyecto" de los filtros, y solo con las
+    // plantas que operamos (`GET /proyectos?servicio=operacion`). Las fallas
+    // de plantas que ya no tienen el servicio siguen en la lista.
+    proyectos.value = await catalogoProyectos.cargarOperativos()
   } catch {
     /* no crítico */
   }
@@ -1645,6 +1711,7 @@ function limpiarFiltros() {
   filtroEstado.value = null
   filtroFechaDesde.value = null
   filtroFechaHasta.value = null
+  soloVencidas.value = false
 }
 
 function navegar(delta: number) {
@@ -1666,133 +1733,20 @@ function abrirDrawer(falla: Falla) {
   drawerVisible.value = true
 }
 
-function abrirCrear() {
-  editingFalla.value = null
-  formDialogVisible.value = true
+// Crear y editar tienen página propia; la query (los filtros) viaja con la
+// navegación y el formulario la devuelve al volver.
+function irANueva() {
+  router.push({ path: RUTAS_FALLAS.nueva, query: route.query })
 }
 
-function abrirEditar(falla: Falla) {
-  editingFalla.value = falla
-  formDialogVisible.value = true
-}
-
-async function _mostrarResultadoNotificacion(fallaIds: number[]) {
-  // Envía notificación para cada falla y muestra un toast con el resultado.
-  // Si alguna falla, muestra advertencia pero NO bloquea el flujo.
-  const resultados: ResultadoNotificacionFalla[] = await Promise.all(
-    fallaIds.map((id) =>
-      fallasService.notificar(id).catch((err): ResultadoNotificacionFalla => ({
-        ok: false,
-        enviados: [],
-        errores: [normalizeError(err).message],
-        sin_correos: false,
-      })),
-    ),
-  )
-
-  const todosOk = resultados.every((r) => r.ok)
-  const sinCorreos = resultados.some((r) => r.sin_correos)
-  const enviados = [...new Set(resultados.flatMap((r) => r.enviados || []))]
-  const errores = resultados.flatMap((r) => r.errores || []).filter(Boolean)
-
-  if (todosOk) {
-    toast.success('✉️ Notificación enviada', {
-      description: `Correo enviado a: ${enviados.join(', ')}`,
-      duration: 5000,
-    })
-  } else if (sinCorreos) {
-    toast.warning('⚠️ Sin correos configurados', {
-      description:
-        'La falla fue guardada pero el cliente no tiene correos operacionales configurados. Agrégalos en Clientes → Correos Operacionales.',
-      duration: 8000,
-    })
-  } else {
-    // Obtener el error SMTP más descriptivo
-    const errorSmtp = errores.find(
-      (e) => e.includes('534') || e.includes('Application-specific') || e.includes('password'),
-    )
-    toast.error('✉️ Error al enviar notificación', {
-      description: errorSmtp
-        ? 'Error de autenticación SMTP: Gmail requiere una App Password (contraseña de aplicación). Configúrala en las variables de Railway.'
-        : `Error: ${errores[0] || 'Error desconocido'}`,
-      duration: 10000,
-    })
-  }
+function irAEditar(falla: Falla) {
+  router.push({ path: RUTAS_FALLAS.editar(falla.id), query: route.query })
 }
 
 function irAFallaDesdeCalendario(falla: Falla) {
   // Cambia al tab Fallas y abre el drawer con la falla seleccionada
   activeTab.value = 0
   nextTick(() => abrirDrawer(falla))
-}
-
-function editarDesdeDrawer() {
-  if (!drawerFalla.value) return
-  editingFalla.value = drawerFalla.value
-  formDialogVisible.value = true
-}
-
-async function onSaveForm(payload: PayloadFallaForm) {
-  savingForm.value = true
-  try {
-    const notificar = !!payload.notificacion
-
-    if (editingFalla.value) {
-      // ── Edición (un solo proyecto) ──────────────────────────────────────
-      const fallaId = editingFalla.value.id
-      const { nota_inicial: notaInicial, _archivos: archivosEdit, ...patchPayload } = payload
-      await fallasService.actualizar(fallaId, patchPayload)
-      if (notaInicial) await fallasService.crearSeguimiento(fallaId, { nota: notaInicial })
-      if (archivosEdit?.length) {
-        await Promise.all(archivosEdit.map((file) => fallasService.subirArchivo(fallaId, file)))
-      }
-      toast.success('Falla actualizada', { duration: 2500 })
-
-      // Notificación tras edición
-      if (notificar) await _mostrarResultadoNotificacion([fallaId])
-    } else {
-      // ── Creación (uno o más proyectos) ──────────────────────────────────
-      const { proyecto_ids, nota_inicial: notaInicial, _archivos: archivos, ...base } = payload
-      const ids = proyecto_ids ?? []
-
-      // Una falla por proyecto, en paralelo
-      const nuevas = await Promise.all(
-        ids.map((pid) => fallasService.crear({ ...base, proyecto_id: pid })),
-      )
-      // Nota inicial para cada falla creada (si la hay)
-      if (notaInicial) {
-        await Promise.all(
-          nuevas.map((f) => fallasService.crearSeguimiento(f.id, { nota: notaInicial })),
-        )
-      }
-      // Subir archivos adjuntos a cada falla (si los hay)
-      if (archivos?.length) {
-        await Promise.all(
-          nuevas.flatMap((f) => archivos.map((file) => fallasService.subirArchivo(f.id, file))),
-        )
-      }
-      const n = nuevas.length
-      toast.success(n === 1 ? 'Falla registrada' : `${n} fallas registradas`, {
-        description:
-          n > 1 ? 'Se creó una falla independiente por cada proyecto seleccionado' : undefined,
-        duration: 3000,
-      })
-
-      // Notificación tras creación
-      if (notificar && nuevas.length) await _mostrarResultadoNotificacion(nuevas.map((f) => f.id))
-    }
-    formDialogVisible.value = false
-    calRefreshKey.value++ // ← dispara recarga del calendario
-    await cargar()
-    if (drawerFalla.value && editingFalla.value) {
-      const refreshed = allFallas.value.find((f) => f.id === editingFalla.value!.id)
-      if (refreshed) abrirDrawer(refreshed)
-    }
-  } catch (err) {
-    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-  } finally {
-    savingForm.value = false
-  }
 }
 
 // Autosave con debounce
@@ -2030,18 +1984,6 @@ function slaSeverity(falla: Falla): GandalfBadgeColor {
   return 'default'
 }
 
-// Orden de urgencia para la cola de triage: vencido primero, luego alerta,
-// luego sin dato de SLA, y al final lo que ya cumple/está resuelto.
-const SLA_SEVERITY_RANK: Record<string, number> = {
-  destructive: 0,
-  warning: 1,
-  default: 2,
-  success: 3,
-}
-function slaSeverityRank(falla: Falla): number {
-  return SLA_SEVERITY_RANK[slaSeverity(falla)] ?? 2
-}
-
 function fmtFecha(d?: string | null): string {
   if (!d) return '—'
   return new Date(`${d}T00:00:00`).toLocaleDateString('es-CO', {
@@ -2116,7 +2058,7 @@ function onKeydown(e: KeyboardEvent) {
     nextTick(() => searchInputRef.value?.$el?.focus())
   } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
     e.preventDefault()
-    abrirCrear()
+    irANueva()
   } else if (e.key === 'Escape' && drawerVisible.value) {
     drawerVisible.value = false
   } else if (drawerVisible.value && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -2140,9 +2082,22 @@ function measureHeader() {
   }
 }
 
+/**
+ * `/fallas?falla=123` (al volver de editar): abre el panel de esa falla y
+ * saca el parámetro de la URL, que no es un filtro.
+ */
+function abrirFallaDeLaUrl() {
+  const id = Number(route.query[ParamQueryFallas.ABRIR_FALLA])
+  if (!id) return
+  const { [ParamQueryFallas.ABRIR_FALLA]: _abrir, ...resto } = route.query
+  router.replace({ query: resto })
+  const falla = allFallas.value.find((f) => f.id === id)
+  if (falla) abrirDrawer(falla)
+}
+
 onMounted(() => {
-  cargar()
-  cargarCatalogos()
+  catalogosListos = cargarCatalogos()
+  cargar().then(abrirFallaDeLaUrl)
   cargarProyectos()
   window.addEventListener('keydown', onKeydown)
   nextTick(() => {
@@ -2184,17 +2139,9 @@ watch(activeTab, () => {
   })
 })
 
-// Si cambia bucket y la falla abierta no pertenece al nuevo bucket, cerrar panel
-watch(bucket, (newBucket) => {
+// Si cambia la pestaña y la falla abierta no pertenece a ella, cerrar panel
+watch(grupo, (nuevo) => {
   if (!drawerVisible.value || !drawerFalla.value) return
-  if (newBucket === 'todas') return
-  const pertenece = (() => {
-    const f = drawerFalla.value!
-    if (newBucket === 'cerradas') return !!f.estado?.es_estado_final
-    if (newBucket === 'alerta') return !f.estado?.es_estado_final && esAlertaSLA(f)
-    if (newBucket === 'activas') return !f.estado?.es_estado_final
-    return true
-  })()
-  if (!pertenece) drawerVisible.value = false
+  if (!perteneceAGrupo(drawerFalla.value, nuevo)) drawerVisible.value = false
 })
 </script>
