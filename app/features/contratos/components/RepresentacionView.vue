@@ -535,6 +535,7 @@ import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import SelectorInversionistaDePlanta from './SelectorInversionistaDePlanta.vue'
+import { mostrarAvisos } from '~/features/contratos/avisos'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import {
   anioDeFila,
@@ -846,6 +847,7 @@ async function enviar(payload) {
     if (i !== -1) contratos.value[i] = data
     edit.value = null
     toast.success('Cambios guardados', { duration: 2500 })
+    mostrarAvisos(data)
   } catch (e) {
     const motivo = e.data?.detail || e.data?.inversionista_id?.[0] || e.data?.proyecto_id?.[0] || e.message
     toast.error('No se pudo guardar', { description: motivo, duration: 6000 })

@@ -512,6 +512,7 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import SelectorInversionistaDePlanta from './SelectorInversionistaDePlanta.vue'
+import { mostrarAvisos } from '~/features/contratos/avisos'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
@@ -933,6 +934,7 @@ async function guardar() {
   guardando.value = true
   try {
     const data = await crearContrato()
+    mostrarAvisos(data)
     toast.success('Contrato creado', { duration: 2500 })
     emit('creado', data)
     cerrar()
@@ -963,6 +965,7 @@ async function crearYContinuarArriendo() {
   guardando.value = true
   try {
     const data = await crearContrato()
+    mostrarAvisos(data)
     contratoIdCreado.value = data.id
     toast.success('Contrato creado — agrega los arrendadores', { duration: 3000 })
     step.value++

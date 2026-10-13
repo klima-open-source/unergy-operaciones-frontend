@@ -297,6 +297,10 @@ export interface ContratoServicio {
   tarifa_admin?: number | null
   tarifa_cgm?: number | null
   tarifa_representacion?: number | null
+  /** Cargos adicionales del contrato (hoy solo `administracion`), aparte de sus subservicios. */
+  cargos?: string[]
+  /** Avisos que no bloquean, en la respuesta al crear o editar. */
+  avisos?: string[]
   periodicidad_pago?: string | null
   indice_indexacion?: string | null
   responsable_iva?: boolean | null

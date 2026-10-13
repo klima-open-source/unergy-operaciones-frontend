@@ -808,6 +808,16 @@
             <p class="text-xs text-muted-foreground">Sugerido: Valor Anual ÷ 12</p>
           </div>
         </div>
+        <!-- Administración: casi siempre se negocia en el contrato de representación y
+             CGM; a veces aquí. Es un cargo adicional (% sobre el ingreso del mes). -->
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-muted-foreground">Administración (%) <span class="font-normal">— opcional</span></label>
+          <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_admin_pct"
+            :format-options="{ minimumFractionDigits: 1, maximumFractionDigits: 2 }">
+            <NumberFieldContent><NumberFieldInput placeholder="Ej. 3,8" /></NumberFieldContent>
+          </NumberField>
+          <p class="text-xs text-muted-foreground">Solo si la administración se negoció en este contrato y no en el de representación.</p>
+        </div>
         <!-- Enlace Drive -->
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-muted-foreground">Enlace del contrato en Drive</label>
@@ -984,6 +994,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
+import { mostrarAvisos } from '~/features/contratos/avisos'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { formatCOP } from '~/utils/currency'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
@@ -1087,6 +1098,7 @@ const dialogMant = reactive({
     fecha_firma_contrato: null,
     tarifa_base: null,
     tarifa_mensual: null,
+    tarifa_admin_pct: null,
     enlace_drive: '',
     estado: 'firmado',
     periodicidad_pago: 'mensual',
@@ -1383,6 +1395,7 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.fecha_firma_contrato = aFecha(c.fecha_firma_contrato)
     dialogMant.form.tarifa_base        = c.tarifa_base ?? null
     dialogMant.form.tarifa_mensual     = c.tarifa_mensual ?? (c.tarifa_base != null ? Math.round(c.tarifa_base / 12) : null)
+    dialogMant.form.tarifa_admin_pct   = c.tarifa_admin != null ? Number(c.tarifa_admin) * 100 : null
     dialogMant.form.enlace_drive       = c.enlace_drive || ''
     dialogMant.form.estado             = c.estado || 'firmado'
     dialogMant.form.periodicidad_pago  = c.periodicidad_pago || 'mensual'
@@ -1395,6 +1408,7 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.fecha_firma_contrato = null
     dialogMant.form.tarifa_base        = null
     dialogMant.form.tarifa_mensual     = null
+    dialogMant.form.tarifa_admin_pct   = null
     dialogMant.form.enlace_drive       = ''
     dialogMant.form.estado             = 'firmado'
     dialogMant.form.periodicidad_pago  = 'mensual'
@@ -1429,6 +1443,7 @@ async function saveMantenimiento() {
       fecha_firma_contrato: toISO(dialogMant.form.fecha_firma_contrato),
       tarifa_base:        dialogMant.form.tarifa_base,
       tarifa_mensual:     dialogMant.form.tarifa_mensual ?? null,
+      tarifa_admin:       dialogMant.form.tarifa_admin_pct != null ? dialogMant.form.tarifa_admin_pct / 100 : null,
       enlace_drive:       dialogMant.form.enlace_drive?.trim() || null,
       estado:             dialogMant.form.estado,
       periodicidad_pago:  dialogMant.form.periodicidad_pago,
@@ -1437,12 +1452,13 @@ async function saveMantenimiento() {
       const proyId = route.params.id
       payload.servicio_aplica = 'mantenimiento'
       payload.proyecto_id     = Number(proyId)
-      await contratosServicioService.crear(payload)
+      mostrarAvisos(await contratosServicioService.crear(payload))
       const data = await contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId })
       contratos.mantenimiento = data.length ? data[0] : null
     } else {
       const data = await contratosServicioService.actualizar(contratos.mantenimiento.id, payload)
       contratos.mantenimiento = { ...contratos.mantenimiento, ...data }
+      mostrarAvisos(data)
     }
     // Recalcular la indexación automática (cambió tarifa/fecha inicio O&M)
     await cargarIndexacionOM()
