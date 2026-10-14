@@ -29,8 +29,17 @@
         </template>
       </template>
       <template #default="{ tab }">
+      <!-- Información del proyecto: sus secciones van como sub-pestañas. -->
+      <GTabs v-if="tab === 'info'" v-model="seccion" class="mb-4">
+        <GTabsList>
+          <GTabsTrigger v-for="s in seccionesVisibles" :key="s.key" :value="s.key">
+            <component :is="s.icon" class="size-3" /> {{ s.label }}
+            <span v-if="s.badge" class="text-xs text-muted-foreground">{{ s.badge }}</span>
+          </GTabsTrigger>
+        </GTabsList>
+      </GTabs>
       <!-- ══ GENERAL ══ -->
-      <div v-if="tab === 'general'">
+      <div v-if="tab === 'info' && seccion === 'general'">
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <template v-if="!isEditMode">
             <InfoField label="Tipo" :value="proyecto.tipo_proyecto" />
@@ -170,7 +179,7 @@
       </div>
 
       <!-- ══ TÉCNICO ══ -->
-      <div v-if="tab === 'tecnico'">
+      <div v-if="tab === 'info' && seccion === 'tecnico'">
         <div class="space-y-6 text-sm">
 
           <!-- Vista lectura -->
@@ -382,7 +391,7 @@
       </div>
 
       <!-- ══ SIMULACIÓN ══ -->
-      <div v-if="tab === 'simulacion'">
+      <div v-if="tab === 'info' && seccion === 'simulacion'">
         <div class="space-y-6">
           <div v-if="!isEditMode && hasSimulacionData" class="flex justify-end">
             <Button variant="outline" size="sm" @click="descargarSimulacionExcel"><FileSpreadsheetIcon class="size-4" /> Descargar Excel</Button>
@@ -408,7 +417,8 @@
       </div>
 
       <!-- ══ INVERSIONISTAS ══ -->
-      <div v-if="tab === 'inversionistas'">
+      <div v-if="tab === 'clientes'">
+        <h3 class="mb-3 text-sm font-semibold text-foreground">Inversionistas</h3>
         <div class="space-y-4">
           <!-- GTable a mano: la fila se edita en el sitio y la tabla lleva una
                fila de total, que blocks/DataTable no tiene. -->
@@ -528,8 +538,18 @@
         </div>
       </div>
 
+      <!-- ══ CLIENTES POR CONTRATO ══ -->
+      <div v-if="tab === 'clientes'" class="mt-8">
+        <h3 class="mb-1 text-sm font-semibold text-foreground">Clientes por contrato</h3>
+        <p class="mb-3 text-xs text-muted-foreground">
+          Quién es parte de los contratos de esta planta: PPA, representación y CGM, y operación.
+        </p>
+        <ClientesDelProyecto :proyecto-id="proyecto.id" />
+      </div>
+
       <!-- ══ CONTACTOS ══ -->
-      <div v-if="tab === 'contactos'">
+      <div v-if="tab === 'clientes'" class="mt-8">
+        <h3 class="mb-3 text-sm font-semibold text-foreground">Contactos por área</h3>
         <div>
           <ProyectoAreaContactosPanel
             :proyecto-id="proyecto.id"
@@ -545,7 +565,7 @@
       </div>
 
       <!-- ══ FRONTERAS ══ -->
-      <div v-if="tab === 'fronteras'">
+      <div v-if="tab === 'info' && seccion === 'fronteras'">
         <div>
           <DataTable :columns="COLUMNAS_FRONTERAS" :rows="fronteras" row-key="id">
             <template #cell="{ row, column }">
@@ -561,7 +581,7 @@
       </div>
 
       <!-- ══ ID LIQUIDACIONES ══ -->
-      <div v-if="tab === 'id-liquidaciones'">
+      <div v-if="tab === 'info' && seccion === 'id-liquidaciones'">
         <div class="space-y-3 text-sm">
           <p class="text-xs text-muted-foreground">
             <InfoIcon class="mr-1 size-3" />
@@ -604,7 +624,7 @@
       </div>
 
       <!-- ══ ID QUOIA ══ -->
-      <div v-if="tab === 'id-quoia'">
+      <div v-if="tab === 'info' && seccion === 'id-quoia'">
         <div class="space-y-4 text-sm">
           <p class="text-xs text-muted-foreground">
             <InfoIcon class="mr-1 size-3" />
@@ -689,6 +709,7 @@ import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
 import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
 import ServiciosDelProyecto from '~/features/proyectos/components/ServiciosDelProyecto.vue'
+import ClientesDelProyecto from '~/features/proyectos/components/ClientesDelProyecto.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
@@ -741,20 +762,49 @@ const activeTab = ref('general')
 // aparecer o no sin desplazar a las demas. Antes habia un TAB_INDEX numerico
 // que se recalculaba, y un ?tab=id-liquidaciones o ?tab=id-quoia podia caer en
 // la pestana equivocada segun si la planta tenia fronteras.
+// Tres pestañas principales: la ficha (con sus secciones como sub-pestañas), los
+// servicios y los clientes. Los enlaces viejos a una sección (`?tab=tecnico`,
+// `?tab=id-quoia`, `?tab=inversionistas`…) siguen sirviendo: `inicioDesdeUrl`
+// los traduce a su pestaña y sección.
 const TABS = computed(() => [
+  { key: 'info',      label: 'Información del proyecto', icon: InfoIcon },
+  { key: 'servicios', label: 'Servicios',                icon: BriefcaseIcon },
+  { key: 'clientes',  label: 'Clientes',                 icon: UsersIcon,
+    badge: proyecto.value?.inversionistas?.length || null },
+])
+
+const SECCIONES_INFO = computed(() => [
   { key: 'general',          label: 'General',          icon: InfoIcon },
   { key: 'tecnico',          label: 'Técnico',          icon: WrenchIcon },
   { key: 'simulacion',       label: 'Simulación',       icon: ChartLineIcon },
-  // Mismo orden que el detalle de Cliente: identidad -> contactos -> servicios
-  // -> relaciones -> integracion. Asi las tres vistas se leen igual.
-  { key: 'contactos',        label: 'Contactos',        icon: MailIcon },
-  { key: 'servicios',        label: 'Servicios',        icon: BriefcaseIcon },
-  { key: 'inversionistas',   label: 'Inversionistas',   icon: UsersIcon },
   { key: 'fronteras',        label: 'Fronteras',        icon: GlobeIcon,
     badge: fronteras.value.length || null, oculta: !fronteras.value.length },
   { key: 'id-liquidaciones', label: 'ID liquidaciones', icon: DollarSignIcon },
   { key: 'id-quoia',         label: 'ID Quoia',         icon: LinkIcon },
 ])
+const seccionesVisibles = computed(() => SECCIONES_INFO.value.filter((s) => !s.oculta))
+const SECCIONES_DE_CLIENTES = ['inversionistas', 'contactos']
+
+function inicioDesdeUrl() {
+  const t = typeof route.query.tab === 'string' ? route.query.tab : ''
+  const sec = typeof route.query.seccion === 'string' ? route.query.seccion : ''
+  if (SECCIONES_DE_CLIENTES.includes(t)) return { tab: 'clientes', seccion: 'general' }
+  if (SECCIONES_INFO.value.some((s) => s.key === t)) return { tab: 'info', seccion: t }
+  return { tab: t || 'info', seccion: sec || 'general' }
+}
+const inicio = inicioDesdeUrl()
+activeTab.value = inicio.tab
+const seccion = ref(inicio.seccion)
+
+// La sección también queda en la URL, para recargar o compartir el enlace.
+watch(seccion, (s) => {
+  router.replace({ query: { ...route.query, tab: 'info', seccion: s } })
+})
+// Fronteras aparece después de cargar: si la sección pedida no está, la primera.
+watch(seccionesVisibles, (visibles) => {
+  if (fronteras.value.length || seccion.value !== 'fronteras') return
+  seccion.value = visibles[0]?.key ?? 'general'
+})
 
 // ── Modo edición ──────────────────────────────────────────────────────────────
 const isEditMode = computed(() => route.query.edit === 'true')
@@ -953,11 +1003,14 @@ watch([() => editForm.latitud, () => editForm.longitud], ([lat, lon]) => {
   }
 })
 
-function enterEditMode() {
+async function enterEditMode() {
   // replace, no push -- entrar/salir de edicion es un cambio de estado de la
   // UI, no una navegacion real; con push se acumulan entradas de historial y
   // el boton "atras" cae en el modo edicion en vez de la pagina anterior.
-  router.replace({ query: { edit: 'true' } })
+  // Lo que se edita vive en Información del proyecto: se abre ahí. Primero la
+  // URL y después la pestaña: al revés, la pestaña reescribe la URL sin `edit`.
+  await router.replace({ query: { edit: 'true', tab: 'info', seccion: seccion.value } })
+  activeTab.value = 'info'
 }
 
 function cancelEdit() {
