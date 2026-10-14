@@ -3,15 +3,21 @@
  * el cumplimiento PPA del mes (la llamada a la API de Unergy, más lenta).
  */
 import type { KpisOperativos } from '~/types/dashboard'
-import type { ResumenCumplimientoPpa } from '~/features/dashboard/types'
+import type { Atencion, ResumenCumplimientoPpa } from '~/features/dashboard/types'
 import { BaseService } from '~/core/service'
 
 const RUTAS = {
   kpis: '/dashboard/kpis',
+  atencion: '/dashboard/atencion',
   cumplimientoPpaResumen: '/cumplimiento/ppa/resumen',
 } as const
 
 export class DashboardService extends BaseService {
+  /** Lo que pide atención: contratos por vencer, plantas sin operación, arrendadores sin cliente. */
+  obtenerAtencion(): Promise<Atencion> {
+    return this.get<Atencion>(RUTAS.atencion)
+  }
+
   obtenerKpis(): Promise<KpisOperativos> {
     return this.get<KpisOperativos>(RUTAS.kpis)
   }

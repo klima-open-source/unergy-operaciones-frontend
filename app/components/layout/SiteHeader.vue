@@ -2,6 +2,7 @@
 import { APP_BRANDING } from '~/config/app'
 import { NAVIGATION_ITEMS } from '~/config/navigation'
 import { isPrefixOf } from '~/core/permissions'
+import BusquedaGlobal from '~/features/busqueda/components/BusquedaGlobal.vue'
 
 // Page title from NAVIGATION_ITEMS, children included (they have no `to` of
 // their own to match against `route.path`, but the pages behind them still
@@ -26,7 +27,10 @@ const pageTitle = computed(
       <SidebarTrigger class="-ml-1" />
       <Separator orientation="vertical" class="mx-2 data-[orientation=vertical]:h-4" />
       <h1 class="text-base font-medium">{{ pageTitle }}</h1>
-      <NotificationsBell class="ml-auto" />
+      <div class="ml-auto flex items-center gap-2">
+        <BusquedaGlobal />
+        <NotificationsBell />
+      </div>
     </div>
   </header>
 </template>

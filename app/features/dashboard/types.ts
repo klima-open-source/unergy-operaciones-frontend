@@ -25,3 +25,25 @@ export interface ResumenCumplimientoPpa {
   totales?: TotalesCumplimientoPpa
   contratos?: ContratoCumplimientoPpa[]
 }
+
+/** Una fila de «lo que pide atención»: qué es y la ficha donde se resuelve. */
+export interface ItemAtencion {
+  id: number
+  titulo: string
+  detalle: string
+  url: string
+}
+
+export interface ListaAtencion {
+  total: number
+  /** Los primeros 8. */
+  items: ItemAtencion[]
+}
+
+/** `GET /dashboard/atencion`. */
+export interface Atencion {
+  contratos_por_vencer: ListaAtencion
+  plantas_sin_operacion: ListaAtencion
+  arrendadores_sin_cliente: ListaAtencion
+  dias_por_vencer: number
+}

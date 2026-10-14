@@ -15,6 +15,7 @@ import {
   ZapIcon,
 } from '@lucide/vue'
 import { logger } from '~/core/logger'
+import DashboardAtencion from '~/features/dashboard/components/DashboardAtencion.vue'
 import DashboardCriticalAlerts from '~/features/dashboard/components/DashboardCriticalAlerts.vue'
 import DashboardCumplimientoCard from '~/features/dashboard/components/DashboardCumplimientoCard.vue'
 import DashboardKpiCard from '~/features/dashboard/components/DashboardKpiCard.vue'
@@ -152,6 +153,8 @@ onMounted(loadKpis)
       <h1 class="text-lg font-extrabold text-foreground">Dashboard</h1>
       <p class="mt-0.5 text-xs text-muted-foreground">Resumen operativo de la plataforma</p>
     </div>
+
+    <DashboardAtencion />
 
     <AsyncView :query="kpisQuery">
       <template #loading>
