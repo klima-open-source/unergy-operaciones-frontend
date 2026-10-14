@@ -26,14 +26,11 @@ import {
   getRefreshToken,
   isPreviewToken,
   isTokenExpired,
+  salirAlLogin,
   setAccessToken,
   setRefreshToken,
 } from '~/core/security'
 import { toast } from 'vue-sonner'
-
-/** Rutas del propio frontend a las que se devuelve una sesión caducada. */
-const LOGIN_PATH = '/login'
-const LOGIN_PATH_MOVIL = '/m/login'
 
 /** Ruta de Nitro que cambia el refresh de Unergy Auth por un access nuevo. */
 const RUTA_REFRESCO = '/unergy-auth/refresh'
@@ -104,9 +101,7 @@ export const apiClient: $Fetch = ofetch.create({
       if (isPreviewToken(getAccessToken())) return
 
       clearTokens()
-      const enMovil =
-        window.location.pathname.startsWith('/m/') || window.location.pathname === '/m'
-      window.location.href = enMovil ? LOGIN_PATH_MOVIL : LOGIN_PATH
+      salirAlLogin()
       return
     }
 

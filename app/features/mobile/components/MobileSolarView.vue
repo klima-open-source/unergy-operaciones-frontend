@@ -333,7 +333,6 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import {
   BellIcon,
@@ -382,7 +381,6 @@ import MobileTabBar from '~/features/mobile/components/components/MobileTabBar.v
 import FallaCreateSheet from '~/features/mobile/components/components/FallaCreateSheet.vue'
 import FallaDetailSheet from '~/features/mobile/components/components/FallaDetailSheet.vue'
 
-const router = useRouter()
 const { user, signOut, can } = useAuth()
 const { register } = usePwa()
 const fallasService = new FallasService()
@@ -687,7 +685,6 @@ function onReconnectDone({ active }: { active: boolean }): void {
 // ── Sesión ─────────────────────────────────────────────────────────────────
 function cerrarSesion(): void {
   signOut()
-  router.replace('/m/login')
 }
 
 // ── Ciclo de vida ─────────────────────────────────────────────────────────

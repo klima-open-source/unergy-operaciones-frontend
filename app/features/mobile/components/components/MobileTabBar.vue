@@ -28,12 +28,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { ChartColumnIcon, LogOutIcon, MailIcon, SunIcon, WrenchIcon } from '@lucide/vue'
 import { UserRole } from '~/types/user'
 
 const { user, signOut } = useAuth()
-const router = useRouter()
 const rol = computed(() => user.value?.role)
 const esCoordinadorOTecnico = computed(
   () => rol.value === UserRole.COORDINADOR || rol.value === UserRole.TECNICO,
@@ -47,7 +45,6 @@ const itemClass =
 
 function logout(): void {
   signOut()
-  router.push('/m/login')
 }
 </script>
 

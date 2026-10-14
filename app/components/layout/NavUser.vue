@@ -69,7 +69,7 @@ function toggleMode() {
 
           <DropdownMenuItem @select="signOut">
             <LogOutIcon class="size-4" />
-            Sign out
+            Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

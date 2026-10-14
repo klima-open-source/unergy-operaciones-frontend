@@ -28,6 +28,7 @@ import { ROLE_PERMISSIONS } from '~/config/permissions'
 import { AppError } from '~/core/errors'
 import {
   clearTokens,
+  salirAlLogin,
   decodeJwtPayload,
   getAccessToken,
   getRefreshToken,
@@ -170,9 +171,15 @@ export function useAuth() {
     aplicarToken(token)
   }
 
+  /**
+   * Cierra la sesión y saca de la vista actual al login (el de escritorio o el
+   * móvil, según dónde se esté): sin eso la página seguía mostrando los datos
+   * ya cargados, porque la guarda de rutas solo corre al navegar.
+   */
   function signOut(): void {
     state.value = { user: null, accessToken: null }
     clearTokens()
+    salirAlLogin()
   }
 
   /** Solo en desarrollo: simula una sesión sin backend para previsualizar vistas por rol. */

@@ -115,6 +115,22 @@ export function clearTokens(): void {
   }
 }
 
+/** El login de escritorio y el de la app móvil (`/m/*`). */
+export const LOGIN_PATH = '/login'
+export const LOGIN_PATH_MOVIL = '/m/login'
+
+/**
+ * Sale al login que corresponde a la página actual con una navegación COMPLETA
+ * (no `navigateTo`): así no queda en memoria nada de la vista ni del usuario
+ * anterior (`useState`, cachés de los composables). `replace` para que «atrás»
+ * no devuelva a la página protegida. Solo en el navegador.
+ */
+export function salirAlLogin(): void {
+  if (!import.meta.client) return
+  const enMovil = window.location.pathname === '/m' || window.location.pathname.startsWith('/m/')
+  window.location.replace(enMovil ? LOGIN_PATH_MOVIL : LOGIN_PATH)
+}
+
 // ── Helpers de JWT ───────────────────────────────────────────────────────────
 // Decodifican el payload SIN verificar la firma. La verificación es
 // responsabilidad del backend; el frontend solo lee claims (sub, rol, exp…).
