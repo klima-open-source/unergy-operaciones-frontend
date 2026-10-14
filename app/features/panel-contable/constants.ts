@@ -29,9 +29,20 @@ export const ANIOS = [2025, 2026]
 export const TABS: { value: TabPanelContable; label: string }[] = [
   { value: TabPanelContable.PRELIQUIDACION, label: 'Preliquidación' },
   { value: TabPanelContable.OFICIAL, label: 'Oficial' },
+  { value: TabPanelContable.AJUSTES, label: 'Ajustes' },
   { value: TabPanelContable.SELECCION, label: 'Selección' },
   { value: TabPanelContable.DIFERENCIA, label: 'Diferencia' },
   { value: TabPanelContable.CLASIFICACION, label: 'Clasificación' },
+]
+
+/**
+ * Secciones del panel de AJUSTE de una reliquidación. Son dos y no cuatro a
+ * propósito: el OPEX no se reliquida y un ajuste no emite factura, así que
+ * `costos` y `facturas` ni siquiera se guardan (ver `services/ajustes.py`).
+ */
+export const SECCIONES_AJUSTE: { key: string; keys: GrupoLinea[]; label: string }[] = [
+  { key: 'ingresos', keys: [GrupoLinea.INGRESOS], label: 'INGRESOS' },
+  { key: 'comercializacion', keys: [GrupoLinea.COMERCIALIZACION], label: 'COMERCIALIZACIÓN XM' },
 ]
 
 export const OPCIONES_TIPO_LIQUIDACION: { value: TipoLiquidacion; label: string }[] = [

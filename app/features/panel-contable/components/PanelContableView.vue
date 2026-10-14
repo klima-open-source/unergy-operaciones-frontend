@@ -19,6 +19,7 @@ import {
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
+import AjustesTab from '~/features/panel-contable/components/AjustesTab.vue'
 import CargarErDialog from '~/features/panel-contable/components/CargarErDialog.vue'
 import ClasificacionTab from '~/features/panel-contable/components/ClasificacionTab.vue'
 import DetalleProyecto from '~/features/panel-contable/components/DetalleProyecto.vue'
@@ -32,6 +33,7 @@ import {
   TABS,
 } from '~/features/panel-contable/constants'
 import { PanelContableService } from '~/features/panel-contable/services/panel-contable'
+import { esAjuste } from '~/features/panel-contable/utils/ajustes'
 import {
   type DocumentoContable,
   type LineaPanel,
@@ -41,6 +43,7 @@ import {
   type RespuestaCargarEr,
   type RespuestaConsecutivosUsados,
   type RespuestaContraste,
+  type TipoPanelDatos,
   FiltroEstadoLiquidacion,
   FiltroMarcador,
   GrupoLinea,
@@ -395,23 +398,30 @@ async function onCeldaCambiada(panel: PanelContable, linea: LineaPanel, texto: s
 // ── Flujo de carga: confirmar período en diálogo → abrir selector de archivos.
 // El Excel quedó SOLO para NEU y Nitro: su dato en la API está malo. ──
 const showPeriodoDialog = ref(false)
-const tipoCarga = ref<TipoPanel>(TipoPanel.PRELIQUIDACION)
+const tipoCarga = ref<TipoPanelDatos>(TipoPanel.PRELIQUIDACION)
 const tipoCargaConfirm = ref<TipoLiquidacion>(TipoLiquidacion.NORMAL)
 const rechazados = ref<RechazoEr[]>([])
 const resultadoCarga = ref<RespuestaCargarEr | null>(null)
 const uploading = ref(0)
 const erInput = ref<HTMLInputElement | null>(null)
+/** Sube de uno tras cargar un ajuste: fuerza el remontaje de la pestaña Ajustes. */
+const recargaAjustes = ref(0)
+
+/** A qué pestaña llevar tras elegir qué se sube. */
+function tabDeTipo(tipo: TipoPanelDatos): TabPanelContable {
+  if (esAjuste(tipo)) return TabPanelContable.AJUSTES
+  return tipo === TipoPanel.OFICIAL ? TabPanelContable.OFICIAL : TabPanelContable.PRELIQUIDACION
+}
 
 function onConfirmarCarga(payload: {
   periodo: string
-  tipo: TipoPanel
+  tipo: TipoPanelDatos
   tipoCarga: TipoLiquidacion
 }) {
   periodo.value = payload.periodo
   tipoCarga.value = payload.tipo
   tipoCargaConfirm.value = payload.tipoCarga
-  tab.value =
-    payload.tipo === TipoPanel.OFICIAL ? TabPanelContable.OFICIAL : TabPanelContable.PRELIQUIDACION
+  tab.value = tabDeTipo(payload.tipo)
   nextTick(() => erInput.value?.click())
 }
 
@@ -437,7 +447,10 @@ async function onErSelected(e: Event) {
       duration: 3500,
     })
     // Tras cargar la OFICIAL, ir a Diferencia para mostrar la comparación al instante.
-    if (tipoSubida === TipoPanel.OFICIAL) tab.value = TabPanelContable.DIFERENCIA
+    // Un ajuste no se compara con nada —su ER ya ES la diferencia—: se fuerza el
+    // remontaje de su pestaña para que muestre lo recién subido.
+    if (esAjuste(tipoSubida)) recargaAjustes.value++
+    else if (tipoSubida === TipoPanel.OFICIAL) tab.value = TabPanelContable.DIFERENCIA
     else await cargarPaneles()
   } catch (err) {
     logger.error('panel-contable', err)
@@ -921,6 +934,11 @@ async function exportarExcel() {
             @celda-cambiada="onCeldaCambiada"
           />
         </template>
+      </GTabsContent>
+
+      <!-- ── AJUSTES (reliquidaciones) ── -->
+      <GTabsContent :value="TabPanelContable.AJUSTES">
+        <AjustesTab :key="recargaAjustes" :periodo="periodo" :periodo-label="periodoLabel" />
       </GTabsContent>
 
       <!-- ── DIFERENCIA ── -->
