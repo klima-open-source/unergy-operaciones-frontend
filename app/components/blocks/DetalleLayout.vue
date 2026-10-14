@@ -108,6 +108,9 @@ function inicial() {
 }
 
 const tabActiva = ref(inicial())
+// Si la inicial salio de la URL, la vista padre todavia tiene la de su v-model:
+// sin avisarle, marcaba la pestaña y mostraba el contenido de otra.
+if (tabActiva.value !== props.modelValue) emit('update:modelValue', tabActiva.value)
 
 function seleccionar(key) {
   if (key === tabActiva.value) return

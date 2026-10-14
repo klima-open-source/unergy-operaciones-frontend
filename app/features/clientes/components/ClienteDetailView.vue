@@ -11,6 +11,7 @@ import {
   FilePenIcon,
   FolderIcon,
   GlobeIcon,
+  LandmarkIcon,
   LayoutGridIcon,
   MailIcon,
   Trash2Icon,
@@ -23,6 +24,7 @@ import { ClientesService } from '~/features/clientes/services/clientes'
 import { formatearNombre } from '~/utils/nombreFormato'
 import ClienteDocumentosTab from './ClienteDocumentosTab.vue'
 import ClienteForm from './ClienteForm.vue'
+import ClientePatrimoniosTab from './ClientePatrimoniosTab.vue'
 import ClienteResumen from './ClienteResumen.vue'
 import ClienteServiciosTab from './ClienteServiciosTab.vue'
 
@@ -46,6 +48,7 @@ const tabs = [
   { key: 'proyectos', label: 'Proyectos', icon: ZapIcon },
   { key: 'fronteras', label: 'Fronteras', icon: GlobeIcon },
   { key: 'ppa', label: 'Contratos PPA', icon: FilePenIcon },
+  { key: 'patrimonios', label: 'Patrimonios', icon: LandmarkIcon },
 ]
 
 const clientesService = new ClientesService()
@@ -206,6 +209,14 @@ async function doDelete() {
             :documentos="cliente.documentos_comerciales ?? []"
             :nombre-cliente="formatearNombre(cliente.razon_social_nombre) ?? ''"
             @changed="cargar"
+          />
+        </div>
+
+        <!-- ── Tab: Patrimonios (si es una fiduciaria) ── -->
+        <div v-if="activeTab === 'patrimonios'">
+          <ClientePatrimoniosTab
+            :cliente-id="clienteId"
+            :nombre-cliente="cliente.razon_social_nombre"
           />
         </div>
 
