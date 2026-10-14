@@ -540,49 +540,8 @@
 
       <!-- ══ SERVICIOS ══ -->
       <div v-if="tab === 'servicios'">
-        <div class="space-y-4">
-
-          <!-- Cards de servicio -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div
-              v-for="srv in SERVICIOS_CARDS" :key="srv.key"
-              class="relative flex flex-col items-center gap-3 rounded-xl border-2 p-5 cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 select-none"
-              :class="srvFlags[srv.key] ? 'shadow-sm bg-(--bg) border-(--bd)' : 'bg-muted border-border'"
-              :style="{ '--c': srv.color, '--bg': srv.bg, '--bd': srv.color + '40', '--tint': srv.color + '25' }"
-              @click="clickServicio(srv)"
-            >
-              <div class="size-12 rounded-full flex items-center justify-center"
-                :class="srvFlags[srv.key] ? 'bg-(--tint)' : 'bg-border'">
-                <component :is="srv.icon" class="size-6" :class="srvFlags[srv.key] ? 'text-(--c)' : 'text-muted-foreground'" />
-              </div>
-              <span class="text-sm font-semibold text-center"
-                :class="srvFlags[srv.key] ? 'text-(--c)' : 'text-muted-foreground'">
-                {{ srv.label }}
-              </span>
-              <span v-if="srvFlags[srv.key]"
-                class="absolute top-2 right-2 size-2 rounded-full bg-(--c)" />
-              <ExternalLinkIcon class="absolute bottom-2 right-2 text-muted-foreground size-3" v-if="srv.key === 'ppa'" />
-            </div>
-          </div>
-
-          <!-- Qué servicios tiene la planta. No se editan: salen de sus contratos
-               vigentes (reemplazan a las banderas que se prendían a mano). Para
-               cambiarlos, se carga o se cierra el contrato. -->
-          <div class="pt-2 border-t border-border">
-            <p class="text-xs text-muted-foreground mb-3">Servicios según contratos vigentes</p>
-            <div class="flex flex-wrap gap-3">
-              <div v-for="srv in SERVICIOS_FLAGS" :key="srv.key + '_estado'"
-                class="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
-                <span class="size-2 rounded-full" :class="srvFlags[srv.key] ? 'bg-success' : 'bg-border'" />
-                <span class="text-xs text-muted-foreground">{{ srv.label }}</span>
-                <span class="text-xs font-semibold" :class="srvFlags[srv.key] ? 'text-success' : 'text-muted-foreground'">
-                  {{ srvFlags[srv.key] ? 'Sí' : 'No' }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <!-- PPA, Representación y CGM, y Operación, con su detalle, sin salir de la ficha. -->
+        <ServiciosDelProyecto :proyecto-id="Number(route.params.id)" :activos="srvFlags" />
       </div>
 
       <!-- ══ FRONTERAS ══ -->
@@ -716,7 +675,7 @@
 </template>
 
 <script setup>
-import { BriefcaseIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { BriefcaseIcon, ChartLineIcon, CheckIcon, CircleAlertIcon, DollarSignIcon, FileSpreadsheetIcon, GlobeIcon, InfoIcon, LinkIcon, MailIcon, MapPinIcon, PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon, TriangleAlertIcon, UsersIcon, WrenchIcon, XIcon } from '@lucide/vue'
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DataTable from '~/components/blocks/DataTable.vue'
@@ -729,6 +688,7 @@ import { LiquidacionesApiService } from '~/features/liquidaciones/services/liqui
 import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
 import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
+import ServiciosDelProyecto from '~/features/proyectos/components/ServiciosDelProyecto.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
@@ -750,15 +710,6 @@ const TIPOS_PROYECTO = ['minigranja', 'autoconsumo', 'gd', 'movilidad_electrica'
 const TIPOS_TECNOLOGIA = ['solar', 'eolica', 'hidraulica', 'biomasa', 'otra']
 const CLASIFICACIONES = ['AGP', 'AGPE', 'AGGE', 'GD', 'DER', 'otra']
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-const SERVICIOS_CARDS = [
-  { key: 'ppa',           label: 'PPA',           icon: ZapIcon,       color: '#f59e0b', bg: '#fef3c7' },
-  { key: 'operacion',     label: 'Operación',     icon: WrenchIcon,     color: '#10b981', bg: '#ecfdf5' },
-  { key: 'representacion', label: 'Representación', icon: FilePenIcon,  color: '#3b82f6', bg: '#eff6ff' },
-]
-const SERVICIOS_FLAGS = [
-  ...SERVICIOS_CARDS,
-  { key: 'cgm',     label: 'CGM',     icon: ChartColumnIcon, color: '#10b981', bg: '#ecfdf5' },
-]
 const FRONTERA_ESTADO_SEVERITY = { activa: 'success', en_registro: 'warning', en_falla: 'destructive', cancelada: 'default' }
 
 // ── Estado base ───────────────────────────────────────────────────────────────
@@ -1244,12 +1195,6 @@ async function guardarEdicionInversionista(invId) {
   } finally {
     guardando.value = false
   }
-}
-
-// ── Servicios ─────────────────────────────────────────────────────────────────
-// Cada tarjeta lleva a la pantalla de su servicio, cuya ruta es su `key`.
-function clickServicio(srv) {
-  router.push(`/proyectos/${route.params.id}/${srv.key}`)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

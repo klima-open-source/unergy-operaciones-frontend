@@ -15,10 +15,10 @@
 <template>
   <div class="space-y-4">
 
-    <!-- Migas -->
+    <!-- Migas. Dentro de la ficha del proyecto (pestaña Servicios) solo quedan las acciones. -->
     <div class="flex items-center gap-2">
-      <Button variant="ghost" size="icon-sm" class="-ml-1" @click="$router.back()"><ArrowLeftIcon class="size-4" /></Button>
-      <div>
+      <Button v-if="!embebido" variant="ghost" size="icon-sm" class="-ml-1" @click="$router.back()"><ArrowLeftIcon class="size-4" /></Button>
+      <div v-if="!embebido">
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
             @click="$router.push(`/proyectos/${route.params.id}`)">{{ proyectoNombre || '…' }}</span>
@@ -551,6 +551,8 @@ import {
 import { hoyColombia } from '~/utils/fecha'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
+/** `embebido`: se muestra dentro de la pestaña Servicios del proyecto, sin migas ni «atrás». */
+defineProps({ embebido: { type: Boolean, default: false } })
 
 const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()

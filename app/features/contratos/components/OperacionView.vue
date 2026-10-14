@@ -2,7 +2,8 @@
   <div class="space-y-5">
 
     <!-- ── Header ───────────────────────────────────────────────────────────── -->
-    <div class="flex items-center gap-2">
+    <!-- Dentro de la ficha del proyecto (pestaña Servicios) sobran las migas. -->
+    <div v-if="!embebido" class="flex items-center gap-2">
       <Button variant="ghost" size="icon-sm" class="-ml-1" @click="$router.back()"><ArrowLeftIcon class="size-4" /></Button>
       <div>
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
@@ -997,6 +998,8 @@ import {
   clientePorNombre,
   clientes as cargarClientes,
 } from '~/features/clientes/services/catalogoClientes'
+/** `embebido`: se muestra dentro de la pestaña Servicios del proyecto, sin migas ni «atrás». */
+defineProps({ embebido: { type: Boolean, default: false } })
 
 const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
