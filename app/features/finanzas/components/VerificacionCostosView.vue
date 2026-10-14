@@ -12,12 +12,25 @@
           <InputGroupInput v-model="q" placeholder="Proyecto…" />
         </InputGroup>
       </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Costos generador</label>
+        <Select v-model="fGenerador" :options="OPCIONES_FILTRO_COSTOS"
+                optionLabel="label" optionValue="value" class="w-40" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-muted-foreground">Costos comercializador</label>
+        <Select v-model="fComercializador" :options="OPCIONES_FILTRO_COSTOS"
+                optionLabel="label" optionValue="value" class="w-40" />
+      </div>
+      <Button v-if="filtrando" label="Limpiar" size="small" text @click="limpiarFiltros" />
       <div class="flex-1" />
       <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
         <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
       </Button>
       <div class="text-xs text-muted-foreground self-center">
-        {{ filtrados.length }} proyecto{{ filtrados.length === 1 ? '' : 's' }}
+        {{ filtrados.length }}
+        <template v-if="filtrando">de {{ filas.length }}</template>
+        proyecto{{ filtrados.length === 1 ? '' : 's' }}
       </div>
     </div>
 
@@ -142,7 +155,11 @@
             <tr v-if="!filtrados.length">
               <td colspan="5" class="px-4 py-12 text-center text-sm text-muted-foreground">
                 <SquareCheckIcon class="mb-2 block text-muted-foreground size-6" />
-                No hay proyectos GD/minigranja en operación.
+                <template v-if="filtrando">
+                  Ningún proyecto cumple el filtro.
+                  <Button label="Limpiar filtros" size="small" text @click="limpiarFiltros" />
+                </template>
+                <template v-else>No hay proyectos GD/minigranja en operación.</template>
               </td>
             </tr>
           </tbody>
@@ -207,7 +224,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
+import Select from 'primevue/select'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
+import {
+  FiltroCostos,
+  OPCIONES_FILTRO_COSTOS,
+  filtrarVerificacion,
+  hayFiltros,
+} from '~/features/finanzas/utils/verificacionCostos'
 import { formatearNombreProyecto } from '~/features/proyectos/components/proyectosUi'
 
 const liquidacionesApi = new LiquidacionesApiService()
@@ -218,14 +242,26 @@ const TIPOS_INCLUIDOS = ['gd', 'minigranja']
 const ESTADO_OPERATIVA = 'en_operacion'
 
 const q = ref('')
+const fGenerador = ref(FiltroCostos.TODOS)
+const fComercializador = ref(FiltroCostos.TODOS)
 const loading = ref(true)
 const error = ref(null)
 const filas = ref([])
 
-const filtrados = computed(() => {
-  const term = q.value.trim().toLowerCase()
-  return filas.value.filter(f => !term || f.nombre_comercial.toLowerCase().includes(term))
-})
+const filtros = computed(() => ({
+  texto: q.value,
+  generador: fGenerador.value,
+  comercializador: fComercializador.value,
+}))
+
+const filtrados = computed(() => filtrarVerificacion(filas.value, filtros.value))
+const filtrando = computed(() => hayFiltros(filtros.value))
+
+function limpiarFiltros() {
+  q.value = ''
+  fGenerador.value = FiltroCostos.TODOS
+  fComercializador.value = FiltroCostos.TODOS
+}
 
 // Cuántos de los proyectos listados reciben cada grupo de conceptos.
 // AC Power sumado del grupo, más cuántos proyectos lo componen y cuántos de
