@@ -171,10 +171,17 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
                   class="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5"
                 >
                   <div class="min-w-0">
-                    <TruncatedText
-                      :text="c.proyecto_nombre || 'Sin planta'"
-                      class="text-sm font-semibold"
-                    />
+                    <NuxtLink
+                      v-if="c.proyecto_id"
+                      :to="`/proyectos/${c.proyecto_id}?tab=servicios`"
+                      class="block hover:text-primary hover:underline"
+                    >
+                      <TruncatedText
+                        :text="c.proyecto_nombre || `Planta #${c.proyecto_id}`"
+                        class="text-sm font-semibold"
+                      />
+                    </NuxtLink>
+                    <TruncatedText v-else text="Sin planta" class="text-sm font-semibold" />
                     <p class="text-xs text-muted-foreground">
                       {{ c.numero_contrato ? `N° ${c.numero_contrato} · ` : ''
                       }}{{ fmtFecha(c.fecha_inicio) }} → {{ fmtFecha(c.fecha_fin) }}
@@ -192,9 +199,11 @@ async function eliminarTasa(tasa: TasaServicioCliente) {
                       rel="noopener"
                       class="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                     >
-                      Abrir contrato
+                      Documento
                     </a>
-                    <span v-else class="text-xs text-muted-foreground italic">Sin link</span>
+                    <Button variant="outline" size="sm" as-child>
+                      <NuxtLink :to="`/contratos/${c.contrato_id}`">Ver contrato</NuxtLink>
+                    </Button>
                   </div>
                 </div>
               </CardContent>

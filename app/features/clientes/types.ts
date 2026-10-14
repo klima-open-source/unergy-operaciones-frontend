@@ -169,6 +169,8 @@ export interface ContratoPpaClienteResumen {
 }
 
 export interface ContratoServicioResumen {
+  /** La planta del contrato (`servicios_contratos` en el backend). */
+  proyecto_id?: number | null
   contrato_id: number
   proyecto_nombre?: string | null
   numero_contrato?: string | null

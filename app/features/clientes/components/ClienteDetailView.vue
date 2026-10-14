@@ -6,7 +6,6 @@ import type {
   ProyectoClienteResumen,
 } from '~/features/clientes/types'
 import {
-  BriefcaseIcon,
   ChevronRightIcon,
   FilePenIcon,
   FolderIcon,
@@ -37,16 +36,23 @@ const ROL_LABELS: Record<string, string> = {
   ppa: 'PPA',
 }
 
+// Seis pestañas (antes ocho): las plantas con sus fronteras, y todos los
+// contratos —PPA y servicios— juntos. Los enlaces viejos (?tab=proyectos,
+// ?tab=fronteras, ?tab=servicios, ?tab=ppa) abren la pestaña que los contiene.
 const tabs = [
   { key: 'resumen', label: 'Resumen', icon: LayoutGridIcon },
   { key: 'info', label: 'Información', icon: UserIcon },
+  { key: 'plantas', label: 'Plantas', icon: ZapIcon },
+  { key: 'contratos', label: 'Contratos', icon: FilePenIcon },
   { key: 'contactos', label: 'Contactos', icon: MailIcon },
-  { key: 'servicios', label: 'Servicios', icon: BriefcaseIcon },
   { key: 'documentos', label: 'Documentos', icon: FolderIcon },
-  { key: 'proyectos', label: 'Proyectos', icon: ZapIcon },
-  { key: 'fronteras', label: 'Fronteras', icon: GlobeIcon },
-  { key: 'ppa', label: 'Contratos PPA', icon: FilePenIcon },
 ]
+const TAB_NUEVA: Record<string, string> = {
+  proyectos: 'plantas',
+  fronteras: 'plantas',
+  servicios: 'contratos',
+  ppa: 'contratos',
+}
 
 const clientesService = new ClientesService()
 const confirm = useConfirm()
@@ -56,7 +62,13 @@ const router = useRouter()
 const clienteId = computed(() => Number(route.params.id))
 
 const cliente = ref<ClienteDetalle | null>(null)
-const activeTab = ref('resumen') // DetalleLayout sincroniza con ?tab=
+const tabPedida = typeof route.query.tab === 'string' ? route.query.tab : ''
+// La pestaña de la URL desde el primer render: DetalleLayout resalta la de
+// `?tab=` pero no la emite, y el contenido se quedaba en Resumen (pasaba con
+// los enlaces `?tab=contactos` de la ficha del proyecto).
+const activeTab = ref(
+  TAB_NUEVA[tabPedida] ?? (tabs.some((t) => t.key === tabPedida) ? tabPedida : 'resumen'),
+)
 const deleting = ref(false)
 
 async function cargar() {
@@ -78,11 +90,14 @@ const loadingRelated = ref(false)
 async function loadRelatedData(tab: string) {
   loadingRelated.value = true
   try {
-    if (tab === 'proyectos' && clienteProyectos.value.length === 0) {
-      clienteProyectos.value = await clientesService.listarProyectos(clienteId.value)
-    } else if (tab === 'fronteras' && clienteFronteras.value.length === 0) {
-      clienteFronteras.value = await clientesService.listarFronteras(clienteId.value)
-    } else if (tab === 'ppa' && clientePPA.value.length === 0) {
+    if (tab === 'plantas' && clienteProyectos.value.length === 0) {
+      const [proyectos, fronteras] = await Promise.all([
+        clientesService.listarProyectos(clienteId.value),
+        clientesService.listarFronteras(clienteId.value),
+      ])
+      clienteProyectos.value = proyectos
+      clienteFronteras.value = fronteras
+    } else if (tab === 'contratos' && clientePPA.value.length === 0) {
       clientePPA.value = await clientesService.listarContratosPpa(clienteId.value)
     }
   } catch (err) {
@@ -92,9 +107,13 @@ async function loadRelatedData(tab: string) {
   }
 }
 
-watch(activeTab, (tab) => {
-  if (['proyectos', 'fronteras', 'ppa'].includes(tab)) loadRelatedData(tab)
-})
+watch(
+  activeTab,
+  (tab) => {
+    if (['plantas', 'contratos'].includes(tab)) loadRelatedData(tab)
+  },
+  { immediate: true },
+)
 
 // ── Información (aviso de nombre parecido al editar) ─────────────────────────
 
@@ -194,11 +213,6 @@ async function doDelete() {
           <ContactosPanel :cliente-id="cliente.id" />
         </div>
 
-        <!-- ── Tab: Servicios ── -->
-        <div v-if="activeTab === 'servicios'">
-          <ClienteServiciosTab :cliente-id="clienteId" />
-        </div>
-
         <!-- ── Tab: Documentos ── -->
         <div v-if="activeTab === 'documentos'">
           <ClienteDocumentosTab
@@ -209,9 +223,12 @@ async function doDelete() {
           />
         </div>
 
-        <!-- ── Tab: Proyectos vinculados ── -->
-        <div v-if="activeTab === 'proyectos'" class="space-y-4">
-          <p class="text-sm text-muted-foreground">Proyectos asociados a este cliente.</p>
+        <!-- ── Tab: Plantas (y sus fronteras) ── -->
+        <div v-if="activeTab === 'plantas'" class="space-y-4">
+          <h3 class="text-xs font-bold tracking-wide text-muted-foreground uppercase">Plantas</h3>
+          <p class="text-sm text-muted-foreground">
+            Donde invierte o es parte de un contrato, con su papel en cada una.
+          </p>
           <div v-if="loadingRelated" class="flex justify-center py-8">
             <Spinner class="size-5" />
           </div>
@@ -251,9 +268,9 @@ async function doDelete() {
           </div>
         </div>
 
-        <!-- ── Tab: Fronteras ── -->
-        <div v-if="activeTab === 'fronteras'" class="space-y-4">
-          <p class="text-sm text-muted-foreground">Fronteras comerciales del cliente.</p>
+        <!-- ── Fronteras (dentro de Plantas) ── -->
+        <div v-if="activeTab === 'plantas'" class="mt-8 space-y-4">
+          <h3 class="text-xs font-bold tracking-wide text-muted-foreground uppercase">Fronteras</h3>
           <div v-if="loadingRelated" class="flex justify-center py-8">
             <Spinner class="size-5" />
           </div>
@@ -281,9 +298,9 @@ async function doDelete() {
           </div>
         </div>
 
-        <!-- ── Tab: Contratos PPA ── -->
-        <div v-if="activeTab === 'ppa'" class="space-y-4">
-          <p class="text-sm text-muted-foreground">Contratos PPA vinculados al cliente.</p>
+        <!-- ── Tab: Contratos (PPA arriba; servicios y tasas debajo) ── -->
+        <div v-if="activeTab === 'contratos'" class="space-y-4">
+          <h3 class="text-xs font-bold tracking-wide text-muted-foreground uppercase">PPA</h3>
           <div v-if="loadingRelated" class="flex justify-center py-8">
             <Spinner class="size-5" />
           </div>
@@ -315,6 +332,9 @@ async function doDelete() {
                 </ItemActions>
               </NuxtLink>
             </Item>
+          </div>
+          <div class="pt-4">
+            <ClienteServiciosTab :cliente-id="clienteId" />
           </div>
         </div>
       </template>
