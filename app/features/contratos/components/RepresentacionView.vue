@@ -21,7 +21,7 @@
       <div v-if="!embebido">
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
-            @click="$router.push(`/proyectos/${route.params.id}`)">{{ proyectoNombre || '…' }}</span>
+            @click="$router.push(`/proyectos/${pid}`)">{{ proyectoNombre || '…' }}</span>
           <span class="mx-1.5">›</span><span>Servicios</span>
           <span class="mx-1.5">›</span>
           <span class="font-medium text-foreground">Representación</span>
@@ -29,6 +29,7 @@
         <h2 class="text-lg font-bold text-foreground">Representación CGM</h2>
       </div>
       <div class="ml-auto flex items-center gap-2">
+        <Button v-if="c && embebido && !contratoId" variant="ghost" size="sm" as-child><NuxtLink :to="`/contratos/${c.id}`"><ExternalLinkIcon class="size-4" /> Abrir ficha</NuxtLink></Button>
         <Button variant="outline" size="sm" v-if="c" @click="confirmarEliminar"><Trash2Icon class="size-4 text-destructive" /> Eliminar</Button>
         <Button size="sm" @click="nuevoContrato"><PlusIcon class="size-4" /> Nuevo contrato</Button>
       </div>
@@ -51,7 +52,7 @@
     <template v-else>
       <!-- Selector: un contrato por inversionista. Los creados a mano pueden no
            traer inversionista, así que se rotulan con lo que tengan. -->
-      <div v-if="contratos.length > 1" class="flex items-center gap-2 flex-wrap">
+      <div v-if="contratos.length > 1 && !contratoId" class="flex items-center gap-2 flex-wrap">
         <span class="text-xs font-semibold text-muted-foreground">Contrato:</span>
         <button v-for="c in contratos" :key="c.id" type="button"
           class="text-xs px-3 py-1.5 rounded-full font-medium transition-all border"
@@ -551,8 +552,18 @@ import {
 import { hoyColombia } from '~/utils/fecha'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
-/** `embebido`: se muestra dentro de la pestaña Servicios del proyecto, sin migas ni «atrás». */
-defineProps({ embebido: { type: Boolean, default: false } })
+/**
+ * `embebido`: dentro de otra ficha (la del proyecto o la del contrato), sin migas ni «atrás».
+ * `proyectoId`: la planta, cuando la ruta no es la del proyecto (en /contratos/{id}).
+ * `contratoId`: muestra solo ese contrato, sin el selector entre los de la planta.
+ */
+const props = defineProps({
+  embebido: { type: Boolean, default: false },
+  proyectoId: { type: Number, default: null },
+  contratoId: { type: Number, default: null },
+})
+// Perezoso: `route` se declara más abajo, y esto se evalúa ya montado.
+const pid = computed(() => props.proyectoId ?? Number(route.params.id))
 
 const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
@@ -908,7 +919,7 @@ async function nuevoContrato() {
   try {
     const data = await contratosServicioService.crear({
       servicio_aplica: 'representacion',
-      proyecto_id: Number(route.params.id),
+      proyecto_id: pid.value,
       estado: 'firmado',
     })
     contratos.value.push(data)
@@ -921,24 +932,26 @@ async function nuevoContrato() {
 
 // ── Carga ────────────────────────────────────────────────────────────────────
 async function cargar() {
-  const pid = Number(route.params.id)
+  const planta = pid.value
   const data = await contratosServicioService.listar({
     tipo: 'representacion',
-    proyecto_id: pid,
+    proyecto_id: planta,
     limit: 500,
   })
   // El endpoint ensancha la búsqueda con codigo_tsf y con el número de la planta
   // en nombre_proyecto_ref, lo que puede traer contratos de otras plantas. Acá
   // interesa solo lo que está asociado a ESTA, que es lo que la vista dice ser.
-  contratos.value = data.filter(x => x.proyecto_id === pid)
-  if (contratos.value.length && !contratos.value.some(x => x.id === idSeleccionado.value)) {
+  contratos.value = data.filter(x => x.proyecto_id === planta)
+  if (props.contratoId && contratos.value.some(x => x.id === props.contratoId)) {
+    idSeleccionado.value = props.contratoId
+  } else if (contratos.value.length && !contratos.value.some(x => x.id === idSeleccionado.value)) {
     idSeleccionado.value = contratos.value[0].id
   }
 }
 
 onMounted(async () => {
   try {
-    const proyecto = await proyectosService.obtener(route.params.id)
+    const proyecto = await proyectosService.obtener(pid.value)
     proyectoNombre.value = proyecto.nombre_comercial || ''
   } catch { /* el nombre es decorativo: la vista funciona sin él */ }
   try {

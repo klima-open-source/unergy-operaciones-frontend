@@ -1,11 +1,9 @@
 <script setup>
 /**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
+ * La ficha de un contrato, de cualquier tipo: PPA, representación y CGM, u
+ * operación (mantenimiento, arriendo, internet). Ver `ContratoFicha.vue`.
  */
-import View from '~/features/contratos/components/ContratoDetailView.vue'
+import View from '~/features/contratos/components/ContratoFicha.vue'
 
 definePageMeta({ layout: 'legacy' })
 </script>

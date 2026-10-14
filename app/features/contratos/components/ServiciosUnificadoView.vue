@@ -485,6 +485,7 @@
                    :page-size="porPagina" :total="tablaServicios.total" :page-size-options="OPCIONES_POR_PAGINA"
                    :loading="loadingServicio" :max-height="scrollHeight" fixed-layout
                    :empty-message="`No hay contratos de ${servicioInfo?.label} registrados.`"
+                   @row-click="row => ir(`/contratos/${row.id}`)"
                    @update:page-size="porPagina = $event">
           <template #cell="{ row, column }">
             <!-- Proyecto va PRIMERO y con el nombre más grande: es lo que identifica
@@ -1877,17 +1878,9 @@ function confirmarBorrarCliente(row) {
   })
 }
 
-// Los contratos de servicio no tienen vista de detalle propia: se administran
-// desde la pestaña Servicios de su planta, que es donde viven tarifas y pagos.
+// Cada contrato tiene su ficha en /contratos/{id}, sea del tipo que sea.
 function irAEditarContratoServicio(row) {
-  if (!row.proyecto_id) {
-    toast.warning('Sin planta asociada', {
-      description: 'Este contrato no tiene proyecto_id, así que no hay página donde editarlo.',
-      duration: 5000,
-    })
-    return
-  }
-  ir(rutaDeLaPlanta(row, row.proyecto_id))
+  ir(`/contratos/${row.id}`)
 }
 
 function confirmarBorrarContratoServicio(row) {

@@ -40,6 +40,11 @@ export class ContratosServicioService extends BaseService {
     return this.get<ContratoServicio[]>(RUTAS.contratos, { query: filtros })
   }
 
+  /** Un contrato de servicio. 404 si el id es de un PPA (esos van por `PpaService`). */
+  obtener(id: ContratoServicio['id']): Promise<ContratoServicio> {
+    return this.get<ContratoServicio>(RUTAS.contrato(id))
+  }
+
   /**
    * `forzar`: el backend responde 409 con `duplicado_contrato` cuando la planta
    * ya tiene un contrato vigente de ese servicio (mismo patrón que clientes,

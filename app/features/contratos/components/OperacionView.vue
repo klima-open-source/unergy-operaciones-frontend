@@ -8,7 +8,7 @@
       <div>
         <p class="text-xs leading-none mb-0.5 text-muted-foreground">
           <span class="cursor-pointer hover:underline"
-            @click="$router.push(`/proyectos/${route.params.id}`)">
+            @click="$router.push(`/proyectos/${pid}`)">
             {{ proyectoNombre || '…' }}
           </span>
           <span class="mx-1.5">›</span>
@@ -29,7 +29,7 @@
     <!-- force-mount: el mapa de Internet se crea al cargar aunque su pestaña no se vea
          (ver el ResizeObserver de `initInternetMap`). -->
     <GTabs v-else v-model="pestana">
-      <GTabsList>
+      <GTabsList v-if="!contratoId">
         <GTabsTrigger value="mantenimiento"><WrenchIcon class="size-3" /> Mantenimiento</GTabsTrigger>
         <GTabsTrigger value="arriendo"><HouseIcon class="size-3" /> Arriendos</GTabsTrigger>
         <GTabsTrigger value="internet"><WifiIcon class="size-3" /> Internet</GTabsTrigger>
@@ -55,6 +55,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.mantenimiento.estado]">{{ CONTRATO_LABELS[contratos.mantenimiento.estado] }}</GBadge>
+<Button v-if="embebido && !contratoId" variant="ghost" size="sm" as-child><NuxtLink :to="`/contratos/${contratos.mantenimiento.id}`"><ExternalLinkIcon class="size-4" /> Abrir ficha</NuxtLink></Button>
                   <Button variant="ghost" size="sm" @click="openMantenimientoDialog('editar')"><PencilIcon class="size-4" /> Editar</Button>
                   <Button variant="outline" size="sm" @click="triggerExcelInput"><FileSpreadsheetIcon class="size-4" /> Cargar desde Excel</Button>
                   <input ref="excelInputRef" type="file" accept=".xlsx,.xls" class="hidden"
@@ -339,7 +340,8 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
-                  <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="Number(route.params.id)" @actualizado="recargarArriendo" />
+                  <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="pid" @actualizado="recargarArriendo" />
+<Button v-if="embebido && !contratoId" variant="ghost" size="sm" as-child><NuxtLink :to="`/contratos/${contratos.arriendo.id}`"><ExternalLinkIcon class="size-4" /> Abrir ficha</NuxtLink></Button>
                   <Button variant="ghost" size="sm" @click="openEditContrato('arriendo')"><PencilIcon class="size-4" /> Editar</Button>
                 </div>
               </div>
@@ -646,7 +648,7 @@
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de arriendo registrado</p>
               <p class="text-xs text-muted-foreground mb-4">No se encontró contrato de arriendo para este proyecto</p>
               <div class="flex items-center justify-center gap-2">
-                <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="Number(route.params.id)" @actualizado="recargarArriendo" />
+                <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="pid" @actualizado="recargarArriendo" />
                 <Button size="sm" class="bg-primary border-primary" @click="openWizard('arriendo')"><PlusIcon class="size-4" /> Crear contrato</Button>
               </div>
             </div>
@@ -669,6 +671,7 @@
                   <span class="text-sm font-semibold text-foreground">Servicio de Internet</span>
                   <GBadge :color="CONTRATO_SEVERITY[contratos.internet.estado]">{{ CONTRATO_LABELS[contratos.internet.estado] }}</GBadge>
                 </div>
+<Button v-if="embebido && !contratoId" variant="ghost" size="sm" as-child><NuxtLink :to="`/contratos/${contratos.internet.id}`"><ExternalLinkIcon class="size-4" /> Abrir ficha</NuxtLink></Button>
                 <Button variant="ghost" size="sm" @click="openEditContrato('internet')"><PencilIcon class="size-4" /> Editar</Button>
                 <Button variant="outline" size="sm" class="border-chart-2 text-chart-2" @click="openWizard('internet')"><PlusIcon class="size-4" /> Nuevo servicio</Button>
               </div>
@@ -832,7 +835,7 @@
       v-if="wizardVisible"
       :visible="wizardVisible"
       :tipo="wizardTipo"
-      :proyecto-id-default="Number(route.params.id)"
+      :proyecto-id-default="pid"
       @cerrar="wizardVisible = false"
       @creado="onContratoCreado"
     />
@@ -984,7 +987,7 @@
 
 <script setup>
 import { ArrowLeftIcon, BoxIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CheckIcon, ChevronDownIcon, CirclePlusIcon, CreditCardIcon, DatabaseIcon, DollarSignIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, FileIcon, FileInputIcon, FileOutputIcon, FileSpreadsheetIcon, FileTextIcon, FilterIcon, GaugeIcon, HouseIcon, LinkIcon, LockIcon, MonitorIcon, NetworkIcon, PencilIcon, PlusIcon, ShieldIcon, TableIcon, Trash2Icon, UserIcon, UsersIcon, WifiIcon, WrenchIcon, XIcon, ZapIcon } from '@lucide/vue'
-import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
@@ -998,8 +1001,27 @@ import {
   clientePorNombre,
   clientes as cargarClientes,
 } from '~/features/clientes/services/catalogoClientes'
-/** `embebido`: se muestra dentro de la pestaña Servicios del proyecto, sin migas ni «atrás». */
-defineProps({ embebido: { type: Boolean, default: false } })
+/**
+ * `embebido`: dentro de otra ficha (la del proyecto o la del contrato), sin migas ni «atrás».
+ * `proyectoId`: la planta, cuando la ruta no es la del proyecto (en /contratos/{id}).
+ * `contratoId` + `tipo`: muestra solo ese contrato (mantenimiento, arriendo o
+ * internet), sin las pestañas de los otros tipos.
+ */
+const props = defineProps({
+  embebido: { type: Boolean, default: false },
+  proyectoId: { type: Number, default: null },
+  contratoId: { type: Number, default: null },
+  tipo: { type: String, default: null },
+})
+// Perezoso: `route` se declara más abajo, y esto se evalúa ya montado.
+const pid = computed(() => props.proyectoId ?? Number(route.params.id))
+
+/** El contrato de un tipo que se muestra: el pedido, o el primero de la planta. */
+function elegir(lista, tipo) {
+  if (!lista?.length) return null
+  if (props.contratoId && props.tipo === tipo) return lista.find(c => c.id === props.contratoId) ?? lista[0]
+  return lista[0]
+}
 
 const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
@@ -1047,7 +1069,10 @@ const PERIODICIDADES = [
 ]
 
 const TABS_TIPOS = ['mantenimiento', 'arriendo', 'internet']
-const pestana = ref(TABS_TIPOS.includes(route.query.subtab) ? route.query.subtab : TABS_TIPOS[0])
+const pestana = ref(
+  TABS_TIPOS.includes(props.tipo) ? props.tipo
+    : TABS_TIPOS.includes(route.query.subtab) ? route.query.subtab : TABS_TIPOS[0],
+)
 
 const DIALOG_EDIT_TEXT = { mantenimiento: 'text-warning', arriendo: 'text-primary', internet: 'text-chart-2' }
 const DIALOG_EDIT_BG = { mantenimiento: 'bg-warning border-warning', arriendo: 'bg-primary border-primary', internet: 'bg-chart-2 border-chart-2' }
@@ -1240,7 +1265,7 @@ watch(() => [dialogEdit.form.ubicacion_lat, dialogEdit.form.ubicacion_lng], ([la
 
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 onMounted(async () => {
-  const proyId = route.params.id
+  const proyId = pid.value
   try {
     const [proyRes, mantRes, arrRes, netRes] = await Promise.allSettled([
       proyectosService.obtener(proyId),
@@ -1251,9 +1276,9 @@ onMounted(async () => {
 
     if (proyRes.status === 'fulfilled') proyectoNombre.value = proyRes.value.nombre_comercial
 
-    contratos.mantenimiento = mantRes.status === 'fulfilled' && mantRes.value.length ? mantRes.value[0] : null
-    contratos.arriendo      = arrRes.status  === 'fulfilled' && arrRes.value.length  ? arrRes.value[0]  : null
-    contratos.internet      = netRes.status  === 'fulfilled' && netRes.value.length  ? netRes.value[0]  : null
+    contratos.mantenimiento = mantRes.status === 'fulfilled' ? elegir(mantRes.value, 'mantenimiento') : null
+    contratos.arriendo      = arrRes.status  === 'fulfilled' ? elegir(arrRes.value, 'arriendo') : null
+    contratos.internet      = netRes.status  === 'fulfilled' ? elegir(netRes.value, 'internet') : null
 
     await cargarIndexacionOM()
     await cargarArrendadores()
@@ -1368,8 +1393,8 @@ const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
 /** Tras «Sincronizar con TSF»: el contrato, sus arrendadores y su indexación. */
 async function recargarArriendo() {
   try {
-    const data = await contratosServicioService.listar({ tipo: 'arriendo', proyecto_id: route.params.id })
-    contratos.arriendo = data.length ? data[0] : null
+    const data = await contratosServicioService.listar({ tipo: 'arriendo', proyecto_id: pid.value })
+    contratos.arriendo = elegir(data, 'arriendo')
     await cargarArrendadores()
     await cargarIndexacionArriendo()
   } catch (e) {
@@ -1379,10 +1404,10 @@ async function recargarArriendo() {
 
 async function onContratoCreado() {
   const tipo = wizardTipo.value
-  const proyId = route.params.id
+  const proyId = pid.value
   try {
     const data = await contratosServicioService.listar({ tipo, proyecto_id: proyId })
-    contratos[tipo] = data.length ? data[0] : null
+    contratos[tipo] = elegir(data, tipo)
     if (tipo === 'arriendo') {
       await cargarArrendadores()
       await cargarIndexacionArriendo()
@@ -1456,12 +1481,12 @@ async function saveMantenimiento() {
       periodicidad_pago:  dialogMant.form.periodicidad_pago,
     }
     if (dialogMant.modo === 'crear') {
-      const proyId = route.params.id
+      const proyId = pid.value
       payload.servicio_aplica = 'mantenimiento'
       payload.proyecto_id     = Number(proyId)
       await contratosServicioService.crear(payload)
       const data = await contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId })
-      contratos.mantenimiento = data.length ? data[0] : null
+      contratos.mantenimiento = elegir(data, 'mantenimiento')
     } else {
       const data = await contratosServicioService.actualizar(contratos.mantenimiento.id, payload)
       contratos.mantenimiento = { ...contratos.mantenimiento, ...data }
