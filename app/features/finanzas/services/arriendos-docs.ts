@@ -5,7 +5,12 @@
  * —incluidos los que no hicieron match—, así que subir un archivo puede producir
  * varios documentos.
  */
-import type { DocumentoArriendo, SubidaCuentaCobro } from '~/features/finanzas/types'
+import type {
+  ConsultaCuentasCobroTsf,
+  DocumentoArriendo,
+  ImportacionCuentasCobroTsf,
+  SubidaCuentaCobro,
+} from '~/features/finanzas/types'
 import { BaseService } from '~/core/service'
 
 const BASE = '/arriendos/documentos'
@@ -14,6 +19,7 @@ const RUTAS = {
   periodo: (periodo: string) => `${BASE}/${periodo}`,
   archivo: (docId: number) => `${BASE}/file/${docId}`,
   subirCuentaCobro: `${BASE}/upload-cuenta-cobro`,
+  cuentasCobroTsf: (periodo: string) => `/arriendos/originabot/cuentas-cobro/${periodo}`,
 } as const
 
 export class ArriendosDocsService extends BaseService {
@@ -46,6 +52,16 @@ export class ArriendosDocsService extends BaseService {
     // Sin `Content-Type` a mano: el interceptor lo quita para que el navegador
     // ponga el boundary del multipart.
     return this.post<unknown>(RUTAS.subirCuentaCobro, form)
+  }
+
+  /** Las cuentas de cobro del período en TSF, por planta. No escribe. */
+  cuentasCobroTsf(periodo: string): Promise<ConsultaCuentasCobroTsf> {
+    return this.get<ConsultaCuentasCobroTsf>(RUTAS.cuentasCobroTsf(periodo))
+  }
+
+  /** Descarga y guarda el documento de esos pagos de TSF. */
+  importarCuentasCobroTsf(periodo: string, pagos: string[]): Promise<ImportacionCuentasCobroTsf> {
+    return this.post<ImportacionCuentasCobroTsf>(RUTAS.cuentasCobroTsf(periodo), { pagos })
   }
 
   /** El PDF crudo, para dárselo al navegador. */

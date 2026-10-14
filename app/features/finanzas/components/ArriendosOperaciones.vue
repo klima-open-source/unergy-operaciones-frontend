@@ -39,11 +39,16 @@
         <Button variant="outline" size="sm" class="border-primary text-primary" @click="showIPCDialog = true">
           <ChartLineIcon class="size-4" /> IPC
         </Button>
+        <CuentasCobroTsf
+          v-if="unergyAuth"
+          :periodo="periodoActual"
+          :periodo-label="periodoLabel"
+          @importados="loadDocs(periodoActual)" />
         <ArriendosZipUpload
           :proyectos="filasParaZip"
           :periodo="periodoActual"
           :periodo-label="periodoLabel"
-          @docs-actualizados="() => loadDocs(periodoActual.value)" />
+          @docs-actualizados="() => loadDocs(periodoActual)" />
         <Button size="sm" :disabled="guardando" @click="guardarSeleccion">
           <Spinner v-if="guardando" class="size-4" /><SaveIcon v-else class="size-4" /> Guardar selección
         </Button>
@@ -362,6 +367,7 @@ import DataTable from '~/components/blocks/DataTable.vue'
 import { toast } from 'vue-sonner'
 import { ArriendosCalculoService } from '~/features/finanzas/services/arriendos-calculo'
 import ArriendosZipUpload from './ArriendosZipUpload.vue'
+import CuentasCobroTsf from '~/features/finanzas/components/CuentasCobroTsf.vue'
 import CalculoIpcPopover from '~/features/finanzas/components/CalculoIpcPopover.vue'
 const { docsPorProyecto, loadDocs, downloadDoc } = useArriendosDocs()
 import DocumentoIcon from '~/features/finanzas/components/DocumentoIcon.vue'
@@ -610,8 +616,13 @@ async function toggleFacturado(id) {
 // ── Tooltip del ícono de documento: nombre de archivo + pago_id ────────────────
 function tooltipDoc(doc) {
   const base = doc.nombre_archivo || doc.numero_cuenta_cobro || 'documento'
-  return doc.pago_id ? `${base} · pago ${doc.pago_id}` : base
+  const valor = doc.valor_individual != null ? ` · ${formatCOP(doc.valor_individual)}` : ''
+  if (doc.originabot_pago_id) return `${base}${valor} · de TSF`
+  return doc.pago_id ? `${base}${valor} · pago ${doc.pago_id}` : `${base}${valor}`
 }
+
+// «Traer de TSF» va con el token de Unergy Auth: sin ese login, originabot no responde.
+const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
 
 // ── Proyectos para el componente ZipUpload ─────────────────────────────────────
 // nombreArrendador/estadoContrato: necesarios para que ArriendosZipUpload pueda

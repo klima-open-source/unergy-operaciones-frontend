@@ -33,6 +33,48 @@ export interface DocumentoArriendo {
 /** Documentos del período agrupados por proyecto. */
 export type DocumentosPorProyecto = Record<Id, DocumentoArriendo[]>
 
+/**
+ * Una cuenta de cobro de TSF: lo de UNA planta en un pago de originabot (un pago
+ * es de un propietario y una fecha, y puede cubrir varias plantas del terreno).
+ */
+export interface CuentaCobroTsf {
+  /** El pago en originabot (UUID). */
+  pago_id: string
+  /** `YYYY-MM-DD`. */
+  fecha: string
+  /** `paid`, `wait_for_document`, `uploaded_documents`, `scheduled`… */
+  estado: string
+  estado_texto: string
+  proyecto_id: Id
+  proyecto_nombre: string
+  /** El arrendador de Operaciones que es ese propietario; null si no se reconoció. */
+  arrendador_id: Id | null
+  landlord_id: number | null
+  landlord_nombre: string
+  /** Lo de esta planta en el pago. */
+  valor: number
+  /** El total a pagar del pago completo, con IVA y retenciones. */
+  total_pago: number | null
+  tiene_documento: boolean
+  tipo_documento: 'cuenta_cobro' | 'factura_electronica' | null
+  /** Ya está guardado en Operaciones. */
+  importado: boolean
+}
+
+export interface ConsultaCuentasCobroTsf {
+  periodo: string
+  cuentas: CuentaCobroTsf[]
+  errores: string[]
+  /** Plantas con contrato de arriendo que no tienen minigranja de TSF. */
+  sin_minigranja: string[]
+}
+
+export interface ImportacionCuentasCobroTsf {
+  importados: number
+  sin_documento: number
+  errores: string[]
+}
+
 /** Un predio dentro de una cuenta de cobro: el backend genera una copia por cada uno. */
 export interface PredioCuentaCobro {
   arr_proyecto_id: Id | null
