@@ -99,8 +99,8 @@ async function importar() {
       <DialogHeader>
         <DialogTitle>Cuentas de cobro de TSF · {{ periodoLabel }}</DialogTitle>
         <DialogDescription>
-          Lo que cada propietario subió a TSF este mes, por proyecto. Se guarda el documento con el valor de cada proyecto;
-          en TSF no se cambia nada.
+          Solo los pagos de TSF de {{ periodoLabel.toLowerCase() }} (los del día 5 y 20 de ese mes), por proyecto. Se
+          guardan en este mes, cada documento con el valor de su proyecto; en TSF no se cambia nada.
         </DialogDescription>
       </DialogHeader>
 
