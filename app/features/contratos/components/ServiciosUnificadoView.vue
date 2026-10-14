@@ -1552,7 +1552,10 @@ async function guardarProyectoContrato() {
     dialogAsociarProyecto.value = false
     toast.success('Contrato asociado', { description: data.proyecto?.nombre_comercial || '', duration: 3000 })
   } catch (e) {
-    toast.error('No se pudo asociar', { description: e.message, duration: 4000 })
+    // El 400 del backend dice por qué: p. ej. el inversionista del contrato no es
+    // uno de los de esa planta.
+    const motivo = e.data?.inversionista_id?.[0] || e.data?.proyecto_id?.[0] || e.message
+    toast.error('No se pudo asociar', { description: motivo, duration: 6000 })
   } finally {
     guardandoProyecto.value = false
   }

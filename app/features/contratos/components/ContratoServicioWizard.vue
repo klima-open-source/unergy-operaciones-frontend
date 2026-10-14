@@ -139,7 +139,10 @@
           <p class="text-sm font-semibold text-foreground mb-4">Identificación del contrato</p>
           <div class="space-y-4">
             <div class="space-y-1.5">
-              <GLabel>Proyecto asociado <span class="text-muted-foreground">(opcional)</span></GLabel>
+              <GLabel :required="tipo === 'representacion'">
+                Proyecto asociado
+                <span v-if="tipo !== 'representacion'" class="text-muted-foreground">(opcional)</span>
+              </GLabel>
               <div class="flex gap-2">
                 <ComboBox v-model="proyectoIdTexto" :options="opcionesProyecto"
                   placeholder="Buscar proyecto…" empty-message="Sin proyectos" class="flex-1" />
@@ -227,16 +230,18 @@
           <!-- Inversionista: solo en representación/CGM, que es donde la tarifa
                varía por inversionista. En una minigranja hay un contrato POR
                inversionista, y sin decir de quién es, el reparto de costos no
-               puede saber qué tarifa cobrarle a cada quien. -->
+               puede saber qué tarifa cobrarle a cada quien. Es uno de los
+               inversionistas de la planta: el backend rechaza a cualquier otro. -->
           <template v-if="tipo === 'representacion'">
             <div class="grid grid-cols-1 gap-1 mb-1 mt-4 px-1">
               <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Inversionista</span>
             </div>
             <div class="p-4 rounded-lg bg-muted">
-              <SelectorCliente
+              <SelectorInversionistaDePlanta
                 v-model:id="form.inversionista_id"
                 v-model:nombre="form.inversionista_nombre"
-                label="Nombre / Razón social"
+                :proyecto-id="form.proyecto_id"
+                label="Inversionista de la planta"
                 requerido
               />
               <p class="text-xs text-muted-foreground leading-snug mt-2">
@@ -506,6 +511,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import SelectorInversionistaDePlanta from './SelectorInversionistaDePlanta.vue'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { formatCOP } from '~/utils/currency'
@@ -756,17 +762,24 @@ const partesPendientes = computed(() => {
   const faltan = []
   if (!form.contratante_id) faltan.push('el contratante')
   if (!form.prestador_id) faltan.push('el prestador')
+  if (props.tipo === 'representacion' && !form.proyecto_id) {
+    faltan.push('planta')
+  }
   if (props.tipo === 'representacion' && !form.inversionista_id) {
     faltan.push('el inversionista')
   }
   return faltan
 })
 
-const avisoPartes = computed(() =>
-  partesPendientes.value.length
-    ? `Falta vincular ${partesPendientes.value.join(' y ')} a un cliente registrado.`
-    : undefined,
-)
+const avisoPartes = computed(() => {
+  // La planta no es una parte: se escoge en el paso de identificación, y sin ella
+  // no hay inversionistas que ofrecer.
+  const partes = partesPendientes.value.filter((p) => p !== 'planta')
+  const avisos = []
+  if (partesPendientes.value.includes('planta')) avisos.push('Escoge la planta en el primer paso.')
+  if (partes.length) avisos.push(`Falta vincular ${partes.join(' y ')} a un cliente registrado.`)
+  return avisos.length ? avisos.join(' ') : undefined
+})
 
 function formatFecha(v) {
   if (!v) return null
@@ -929,7 +942,8 @@ async function guardar() {
       duplicadoContrato.value = aviso
       return
     }
-    toast.error('Error', { description: e.data?.detail ?? e.message, duration: 4000 })
+    const motivo = e.data?.detail ?? e.data?.inversionista_id?.[0] ?? e.data?.proyecto_id?.[0] ?? e.message
+    toast.error('Error', { description: motivo, duration: 6000 })
   } finally {
     guardando.value = false
   }
