@@ -43,13 +43,15 @@ export interface RespuestaProximosEnergizar {
 
 export interface InversionistaProyecto extends ProyectoInversionista {
   cliente_nombre?: string
-  es_patrimonio_autonomo?: boolean
+  /** El patrimonio autónomo a través del que se tiene la parte: al que se le factura. */
+  patrimonio_id?: number | null
+  patrimonio_nombre?: string | null
 }
 
 export interface PayloadInversionista {
   cliente_id: number
   porcentaje_participacion: number | null
-  es_patrimonio_autonomo?: boolean
+  patrimonio_id?: number | null
   fecha_inicio: string | null
   fecha_fin: string | null
 }
@@ -58,6 +60,7 @@ export interface PayloadActualizarInversionista {
   porcentaje_participacion: number | null
   fecha_inicio: string | null
   fecha_fin: string | null
+  patrimonio_id?: number | null
 }
 
 // ── Puntero de contacto por área (pestaña Contactos) ──────────────────────────

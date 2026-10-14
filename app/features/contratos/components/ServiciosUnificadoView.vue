@@ -28,9 +28,14 @@
         <Button v-if="vista" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
           <FileSpreadsheetIcon class="size-4" /> Excel
         </Button>
-        <Button v-if="vista === 'clientes'" size="sm" @click="dialogCliente = true">
-          <PlusIcon class="size-4" /> Nuevo cliente
-        </Button>
+        <template v-if="vista === 'clientes'">
+          <Button variant="outline" size="sm" @click="router.push('/clientes/patrimonios')">
+            <LandmarkIcon class="size-4" /> Patrimonios
+          </Button>
+          <Button size="sm" @click="dialogCliente = true">
+            <PlusIcon class="size-4" /> Nuevo cliente
+          </Button>
+        </template>
         <Button v-else-if="vista === 'proyectos'" size="sm" @click="dialogProyecto = true">
           <PlusIcon class="size-4" /> Nuevo proyecto
         </Button>
@@ -677,7 +682,7 @@ import {
   tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LandmarkIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
