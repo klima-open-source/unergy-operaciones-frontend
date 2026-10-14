@@ -2,7 +2,7 @@
  * Estado de vigencia de un contrato PPA, derivado de sus fechas.
  *
  * Vive acá y no en cada vista porque lo usan dos pantallas que tienen que decir
- * lo mismo: el listado de /servicios-unificado?vista=servicios&srv=ppa y el
+ * lo mismo: el listado de /contratos?srv=ppa y el
  * detalle en /contratos/{id}. Si divergen, el usuario ve "Vigente" en la tabla
  * y otra cosa al entrar.
  *

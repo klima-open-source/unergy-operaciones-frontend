@@ -1,6 +1,6 @@
 <template>
   <div v-if="proyecto">
-    <DetalleLayout :volver="{ to: '/servicios-unificado?vista=proyectos', label: 'Proyectos' }"
+    <DetalleLayout :volver="{ to: '/proyectos', label: 'Proyectos' }"
                    :titulo="proyecto.nombre_comercial"
                    :codigo="proyecto.codigo_tsf || ''"
                    :tabs="TABS" v-model="activeTab">

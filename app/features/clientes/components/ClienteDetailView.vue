@@ -154,7 +154,7 @@ async function doDelete() {
     toast.success('Cliente eliminado')
     // A la vista unificada: /clientes se retiró el 2026-09-15 por ser un
     // duplicado de su pestaña Clientes.
-    router.push('/servicios-unificado?vista=clientes')
+    router.push('/clientes')
   } catch (err) {
     toast.error('No se pudo eliminar', { description: normalizeError(err).message })
   } finally {
@@ -167,7 +167,7 @@ async function doDelete() {
   <div v-if="cliente" class="space-y-4">
     <DetalleLayout
       v-model="activeTab"
-      :volver="{ to: '/servicios-unificado?vista=clientes', label: 'Clientes' }"
+      :volver="{ to: '/clientes', label: 'Clientes' }"
       :titulo="formatearNombre(cliente.razon_social_nombre) ?? ''"
       :codigo="cliente.nit_cedula || ''"
       :tabs="tabs"

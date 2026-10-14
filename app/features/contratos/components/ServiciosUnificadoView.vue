@@ -11,9 +11,9 @@
 -->
 <template>
   <div class="space-y-3">
-    <PageHeader title="Proyectos" :subtitle="subtitulo">
+    <PageHeader :title="titulo" :subtitle="subtitulo">
       <template #actions>
-        <InputGroup v-if="vista" class="w-full sm:max-w-48">
+        <InputGroup v-if="vista && !enProximos" class="w-full sm:max-w-48">
           <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
           <InputGroupInput v-model="q" :placeholder="placeholderBusqueda" />
         </InputGroup>
@@ -25,7 +25,7 @@
           </GTooltipTrigger>
           <GTooltipContent>{{ compacta ? 'Densidad cómoda' : 'Densidad compacta' }}</GTooltipContent>
         </GTooltip>
-        <Button v-if="vista" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
+        <Button v-if="vista && !enProximos" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
           <FileSpreadsheetIcon class="size-4" /> Excel
         </Button>
         <Button v-if="vista === 'clientes'" size="sm" @click="dialogCliente = true">
@@ -62,6 +62,7 @@
 
     <!-- Selector de ángulo (nivel 1) + tipo de servicio (nivel 2) -->
     <div class="flex flex-wrap items-center gap-2">
+      <template v-if="!vistaFija">
       <button v-for="v in VISTAS" :key="v.key" type="button"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-sm font-bold cursor-pointer select-none transition-colors duration-150"
               :class="vista === v.key
@@ -77,9 +78,22 @@
           {{ conteoVista(v.key) }}
         </span>
       </button>
+      </template>
 
+      <!-- Proyectos: todos, o solo los próximos a energizar (antes, una página aparte). -->
+      <template v-if="vistaFija === 'proyectos'">
+        <button v-for="o in VER_PROYECTOS" :key="o.key" type="button"
+                class="inline-flex items-center gap-1.5 px-2 py-1 border rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors duration-150"
+                :class="verProyectos === o.key
+                  ? 'bg-primary/10 border-primary/30 text-primary shadow-xs'
+                  : 'bg-card border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'"
+                @click="verProyectos = o.key">
+          <component :is="o.icon" class="size-4" />
+          <span>{{ o.label }}</span>
+        </button>
+      </template>
       <template v-if="vista === 'servicios'">
-        <span class="mx-1 h-6 w-px bg-border" />
+        <span v-if="!vistaFija" class="mx-1 h-6 w-px bg-border" />
         <button v-for="s in SERVICIOS" :key="s.key" type="button"
                 class="inline-flex items-center gap-1.5 px-2 py-1 border rounded-lg text-xs font-semibold cursor-pointer select-none transition-colors duration-150"
                 :class="servicio === s.key
@@ -107,11 +121,11 @@
     <!-- Proyectos que las fuentes externas proponen. Vivia en /proyectos, que
          salio del menu cuando llego esta vista: el aviso quedo inalcanzable y
          nadie lo noto por semanas. -->
-    <ProyectosPendientesPanel v-if="vista === 'proyectos'" @cambio="cargarProyectos" />
+    <ProyectosPendientesPanel v-if="vista === 'proyectos' && !enProximos" @cambio="cargarProyectos" />
 
     <!-- Los desplegables con buscador (ComboBox) llevan una opción «Todos» en vez
          del botón de limpiar de PrimeVue: elegirla quita el filtro. -->
-    <div v-if="vista === 'proyectos'"
+    <div v-if="vista === 'proyectos' && !enProximos"
          class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-semibold text-muted-foreground">Estado</label>
@@ -248,6 +262,9 @@
     <!-- Los avisos de las celdas van en `title` y no en GTooltip: con 100 filas
          por página serían cientos de tooltips montados. -->
 
+    <!-- ══════════════════ PRÓXIMOS A ENERGIZAR ══════════════════ -->
+    <ProyectosProximosEnergizar v-if="enProximos" />
+
     <!-- ══════════════════ CLIENTES ══════════════════ -->
     <div v-if="vista === 'clientes'" :class="claseTabla">
       <DataTable :columns="COLUMNAS_CLIENTES" :rows="tablaClientes.filasPagina" row-key="id"
@@ -293,7 +310,7 @@
     </div>
 
     <!-- ══════════════════ PROYECTOS ══════════════════ -->
-    <div v-else-if="vista === 'proyectos'" :class="claseTabla">
+    <div v-else-if="vista === 'proyectos' && !enProximos" :class="claseTabla">
       <DataTable :columns="COLUMNAS_PROYECTOS" :rows="tablaProyectos.filasPagina" row-key="id"
                  v-model:sort="tablaProyectos.orden" v-model:page="tablaProyectos.pagina"
                  :page-size="porPagina" :total="tablaProyectos.total" :page-size-options="OPCIONES_POR_PAGINA"
@@ -336,7 +353,7 @@
           <template v-else-if="column.key === 'ppa'">
             <div v-if="ppaVigentes(row).length" class="flex gap-0.5 overflow-hidden min-w-0">
               <button v-for="c in ppaVigentes(row)" :key="c.id" type="button" class="min-w-0 truncate bg-primary/10 text-primary text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-primary hover:text-primary-foreground"
-                      :title="ppaTooltip(c)" @click="ir(`/proyectos/${row.id}/ppa`)">
+                      :title="ppaTooltip(c)" @click="ir(`/contratos/${c.id}`)">
                 {{ ppaLabel(c) }}
               </button>
             </div>
@@ -707,6 +724,7 @@ import DataTable from '~/components/blocks/DataTable.vue'
 import { useTablaLocal } from '~/composables/useTablaLocal'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import ProyectosPendientesPanel from '~/features/proyectos/components/ProyectosPendientesPanel.vue'
+import ProyectosProximosEnergizar from '~/features/proyectos/components/ProyectosProximosEnergizar.vue'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
@@ -732,7 +750,7 @@ import {
   tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, FilePenIcon, FilePlusIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, ClockIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, FilePenIcon, FilePlusIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -747,6 +765,13 @@ const ProyectoForm = defineAsyncComponent(() => import('~/features/proyectos/com
 const ImportarDesdeTsf = defineAsyncComponent(() => import('~/features/proyectos/components/ImportarDesdeTsf.vue'))
 const PPAContratoWizard = defineAsyncComponent(() => import('~/features/contratos/components/PPAContratoWizard.vue'))
 const ContratoServicioWizard = defineAsyncComponent(() => import('~/features/contratos/components/ContratoServicioWizard.vue'))
+
+/**
+ * `vistaFija`: la página muestra un solo ángulo, sin el selector Proyectos ·
+ * Clientes · Servicios. Así sirven /proyectos, /clientes y /contratos, cada una
+ * con su entrada en el menú; /servicios-unificado redirige a ellas.
+ */
+const props = defineProps({ vistaFija: { type: String, default: null } })
 
 const router = useRouter()
 const route = useRoute()
@@ -851,7 +876,18 @@ const SERVICIOS_VALIDOS = SERVICIOS.map(s => s.key)
 
 // La base son los proyectos: la vista abre directo en su tabla. Igual solo se
 // pide lo del angulo activo, nunca los tres a la vez.
-const vista = ref(VISTAS_VALIDAS.includes(route.query.vista) ? route.query.vista : 'proyectos')
+const vista = ref(props.vistaFija ?? (VISTAS_VALIDAS.includes(route.query.vista) ? route.query.vista : 'proyectos'))
+
+// Proyectos: todos, o los próximos a energizar (`?ver=proximos`).
+const VER_PROYECTOS = [
+  { key: 'todos', label: 'Todos', icon: ZapIcon },
+  { key: 'proximos', label: 'Próximos a energizar', icon: ClockIcon },
+]
+const verProyectos = ref(route.query.ver === 'proximos' ? 'proximos' : 'todos')
+const enProximos = computed(() => props.vistaFija === 'proyectos' && verProyectos.value === 'proximos')
+
+const TITULOS = { proyectos: 'Proyectos', clientes: 'Clientes', servicios: 'Contratos' }
+const titulo = computed(() => TITULOS[props.vistaFija] ?? 'Proyectos')
 const servicio = ref(SERVICIOS_VALIDOS.includes(route.query.srv) ? route.query.srv : 'ppa')
 const q = ref(route.query.q || '')
 const compacta = ref(localStorage.getItem('servicios_unificado_compacta') !== '0')
@@ -888,9 +924,11 @@ const filtrosServicio = ref(leerFiltros(FILTROS_SERVICIO_VACIOS, PREFIJO_SRV))
 
 // Los filtros se sincronizan con la URL para poder compartir la vista tal cual
 // se esta viendo.
-watch([vista, servicio, q, filtrosPpa, filtrosServicio], () => {
+watch([vista, servicio, q, filtrosPpa, filtrosServicio, verProyectos], () => {
   const query = {}
-  if (vista.value) query.vista = vista.value
+  // Con vista fija la página ya dice cuál es (/proyectos, /clientes, /contratos).
+  if (vista.value && !props.vistaFija) query.vista = vista.value
+  if (enProximos.value) query.ver = 'proximos'
   if (vista.value === 'servicios') {
     query.srv = servicio.value
     if (servicio.value === 'ppa') volcarFiltros(query, filtrosPpa.value, PREFIJO_PPA)
@@ -1104,9 +1142,10 @@ function ir(path) { router.push(path) }
 // La ficha de la planta que corresponde al contrato: Representación y Operación
 // son pestañas distintas dentro del proyecto, y mandar a la equivocada hace
 // parecer que la planta no tiene el contrato que se acaba de ver en la tabla.
-function rutaDeLaPlanta(contrato) {
-  const seccion = contrato.servicio_aplica === 'representacion' ? 'representacion' : 'operacion'
-  return `/proyectos/${contrato.proyecto.id}/${seccion}`
+/** La pestaña Servicios de la planta, abierta en el servicio del contrato. */
+function rutaDeLaPlanta(contrato, proyectoId = contrato.proyecto?.id) {
+  const seccion = ['representacion', 'cgm'].includes(contrato.servicio_aplica) ? 'representacion' : 'operacion'
+  return `/proyectos/${proyectoId}?tab=servicios&servicio=${seccion}`
 }
 
 // ── Clientes ─────────────────────────────────────────────────────────────────
@@ -1692,7 +1731,8 @@ const subtitulo = computed(() => {
   const etiqueta = vista.value === 'clientes' ? 'clientes'
     : vista.value === 'proyectos' ? 'plantas'
     : `contratos de ${servicioInfo.value?.label}`
-  return `${filasVisibles.value.length} de ${totalCrudo.value} ${etiqueta} · vista unificada`
+  if (enProximos.value) return 'Pipeline de TSF: proyectos en construcción cuya fecha de energización aún no llega'
+  return `${filasVisibles.value.length} de ${totalCrudo.value} ${etiqueta}${props.vistaFija ? '' : ' · vista unificada'}`
 })
 
 const placeholderBusqueda = computed(() => {
@@ -1838,7 +1878,7 @@ function confirmarBorrarCliente(row) {
 }
 
 // Los contratos de servicio no tienen vista de detalle propia: se administran
-// desde la pestaña Operación de su planta, que es donde viven tarifas y pagos.
+// desde la pestaña Servicios de su planta, que es donde viven tarifas y pagos.
 function irAEditarContratoServicio(row) {
   if (!row.proyecto_id) {
     toast.warning('Sin planta asociada', {
@@ -1847,7 +1887,7 @@ function irAEditarContratoServicio(row) {
     })
     return
   }
-  ir(`/proyectos/${row.proyecto_id}/operacion`)
+  ir(rutaDeLaPlanta(row, row.proyecto_id))
 }
 
 function confirmarBorrarContratoServicio(row) {

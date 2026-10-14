@@ -1,15 +1,11 @@
 <script setup>
 /**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
+ * Redirección: los próximos a energizar son ahora un filtro de Proyectos
+ * (`/proyectos?ver=proximos`). Se conserva la ruta por los enlaces guardados.
  */
-import View from '~/features/proyectos/components/ProximosEnergizarView.vue'
-
-definePageMeta({ layout: 'legacy' })
+await navigateTo({ path: '/proyectos', query: { ver: 'proximos' } }, { replace: true })
 </script>
 
 <template>
-  <View />
+  <div />
 </template>

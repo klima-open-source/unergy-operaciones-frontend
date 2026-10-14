@@ -7,7 +7,6 @@ import {
   ChartColumnIcon,
   ChartLineIcon,
   CircleAlertIcon,
-  ClockIcon,
   CloudIcon,
   CreditCardIcon,
   DatabaseIcon,
@@ -40,6 +39,7 @@ export enum NavigationGroup {
   Comercializacion = 'comercializacion',
   Finanzas = 'finanzas',
   Alertas = 'alertas',
+  Catalogos = 'catalogos',
   Admin = 'admin',
 }
 
@@ -52,6 +52,7 @@ export const NAVIGATION_GROUP_LABELS: Record<NavigationGroup, string> = {
   [NavigationGroup.Comercializacion]: 'Comercialización',
   [NavigationGroup.Finanzas]: 'Finanzas',
   [NavigationGroup.Alertas]: 'Alertas',
+  [NavigationGroup.Catalogos]: 'Catálogos',
   [NavigationGroup.Admin]: 'Admin',
 }
 
@@ -92,30 +93,31 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     group: NavigationGroup.General,
     requiredPermission: 'dashboard:read',
   },
-  // Reemplaza a las tres entradas que había antes (Clientes, Proyectos y
-  // Servicios). La base es el portafolio de plantas, y clientes y contratos son
-  // formas de reagrupar ese mismo portafolio. Las rutas /clientes, /proyectos y
-  // /servicios siguen vivas: solo salieron del menú.
+  // Proyectos, clientes y contratos: los tres objetos que la base relaciona, una
+  // lista cada uno (ver la propuesta de UX del 2026-10-14). Antes eran un solo
+  // menú «Proyectos» con un selector de ángulo, y Clientes no tenía entrada.
+  // Próximos a energizar es un filtro de Proyectos (`?ver=proximos`), y
+  // Operadores de Red, un catálogo. /servicios-unificado redirige aquí.
   {
     title: 'Proyectos',
     icon: ZapIcon,
-    to: '/servicios-unificado',
+    to: '/proyectos',
+    group: NavigationGroup.General,
+    requiredPermission: 'proyectos:read',
+  },
+  {
+    title: 'Clientes',
+    icon: UsersIcon,
+    to: '/clientes',
+    group: NavigationGroup.General,
+    requiredPermission: 'clientes:read',
+  },
+  {
+    title: 'Contratos',
+    icon: FilePenIcon,
+    to: '/contratos',
     group: NavigationGroup.General,
     requiredPermission: 'servicios:read',
-  },
-  {
-    title: 'Operadores de Red',
-    icon: NetworkIcon,
-    to: '/mem/operadores-red',
-    group: NavigationGroup.General,
-    requiredPermission: 'mem-frontera:read',
-  },
-  {
-    title: 'Próximos a energizar',
-    icon: ClockIcon,
-    to: '/general/proximos-energizar',
-    group: NavigationGroup.General,
-    requiredPermission: 'general:read',
   },
   {
     title: 'Retos Q',
@@ -331,5 +333,15 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     to: '/admin/diagnostico',
     group: NavigationGroup.Admin,
     requiredPermission: 'admin:manage',
+  },
+
+  // ── Catálogos ──────────────────────────────────────────────────────────────
+  // Datos de referencia, no trabajo del día: van al final del menú.
+  {
+    title: 'Operadores de Red',
+    icon: NetworkIcon,
+    to: '/mem/operadores-red',
+    group: NavigationGroup.Catalogos,
+    requiredPermission: 'mem-frontera:read',
   },
 ]

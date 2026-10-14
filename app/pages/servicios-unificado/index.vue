@@ -1,15 +1,15 @@
 <script setup>
 /**
- * MIGRACIÓN — Fase 1. Página puente: la ruta la sirve Nuxt, la vista sigue
- * siendo la del legacy sin tocar. Generada desde `app/router/index.js`.
- *
- * Desaparece cuando su página real se escriba en la fase 3.
+ * Redirección: la vista unificada se separó en /proyectos, /clientes y
+ * /contratos, cada una con su entrada en el menú. Se conserva la ruta por los
+ * enlaces guardados; la búsqueda y los filtros de la URL viajan con ella.
  */
-import View from '~/features/contratos/components/ServiciosUnificadoView.vue'
-
-definePageMeta({ layout: 'legacy' })
+const route = useRoute()
+const { vista, ...resto } = route.query
+const destino = { clientes: '/clientes', servicios: '/contratos' }[vista] ?? '/proyectos'
+await navigateTo({ path: destino, query: resto }, { replace: true })
 </script>
 
 <template>
-  <View />
+  <div />
 </template>

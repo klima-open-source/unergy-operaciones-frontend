@@ -1,6 +1,6 @@
 <template>
   <div v-if="contrato">
-    <DetalleLayout :volver="{ to: '/servicios-unificado?vista=servicios&srv=ppa', label: 'Servicios' }"
+    <DetalleLayout :volver="{ to: '/contratos?srv=ppa', label: 'Contratos' }"
                    :titulo="contrato.nombre_interno || contrato.numero_codigo_contrato || 'Contrato PPA'"
                    :codigo="contrato.numero_codigo_contrato || ''"
                    :tabs="TABS" v-model="activeTab">

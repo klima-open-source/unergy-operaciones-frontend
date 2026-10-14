@@ -12,7 +12,7 @@
   El diseño que manda es el de Cliente, que es el que el equipo prefiere.
 
   Uso:
-    <DetalleLayout :volver="{ to: '/servicios-unificado?vista=proyectos', label: 'Proyectos' }"
+    <DetalleLayout :volver="{ to: '/proyectos', label: 'Proyectos' }"
                    :titulo="proyecto.nombre_comercial"
                    :codigo="proyecto.codigo_tsf"
                    :tabs="TABS" v-model="tab">
@@ -79,7 +79,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeftIcon } from '@lucide/vue'
 
 const props = defineProps({
-  // { to: '/servicios-unificado?vista=clientes', label: 'Clientes' }
+  // { to: '/clientes', label: 'Clientes' }
   volver: { type: Object, required: true },
   titulo: { type: String, default: '' },
   codigo: { type: String, default: '' },
