@@ -31,22 +31,6 @@ export interface CompromisoEnergiaPpa {
   cantidad_proyectos?: number | null
 }
 
-export interface ResponsablePpa {
-  id: number
-  nombre: string
-  incluir_en_cumplimiento?: boolean
-}
-
-export interface PayloadResponsablePpa {
-  nombre: string
-  incluir_en_cumplimiento: boolean
-}
-
-export interface PayloadAsignarResponsablesPpa {
-  contrato_ids: number[]
-  responsable_id: number | null
-}
-
 export interface ProyectoPpaResumen {
   id: number
   nombre_comercial?: string
@@ -85,7 +69,6 @@ export interface ContratoPpa {
   gescon_precio?: number | null
   gescon_cantidades_kwh?: number | null
   carpeta_link?: string | null
-  responsable_id?: number | null
   proyecto_id?: number
   proyectos?: ProyectoPpaResumen[]
   tarifas?: TarifaPpa[]

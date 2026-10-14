@@ -35,8 +35,8 @@ const RUTAS = {
 } as const
 
 export class CumplimientoService extends BaseService {
-  listarPpa(filtros: { incluir_todos: boolean }): Promise<ContratoCumplimientoPpa[]> {
-    return this.get<ContratoCumplimientoPpa[]>(RUTAS.ppa, { query: { ...filtros } })
+  listarPpa(): Promise<ContratoCumplimientoPpa[]> {
+    return this.get<ContratoCumplimientoPpa[]>(RUTAS.ppa)
   }
 
   obtenerAnualPorContrato(
@@ -46,22 +46,17 @@ export class CumplimientoService extends BaseService {
     return this.get<AnualCumplimientoPpa>(RUTAS.anualPorContrato(id), { query: { ...filtros } })
   }
 
-  obtenerResumenAnual(filtros: { year: number; incluir_todos: boolean }): Promise<ResumenAnualPpa> {
+  obtenerResumenAnual(filtros: { year: number }): Promise<ResumenAnualPpa> {
     return this.get<ResumenAnualPpa>(RUTAS.resumenAnual, { query: { ...filtros } })
   }
 
-  obtenerSimulador(filtros: {
-    year: number
-    month: number
-    incluir_todos: boolean
-  }): Promise<SimuladorCumplimiento> {
+  obtenerSimulador(filtros: { year: number; month: number }): Promise<SimuladorCumplimiento> {
     return this.get<SimuladorCumplimiento>(RUTAS.simulador, { query: { ...filtros } })
   }
 
   obtenerPlantasContratos(filtros: {
     year: number
     month: number
-    incluir_todos: boolean
   }): Promise<PlantasContratosCumplimiento> {
     return this.get<PlantasContratosCumplimiento>(RUTAS.plantasContratos, { query: { ...filtros } })
   }
@@ -72,7 +67,6 @@ export class CumplimientoService extends BaseService {
       year: number
       month: number
       excluir_compra_externa: boolean
-      incluir_todos: boolean
     },
     timeoutMs = 60_000,
   ): Promise<BalanceEnergiaCumplimiento> {
@@ -85,7 +79,6 @@ export class CumplimientoService extends BaseService {
   obtenerEnergiaTransada(filtros: {
     year: number
     month: number
-    incluir_todos: boolean
   }): Promise<EnergiaTransadaCumplimiento> {
     return this.get<EnergiaTransadaCumplimiento>(RUTAS.energiaTransada, {
       query: { ...filtros },
@@ -93,10 +86,7 @@ export class CumplimientoService extends BaseService {
     })
   }
 
-  obtenerAnualMatrizContratos(filtros: {
-    year: number
-    incluir_todos: boolean
-  }): Promise<RespuestaAnualMatrizContratos> {
+  obtenerAnualMatrizContratos(filtros: { year: number }): Promise<RespuestaAnualMatrizContratos> {
     return this.get<RespuestaAnualMatrizContratos>(RUTAS.anualMatrizContratos, {
       query: { ...filtros },
     })

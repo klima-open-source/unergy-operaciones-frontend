@@ -137,7 +137,6 @@ export interface ContratoCumplimientoPpa {
   nombre_interno?: string
   numero_codigo_contrato?: string
   comprador_nombre?: string
-  responsable?: string
   [clave: string]: unknown
 }
 
