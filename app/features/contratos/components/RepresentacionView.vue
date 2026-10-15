@@ -135,7 +135,7 @@
               <Button variant="ghost" size="sm" v-if="edit !== 'id'" @click="abrir('id')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
                 <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
-                <GTooltip :disabled="!(form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || !form.inversionista_id" @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
+                <GTooltip :disabled="!(form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || !form.inversionista_id" @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre',
                                    'codigo_sun_factory', 'nombre_proyecto_ref'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button></span></GTooltipTrigger><GTooltipContent>{{ form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.' }}</GTooltipContent></GTooltip>
               </template>
             </div>
@@ -144,7 +144,6 @@
             <div v-if="edit !== 'id'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Número de contrato" :value="c.numero_contrato" />
               <InfoField label="Inversionista" :value="c.inversionista_nombre" />
-              <InfoField label="Portafolio" :value="c.portafolio" />
               <InfoField label="Código Sun Factory" :value="c.codigo_sun_factory" />
               <InfoField label="Proyecto según el contrato" :value="c.nombre_proyecto_ref" />
               <div class="flex flex-col gap-0.5">
@@ -166,10 +165,6 @@
                 :proyecto-id="proyectoIdRuta"
                 requerido
               />
-              <div class="flex flex-col gap-1">
-                <GLabel>Portafolio</GLabel>
-                <Input v-model="form.portafolio" />
-              </div>
               <div class="flex flex-col gap-1">
                 <GLabel>Código Sun Factory</GLabel>
                 <Input v-model="form.codigo_sun_factory" />
@@ -775,7 +770,6 @@ function abrir(seccion) {
     // pendiente y no deja guardar hasta resolverlo.
     inversionista_id: x.inversionista_id ?? null,
     inversionista_nombre: x.inversionista_nombre || '',
-    portafolio: x.portafolio || '',
     codigo_sun_factory: x.codigo_sun_factory || '',
     nombre_proyecto_ref: x.nombre_proyecto_ref || '',
     contratante_id: x.contratante_id ?? null,

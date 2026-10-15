@@ -153,6 +153,12 @@
             </div>
           </template>
         </div>
+        <!-- Fuera del modo edición a propósito: cada cambio se guarda solo. -->
+        <ProyectoPortafolios
+          :key="proyecto.id"
+          class="mt-4"
+          :proyecto-id="proyecto.id"
+          :portafolios="proyecto.portafolios ?? []" />
       </div>
 
       <!-- ══ TÉCNICO ══ -->
@@ -717,6 +723,7 @@ import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/client
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
+import ProyectoPortafolios from '~/features/proyectos/components/ProyectoPortafolios.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()

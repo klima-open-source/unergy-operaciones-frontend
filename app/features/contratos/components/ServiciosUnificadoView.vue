@@ -13,11 +13,11 @@
   <div class="space-y-3">
     <PageHeader title="Proyectos" :subtitle="subtitulo">
       <template #actions>
-        <InputGroup v-if="vista" class="w-full sm:max-w-48">
+        <InputGroup v-if="vista && vista !== 'portafolios'" class="w-full sm:max-w-48">
           <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
           <InputGroupInput v-model="q" :placeholder="placeholderBusqueda" />
         </InputGroup>
-        <GTooltip v-if="vista">
+        <GTooltip v-if="vista && vista !== 'portafolios'">
           <GTooltipTrigger as-child>
             <Button variant="outline" size="icon-sm" @click="compacta = !compacta">
               <component :is="compacta ? MoveVerticalIcon : AlignJustifyIcon" class="size-4" />
@@ -25,7 +25,7 @@
           </GTooltipTrigger>
           <GTooltipContent>{{ compacta ? 'Densidad cómoda' : 'Densidad compacta' }}</GTooltipContent>
         </GTooltip>
-        <Button v-if="vista" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
+        <Button v-if="vista && vista !== 'portafolios'" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
           <FileSpreadsheetIcon class="size-4" /> Excel
         </Button>
         <Button v-if="vista === 'clientes'" size="sm" @click="dialogCliente = true">
@@ -219,11 +219,6 @@
           <ComboBox placeholder="Todos" :model-value="filtrosServicio.inversionista" :options="conTodos(opcionesInversionista)"
                     @update:model-value="filtrosServicio.inversionista = deValorSelect($event) || null" />
         </div>
-        <div v-if="esRepresentacion" class="flex flex-col gap-1 w-56">
-          <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
-          <ComboBox placeholder="Todos" :model-value="filtrosServicio.portafolio" :options="conTodos(opcionesPortafolio)"
-                    @update:model-value="filtrosServicio.portafolio = deValorSelect($event) || null" />
-        </div>
         <!-- Solo si hay más de una clase entre los contratos cargados: con una
              sola, el desplegable no seleccionaría nada distinto. -->
         <div v-if="opcionesTipoPlanta.length > 1" class="flex flex-col gap-1">
@@ -249,7 +244,10 @@
          por página serían cientos de tooltips montados. -->
 
     <!-- ══════════════════ CLIENTES ══════════════════ -->
-    <div v-if="vista === 'clientes'" :class="claseTabla">
+    <!-- Portafolios: su propia pantalla de lista y detalle, sin tabla ni Excel. -->
+    <PortafoliosPanel v-if="vista === 'portafolios'" />
+
+    <div v-else-if="vista === 'clientes'" :class="claseTabla">
       <DataTable :columns="COLUMNAS_CLIENTES" :rows="tablaClientes.filasPagina" row-key="id"
                  v-model:sort="tablaClientes.orden" v-model:page="tablaClientes.pagina"
                  :page-size="porPagina" :total="tablaClientes.total" :page-size-options="OPCIONES_POR_PAGINA"
@@ -318,7 +316,7 @@
           <span v-else-if="column.key === 'tipo_proyecto'" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap" :class="TIPO_BADGE_CLASS[row.tipo_proyecto] || 'bg-muted text-muted-foreground'">
             {{ TIPO_LABELS[row.tipo_proyecto] || row.tipo_proyecto || '—' }}
           </span>
-          <TruncatedText v-else-if="column.key === 'portafolio_id'" :text="nombrePortafolio(row.portafolio_id) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
+          <TruncatedText v-else-if="column.key === 'portafolios'" :text="nombresPortafolios(row) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
           <template v-else-if="column.key === 'municipio'">
             <TruncatedText v-if="row.municipio || row.departamento" :text="[row.municipio, row.departamento].filter(Boolean).join(', ')" class="min-w-0 max-w-full text-xs text-muted-foreground" />
             <span v-else class="text-xs text-muted-foreground/50">—</span>
@@ -654,6 +652,7 @@ import DataTable from '~/components/blocks/DataTable.vue'
 import { useTablaLocal } from '~/composables/useTablaLocal'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import ProyectosPendientesPanel from '~/features/proyectos/components/ProyectosPendientesPanel.vue'
+import PortafoliosPanel from '~/features/proyectos/components/PortafoliosPanel.vue'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { PortafoliosService } from '~/features/operaciones/services/portafolios'
@@ -677,7 +676,7 @@ import {
   tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, FilePenIcon, FileSpreadsheetIcon, LayersIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -703,6 +702,9 @@ const VISTAS = [
   { key: 'proyectos', label: 'Proyectos', icon: ZapIcon,      color: 'var(--success)' },
   { key: 'clientes',  label: 'Clientes',  icon: BuildingIcon,  color: 'var(--primary)' },
   { key: 'servicios', label: 'Servicios', icon: FilePenIcon, color: 'var(--primary)' },
+  // Agrupaciones de plantas para los informes «Por portafolio»; una planta puede
+  // estar en varias. Antes vivían en Informes mensuales, con arrastre.
+  { key: 'portafolios', label: 'Portafolios', icon: LayersIcon, color: 'var(--chart-3)' },
 ]
 
 const SERVICIOS = [
@@ -885,7 +887,8 @@ const COLUMNAS_PROYECTOS = [
   { key: 'nombre_comercial', header: 'Nombre comercial', sortable: true },
   { key: 'estado', header: 'Estado', sortable: true },
   { key: 'tipo_proyecto', header: 'Tipo', sortable: true },
-  { key: 'portafolio_id', header: 'Portafolio', sortable: true },
+  // Una planta puede estar en varios portafolios: se listan todos.
+  { key: 'portafolios', header: 'Portafolios' },
   { key: 'municipio', header: 'Ubicación', sortable: true },
   { key: 'info_tecnica.capacidad_instalada_kwp', header: 'kWp', sortable: true, class: 'text-right' },
   { key: 'servicios', header: 'Servicios' },
@@ -1186,8 +1189,8 @@ function conTodos(opciones) {
   return [{ value: VALOR_SELECT_VACIO, label: 'Todos' }, ...opciones]
 }
 
-function nombrePortafolio(id) {
-  return portafolios.value.find(pf => pf.id === id)?.nombre ?? null
+function nombresPortafolios(proyecto) {
+  return (proyecto.portafolios || []).map(pf => pf.nombre).join(', ')
 }
 
 const proyectosFiltrados = computed(() => {
@@ -1195,7 +1198,7 @@ const proyectosFiltrados = computed(() => {
   let lista = proyectos.value
   if (f.estado.value)         lista = lista.filter(p => p.estado === f.estado.value)
   if (f.tipo_proyecto.value)  lista = lista.filter(p => p.tipo_proyecto === f.tipo_proyecto.value)
-  if (f.portafolio_id.value)  lista = lista.filter(p => p.portafolio_id === f.portafolio_id.value)
+  if (f.portafolio_id.value)  lista = lista.filter(p => (p.portafolios || []).some(pf => pf.id === f.portafolio_id.value))
   if (f.ppa_contratos.value?.length) {
     const sel = new Set(f.ppa_contratos.value)
     lista = lista.filter(p => {
@@ -1408,7 +1411,6 @@ const ESTADO_CONTRATO_OPCIONES = [
 const opcionesServicioTipo = computed(() =>
   tiposDelServicio.value.map(t => ({ value: t, label: TIPO_CONTRATO_LABELS[t] || t })))
 const opcionesInversionista = computed(() => opcionesDe(contratosServicio.value, 'inversionista_nombre'))
-const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'portafolio'))
 
 // Los tipos se muestran con la misma etiqueta y el mismo color que el chip de la
 // columna, para que el filtro y la tabla hablen igual.
@@ -1492,7 +1494,6 @@ async function cargarContratosServicio(servicioKey) {
     filtrosServicio.value = depurarFiltros(filtrosServicio.value, {
       tipo: tiposDelServicio.value,
       inversionista: opcionesInversionista.value.map(o => o.value),
-      portafolio: opcionesPortafolio.value.map(o => o.value),
       tipoPlanta: opcionesTipoPlanta.value.map(o => o.value),
     })
     soloDuplicados.value = false
@@ -1582,6 +1583,7 @@ function subserviciosDeFila(fila) {
 }
 
 function asegurarDatos() {
+  if (vista.value === 'portafolios') return
   if (vista.value === 'clientes') { if (!clientesCargados.value) cargarClientes(); return }
   if (vista.value === 'proyectos') { if (!proyectosCargados.value) cargarProyectos(); return }
   if (servicio.value === 'ppa') { if (!ppaCargados.value) cargarPpa(); return }
@@ -1613,6 +1615,7 @@ onMounted(() => {
 })
 
 function conteoVista(key) {
+  if (key === 'portafolios') return null
   if (key === 'clientes')  return clientesCargados.value  ? clientesFiltrados.value.length  : null
   if (key === 'proyectos') return proyectosCargados.value ? proyectosFiltrados.value.length : null
   // Antes devolvia siempre ppaFiltrados: el badge decia 33 mirando "0 de 0".
@@ -1636,6 +1639,7 @@ const totalCrudo = computed(() => {
 })
 
 const subtitulo = computed(() => {
+  if (vista.value === 'portafolios') return 'Agrupaciones de plantas para los informes · una planta puede estar en varias'
   const etiqueta = vista.value === 'clientes' ? 'clientes'
     : vista.value === 'proyectos' ? 'plantas'
     : `contratos de ${servicioInfo.value?.label}`
@@ -1666,7 +1670,7 @@ const COLUMNAS_EXCEL = {
     { header: 'Nombre comercial', value: p => formatearNombre(p.nombre_comercial) },
     { header: 'Estado', value: p => ESTADO_LABELS[p.estado] || p.estado || '' },
     { header: 'Tipo', value: p => TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || '' },
-    { header: 'Portafolio', value: p => nombrePortafolio(p.portafolio_id) || '' },
+    { header: 'Portafolios', value: p => nombresPortafolios(p) },
     { header: 'Municipio', value: p => p.municipio || '' },
     { header: 'Departamento', value: p => p.departamento || '' },
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },

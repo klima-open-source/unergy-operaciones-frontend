@@ -55,7 +55,6 @@ const SERVICIOS = [
     servicio_aplica: 'representacion',
     estado: 'vigente',
     inversionista_nombre: 'PA Sol',
-    portafolio: 'Norte',
     proyecto_id: 10,
     proyecto: { id: 10, nombre_comercial: 'GD NAOS 1', tipo_proyecto: 'gd' },
   },
@@ -64,7 +63,6 @@ const SERVICIOS = [
     servicio_aplica: 'representacion',
     estado: 'terminado',
     inversionista_nombre: 'PA Luna',
-    portafolio: 'Norte',
     proyecto_id: null,
   },
   {
@@ -138,13 +136,10 @@ describe('filtrarServicios', () => {
     ).toEqual([2])
   })
 
-  it('filtra por inversionista y por portafolio', () => {
+  it('filtra por inversionista', () => {
     expect(
       ids(filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, inversionista: 'PA Sol' })),
     ).toEqual([1])
-    expect(
-      ids(filtrarServicios(SERVICIOS, { ...FILTROS_SERVICIO_VACIOS, portafolio: 'Norte' })),
-    ).toEqual([1, 2])
   })
 
   it('aísla los contratos sin proyecto asociado', () => {
@@ -255,16 +250,16 @@ describe('opcionesDe', () => {
 
   it('ignora nulos y vacíos', () => {
     const filas = [
-      { portafolio: 'Norte' },
-      { portafolio: null },
-      { portafolio: '' },
-      { portafolio: 'Norte' },
+      { inversionista_nombre: 'Norte' },
+      { inversionista_nombre: null },
+      { inversionista_nombre: '' },
+      { inversionista_nombre: 'Norte' },
     ]
-    expect(opcionesDe(filas, 'portafolio')).toEqual([{ label: 'Norte', value: 'Norte' }])
+    expect(opcionesDe(filas, 'inversionista_nombre')).toEqual([{ label: 'Norte', value: 'Norte' }])
   })
 
   it('devuelve [] sin filas', () => {
-    expect(opcionesDe([], 'portafolio')).toEqual([])
+    expect(opcionesDe([], 'inversionista_nombre')).toEqual([])
   })
 })
 
@@ -337,9 +332,7 @@ describe('filtrarServicios: subservicios como lista', () => {
     expect(
       filtrarServicios([vieja], { ...FILTROS_SERVICIO_VACIOS, tipo: 'internet' }),
     ).toHaveLength(1)
-    expect(
-      filtrarServicios([vieja], { ...FILTROS_SERVICIO_VACIOS, tipo: 'cgm' }),
-    ).toHaveLength(0)
+    expect(filtrarServicios([vieja], { ...FILTROS_SERVICIO_VACIOS, tipo: 'cgm' })).toHaveLength(0)
   })
 
   it('sin filtro de tipo, pasan todas', () => {

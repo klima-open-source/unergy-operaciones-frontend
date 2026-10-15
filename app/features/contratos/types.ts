@@ -284,7 +284,6 @@ export interface ContratoServicio {
   readonly prestador_nit?: string | null
   inversionista_id?: number | null
   inversionista_nombre?: string | null
-  portafolio?: string | null
   codigo_sun_factory?: string | null
   nombre_proyecto_ref?: string | null
   fecha_firma_contrato?: string | null
