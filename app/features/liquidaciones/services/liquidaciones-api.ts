@@ -32,6 +32,7 @@ import { BaseService, type ValorQuery } from '~/core/service'
 import {
   EstadoTarea,
   TareaFallida,
+  TareaCancelada,
   TareaSinRespuesta,
   VERSION_INICIAL,
 } from '~/features/liquidaciones/types'
@@ -64,7 +65,19 @@ const ESPERA_POR_DEFECTO = {
   intervaloMs: 5000,
 } as const
 
-const dormir = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms))
+/** Espera `ms`, o hasta que se cancele `signal` (entonces termina antes). */
+const dormir = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolver) => {
+    const timer = setTimeout(resolver, ms)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer)
+        resolver()
+      },
+      { once: true },
+    )
+  })
 
 export class LiquidacionesApiService extends BaseService {
   // ── Proyectos ────────────────────────────────────────────────────────────────
@@ -132,15 +145,17 @@ export class LiquidacionesApiService extends BaseService {
       timeoutMs = ESPERA_POR_DEFECTO.timeoutMs,
       intervaloMs = ESPERA_POR_DEFECTO.intervaloMs,
       onEstado,
+      signal,
     } = opciones
 
     const limite = Date.now() + timeoutMs
     while (Date.now() < limite) {
+      if (signal?.aborted) throw new TareaCancelada()
       const estado = await this.get<TareaEstado>(RUTAS.tarea(taskId))
       onEstado?.(estado)
       if (estado.estado === EstadoTarea.EXITO) return estado.resultado || {}
       if (estado.estado === EstadoTarea.FALLO) throw new TareaFallida(estado.mensaje)
-      await dormir(intervaloMs)
+      await dormir(intervaloMs, signal)
     }
 
     throw new TareaSinRespuesta(

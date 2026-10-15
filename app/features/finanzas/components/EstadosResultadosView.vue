@@ -267,11 +267,14 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
 import { EstadosResultadosService } from '~/features/finanzas/services/estados-resultados'
-import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
+import { VERSIONES, VERSION_INICIAL, AccionCiclo, TareaCancelada } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { ChartLineIcon, CheckIcon, CircleXIcon, DownloadIcon, ExternalLinkIcon, FileIcon, FileSpreadsheetIcon, FolderOpenIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
+// Al salir de la vista se deja de consultar el estado de la tarea (antes seguía
+// cada 5 s hasta 30 min; auditoría de peticiones del 2026-10-15).
+const alSalir = useSenalAlSalir()
 const estadosResultadosService = new EstadosResultadosService()
 
 
@@ -457,7 +460,7 @@ async function generarArchivo({ accion, periodo, titulo, enCurso, progreso, cerr
     const res = await liquidacionesApi.ejecutarAccionCiclo(
       accion,
       { month: periodo.mes, year: periodo.anio, version: periodo.version },
-      { onEstado: (t) => { progreso.value = t.mensaje } },
+      { onEstado: (t) => { progreso.value = t.mensaje }, signal: alSalir },
     )
     toast.success(titulo, {
       description: res.file_name ? `Generado: ${res.file_name}` : (res.message || 'Terminó correctamente.'),
@@ -466,6 +469,7 @@ async function generarArchivo({ accion, periodo, titulo, enCurso, progreso, cerr
     cerrar()
     await cargar(true)
   } catch (e) {
+    if (e instanceof TareaCancelada) return
     toast.error(`${titulo} falló`, { description: e.data?.detail || e.message, duration: 10000 })
   } finally {
     enCurso.value = false
@@ -502,7 +506,7 @@ async function generarEstado() {
         last_version: er.last_version, new_version: er.new_version,
         project: er.project?.trim() || undefined,
       },
-      { onEstado: (t) => { progresoEr.value = t.mensaje } },
+      { onEstado: (t) => { progresoEr.value = t.mensaje }, signal: alSalir },
     )
     toast.success('Estado de resultados', {
       description: res.file_name ? `Generado: ${res.file_name}` : (res.message || 'Terminó correctamente.'),
@@ -511,6 +515,7 @@ async function generarEstado() {
     estadoVisible.value = false
     await cargar(true)
   } catch (e) {
+    if (e instanceof TareaCancelada) return
     toast.error('Estado de resultados falló', {
       description: e.data?.detail || e.message,
       duration: 10000,

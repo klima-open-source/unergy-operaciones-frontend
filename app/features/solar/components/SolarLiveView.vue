@@ -562,7 +562,7 @@ import type {
   ProyectoMonitoreoSolar,
   RespuestaMonitoreoSolar,
 } from '~/features/solar/types'
-import { useRefrescoVisible } from '~/features/solar/refrescoVisible'
+import { useRefrescoVisible } from '~/composables/refrescoVisible'
 import {
   COLOR_NIVEL,
   FUENTES,

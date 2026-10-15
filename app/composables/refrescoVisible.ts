@@ -9,7 +9,9 @@
  *   inmediato y retoma el ritmo.
  *
  * La usan Generación Solar en escritorio (cada 5 min: refresca varias tarjetas a
- * la vez) y en móvil (cada 60 s: refresca una planta). Decisión del 2026-10-05.
+ * la vez), en móvil (cada 60 s: refresca una planta) y la campana de
+ * notificaciones (cada 5 min). Decisión del 2026-10-05; la campana, del 2026-10-15
+ * (auditoría de peticiones: era la mayor fuente de tráfico de fondo).
  */
 import { onMounted, onUnmounted } from 'vue'
 

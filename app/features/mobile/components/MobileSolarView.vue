@@ -352,7 +352,7 @@ import {
 } from '@lucide/vue'
 import type { CatalogosFalla, Falla } from '~/features/fallas/types'
 import type { DetalleMonitoreoSolar, ProyectoMonitoreoSolar } from '~/features/solar/types'
-import { useRefrescoVisible } from '~/features/solar/refrescoVisible'
+import { useRefrescoVisible } from '~/composables/refrescoVisible'
 import {
   COLOR_NIVEL,
   nivelComunicacion,
@@ -629,12 +629,18 @@ async function refrescarLista(): Promise<void> {
   }
 }
 
+const CINCO_MIN = 5 * 60 * 1000
+let ultimoCompleto = Date.now()
+
 function refrescar(): void {
   marcarCarga()
-  if (current.value) {
-    loadDetail(current.value.proyecto_id, true)
-    loadFallas(current.value.proyecto_id, true)
-  }
+  if (current.value) loadDetail(current.value.proyecto_id, true)
+  // Lo demás —fallas, lista de plantas, reconectadores, notificaciones— cambia
+  // poco y costaba 4 de las 5 peticiones de cada minuto (auditoría del
+  // 2026-10-15): va cada 5 min, o al volver tras más de 5 min sin mirar.
+  if (Date.now() - ultimoCompleto < CINCO_MIN) return
+  ultimoCompleto = Date.now()
+  if (current.value) loadFallas(current.value.proyecto_id, true)
   void refrescarLista()
   cargarEstados()
   fetchUnread()
@@ -643,7 +649,7 @@ function refrescar(): void {
 // Cada 60 s mientras la app está a la vista; en segundo plano nada, y al volver
 // se pone al día si pasaron más de 5 min (`useRefrescoVisible`). 60 s y no 5 min
 // como en escritorio: aquí cada vuelta refresca UNA planta, no todas las
-// tarjetas visibles. Decisión del 2026-10-05.
+// tarjetas visibles (decisión del 2026-10-05); el resto, cada 5 min (arriba).
 const { marcarCarga } = useRefrescoVisible(refrescar, {
   cadaMs: 60 * 1000,
   viejoTrasMs: 5 * 60 * 1000,

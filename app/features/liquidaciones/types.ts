@@ -47,6 +47,8 @@ export interface OpcionesEsperaTarea {
   timeoutMs?: number
   intervaloMs?: number
   onEstado?: (estado: TareaEstado) => void
+  /** Corta la espera (p. ej. al salir de la vista, `useSenalAlSalir`). */
+  signal?: AbortSignal
 }
 
 /** Se lanzó la tarea pero terminó mal. `message` es el motivo del backend. */
@@ -54,6 +56,14 @@ export class TareaFallida extends Error {
   constructor(message?: string) {
     super(message)
     this.name = 'TareaFallida'
+  }
+}
+
+/** Se dejó de esperar la tarea (se salió de la vista). La tarea sigue en el backend. */
+export class TareaCancelada extends Error {
+  constructor() {
+    super('Se dejó de esperar la tarea.')
+    this.name = 'TareaCancelada'
   }
 }
 
