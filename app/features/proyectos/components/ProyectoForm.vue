@@ -166,7 +166,7 @@
     <!-- Inversionista inicial, opcional. Antes la planta nacía suelta y había
          que ir a su detalle a vincular el cliente, que es un paso que se olvida.
          Acá cabe el caso común --un inversionista al 100%--; los demás se
-         agregan en el detalle, que admite fechas y patrimonio autónomo. -->
+         agregan en el detalle, que admite fechas. -->
     <div class="border-t border-muted pt-4 mt-2">
       <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
         Inversionista <span class="normal-case font-normal">(opcional)</span>
@@ -184,6 +184,10 @@
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
             <NumberFieldContent><NumberFieldInput placeholder="100" /></NumberFieldContent>
           </NumberField>
+        </div>
+        <div v-if="inversionistaInicial.cliente_id" class="md:col-span-2">
+          <label class="block text-xs font-medium text-muted-foreground mb-1">A través de patrimonio (a quién se factura)</label>
+          <Select :model-value="aValorSelect(inversionistaInicial.patrimonio)" @update:model-value="inversionistaInicial.patrimonio = deValorSelect($event)"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Directo: se factura al inversionista</SelectItem><SelectItem v-for="o in opcionesPatrimonio" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
         </div>
       </div>
     </div>
@@ -205,15 +209,22 @@ import { reactive, ref, watch, computed, onMounted } from 'vue'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
+import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import divipola from '~/data/colombia-divipola.json'
 
 const operadoresRedService = new OperadoresRedService()
+const patrimoniosService = new PatrimoniosService()
+
+const patrimonios = ref([])
+const opcionesPatrimonio = computed(() => armarOpcionesPatrimonio(patrimonios.value))
 
 /** El inversionista que se vincula junto con la planta. Ver el bloque del form. */
 const inversionistaInicial = reactive({
   cliente_id: null,
   nombre: null,
   porcentaje_pct: null,
+  patrimonio: '',
 })
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -292,6 +303,7 @@ onMounted(async () => {
   try {
     operadoresRed.value = await operadoresRedService.listar()
   } catch { /* graceful degrade -- el select queda vacío */ }
+  patrimonios.value = await patrimoniosService.listar().catch(() => [])
 })
 
 // Potencia AC y capacidad instalada -- viven en proyecto_info_tecnica (pestaña
@@ -380,6 +392,7 @@ function submit() {
     ? {
         cliente_id: inversionistaInicial.cliente_id,
         porcentaje_participacion: (inversionistaInicial.porcentaje_pct ?? 100) / 100,
+        patrimonio_id: inversionistaInicial.patrimonio ? Number(inversionistaInicial.patrimonio) : null,
       }
     : null
 

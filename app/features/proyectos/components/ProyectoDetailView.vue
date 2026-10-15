@@ -713,6 +713,7 @@ import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
+import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
@@ -1119,16 +1120,9 @@ const editFechaFin = ref(null)
 const editPatrimonio = ref('')
 
 // Patrimonios autónomos: el inversionista sigue siendo el dueño; si tiene la parte
-// a través de uno, al patrimonio se le factura. Un subpatrimonio se muestra con
-// su general delante para que se distingan los de dos fiduciarias.
+// a través de uno, al patrimonio se le factura.
 const patrimonios = ref([])
-const opcionesPatrimonio = computed(() => patrimonios.value.flatMap(g => [
-  { value: String(g.id), label: g.nombre },
-  ...g.subpatrimonios.map(sub => ({
-    value: String(sub.id),
-    label: `${g.nombre} › ${sub.codigo ? sub.codigo + ' ' : ''}${sub.nombre}`,
-  })),
-]))
+const opcionesPatrimonio = computed(() => armarOpcionesPatrimonio(patrimonios.value))
 
 
 const clientesDisponibles = computed(() => {
