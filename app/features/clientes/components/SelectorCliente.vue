@@ -14,7 +14,7 @@
  * sugiere el OBJETO cliente, así que lo que se elige es el cliente, no su
  * nombre.
  */
-import type { Cliente } from '~/types/cliente'
+import type { Cliente, ClienteLiviano } from '~/types/cliente'
 import { LinkIcon, PlusIcon } from '@lucide/vue'
 import {
   agregar as agregarAlCatalogo,
@@ -52,7 +52,7 @@ const emit = defineEmits<{
 
 const open = ref(false)
 const creando = ref(false)
-const catalogo = ref<Cliente[]>([])
+const catalogo = ref<ClienteLiviano[]>([])
 
 cargarClientes()
   .then((filas) => {
@@ -86,7 +86,7 @@ const sugerencias = computed(() => {
  * Elegir de la lista vincula (manda el objeto); teclear libre deja la parte
  * sin `id`, que es lo que el aviso de abajo señala.
  */
-function alCambiar(valor: string | Cliente) {
+function alCambiar(valor: string | ClienteLiviano) {
   if (valor && typeof valor === 'object') {
     emit('update:id', valor.id)
     emit('update:nombre', valor.razon_social_nombre ?? null)
@@ -138,7 +138,7 @@ watch(
         :reset-search-term-on-select="false"
         :disabled="disabled"
         class="flex-1"
-        @update:model-value="(c) => c && alCambiar(c as Cliente)"
+        @update:model-value="(c) => c && alCambiar(c as ClienteLiviano)"
       >
         <ComboboxAnchor>
           <ComboboxInput :id="inputId" v-model="query" :placeholder="placeholder" />

@@ -15,7 +15,7 @@ import type {
   Patrimonio,
   PatrimonioGeneral,
 } from '~/features/clientes/types'
-import type { Cliente } from '~/types/cliente'
+import type { ClienteLiviano } from '~/types/cliente'
 import { PencilIcon, PlusIcon, Trash2Icon, XIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
@@ -28,15 +28,19 @@ const props = defineProps<{
 }>()
 
 const patrimoniosService = new PatrimoniosService()
+const catalogoPatrimonios = useCatalogoPatrimonios()
 const confirm = useConfirm()
 
 const query = useQuery<PatrimonioGeneral[]>()
 
+// Acá se administran: siempre lo último, y cada cambio termina recargando, así
+// que acá también se invalida el catálogo compartido de los desplegables.
 async function loadData() {
+  catalogoPatrimonios.invalidar()
   await query.run(() => patrimoniosService.listar())
 }
 
-const catalogo = ref<Cliente[]>([])
+const catalogo = ref<ClienteLiviano[]>([])
 onMounted(() => {
   loadData()
   cargarClientes()

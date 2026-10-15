@@ -15,7 +15,7 @@
   componentes shadcn, sin ningún componente de "steps" nuevo.
 -->
 <script setup lang="ts">
-import type { Cliente } from '~/types/cliente'
+import type { Cliente, ClienteLiviano } from '~/types/cliente'
 import type { Oportunidad, PayloadRegistrarOportunidad } from '~/features/comercial/types'
 import type { UseOfertas } from './useOfertas'
 import {
@@ -94,7 +94,7 @@ const forzarDuplicado = ref(false)
 type ClienteResumen = Pick<Cliente, 'id' | 'razon_social_nombre'> &
   Pick<Partial<Cliente>, 'nit_cedula'>
 
-const clientes = ref<Cliente[]>([])
+const clientes = ref<ClienteLiviano[]>([])
 const clienteSel = ref<ClienteResumen | null>(null)
 const proyectos = ref<ProyectoCatalogo[]>([])
 const cargandoCatalogos = ref(false)

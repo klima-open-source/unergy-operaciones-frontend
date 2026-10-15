@@ -39,6 +39,12 @@ export interface Cliente extends ClienteEditable {
   id: Id
 }
 
+/** Lo que trae `GET /clientes/lista`: lo que muestra un selector de cliente. */
+export type ClienteLiviano = Pick<
+  Cliente,
+  'id' | 'razon_social_nombre' | 'nit_cedula' | 'tipo_persona'
+>
+
 /** Una persona de contacto del cliente. Se editan en línea desde el detalle. */
 export interface Contacto {
   id: Id

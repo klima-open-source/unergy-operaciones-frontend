@@ -16,7 +16,6 @@ import { RefreshCwIcon } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import divipola from '~/data/colombia-divipola.json'
 import { normalizeError } from '~/core/errors'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import type { OperadorRedCatalogo } from '~/features/proyectos/prellenadoTsf'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
@@ -50,7 +49,7 @@ const emit = defineEmits<{ actualizado: [] }>()
 
 const proyectos = new ProyectosService()
 const originabot = new OriginabotService()
-const operadoresRed = new OperadoresRedService()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
 const { vincularOperador } = useVinculoOperadorTsf()
 const sincronizacionArriendo = useSincronizacionArriendo()
 
@@ -120,7 +119,7 @@ async function consultar() {
         'Si no, el operador de red no se propone en la sincronización.',
       )
     }
-    const catalogo = (await operadoresRed.listar()) as OperadorRedCatalogo[]
+    const catalogo = (await catalogoOperadoresRed.cargar()) as OperadorRedCatalogo[]
     cambios.value = cambiosDesdeTsf(tsf, props.proyecto, divipola, catalogo)
     await prepararArriendo(tsf)
     if (!cambios.value.length && !hayCambiosArriendo(planArriendo.value)) {

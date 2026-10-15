@@ -656,7 +656,6 @@ import DataTable, {
   type DataTableRow,
 } from '~/components/blocks/DataTable.vue'
 import { FronterasService } from '~/features/fronteras/services/fronteras'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { exportarExcel } from '~/utils/exportarExcel'
 import { formatearNombre } from '~/utils/nombreFormato'
 
@@ -681,7 +680,7 @@ const fronterasService = new FronterasService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
 // ver ~/composables/useProyectosCatalogo.
 const catalogoProyectos = useProyectosCatalogo()
-const operadoresRedService = new OperadoresRedService()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
 
 const route = useRoute()
 const router = useRouter()
@@ -1294,7 +1293,7 @@ function ignorarPendiente(p: PendienteQuoiaUI) {
 const operadoresRed = ref<OperadorRed[]>([])
 async function loadOperadoresRed() {
   try {
-    operadoresRed.value = await operadoresRedService.listar()
+    operadoresRed.value = await catalogoOperadoresRed.cargar()
   } catch {
     /* graceful degrade -- el select queda vacío */
   }

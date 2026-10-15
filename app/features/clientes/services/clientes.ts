@@ -1,5 +1,5 @@
 /** El cliente (inversionista o comprador): datos, documentos, tasas y sus registros relacionados. */
-import type { Cliente, ClienteEditable } from '~/types/cliente'
+import type { Cliente, ClienteEditable, ClienteLiviano } from '~/types/cliente'
 import { comoLista, type ListaODirecto, type Paginado } from '~/types/api'
 import type {
   ClienteDetalle,
@@ -22,6 +22,7 @@ const BASE = '/clientes'
 
 const RUTAS = {
   clientes: BASE,
+  lista: `${BASE}/lista`,
   vistaComercial: `${BASE}/vista-comercial`,
   cliente: (id: number) => `${BASE}/${id}`,
   panel: (id: number) => `${BASE}/${id}/panel`,
@@ -102,6 +103,15 @@ export class ClientesService extends BaseService {
 
   listarVistaComercial(): Promise<ClienteVistaComercial[]> {
     return this.get<ClienteVistaComercial[]>(RUTAS.vistaComercial)
+  }
+
+  /**
+   * Todos los clientes en una petición, con solo id, nombre, NIT y tipo. Para los
+   * selectores: el listado paginado se corta en 100 filas.
+   */
+  async listarLiviano(): Promise<ClienteLiviano[]> {
+    const data = await this.get<{ total: number; items: ClienteLiviano[] }>(RUTAS.lista)
+    return data.items ?? []
   }
 
   /** El listado general (sin el read-model comercial), para selects de "elige un cliente". */

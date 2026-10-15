@@ -24,6 +24,7 @@ const columns: DataTableColumn[] = [
 ]
 
 const operadoresRedService = new OperadoresRedService()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
 const confirm = useConfirm()
 const router = useRouter()
 
@@ -87,6 +88,7 @@ async function guardar(body: PayloadOperadorRed, forzar = false) {
       toast.success('Operador creado')
     }
     showForm.value = false
+    catalogoOperadoresRed.invalidar()
     await loadData()
   } catch (err) {
     // Aviso de nombre parecido (409 estructurado): se puede confirmar y crear
