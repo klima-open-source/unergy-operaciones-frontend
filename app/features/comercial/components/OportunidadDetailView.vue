@@ -159,7 +159,7 @@ async function crearDoc(tipo: string, label: string) {
     await clientesService.crearDocumento(op.value.cliente_id, {
       tipo,
       nombre: label,
-      numero: tipo === 'oferta' ? (seg.numero_oferta || op.value.numero_oferta || null) : null,
+      numero: tipo === 'oferta' ? seg.numero_oferta || op.value.numero_oferta || null : null,
       fecha: null,
       estado: 'aceptado',
       archivo_url: null,
@@ -216,7 +216,12 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
     <!-- Encabezado -->
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div class="flex items-start gap-3">
-        <Button variant="ghost" size="icon" aria-label="Volver al tablero" @click="router.push('/comercial')">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Volver al tablero"
+          @click="router.push('/comercial')"
+        >
           <ArrowLeftIcon class="size-4" />
         </Button>
         <div>
@@ -225,10 +230,14 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
             <NuxtLink :to="`/clientes/${op.cliente_id}`" class="text-primary underline">
               {{ op.cliente_razon_social }}
             </NuxtLink>
-            <span v-if="op.cliente_nit" class="text-muted-foreground">NIT {{ op.cliente_nit }}</span>
+            <span v-if="op.cliente_nit" class="text-muted-foreground"
+              >NIT {{ op.cliente_nit }}</span
+            >
           </div>
         </div>
-        <GBadge v-if="op.alerta" color="destructive">⚠ {{ op.dias_sin_respuesta }} días sin movimiento</GBadge>
+        <GBadge v-if="op.alerta" color="destructive"
+          >⚠ {{ op.dias_sin_respuesta }} días sin movimiento</GBadge
+        >
       </div>
     </div>
 
@@ -245,9 +254,13 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
 
     <!-- Datos del negocio: pocos y de identificación, no merecen pestaña -->
     <details class="mb-5 rounded-lg border bg-muted/30">
-      <summary class="cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground select-none">
+      <summary
+        class="cursor-pointer px-3 py-2 text-xs font-semibold text-muted-foreground select-none"
+      >
         DATOS DEL NEGOCIO
-        <span class="font-normal">— {{ estadoGuardado || 'nombre, consecutivo, fechas tentativas, notas' }}</span>
+        <span class="font-normal"
+          >— {{ estadoGuardado || 'nombre, consecutivo, fechas tentativas, notas' }}</span
+        >
       </summary>
       <div class="grid grid-cols-1 gap-3 px-3 pb-3 md:grid-cols-3">
         <div>
@@ -275,7 +288,9 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
           <GLabel>Inicio tentativo — representación</GLabel>
           <DatePicker
             :model-value="
-              seg.fecha_tentativa_inicio_representacion ? aFechaStr(seg.fecha_tentativa_inicio_representacion) : null
+              seg.fecha_tentativa_inicio_representacion
+                ? aFechaStr(seg.fecha_tentativa_inicio_representacion)
+                : null
             "
             clearable
             @update:model-value="
@@ -369,7 +384,10 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
           row-key="id"
           class="mb-6"
           empty-message="Sin contratos PPA."
-          @row-click="(row) => router.push(`/contratos/${(row as unknown as ContratoPpaClienteResumen).id}`)"
+          @row-click="
+            (row) =>
+              router.push(`/contratos/${(row as unknown as ContratoPpaClienteResumen).id}?tipo=ppa`)
+          "
         />
 
         <div class="mb-1 flex items-center justify-between">
@@ -387,7 +405,11 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
           @row-click="(row) => router.push(`/contratos/${(row as unknown as ContratoServicio).id}`)"
         />
 
-        <ProyectoDesdeCRMDialog v-model:visible="showAgregarProyecto" :oportunidad-id="op.id" @creado="recargar" />
+        <ProyectoDesdeCRMDialog
+          v-model:visible="showAgregarProyecto"
+          :oportunidad-id="op.id"
+          @creado="recargar"
+        />
         <!-- ContratoServicioWizard no expone prop de cliente (solo `tipo` y
              `proyectoIdDefault`): el cliente se selecciona dentro del wizard. -->
         <ContratoServicioWizard
@@ -403,8 +425,8 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
           <div>
             <h3 class="mb-1 text-sm font-semibold text-foreground">Documentos comerciales</h3>
             <p class="mb-3 text-xs text-muted-foreground">
-              Se guardan como documentos del cliente, vinculados a este negocio. La subida
-              del archivo y el cambio de estado se hacen en la ficha del cliente.
+              Se guardan como documentos del cliente, vinculados a este negocio. La subida del
+              archivo y el cambio de estado se hacen en la ficha del cliente.
             </p>
             <div class="flex flex-col gap-2">
               <div v-for="t in TIPOS_DOC" :key="t.value" class="rounded-md border p-3">
@@ -413,7 +435,10 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
                     <span class="text-sm font-medium">{{ t.label }}</span>
                     <template v-if="docPorTipo(t.value)">
                       <GBadge>{{ docPorTipo(t.value)!.estado }}</GBadge>
-                      <span v-if="docPorTipo(t.value)!.numero" class="text-xs text-muted-foreground">
+                      <span
+                        v-if="docPorTipo(t.value)!.numero"
+                        class="text-xs text-muted-foreground"
+                      >
                         Nº {{ docPorTipo(t.value)!.numero }}
                       </span>
                       <a
@@ -428,7 +453,12 @@ onBeforeUnmount(() => clearTimeout(saveTimer))
                     </template>
                     <span v-else class="text-xs text-muted-foreground/60">sin registrar</span>
                   </div>
-                  <Button v-if="!docPorTipo(t.value)" variant="ghost" size="sm" @click="crearDoc(t.value, t.label)">
+                  <Button
+                    v-if="!docPorTipo(t.value)"
+                    variant="ghost"
+                    size="sm"
+                    @click="crearDoc(t.value, t.label)"
+                  >
                     <PlusIcon class="size-4" />
                     Registrar
                   </Button>

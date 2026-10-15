@@ -568,7 +568,7 @@
       <!-- ══ SERVICIOS ══ -->
       <div v-if="tab === 'servicios'">
         <!-- PPA, Representación y CGM, y Operación, con su detalle, sin salir de la ficha. -->
-        <ServiciosDelProyecto :proyecto-id="Number(route.params.id)" :activos="srvFlags" />
+        <ServiciosDelProyecto :proyecto-id="Number(route.params.id)" :activos="srvFlags" :nombre="proyecto.nombre_comercial" />
       </div>
 
       <!-- ══ FRONTERAS ══ -->

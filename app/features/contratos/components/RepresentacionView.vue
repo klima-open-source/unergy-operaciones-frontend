@@ -558,6 +558,8 @@ const props = defineProps({
   embebido: { type: Boolean, default: false },
   proyectoId: { type: Number, default: null },
   contratoId: { type: Number, default: null },
+  /** El nombre de la planta, si quien la monta ya lo tiene: ahorra pedir el proyecto. */
+  nombreProyecto: { type: String, default: null },
 })
 // Perezoso: `route` se declara más abajo, y esto se evalúa ya montado.
 const pid = computed(() => props.proyectoId ?? Number(route.params.id))
@@ -598,7 +600,7 @@ const ESTILO_FILA = {
 }
 
 const loading = ref(true)
-const proyectoNombre = ref('')
+const proyectoNombre = ref(props.nombreProyecto ?? '')
 const contratos = ref([])
 const idSeleccionado = ref(null)
 const edit = ref(null)          // 'id' | 'partes' | 'vigencia' | 'comercial'
@@ -950,10 +952,12 @@ async function cargar() {
 }
 
 onMounted(async () => {
-  try {
-    const proyecto = await proyectosService.obtener(pid.value)
-    proyectoNombre.value = proyecto.nombre_comercial || ''
-  } catch { /* el nombre es decorativo: la vista funciona sin él */ }
+  // El nombre es decorativo: se pide en paralelo, y solo si no vino.
+  if (!props.nombreProyecto) {
+    proyectosService.obtener(pid.value)
+      .then((proyecto) => { proyectoNombre.value = proyecto.nombre_comercial || '' })
+      .catch(() => {})
+  }
   try {
     await cargar()
     await cargarDuplicados()

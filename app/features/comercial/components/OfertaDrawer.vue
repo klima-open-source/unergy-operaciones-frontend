@@ -786,7 +786,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             class="rounded-md border border-success/30 bg-success/10 px-3 py-2"
           >
             <NuxtLink
-              :to="`/contratos/${oferta.ppa_contrato_id}`"
+              :to="`/contratos/${oferta.ppa_contrato_id}?tipo=ppa`"
               class="text-sm font-medium text-success underline"
             >
               Contrato PPA #{{ oferta.ppa_contrato_id }}

@@ -4,19 +4,20 @@
  * del 2026-10-14.
  *
  * PPA, representación y operación viven en la misma tabla `contratos`, pero un id
- * responde en UNO solo de sus endpoints (`/ppa/{id}` o `/contratos-servicio/{id}`),
- * así que se piden los dos y manda el que conteste. Un PPA abre su ficha de
- * siempre; uno de servicio, la vista de su grupo (representación u operación)
+ * responde en UNO solo de sus endpoints (`/ppa/{id}` o `/contratos-servicio/{id}`).
+ * Se pide el de servicio y, si da 404, es un PPA: su ficha de siempre lo carga
+ * sola. Un enlace que ya sabe que es un PPA lleva `?tipo=ppa` y se salta la
+ * prueba. (Antes se pedían los dos siempre, y la ficha del PPA lo volvía a pedir.)
+ * Uno de servicio abre la vista de su grupo (representación u operación)
  * mostrando solo ese contrato, con su planta y sus partes enlazadas arriba.
  */
 import { BuildingIcon, ExternalLinkIcon, FileTextIcon, ZapIcon } from '@lucide/vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
-import { normalizeError } from '~/core/errors'
+import { isFetchError, normalizeError } from '~/core/errors'
 import ContratoDetailView from '~/features/contratos/components/ContratoDetailView.vue'
 import OperacionView from '~/features/contratos/components/OperacionView.vue'
 import RepresentacionView from '~/features/contratos/components/RepresentacionView.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
-import { PpaService } from '~/features/contratos/services/ppa'
 import type { ContratoServicio } from '~/features/contratos/types'
 
 const route = useRoute()
@@ -40,11 +41,14 @@ const ESTADOS: Record<string, 'success' | 'warning' | 'default'> = {
   terminado: 'default',
 }
 
+const nombrePlanta = computed(
+  () => (contrato.value?.proyecto as { nombre_comercial?: string } | undefined)?.nombre_comercial,
+)
 const servicio = computed(() => SERVICIOS[contrato.value?.servicio_aplica ?? ''] ?? null)
 const titulo = computed(() => {
   const c = contrato.value
   if (!c) return ''
-  const planta = c.proyecto ? ` · ${(c.proyecto as { nombre_comercial?: string }).nombre_comercial}` : ''
+  const planta = nombrePlanta.value ? ` · ${nombrePlanta.value}` : ''
   return `${servicio.value?.label ?? c.servicio_aplica}${planta}`
 })
 const volver = computed(() => ({
@@ -65,13 +69,17 @@ const partes = computed(() => {
 })
 
 onMounted(async () => {
-  const [servicioRes, ppaRes] = await Promise.allSettled([
-    new ContratosServicioService().obtener(id),
-    new PpaService().obtener(id),
-  ])
-  if (servicioRes.status === 'fulfilled') contrato.value = servicioRes.value
-  else if (ppaRes.status === 'fulfilled') esPpa.value = true
-  else error.value = normalizeError(servicioRes.reason).message
+  if (route.query.tipo === 'ppa') {
+    esPpa.value = true
+  } else {
+    try {
+      contrato.value = await new ContratosServicioService().obtener(id)
+    } catch (e) {
+      // 404 = no es de servicio: es un PPA (o no existe, y lo dice su ficha).
+      if (isFetchError(e) && e.status === 404) esPpa.value = true
+      else error.value = normalizeError(e).message
+    }
+  }
   cargando.value = false
 })
 </script>
@@ -109,7 +117,7 @@ onMounted(async () => {
           class="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
         >
           <ZapIcon class="size-3.5" />
-          {{ (contrato.proyecto as { nombre_comercial?: string } | undefined)?.nombre_comercial ?? `#${contrato.proyecto_id}` }}
+          {{ nombrePlanta ?? `#${contrato.proyecto_id}` }}
         </NuxtLink>
         <span v-else class="text-muted-foreground">Sin planta</span>
 
@@ -144,6 +152,7 @@ onMounted(async () => {
         embebido
         :proyecto-id="contrato.proyecto_id"
         :contrato-id="contrato.id"
+        :nombre-proyecto="nombrePlanta"
       />
       <OperacionView
         v-else
@@ -151,6 +160,7 @@ onMounted(async () => {
         :proyecto-id="contrato.proyecto_id"
         :contrato-id="contrato.id"
         :tipo="contrato.servicio_aplica"
+        :nombre-proyecto="nombrePlanta"
       />
     </template>
   </DetalleLayout>

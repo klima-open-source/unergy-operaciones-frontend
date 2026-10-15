@@ -13,6 +13,7 @@ import type {
   PayloadFacturaContratoServicio,
   RespuestaFusionarRepresentacion,
   SerieIndexacionCalculada,
+  SerieIndexacionConArrendadores,
   TipoServicioContrato,
 } from '~/features/contratos/types'
 import { BaseService } from '~/core/service'
@@ -108,13 +109,15 @@ export class ContratosServicioService extends BaseService {
     return this.get<SerieIndexacionCalculada>(RUTAS.indexacionOm(id))
   }
 
-  /** `arrendadorId`: la serie individual de ese arrendador (usa su propio `valor_base`). */
-  obtenerIndexacionArriendo(
+  /**
+   * La serie del contrato y la de cada arrendador en una petición, en vez de una
+   * por arrendador.
+   */
+  obtenerIndexacionArriendoConArrendadores(
     id: ContratoServicio['id'],
-    arrendadorId?: Arrendador['id'],
-  ): Promise<SerieIndexacionCalculada> {
-    return this.get<SerieIndexacionCalculada>(RUTAS.indexacionArriendo(id), {
-      query: arrendadorId ? { arrendador_id: arrendadorId } : undefined,
+  ): Promise<SerieIndexacionConArrendadores> {
+    return this.get<SerieIndexacionConArrendadores>(RUTAS.indexacionArriendo(id), {
+      query: { arrendadores: 'todos' },
     })
   }
 

@@ -1023,6 +1023,8 @@ const props = defineProps({
   proyectoId: { type: Number, default: null },
   contratoId: { type: Number, default: null },
   tipo: { type: String, default: null },
+  /** El nombre de la planta, si quien la monta ya lo tiene: ahorra pedir el proyecto. */
+  nombreProyecto: { type: String, default: null },
 })
 // Perezoso: `route` se declara más abajo, y esto se evalúa ya montado.
 const pid = computed(() => props.proyectoId ?? Number(route.params.id))
@@ -1091,7 +1093,7 @@ const DIALOG_EDIT_LABEL = { mantenimiento: 'Mantenimiento', arriendo: 'Arriendo'
 
 // ── Estado reactivo ───────────────────────────────────────────────────────────
 const loading          = ref(true)
-const proyectoNombre   = ref('')
+const proyectoNombre   = ref(props.nombreProyecto ?? '')
 const guardandoContrato = ref(false)
 const guardandoMant      = ref(false)
 const excelInputRef      = ref(null)
@@ -1279,22 +1281,26 @@ watch(() => [dialogEdit.form.ubicacion_lat, dialogEdit.form.ubicacion_lng], ([la
 onMounted(async () => {
   const proyId = pid.value
   try {
-    const [proyRes, mantRes, arrRes, netRes] = await Promise.allSettled([
-      proyectosService.obtener(proyId),
-      contratosServicioService.listar({ tipo: 'mantenimiento', proyecto_id: proyId }),
-      contratosServicioService.listar({ tipo: 'arriendo', proyecto_id: proyId }),
-      contratosServicioService.listar({ tipo: 'internet', proyecto_id: proyId }),
+    // Una lista con todos los contratos de la planta, repartida acá por tipo (antes
+    // eran tres peticiones, una por tipo). El proyecto, solo si no vino el nombre.
+    const [proyRes, todosRes] = await Promise.allSettled([
+      props.nombreProyecto ? Promise.resolve(null) : proyectosService.obtener(proyId),
+      contratosServicioService.listar({ proyecto_id: proyId }),
     ])
 
-    if (proyRes.status === 'fulfilled') proyectoNombre.value = proyRes.value.nombre_comercial
+    if (proyRes.status === 'fulfilled' && proyRes.value) proyectoNombre.value = proyRes.value.nombre_comercial
 
-    contratos.mantenimiento = mantRes.status === 'fulfilled' ? elegir(mantRes.value, 'mantenimiento') : null
-    contratos.arriendo      = arrRes.status  === 'fulfilled' ? elegir(arrRes.value, 'arriendo') : null
-    contratos.internet      = netRes.status  === 'fulfilled' ? elegir(netRes.value, 'internet') : null
+    const delTipo = (tipo) =>
+      todosRes.status === 'fulfilled' ? elegir(todosRes.value.filter(c => c.servicio_aplica === tipo), tipo) : null
+    contratos.mantenimiento = delTipo('mantenimiento')
+    contratos.arriendo      = delTipo('arriendo')
+    contratos.internet      = delTipo('internet')
 
-    await cargarIndexacionOM()
-    await cargarArrendadores()
-    await cargarIndexacionArriendo()
+    // La de O&M no depende de los arrendadores: va en paralelo.
+    await Promise.all([
+      cargarIndexacionOM(),
+      cargarArrendadores().then(cargarIndexacionArriendo),
+    ])
   } catch (e) {
     toast.error('Error al cargar', { description: e.message, duration: 4000 })
   } finally {
@@ -1620,25 +1626,19 @@ async function cargarIndexacionOM() {
 // y el valor vigente de la ficha.
 async function cargarIndexacionArriendo() {
   if (!contratos.arriendo?.id) return
+  // La del contrato y la individual de cada arrendador (con su propio
+  // valor_base), en una sola petición.
+  let data = null
   try {
-    const data = await contratosServicioService.obtenerIndexacionArriendo(contratos.arriendo.id)
-    contratos.arriendo.indexacion_anual   = data.anual   || []
-    contratos.arriendo.indexacion_mensual = data.mensual || []
-  } catch {
-    contratos.arriendo.indexacion_anual   = []
-    contratos.arriendo.indexacion_mensual = []
+    data = await contratosServicioService.obtenerIndexacionArriendoConArrendadores(contratos.arriendo.id)
+  } catch { /* sin serie: las tablas quedan vacías */ }
+  contratos.arriendo.indexacion_anual   = data?.anual   || []
+  contratos.arriendo.indexacion_mensual = data?.mensual || []
+  for (const a of arrendadores.value) {
+    const suya = data?.arrendadores?.[String(a.id)]
+    a.indexacion_anual   = suya?.anual   || []
+    a.indexacion_mensual = suya?.mensual || []
   }
-  // Indexación individual por cada arrendador (usa su propio valor_base)
-  await Promise.all(arrendadores.value.map(async (a) => {
-    try {
-      const data = await contratosServicioService.obtenerIndexacionArriendo(contratos.arriendo.id, a.id)
-      a.indexacion_anual   = data.anual   || []
-      a.indexacion_mensual = data.mensual || []
-    } catch {
-      a.indexacion_anual   = []
-      a.indexacion_mensual = []
-    }
-  }))
 }
 
 // ── Arrendadores: CRUD ────────────────────────────────────────────────────────
