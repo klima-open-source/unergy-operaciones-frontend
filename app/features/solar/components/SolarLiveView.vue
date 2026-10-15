@@ -270,32 +270,21 @@
                     </span>
                   </div>
 
-                  <!-- Gráficas -->
-                  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <!-- Inversores -->
-                    <div
-                      class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3"
-                    >
-                      <div
-                        class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase"
-                      >
-                        <span class="size-2 shrink-0 rounded-full bg-primary" />
-                        Inversores
-                        <span
-                          v-if="irradianciaMap[proy.proyecto_id]"
-                          class="ml-auto flex items-center gap-1 font-medium tracking-normal normal-case"
-                          title="Irradiancia POA de la estación (eje derecho, W/m²)"
-                        >
-                          <span class="h-0.5 w-3 rounded-full bg-chart-4" />
-                          Irradiancia POA
-                        </span>
-                      </div>
-                      <!-- Mismo tratamiento que Medidores: el acumulado del dia en
-                     grande, con hasta que hora cubre. Son horas sumadas, no una
-                     lectura del ultimo instante. -->
+                  <!-- Una sola gráfica por planta, como en la app móvil: inversores,
+                       medidor y (si la estación la mide) irradiancia POA. Arriba,
+                       el acumulado del día de cada fuente con hasta qué hora va. -->
+                  <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
+                    <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                      <!-- Inversores -->
                       <div class="flex items-baseline gap-2">
                         <span
-                          class="text-xl font-bold tabular-nums"
+                          class="flex items-center gap-1.5 self-center text-xs font-bold tracking-wide text-muted-foreground uppercase"
+                        >
+                          <span class="size-2 shrink-0 rounded-full bg-primary" />
+                          Inversores
+                        </span>
+                        <span
+                          class="text-lg font-bold tabular-nums"
                           :class="
                             acumuladoInversores(detailMap[proy.proyecto_id]) === null
                               ? 'text-muted-foreground'
@@ -314,53 +303,21 @@
                           </template>
                         </span>
                       </div>
-                      <div
-                        v-if="getInversorData(proy.proyecto_id).labels.length"
-                        class="relative h-45"
-                      >
-                        <Line
-                          :key="'inv-' + proy.proyecto_id"
-                          :data="getInversorData(proy.proyecto_id)"
-                          :options="chartOptionsInv(proy.proyecto_id)"
-                          :plugins="[crosshairPlugin]"
-                        />
-                      </div>
-                      <div
-                        v-else
-                        class="flex h-45 items-center justify-center text-sm text-muted-foreground"
-                      >
-                        Sin datos
-                      </div>
-                    </div>
 
-                    <!-- Medidores -- el backend ya eligio cual mostrar -->
-                    <div
-                      class="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3"
-                    >
-                      <template v-if="panelesMedidor[proy.proyecto_id]">
-                        <div
-                          class="flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+                      <!-- Medidor -- el backend ya eligió cuál mostrar -->
+                      <div class="flex items-baseline gap-2">
+                        <span
+                          class="flex items-center gap-1.5 self-center text-xs font-bold tracking-wide text-muted-foreground uppercase"
                         >
                           <span class="size-2 shrink-0 rounded-full bg-warning" />
-                          Medidores
-                          <Badge v-if="panelesMedidor[proy.proyecto_id]!.tipo" variant="outline">{{
+                          Medidor
+                          <Badge v-if="panelesMedidor[proy.proyecto_id]?.tipo" variant="outline">{{
                             panelesMedidor[proy.proyecto_id]!.tipo
                           }}</Badge>
+                        </span>
+                        <template v-if="panelesMedidor[proy.proyecto_id]">
                           <span
-                            v-if="irradianciaMap[proy.proyecto_id]"
-                            class="ml-auto flex items-center gap-1 font-medium tracking-normal normal-case"
-                            title="Irradiancia POA de la estación (eje derecho, W/m²)"
-                          >
-                            <span class="h-0.5 w-3 rounded-full bg-chart-4" />
-                            Irradiancia POA
-                          </span>
-                        </div>
-                        <!-- El numero grande es la generacion del dia: es lo que alguien
-                       quiere saber de un vistazo, y no se cae a cero de noche como
-                       la potencia instantanea. Sale del contador, con su hora. -->
-                        <div class="flex items-baseline gap-2">
-                          <span
-                            class="text-xl font-bold tabular-nums"
+                            class="text-lg font-bold tabular-nums"
                             :class="
                               panelesMedidor[proy.proyecto_id]!.energiaKwh === null
                                 ? 'text-muted-foreground'
@@ -380,28 +337,33 @@
                               · {{ haceCuanto(panelesMedidor[proy.proyecto_id]!.energiaHasta) }}
                             </template>
                           </span>
-                        </div>
-                        <div v-if="panelesMedidor[proy.proyecto_id]!.chart" class="relative h-45">
-                          <Line
-                            :key="'med-' + proy.proyecto_id"
-                            :data="panelesMedidor[proy.proyecto_id]!.chart!"
-                            :options="chartOptionsMed(proy.proyecto_id)"
-                            :plugins="[crosshairPlugin]"
-                          />
-                        </div>
-                        <div
-                          v-else
-                          class="flex h-45 items-center justify-center text-sm text-muted-foreground"
-                        >
-                          Sin datos
-                        </div>
-                      </template>
-                      <div
-                        v-else
-                        class="flex h-45 items-center justify-center text-sm text-muted-foreground"
-                      >
-                        Sin medidor
+                        </template>
+                        <span v-else class="text-xs text-muted-foreground">Sin medidor</span>
                       </div>
+
+                      <span
+                        v-if="irradianciaMap[proy.proyecto_id]"
+                        class="ml-auto flex items-center gap-1 self-center text-xs font-medium text-muted-foreground"
+                        title="Irradiancia POA de la estación (eje derecho, W/m²)"
+                      >
+                        <span class="h-0.5 w-3 rounded-full bg-chart-4" />
+                        Irradiancia POA
+                      </span>
+                    </div>
+
+                    <div v-if="graficaProyecto(proy.proyecto_id)" class="relative h-56">
+                      <Line
+                        :key="'g-' + proy.proyecto_id"
+                        :data="graficaProyecto(proy.proyecto_id)!"
+                        :options="chartOptions(proy.proyecto_id)"
+                        :plugins="[crosshairPlugin]"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="flex h-56 items-center justify-center text-sm text-muted-foreground"
+                    >
+                      Sin datos
                     </div>
                   </div>
 
@@ -978,6 +940,26 @@ function medidorPanel(id: number): PanelMedidor | null {
   }
 }
 
+/**
+ * La gráfica única de la tarjeta: inversores (relleno), medidor (línea) y la
+ * irradiancia POA en el eje derecho si la hay. Mismo eje kW para las dos
+ * potencias, así la diferencia entre ellas se ve a simple vista.
+ */
+function graficaProyecto(id: number): CurvaChartData | null {
+  const inv = getInversorData(id).datasets[0]
+  const med = medidorPanel(id)?.chart?.datasets[0]
+  if (!inv && !med) return null
+  return {
+    labels: TIME_LABELS,
+    datasets: [
+      ...(inv ? [inv] : []),
+      // Sin relleno: con dos áreas superpuestas no se distingue ninguna.
+      ...(med ? [{ ...med, fill: false }] : []),
+      ...datasetIrradiancia(id),
+    ],
+  }
+}
+
 // Potencia de AHORA y su frescura: los dos ya llegaban en la respuesta y la
 // vista los descartaba, en una pestana cuyo proposito es el tiempo real.
 
@@ -1075,10 +1057,7 @@ function getChartMax(id: number): number | undefined {
   return Math.ceil((max * 1.1) / 50) * 50
 }
 
-function chartOptionsInv(id: number): ChartOptions<'line'> {
-  return makeOptions(getChartMax(id), !!irradianciaMap[id])
-}
-function chartOptionsMed(id: number): ChartOptions<'line'> {
+function chartOptions(id: number): ChartOptions<'line'> {
   return makeOptions(getChartMax(id), !!irradianciaMap[id])
 }
 
