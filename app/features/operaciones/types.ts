@@ -30,6 +30,23 @@ export interface RespuestaProyectosLegacy {
 }
 
 /** `getGeneration`: la serie diaria y, si el backend simuló, el P90/P50 mensual y el P90 diario. */
+/**
+ * `getMonthlyGeneration`: kWh por mes (`YYYY-MM`) de varias plantas y su curva
+ * P90 de doce valores. Lo usa el Ranking vs P90 de Informes mensuales.
+ */
+export interface RespuestaGeneracionMensualLegacy {
+  ok: boolean
+  error?: string
+  proyectos?: Record<
+    string,
+    {
+      meses: Record<string, number>
+      curva_p90_kwh: (number | null)[] | null
+      fuente: 'verificada' | 'cruda' | 'sin_datos' | 'error'
+    }
+  >
+}
+
 export interface RespuestaGeneracionLegacy {
   ok?: boolean
   // MIGRACIÓN (slice `liquidaciones`) — el campo real que trae cada punto es

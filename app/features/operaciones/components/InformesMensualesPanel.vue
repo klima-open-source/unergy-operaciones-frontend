@@ -362,7 +362,10 @@ import { toast } from 'vue-sonner'
 import { logger } from '~/core/logger'
 import { normalizeError } from '~/core/errors'
 import { InformesService } from '~/features/operaciones/services/informes'
-import { MonitoreoLegacyService } from '~/features/operaciones/services/monitoreo-legacy'
+import {
+  MAX_PLANTAS_POR_CONSULTA_MENSUAL,
+  MonitoreoLegacyService,
+} from '~/features/operaciones/services/monitoreo-legacy'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { buildReportHtmlDoc } from '~/features/operaciones/utils/rptStyles'
 import { tituloFalla } from '~/features/fallas/utils/fallaTitulo'
@@ -373,6 +376,7 @@ import type {
   ProyectoMonitoreoLegacy,
   RespuestaFmoLegacy,
   RespuestaGeneracionLegacy,
+  RespuestaGeneracionMensualLegacy,
 } from '~/features/operaciones/types'
 import type { Falla } from '~/features/fallas/types'
 import {
@@ -2128,25 +2132,28 @@ async function generar() {
       ultimoSubProject.value = `port_${portName.replace(/[^\w-]/g, '_').toLowerCase()}`
 
       loadingMsg.value = `Consultando ${cfgs.length} proyectos…`
-      const results: ProyectoResultadoPeriodo[] = []
-      for (let i = 0; i < cfgs.length; i++) {
-        const c = cfgs[i]!
-        loadingSub.value = `(${i + 1}/${cfgs.length}) ${c.nombre_clientes || c.nombre_display || c.nombre_comercial}`
-        try {
-          const r = await monitoreoLegacyService.obtenerGeneracion({
-            sub_project: c.sub_project,
-            date_from: range.from,
-            date_to: range.to,
-          })
-          results.push({
-            cfg: c,
-            genRes: r && r.ok ? r : { ok: true, data: [] },
-            mf: getFaultsForRange(c, range),
-          })
-        } catch {
-          results.push({ cfg: c, genRes: { ok: true, data: [] }, mf: [] })
-        }
-      }
+      // De a 4 en vez de una por una: el informe necesita la curva de cada
+      // planta, así que son las mismas peticiones, pero en una cuarta parte del tiempo.
+      let listos = 0
+      const respuestas = await conLimite(cfgs, 4, async (c) => {
+        const r = await monitoreoLegacyService.obtenerGeneracion({
+          sub_project: c.sub_project,
+          date_from: range.from,
+          date_to: range.to,
+        })
+        loadingSub.value = `(${++listos}/${cfgs.length}) ${c.nombre_clientes || c.nombre_display || c.nombre_comercial}`
+        return r
+      })
+      const results: ProyectoResultadoPeriodo[] = cfgs.map((c, i) => {
+        const r = respuestas[i]!
+        return r.status === 'fulfilled'
+          ? {
+              cfg: c,
+              genRes: r.value && r.value.ok ? r.value : { ok: true, data: [] },
+              mf: getFaultsForRange(c, range),
+            }
+          : { cfg: c, genRes: { ok: true, data: [] }, mf: [] }
+      })
       results.sort((a, b) => {
         const ta = a.genRes.data.reduce((s, d) => s + d.kwh, 0)
         const tb = b.genRes.data.reduce((s, d) => s + d.kwh, 0)
@@ -2204,31 +2211,42 @@ async function generar() {
       const meses = monthsInRange()
       if (!meses.length) throw new Error('Período inválido')
 
-      const pages: string[] = []
-      const totalReq = meses.length * cfgs.length
-      let done = 0
-      for (const mes of meses) {
-        const items: ItemRankingP90[] = []
-        for (const c of cfgs) {
-          done++
-          const cn = c.nombre_comercial || c.nombre_display || c.nombre_clientes || c.sub_project
-          loadingSub.value = `(${done}/${totalReq}) ${mes.label} — ${cn}`
-          let tot = 0
-          let p90: number | null = null
-          try {
-            const r = await monitoreoLegacyService.obtenerGeneracion({
-              sub_project: c.sub_project,
-              date_from: mes.from,
-              date_to: mes.to,
-            })
-            const arr = (r && r.data) || []
-            tot = arr.reduce((s, d) => s + d.kwh, 0)
-            p90 = r?.simulation?.p90_monthly ?? null
-          } catch {
-            /* sin datos para ese mes */
-          }
-          items.push({ name: cn, real: tot, p90 })
+      // Una consulta por grupo de plantas para TODO el período, con los totales
+      // ya sumados por mes en el backend. Antes era una por mes y por planta, en
+      // serie: 30 plantas en un año eran 360 peticiones.
+      const porPlanta: NonNullable<RespuestaGeneracionMensualLegacy['proyectos']> = {}
+      const grupos: ProyectoMonitoreoLegacy[][] = []
+      for (let i = 0; i < cfgs.length; i += MAX_PLANTAS_POR_CONSULTA_MENSUAL) {
+        grupos.push(cfgs.slice(i, i + MAX_PLANTAS_POR_CONSULTA_MENSUAL))
+      }
+      let consultadas = 0
+      for (const grupo of grupos) {
+        loadingSub.value = `(${consultadas}/${cfgs.length} proyectos)`
+        try {
+          const r = await monitoreoLegacyService.obtenerGeneracionMensual({
+            sub_projects: grupo.map((c) => c.sub_project),
+            date_from: meses[0]!.from,
+            date_to: meses[meses.length - 1]!.to,
+          })
+          Object.assign(porPlanta, r.proyectos ?? {})
+        } catch {
+          /* sin datos para ese grupo: sus plantas salen en cero */
         }
+        consultadas += grupo.length
+      }
+
+      const pages: string[] = []
+      for (const mes of meses) {
+        const clave = mes.from.slice(0, 7)
+        const indiceMes = Number(clave.slice(5, 7)) - 1
+        const items: ItemRankingP90[] = cfgs.map((c) => {
+          const datos = porPlanta[c.sub_project]
+          return {
+            name: c.nombre_comercial || c.nombre_display || c.nombre_clientes || c.sub_project,
+            real: datos?.meses[clave] ?? 0,
+            p90: datos?.curva_p90_kwh?.[indiceMes] ?? null,
+          }
+        })
         items.sort((a, b) => (b.real || 0) - (a.real || 0))
         pages.push(buildRankingPage(scopeLabel, mes.label, items))
       }

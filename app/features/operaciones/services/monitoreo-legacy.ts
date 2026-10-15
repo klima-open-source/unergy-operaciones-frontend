@@ -8,12 +8,16 @@ import type {
   RespuestaContratosLegacy,
   RespuestaFmoLegacy,
   RespuestaGeneracionLegacy,
+  RespuestaGeneracionMensualLegacy,
   RespuestaPortafoliosLegacy,
   RespuestaProyectosLegacy,
 } from '~/features/operaciones/types'
 import { BaseService } from '~/core/service'
 
 const RUTA = '/monitoreo/_legacy'
+
+/** El tope de plantas por `getMonthlyGeneration` (`MAX_PLANTAS_MENSUAL` en el backend es 20). */
+export const MAX_PLANTAS_POR_CONSULTA_MENSUAL = 8
 
 export class MonitoreoLegacyService extends BaseService {
   obtenerProyectos(): Promise<RespuestaProyectosLegacy> {
@@ -27,6 +31,25 @@ export class MonitoreoLegacyService extends BaseService {
   }): Promise<RespuestaGeneracionLegacy> {
     return this.get<RespuestaGeneracionLegacy>(RUTA, {
       query: { action: 'getGeneration', ...filtros },
+    })
+  }
+
+  /**
+   * Totales por mes de varias plantas en una llamada (el backend acepta hasta
+   * `MAX_PLANTAS_POR_CONSULTA_MENSUAL`).
+   */
+  obtenerGeneracionMensual(filtros: {
+    sub_projects: string[]
+    date_from: string
+    date_to: string
+  }): Promise<RespuestaGeneracionMensualLegacy> {
+    return this.get<RespuestaGeneracionMensualLegacy>(RUTA, {
+      query: {
+        action: 'getMonthlyGeneration',
+        sub_projects: filtros.sub_projects.join(','),
+        date_from: filtros.date_from,
+        date_to: filtros.date_to,
+      },
     })
   }
 

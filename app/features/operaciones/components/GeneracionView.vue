@@ -1161,12 +1161,11 @@ async function cargar(): Promise<void> {
 
     // Una llamada por proyecto: getGeneration trae lecturas en vivo de Unergy.
     // Endpoint real: /api/v1/monitoreo/_legacy (baseURL del cliente ya es /api/v1).
-    const results = await Promise.allSettled(
-      proyectosSel.value.map((sub) =>
-        monitoreoLegacyService
-          .obtenerGeneracion({ sub_project: sub, date_from: fInicio, date_to: fFin })
-          .then((body) => ({ sub, body })),
-      ),
+    // De a 4: con muchas plantas elegidas, todas a la vez eran una ráfaga.
+    const results = await conLimite(proyectosSel.value, 4, (sub) =>
+      monitoreoLegacyService
+        .obtenerGeneracion({ sub_project: sub, date_from: fInicio, date_to: fFin })
+        .then((body) => ({ sub, body })),
     )
 
     const parsed: ParsedGeneracion[] = []

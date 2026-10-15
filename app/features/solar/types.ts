@@ -36,6 +36,15 @@ export interface RespuestaMonitoreoSolar {
 
 /** Un punto de `power_curve` (inversores) o de `medidor.curva` (medidor): potencia a un instante. */
 /** `GET /generacion-solar/monitoring/{id}/irradiancia`: POA de hoy de la estación. */
+/**
+ * `GET /generacion-solar/monitoring/tarjetas?ids=`: por id, el detalle (`{}` si
+ * falló) y la irradiancia (`null` si la estación no respondió a tiempo).
+ */
+export type TarjetasMonitoreoSolar = Record<
+  string,
+  { detalle: DetalleMonitoreoSolar; irradiancia: IrradianciaSolar | null }
+>
+
 export interface IrradianciaSolar {
   /** False si la planta no tiene estación o no mide POA: no se dibuja nada. */
   disponible: boolean
