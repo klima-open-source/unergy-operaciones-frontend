@@ -11,6 +11,47 @@ export enum TipoPanel {
   OFICIAL = 'oficial',
 }
 
+/**
+ * Versión de XM que da origen a un ajuste.
+ *
+ * Una reliquidación es de `tx3` en adelante: `txf` es la liquidación inicial del
+ * mes y no ajusta nada, porque no hay nada contabilizado antes contra lo cual
+ * comparar. Debe coincidir con `VERSIONES_AJUSTE` del backend
+ * (`apps/contabilidad/services/ajustes.py`).
+ */
+export enum VersionAjuste {
+  TX3 = 'tx3',
+  TX4 = 'tx4',
+  TX5 = 'tx5',
+  TX6 = 'tx6',
+  TX7 = 'tx7',
+  TX8 = 'tx8',
+}
+
+/**
+ * El `tipo` de un panel de ajuste, que lleva la versión dentro: `ajuste_tx3`.
+ *
+ * Va así —y no como un tipo aparte— porque la unicidad de `panel_contable` es
+ * `(periodo, proyecto, tipo)`: meter la versión en el tipo es lo que permite que
+ * un mes reliquidado dos veces tenga un panel por cada versión sin pisarse.
+ */
+export type TipoAjuste = `ajuste_${VersionAjuste}`
+
+/** Cualquier tipo de panel que el backend acepta. */
+export type TipoPanelDatos = TipoPanel | TipoAjuste
+
+/**
+ * Qué se está subiendo en el diálogo de «Cargar ER».
+ *
+ * No es `TipoPanel` porque un ajuste necesita además la versión para armar su
+ * `tipo`; esta es la elección del usuario, antes de resolverla.
+ */
+export enum ModoCargaEr {
+  PRELIQUIDACION = 'preliquidacion',
+  OFICIAL = 'oficial',
+  AJUSTE = 'ajuste',
+}
+
 /** Tipo de liquidación de un proyecto: define cómo se leen sus ingresos del ER. */
 export enum TipoLiquidacion {
   NORMAL = 'normal',
@@ -51,6 +92,7 @@ export enum OrigenPanel {
 export enum TabPanelContable {
   PRELIQUIDACION = 'preliquidacion',
   OFICIAL = 'oficial',
+  AJUSTES = 'ajustes',
   SELECCION = 'seleccion',
   DIFERENCIA = 'diferencia',
   CLASIFICACION = 'clasificacion',
@@ -198,7 +240,7 @@ export interface RespuestaCargarEr {
 
 export interface FiltrosPanel {
   periodo: string
-  tipo: TipoPanel
+  tipo: TipoPanelDatos
 }
 
 export interface DiferenciaContraste {

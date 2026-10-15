@@ -7,6 +7,7 @@
  * lo que ven el listado y el detalle además de eso.
  */
 import type { Id } from '~/types/api'
+import type { PortafolioDeProyecto } from '~/features/operaciones/types'
 import type {
   EstadoProyecto,
   Proyecto,
@@ -43,13 +44,15 @@ export interface RespuestaProximosEnergizar {
 
 export interface InversionistaProyecto extends ProyectoInversionista {
   cliente_nombre?: string
-  es_patrimonio_autonomo?: boolean
+  /** El patrimonio autónomo a través del que se tiene la parte: al que se le factura. */
+  patrimonio_id?: number | null
+  patrimonio_nombre?: string | null
 }
 
 export interface PayloadInversionista {
   cliente_id: number
   porcentaje_participacion: number | null
-  es_patrimonio_autonomo?: boolean
+  patrimonio_id?: number | null
   fecha_inicio: string | null
   fecha_fin: string | null
 }
@@ -58,6 +61,7 @@ export interface PayloadActualizarInversionista {
   porcentaje_participacion: number | null
   fecha_inicio: string | null
   fecha_fin: string | null
+  patrimonio_id?: number | null
 }
 
 // ── Puntero de contacto por área (pestaña Contactos) ──────────────────────────
@@ -90,8 +94,15 @@ export interface ContratoPpaResumenProyecto {
 export interface ProyectoConDetalle extends Proyecto {
   inversionistas: InversionistaProyecto[]
   info_tecnica?: ProyectoInfoTecnica
+  /**
+   * Potencia AC de la planta, en kW. Vive en el proyecto desde el 2026-09-10
+   * (`info_tecnica.potencia_ac_kw` es una copia que solo existe si la planta
+   * tiene fila de info técnica). DRF la manda como texto decimal.
+   */
+  potencia_ac_kw?: number | string | null
   ppa_contratos?: ContratoPpaResumenProyecto[]
-  portafolio_id?: number | null
+  /** Los portafolios en que está la planta: pueden ser varios. */
+  portafolios?: PortafolioDeProyecto[]
   fecha_inicio_comercializacion?: string | null
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null
@@ -152,6 +163,12 @@ export interface PayloadActualizarProyecto {
   fecha_inicio_comercializacion?: string
   topico_liquidaciones?: string | null
   [clave: string]: unknown
+}
+
+/** Valores de `GET /proyectos?servicio=…`: los servicios contratados de una planta (ver `ServiciosPlanta`). */
+export enum ServicioPlanta {
+  OPERACION = 'operacion',
+  REPRESENTACION = 'representacion',
 }
 
 export interface ServiciosPlanta {

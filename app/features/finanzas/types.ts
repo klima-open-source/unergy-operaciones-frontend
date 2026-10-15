@@ -138,50 +138,6 @@ export interface PayloadTasaIpc {
   fuente: string
 }
 
-// ── Mandatos (Operaciones) ────────────────────────────────────────────────────
-
-/** `GET /mandatos`, verificado contra `MandatosOperaciones.vue`. */
-export interface MandatoOperaciones {
-  id: Id
-  cmu?: string
-  estado?: string
-  observacion?: string
-  [campo: string]: unknown
-}
-
-export interface PeriodoMandatos {
-  periodo: string
-  [campo: string]: unknown
-}
-
-export interface ResumenMandatosOperaciones {
-  total: number
-  correcciones: number
-  firmados: number
-  enviados_inversionista: number
-  pendientes: number
-  [campo: string]: unknown
-}
-
-export interface InversionistaMandato {
-  id: Id
-  nombre?: string
-  [campo: string]: unknown
-}
-
-export interface RespuestaSubidaZipMandatos {
-  creados: number
-  sugerencias?: { mandato_id: Id; sugerido_id: Id; sugerido_nombre?: string; cmu?: string }[]
-  [campo: string]: unknown
-}
-
-export interface RespuestaSubidaFirmadoMandato {
-  asociado: boolean
-  mandato?: { cmu?: string; [campo: string]: unknown }
-  mensaje?: string
-  [campo: string]: unknown
-}
-
 // ── Mandatos (Finanzas) ───────────────────────────────────────────────────────
 
 /** `GET /finanzas/mandatos`, verificado contra `MandatosFinanzas.vue`. */

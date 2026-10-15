@@ -136,7 +136,7 @@
               <Button variant="ghost" size="sm" v-if="edit !== 'id'" @click="abrir('id')"><PencilIcon class="size-4" /> Editar</Button>
               <template v-else>
                 <Button variant="ghost" size="sm" @click="edit = null">Cancelar</Button>
-                <GTooltip :disabled="!(form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || !form.inversionista_id" @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre', 'portafolio',
+                <GTooltip :disabled="!(form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.')"><GTooltipTrigger as-child><span><Button size="sm" :disabled="guardando || !form.inversionista_id" @click="guardar(['numero_contrato', 'inversionista_id', 'inversionista_nombre',
                                    'codigo_sun_factory', 'nombre_proyecto_ref'])"><Spinner v-if="guardando" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button></span></GTooltipTrigger><GTooltipContent>{{ form.inversionista_id ? undefined : 'Vincula el inversionista a un cliente registrado.' }}</GTooltipContent></GTooltip>
               </template>
             </div>
@@ -145,7 +145,6 @@
             <div v-if="edit !== 'id'" class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
               <InfoField label="Número de contrato" :value="c.numero_contrato" />
               <InfoField label="Inversionista" :value="c.inversionista_nombre" />
-              <InfoField label="Portafolio" :value="c.portafolio" />
               <InfoField label="Código Sun Factory" :value="c.codigo_sun_factory" />
               <InfoField label="Proyecto según el contrato" :value="c.nombre_proyecto_ref" />
               <div class="flex flex-col gap-0.5">
@@ -161,16 +160,12 @@
                 <GLabel>Número de contrato</GLabel>
                 <Input v-model="form.numero_contrato" placeholder="Ej: UNERGY-RC-002-2025" />
               </div>
-              <SelectorCliente
+              <SelectorInversionistaDePlanta
                 v-model:id="form.inversionista_id"
                 v-model:nombre="form.inversionista_nombre"
-                label="Inversionista"
+                :proyecto-id="proyectoIdRuta"
                 requerido
               />
-              <div class="flex flex-col gap-1">
-                <GLabel>Portafolio</GLabel>
-                <Input v-model="form.portafolio" />
-              </div>
               <div class="flex flex-col gap-1">
                 <GLabel>Código Sun Factory</GLabel>
                 <Input v-model="form.codigo_sun_factory" />
@@ -540,6 +535,8 @@ import { ContratosServicioService } from '~/features/contratos/services/contrato
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import InfoField from '~/components/blocks/InfoField.vue'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
+import SelectorInversionistaDePlanta from './SelectorInversionistaDePlanta.vue'
+import { mostrarAvisos } from '~/features/contratos/avisos'
 import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import {
   anioDeFila,
@@ -569,6 +566,8 @@ const contratosServicioService = new ContratosServicioService()
 const proyectosService = new ProyectosService()
 
 const route = useRoute()
+/** La planta de esta vista: el inversionista del contrato es uno de los suyos. */
+const proyectoIdRuta = computed(() => Number(route.params.id))
 const confirm = useConfirm()
 
 const ESTADO_LABELS = {
@@ -785,7 +784,6 @@ function abrir(seccion) {
     // pendiente y no deja guardar hasta resolverlo.
     inversionista_id: x.inversionista_id ?? null,
     inversionista_nombre: x.inversionista_nombre || '',
-    portafolio: x.portafolio || '',
     codigo_sun_factory: x.codigo_sun_factory || '',
     nombre_proyecto_ref: x.nombre_proyecto_ref || '',
     contratante_id: x.contratante_id ?? null,
@@ -862,8 +860,10 @@ async function enviar(payload) {
     if (i !== -1) contratos.value[i] = data
     edit.value = null
     toast.success('Cambios guardados', { duration: 2500 })
+    mostrarAvisos(data)
   } catch (e) {
-    toast.error('No se pudo guardar', { description: e.data?.detail || e.message, duration: 4000 })
+    const motivo = e.data?.detail || e.data?.inversionista_id?.[0] || e.data?.proyecto_id?.[0] || e.message
+    toast.error('No se pudo guardar', { description: motivo, duration: 6000 })
   } finally {
     guardando.value = false
   }

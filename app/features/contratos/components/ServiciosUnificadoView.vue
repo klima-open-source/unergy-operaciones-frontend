@@ -13,11 +13,11 @@
   <div class="space-y-3">
     <PageHeader :title="titulo" :subtitle="subtitulo">
       <template #actions>
-        <InputGroup v-if="vista && !enProximos" class="w-full sm:max-w-48">
+        <InputGroup v-if="vista && !enProximos && !enPortafolios" class="w-full sm:max-w-48">
           <InputGroupAddon><SearchIcon class="size-4" /></InputGroupAddon>
           <InputGroupInput v-model="q" :placeholder="placeholderBusqueda" />
         </InputGroup>
-        <GTooltip v-if="vista">
+        <GTooltip v-if="vista && !enPortafolios">
           <GTooltipTrigger as-child>
             <Button variant="outline" size="icon-sm" @click="compacta = !compacta">
               <component :is="compacta ? MoveVerticalIcon : AlignJustifyIcon" class="size-4" />
@@ -25,7 +25,7 @@
           </GTooltipTrigger>
           <GTooltipContent>{{ compacta ? 'Densidad cómoda' : 'Densidad compacta' }}</GTooltipContent>
         </GTooltip>
-        <Button v-if="vista && !enProximos" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
+        <Button v-if="vista && !enProximos && !enPortafolios" variant="outline" size="sm" :disabled="!filasVisibles.length" @click="descargarExcel">
           <FileSpreadsheetIcon class="size-4" /> Excel
         </Button>
         <Button v-if="vista === 'clientes'" size="sm" @click="dialogCliente = true">
@@ -121,11 +121,11 @@
     <!-- Proyectos que las fuentes externas proponen. Vivia en /proyectos, que
          salio del menu cuando llego esta vista: el aviso quedo inalcanzable y
          nadie lo noto por semanas. -->
-    <ProyectosPendientesPanel v-if="vista === 'proyectos' && !enProximos" @cambio="cargarProyectos" />
+    <ProyectosPendientesPanel v-if="vista === 'proyectos' && !enProximos && !enPortafolios" @cambio="cargarProyectos" />
 
     <!-- Los desplegables con buscador (ComboBox) llevan una opción «Todos» en vez
          del botón de limpiar de PrimeVue: elegirla quita el filtro. -->
-    <div v-if="vista === 'proyectos' && !enProximos"
+    <div v-if="vista === 'proyectos' && !enProximos && !enPortafolios"
          class="bg-card rounded-xl shadow-sm p-3 flex flex-wrap gap-3 items-end border">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-semibold text-muted-foreground">Estado</label>
@@ -233,11 +233,6 @@
           <ComboBox placeholder="Todos" :model-value="filtrosServicio.inversionista" :options="conTodos(opcionesInversionista)"
                     @update:model-value="filtrosServicio.inversionista = deValorSelect($event) || null" />
         </div>
-        <div v-if="esRepresentacion" class="flex flex-col gap-1 w-56">
-          <label class="text-xs font-semibold text-muted-foreground">Portafolio</label>
-          <ComboBox placeholder="Todos" :model-value="filtrosServicio.portafolio" :options="conTodos(opcionesPortafolio)"
-                    @update:model-value="filtrosServicio.portafolio = deValorSelect($event) || null" />
-        </div>
         <!-- Solo si hay más de una clase entre los contratos cargados: con una
              sola, el desplegable no seleccionaría nada distinto. -->
         <div v-if="opcionesTipoPlanta.length > 1" class="flex flex-col gap-1">
@@ -266,7 +261,10 @@
     <ProyectosProximosEnergizar v-if="enProximos" />
 
     <!-- ══════════════════ CLIENTES ══════════════════ -->
-    <div v-if="vista === 'clientes'" :class="claseTabla">
+    <!-- Portafolios (Proyectos › Portafolios): lista y detalle, sin tabla ni Excel. -->
+    <PortafoliosPanel v-if="enPortafolios" />
+
+    <div v-else-if="vista === 'clientes'" :class="claseTabla">
       <DataTable :columns="COLUMNAS_CLIENTES" :rows="tablaClientes.filasPagina" row-key="id"
                  v-model:sort="tablaClientes.orden" v-model:page="tablaClientes.pagina"
                  :page-size="porPagina" :total="tablaClientes.total" :page-size-options="OPCIONES_POR_PAGINA"
@@ -310,7 +308,7 @@
     </div>
 
     <!-- ══════════════════ PROYECTOS ══════════════════ -->
-    <div v-else-if="vista === 'proyectos' && !enProximos" :class="claseTabla">
+    <div v-else-if="vista === 'proyectos' && !enProximos && !enPortafolios" :class="claseTabla">
       <DataTable :columns="COLUMNAS_PROYECTOS" :rows="tablaProyectos.filasPagina" row-key="id"
                  v-model:sort="tablaProyectos.orden" v-model:page="tablaProyectos.pagina"
                  :page-size="porPagina" :total="tablaProyectos.total" :page-size-options="OPCIONES_POR_PAGINA"
@@ -335,7 +333,7 @@
           <span v-else-if="column.key === 'tipo_proyecto'" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap" :class="TIPO_BADGE_CLASS[row.tipo_proyecto] || 'bg-muted text-muted-foreground'">
             {{ TIPO_LABELS[row.tipo_proyecto] || row.tipo_proyecto || '—' }}
           </span>
-          <TruncatedText v-else-if="column.key === 'portafolio_id'" :text="nombrePortafolio(row.portafolio_id) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
+          <TruncatedText v-else-if="column.key === 'portafolios'" :text="nombresPortafolios(row) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
           <template v-else-if="column.key === 'municipio'">
             <TruncatedText v-if="row.municipio || row.departamento" :text="[row.municipio, row.departamento].filter(Boolean).join(', ')" class="min-w-0 max-w-full text-xs text-muted-foreground" />
             <span v-else class="text-xs text-muted-foreground/50">—</span>
@@ -726,6 +724,7 @@ import { useTablaLocal } from '~/composables/useTablaLocal'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import ProyectosPendientesPanel from '~/features/proyectos/components/ProyectosPendientesPanel.vue'
 import ProyectosProximosEnergizar from '~/features/proyectos/components/ProyectosProximosEnergizar.vue'
+import PortafoliosPanel from '~/features/proyectos/components/PortafoliosPanel.vue'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
@@ -751,7 +750,7 @@ import {
   tiposDePlantaPresentes,
 } from '~/features/contratos/filtrosServicios'
 import { SEMAFORO, servicioLabel, fmt } from '~/features/clientes/components/clientesUi'
-import { AlignJustifyIcon, BadgeCheckIcon, ClockIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, CopyIcon, DownloadIcon, FilePenIcon, FilePlusIcon, FileSpreadsheetIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
+import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckIcon, ChevronDownIcon, ClockIcon, CopyIcon, DownloadIcon, FilePenIcon, FilePlusIcon, FileSpreadsheetIcon, LayersIcon, LinkIcon, ListIcon, MoveVerticalIcon, PaperclipIcon, PencilIcon, PlusIcon, SearchIcon, Trash2Icon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
@@ -879,13 +878,17 @@ const SERVICIOS_VALIDOS = SERVICIOS.map(s => s.key)
 // pide lo del angulo activo, nunca los tres a la vez.
 const vista = ref(props.vistaFija ?? (VISTAS_VALIDAS.includes(route.query.vista) ? route.query.vista : 'proyectos'))
 
-// Proyectos: todos, o los próximos a energizar (`?ver=proximos`).
+// Proyectos: todos, los próximos a energizar (`?ver=proximos`) o los portafolios
+// (`?ver=portafolios`): agrupaciones de plantas para los informes, donde una
+// planta puede estar en varias. Antes vivían en Informes mensuales, con arrastre.
 const VER_PROYECTOS = [
   { key: 'todos', label: 'Todos', icon: ZapIcon },
   { key: 'proximos', label: 'Próximos a energizar', icon: ClockIcon },
+  { key: 'portafolios', label: 'Portafolios', icon: LayersIcon },
 ]
-const verProyectos = ref(route.query.ver === 'proximos' ? 'proximos' : 'todos')
+const verProyectos = ref(VER_PROYECTOS.some(o => o.key === route.query.ver) ? route.query.ver : 'todos')
 const enProximos = computed(() => props.vistaFija === 'proyectos' && verProyectos.value === 'proximos')
+const enPortafolios = computed(() => props.vistaFija === 'proyectos' && verProyectos.value === 'portafolios')
 
 const TITULOS = { proyectos: 'Proyectos', clientes: 'Clientes', servicios: 'Contratos' }
 const titulo = computed(() => TITULOS[props.vistaFija] ?? 'Proyectos')
@@ -929,7 +932,7 @@ watch([vista, servicio, q, filtrosPpa, filtrosServicio, verProyectos], () => {
   const query = {}
   // Con vista fija la página ya dice cuál es (/proyectos, /clientes, /contratos).
   if (vista.value && !props.vistaFija) query.vista = vista.value
-  if (enProximos.value) query.ver = 'proximos'
+  if (enProximos.value || enPortafolios.value) query.ver = verProyectos.value
   if (vista.value === 'servicios') {
     query.srv = servicio.value
     if (servicio.value === 'ppa') volcarFiltros(query, filtrosPpa.value, PREFIJO_PPA)
@@ -980,7 +983,8 @@ const COLUMNAS_PROYECTOS = [
   { key: 'nombre_comercial', header: 'Nombre comercial', sortable: true },
   { key: 'estado', header: 'Estado', sortable: true },
   { key: 'tipo_proyecto', header: 'Tipo', sortable: true },
-  { key: 'portafolio_id', header: 'Portafolio', sortable: true },
+  // Una planta puede estar en varios portafolios: se listan todos.
+  { key: 'portafolios', header: 'Portafolios' },
   { key: 'municipio', header: 'Ubicación', sortable: true },
   { key: 'info_tecnica.capacidad_instalada_kwp', header: 'kWp', sortable: true, class: 'text-right' },
   { key: 'servicios', header: 'Servicios' },
@@ -1282,8 +1286,8 @@ function conTodos(opciones) {
   return [{ value: VALOR_SELECT_VACIO, label: 'Todos' }, ...opciones]
 }
 
-function nombrePortafolio(id) {
-  return portafolios.value.find(pf => pf.id === id)?.nombre ?? null
+function nombresPortafolios(proyecto) {
+  return (proyecto.portafolios || []).map(pf => pf.nombre).join(', ')
 }
 
 const proyectosFiltrados = computed(() => {
@@ -1291,7 +1295,7 @@ const proyectosFiltrados = computed(() => {
   let lista = proyectos.value
   if (f.estado.value)         lista = lista.filter(p => p.estado === f.estado.value)
   if (f.tipo_proyecto.value)  lista = lista.filter(p => p.tipo_proyecto === f.tipo_proyecto.value)
-  if (f.portafolio_id.value)  lista = lista.filter(p => p.portafolio_id === f.portafolio_id.value)
+  if (f.portafolio_id.value)  lista = lista.filter(p => (p.portafolios || []).some(pf => pf.id === f.portafolio_id.value))
   if (f.ppa_contratos.value?.length) {
     const sel = new Set(f.ppa_contratos.value)
     lista = lista.filter(p => {
@@ -1504,7 +1508,6 @@ const ESTADO_CONTRATO_OPCIONES = [
 const opcionesServicioTipo = computed(() =>
   tiposDelServicio.value.map(t => ({ value: t, label: TIPO_CONTRATO_LABELS[t] || t })))
 const opcionesInversionista = computed(() => opcionesDe(contratosServicio.value, 'inversionista_nombre'))
-const opcionesPortafolio = computed(() => opcionesDe(contratosServicio.value, 'portafolio'))
 
 // Los tipos se muestran con la misma etiqueta y el mismo color que el chip de la
 // columna, para que el filtro y la tabla hablen igual.
@@ -1588,7 +1591,6 @@ async function cargarContratosServicio(servicioKey) {
     filtrosServicio.value = depurarFiltros(filtrosServicio.value, {
       tipo: tiposDelServicio.value,
       inversionista: opcionesInversionista.value.map(o => o.value),
-      portafolio: opcionesPortafolio.value.map(o => o.value),
       tipoPlanta: opcionesTipoPlanta.value.map(o => o.value),
     })
     soloDuplicados.value = false
@@ -1648,7 +1650,10 @@ async function guardarProyectoContrato() {
     dialogAsociarProyecto.value = false
     toast.success('Contrato asociado', { description: data.proyecto?.nombre_comercial || '', duration: 3000 })
   } catch (e) {
-    toast.error('No se pudo asociar', { description: e.message, duration: 4000 })
+    // El 400 del backend dice por qué: p. ej. el inversionista del contrato no es
+    // uno de los de esa planta.
+    const motivo = e.data?.inversionista_id?.[0] || e.data?.proyecto_id?.[0] || e.message
+    toast.error('No se pudo asociar', { description: motivo, duration: 6000 })
   } finally {
     guardandoProyecto.value = false
   }
@@ -1729,6 +1734,7 @@ const totalCrudo = computed(() => {
 })
 
 const subtitulo = computed(() => {
+  if (enPortafolios.value) return 'Agrupaciones de plantas para los informes · una planta puede estar en varias'
   const etiqueta = vista.value === 'clientes' ? 'clientes'
     : vista.value === 'proyectos' ? 'plantas'
     : `contratos de ${servicioInfo.value?.label}`
@@ -1760,7 +1766,7 @@ const COLUMNAS_EXCEL = {
     { header: 'Nombre comercial', value: p => formatearNombre(p.nombre_comercial) },
     { header: 'Estado', value: p => ESTADO_LABELS[p.estado] || p.estado || '' },
     { header: 'Tipo', value: p => TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || '' },
-    { header: 'Portafolio', value: p => nombrePortafolio(p.portafolio_id) || '' },
+    { header: 'Portafolios', value: p => nombresPortafolios(p) },
     { header: 'Municipio', value: p => p.municipio || '' },
     { header: 'Departamento', value: p => p.departamento || '' },
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },

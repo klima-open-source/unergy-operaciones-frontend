@@ -268,11 +268,6 @@
       </div>
     </div>
 
-    <!-- ══ TAB 3 — MANDATOS ══════════════════════════════════════════════ -->
-    <div v-if="activeTab === 3" class="bg-muted px-5 pt-4 pb-8 max-sm:p-3">
-      <MandatosOperaciones />
-    </div>
-
   </div>
 </template>
 
@@ -289,8 +284,7 @@ import OMAProveedor          from './OMAProveedor.vue'
 import ArriendosOperaciones  from './ArriendosOperaciones.vue'
 import ArriendosInfo          from './ArriendosInfo.vue'
 import StarlinkPDF            from './StarlinkPDF.vue'
-import MandatosOperaciones    from './MandatosOperaciones.vue'
-import { BuildingIcon, CalculatorIcon, CheckIcon, ChevronDownIcon, CircleCheckIcon, CreditCardIcon, FileCheckIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon, PaperclipIcon, TableIcon, TruckIcon, UploadIcon, UsersIcon, WifiIcon, WrenchIcon, ZapIcon } from '@lucide/vue'
+import { BuildingIcon, CalculatorIcon, CheckIcon, ChevronDownIcon, CircleCheckIcon, CreditCardIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon, PaperclipIcon, TableIcon, TruckIcon, UploadIcon, UsersIcon, WifiIcon, WrenchIcon, ZapIcon } from '@lucide/vue'
 
 
 const starlinkService = new StarlinkService()
@@ -316,7 +310,6 @@ const TABS = [
   { label: 'Mantenimiento',         icon: WrenchIcon },
   { label: 'Arriendos',             icon: BuildingIcon },
   { label: 'Servicios de Internet', icon: WifiIcon },
-  { label: 'Mandatos',              icon: FileCheckIcon },
 ]
 const activeTab = ref(0)
 

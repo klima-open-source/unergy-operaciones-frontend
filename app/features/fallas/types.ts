@@ -12,6 +12,49 @@ import type { FallaClasificacion } from '~/features/fallas/utils/fallaTitulo'
  * tipos `OperadorMapa`/`DatosMapa` que solo ellas usaban.
  */
 
+/** `codigo` de los estados del catálogo (`GET /fallas/catalogos` → `estados`). */
+export enum EstadoFallaCodigo {
+  PROGRAMADO = 'programado',
+  ABIERTA = 'abierta',
+  EN_GESTION = 'en_gestion',
+  EN_ESPERA = 'en_espera',
+  CERRADA = 'cerrada',
+  SIN_SOLUCION = 'sin_solucion',
+}
+
+/**
+ * Las pestañas de estado de la lista de fallas (`MonitoreoView.vue`). No son
+ * los estados del catálogo: agrupan varios (ver `utils/grupoEstado.ts`).
+ */
+export enum GrupoEstadoFalla {
+  ABIERTA = 'abierta',
+  EN_GESTION = 'en_gestion',
+  PROGRAMADO = 'programado',
+  CERRADA = 'cerrada',
+  TODAS = 'todas',
+}
+
+/**
+ * El equipo físico afectado por una falla. Lo deduce el backend de la
+ * clasificación (`estructura.equipo_de`): no se elige en el formulario.
+ * Etiquetas en `utils/equipo.ts`.
+ */
+export enum EquipoFalla {
+  INVERSOR = 'inversor',
+  SMARTLOGGER = 'smartlogger',
+  TRACKER = 'tracker',
+  STRING = 'string',
+  MEDIDOR = 'medidor',
+  ESTACION_METEOROLOGICA = 'estacion_meteorologica',
+}
+
+/** Las pestañas de la barra superior de Gestión de Fallas (`MonitoreoView.vue`). */
+export enum PestanaGestionFallas {
+  FALLAS = 'fallas',
+  CALENDARIO = 'calendario',
+  PENDIENTES = 'pendientes',
+}
+
 /** Un ítem de catálogo (`tipos`, `estados`, `prioridades`, `resoluciones`…): `{id, etiqueta}` y poco más. */
 export interface CatalogoItemFalla {
   id: number
@@ -158,6 +201,16 @@ export interface Falla {
   causa_raiz?: string | null
   acciones_correctivas?: string | null
   kwh_perdidos_estimado?: number | null
+  /** % de la potencia de la planta afectada (0–100). Lo calcula el backend. */
+  pct_afectado?: number | null
+  /** Energía perdida estimada con la simulación P90, en kWh. Lo calcula el backend. */
+  kwh_perdidos_p90?: number | null
+  /**
+   * `codigo` de la prioridad que el backend deriva de `pct_afectado`
+   * (critica/grave/media/leve). `null` si no se puede calcular: entonces rige
+   * la que se eligió en el formulario.
+   */
+  prioridad_calculada?: string | null
   /** Costo estimado del impacto económico, en COP (ver `MonitoreoView.vue`). */
   impacto_economico_cop?: number | null
   /** Id de la alarma de monitoreo que generó la falla automáticamente, si aplica (ver `MonitoreoView.vue`). */
@@ -178,6 +231,8 @@ export interface Falla {
    * `cumple` en una falla ABIERTA significa "por ahora va dentro del plazo", no
    * "cumplio". `null` --igual que `dias`-- cuando no se puede juzgar: una falla
    * en estado final sin `fecha_resolucion` (dato legacy).
+   *
+   * `etiqueta` puede venir "Leve (sin pérdida)" cuando la falla no quita energía.
    */
   sla_contractual?: {
     dias: number | null
@@ -214,6 +269,18 @@ export interface Falla {
   tipo_libre?: string | null
   /** `desconexion_sin_identificar` es un estado temporal: queda así hasta reclasificar. */
   pendiente_reclasificar?: boolean
+  /** Equipo afectado, deducido de la clasificación por el backend. Solo lectura. */
+  equipo?: EquipoFalla | null
+  /** El equipo afectado está en garantía con su proveedor. */
+  en_garantia?: boolean
+  /** Proveedor, RMA, serial… de la garantía. */
+  garantia_detalle?: string | null
+  /**
+   * Va a la pestaña Pendientes: sin cerrar, y en garantía o de un equipo que
+   * suele quedar esperando repuesto (tracker/string/medidor/estación). Lo
+   * calcula el backend (`dominio.en_pendientes`). Solo lectura.
+   */
+  en_pendientes?: boolean
   inversores_afectados?: {
     proyecto_inversor_id?: number
     nombre?: string | null
@@ -243,6 +310,11 @@ export type PayloadFalla = Partial<
     | 'registrado_por'
     | 'clasificacion'
     | 'inversores_afectados'
+    | 'pct_afectado'
+    | 'kwh_perdidos_p90'
+    | 'prioridad_calculada'
+    | 'equipo'
+    | 'en_pendientes'
   >
 > & {
   proyecto_id?: number
@@ -257,8 +329,8 @@ export type PayloadFalla = Partial<
 
 /**
  * Emitido por `FallaForm`'s `save`: `PayloadFalla` más los campos que solo
- * existen en el formulario — cada consumidor (`MonitoreoView.vue`,
- * `FallaDetailView.vue`, `GestionFallasView.vue`) los separa antes de mandar
+ * existen en el formulario. `useGuardarFalla` (que usan `FallaFormPage.vue` y
+ * `FallaDetailView.vue`) y `GestionFallasView.vue` los separan antes de mandar
  * el resto a la API.
  */
 export interface PayloadFallaForm extends PayloadFalla {

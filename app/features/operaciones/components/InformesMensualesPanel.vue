@@ -151,9 +151,17 @@
             v-if="tipo === 'portafolio' || (tipo === 'ranking' && rankingScope === 'portafolio')"
             class="flex min-w-50 flex-1 flex-col gap-1"
           >
-            <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-              Portafolio / Cliente
-            </label>
+            <div class="flex items-baseline justify-between gap-2">
+              <label class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                Portafolio / Cliente
+              </label>
+              <NuxtLink
+                to="/proyectos?ver=portafolios"
+                class="text-xs text-primary hover:underline"
+              >
+                Gestionar portafolios →
+              </NuxtLink>
+            </div>
             <Combobox
               :model-value="portafolioSel"
               open-on-click

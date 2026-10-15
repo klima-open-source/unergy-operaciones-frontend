@@ -45,6 +45,7 @@ import {
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
 import { colorEstado } from '~/features/fallas/utils/colores'
+import { estadosSeleccionables, etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import {
   categoriaFalla,
   clasificacionDetalle,
@@ -52,6 +53,9 @@ import {
 } from '~/features/fallas/utils/fallaTitulo'
 import { FallasService } from '~/features/fallas/services/fallas'
 import FallaForm from './FallaForm.vue'
+import { useGuardarFalla } from '~/features/fallas/composables/useGuardarFalla'
+import { formatoEnergia, formatoPctAfectado } from '~/features/fallas/utils/formatoImpacto'
+import { etiquetaEquipo } from '~/features/fallas/utils/equipo'
 
 const fallasService = new FallasService()
 
@@ -259,21 +263,16 @@ async function loadCatalogos() {
 }
 
 // ── Acciones ────────────────────────────────────────────────────────────
+// Mismo guardado que la página del formulario: adjuntos y notificación
+// incluidos, y lo que falle después del PATCH se avisa sin repetir el PATCH.
+const { guardando, guardar } = useGuardarFalla()
+
 async function onUpdate(payload: PayloadFallaForm) {
-  if (!query.data) return
-  const id = query.data.id
-  const { _archivos, ...rest } = payload
-  try {
-    await fallasService.actualizar(id, rest)
-    if (_archivos?.length) {
-      await Promise.all(_archivos.map((file) => fallasService.subirArchivo(id, file)))
-    }
-    toast.success('Falla actualizada', { duration: 3000 })
-    editMode.value = false
-    await load()
-  } catch (err) {
-    toast.error('Error', { description: normalizeError(err).message, duration: 4000 })
-  }
+  if (!query.data || guardando.value) return
+  const ids = await guardar(payload, query.data)
+  if (!ids) return
+  editMode.value = false
+  await load()
 }
 
 async function saveQuickEdit() {
@@ -427,7 +426,7 @@ onMounted(() => {
             <div>
               <div class="mb-1.5 flex items-center gap-2">
                 <GBadge :color="colorEstado(falla.estado?.codigo)">{{
-                  falla.estado?.etiqueta || '—'
+                  etiquetaEstado(falla.estado)
                 }}</GBadge>
                 <GBadge :color="prioSeverity(falla.prioridad?.codigo)">{{
                   falla.prioridad?.etiqueta || '—'
@@ -495,6 +494,7 @@ onMounted(() => {
           <FallaForm
             :initial="falla"
             :catalogos="catalogos"
+            :guardando="guardando"
             @save="onUpdate"
             @cancel="editMode = false"
           />
@@ -606,6 +606,13 @@ onMounted(() => {
               <div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
                 <InfoField label="Proyecto" :value="falla.proyecto?.nombre_comercial" highlight />
                 <InfoField label="Equipo / evento" :value="titulo" />
+                <InfoField label="Equipo" :value="etiquetaEquipo(falla.equipo)" />
+                <InfoField label="Garantía" :value="falla.en_garantia ? 'En garantía' : 'No'" />
+                <InfoField
+                  v-if="falla.en_garantia && falla.garantia_detalle"
+                  label="Detalle de la garantía"
+                  :value="falla.garantia_detalle"
+                />
                 <InfoField label="Registrado por" :value="falla.registrado_por?.nombre" />
                 <InfoField label="Fecha ocurrencia" :value="fmtDatetime(falla.fecha_ocurrencia)" />
                 <InfoField
@@ -784,10 +791,10 @@ onMounted(() => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="e in catalogos.estados"
+                          v-for="e in estadosSeleccionables(catalogos.estados)"
                           :key="e.id"
                           :value="String(e.id)"
-                          >{{ e.etiqueta }}</SelectItem
+                          >{{ etiquetaEstado(e) }}</SelectItem
                         >
                       </SelectContent>
                     </Select>
@@ -883,10 +890,10 @@ onMounted(() => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
-                        v-for="e in catalogos.estados"
+                        v-for="e in estadosSeleccionables(catalogos.estados, falla.estado?.id)"
                         :key="e.id"
                         :value="String(e.id)"
-                        >{{ e.etiqueta }}</SelectItem
+                        >{{ etiquetaEstado(e) }}</SelectItem
                       >
                     </SelectContent>
                   </Select>
@@ -957,6 +964,22 @@ onMounted(() => {
                   <span class="text-muted-foreground">Energía perdida</span>
                   <span class="font-semibold text-destructive"
                     >{{ falla.kwh_perdidos_estimado.toLocaleString('es-CO') }} kWh</span
+                  >
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-muted-foreground">% afectado</span>
+                  <span class="font-semibold text-foreground">{{
+                    formatoPctAfectado(falla.pct_afectado)
+                  }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-muted-foreground">Energía perdida (P90)</span>
+                  <span
+                    class="font-semibold"
+                    :class="
+                      (falla.kwh_perdidos_p90 ?? 0) > 0 ? 'text-destructive' : 'text-foreground'
+                    "
+                    >{{ formatoEnergia(falla.kwh_perdidos_p90) }}</span
                   >
                 </div>
                 <div v-if="falla.sla_cumplido != null" class="flex items-center justify-between">

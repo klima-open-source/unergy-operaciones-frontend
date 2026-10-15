@@ -19,9 +19,6 @@
             <SendIcon class="size-4" /> Revisión y envío
             <GBadge v-if="badgePipeline" color="destructive" size="sm">{{ badgePipeline }}</GBadge>
           </GTabsTrigger>
-          <GTabsTrigger value="portafolios" variant="outline">
-            <LayoutGridIcon class="size-4" /> Gestión de portafolios
-          </GTabsTrigger>
         </GTabsList>
       </GTabs>
     </div>
@@ -31,20 +28,18 @@
 
     <!-- Pipeline de verificación + envío -->
     <EnvioMensualPanel v-else-if="tab === 'pipeline'" />
-
-    <!-- Gestión de portafolios (drag-and-drop) -->
-    <PortafoliosGestionPanel v-else-if="tab === 'portafolios'" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { FilePenIcon, LayoutGridIcon, SendIcon, SettingsIcon } from '@lucide/vue'
+import { FilePenIcon, SendIcon, SettingsIcon } from '@lucide/vue'
 import EnvioMensualPanel from './EnvioMensualPanel.vue'
 import InformesMensualesPanel from './InformesMensualesPanel.vue'
-import PortafoliosGestionPanel from './PortafoliosGestionPanel.vue'
 import { InformesService } from '~/features/operaciones/services/informes'
 
-const TABS = ['generar', 'pipeline', 'portafolios'] as const
+// Los portafolios se gestionan en Proyectos (vista «Portafolios») desde que una
+// planta puede estar en varios; el asistente enlaza allá.
+const TABS = ['generar', 'pipeline'] as const
 type Tab = (typeof TABS)[number]
 
 const informesService = new InformesService()

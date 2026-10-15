@@ -200,7 +200,7 @@
     <!-- Inversionistas, opcional. Antes la planta nacía suelta y había que ir a
          su detalle a vincular el cliente, que es un paso que se olvida. Al importar
          desde TSF llegan sus inversionistas con el cliente fijo y aquí se configura
-         la participación; fechas y patrimonio autónomo se ajustan en el detalle. -->
+         la participación y el patrimonio; las fechas se ajustan en el detalle. -->
     <div class="border-t border-muted pt-4 mt-2 space-y-3">
       <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
         Inversionistas <span class="normal-case font-normal">(opcional)</span>
@@ -220,6 +220,10 @@
             :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 7 }">
             <NumberFieldContent><NumberFieldInput :placeholder="inversionistas.length === 1 ? '100' : '—'" /></NumberFieldContent>
           </NumberField>
+        </div>
+        <div v-if="inv.cliente_id" class="flex-1">
+          <label class="block text-xs font-medium text-muted-foreground mb-1">A través de patrimonio (a quién se factura)</label>
+          <Select :model-value="aValorSelect(inv.patrimonio)" @update:model-value="inv.patrimonio = deValorSelect($event)"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Directo: se factura al inversionista</SelectItem><SelectItem v-for="o in opcionesPatrimonio" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
         </div>
         <Button v-if="!inv.desdeTsf && inversionistas.length > 1" type="button" variant="ghost" size="icon"
           aria-label="Quitar inversionista" @click="quitarInversionista(i)">
@@ -255,9 +259,15 @@ import { prellenadoDesdeTsf } from '~/features/proyectos/prellenadoTsf'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
+import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import divipola from '~/data/colombia-divipola.json'
 
 const operadoresRedService = new OperadoresRedService()
+const patrimoniosService = new PatrimoniosService()
+
+const patrimonios = ref([])
+const opcionesPatrimonio = computed(() => armarOpcionesPatrimonio(patrimonios.value))
 
 /**
  * Los inversionistas que se vinculan junto con la planta, con su participación.
@@ -265,7 +275,7 @@ const operadoresRedService = new OperadoresRedService()
  * configura su porcentaje. Ver el bloque del form.
  */
 function nuevoInversionista(datos = {}) {
-  return { cliente_id: null, nombre: null, porcentaje_pct: null, desdeTsf: false, ...datos }
+  return { cliente_id: null, nombre: null, porcentaje_pct: null, patrimonio: '', desdeTsf: false, ...datos }
 }
 const inversionistas = ref([nuevoInversionista()])
 const inversionistasConCliente = computed(() => inversionistas.value.filter(i => i.cliente_id))
@@ -402,6 +412,7 @@ onMounted(async () => {
   // Después del catálogo: el operador de TSF se busca en él. Si no cargó, el
   // operador queda editable y avisado, como cualquier otro que no encaje.
   if (props.importado) aplicarPrellenadoTsf()
+  patrimonios.value = await patrimoniosService.listar().catch(() => [])
 })
 
 // Potencia AC y capacidad instalada -- viven en proyecto_info_tecnica (pestaña
@@ -489,6 +500,7 @@ function submit() {
   const listaInversionistas = inversionistasConCliente.value.map(i => ({
     cliente_id: i.cliente_id,
     porcentaje_participacion: (i.porcentaje_pct ?? 100) / 100,
+    patrimonio_id: i.patrimonio ? Number(i.patrimonio) : null,
   }))
 
   emit('save', payload, infoTecnica, listaInversionistas)

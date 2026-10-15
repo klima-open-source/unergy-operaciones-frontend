@@ -173,7 +173,7 @@ import {
   ZapIcon,
 } from '@lucide/vue'
 import type { CatalogosFalla, Falla } from '~/features/fallas/types'
-import type { ProyectoConDetalle } from '~/features/proyectos/types'
+import type { ProyectoLiviano } from '~/features/proyectos/types'
 import { colorEstado, colorPrioridad } from '~/features/fallas/utils/colores'
 import { FallasService } from '~/features/fallas/services/fallas'
 import { normalizeError } from '~/core/errors'
@@ -202,7 +202,7 @@ const catalogos = reactive<CatalogosFalla>({
   tipos: [],
   resoluciones: [],
 })
-const proyectos = ref<ProyectoConDetalle[]>([])
+const proyectos = ref<ProyectoLiviano[]>([])
 const loading = ref(false)
 
 const search = ref('')

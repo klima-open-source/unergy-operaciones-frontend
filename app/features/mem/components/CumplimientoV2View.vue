@@ -11,30 +11,6 @@
         </div>
       </template>
       <template #actions>
-        <button
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors"
-          title="Empresa responsable de cada PPA. Los contratos de un responsable no relevante se ocultan en toda esta página."
-          @click="abrirResponsables"
-        >
-          <BuildingIcon class="size-3.5" />
-          Responsables
-        </button>
-        <label
-          class="flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold"
-          :class="
-            verOcultos
-              ? 'border-destructive/35 bg-destructive/7 text-destructive'
-              : 'border-foreground/12 text-muted-foreground'
-          "
-          title="Muestra en TODAS las pestañas los contratos cuyo responsable está marcado como no relevante"
-        >
-          <Checkbox
-            :model-value="verOcultos"
-            @update:model-value="(v) => (verOcultos = v === true)"
-          />
-          Ver ocultos
-        </label>
         <span
           v-if="cacheSize"
           class="rounded bg-primary/8 px-2 py-1 font-mono text-xs text-primary"
@@ -562,16 +538,6 @@
                 </div>
                 <div class="mt-0.5 text-xs text-muted-foreground">
                   {{ asFilaAnual(row).comprador_nombre }}
-                  <span
-                    v-if="esOculto(asFilaAnual(row))"
-                    class="ml-1.5 rounded bg-destructive/12 px-1.5 py-0.5 text-xs font-semibold text-destructive"
-                    :title="
-                      'Responsable: ' +
-                      asFilaAnual(row).responsable +
-                      ' — normalmente oculto en Cumplimiento'
-                    "
-                    >{{ asFilaAnual(row).responsable }}</span
-                  >
                 </div>
               </template>
               <span v-else-if="column.key === 'vigencia'" class="text-xs text-muted-foreground">
@@ -855,20 +821,10 @@
                     >
                   </div>
                   <TruncatedText
-                    :text="
-                      esOculto(c) ? `${c.comprador_nombre} ${c.responsable}` : c.comprador_nombre
-                    "
+                    :text="c.comprador_nombre"
                     class="mt-0.5 text-xs text-muted-foreground"
                   >
-                    {{ c.comprador_nombre
-                    }}<span
-                      v-if="esOculto(c)"
-                      class="ml-1.5 rounded bg-destructive/12 px-1.5 py-0.5 text-xs font-semibold text-destructive"
-                      :title="
-                        'Responsable: ' + c.responsable + ' — normalmente oculto en Cumplimiento'
-                      "
-                      >{{ c.responsable }}</span
-                    >
+                    {{ c.comprador_nombre }}
                   </TruncatedText>
                 </div>
               </div>
@@ -1348,13 +1304,7 @@
             >
               <div>
                 <span class="text-sm font-bold text-foreground">{{ c.nombre }}</span>
-                <span class="ml-2 text-xs text-muted-foreground">{{ c.comprador_nombre }}</span
-                ><span
-                  v-if="esOculto(c)"
-                  class="ml-1.5 rounded bg-destructive/12 px-1.5 py-0.5 text-xs font-semibold text-destructive"
-                  :title="'Responsable: ' + c.responsable + ' — normalmente oculto en Cumplimiento'"
-                  >{{ c.responsable }}</span
-                >
+                <span class="ml-2 text-xs text-muted-foreground">{{ c.comprador_nombre }}</span>
                 <InfoIcon class="ml-1.5 size-3 text-muted-foreground/70" />
               </div>
               <div class="flex flex-shrink-0 items-center gap-2">
@@ -2119,18 +2069,6 @@
                     >{{ c.comprador_nombre
                     }}<span v-if="c.n_plantas != null"> · {{ c.n_plantas }} pl.</span></span
                   >
-                  <span
-                    v-if="c.responsable"
-                    class="ml-1.5 rounded px-1.5 py-0.5 align-middle text-xs font-semibold"
-                    :class="responsableChip(c)"
-                    :title="
-                      c.responsable_relevante === false
-                        ? `Responsable: ${c.responsable} — normalmente oculto en esta matriz`
-                        : `Responsable: ${c.responsable}`
-                    "
-                  >
-                    {{ c.responsable }}
-                  </span>
                   <LoaderCircleIcon
                     v-if="c._loading"
                     class="ml-1 size-3 animate-spin text-primary"
@@ -2983,8 +2921,7 @@
             <span class="ml-2 text-xs text-muted-foreground">
               Tienen un registro con código SIC vigente en el tramo, pero Cumplimiento no las asignó
               a ningún contrato y las contó como bolsa. Suele ser que el registro no cruza con un
-              PPA (contrato interno vacío o distinto) o que el contrato es de un responsable oculto
-              — prueba con <b>Ver ocultos</b>. No son plantas libres.
+              PPA (contrato interno vacío o distinto). No son plantas libres.
             </span>
           </div>
           <table class="w-full text-sm">
@@ -3899,196 +3836,18 @@
         </div>
       </template>
     </Teleport>
-
-    <!-- Floating: empresas responsables de PPA (catálogo + asignación) -->
-    <Teleport to="body">
-      <template v-if="respAbierto">
-        <div class="fixed inset-0 z-60 bg-foreground/28" @click="cerrarResponsables" />
-        <div
-          class="fixed top-1/2 left-1/2 z-61 max-h-11/12 w-11/12 max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-foreground/12 bg-card shadow-2xl"
-          @click.stop
-        >
-          <div class="h-1.5 rounded-t-2xl bg-primary" />
-          <div
-            class="flex items-start justify-between gap-3 border-b border-b-foreground/8 px-6 pt-4 pb-3"
-          >
-            <div>
-              <div class="text-lg font-bold text-foreground">Empresas responsables de PPA</div>
-              <div class="mt-0.5 text-xs text-muted-foreground">
-                Los contratos de un responsable marcado como <b>no relevante</b> no aparecen en la
-                Matriz anual. Un contrato sin responsable siempre aparece.
-              </div>
-            </div>
-            <button
-              class="rounded px-2 py-1 text-sm text-muted-foreground"
-              @click="cerrarResponsables"
-            >
-              <XIcon class="size-4" />
-            </button>
-          </div>
-
-          <div class="space-y-5 px-6 py-4">
-            <Alert v-if="respError" variant="destructive">
-              <AlertDescription>{{ respError }}</AlertDescription>
-            </Alert>
-
-            <!-- Catálogo -->
-            <div>
-              <p class="mb-2 text-xs font-bold tracking-widest text-primary uppercase">Catálogo</p>
-              <div class="divide-y rounded-lg border border-foreground/10">
-                <div
-                  v-for="r in responsables"
-                  :key="r.id"
-                  class="flex items-center gap-3 px-3 py-2"
-                >
-                  <Input
-                    v-model="r.nombre"
-                    class="flex-1 text-sm"
-                    @change="guardarResponsable(r)"
-                  />
-                  <label
-                    class="flex items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground"
-                    title="Destildado = sus contratos se ocultan de la Matriz anual"
-                  >
-                    <Checkbox
-                      :model-value="r.incluir_en_cumplimiento"
-                      @update:model-value="
-                        (v) => {
-                          r.incluir_en_cumplimiento = v === true
-                          guardarResponsable(r)
-                        }
-                      "
-                    />
-                    Relevante
-                  </label>
-                  <span class="shrink-0 text-right font-mono text-xs text-muted-foreground"
-                    >{{ r.n_contratos }} contr.</span
-                  >
-                  <button
-                    class="rounded px-2 py-1 text-xs"
-                    :class="
-                      r.n_contratos
-                        ? 'cursor-not-allowed text-muted-foreground/40'
-                        : 'text-destructive'
-                    "
-                    :disabled="!!r.n_contratos"
-                    :title="r.n_contratos ? 'Reasigna sus contratos primero' : 'Eliminar'"
-                    @click="borrarResponsable(r)"
-                  >
-                    <Trash2Icon class="size-4" />
-                  </button>
-                </div>
-                <div
-                  v-if="!responsables.length"
-                  class="px-3 py-4 text-center text-sm text-foreground/35"
-                >
-                  Sin responsables todavía
-                </div>
-              </div>
-              <div class="mt-2 flex items-center gap-2">
-                <Input
-                  v-model="respNuevo"
-                  placeholder="Nueva empresa responsable…"
-                  class="flex-1 text-sm"
-                  @keyup.enter="crearResponsable"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  :disabled="!respNuevo.trim()"
-                  @click="crearResponsable"
-                >
-                  <PlusIcon />
-                  Agregar
-                </Button>
-              </div>
-            </div>
-
-            <!-- Asignación -->
-            <div>
-              <div class="mb-2 flex items-center justify-between gap-2">
-                <p class="text-xs font-bold tracking-widest text-primary uppercase">
-                  Asignar contratos ({{ respContratos.length }})
-                </p>
-                <div class="flex items-center gap-2">
-                  <Select
-                    :model-value="respAsignarA != null ? String(respAsignarA) : undefined"
-                    @update:model-value="(v) => (respAsignarA = v as string)"
-                  >
-                    <SelectTrigger class="min-w-56 text-sm"
-                      ><SelectValue placeholder="Asignar seleccionados a…"
-                    /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="op in respOpcionesAsignar"
-                        :key="op.value"
-                        :value="String(op.value)"
-                        >{{ op.label }}</SelectItem
-                      >
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    :disabled="!respSel.length || !respAsignarA || respGuardando"
-                    @click="asignarSeleccionados"
-                    >Aplicar</Button
-                  >
-                </div>
-              </div>
-              <Input
-                v-model="respBusqueda"
-                placeholder="Buscar contrato…"
-                class="mb-2 w-full text-sm"
-              />
-              <div class="max-h-75 divide-y overflow-y-auto rounded-lg border border-foreground/10">
-                <label
-                  v-for="c in respContratosFiltrados"
-                  :key="c.id"
-                  class="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 text-sm hover:bg-muted"
-                >
-                  <Checkbox
-                    :model-value="respSel.includes(c.id)"
-                    @update:model-value="
-                      (v) =>
-                        (respSel = v ? [...respSel, c.id] : respSel.filter((id) => id !== c.id))
-                    "
-                  />
-                  <TruncatedText
-                    :text="`${c.nombre_interno || c.numero_codigo_contrato} ${c.comprador_nombre}`"
-                    class="min-w-0 flex-1 text-foreground"
-                  >
-                    {{ c.nombre_interno || c.numero_codigo_contrato }}
-                    <span class="ml-1 text-xs text-muted-foreground">{{ c.comprador_nombre }}</span>
-                  </TruncatedText>
-                  <span class="rounded px-1.5 py-0.5 text-xs" :class="responsableChip(c)">
-                    {{ c.responsable || 'sin responsable' }}
-                  </span>
-                </label>
-                <div
-                  v-if="!respContratosFiltrados.length"
-                  class="px-3 py-4 text-center text-sm text-foreground/35"
-                >
-                  {{ respCargando ? 'Cargando…' : 'Sin contratos' }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
-    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { DataTableColumn, DataTableRow } from '~/components/blocks/DataTable.vue'
 import type { ComboBoxOption } from '~/components/blocks/MultiComboBox.vue'
-import type { ContratoPpa, RegistroAsic, ResponsablePpa } from '~/features/contratos/types'
+import type { ContratoPpa, RegistroAsic } from '~/features/contratos/types'
 import type { ContratoCumplimientoPpa } from '~/features/mem/types'
 import type { ProyectoConDetalle } from '~/features/proyectos/types'
 import {
   ArrowDownWideNarrowIcon,
   ArrowUpNarrowWideIcon,
-  BuildingIcon,
   CalendarIcon,
   ChartColumnIcon,
   CheckIcon,
@@ -4151,8 +3910,6 @@ interface FilaResumenAnual {
   nombre_interno?: string | null
   numero_codigo_contrato?: string | null
   comprador_nombre?: string | null
-  responsable?: string | null
-  responsable_relevante?: boolean
   fecha_inicio: string | null
   fecha_fin: string | null
   total_min_mwh: number | null
@@ -4227,8 +3984,6 @@ interface SimContrato {
   id: number | string
   nombre: string
   comprador_nombre?: string | null
-  responsable?: string | null
-  responsable_relevante?: boolean
   min_mwh: number | null
   max_mwh: number | null
   plantas_esperadas?: number | null
@@ -4307,8 +4062,6 @@ interface PcContrato {
   vendedor_nombre?: string | null
   vendedor_nit?: string | null
   tarifa_base?: number | null
-  responsable?: string | null
-  responsable_relevante?: boolean
   plantas: PcPlanta[]
   contrato_ppa_id?: number | null
   numero_codigo_contrato?: string | null
@@ -4393,8 +4146,6 @@ interface MatrizContratoDetalle {
   nombre_interno?: string | null
   numero_codigo_contrato?: string | null
   comprador_nombre?: string | null
-  responsable?: string | null
-  responsable_relevante?: boolean
   n_plantas: number | null
   meses: MatrizMes[]
   proyectos: MatrizProyecto[]
@@ -4492,10 +4243,6 @@ interface RevVeredictoDuplicada {
   maxPct: number
   escalaRota: boolean
   sinPct: boolean
-}
-
-interface Responsable extends ResponsablePpa {
-  n_contratos: number
 }
 
 /** Lo mínimo que necesitan los helpers de "fila de planta" (filaTerminada,
@@ -4661,16 +4408,6 @@ function cacheGetSize(): string {
   return mb >= 1 ? `${mb.toFixed(1)} MB (${count})` : `${(bytes / 1024).toFixed(0)} KB (${count})`
 }
 
-// ── Empresa responsable: interruptor global de la página ──────────────────────
-// El backend oculta por defecto los contratos de un responsable marcado como no
-// relevante en TODAS las vistas de /mem/cumplimiento. Este check los trae de vuelta
-// (para reclasificar o auditar) y aplica a todas las pestañas a la vez, así ninguna
-// queda contando un universo distinto que otra.
-const verOcultos = ref(false)
-// Se pasa como param a cada endpoint (no dentro de cachedGet) para que también
-// entre en la llave de caché: la vista filtrada y la completa no deben pisarse.
-const incluirTodos = () => verOcultos.value
-
 async function cachedGet<T>(
   cacheEndpointKey: string,
   params: CacheParams,
@@ -4718,35 +4455,6 @@ async function clearCacheAndReload() {
     updateCacheSize()
   }
 }
-
-// Recarga las pestañas tras un cambio de universo (interruptor "Ver ocultos"
-// o reclasificación de responsables). No borra la caché: el param incluir_todos
-// ya forma parte de la llave, así que cada universo tiene su propia entrada.
-// Lo que está fuera de la pestaña activa se descarta y se recarga al abrirla.
-async function recargarPorResponsables() {
-  contratos.value = []
-  anualData.value = null
-  simData.value = null
-  pcData.value = null
-  etData.value = null
-  beData.value = null
-  revData.value = null
-  tableData.value = []
-  anualMatrizData.value = null
-  await loadContratos()
-  await Promise.all([loadAnnualData(), loadTableData()])
-  if (activeTab.value === 0) await loadSimulator()
-  if (activeTab.value === 2) await loadPlantasContratos()
-  if (activeTab.value === 3) await loadEnergiaTransada()
-  if (activeTab.value === 4) await loadAnualMatriz()
-  if (activeTab.value === 5) await loadBalance()
-  if (activeTab.value === 6) await loadRevision()
-  updateCacheSize()
-}
-
-watch(verOcultos, () => {
-  recargarPorResponsables()
-})
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const TABS = [
@@ -5593,7 +5301,6 @@ async function etFetch(y: number, m: number): Promise<EtData> {
   const data = (await cumplimientoService.obtenerEnergiaTransada({
     year: y,
     month: m,
-    incluir_todos: incluirTodos(),
   })) as unknown as EtData
   etCacheSet(y, m, data)
   return data
@@ -5685,13 +5392,12 @@ async function loadAnualMatriz() {
   matrizContratosSel.value = []
   matrizOfftakersSel.value = []
   const year = anualMatrizYear.value
-  // Token de carga: el año ya no basta como guarda (cambiar "Ver ocultos" recarga
-  // sin cambiarlo), y sin esto los workers de la carga anterior siguen pidiendo.
+  // Token de carga: el año no basta como guarda (se puede recargar sin cambiarlo),
+  // y sin esto los workers de la carga anterior siguen pidiendo.
   const loadId = ++matrizLoadId
   try {
     const data = await cumplimientoService.obtenerAnualMatrizContratos({
       year,
-      incluir_todos: incluirTodos(),
     })
     const contratos = (data.contratos || []).map((c) => ({
       ...c,
@@ -5857,170 +5563,6 @@ function fmtNum(v: number | null | undefined) {
 const matrizFilasCargando = computed(() =>
   (anualMatrizData.value?.contratos || []).some((c) => c._loading),
 )
-
-// ── Empresas responsables de PPA ──────────────────────────────────────────────
-// El responsable es un catálogo (no texto libre) para que los filtros de la
-// plataforma trabajen sobre valores consistentes. `incluir_en_cumplimiento=false`
-// esconde sus contratos de la Matriz anual; sin responsable = siempre visible.
-const respAbierto = ref(false)
-const respDirty = ref(false) // hubo cambios → recargar la matriz al cerrar
-const respError = ref('')
-const respCargando = ref(false)
-const respGuardando = ref(false)
-const responsables = ref<Responsable[]>([])
-const respNuevo = ref('')
-const respContratos = ref<MatrizContratoDetalle[]>([]) // TODOS los contratos, incluidos los ocultos
-const respSel = ref<number[]>([])
-const respAsignarA = ref<string | null>(null)
-const respBusqueda = ref('')
-
-// Fila que normalmente NO se vería: solo aparece con "Ver ocultos" encendido, y se
-// marca para que quede claro por qué está ahí. Las filas de responsable relevante o
-// sin responsable no llevan chip, para no ensuciar el uso diario.
-interface ConResponsable {
-  responsable?: string | null
-  responsable_relevante?: boolean
-}
-
-function esOculto(c: ConResponsable | null | undefined) {
-  return !!c && c.responsable_relevante === false
-}
-
-function responsableChip(c: ConResponsable) {
-  if (!c.responsable) return TONO.neutro
-  return c.responsable_relevante === false
-    ? TONO.deficit // oculto de la matriz
-    : TONO.primario
-}
-
-// Sentinel en vez de null: el Select solo distingue "sin selección" (undefined,
-// muestra el placeholder) de un valor elegido — con null como valor real,
-// elegir "Sin responsable" se vería igual que no haber elegido nada.
-const SIN_RESPONSABLE = '__sin__'
-const respOpcionesAsignar = computed(() => [
-  { value: SIN_RESPONSABLE, label: 'Sin responsable' },
-  ...responsables.value.map((r) => ({
-    value: r.id,
-    label: r.incluir_en_cumplimiento ? r.nombre : `${r.nombre} (oculto)`,
-  })),
-])
-
-const respContratosFiltrados = computed(() => {
-  const q = respBusqueda.value.trim().toLowerCase()
-  if (!q) return respContratos.value
-  return respContratos.value.filter(
-    (c) =>
-      (c.nombre_interno || c.numero_codigo_contrato || '').toLowerCase().includes(q) ||
-      (c.comprador_nombre || '').toLowerCase().includes(q) ||
-      (c.responsable || '').toLowerCase().includes(q),
-  )
-})
-
-async function cargarResponsables() {
-  responsables.value = (await ppaService.listarResponsables()) as unknown as Responsable[]
-}
-
-async function abrirResponsables() {
-  respAbierto.value = true
-  respDirty.value = false
-  respError.value = ''
-  respSel.value = []
-  respAsignarA.value = null
-  respBusqueda.value = ''
-  respCargando.value = true
-  try {
-    // incluir_todos: para reclasificar hay que ver también los que están ocultos.
-    const [, contratos] = await Promise.all([
-      cargarResponsables(),
-      cumplimientoService.obtenerAnualMatrizContratos({
-        year: anualMatrizYear.value,
-        incluir_todos: true,
-      }),
-    ])
-    respContratos.value = (contratos.contratos || []) as unknown as MatrizContratoDetalle[]
-  } catch (e) {
-    respError.value = errDetail(e) || (e instanceof Error ? e.message : undefined) || ''
-  } finally {
-    respCargando.value = false
-  }
-}
-
-async function crearResponsable() {
-  const nombre = respNuevo.value.trim()
-  if (!nombre) return
-  respError.value = ''
-  try {
-    await ppaService.crearResponsable({ nombre, incluir_en_cumplimiento: true })
-    respNuevo.value = ''
-    await cargarResponsables()
-  } catch (e) {
-    respError.value = errDetail(e) || (e instanceof Error ? e.message : undefined) || ''
-  }
-}
-
-async function guardarResponsable(r: Responsable) {
-  respError.value = ''
-  try {
-    await ppaService.actualizarResponsable(r.id, {
-      nombre: r.nombre,
-      incluir_en_cumplimiento: r.incluir_en_cumplimiento ?? false,
-    })
-    await refrescarTrasCambio()
-  } catch (e) {
-    respError.value = errDetail(e) || (e instanceof Error ? e.message : undefined) || ''
-    await cargarResponsables() // revierte el input al valor real
-  }
-}
-
-async function borrarResponsable(r: Responsable) {
-  respError.value = ''
-  try {
-    await ppaService.eliminarResponsable(r.id)
-    await cargarResponsables()
-  } catch (e) {
-    respError.value = errDetail(e) || (e instanceof Error ? e.message : undefined) || ''
-  }
-}
-
-async function asignarSeleccionados() {
-  if (!respSel.value.length || !respAsignarA.value) return
-  respGuardando.value = true
-  respError.value = ''
-  try {
-    await ppaService.asignarResponsables({
-      contrato_ids: respSel.value,
-      responsable_id: respAsignarA.value === SIN_RESPONSABLE ? null : Number(respAsignarA.value),
-    })
-    respSel.value = []
-    await refrescarTrasCambio()
-  } catch (e) {
-    respError.value = errDetail(e) || (e instanceof Error ? e.message : undefined) || ''
-  } finally {
-    respGuardando.value = false
-  }
-}
-
-// Tras cualquier cambio: refrescar catálogo y lista del diálogo. Las pestañas NO
-// se recargan aquí — hacerlo por clic dispararía una tanda de llamadas a Unergy
-// cada vez; se recargan una sola vez al cerrar (ver cerrarResponsables).
-async function refrescarTrasCambio() {
-  respDirty.value = true
-  await cargarResponsables()
-  const data = await cumplimientoService.obtenerAnualMatrizContratos({
-    year: anualMatrizYear.value,
-    incluir_todos: true,
-  })
-  respContratos.value = (data.contratos || []) as unknown as MatrizContratoDetalle[]
-}
-
-function cerrarResponsables() {
-  respAbierto.value = false
-  if (respDirty.value) {
-    respDirty.value = false
-    // Reclasificar cambia el universo de TODAS las pestañas, no solo la matriz.
-    recargarPorResponsables()
-  }
-}
 
 const allContratos = computed<SimContrato[]>(() => {
   if (!simData.value) return []
@@ -7167,7 +6709,7 @@ const CONSOLIDADO_ID = '__consolidado__'
 
 async function loadContratos() {
   try {
-    const res = await cumplimientoService.listarPpa({ incluir_todos: incluirTodos() })
+    const res = await cumplimientoService.listarPpa()
     const mapped = res.map((c) => ({
       ...c,
       label: c.nombre_interno || c.numero_codigo_contrato || `Contrato ${c.id}`,
@@ -7337,11 +6879,10 @@ async function loadTableData() {
   try {
     tableData.value = (await cachedGet(
       '/cumplimiento/ppa/resumen-anual',
-      { year: selectedYear.value, incluir_todos: incluirTodos() },
+      { year: selectedYear.value },
       () =>
         cumplimientoService.obtenerResumenAnual({
           year: selectedYear.value,
-          incluir_todos: incluirTodos(),
         }),
     )) as unknown as FilaResumenAnual[]
     updateCacheSize()
@@ -7733,7 +7274,7 @@ async function loadSimulator(retry = true) {
   simLoading.value = true
   simError.value = null
   try {
-    const filtros = { year: simYear.value, month: simMonth.value, incluir_todos: incluirTodos() }
+    const filtros = { year: simYear.value, month: simMonth.value }
     const data = (await cachedGet('/cumplimiento/simulador', filtros, () =>
       cumplimientoService.obtenerSimulador(filtros),
     )) as unknown as SimuladorData
@@ -7764,7 +7305,7 @@ async function loadPlantasContratos() {
   pcLoading.value = true
   pcError.value = null
   try {
-    const filtros = { year: pcYear.value, month: pcMonth.value, incluir_todos: incluirTodos() }
+    const filtros = { year: pcYear.value, month: pcMonth.value }
     pcData.value = await cachedGet('/cumplimiento/plantas-contratos', filtros, () =>
       cumplimientoService.obtenerPlantasContratos(filtros),
     )
@@ -7797,7 +7338,7 @@ async function loadRevision() {
   revLoading.value = true
   revError.value = null
   try {
-    const filtros = { year: revYear.value, month: revMonth.value, incluir_todos: incluirTodos() }
+    const filtros = { year: revYear.value, month: revMonth.value }
     revData.value = await cachedGet('/cumplimiento/plantas-contratos', filtros, () =>
       cumplimientoService.obtenerPlantasContratos(filtros),
     )
@@ -7936,7 +7477,7 @@ const revRepartidas = computed(() =>
 // 2 · Los tramos que el mes dejó fuera de todo contrato PPA (piscina e). OJO:
 // esa piscina NO significa "sin contrato" — significa "sin PPA resuelto en
 // Cumplimiento". Una planta con registro GESCON vigente cae aquí igual si su
-// contrato no cruzó (contrato_interno sin PPA que casar, responsable oculto…).
+// contrato no cruzó (contrato_interno sin PPA que casar…).
 // Por eso cada tramo se contrasta contra /asic antes de llamarlo "sin contrato".
 const revTramosLibres = computed(() => {
   const d = revData.value
@@ -8237,7 +7778,6 @@ async function loadBalance() {
     year: beYear.value,
     month: beMonth.value,
     excluir_compra_externa: beExcluirExterna.value,
-    incluir_todos: incluirTodos(),
   }
   // El mes en curso cambia todos los días (avanza el real, se encoge la
   // proyección): se consulta fresco. Los meses cerrados sí van a caché.

@@ -6,13 +6,10 @@ import type {
   PayloadAsic,
   PayloadAsicModificacion,
   PayloadAsicTerminacion,
-  PayloadAsignarResponsablesPpa,
   PayloadPpa,
-  PayloadResponsablePpa,
   PayloadSyncOriginabot,
   PlantasInscritasPorMes,
   RegistroAsic,
-  ResponsablePpa,
   RespuestaAsicOperacion,
   RespuestaBackfillAsic,
   TarifaPpa,
@@ -29,9 +26,6 @@ const RUTAS = {
   compromisos: (id: ContratoPpa['id']) => `${BASE}/${id}/compromisos`,
   originabot: (id: ContratoPpa['id']) => `${BASE}/${id}/originabot`,
   originabotOpciones: `${BASE}/originabot/opciones`,
-  responsables: `${BASE}/responsables`,
-  responsable: (id: ResponsablePpa['id']) => `${BASE}/responsables/${id}`,
-  responsablesAsignar: `${BASE}/responsables/asignar`,
   asic: '/asic',
   asicItem: (id: RegistroAsic['id']) => `/asic/${id}`,
   asicTerminacion: '/asic/terminacion',
@@ -102,29 +96,6 @@ export class PpaService extends BaseService {
   // `vincularProyecto()`, que llamaba a `POST /ppa/:id/proyectos` — una ruta que
   // nunca existió, ni en Django ni en el FastAPI de antes, y que siempre
   // respondió 404. Ver `plantasDelContrato.ts`.
-
-  listarResponsables(): Promise<ResponsablePpa[]> {
-    return this.get<ResponsablePpa[]>(RUTAS.responsables)
-  }
-
-  crearResponsable(payload: PayloadResponsablePpa): Promise<ResponsablePpa> {
-    return this.post<ResponsablePpa>(RUTAS.responsables, payload)
-  }
-
-  actualizarResponsable(
-    id: ResponsablePpa['id'],
-    payload: PayloadResponsablePpa,
-  ): Promise<ResponsablePpa> {
-    return this.patch<ResponsablePpa>(RUTAS.responsable(id), payload)
-  }
-
-  eliminarResponsable(id: ResponsablePpa['id']): Promise<unknown> {
-    return this.delete<unknown>(RUTAS.responsable(id))
-  }
-
-  asignarResponsables(payload: PayloadAsignarResponsablesPpa): Promise<unknown> {
-    return this.post<unknown>(RUTAS.responsablesAsignar, payload)
-  }
 
   listarPlantasInscritasPorMes(id: ContratoPpa['id']): Promise<PlantasInscritasPorMes[]> {
     return this.get<PlantasInscritasPorMes[]>(RUTAS.plantasInscritasPorMes(id))

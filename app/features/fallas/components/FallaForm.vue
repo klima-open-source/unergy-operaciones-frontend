@@ -5,9 +5,13 @@
  * archivos adjuntos.
  *
  * No llama a la API para guardar: emite `save` con el payload y el padre
- * (`MonitoreoView.vue`, `FallaDetailView.vue`, `GestionFallasView.vue`) hace
+ * (`FallaFormPage.vue`, `FallaDetailView.vue`, `GestionFallasView.vue`) hace
  * el POST/PATCH — así el mismo formulario sirve para crear (varios proyectos
  * a la vez) y editar (uno solo).
+ *
+ * El layout se adapta al ANCHO DEL CONTENEDOR (container queries), no al de la
+ * pantalla: en la página propia (`/fallas/nueva`) va a dos columnas, y dentro
+ * de un panel angosto (`FallaDetailView.vue`) sigue en una.
  */
 import type {
   CategoriaFalla,
@@ -15,7 +19,7 @@ import type {
   Falla,
   PayloadFallaForm,
 } from '~/features/fallas/types'
-import type { InversorProyecto, ProyectoConDetalle } from '~/features/proyectos/types'
+import type { InversorProyecto, ProyectoLiviano } from '~/features/proyectos/types'
 import type { ComboBoxOption } from '~/components/blocks/ComboBox.vue'
 import {
   AlignLeftIcon,
@@ -30,12 +34,15 @@ import {
   FileTypeIcon,
   ImageIcon,
   InfoIcon,
+  LoaderCircleIcon,
   MessageSquareIcon,
   PaperclipIcon,
   PlusIcon,
   SearchIcon,
   SendIcon,
+  ServerIcon,
   SettingsIcon,
+  ShieldCheckIcon,
   TagIcon,
   Trash2Icon,
   UploadIcon,
@@ -44,6 +51,8 @@ import {
 import { normalizeError } from '~/core/errors'
 import { logger } from '~/core/logger'
 import { iconoCategoriaFalla } from '~/features/fallas/utils/fallaTitulo'
+import { EstadoFallaCodigo } from '~/features/fallas/types'
+import { estadosSeleccionables, etiquetaEstado } from '~/features/fallas/utils/grupoEstado'
 import { getEstructuraFallas } from '~/features/fallas/utils/fallasEstructuraCache'
 import DatePicker from '~/components/blocks/DatePicker.vue'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
@@ -58,8 +67,6 @@ interface ClasificacionForm {
   inversores_tipos: string[]
 }
 
-type InversorConLabel = InversorProyecto & { _label: string }
-
 const proyectosService = new ProyectosService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
 // ver ~/composables/useProyectosCatalogo.
@@ -69,20 +76,19 @@ const props = withDefaults(
   defineProps<{
     initial?: Falla | null
     catalogos: CatalogosFalla
-    /** Pre-seleccionar proyectos al crear. */
-    prefillProyectoIds?: number[]
     /** Si el padre ya los tiene cargados, se reusan (evita refetch cada vez que se abre el diálogo). */
-    proyectos?: ProyectoConDetalle[]
+    proyectos?: ProyectoLiviano[]
+    /** El padre está guardando lo emitido (o navegando tras guardar): bloquea el envío. */
+    guardando?: boolean
   }>(),
-  { initial: null, prefillProyectoIds: () => [], proyectos: () => [] },
+  { initial: null, proyectos: () => [], guardando: false },
 )
 const emit = defineEmits<{
   save: [payload: PayloadFallaForm]
   cancel: []
 }>()
 
-const proyectos = ref<ProyectoConDetalle[]>(props.proyectos)
-const saving = ref(false)
+const proyectos = ref<ProyectoLiviano[]>(props.proyectos)
 const errors = ref<Record<string, string>>({})
 /** Archivos staged en el dropzone — solo al crear/editar, se suben tras guardar. */
 const archivosStaged = ref<File[]>([])
@@ -123,7 +129,7 @@ function onFileInputChange(e: Event) {
 // Fecha + hora de identificación en un solo campo. Al crear se sugiere el momento actual.
 const form = ref({
   proyecto_id: props.initial?.proyecto?.id ?? props.initial?.proyecto_id ?? null,
-  proyecto_ids: [...(props.prefillProyectoIds ?? [])] as number[],
+  proyecto_ids: [] as number[],
   tipo_id: props.initial?.tipo?.id ?? null,
   estado_id: props.initial?.estado?.id ?? null,
   prioridad_id: props.initial?.prioridad?.id ?? null,
@@ -145,13 +151,15 @@ const form = ref({
   /** Fecha únicamente (sin hora): `blocks/DatePicker` ya trabaja en ISO `yyyy-mm-dd`. */
   fecha_programada: props.initial?.fecha_programada ?? (null as string | null),
   notificacion: false, // siempre OFF por defecto — el usuario lo activa explícitamente
+  en_garantia: props.initial?.en_garantia ?? false,
+  garantia_detalle: props.initial?.garantia_detalle ?? '',
 })
 
 // Detectar si el estado seleccionado es "programado"
 const esEstadoProgramado = computed(() => {
   if (!form.value.estado_id) return false
   const estado = props.catalogos.estados?.find((e) => e.id === form.value.estado_id)
-  return estado?.codigo === 'programado'
+  return estado?.codigo === EstadoFallaCodigo.PROGRAMADO
 })
 
 // Detectar si el estado seleccionado es final (falla cerrada/resuelta)
@@ -220,11 +228,17 @@ const proyectoUnicoId = computed(() => {
 })
 // Etiqueta del selector de opciones: la define la propia estructura
 // (`opciones_label`) para categorías cuyas opciones no son "eventos"
-// (p.ej. la verificación en sitio de "generando pero sin datos").
+// (p.ej. la verificación en sitio de "generando pero sin datos"); si no la
+// trae, la de la categoría y si no, "Evento".
+const LABEL_OPCIONES_POR_CATEGORIA: Record<string, string> = {
+  red: 'Evento de red',
+  equipos: 'Equipo',
+}
 const labelOpciones = computed(
   () =>
     catActual.value?.opciones_label ||
-    (catActual.value?.codigo === 'red' ? 'Evento de red' : 'Evento'),
+    LABEL_OPCIONES_POR_CATEGORIA[catActual.value?.codigo ?? ''] ||
+    'Evento',
 )
 
 function seleccionarCategoria(codigo: string) {
@@ -239,10 +253,22 @@ function seleccionarCategoria(codigo: string) {
 }
 
 // ── Opciones para los selectores buscables ──────────────────────────────────
-const proyectoOpcionesUnico = computed<ComboBoxOption[]>(() =>
+const proyectoOpcionesMultiple = computed<ComboBoxOption[]>(() =>
   proyectos.value.map((p) => ({ label: p.nombre_comercial, value: String(p.id) })),
 )
-const proyectoOpcionesMultiple = computed<ComboBoxOption[]>(() => proyectoOpcionesUnico.value)
+// Al editar, el proyecto de la falla sigue apareciendo aunque ya no tenga
+// servicio de operación (la lista solo trae las operadas): si no, el selector
+// quedaría vacío y la falla no se podría guardar sin cambiarle el proyecto.
+const proyectoOpcionesUnico = computed<ComboBoxOption[]>(() => {
+  const actual = props.initial?.proyecto
+  if (!actual || proyectos.value.some((p) => p.id === actual.id)) {
+    return proyectoOpcionesMultiple.value
+  }
+  return [
+    { label: actual.nombre_comercial ?? `Proyecto ${actual.id}`, value: String(actual.id) },
+    ...proyectoOpcionesMultiple.value,
+  ]
+})
 const inversorTipoOpciones = computed<ComboBoxOption[]>(
   () =>
     catActual.value?.tipos_falla?.map((t) => ({
@@ -258,15 +284,13 @@ const proyectoIdsStr = computed<string[]>({
     form.value.proyecto_ids = v.map(Number)
   },
 })
-const inversoresIdsStr = computed<string[]>({
-  get: () => cls.value.inversores_ids.map(String),
-  set: (v) => {
-    cls.value.inversores_ids = v.map(Number)
-  },
-})
+function alternarInversor(id: number) {
+  const ids = cls.value.inversores_ids
+  cls.value.inversores_ids = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+}
 
 // ── Inversores del proyecto (parametrizable) ────────────────────────────────
-const inversoresProyecto = ref<InversorConLabel[]>([])
+const inversoresProyecto = ref<InversorProyecto[]>([])
 const cargandoInv = ref(false)
 const gestionInversores = ref(false)
 const nuevoInv = ref<{ nombre: string; potencia_nominal_kw: number | null }>({
@@ -274,15 +298,23 @@ const nuevoInv = ref<{ nombre: string; potencia_nominal_kw: number | null }>({
   potencia_nominal_kw: null,
 })
 const invError = ref('')
-const potenciaAc = ref<number | null>(null)
-
-function labelInversor(inv: InversorProyecto): string {
-  const kw = inv.potencia_nominal_kw != null ? `${inv.potencia_nominal_kw} kW` : 's/d'
-  return `${inv.nombre || 'Inversor'} · ${kw}`
+/** DRF manda los decimales como texto (`"990.000"`). */
+function numeroONull(v: number | string | null | undefined): number | null {
+  const n = Number(v)
+  return v == null || v === '' || !Number.isFinite(n) ? null : n
 }
-const inversorOpciones = computed<ComboBoxOption[]>(() =>
-  inversoresProyecto.value.map((i) => ({ label: i._label, value: String(i.id) })),
+
+/**
+ * Potencia AC del proyecto, en kW, de la lista de proyectos ya cargada (vive
+ * en el proyecto, `potencia_ac_kw`, no en `info_tecnica`).
+ */
+const potenciaAc = computed(() =>
+  numeroONull(proyectos.value.find((p) => p.id === proyectoUnicoId.value)?.potencia_ac_kw),
 )
+
+function potenciaInversor(inv: InversorProyecto): string {
+  return inv.potencia_nominal_kw != null ? `${inv.potencia_nominal_kw} kW` : 's/d'
+}
 const sumaInversores = computed(() =>
   inversoresProyecto.value.reduce((s, i) => s + (Number(i.potencia_nominal_kw) || 0), 0),
 )
@@ -290,7 +322,11 @@ const sumaExcede = computed(
   () => potenciaAc.value != null && sumaInversores.value > potenciaAc.value + 0.001,
 )
 
+/** Cuenta las cargas: si se cambia de proyecto rápido, solo vale la respuesta de la última. */
+let cargaInversores = 0
+
 async function cargarInversores(pid: number | null) {
+  const esta = ++cargaInversores
   if (!pid) {
     inversoresProyecto.value = []
     return
@@ -298,24 +334,16 @@ async function cargarInversores(pid: number | null) {
   cargandoInv.value = true
   try {
     const data = await proyectosService.listarInversores(pid)
-    inversoresProyecto.value = (data ?? []).map((i) => ({ ...i, _label: labelInversor(i) }))
-    // potencia AC nominal del proyecto (para feedback de la regla de suma)
-    try {
-      const p = await proyectosService.obtener(pid)
-      potenciaAc.value =
-        p?.info_tecnica?.potencia_ac_kw != null ? Number(p.info_tecnica.potencia_ac_kw) : null
-    } catch {
-      potenciaAc.value = null
-    }
+    if (esta === cargaInversores) inversoresProyecto.value = data ?? []
   } catch (err) {
     logger.error('fallas.form', err)
-    inversoresProyecto.value = []
+    if (esta === cargaInversores) inversoresProyecto.value = []
   } finally {
-    cargandoInv.value = false
+    if (esta === cargaInversores) cargandoInv.value = false
   }
 }
 
-async function guardarInv(inv: InversorConLabel) {
+async function guardarInv(inv: InversorProyecto) {
   invError.value = ''
   if (!proyectoUnicoId.value) return
   try {
@@ -323,7 +351,7 @@ async function guardarInv(inv: InversorConLabel) {
       nombre: inv.nombre,
       potencia_nominal_kw: inv.potencia_nominal_kw,
     })
-    Object.assign(inv, data, { _label: labelInversor(data) })
+    Object.assign(inv, data)
   } catch (err) {
     invError.value = normalizeError(err).message || 'No se pudo guardar el inversor'
     await cargarInversores(proyectoUnicoId.value)
@@ -345,7 +373,7 @@ async function agregarInv() {
     invError.value = normalizeError(err).message || 'No se pudo agregar el inversor'
   }
 }
-async function eliminarInv(inv: InversorConLabel) {
+async function eliminarInv(inv: InversorProyecto) {
   invError.value = ''
   if (!proyectoUnicoId.value) return
   try {
@@ -492,80 +520,77 @@ const tiempoAfectacionTexto = computed(() => {
   return fmtDuracion(horas)
 })
 
-async function submit() {
-  if (!validate()) return
-  saving.value = true
-  try {
-    const base: PayloadFallaForm = {
-      tipo_id: form.value.tipo_id,
-      estado_id: form.value.estado_id,
-      prioridad_id: form.value.prioridad_id,
-      descripcion: form.value.descripcion,
-      fecha_identificacion: formatFechaLocal(form.value.fecha_identificacion),
-      // La hora se deriva del mismo campo combinado de identificación.
-      hora_identificacion: formatHora(form.value.fecha_identificacion),
-    }
-    // Al editar se manda explícito (incluso null, para poder quitar una personalización
-    // ya guardada) -- al crear el campo ni se muestra, así que no hay nada que mandar.
-    if (props.initial) base.sla_limite_horas = form.value.sla_limite_horas || null
-    if (form.value.fecha_ocurrencia)
-      base.fecha_ocurrencia = form.value.fecha_ocurrencia.toISOString()
-    // La fecha de solución solo aplica cuando el estado es final (cerrada).
-    if (esEstadoFinal.value && form.value.fecha_resolucion) {
-      base.fecha_resolucion = form.value.fecha_resolucion.toISOString()
-    }
-    if (esEstadoFinal.value && form.value.resolucion_id)
-      base.resolucion_id = form.value.resolucion_id
-    if (form.value.causa_raiz?.trim()) base.causa_raiz = form.value.causa_raiz.trim()
-    if (form.value.acciones_correctivas?.trim())
-      base.acciones_correctivas = form.value.acciones_correctivas.trim()
-    if (form.value.nota_inicial?.trim()) base.nota_inicial = form.value.nota_inicial.trim()
-    if (form.value.fecha_programada) base.fecha_programada = form.value.fecha_programada
-    base.notificacion = !!form.value.notificacion
+function submit() {
+  // `guardando` lo controla el padre mientras guarda y navega: evita el doble envío.
+  if (props.guardando || !validate()) return
+  const base: PayloadFallaForm = {
+    tipo_id: form.value.tipo_id,
+    estado_id: form.value.estado_id,
+    prioridad_id: form.value.prioridad_id,
+    descripcion: form.value.descripcion,
+    fecha_identificacion: formatFechaLocal(form.value.fecha_identificacion),
+    // La hora se deriva del mismo campo combinado de identificación.
+    hora_identificacion: formatHora(form.value.fecha_identificacion),
+  }
+  // Al editar se manda explícito (incluso null, para poder quitar una personalización
+  // ya guardada) -- al crear el campo ni se muestra, así que no hay nada que mandar.
+  if (props.initial) base.sla_limite_horas = form.value.sla_limite_horas || null
+  if (form.value.fecha_ocurrencia) base.fecha_ocurrencia = form.value.fecha_ocurrencia.toISOString()
+  // La fecha de solución solo aplica cuando el estado es final (cerrada).
+  if (esEstadoFinal.value && form.value.fecha_resolucion) {
+    base.fecha_resolucion = form.value.fecha_resolucion.toISOString()
+  }
+  if (esEstadoFinal.value && form.value.resolucion_id) base.resolucion_id = form.value.resolucion_id
+  if (form.value.causa_raiz?.trim()) base.causa_raiz = form.value.causa_raiz.trim()
+  if (form.value.acciones_correctivas?.trim())
+    base.acciones_correctivas = form.value.acciones_correctivas.trim()
+  if (form.value.nota_inicial?.trim()) base.nota_inicial = form.value.nota_inicial.trim()
+  if (form.value.fecha_programada) base.fecha_programada = form.value.fecha_programada
+  base.notificacion = !!form.value.notificacion
+  base.en_garantia = form.value.en_garantia
+  // Al quitar la garantía se borra el detalle que hubiera quedado guardado.
+  base.garantia_detalle = form.value.en_garantia ? form.value.garantia_detalle.trim() || null : null
 
-    // ── Clasificación estructurada ─────────────────────────────────────────
-    let forzarProyectoUnico: number | null = null
-    if (usarEstructura.value && cls.value.categoria) {
-      base.categoria_codigo = cls.value.categoria
-      const cat = catActual.value
-      if (cat?.tipo === 'inversores') {
-        // tipos compartidos aplicados a cada inversor seleccionado
-        const tipos = [...cls.value.inversores_tipos]
-        base.inversores = cls.value.inversores_ids.map((id) => {
-          const inv = inversoresProyecto.value.find((x) => x.id === id)
-          return {
-            proyecto_inversor_id: id,
-            nombre: inv?.nombre ?? null,
-            potencia_kw: inv?.potencia_nominal_kw ?? null,
-            tipos,
-          }
-        })
-        base.tipo_id = null // el backend deriva el tipo
-        forzarProyectoUnico = proyectoUnicoId.value
-      } else {
-        base.subtipo_codigo = cls.value.subtipo
-        if (cls.value.detalle?.trim()) base.subtipo_detalle = cls.value.detalle.trim()
-        if (cat?.tipo === 'equipo') {
-          base.frontera_afecta_medicion = !!cls.value.afecta_medicion
-          base.frontera_perdida_comunicacion = !!cls.value.perdida_comunicacion
+  // ── Clasificación estructurada ─────────────────────────────────────────
+  let forzarProyectoUnico: number | null = null
+  if (usarEstructura.value && cls.value.categoria) {
+    base.categoria_codigo = cls.value.categoria
+    const cat = catActual.value
+    if (cat?.tipo === 'inversores') {
+      // tipos compartidos aplicados a cada inversor seleccionado
+      const tipos = [...cls.value.inversores_tipos]
+      base.inversores = cls.value.inversores_ids.map((id) => {
+        const inv = inversoresProyecto.value.find((x) => x.id === id)
+        return {
+          proyecto_inversor_id: id,
+          nombre: inv?.nombre ?? null,
+          potencia_kw: inv?.potencia_nominal_kw ?? null,
+          tipos,
         }
-        base.tipo_id = null // el backend mapea subtipo → tipo
-      }
-    }
-
-    if (props.initial) {
-      emit('save', {
-        ...base,
-        proyecto_id: form.value.proyecto_id ?? undefined,
-        _archivos: archivosStaged.value,
       })
+      base.tipo_id = null // el backend deriva el tipo
+      forzarProyectoUnico = proyectoUnicoId.value
     } else {
-      // Para inversores se fuerza un único proyecto (los inversores le pertenecen).
-      const ids = forzarProyectoUnico ? [forzarProyectoUnico] : form.value.proyecto_ids
-      emit('save', { ...base, proyecto_ids: ids, _archivos: archivosStaged.value })
+      base.subtipo_codigo = cls.value.subtipo
+      if (cls.value.detalle?.trim()) base.subtipo_detalle = cls.value.detalle.trim()
+      if (cat?.tipo === 'equipo') {
+        base.frontera_afecta_medicion = !!cls.value.afecta_medicion
+        base.frontera_perdida_comunicacion = !!cls.value.perdida_comunicacion
+      }
+      base.tipo_id = null // el backend mapea subtipo → tipo
     }
-  } finally {
-    saving.value = false
+  }
+
+  if (props.initial) {
+    emit('save', {
+      ...base,
+      proyecto_id: form.value.proyecto_id ?? undefined,
+      _archivos: archivosStaged.value,
+    })
+  } else {
+    // Para inversores se fuerza un único proyecto (los inversores le pertenecen).
+    const ids = forzarProyectoUnico ? [forzarProyectoUnico] : form.value.proyecto_ids
+    emit('save', { ...base, proyecto_ids: ids, _archivos: archivosStaged.value })
   }
 }
 
@@ -585,595 +610,710 @@ onMounted(async () => {
 </script>
 
 <template>
-  <form class="flex flex-col" @submit.prevent="submit">
-    <!-- ── SECCIÓN: Identificación ──────────────────────────── -->
-    <div class="border-b py-3.5 first:pt-0">
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <TagIcon class="size-3.5" /> Identificación
-      </div>
-      <div class="grid grid-cols-2 gap-x-3.5 gap-y-2.5">
-        <!-- Al crear: selección múltiple (varios proyectos → una falla por cada uno) -->
-        <div v-if="!initial" class="col-span-2 flex flex-col gap-1">
-          <GLabel required
-            >Proyecto(s)
-            <span class="font-normal text-muted-foreground"
-              >(selecciona varios para crear una falla por cada uno)</span
-            ></GLabel
+  <form class="@container flex flex-col" @submit.prevent="submit">
+    <div class="grid grid-cols-1 @4xl:grid-cols-2 @4xl:gap-x-8">
+      <!-- ── Columna 1: Identificación ─────────────────────────── -->
+      <div class="flex flex-col">
+        <!-- ── SECCIÓN: Identificación ──────────────────────────── -->
+        <div class="border-b py-3.5 first:pt-0">
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
           >
-          <MultiComboBox
-            v-model="proyectoIdsStr"
-            :options="proyectoOpcionesMultiple"
-            placeholder="Seleccionar proyecto(s)"
-          />
-          <p v-if="errors.proyecto_ids" class="text-xs text-destructive">
-            {{ errors.proyecto_ids }}
-          </p>
-        </div>
-        <!-- Al editar: selección simple -->
-        <div v-else class="col-span-2 flex flex-col gap-1">
-          <GLabel required>Proyecto</GLabel>
-          <ComboBox
-            :model-value="form.proyecto_id != null ? String(form.proyecto_id) : null"
-            :options="proyectoOpcionesUnico"
-            placeholder="Seleccionar proyecto"
-            @update:model-value="(v) => (form.proyecto_id = v ? Number(v) : null)"
-          />
-          <p v-if="errors.proyecto_id" class="text-xs text-destructive">{{ errors.proyecto_id }}</p>
-        </div>
-
-        <!-- ── Clasificación jerárquica por sistema afectado (fallas nuevas) ── -->
-        <div v-if="usarEstructura" class="col-span-2 rounded-xl border bg-muted/30 p-3">
-          <GLabel required>Sistema afectado</GLabel>
-          <div class="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <button
-              v-for="c in estructura"
-              :key="c.codigo"
-              type="button"
-              class="flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 py-3 text-xs font-semibold text-foreground transition-all hover:border-primary/40"
-              :class="
-                cls.categoria === c.codigo && 'border-primary bg-primary/5 ring-2 ring-primary/20'
-              "
-              @click="seleccionarCategoria(c.codigo)"
-            >
-              <component
-                :is="iconoCategoriaFalla(c.codigo)"
-                class="size-4.5 text-(--c)"
-                :style="{ '--c': c.color_hex }"
-              />
-              <span>{{ c.etiqueta }}</span>
-            </button>
+            <TagIcon class="size-3.5" /> Identificación
           </div>
-          <p v-if="errors.categoria" class="mt-1 text-xs text-destructive">
-            {{ errors.categoria }}
-          </p>
-
-          <!-- RED / EVENTOS ADVERSOS: opción única -->
-          <div v-if="catActual && catActual.tipo === 'opcion'" class="mt-3">
-            <GLabel required>{{ labelOpciones }}</GLabel>
-            <Select v-model="cls.subtipo">
-              <SelectTrigger class="mt-1 w-full"
-                ><SelectValue placeholder="Seleccionar…"
-              /></SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">{{
-                  o.etiqueta
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
-            <p v-if="errors.subtipo" class="mt-1 text-xs text-destructive">{{ errors.subtipo }}</p>
-            <div
-              v-if="opcionActual?.pendiente_reclasificar"
-              class="mt-2.5 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
-            >
-              <ClockIcon class="size-3.5 shrink-0" /> Quedará
-              <strong>pendiente de reclasificar</strong> hasta conocer la causa definitiva.
-            </div>
-            <div v-if="opcionActual?.requiere_detalle" class="mt-2.5 flex flex-col gap-1">
-              <GLabel required>{{ opcionActual.detalle_label || 'Detalle' }}</GLabel>
-              <Textarea
-                v-model="cls.detalle"
-                rows="2"
-                placeholder="Describe el motivo específico…"
-              />
-              <p v-if="errors.detalle" class="text-xs text-destructive">{{ errors.detalle }}</p>
-            </div>
-          </div>
-
-          <!-- FRONTERA: equipo + flags -->
-          <div v-else-if="catActual && catActual.tipo === 'equipo'" class="mt-3">
-            <GLabel required>Equipo de frontera</GLabel>
-            <Select v-model="cls.subtipo">
-              <SelectTrigger class="mt-1 w-full"
-                ><SelectValue placeholder="Seleccionar equipo…"
-              /></SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">{{
-                  o.etiqueta
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
-            <p v-if="errors.subtipo" class="mt-1 text-xs text-destructive">{{ errors.subtipo }}</p>
-            <div class="mt-2.5 flex flex-col gap-2">
-              <label class="flex items-center gap-2 text-xs text-foreground">
-                <Checkbox v-model="cls.afecta_medicion" /> Afecta la medición de la frontera
-              </label>
-              <label class="flex items-center gap-2 text-xs text-foreground">
-                <Checkbox v-model="cls.perdida_comunicacion" /> Pérdida de comunicación (datos) de
-                la frontera
-              </label>
-            </div>
-            <div
-              v-if="cls.perdida_comunicacion"
-              class="mt-2.5 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs text-muted-foreground"
-            >
-              <BellIcon class="size-3.5 shrink-0 text-primary/60" /> Generará una alarma de
-              comunicaciones de frontera.
-            </div>
-          </div>
-
-          <!-- INVERSORES: selección múltiple + tipos + gestión parametrizable -->
-          <div v-else-if="catActual && catActual.tipo === 'inversores'" class="mt-3">
-            <div
-              v-if="!proyectoUnicoId"
-              class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
-            >
-              <InfoIcon class="size-3.5 shrink-0" /> Para reportar inversores selecciona
-              <strong>un solo proyecto</strong> arriba.
-            </div>
-            <template v-else>
-              <div class="flex items-center justify-between">
-                <GLabel required>Inversores afectados</GLabel>
-                <button
-                  type="button"
-                  class="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                  @click="gestionInversores = !gestionInversores"
-                >
-                  <SettingsIcon class="size-3.5" />
-                  {{ gestionInversores ? 'Cerrar gestión' : 'Gestionar inversores' }}
-                </button>
-              </div>
-              <p v-if="cargandoInv" class="text-xs text-muted-foreground">Cargando inversores…</p>
-              <div
-                v-else-if="!inversoresProyecto.length && !gestionInversores"
-                class="flex flex-wrap items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
+          <div class="grid grid-cols-1 gap-x-3.5 gap-y-2.5 @md:grid-cols-2">
+            <!-- Al crear: selección múltiple (varios proyectos → una falla por cada uno) -->
+            <div v-if="!initial" class="flex flex-col gap-1 @md:col-span-2">
+              <GLabel required
+                >Proyecto(s)
+                <span class="font-normal text-muted-foreground"
+                  >(selecciona varios para crear una falla por cada uno)</span
+                ></GLabel
               >
-                Este proyecto no tiene inversores configurados.
+              <MultiComboBox
+                v-model="proyectoIdsStr"
+                :options="proyectoOpcionesMultiple"
+                placeholder="Seleccionar proyecto(s)"
+              />
+              <p v-if="errors.proyecto_ids" class="text-xs text-destructive">
+                {{ errors.proyecto_ids }}
+              </p>
+            </div>
+            <!-- Al editar: selección simple -->
+            <div v-else class="flex flex-col gap-1 @md:col-span-2">
+              <GLabel required>Proyecto</GLabel>
+              <ComboBox
+                :model-value="form.proyecto_id != null ? String(form.proyecto_id) : null"
+                :options="proyectoOpcionesUnico"
+                placeholder="Seleccionar proyecto"
+                @update:model-value="(v) => (form.proyecto_id = v ? Number(v) : null)"
+              />
+              <p v-if="errors.proyecto_id" class="text-xs text-destructive">
+                {{ errors.proyecto_id }}
+              </p>
+            </div>
+
+            <!-- ── Clasificación jerárquica por sistema afectado (fallas nuevas) ── -->
+            <div v-if="usarEstructura" class="rounded-xl border bg-muted/30 p-3 @md:col-span-2">
+              <GLabel required>Sistema afectado</GLabel>
+              <div class="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <button
+                  v-for="c in estructura"
+                  :key="c.codigo"
                   type="button"
-                  class="font-semibold underline"
-                  @click="gestionInversores = true"
+                  class="flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 py-3 text-xs font-semibold text-foreground transition-all hover:border-primary/40"
+                  :class="
+                    cls.categoria === c.codigo &&
+                    'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  "
+                  @click="seleccionarCategoria(c.codigo)"
                 >
-                  Configurar
+                  <component
+                    :is="iconoCategoriaFalla(c.codigo)"
+                    class="size-4.5 text-(--c)"
+                    :style="{ '--c': c.color_hex }"
+                  />
+                  <span>{{ c.etiqueta }}</span>
                 </button>
               </div>
-              <MultiComboBox
-                v-else-if="inversoresProyecto.length"
-                v-model="inversoresIdsStr"
-                :options="inversorOpciones"
-                placeholder="Seleccionar inversor(es)"
-              />
-              <p v-if="errors.inversores" class="text-xs text-destructive">
-                {{ errors.inversores }}
+              <p v-if="errors.categoria" class="mt-1 text-xs text-destructive">
+                {{ errors.categoria }}
               </p>
 
-              <!-- gestión parametrizable de inversores del proyecto -->
-              <div v-if="gestionInversores" class="mt-2.5 rounded-lg border bg-card p-2.5">
+              <!-- RED / EVENTOS ADVERSOS: opción única -->
+              <div v-if="catActual && catActual.tipo === 'opcion'" class="mt-3">
+                <GLabel required>{{ labelOpciones }}</GLabel>
+                <Select v-model="cls.subtipo">
+                  <SelectTrigger class="mt-1 w-full"
+                    ><SelectValue placeholder="Seleccionar…"
+                  /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">{{
+                      o.etiqueta
+                    }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p v-if="errors.subtipo" class="mt-1 text-xs text-destructive">
+                  {{ errors.subtipo }}
+                </p>
                 <div
-                  class="mb-2 flex flex-wrap items-center justify-between gap-1.5 text-xs text-muted-foreground"
+                  v-if="opcionActual?.pendiente_reclasificar"
+                  class="mt-2.5 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
                 >
-                  <span
-                    >Potencia AC:
-                    <strong>{{ potenciaAc != null ? `${potenciaAc} kW` : 'sin definir' }}</strong> ·
-                    Suma inversores:
-                    <strong :class="sumaExcede && 'text-destructive'"
-                      >{{ sumaInversores }} kW</strong
-                    ></span
-                  >
-                  <button
-                    v-if="!inversoresProyecto.length"
-                    type="button"
-                    class="font-semibold text-primary hover:underline"
-                    @click="prefillMinigranja"
-                  >
-                    Usar config típica minigranja
-                  </button>
+                  <ClockIcon class="size-3.5 shrink-0" /> Quedará
+                  <strong>pendiente de reclasificar</strong> hasta conocer la causa definitiva.
                 </div>
-                <div
-                  v-for="inv in inversoresProyecto"
-                  :key="inv.id"
-                  class="mb-1.5 flex items-center gap-2"
-                >
-                  <Input
-                    v-model="inv.nombre"
-                    placeholder="Nombre"
-                    class="flex-1"
-                    @blur="guardarInv(inv)"
+                <div v-if="opcionActual?.requiere_detalle" class="mt-2.5 flex flex-col gap-1">
+                  <GLabel required>{{ opcionActual.detalle_label || 'Detalle' }}</GLabel>
+                  <Textarea
+                    v-model="cls.detalle"
+                    rows="2"
+                    placeholder="Describe el motivo específico…"
                   />
-                  <NumberField
-                    v-model="inv.potencia_nominal_kw"
-                    :step-snapping="false"
-                    :min="0"
-                    class="flex-1"
-                  >
-                    <NumberFieldContent
-                      ><NumberFieldInput placeholder="kW" @blur="guardarInv(inv)"
-                    /></NumberFieldContent>
-                  </NumberField>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    class="text-destructive"
-                    @click="eliminarInv(inv)"
-                  >
-                    <Trash2Icon class="size-4" />
-                  </Button>
+                  <p v-if="errors.detalle" class="text-xs text-destructive">{{ errors.detalle }}</p>
                 </div>
-                <div class="mt-1.5 flex items-center gap-2 border-t border-dashed pt-2">
-                  <Input
-                    v-model="nuevoInv.nombre"
-                    placeholder="Nombre nuevo inversor"
-                    class="flex-1"
-                  />
-                  <NumberField
-                    v-model="nuevoInv.potencia_nominal_kw"
-                    :step-snapping="false"
-                    :min="0"
-                    class="flex-1"
-                  >
-                    <NumberFieldContent><NumberFieldInput placeholder="kW" /></NumberFieldContent>
-                  </NumberField>
-                  <Button variant="outline" size="icon-sm" @click="agregarInv">
-                    <PlusIcon class="size-4" />
-                  </Button>
-                </div>
-                <p v-if="invError" class="mt-1 text-xs text-destructive">{{ invError }}</p>
               </div>
 
-              <div class="mt-2.5 flex flex-col gap-1">
-                <GLabel required>Tipo(s) de falla</GLabel>
-                <MultiComboBox
-                  v-model="cls.inversores_tipos"
-                  :options="inversorTipoOpciones"
-                  placeholder="Seleccionar tipo(s)"
-                />
-                <p v-if="errors.invtipos" class="text-xs text-destructive">{{ errors.invtipos }}</p>
+              <!-- FRONTERA: equipo + flags -->
+              <div v-else-if="catActual && catActual.tipo === 'equipo'" class="mt-3">
+                <GLabel required>Equipo de frontera</GLabel>
+                <Select v-model="cls.subtipo">
+                  <SelectTrigger class="mt-1 w-full"
+                    ><SelectValue placeholder="Seleccionar equipo…"
+                  /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="o in catActual.opciones" :key="o.codigo" :value="o.codigo">{{
+                      o.etiqueta
+                    }}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p v-if="errors.subtipo" class="mt-1 text-xs text-destructive">
+                  {{ errors.subtipo }}
+                </p>
+                <div class="mt-2.5 flex flex-col gap-2">
+                  <label class="flex items-center gap-2 text-xs text-foreground">
+                    <Checkbox v-model="cls.afecta_medicion" /> Afecta la medición de la frontera
+                  </label>
+                  <label class="flex items-center gap-2 text-xs text-foreground">
+                    <Checkbox v-model="cls.perdida_comunicacion" /> Pérdida de comunicación (datos)
+                    de la frontera
+                  </label>
+                </div>
                 <div
-                  v-if="cls.inversores_tipos.includes('perdida_comunicacion')"
-                  class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs text-muted-foreground"
+                  v-if="cls.perdida_comunicacion"
+                  class="mt-2.5 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs text-muted-foreground"
                 >
                   <BellIcon class="size-3.5 shrink-0 text-primary/60" /> Generará una alarma de
-                  comunicaciones de inversores.
+                  comunicaciones de frontera.
                 </div>
               </div>
-            </template>
+
+              <!-- INVERSORES: selección múltiple + tipos + gestión parametrizable -->
+              <div v-else-if="catActual && catActual.tipo === 'inversores'" class="mt-3">
+                <div
+                  v-if="!proyectoUnicoId"
+                  class="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
+                >
+                  <InfoIcon class="size-3.5 shrink-0" /> Para reportar inversores selecciona
+                  <strong>un solo proyecto</strong> arriba.
+                </div>
+                <template v-else>
+                  <div class="flex items-center justify-between">
+                    <GLabel required>Inversores afectados</GLabel>
+                    <button
+                      type="button"
+                      class="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      @click="gestionInversores = !gestionInversores"
+                    >
+                      <SettingsIcon class="size-3.5" />
+                      {{ gestionInversores ? 'Cerrar gestión' : 'Gestionar inversores' }}
+                    </button>
+                  </div>
+                  <p v-if="cargandoInv" class="text-xs text-muted-foreground">
+                    Cargando inversores…
+                  </p>
+                  <div
+                    v-else-if="!inversoresProyecto.length && !gestionInversores"
+                    class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs text-warning"
+                  >
+                    <span>Este proyecto no tiene inversores cargados.</span>
+                    <button
+                      type="button"
+                      class="font-semibold underline"
+                      @click="prefillMinigranja"
+                    >
+                      Usar config típica minigranja
+                    </button>
+                    <button
+                      type="button"
+                      class="font-semibold underline"
+                      @click="gestionInversores = true"
+                    >
+                      Configurar a mano
+                    </button>
+                  </div>
+                  <template v-else-if="inversoresProyecto.length">
+                    <div class="mt-1 flex flex-wrap gap-1.5">
+                      <button
+                        v-for="inv in inversoresProyecto"
+                        :key="inv.id"
+                        type="button"
+                        :aria-pressed="cls.inversores_ids.includes(inv.id)"
+                        class="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-xs transition-colors hover:border-primary/40 aria-pressed:border-primary aria-pressed:bg-primary/10"
+                        @click="alternarInversor(inv.id)"
+                      >
+                        <CheckIcon
+                          v-if="cls.inversores_ids.includes(inv.id)"
+                          class="size-3.5 text-primary"
+                        />
+                        <ServerIcon v-else class="size-3.5 text-muted-foreground" />
+                        <span class="font-semibold text-foreground">{{
+                          inv.nombre || 'Inversor'
+                        }}</span>
+                        <span class="text-muted-foreground">{{ potenciaInversor(inv) }}</span>
+                      </button>
+                    </div>
+                    <p class="mt-1.5 text-xs text-muted-foreground">
+                      {{ inversoresProyecto.length }} inversor{{
+                        inversoresProyecto.length !== 1 ? 'es' : ''
+                      }}
+                      · suma
+                      <strong :class="sumaExcede ? 'text-destructive' : 'text-foreground'"
+                        >{{ sumaInversores }} kW</strong
+                      >
+                      de
+                      <strong class="text-foreground">{{
+                        potenciaAc != null ? `${potenciaAc} kW AC` : 'potencia AC sin definir'
+                      }}</strong>
+                    </p>
+                    <p v-if="sumaExcede" class="text-xs text-destructive">
+                      La suma de los inversores excede la potencia AC del proyecto: revisa la
+                      configuración en «Gestionar inversores».
+                    </p>
+                  </template>
+                  <p v-if="errors.inversores" class="text-xs text-destructive">
+                    {{ errors.inversores }}
+                  </p>
+
+                  <!-- gestión parametrizable de inversores del proyecto -->
+                  <div v-if="gestionInversores" class="mt-2.5 rounded-lg border bg-card p-2.5">
+                    <div
+                      class="mb-2 flex flex-wrap items-center justify-between gap-1.5 text-xs text-muted-foreground"
+                    >
+                      <span
+                        >Potencia AC:
+                        <strong>{{
+                          potenciaAc != null ? `${potenciaAc} kW` : 'sin definir'
+                        }}</strong>
+                        · Suma inversores:
+                        <strong :class="sumaExcede && 'text-destructive'"
+                          >{{ sumaInversores }} kW</strong
+                        ></span
+                      >
+                      <button
+                        v-if="!inversoresProyecto.length"
+                        type="button"
+                        class="font-semibold text-primary hover:underline"
+                        @click="prefillMinigranja"
+                      >
+                        Usar config típica minigranja
+                      </button>
+                    </div>
+                    <div
+                      v-for="inv in inversoresProyecto"
+                      :key="inv.id"
+                      class="mb-1.5 flex items-center gap-2"
+                    >
+                      <Input
+                        v-model="inv.nombre"
+                        placeholder="Nombre"
+                        class="flex-1"
+                        @blur="guardarInv(inv)"
+                      />
+                      <NumberField
+                        v-model="inv.potencia_nominal_kw"
+                        :step-snapping="false"
+                        :min="0"
+                        class="flex-1"
+                      >
+                        <NumberFieldContent
+                          ><NumberFieldInput placeholder="kW" @blur="guardarInv(inv)"
+                        /></NumberFieldContent>
+                      </NumberField>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        class="text-destructive"
+                        @click="eliminarInv(inv)"
+                      >
+                        <Trash2Icon class="size-4" />
+                      </Button>
+                    </div>
+                    <div class="mt-1.5 flex items-center gap-2 border-t border-dashed pt-2">
+                      <Input
+                        v-model="nuevoInv.nombre"
+                        placeholder="Nombre nuevo inversor"
+                        class="flex-1"
+                      />
+                      <NumberField
+                        v-model="nuevoInv.potencia_nominal_kw"
+                        :step-snapping="false"
+                        :min="0"
+                        class="flex-1"
+                      >
+                        <NumberFieldContent
+                          ><NumberFieldInput placeholder="kW"
+                        /></NumberFieldContent>
+                      </NumberField>
+                      <Button variant="outline" size="icon-sm" @click="agregarInv">
+                        <PlusIcon class="size-4" />
+                      </Button>
+                    </div>
+                    <p v-if="invError" class="mt-1 text-xs text-destructive">{{ invError }}</p>
+                  </div>
+
+                  <div class="mt-2.5 flex flex-col gap-1">
+                    <GLabel required>Tipo(s) de falla</GLabel>
+                    <MultiComboBox
+                      v-model="cls.inversores_tipos"
+                      :options="inversorTipoOpciones"
+                      placeholder="Seleccionar tipo(s)"
+                    />
+                    <p v-if="errors.invtipos" class="text-xs text-destructive">
+                      {{ errors.invtipos }}
+                    </p>
+                    <div
+                      v-if="cls.inversores_tipos.includes('perdida_comunicacion')"
+                      class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2 text-xs text-muted-foreground"
+                    >
+                      <BellIcon class="size-3.5 shrink-0 text-primary/60" /> Generará una alarma de
+                      comunicaciones de inversores.
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Tipo de falla LEGACY (solo edición de fallas viejas sin categoría) -->
+            <div v-else class="flex flex-col gap-1">
+              <GLabel required>Tipo de falla</GLabel>
+              <Select
+                :model-value="form.tipo_id != null ? String(form.tipo_id) : undefined"
+                @update:model-value="(v) => (form.tipo_id = v ? Number(v) : null)"
+              >
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Seleccionar tipo"
+                /></SelectTrigger>
+                <SelectContent>
+                  <SelectGroup v-for="grupo in tiposAgrupados" :key="grupo.categoria">
+                    <SelectLabel>{{ grupo.categoria }}</SelectLabel>
+                    <SelectItem v-for="t in grupo.items" :key="t.id" :value="String(t.id)">{{
+                      t.etiqueta
+                    }}</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p v-if="errors.tipo_id" class="text-xs text-destructive">{{ errors.tipo_id }}</p>
+            </div>
+
+            <!-- Garantía del equipo afectado (lleva la falla a Pendientes) -->
+            <div class="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3 @md:col-span-2">
+              <label
+                class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-foreground"
+              >
+                <GSwitch v-model="form.en_garantia" />
+                <ShieldCheckIcon class="size-4 text-primary" />
+                Equipo en garantía
+              </label>
+              <div v-if="form.en_garantia" class="flex flex-col gap-1">
+                <GLabel>Detalle de la garantía</GLabel>
+                <Textarea
+                  v-model="form.garantia_detalle"
+                  rows="2"
+                  placeholder="Proveedor, RMA, serial…"
+                />
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Mientras no se cierre, una falla en garantía aparece en la pestaña Pendientes.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <GLabel required>Prioridad</GLabel>
+              <Select
+                :model-value="form.prioridad_id != null ? String(form.prioridad_id) : undefined"
+                @update:model-value="(v) => (form.prioridad_id = v ? Number(v) : null)"
+              >
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Seleccionar prioridad"
+                /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="p in catalogos.prioridades"
+                    :key="p.id"
+                    :value="String(p.id)"
+                    >{{ p.etiqueta }}</SelectItem
+                  >
+                </SelectContent>
+              </Select>
+              <p v-if="errors.prioridad_id" class="text-xs text-destructive">
+                {{ errors.prioridad_id }}
+              </p>
+              <p class="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <InfoIcon class="mt-0.5 size-3 shrink-0" />
+                <span
+                  >La prioridad se calcula automáticamente según el % de la planta afectada (crítica
+                  ≥ 90 %, grave 66–90 % o falla de frontera que afecta la medición, media &lt; 66 %,
+                  leve sin pérdida de energía). Si no se puede calcular, se usa la que elijas.</span
+                >
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <GLabel required>Estado</GLabel>
+              <Select
+                :model-value="form.estado_id != null ? String(form.estado_id) : undefined"
+                @update:model-value="(v) => (form.estado_id = v ? Number(v) : null)"
+              >
+                <SelectTrigger class="w-full"
+                  ><SelectValue placeholder="Seleccionar estado"
+                /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem
+                    v-for="e in estadosSeleccionables(catalogos.estados, initial?.estado?.id)"
+                    :key="e.id"
+                    :value="String(e.id)"
+                    >{{ etiquetaEstado(e) }}</SelectItem
+                  >
+                </SelectContent>
+              </Select>
+              <p v-if="errors.estado_id" class="text-xs text-destructive">{{ errors.estado_id }}</p>
+            </div>
+
+            <!-- Límite SLA personalizado — solo al editar, caso puntual que se sale del default de su prioridad -->
+            <div v-if="initial" class="flex flex-col gap-1 @md:col-span-2">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <GLabel
+                  >Límite SLA personalizado
+                  <span class="font-normal text-muted-foreground">(horas)</span></GLabel
+                >
+                <span v-if="!form.sla_limite_horas" class="text-xs text-muted-foreground">
+                  Por defecto para esta prioridad:
+                  <strong class="text-foreground">{{ initial?.sla_limite_horas_efectivo }}h</strong>
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <NumberField v-model="form.sla_limite_horas" :min="1" :max="999" class="flex-1">
+                  <NumberFieldContent
+                    ><NumberFieldInput placeholder="Sin personalizar"
+                  /></NumberFieldContent>
+                </NumberField>
+                <Button
+                  v-if="form.sla_limite_horas"
+                  variant="outline"
+                  size="icon"
+                  title="Quitar personalización"
+                  @click="form.sla_limite_horas = null"
+                >
+                  <XIcon class="size-4" />
+                </Button>
+              </div>
+              <span class="text-xs text-muted-foreground">
+                Opcional. Déjalo vacío para usar el límite automático de la prioridad — solo llénalo
+                si este caso puntual necesita más o menos tiempo.
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <GLabel required
+                >Fecha y hora de identificación
+                <span class="font-normal text-muted-foreground"
+                  >(sugerida: momento actual)</span
+                ></GLabel
+              >
+              <Input
+                type="datetime-local"
+                :model-value="toDatetimeLocalValue(form.fecha_identificacion)"
+                @update:model-value="
+                  (v) => (form.fecha_identificacion = v ? new Date(String(v)) : new Date())
+                "
+              />
+              <p v-if="errors.fecha_identificacion" class="text-xs text-destructive">
+                {{ errors.fecha_identificacion }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <GLabel
+                >Fecha y hora ocurrencia
+                <span class="font-normal text-muted-foreground"
+                  >(inicio de la afectación; si difiere de la identificación)</span
+                ></GLabel
+              >
+              <Input
+                type="datetime-local"
+                :model-value="toDatetimeLocalValue(form.fecha_ocurrencia)"
+                @update:model-value="
+                  (v) => (form.fecha_ocurrencia = v ? new Date(String(v)) : null)
+                "
+              />
+            </div>
+
+            <!-- Fecha programada — solo visible cuando el estado es "programado" -->
+            <div
+              v-if="esEstadoProgramado"
+              class="flex flex-col gap-1 rounded-lg border border-primary/30 bg-primary/5 p-2.5"
+            >
+              <GLabel required>
+                <CalendarIcon class="size-3.5 text-primary" /> Fecha programada
+                <span class="font-normal text-muted-foreground"
+                  >(fecha de intervención planificada)</span
+                >
+              </GLabel>
+              <DatePicker v-model="form.fecha_programada" />
+              <p v-if="errors.fecha_programada" class="text-xs text-destructive">
+                {{ errors.fecha_programada }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Columna 2: descripción, análisis, cierre y adjuntos ── -->
+      <div class="flex flex-col">
+        <!-- ── SECCIÓN: Descripción ─────────────────────────────── -->
+        <div class="border-b py-3.5 @4xl:first:pt-0">
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
+          >
+            <AlignLeftIcon class="size-3.5" /> Descripción del evento
+          </div>
+          <div class="flex flex-col gap-1">
+            <GLabel required>Descripción</GLabel>
+            <Textarea
+              v-model="form.descripcion"
+              rows="3"
+              placeholder="Describe la falla, síntomas observados, impacto en la operación..."
+            />
+            <p v-if="errors.descripcion" class="text-xs text-destructive">
+              {{ errors.descripcion }}
+            </p>
           </div>
         </div>
 
-        <!-- Tipo de falla LEGACY (solo edición de fallas viejas sin categoría) -->
-        <div v-else class="flex flex-col gap-1">
-          <GLabel required>Tipo de falla</GLabel>
-          <Select
-            :model-value="form.tipo_id != null ? String(form.tipo_id) : undefined"
-            @update:model-value="(v) => (form.tipo_id = v ? Number(v) : null)"
+        <!-- ── SECCIÓN: Análisis ────────────────────────────────── -->
+        <div class="border-b py-3.5">
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
           >
-            <SelectTrigger class="w-full"
-              ><SelectValue placeholder="Seleccionar tipo"
-            /></SelectTrigger>
-            <SelectContent>
-              <SelectGroup v-for="grupo in tiposAgrupados" :key="grupo.categoria">
-                <SelectLabel>{{ grupo.categoria }}</SelectLabel>
-                <SelectItem v-for="t in grupo.items" :key="t.id" :value="String(t.id)">{{
-                  t.etiqueta
-                }}</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <p v-if="errors.tipo_id" class="text-xs text-destructive">{{ errors.tipo_id }}</p>
+            <SearchIcon class="size-3.5" /> Análisis
+          </div>
+          <div class="grid grid-cols-1 gap-2.5">
+            <div class="flex flex-col gap-1">
+              <GLabel>Causa raíz</GLabel>
+              <Textarea
+                v-model="form.causa_raiz"
+                rows="2"
+                placeholder="Descripción de la causa raíz identificada..."
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <GLabel>Acciones correctivas</GLabel>
+              <Textarea
+                v-model="form.acciones_correctivas"
+                rows="2"
+                placeholder="Acciones correctivas tomadas o planeadas..."
+              />
+            </div>
+          </div>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <GLabel required>Prioridad</GLabel>
-          <Select
-            :model-value="form.prioridad_id != null ? String(form.prioridad_id) : undefined"
-            @update:model-value="(v) => (form.prioridad_id = v ? Number(v) : null)"
+        <!-- ── SECCIÓN: Resolución (solo cuando el estado es final/cerrada) ── -->
+        <div
+          v-if="esEstadoFinal"
+          class="mb-1 rounded-lg border border-success/30 bg-success/5 px-3.5 py-3"
+        >
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
           >
-            <SelectTrigger class="w-full"
-              ><SelectValue placeholder="Seleccionar prioridad"
-            /></SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="p in catalogos.prioridades" :key="p.id" :value="String(p.id)">{{
-                p.etiqueta
-              }}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p v-if="errors.prioridad_id" class="text-xs text-destructive">
-            {{ errors.prioridad_id }}
-          </p>
+            <CircleCheckIcon class="size-3.5 text-success" /> Resolución
+            <span class="font-normal text-destructive normal-case"
+              >(obligatoria al cerrar la falla)</span
+            >
+          </div>
+          <div class="grid grid-cols-1 gap-x-3.5 gap-y-2.5 @md:grid-cols-2">
+            <div class="flex flex-col gap-1">
+              <GLabel required
+                >Fecha y hora de solución
+                <span class="font-normal text-muted-foreground"
+                  >(fin de la afectación)</span
+                ></GLabel
+              >
+              <Input
+                type="datetime-local"
+                :model-value="toDatetimeLocalValue(form.fecha_resolucion)"
+                @update:model-value="
+                  (v) => (form.fecha_resolucion = v ? new Date(String(v)) : null)
+                "
+              />
+              <p v-if="errors.fecha_resolucion" class="text-xs text-destructive">
+                {{ errors.fecha_resolucion }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <GLabel>Tipo de solución</GLabel>
+              <ButtonGroup>
+                <Select
+                  :model-value="form.resolucion_id != null ? String(form.resolucion_id) : undefined"
+                  @update:model-value="(v) => (form.resolucion_id = v ? Number(v) : null)"
+                >
+                  <SelectTrigger class="w-full"
+                    ><SelectValue placeholder="Seleccionar tipo"
+                  /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="r in catalogos.resoluciones"
+                      :key="r.id"
+                      :value="String(r.id)"
+                      >{{ r.etiqueta }}</SelectItem
+                    >
+                  </SelectContent>
+                </Select>
+                <Button
+                  v-if="form.resolucion_id"
+                  variant="outline"
+                  @click="form.resolucion_id = null"
+                >
+                  <XIcon class="size-4" />
+                </Button>
+              </ButtonGroup>
+            </div>
+
+            <!-- Tiempo de afectación calculado automáticamente -->
+            <div
+              v-if="tiempoAfectacionTexto"
+              class="flex items-center gap-1.5 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success @md:col-span-2"
+            >
+              <ClockIcon class="size-3.5" />
+              <span
+                >Tiempo de afectación: <strong>{{ tiempoAfectacionTexto }}</strong></span
+              >
+              <span class="text-muted-foreground">(solución − ocurrencia, automático)</span>
+            </div>
+          </div>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <GLabel required>Estado</GLabel>
-          <Select
-            :model-value="form.estado_id != null ? String(form.estado_id) : undefined"
-            @update:model-value="(v) => (form.estado_id = v ? Number(v) : null)"
+        <!-- ── SECCIÓN: Nota inicial (solo al crear) ────────────── -->
+        <div v-if="!initial" class="border-b py-3.5">
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
           >
-            <SelectTrigger class="w-full"
-              ><SelectValue placeholder="Seleccionar estado"
-            /></SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="e in catalogos.estados" :key="e.id" :value="String(e.id)">{{
-                e.etiqueta
-              }}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p v-if="errors.estado_id" class="text-xs text-destructive">{{ errors.estado_id }}</p>
-        </div>
-
-        <!-- Límite SLA personalizado — solo al editar, caso puntual que se sale del default de su prioridad -->
-        <div v-if="initial" class="col-span-2 flex flex-col gap-1">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <MessageSquareIcon class="size-3.5" /> Nota inicial
+          </div>
+          <div class="flex flex-col gap-1">
             <GLabel
-              >Límite SLA personalizado
-              <span class="font-normal text-muted-foreground">(horas)</span></GLabel
+              >Nota
+              <span class="font-normal text-muted-foreground"
+                >(crea el primer seguimiento automáticamente)</span
+              ></GLabel
             >
-            <span v-if="!form.sla_limite_horas" class="text-xs text-muted-foreground">
-              Por defecto para esta prioridad:
-              <strong class="text-foreground">{{ initial?.sla_limite_horas_efectivo }}h</strong>
-            </span>
+            <Textarea
+              v-model="form.nota_inicial"
+              rows="2"
+              placeholder="Ej: Se identificó durante monitoreo remoto..."
+            />
           </div>
-          <div class="flex items-center gap-1.5">
-            <NumberField v-model="form.sla_limite_horas" :min="1" :max="999" class="flex-1">
-              <NumberFieldContent
-                ><NumberFieldInput placeholder="Sin personalizar"
-              /></NumberFieldContent>
-            </NumberField>
-            <Button
-              v-if="form.sla_limite_horas"
-              variant="outline"
-              size="icon"
-              title="Quitar personalización"
-              @click="form.sla_limite_horas = null"
-            >
-              <XIcon class="size-4" />
-            </Button>
+        </div>
+
+        <!-- ── SECCIÓN: Archivos adjuntos ─────── -->
+        <div class="border-b py-3.5">
+          <div
+            class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
+          >
+            <PaperclipIcon class="size-3.5" /> Archivos adjuntos
           </div>
-          <span class="text-xs text-muted-foreground">
-            Opcional. Déjalo vacío para usar el límite automático de la prioridad — solo llénalo si
-            este caso puntual necesita más o menos tiempo.
-          </span>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <GLabel required
-            >Fecha y hora de identificación
-            <span class="font-normal text-muted-foreground"
-              >(sugerida: momento actual)</span
-            ></GLabel
+          <div
+            class="flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed border-primary/25 p-4 text-center transition-colors hover:border-primary hover:bg-primary/5"
+            :class="dropOver && 'border-primary bg-primary/5'"
+            @dragover.prevent="dropOver = true"
+            @dragleave.prevent="dropOver = false"
+            @drop.prevent="onDrop"
+            @click="fileInputRef?.click()"
           >
-          <Input
-            type="datetime-local"
-            :model-value="toDatetimeLocalValue(form.fecha_identificacion)"
-            @update:model-value="
-              (v) => (form.fecha_identificacion = v ? new Date(String(v)) : new Date())
-            "
-          />
-          <p v-if="errors.fecha_identificacion" class="text-xs text-destructive">
-            {{ errors.fecha_identificacion }}
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <GLabel
-            >Fecha y hora ocurrencia
-            <span class="font-normal text-muted-foreground"
-              >(inicio de la afectación; si difiere de la identificación)</span
-            ></GLabel
-          >
-          <Input
-            type="datetime-local"
-            :model-value="toDatetimeLocalValue(form.fecha_ocurrencia)"
-            @update:model-value="(v) => (form.fecha_ocurrencia = v ? new Date(String(v)) : null)"
-          />
-        </div>
-
-        <!-- Fecha programada — solo visible cuando el estado es "programado" -->
-        <div
-          v-if="esEstadoProgramado"
-          class="flex flex-col gap-1 rounded-lg border border-primary/30 bg-primary/5 p-2.5"
-        >
-          <GLabel required>
-            <CalendarIcon class="size-3.5 text-primary" /> Fecha programada
-            <span class="font-normal text-muted-foreground"
-              >(fecha de intervención planificada)</span
+            <UploadIcon class="size-4.5 text-primary/60" />
+            <span class="text-xs text-foreground"
+              >Arrastra archivos aquí o
+              <span class="font-semibold text-primary">haz clic</span></span
             >
-          </GLabel>
-          <DatePicker v-model="form.fecha_programada" />
-          <p v-if="errors.fecha_programada" class="text-xs text-destructive">
-            {{ errors.fecha_programada }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN: Descripción ─────────────────────────────── -->
-    <div class="border-b py-3.5">
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <AlignLeftIcon class="size-3.5" /> Descripción del evento
-      </div>
-      <div class="flex flex-col gap-1">
-        <GLabel required>Descripción</GLabel>
-        <Textarea
-          v-model="form.descripcion"
-          rows="3"
-          placeholder="Describe la falla, síntomas observados, impacto en la operación..."
-        />
-        <p v-if="errors.descripcion" class="text-xs text-destructive">{{ errors.descripcion }}</p>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN: Análisis ────────────────────────────────── -->
-    <div class="border-b py-3.5">
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <SearchIcon class="size-3.5" /> Análisis
-      </div>
-      <div class="grid grid-cols-1 gap-2.5">
-        <div class="flex flex-col gap-1">
-          <GLabel>Causa raíz</GLabel>
-          <Textarea
-            v-model="form.causa_raiz"
-            rows="2"
-            placeholder="Descripción de la causa raíz identificada..."
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <GLabel>Acciones correctivas</GLabel>
-          <Textarea
-            v-model="form.acciones_correctivas"
-            rows="2"
-            placeholder="Acciones correctivas tomadas o planeadas..."
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN: Resolución (solo cuando el estado es final/cerrada) ── -->
-    <div
-      v-if="esEstadoFinal"
-      class="mb-1 rounded-lg border border-success/30 bg-success/5 px-3.5 py-3"
-    >
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <CircleCheckIcon class="size-3.5 text-success" /> Resolución
-        <span class="font-normal text-destructive normal-case"
-          >(obligatoria al cerrar la falla)</span
-        >
-      </div>
-      <div class="grid grid-cols-2 gap-x-3.5 gap-y-2.5">
-        <div class="flex flex-col gap-1">
-          <GLabel required
-            >Fecha y hora de solución
-            <span class="font-normal text-muted-foreground">(fin de la afectación)</span></GLabel
-          >
-          <Input
-            type="datetime-local"
-            :model-value="toDatetimeLocalValue(form.fecha_resolucion)"
-            @update:model-value="(v) => (form.fecha_resolucion = v ? new Date(String(v)) : null)"
-          />
-          <p v-if="errors.fecha_resolucion" class="text-xs text-destructive">
-            {{ errors.fecha_resolucion }}
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <GLabel>Tipo de solución</GLabel>
-          <ButtonGroup>
-            <Select
-              :model-value="form.resolucion_id != null ? String(form.resolucion_id) : undefined"
-              @update:model-value="(v) => (form.resolucion_id = v ? Number(v) : null)"
+            <span class="text-xs text-muted-foreground">Imágenes, PDF, Excel, Word, CSV</span>
+            <input
+              ref="fileInputRef"
+              type="file"
+              class="hidden"
+              accept="*"
+              multiple
+              @change="onFileInputChange"
+            />
+          </div>
+          <div v-if="archivosStaged.length" class="mt-2 flex flex-col gap-1">
+            <div
+              v-for="(f, i) in archivosStaged"
+              :key="i"
+              class="flex items-center gap-1.5 rounded-md bg-primary/5 px-2 py-1 text-xs"
             >
-              <SelectTrigger class="w-full"
-                ><SelectValue placeholder="Seleccionar tipo"
-              /></SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="r in catalogos.resoluciones" :key="r.id" :value="String(r.id)">{{
-                  r.etiqueta
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button v-if="form.resolucion_id" variant="outline" @click="form.resolucion_id = null">
-              <XIcon class="size-4" />
-            </Button>
-          </ButtonGroup>
-        </div>
-
-        <!-- Tiempo de afectación calculado automáticamente -->
-        <div
-          v-if="tiempoAfectacionTexto"
-          class="col-span-2 flex items-center gap-1.5 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success"
-        >
-          <ClockIcon class="size-3.5" />
-          <span
-            >Tiempo de afectación: <strong>{{ tiempoAfectacionTexto }}</strong></span
-          >
-          <span class="text-muted-foreground">(solución − ocurrencia, automático)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN: Nota inicial (solo al crear) ────────────── -->
-    <div v-if="!initial" class="border-b py-3.5">
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <MessageSquareIcon class="size-3.5" /> Nota inicial
-      </div>
-      <div class="flex flex-col gap-1">
-        <GLabel
-          >Nota
-          <span class="font-normal text-muted-foreground"
-            >(crea el primer seguimiento automáticamente)</span
-          ></GLabel
-        >
-        <Textarea
-          v-model="form.nota_inicial"
-          rows="2"
-          placeholder="Ej: Se identificó durante monitoreo remoto..."
-        />
-      </div>
-    </div>
-
-    <!-- ── SECCIÓN: Archivos adjuntos ─────── -->
-    <div class="border-b py-3.5">
-      <div
-        class="mb-2.5 flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-muted-foreground uppercase"
-      >
-        <PaperclipIcon class="size-3.5" /> Archivos adjuntos
-      </div>
-      <div
-        class="flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed border-primary/25 p-4 text-center transition-colors hover:border-primary hover:bg-primary/5"
-        :class="dropOver && 'border-primary bg-primary/5'"
-        @dragover.prevent="dropOver = true"
-        @dragleave.prevent="dropOver = false"
-        @drop.prevent="onDrop"
-        @click="fileInputRef?.click()"
-      >
-        <UploadIcon class="size-4.5 text-primary/60" />
-        <span class="text-xs text-foreground"
-          >Arrastra archivos aquí o <span class="font-semibold text-primary">haz clic</span></span
-        >
-        <span class="text-xs text-muted-foreground">Imágenes, PDF, Excel, Word, CSV</span>
-        <input
-          ref="fileInputRef"
-          type="file"
-          class="hidden"
-          accept="*"
-          multiple
-          @change="onFileInputChange"
-        />
-      </div>
-      <div v-if="archivosStaged.length" class="mt-2 flex flex-col gap-1">
-        <div
-          v-for="(f, i) in archivosStaged"
-          :key="i"
-          class="flex items-center gap-1.5 rounded-md bg-primary/5 px-2 py-1 text-xs"
-        >
-          <component :is="iconoArchivo(f)" class="size-3.5 text-primary" />
-          <TruncatedText :text="f.name" class="min-w-0 flex-1 text-foreground" />
-          <span class="whitespace-nowrap text-muted-foreground">{{ formatSize(f.size) }}</span>
-          <button
-            type="button"
-            class="px-0.5 text-destructive opacity-70 hover:opacity-100"
-            @click="archivosStaged.splice(i, 1)"
-          >
-            <XIcon class="size-3" />
-          </button>
+              <component :is="iconoArchivo(f)" class="size-3.5 text-primary" />
+              <TruncatedText :text="f.name" class="min-w-0 flex-1 text-foreground" />
+              <span class="whitespace-nowrap text-muted-foreground">{{ formatSize(f.size) }}</span>
+              <button
+                type="button"
+                class="px-0.5 text-destructive opacity-70 hover:opacity-100"
+                @click="archivosStaged.splice(i, 1)"
+              >
+                <XIcon class="size-3" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1193,8 +1333,9 @@ onMounted(async () => {
 
     <div class="mt-1 flex justify-end gap-2 border-t pt-3">
       <Button type="button" variant="secondary" @click="emit('cancel')">Cancelar</Button>
-      <Button type="submit" :disabled="saving">
-        <CheckIcon class="size-4" />
+      <Button type="submit" :disabled="guardando">
+        <LoaderCircleIcon v-if="guardando" class="size-4 animate-spin" />
+        <CheckIcon v-else class="size-4" />
         {{ initial ? 'Guardar cambios' : 'Registrar falla' }}
       </Button>
     </div>

@@ -176,6 +176,12 @@
             </div>
           </template>
         </div>
+        <!-- Fuera del modo edición a propósito: cada cambio se guarda solo. -->
+        <ProyectoPortafolios
+          :key="proyecto.id"
+          class="mt-4"
+          :proyecto-id="proyecto.id"
+          :portafolios="proyecto.portafolios ?? []" />
       </div>
 
       <!-- ══ TÉCNICO ══ -->
@@ -429,7 +435,7 @@
                 <GTableHead>Participación (%)</GTableHead>
                 <GTableHead>Inicio</GTableHead>
                 <GTableHead>Fin</GTableHead>
-                <GTableHead>Patrimonio autónomo</GTableHead>
+                <GTableHead>A través de patrimonio</GTableHead>
                 <GTableHead />
               </GTableRow>
             </GTableHeader>
@@ -457,7 +463,11 @@
                   <span v-else>{{ data.fecha_fin ? fmtFecha(data.fecha_fin) : 'Vigente' }}</span>
                 </GTableCell>
                 <GTableCell>
-                  <GBadge :color="data.es_patrimonio_autonomo ? 'information' : 'default'">{{ data.es_patrimonio_autonomo ? 'Sí' : 'No' }}</GBadge>
+                  <div v-if="editandoInvId === data.id" class="min-w-48">
+                    <Select :model-value="aValorSelect(editPatrimonio)" @update:model-value="editPatrimonio = deValorSelect($event)"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Directo</SelectItem><SelectItem v-for="o in opcionesPatrimonio" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
+                  </div>
+                  <GBadge v-else-if="data.patrimonio_id" color="information">{{ data.patrimonio_nombre }}</GBadge>
+                  <span v-else class="text-muted-foreground">Directo</span>
                 </GTableCell>
                 <GTableCell>
                   <div class="flex gap-1">
@@ -527,11 +537,8 @@
               <DatePicker v-model="nuevoInv.fecha_fin" clearable placeholder="Vigente" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs text-muted-foreground">Patrimonio autónomo</label>
-              <div class="flex items-center gap-2 h-10">
-                <GSwitch v-model="nuevoInv.es_patrimonio_autonomo" />
-                <span class="text-sm text-muted-foreground">{{ nuevoInv.es_patrimonio_autonomo ? 'Sí' : 'No' }}</span>
-              </div>
+              <label class="text-xs text-muted-foreground">A través de patrimonio (a quién se factura)</label>
+              <Select :model-value="aValorSelect(nuevoInv.patrimonio)" @update:model-value="nuevoInv.patrimonio = deValorSelect($event)"><SelectTrigger class="w-full"><SelectValue /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Directo: se factura al inversionista</SelectItem><SelectItem v-for="o in opcionesPatrimonio" :key="o.value" :value="o.value">{{ o.label }}</SelectItem></SelectContent></Select>
             </div>
           </div>
           <Button class="mt-2" :disabled="guardando || !nuevoInv.cliente_id" @click="agregarInversionista"><Spinner v-if="guardando" class="size-4" /> <PlusIcon v-else class="size-4" /> Agregar</Button>
@@ -704,16 +711,20 @@ import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
+import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
+import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
 import ProyectoAreaContactosPanel from '~/features/proyectos/components/ProyectoAreaContactosPanel.vue'
 import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
 import ServiciosDelProyecto from '~/features/proyectos/components/ServiciosDelProyecto.vue'
 import ClientesDelProyecto from '~/features/proyectos/components/ClientesDelProyecto.vue'
+import ProyectoPortafolios from '~/features/proyectos/components/ProyectoPortafolios.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
 const clientesService = new ClientesService()
+const patrimoniosService = new PatrimoniosService()
 const operadoresRedService = new OperadoresRedService()
 const liquidacionesApiService = new LiquidacionesApiService()
 
@@ -1127,11 +1138,17 @@ async function saveEdit() {
 }
 
 // ── Inversionistas ────────────────────────────────────────────────────────────
-const nuevoInv = reactive({ cliente_id: null, porcentaje_pct: null, es_patrimonio_autonomo: false, fecha_inicio: null, fecha_fin: null })
+const nuevoInv = reactive({ cliente_id: null, porcentaje_pct: null, patrimonio: '', fecha_inicio: null, fecha_fin: null })
 const editandoInvId = ref(null)
 const editPct = ref(null)
 const editFechaInicio = ref(null)
 const editFechaFin = ref(null)
+const editPatrimonio = ref('')
+
+// Patrimonios autónomos: el inversionista sigue siendo el dueño; si tiene la parte
+// a través de uno, al patrimonio se le factura.
+const patrimonios = ref([])
+const opcionesPatrimonio = computed(() => armarOpcionesPatrimonio(patrimonios.value))
 
 
 const clientesDisponibles = computed(() => {
@@ -1193,14 +1210,14 @@ async function agregarInversionista() {
     await proyectosService.agregarInversionista(route.params.id, {
       cliente_id: nuevoInv.cliente_id,
       porcentaje_participacion: nuevoInv.porcentaje_pct != null ? nuevoInv.porcentaje_pct / 100 : null,
-      es_patrimonio_autonomo: nuevoInv.es_patrimonio_autonomo,
+      patrimonio_id: nuevoInv.patrimonio ? Number(nuevoInv.patrimonio) : null,
       fecha_inicio: formatFecha(nuevoInv.fecha_inicio),
       fecha_fin: formatFecha(nuevoInv.fecha_fin),
     })
     proyecto.value.inversionistas = await proyectosService.listarInversionistas(route.params.id)
     nuevoInv.cliente_id = null
     nuevoInv.porcentaje_pct = null
-    nuevoInv.es_patrimonio_autonomo = false
+    nuevoInv.patrimonio = ''
     nuevoInv.fecha_inicio = null
     nuevoInv.fecha_fin = null
     toast.success('Inversionista agregado', { duration: 2000 })
@@ -1227,6 +1244,7 @@ function iniciarEdicionInversionista(inv) {
   editPct.value = inv.porcentaje_participacion != null ? +(inv.porcentaje_participacion * 100).toFixed(7) : null
   editFechaInicio.value = aFecha(inv.fecha_inicio)
   editFechaFin.value = aFecha(inv.fecha_fin)
+  editPatrimonio.value = inv.patrimonio_id != null ? String(inv.patrimonio_id) : ''
 }
 
 async function guardarEdicionInversionista(invId) {
@@ -1236,13 +1254,14 @@ async function guardarEdicionInversionista(invId) {
       porcentaje_participacion: editPct.value != null ? editPct.value / 100 : null,
       fecha_inicio: formatFecha(editFechaInicio.value),
       fecha_fin: formatFecha(editFechaFin.value),
+      patrimonio_id: editPatrimonio.value ? Number(editPatrimonio.value) : null,
     })
     editandoInvId.value = null
     editPct.value = null
     editFechaInicio.value = null
     editFechaFin.value = null
     proyecto.value.inversionistas = await proyectosService.listarInversionistas(route.params.id)
-    toast.success('Porcentaje actualizado', { duration: 2000 })
+    toast.success('Participación actualizada', { duration: 2000 })
   } catch (e) {
     toast.error('Error al actualizar', { description: e.data?.detail, duration: 3000 })
   } finally {
@@ -1293,12 +1312,13 @@ async function recargarProyecto() {
 // ── Carga inicial ─────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const [proy, clientesList, inversionistas, operadoresRes, fronterasRes] = await Promise.all([
+    const [proy, clientesList, inversionistas, operadoresRes, fronterasRes, patrimoniosRes] = await Promise.all([
       proyectosService.obtener(route.params.id),
       clientesService.listar({ size: 200 }),
       proyectosService.listarInversionistas(route.params.id),
       operadoresRedService.listar().catch(() => []),
       proyectosService.listarFronterasDelProyecto(route.params.id).catch(() => []),
+      patrimoniosService.listar().catch(() => []),
     ])
     liquidacionesApiService.obtenerConfigProyecto(route.params.id)
       .then(config => { liqConfig.value = config; if (isEditMode.value) populateEditForm() })
@@ -1307,6 +1327,7 @@ onMounted(async () => {
     clientes.value = clientesList
     fronteras.value = fronterasRes
     operadoresRed.value = operadoresRes
+    patrimonios.value = patrimoniosRes
     if (isEditMode.value) populateEditForm()
   } catch (e) {
     errorMsg.value = e.data?.detail || e.message || 'Error de conexión con el servidor'

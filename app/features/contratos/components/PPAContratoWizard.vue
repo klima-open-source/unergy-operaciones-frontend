@@ -52,21 +52,6 @@
                 <Input v-model="form.nombre_interno" placeholder="Ej: Terpel 1" />
               </div>
             </div>
-            <div class="space-y-1.5">
-              <GLabel>Responsable</GLabel>
-              <Select :model-value="aValorSelect(form.responsable_id != null ? String(form.responsable_id) : null)"
-                @update:model-value="(v) => { const id = deValorSelect(v); form.responsable_id = id ? Number(id) : null }">
-                <SelectTrigger class="w-full"><SelectValue placeholder="Empresa responsable del PPA" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem :value="VALOR_SELECT_VACIO">Sin responsable</SelectItem>
-                  <SelectItem v-for="r in responsablesOpts" :key="r.value" :value="String(r.value)">{{ r.label }}</SelectItem>
-                </SelectContent>
-              </Select>
-              <span class="text-xs text-muted-foreground">
-                Empresa que gestiona este PPA. Los responsables marcados como no relevantes
-                no aparecen en la Matriz anual de Cumplimiento.
-              </span>
-            </div>
           </div>
         </template>
 
@@ -482,13 +467,6 @@ const MESES_ES = {
 const step = ref(0)
 const guardando = ref(false)
 const todosProyectos = ref([])
-const responsables = ref([])
-const responsablesOpts = computed(() => responsables.value.map(r => ({
-  value: r.id,
-  label: r.incluir_en_cumplimiento ? r.nombre : `${r.nombre} (oculto en Matriz anual)`,
-})))
-const responsableLabel = computed(() =>
-  responsables.value.find(r => r.id === form.responsable_id)?.nombre ?? null)
 const proyectosSeleccionados = ref([])
 
 // El buscador múltiple trabaja con los ids como texto; el resto del asistente,
@@ -509,7 +487,6 @@ const filasResumen = computed(() => [
   { label: 'Tipo', value: form.tipo_contrato === 'compra' ? 'Compra' : 'Venta' },
   { label: 'Número', value: form.numero_codigo_contrato },
   { label: 'Nombre interno', value: form.nombre_interno },
-  { label: 'Responsable', value: responsableLabel.value },
   { label: 'Comprador', value: form.comprador_nombre },
   { label: 'Vendedor', value: form.vendedor_nombre },
   { label: 'Inicio despacho', value: formatFecha(form.fecha_inicio) },
@@ -540,7 +517,7 @@ const form = reactive({
   es_comunidad_energetica: false,
   nombre_comunidad: '',
   fecha_entrada_comunidad: null,
-  numero_codigo_contrato: null, nombre_interno: null, responsable_id: null,
+  numero_codigo_contrato: null, nombre_interno: null,
   comprador_id: null, comprador_nombre: null, comprador_nit: null,
   vendedor_id: null, vendedor_nombre: null, vendedor_nit: null,
   fecha_inicio: null, fecha_fin: null,
@@ -808,11 +785,6 @@ onMounted(async () => {
     // Los clientes los pide el catálogo compartido, una vez por pantalla:
     // ver ~/features/clientes/services/catalogoClientes.
     todosProyectos.value = await catalogoProyectos.cargar()
-  } catch { /* silencioso */ }
-  // Aparte: el catálogo de responsables es opcional; si falla, el Select queda
-  // vacío pero el wizard sigue sirviendo (no debe tumbar proyectos/clientes).
-  try {
-    responsables.value = await ppaService.listarResponsables()
   } catch { /* silencioso */ }
 })
 </script>

@@ -75,7 +75,6 @@
               <InfoField label="Nombre interno" :value="contrato.nombre_interno" />
               <InfoField label="Número de contrato" :value="contrato.numero_codigo_contrato" />
               <InfoField label="Tipo de contrato" :value="contrato.tipo_contrato === 'compra' ? 'Compra' : 'Venta'" />
-              <InfoField label="Responsable" :value="contrato.responsable?.nombre" />
               <div class="flex flex-col gap-0.5">
                 <span class="text-xs font-medium text-muted-foreground">Comunidad energética</span>
                 <div>

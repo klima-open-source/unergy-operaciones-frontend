@@ -2,8 +2,8 @@
  * Forma verificada contra las vistas de `operaciones`: `GeneracionView.vue`,
  * `GestionFallasView.vue`, `InformeOMView.vue`, `EvidenciaUploader.vue`,
  * `InformeDetailView.vue`, `InformesListView.vue`, `InformesMensualesView.vue`,
- * `EnvioMensualPanel.vue`, `InformesMensualesPanel.vue`,
- * `PortafoliosGestionPanel.vue` y `PolizasView.vue`.
+ * `EnvioMensualPanel.vue`, `InformesMensualesPanel.vue`, `PolizasView.vue` y
+ * (portafolios) `proyectos/components/PortafoliosPanel.vue`.
  */
 
 // ── `/monitoreo/_legacy` — gateway genérico a los endpoints de monitoreo viejos ─
@@ -441,9 +441,12 @@ export interface RespuestaEnviarInforme {
 
 // ── `/portafolios/*` ───────────────────────────────────────────────────────────
 
+/** Una planta en la lista de un portafolio. */
 export interface ProyectoPortafolio {
   id: number
   nombre?: string
+  sub_project?: string | null
+  municipio?: string | null
   [clave: string]: unknown
 }
 
@@ -453,10 +456,32 @@ export interface Portafolio {
   proyectos: ProyectoPortafolio[]
 }
 
-/** `GET /portafolios`. */
+/** `GET /portafolios`. Una planta en dos portafolios sale en los dos. */
 export interface RespuestaPortafolios {
   portafolios: Portafolio[]
+  /** Plantas operativas que no están en ningún portafolio. */
   sin_portafolio?: ProyectoPortafolio[]
+}
+
+/** `PATCH /portafolios/asignar`: los portafolios en que quedó la planta. */
+export interface RespuestaAsignarPortafolio {
+  ok: boolean
+  proyecto_id: number
+  portafolio_ids: number[]
+}
+
+/** El 409 estructurado cuando el nombre se parece a un portafolio ya existente. */
+export interface DuplicadoPortafolio {
+  duplicado_nombre: true
+  candidato_id: number
+  candidato_nombre: string
+  mensaje?: string
+}
+
+/** Un portafolio tal como lo trae el detalle del proyecto (`portafolios`). */
+export interface PortafolioDeProyecto {
+  id: number
+  nombre: string
 }
 
 // ── `/polizas/*` ───────────────────────────────────────────────────────────────

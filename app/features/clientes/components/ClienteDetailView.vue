@@ -10,6 +10,7 @@ import {
   FilePenIcon,
   FolderIcon,
   GlobeIcon,
+  LandmarkIcon,
   LayoutGridIcon,
   MailIcon,
   Trash2Icon,
@@ -22,6 +23,7 @@ import { ClientesService } from '~/features/clientes/services/clientes'
 import { formatearNombre } from '~/utils/nombreFormato'
 import ClienteDocumentosTab from './ClienteDocumentosTab.vue'
 import ClienteForm from './ClienteForm.vue'
+import ClientePatrimoniosTab from './ClientePatrimoniosTab.vue'
 import ClienteResumen from './ClienteResumen.vue'
 import ClienteServiciosTab from './ClienteServiciosTab.vue'
 
@@ -46,6 +48,7 @@ const tabs = [
   { key: 'contratos', label: 'Contratos', icon: FilePenIcon },
   { key: 'contactos', label: 'Contactos', icon: MailIcon },
   { key: 'documentos', label: 'Documentos', icon: FolderIcon },
+  { key: 'patrimonios', label: 'Patrimonios', icon: LandmarkIcon },
 ]
 const TAB_NUEVA: Record<string, string> = {
   proyectos: 'plantas',
@@ -220,6 +223,14 @@ async function doDelete() {
             :documentos="cliente.documentos_comerciales ?? []"
             :nombre-cliente="formatearNombre(cliente.razon_social_nombre) ?? ''"
             @changed="cargar"
+          />
+        </div>
+
+        <!-- ── Tab: Patrimonios (si es una fiduciaria) ── -->
+        <div v-if="activeTab === 'patrimonios'">
+          <ClientePatrimoniosTab
+            :cliente-id="clienteId"
+            :nombre-cliente="cliente.razon_social_nombre"
           />
         </div>
 

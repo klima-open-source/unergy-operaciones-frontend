@@ -31,22 +31,6 @@ export interface CompromisoEnergiaPpa {
   cantidad_proyectos?: number | null
 }
 
-export interface ResponsablePpa {
-  id: number
-  nombre: string
-  incluir_en_cumplimiento?: boolean
-}
-
-export interface PayloadResponsablePpa {
-  nombre: string
-  incluir_en_cumplimiento: boolean
-}
-
-export interface PayloadAsignarResponsablesPpa {
-  contrato_ids: number[]
-  responsable_id: number | null
-}
-
 export interface ProyectoPpaResumen {
   id: number
   nombre_comercial?: string
@@ -96,7 +80,6 @@ export interface ContratoPpa {
   gescon_precio?: number | null
   gescon_cantidades_kwh?: number | null
   carpeta_link?: string | null
-  responsable_id?: number | null
   proyecto_id?: number
   proyectos?: ProyectoPpaResumen[]
   tarifas?: TarifaPpa[]
@@ -295,7 +278,6 @@ export interface ContratoServicio {
   readonly prestador_nit?: string | null
   inversionista_id?: number | null
   inversionista_nombre?: string | null
-  portafolio?: string | null
   codigo_sun_factory?: string | null
   nombre_proyecto_ref?: string | null
   fecha_firma_contrato?: string | null
@@ -309,6 +291,10 @@ export interface ContratoServicio {
   tarifa_admin?: number | null
   tarifa_cgm?: number | null
   tarifa_representacion?: number | null
+  /** Cargos adicionales del contrato (hoy solo `administracion`), aparte de sus subservicios. */
+  cargos?: string[]
+  /** Avisos que no bloquean, en la respuesta al crear o editar. */
+  avisos?: string[]
   periodicidad_pago?: string | null
   /** El `LeasingContract` de TSF que es este arriendo (lo fija «Sincronizar con TSF»). */
   originabot_arriendo_id?: number | null

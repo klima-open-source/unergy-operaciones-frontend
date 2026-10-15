@@ -207,3 +207,44 @@ export interface PayloadContactoCliente {
   nombre?: string | null
   telefono?: string | null
 }
+
+// ── Patrimonios autónomos (`/patrimonios`) ────────────────────────────────────
+
+/** Una planta que se tiene a través del patrimonio, con su dueño. */
+export interface ParticipacionEnPatrimonio {
+  id: number
+  proyecto_id: number
+  proyecto_nombre: string | null
+  inversionista_nombre: string | null
+  /** Decimal del backend, en fracción (`"0.5000000"` = 50 %). */
+  porcentaje_participacion: string | null
+}
+
+/**
+ * Un patrimonio autónomo: la fiducia a la que se le factura y liquida la parte
+ * de una planta. El dueño sigue siendo el inversionista. Dos niveles: un
+ * general (la fiduciaria, `padre_id` null) y sus subpatrimonios.
+ */
+export interface Patrimonio {
+  id: number
+  nombre: string
+  codigo: string | null
+  padre_id: number | null
+  /** Su ficha en clientes. Un subpatrimonio sin ficha se factura a la de su general. */
+  cliente_id: number | null
+  cliente_nombre: string | null
+  cliente_nit: string | null
+  participaciones: ParticipacionEnPatrimonio[]
+}
+
+/** Fila de `GET /patrimonios`: un general con sus subpatrimonios debajo. */
+export interface PatrimonioGeneral extends Patrimonio {
+  subpatrimonios: Patrimonio[]
+}
+
+export interface PayloadPatrimonio {
+  nombre: string
+  codigo: string | null
+  padre_id: number | null
+  cliente_id: number | null
+}

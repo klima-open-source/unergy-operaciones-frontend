@@ -37,7 +37,6 @@ export interface FiltrosServicio {
   tipoPlanta: string | null
   estado: string | null
   inversionista: string | null
-  portafolio: string | null
   proyecto: ConProyecto | null
 }
 
@@ -53,7 +52,6 @@ export const FILTROS_SERVICIO_VACIOS: FiltrosServicio = {
   tipoPlanta: null,
   estado: null,
   inversionista: null,
-  portafolio: null,
   proyecto: null,
 }
 
@@ -96,9 +94,7 @@ export function filtrarServicios<T extends Fila>(filas: T[], f: FiltrosServicio)
     if (puesto(f.tipo) && !subserviciosDe(fila).includes(f.tipo as string)) return false
 
     return (
-      coincide(fila, 'estado', f.estado) &&
-      coincide(fila, 'inversionista_nombre', f.inversionista) &&
-      coincide(fila, 'portafolio', f.portafolio)
+      coincide(fila, 'estado', f.estado) && coincide(fila, 'inversionista_nombre', f.inversionista)
     )
   })
 }
@@ -170,7 +166,7 @@ export function opcionesDe<T extends Fila>(
  * Descarta los valores que ya no existen en los datos.
  *
  * Hace falta porque los filtros viajan en la URL: un link compartido hace meses
- * puede nombrar un inversionista o un portafolio que ya no está, y aplicarlo
+ * puede nombrar un inversionista que ya no está, y aplicarlo
  * tal cual dejaría una tabla vacía con un filtro que nadie entiende. Las claves
  * sin lista de válidos (estado, tipo — que salen de enums fijos) no se tocan.
  */
