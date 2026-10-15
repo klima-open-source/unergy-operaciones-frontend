@@ -270,6 +270,30 @@ export interface BusquedaTsf {
 }
 
 /** Lo que TSF dice de una minigranja. `null` = no lo trae, y el campo queda editable. */
+/** Un portafolio en el plan de `POST /proyectos/{id}/originabot/portafolios`. */
+export interface AccionPortafolioTsf {
+  /** El de Operaciones; null si se crearía. */
+  portafolio_id: number | null
+  originabot_portfolio_id: number | null
+  nombre: string
+  /** Solo en `renombrar`. */
+  nombre_anterior?: string
+}
+
+/**
+ * Qué cambia en los portafolios de la planta para quedar como en TSF. Solo se
+ * tocan los portafolios que vienen de TSF; los creados en Operaciones, no.
+ */
+export interface PlanPortafoliosTsf {
+  de_tsf: { id: number; nombre: string }[]
+  crear: AccionPortafolioTsf[]
+  vincular: AccionPortafolioTsf[]
+  renombrar: AccionPortafolioTsf[]
+  agregar: AccionPortafolioTsf[]
+  quitar: AccionPortafolioTsf[]
+  hay_cambios: boolean
+}
+
 export interface ProyectoTsf {
   minigranjaId: number
   /** Va a `origina_code`, entero. */

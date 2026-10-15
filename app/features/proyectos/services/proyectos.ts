@@ -12,6 +12,7 @@ import type {
   PayloadConfirmarPendiente,
   PayloadInversionista,
   PayloadInversorProyecto,
+  PlanPortafoliosTsf,
   ProyectoConDetalle,
   ProyectoConServicioRepresentacion,
   ProyectoLiviano,
@@ -28,6 +29,7 @@ const RUTAS = {
   proyecto: (id: Proyecto['id']) => `${BASE}/${id}`,
   infoTecnica: (id: Proyecto['id']) => `${BASE}/${id}/info-tecnica`,
   minigranjaOriginabot: (id: Proyecto['id']) => `${BASE}/${id}/originabot/minigranja`,
+  portafoliosOriginabot: (id: Proyecto['id']) => `${BASE}/${id}/originabot/portafolios`,
   inversionistas: (id: Proyecto['id']) => `${BASE}/${id}/inversionistas`,
   inversionista: (id: Proyecto['id'], invId: InversionistaProyecto['id']) =>
     `${BASE}/${id}/inversionistas/${invId}`,
@@ -169,6 +171,21 @@ export class ProyectosService extends BaseService {
    */
   minigranjaOriginabot(id: Proyecto['id']): Promise<{ originabot_minifarm_id: number }> {
     return this.post<{ originabot_minifarm_id: number }>(RUTAS.minigranjaOriginabot(id))
+  }
+
+  /** Qué cambiaría en los portafolios de la planta para quedar como en TSF, sin escribir. */
+  simularPortafoliosOriginabot(id: Proyecto['id']): Promise<PlanPortafoliosTsf> {
+    return this.post<PlanPortafoliosTsf>(RUTAS.portafoliosOriginabot(id), undefined, {
+      query: { simular: true },
+    })
+  }
+
+  /** Lo aplica. `crear`: crear los portafolios que falten (confirmado antes por la persona). */
+  sincronizarPortafoliosOriginabot(
+    id: Proyecto['id'],
+    crear: boolean,
+  ): Promise<PlanPortafoliosTsf> {
+    return this.post<PlanPortafoliosTsf>(RUTAS.portafoliosOriginabot(id), { crear })
   }
 
   actualizar(id: Proyecto['id'], payload: PayloadActualizarProyecto): Promise<ProyectoConDetalle> {
