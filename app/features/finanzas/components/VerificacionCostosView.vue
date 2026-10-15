@@ -14,15 +14,31 @@
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Costos generador</label>
-        <Select v-model="fGenerador" :options="OPCIONES_FILTRO_COSTOS"
-                optionLabel="label" optionValue="value" class="w-40" />
+        <Select v-model="fGenerador">
+          <SelectTrigger class="w-40" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in OPCIONES_FILTRO_COSTOS" :key="o.value" :value="o.value">
+              {{ o.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-muted-foreground">Costos comercializador</label>
-        <Select v-model="fComercializador" :options="OPCIONES_FILTRO_COSTOS"
-                optionLabel="label" optionValue="value" class="w-40" />
+        <Select v-model="fComercializador">
+          <SelectTrigger class="w-40" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="o in OPCIONES_FILTRO_COSTOS" :key="o.value" :value="o.value">
+              {{ o.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <Button v-if="filtrando" label="Limpiar" size="small" text @click="limpiarFiltros" />
+      <Button v-if="filtrando" variant="ghost" size="sm" @click="limpiarFiltros">Limpiar</Button>
       <div class="flex-1" />
       <Button variant="ghost" size="icon-sm" :disabled="loading" title="Recargar" aria-label="Recargar" @click="cargar">
         <Spinner v-if="loading" class="size-4" /><RefreshCwIcon v-else class="size-4" />
@@ -224,7 +240,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
-import Select from 'primevue/select'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import {
   FiltroCostos,

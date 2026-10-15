@@ -34,6 +34,8 @@ export type Permission =
   | 'mem-frontera:read'
   | 'registros-cnd:read'
   | 'liquidaciones:read'
+  | 'reconectadores:command'
+  | 'reconectadores:interruptor'
   | 'admin:manage'
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -93,6 +95,9 @@ export const ROLE_PERMISSIONS = {
     'mem-frontera:read',
     'registros-cnd:read',
     'liquidaciones:read',
+    'reconectadores:command',
+    // Encender o apagar TODOS los comandos ON/OFF: solo admin.
+    'reconectadores:interruptor',
     'admin:manage',
   ],
   [UserRole.OPERACIONES]: [
@@ -106,6 +111,8 @@ export const ROLE_PERMISSIONS = {
     'polizas:read',
     'mem-frontera:read',
     'registros-cnd:read',
+    // Mismo criterio que `ROLES_COMANDO` del backend.
+    'reconectadores:command',
   ],
   [UserRole.MONITOREO]: [
     ...BASE_PERMISSIONS,
