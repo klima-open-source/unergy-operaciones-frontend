@@ -7,7 +7,6 @@
  * lo que ven el listado y el detalle además de eso.
  */
 import type { Id } from '~/types/api'
-import type { PortafolioDeProyecto } from '~/features/operaciones/types'
 import type {
   EstadoProyecto,
   Proyecto,
@@ -101,8 +100,9 @@ export interface ProyectoConDetalle extends Proyecto {
    */
   potencia_ac_kw?: number | string | null
   ppa_contratos?: ContratoPpaResumenProyecto[]
-  /** Los portafolios en que está la planta: pueden ser varios. */
-  portafolios?: PortafolioDeProyecto[]
+  /** El portafolio de la planta: uno solo, o ninguno. */
+  portafolio_id?: number | null
+  portafolio_nombre?: string | null
   fecha_inicio_comercializacion?: string | null
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null

@@ -3,10 +3,10 @@
  * Vista «Portafolios» de la pantalla de Proyectos: agrupaciones de plantas para
  * los informes «Por portafolio».
  *
- * Una planta puede estar en varios portafolios (`portafolio_proyectos`), así que
- * acá no se arrastra —arrastrar es «mover»—: se agrega y se quita. A la
- * izquierda los portafolios; a la derecha las plantas del elegido. Reemplaza a la
- * pestaña «Gestión de portafolios» de Informes mensuales.
+ * Un proyecto está en un solo portafolio (Sara, 15-oct): agregar una planta la
+ * saca del que tenía, y el diálogo lo avisa antes. A la izquierda los
+ * portafolios; a la derecha las plantas del elegido. Reemplaza a la pestaña
+ * «Gestión de portafolios» de Informes mensuales.
  */
 import type {
   DuplicadoPortafolio,
@@ -82,7 +82,7 @@ function elegir(id: number | typeof SIN_PORTAFOLIO) {
 async function quitar(planta: ProyectoPortafolio) {
   if (!portafolio.value) return
   try {
-    await portafoliosService.asignarProyecto(planta.id, portafolio.value.id, false)
+    await portafoliosService.asignarProyecto(planta.id, null)
     toast.success(`${planta.nombre} salió de ${portafolio.value.nombre}`)
   } catch (err) {
     toast.error('No se pudo quitar', { description: normalizeError(err).message })
@@ -96,15 +96,34 @@ const showAgregar = ref(false)
 const aAgregar = ref<string[]>([])
 const agregando = ref(false)
 
+/** `{proyecto_id: nombre de su portafolio}`, para avisar quién se mueve. */
+const portafolioDe = computed(() => {
+  const mapa = new Map<number, string>()
+  for (const p of portafolios.value) for (const planta of p.proyectos) mapa.set(planta.id, p.nombre)
+  return mapa
+})
+
 const opcionesPlantas = computed(() => {
   const ya = new Set((portafolio.value?.proyectos ?? []).map((p) => p.id))
   return plantas.value
     .filter((p) => !ya.has(p.id))
-    .map((p) => ({
-      value: String(p.id),
-      label: p.municipio ? `${p.nombre_comercial} · ${p.municipio}` : p.nombre_comercial,
-    }))
+    .map((p) => {
+      const actual = portafolioDe.value.get(p.id)
+      const base = p.municipio ? `${p.nombre_comercial} · ${p.municipio}` : p.nombre_comercial
+      return { value: String(p.id), label: actual ? `${base} (en ${actual})` : base }
+    })
 })
+
+/** Las elegidas que ya están en otro portafolio: al agregarlas salen de ese. */
+const seMueven = computed(() =>
+  aAgregar.value
+    .map((id) => {
+      const planta = plantas.value.find((p) => p.id === Number(id))
+      const actual = portafolioDe.value.get(Number(id))
+      return planta && actual ? `${planta.nombre_comercial} (de ${actual})` : null
+    })
+    .filter((x): x is string => x !== null),
+)
 
 function abrirAgregar() {
   aAgregar.value = []
@@ -117,7 +136,7 @@ async function agregar() {
   const destino = portafolio.value
   try {
     for (const id of aAgregar.value) {
-      await portafoliosService.asignarProyecto(Number(id), destino.id, true)
+      await portafoliosService.asignarProyecto(Number(id), destino.id)
     }
     toast.success(`${aAgregar.value.length} planta(s) agregada(s) a ${destino.nombre}`)
     showAgregar.value = false
@@ -348,7 +367,7 @@ function eliminar(p: Portafolio) {
       <DialogHeader>
         <DialogTitle>Agregar plantas a {{ portafolio?.nombre }}</DialogTitle>
         <DialogDescription>
-          Una planta puede estar en varios portafolios: agregarla aquí no la saca de los demás.
+          Un proyecto está en un solo portafolio: si ya estaba en otro, sale de ese.
         </DialogDescription>
       </DialogHeader>
       <MultiComboBox
@@ -357,6 +376,9 @@ function eliminar(p: Portafolio) {
         placeholder="Buscar planta…"
         empty-message="Sin plantas para agregar."
       />
+      <p v-if="seMueven.length" class="text-sm text-warning">
+        Saldrán de su portafolio actual: {{ seMueven.join(', ') }}.
+      </p>
       <DialogFooter>
         <Button variant="secondary" @click="showAgregar = false">Cancelar</Button>
         <Button :disabled="!aAgregar.length || agregando" @click="agregar">

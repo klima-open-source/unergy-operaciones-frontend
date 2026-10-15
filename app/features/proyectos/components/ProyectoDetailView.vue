@@ -177,11 +177,11 @@
           </template>
         </div>
         <!-- Fuera del modo edición a propósito: cada cambio se guarda solo. -->
-        <ProyectoPortafolios
+        <ProyectoPortafolio
           :key="proyecto.id"
           class="mt-4"
           :proyecto-id="proyecto.id"
-          :portafolios="proyecto.portafolios ?? []" />
+          :portafolio-id="proyecto.portafolio_id ?? null" />
       </div>
 
       <!-- ══ TÉCNICO ══ -->
@@ -719,7 +719,7 @@ import ProyectoAreaContactosPanel from '~/features/proyectos/components/Proyecto
 import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
 import ServiciosDelProyecto from '~/features/proyectos/components/ServiciosDelProyecto.vue'
 import ClientesDelProyecto from '~/features/proyectos/components/ClientesDelProyecto.vue'
-import ProyectoPortafolios from '~/features/proyectos/components/ProyectoPortafolios.vue'
+import ProyectoPortafolio from '~/features/proyectos/components/ProyectoPortafolio.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()

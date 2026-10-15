@@ -333,7 +333,7 @@
           <span v-else-if="column.key === 'tipo_proyecto'" class="inline-flex items-center shrink-0 text-xs font-semibold leading-normal px-1.5 rounded-full whitespace-nowrap" :class="TIPO_BADGE_CLASS[row.tipo_proyecto] || 'bg-muted text-muted-foreground'">
             {{ TIPO_LABELS[row.tipo_proyecto] || row.tipo_proyecto || '—' }}
           </span>
-          <TruncatedText v-else-if="column.key === 'portafolios'" :text="nombresPortafolios(row) || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
+          <TruncatedText v-else-if="column.key === 'portafolio_id'" :text="row.portafolio_nombre || '—'" class="min-w-0 max-w-full text-xs text-muted-foreground" />
           <template v-else-if="column.key === 'municipio'">
             <TruncatedText v-if="row.municipio || row.departamento" :text="[row.municipio, row.departamento].filter(Boolean).join(', ')" class="min-w-0 max-w-full text-xs text-muted-foreground" />
             <span v-else class="text-xs text-muted-foreground/50">—</span>
@@ -879,8 +879,8 @@ const SERVICIOS_VALIDOS = SERVICIOS.map(s => s.key)
 const vista = ref(props.vistaFija ?? (VISTAS_VALIDAS.includes(route.query.vista) ? route.query.vista : 'proyectos'))
 
 // Proyectos: todos, los próximos a energizar (`?ver=proximos`) o los portafolios
-// (`?ver=portafolios`): agrupaciones de plantas para los informes, donde una
-// planta puede estar en varias. Antes vivían en Informes mensuales, con arrastre.
+// (`?ver=portafolios`): agrupaciones de plantas para los informes; un proyecto
+// está en una sola. Antes vivían en Informes mensuales, con arrastre.
 const VER_PROYECTOS = [
   { key: 'todos', label: 'Todos', icon: ZapIcon },
   { key: 'proximos', label: 'Próximos a energizar', icon: ClockIcon },
@@ -983,8 +983,7 @@ const COLUMNAS_PROYECTOS = [
   { key: 'nombre_comercial', header: 'Nombre comercial', sortable: true },
   { key: 'estado', header: 'Estado', sortable: true },
   { key: 'tipo_proyecto', header: 'Tipo', sortable: true },
-  // Una planta puede estar en varios portafolios: se listan todos.
-  { key: 'portafolios', header: 'Portafolios' },
+  { key: 'portafolio_id', header: 'Portafolio' },
   { key: 'municipio', header: 'Ubicación', sortable: true },
   { key: 'info_tecnica.capacidad_instalada_kwp', header: 'kWp', sortable: true, class: 'text-right' },
   { key: 'servicios', header: 'Servicios' },
@@ -1286,16 +1285,13 @@ function conTodos(opciones) {
   return [{ value: VALOR_SELECT_VACIO, label: 'Todos' }, ...opciones]
 }
 
-function nombresPortafolios(proyecto) {
-  return (proyecto.portafolios || []).map(pf => pf.nombre).join(', ')
-}
 
 const proyectosFiltrados = computed(() => {
   const f = filtrosProyectos.value
   let lista = proyectos.value
   if (f.estado.value)         lista = lista.filter(p => p.estado === f.estado.value)
   if (f.tipo_proyecto.value)  lista = lista.filter(p => p.tipo_proyecto === f.tipo_proyecto.value)
-  if (f.portafolio_id.value)  lista = lista.filter(p => (p.portafolios || []).some(pf => pf.id === f.portafolio_id.value))
+  if (f.portafolio_id.value)  lista = lista.filter(p => p.portafolio_id === f.portafolio_id.value)
   if (f.ppa_contratos.value?.length) {
     const sel = new Set(f.ppa_contratos.value)
     lista = lista.filter(p => {
@@ -1766,7 +1762,7 @@ const COLUMNAS_EXCEL = {
     { header: 'Nombre comercial', value: p => formatearNombre(p.nombre_comercial) },
     { header: 'Estado', value: p => ESTADO_LABELS[p.estado] || p.estado || '' },
     { header: 'Tipo', value: p => TIPO_LABELS[p.tipo_proyecto] || p.tipo_proyecto || '' },
-    { header: 'Portafolios', value: p => nombresPortafolios(p) },
+    { header: 'Portafolio', value: p => p.portafolio_nombre || '' },
     { header: 'Municipio', value: p => p.municipio || '' },
     { header: 'Departamento', value: p => p.departamento || '' },
     { header: 'Inicio comercialización', value: p => p.fecha_inicio_comercializacion ? fmtFecha(p.fecha_inicio_comercializacion) : '' },
