@@ -78,10 +78,9 @@
             <InfoField label="Fecha de operación en MEM" :value="fmtFecha(proyecto.fecha_entrada_operacion)" />
             <InfoField
               label="Inicio de comercialización (pruebas)"
-              :value="proyecto.fecha_inicio_comercializacion ? (fmtFecha(proyecto.fecha_inicio_comercializacion) + (proyecto.fecha_comercializacion_editada_manual ? ' (manual)' : ' (auto)')) : '—'" />
+              :value="proyecto.fecha_inicio_comercializacion ? fmtFecha(proyecto.fecha_inicio_comercializacion) : '—'" />
             <InfoField label="Fecha de operación (mantenimiento)" :value="proyecto.fecha_operacion_mantenimiento ? fmtFecha(proyecto.fecha_operacion_mantenimiento) : '—'" />
             <InfoField label="Fecha de entrega del proyecto" :value="proyecto.fecha_entrega_proyecto ? fmtFecha(proyecto.fecha_entrega_proyecto) : '—'" />
-            <InfoField label="Fecha fin de representación" :value="proyecto.fecha_fin_representacion ? fmtFecha(proyecto.fecha_fin_representacion) : '—'" />
             <!-- Se muestra pero ya NO se edita acá: la comunidad se negocia en
                  el PPA y el backend la deriva de ahí. Editarla en la planta era
                  lo que dejaba los dos datos contradiciéndose. -->
@@ -169,10 +168,6 @@
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
               <DatePicker v-model="editFechaEntrega" clearable placeholder="Seleccionar" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
-              <DatePicker v-model="editFechaFinRep" clearable placeholder="Vigente" />
             </div>
           </template>
         </div>
@@ -878,7 +873,6 @@ const editFechaEntrada = ref(null)
 const editFechaComerc = ref(null)
 const editFechaOperMant = ref(null)
 const editFechaEntrega = ref(null)
-const editFechaFinRep = ref(null)
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 /** Fecha del API -> 'aaaa-mm-dd', que es lo que usa DatePicker (y lo que `formatFecha` devuelve tal cual). */
@@ -989,7 +983,6 @@ function populateEditForm() {
   editFechaComerc.value = aFecha(p.fecha_inicio_comercializacion)
   editFechaOperMant.value = aFecha(p.fecha_operacion_mantenimiento)
   editFechaEntrega.value = aFecha(p.fecha_entrega_proyecto)
-  editFechaFinRep.value = aFecha(p.fecha_fin_representacion)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
   editSubproyectos.value = (liqConfig.value?.subproyectos ?? []).map(s => ({
@@ -1069,7 +1062,6 @@ async function saveEdit() {
     payload.fecha_entrada_operacion = formatFecha(editFechaEntrada.value)
     payload.fecha_operacion_mantenimiento = formatFecha(editFechaOperMant.value)
     payload.fecha_entrega_proyecto = formatFecha(editFechaEntrega.value)
-    payload.fecha_fin_representacion = formatFecha(editFechaFinRep.value)
     // Inicio de comercialización: solo se envía si el usuario la cambió, para no
     // marcarla como "editada a mano" en cada guardado (el backend fija ese flag
     // cuando este campo llega en el payload).

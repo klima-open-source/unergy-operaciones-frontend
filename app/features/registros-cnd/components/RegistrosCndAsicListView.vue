@@ -24,11 +24,7 @@ const columns: DataTableColumn[] = [
 const filtradas = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return query.data ?? []
-  return (query.data ?? []).filter(
-    (r) =>
-      (r.nombre_comercial || '').toLowerCase().includes(q) ||
-      (r.codigo_cnd || '').toLowerCase().includes(q),
-  )
+  return (query.data ?? []).filter((r) => (r.nombre_comercial || '').toLowerCase().includes(q))
 })
 
 async function cargar() {
@@ -85,7 +81,6 @@ onMounted(cargar)
                 <div class="text-xs text-muted-foreground">
                   {{
                     [
-                      asResumen(row).codigo_cnd,
                       asResumen(row).clasificacion_regulatoria,
                       asResumen(row).tecnologia,
                       asResumen(row).operador_red,

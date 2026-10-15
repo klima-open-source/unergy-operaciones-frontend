@@ -156,10 +156,6 @@
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
         <DatePicker v-model="fechaEntrega" clearable placeholder="Seleccionar" />
       </div>
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
-        <DatePicker v-model="fechaFinRep" clearable placeholder="Vigente" />
-      </div>
     </div>
 
     <!-- Simulación P50 / P90 -->
@@ -431,7 +427,6 @@ const cantidadTotalPaneles = ref(null)
 const fechaEntrada = ref(null)
 const fechaOperMant = ref(null)
 const fechaEntrega = ref(null)
-const fechaFinRep = ref(null)
 
 function toDate(v) {
   if (!v) return null
@@ -482,7 +477,6 @@ function submit() {
   payload.fecha_entrada_operacion = formatFecha(fechaEntrada.value)
   payload.fecha_operacion_mantenimiento = formatFecha(fechaOperMant.value)
   payload.fecha_entrega_proyecto = formatFecha(fechaEntrega.value)
-  payload.fecha_fin_representacion = formatFecha(fechaFinRep.value)
   // potencia_ac_kw NO se manda: el dual-write se quitó en d68837e
   // porque ahora lo sincroniza el backend desde info-tecnica.
   // La comunidad energética ya no viaja acá: se marca en el PPA y de ahí deriva

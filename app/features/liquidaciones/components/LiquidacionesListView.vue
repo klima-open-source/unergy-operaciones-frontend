@@ -11,7 +11,6 @@ import {
   fmtCompact,
   formatPeriodo,
 } from '~/features/liquidaciones/utils/liquidaciones'
-import { proyectoActivoEnMes } from '~/utils/proyectoActivo'
 // Import explícito: el auto-import de Nuxt sintetiza mal los tipos de props de `DatePicker`.
 import DatePicker from '~/components/blocks/DatePicker.vue'
 
@@ -100,13 +99,7 @@ const nuevoTipoVenta = ref<TipoVentaLiquidacion>('bolsa')
 const proyectosOpciones = ref<ProyectoConDetalle[]>([])
 const creandoDesde = ref<number | null>(null)
 
-const proyectosOpcionesFiltradas = computed(() => {
-  if (!nuevoPeriodo.value) return proyectosOpciones.value
-  const d = new Date(nuevoPeriodo.value)
-  return proyectosOpciones.value.filter((p) =>
-    proyectoActivoEnMes(p, d.getFullYear(), d.getMonth() + 1),
-  )
-})
+const proyectosOpcionesFiltradas = computed(() => proyectosOpciones.value)
 
 async function loadProyectosOpciones() {
   try {

@@ -532,7 +532,7 @@ onMounted(cargar)
             </h1>
             <p class="mt-0.5 text-xs text-muted-foreground">
               {{
-                [reg.codigo_cnd, reg.clasificacion_regulatoria, reg.tecnologia, reg.operador_red]
+                [reg.clasificacion_regulatoria, reg.tecnologia, reg.operador_red]
                   .filter(Boolean)
                   .join(' · ') || '—'
               }}

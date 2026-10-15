@@ -12,7 +12,6 @@ export interface SiguientePasoRegistroCnd {
 export interface ResumenRegistroCnd {
   proyecto_id: number
   nombre_comercial: string
-  codigo_cnd?: string
   clasificacion_regulatoria?: string
   tecnologia?: string
   operador_red?: string
@@ -57,7 +56,6 @@ export interface RegistroCnd {
   avance_pct: number
   bloqueos?: number
   clasificacion_regulatoria?: string
-  codigo_cnd?: string
   nombre_comercial: string
   operador_red?: string
   tecnologia?: string

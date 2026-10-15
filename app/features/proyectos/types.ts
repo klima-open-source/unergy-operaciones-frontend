@@ -107,7 +107,6 @@ export interface ProyectoConDetalle extends Proyecto {
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null
   fecha_entrega_proyecto?: string | null
-  fecha_fin_representacion?: string | null
   p90_mensual_kwh?: string | null
   p50_mensual_kwh?: string | null
   p99_mensual_kwh?: string | null
@@ -159,7 +158,6 @@ export interface PayloadActualizarProyecto {
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null
   fecha_entrega_proyecto?: string | null
-  fecha_fin_representacion?: string | null
   fecha_inicio_comercializacion?: string
   topico_liquidaciones?: string | null
   [clave: string]: unknown
