@@ -119,6 +119,16 @@ export default defineNuxtConfig({
      */
     originabotUrl: 'https://originabot.uner.gy',
     /**
+     * El user «operaciones» de Unergy Auth: Nitro llama a originabot SIEMPRE con
+     * él, nunca con el token de quien pide (ver
+     * `server/utils/originabot-servicio.ts`). El Auth tiene que ser del mismo
+     * entorno que `originabotUrl`. Usuario y contraseña son secretos del Worker
+     * (`NUXT_ORIGINABOT_USER`, `NUXT_ORIGINABOT_PASSWORD`), nunca en el repo.
+     */
+    originabotAuthUrl: 'https://auth.unergy.io',
+    originabotUser: '',
+    originabotPassword: '',
+    /**
      * La app de TSF (unergy-platform), para enlazar documentos que solo viven
      * allá, como el PDF del contrato de arrendamiento (`NUXT_TSF_URL`; en dev,
      * `https://develop-sun-factory.user5c.workers.dev`).

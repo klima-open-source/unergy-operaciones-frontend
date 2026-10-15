@@ -4,13 +4,10 @@
  * si TSF no tiene contrato (o termsheet) para el proyecto.
  */
 import { arriendoDeMinigranja } from '~~/server/utils/originabot-api'
+import { credencialOriginabot } from '~~/server/utils/originabot-servicio'
 
 export default defineEventHandler(async (event) => {
-  const autorizacion = getHeader(event, 'authorization')
-  if (!autorizacion) {
-    const detail = 'Para sincronizar con TSF inicia sesión con Unergy Auth.'
-    throw createError({ statusCode: 403, statusMessage: detail, data: { detail } })
-  }
+  const autorizacion = await credencialOriginabot(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id) || id <= 0) {

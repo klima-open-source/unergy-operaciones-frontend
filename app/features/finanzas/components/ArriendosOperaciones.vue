@@ -40,7 +40,6 @@
           <ChartLineIcon class="size-4" /> IPC
         </Button>
         <CuentasCobroTsf
-          v-if="unergyAuth"
           :periodo="periodoActual"
           :periodo-label="periodoLabel"
           @importados="loadDocs(periodoActual)" />
@@ -621,8 +620,6 @@ function tooltipDoc(doc) {
   return doc.pago_id ? `${base}${valor} · pago ${doc.pago_id}` : `${base}${valor}`
 }
 
-// «Traer de TSF» va con el token de Unergy Auth: sin ese login, originabot no responde.
-const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
 
 // ── Proyectos para el componente ZipUpload ─────────────────────────────────────
 // nombreArrendador/estadoContrato: necesarios para que ArriendosZipUpload pueda

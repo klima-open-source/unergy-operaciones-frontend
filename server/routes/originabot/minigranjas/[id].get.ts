@@ -3,13 +3,10 @@
  * formulario de proyecto. Ver `server/utils/originabot-api.ts`.
  */
 import { minigranjaDeTsf } from '~~/server/utils/originabot-api'
+import { credencialOriginabot } from '~~/server/utils/originabot-servicio'
 
-export default defineEventHandler((event) => {
-  const autorizacion = getHeader(event, 'authorization')
-  if (!autorizacion) {
-    const detail = 'Para importar desde TSF inicia sesión con Unergy Auth.'
-    throw createError({ statusCode: 403, statusMessage: detail, data: { detail } })
-  }
+export default defineEventHandler(async (event) => {
+  const autorizacion = await credencialOriginabot(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id) || id <= 0) {

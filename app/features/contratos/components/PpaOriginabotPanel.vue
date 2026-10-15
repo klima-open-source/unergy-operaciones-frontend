@@ -4,7 +4,7 @@
  *
  * Operaciones crea y configura el PPA; cada cambio de plantas se lleva a
  * originabot desde el backend (`apps/ppa/services/originabot_sync.py`) con el
- * token de Unergy Auth de quien lo hizo. Aquí se ve si llegó y, si no, se
+ * usuario de Operaciones en originabot. Aquí se ve si llegó y, si no, se
  * reintenta. Un PPA sin vínculo se crea allá con su primera planta (si su
  * comprador tiene off taker), o se vincula a mano a uno que ya existe.
  */

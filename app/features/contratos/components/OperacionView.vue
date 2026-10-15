@@ -340,7 +340,7 @@
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <GBadge :color="CONTRATO_SEVERITY[contratos.arriendo.estado]">{{ CONTRATO_LABELS[contratos.arriendo.estado] }}</GBadge>
-                  <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="pid" @actualizado="recargarArriendo" />
+                  <SincronizarArriendoTsf :proyecto-id="pid" @actualizado="recargarArriendo" />
 <Button v-if="embebido && !contratoId" variant="ghost" size="sm" as-child><NuxtLink :to="`/contratos/${contratos.arriendo.id}`"><ExternalLinkIcon class="size-4" /> Abrir ficha</NuxtLink></Button>
                   <Button variant="ghost" size="sm" @click="openEditContrato('arriendo')"><PencilIcon class="size-4" /> Editar</Button>
                 </div>
@@ -648,7 +648,7 @@
               <p class="text-sm font-medium text-muted-foreground mb-1">Sin contrato de arriendo registrado</p>
               <p class="text-xs text-muted-foreground mb-4">No se encontró contrato de arriendo para este proyecto</p>
               <div class="flex items-center justify-center gap-2">
-                <SincronizarArriendoTsf v-if="unergyAuth" :proyecto-id="pid" @actualizado="recargarArriendo" />
+                <SincronizarArriendoTsf :proyecto-id="pid" @actualizado="recargarArriendo" />
                 <Button size="sm" class="bg-primary border-primary" @click="openWizard('arriendo')"><PlusIcon class="size-4" /> Crear contrato</Button>
               </div>
             </div>
@@ -1399,8 +1399,6 @@ function openWizard(tipo) {
   wizardTipo.value = tipo
   wizardVisible.value = true
 }
-
-const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
 
 /** Tras «Sincronizar con TSF»: el contrato, sus arrendadores y su indexación. */
 async function recargarArriendo() {

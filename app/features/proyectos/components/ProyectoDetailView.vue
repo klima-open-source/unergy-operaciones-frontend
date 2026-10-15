@@ -24,7 +24,7 @@
         </template>
         <template v-else>
           <!-- Trae de TSF lo que difiera (técnico, simulación, ECS…) y deja elegir qué aplicar. -->
-          <SincronizarTsf v-if="unergyAuth" :proyecto="proyecto" @actualizado="recargarProyecto" />
+          <SincronizarTsf :proyecto="proyecto" @actualizado="recargarProyecto" />
           <Button variant="outline" size="sm" @click="enterEditMode"><PencilIcon class="size-4" /> Editar</Button>
         </template>
       </template>
@@ -1298,8 +1298,6 @@ const opcionesOperadorRed = computed(() =>
   conVacio(operadoresRed.value.map(o => ({ value: String(o.id), label: o.nombre_comercial || o.nombre_legal })))
 )
 
-// «Sincronizar con TSF» necesita el token de Unergy Auth: con el login propio no se muestra.
-const unergyAuth = useRuntimeConfig().public.unergyAuthEnabled
 
 async function recargarProyecto() {
   const [proy, inversionistas] = await Promise.all([

@@ -1,13 +1,14 @@
 /**
  * Importar proyectos desde TSF (originabot).
  *
- * Usa `apiClient` y no una instancia propia: así viaja el Bearer de Unergy Auth
- * y se renueva si está por vencer (`~/core/client.ts`), que es justo el token que
- * originabot valida. `baseURL: ''` porque las rutas son de Nitro
- * (`server/routes/originabot/*`), no del backend de operaciones bajo `/api/v1`.
+ * Usa `apiClient` y no una instancia propia: así viaja el Bearer de la sesión
+ * (cualquiera de los dos logins), con el que Nitro comprueba que quien pide
+ * entró a Operaciones. A originabot se llega con el usuario de Operaciones (ver
+ * `server/utils/originabot-servicio.ts`). `baseURL: ''` porque las rutas son de
+ * Nitro (`server/routes/originabot/*`), no del backend bajo `/api/v1`.
  *
- * Un token que originabot no acepta (sesión del login propio, o de otro entorno)
- * llega como 403, no 401: ver `server/utils/originabot-api.ts`.
+ * Si originabot rechaza al usuario de Operaciones llega como 403, no 401: ver
+ * `server/utils/originabot-api.ts`.
  */
 import { BaseService } from '~/core/service'
 import type {

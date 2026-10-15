@@ -165,7 +165,7 @@ export class ProyectosService extends BaseService {
 
   /**
    * La minigranja de la planta en TSF; si no la tenía guardada, el backend la
-   * resuelve y la guarda. Requiere sesión de Unergy Auth.
+   * resuelve y la guarda.
    */
   minigranjaOriginabot(id: Proyecto['id']): Promise<{ originabot_minifarm_id: number }> {
     return this.post<{ originabot_minifarm_id: number }>(RUTAS.minigranjaOriginabot(id))
