@@ -74,7 +74,7 @@ export class PpaService extends BaseService {
     return this.put<CompromisoEnergiaPpa[]>(RUTAS.compromisos(id), compromisos)
   }
 
-  /** PPAs y off takers de originabot. Requiere sesión de Unergy Auth (si no, 403). */
+  /** PPAs y off takers de originabot (con el usuario de Operaciones). */
   opcionesOriginabot(): Promise<OpcionesOriginabot> {
     return this.get<OpcionesOriginabot>(RUTAS.originabotOpciones)
   }

@@ -1,8 +1,8 @@
 /**
  * originabot (TSF): el único archivo que conoce la forma de sus respuestas.
  *
- * Dos endpoints, siempre con el token de Unergy Auth de quien pide (originabot
- * lo valida contra authentication-system, igual que nuestro backend):
+ * Siempre con el usuario de Operaciones (`./originabot-servicio.ts`), nunca con
+ * el token de quien pide. Los endpoints:
  *
  *   - `GET /api/v2/origination/portfolio-manager/projects/?search=` — la búsqueda
  *     de Portfolio Manager. **Sin `stage` no lista proyectos**: devuelve el conteo
@@ -15,6 +15,7 @@
  */
 import type { H3Event } from 'h3'
 import { FetchError } from 'ofetch'
+import { olvidarTokenOriginabot } from './originabot-servicio'
 import { leerPresimulacion, repartir, type TecnicoPvsyst } from './pvsyst'
 
 const RUTAS = {
@@ -351,14 +352,17 @@ export function toProyectoTsf(
 }
 
 /**
- * originabot rechaza el token (401/403): la sesión no es de Unergy Auth, o es de
- * otro entorno. Se responde 403 y no 401 a propósito: un 401 hace que
- * `~/core/client.ts` cierre la sesión de Operaciones, que no tiene la culpa.
+ * originabot rechaza el token del usuario de Operaciones (401/403): vencido, de
+ * otro entorno o sin permiso para eso. Se responde 403 y no 401 a propósito: un
+ * 401 hace que `~/core/client.ts` cierre la sesión de quien pide, que no tiene
+ * la culpa.
  */
 function errorDeOriginabot(err: unknown) {
   if (err instanceof FetchError && (err.status === 401 || err.status === 403)) {
+    // Vencido o revocado: el próximo pedido se vuelve a loguear.
+    olvidarTokenOriginabot()
     const detail =
-      'originabot rechazó tu sesión. Para importar desde TSF inicia sesión con Unergy Auth.'
+      'originabot no le permite esto al usuario de Operaciones: revisa sus permisos en originabot.'
     return createError({ statusCode: 403, statusMessage: detail, data: { detail } })
   }
   if (err instanceof FetchError && err.status === 404) {

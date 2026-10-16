@@ -4,12 +4,9 @@
  * cliente, que ya tiene las plantas cargadas (`~/features/proyectos/prellenadoTsf`).
  */
 import { proyectosEnEtapas } from '~~/server/utils/originabot-api'
+import { credencialOriginabot } from '~~/server/utils/originabot-servicio'
 
 export default defineEventHandler(async (event) => {
-  const autorizacion = getHeader(event, 'authorization')
-  if (!autorizacion) {
-    const detail = 'Para ver los proyectos de TSF inicia sesión con Unergy Auth.'
-    throw createError({ statusCode: 403, statusMessage: detail, data: { detail } })
-  }
+  const autorizacion = await credencialOriginabot(event)
   return { resultados: await proyectosEnEtapas(event, autorizacion) }
 })

@@ -578,18 +578,16 @@
             <span class="text-sm font-medium">Crear desde cero</span>
             <span class="text-xs text-muted-foreground">Llenas todos los datos a mano.</span>
           </button>
-          <button type="button" :disabled="!unergyAuthActivo"
-            class="flex flex-col gap-2 rounded-lg border border-border p-4 text-left hover:bg-muted disabled:opacity-50 disabled:hover:bg-transparent"
+          <button type="button"
+            class="flex flex-col gap-2 rounded-lg border border-border p-4 text-left hover:bg-muted"
             @click="modoProyecto = 'tsf'">
             <DownloadIcon class="size-5 text-primary" />
             <span class="text-sm font-medium">Importar desde TSF</span>
             <span class="text-xs text-muted-foreground">
-              {{ unergyAuthActivo
-                ? 'Buscas el proyecto en originabot y sus datos llegan prellenados.'
-                : 'Requiere iniciar sesión con Unergy Auth.' }}
+              Buscas el proyecto en originabot y sus datos llegan prellenados.
             </span>
           </button>
-          <div v-if="unergyAuthActivo" class="flex flex-col gap-2 border-t border-border pt-3 sm:col-span-2">
+          <div class="flex flex-col gap-2 border-t border-border pt-3 sm:col-span-2">
             <p class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
               En TSF y aún no en Operaciones
               <span v-if="!cargandoSugerencias && !errorSugerencias" class="normal-case font-normal">· construcción u operación</span>
@@ -1913,8 +1911,6 @@ const dialogProyecto = ref(false)
 /** 'elegir' → 'cero' (form vacío) o 'tsf' (buscar en originabot → form prellenado). */
 const modoProyecto = ref('elegir')
 const proyectoTsf = ref(null)
-// originabot valida el token de Unergy Auth: con el login propio no hay con qué.
-const unergyAuthActivo = useRuntimeConfig().public.unergyAuthEnabled
 
 function abrirNuevoProyecto() {
   modoProyecto.value = 'elegir'
@@ -1934,7 +1930,6 @@ const errorSugerencias = ref('')
 const preseleccionTsf = ref(null)
 
 async function cargarSugerenciasTsf() {
-  if (!unergyAuthActivo) return
   cargandoSugerencias.value = true
   errorSugerencias.value = ''
   try {

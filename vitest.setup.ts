@@ -23,6 +23,10 @@ const TEST_RUNTIME_CONFIG = {
   authSessionCookiesEnabled: true,
   unergyAuthUrl: 'https://unergy-auth.test',
   originabotUrl: 'https://originabot.test',
+  originabotAuthUrl: 'https://originabot-auth.test',
+  originabotUser: 'operaciones',
+  originabotPassword: 'secreto',
+  apiProxyTarget: 'https://backend.test',
   tsfUrl: 'https://tsf.test',
   public: {
     unergyAuthEnabled: true,
