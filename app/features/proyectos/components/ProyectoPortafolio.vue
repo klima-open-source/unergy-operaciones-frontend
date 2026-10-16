@@ -18,14 +18,15 @@ const props = defineProps<{
 }>()
 
 const portafoliosService = new PortafoliosService()
+const catalogoPortafolios = useCatalogoPortafolios()
 
 const catalogo = ref<Portafolio[]>([])
 const elegido = ref(props.portafolioId != null ? String(props.portafolioId) : '')
 const guardando = ref(false)
 
 onMounted(() => {
-  portafoliosService
-    .listar()
+  catalogoPortafolios
+    .cargar()
     .then((data) => {
       catalogo.value = data.portafolios
     })
@@ -45,6 +46,8 @@ async function cambiar(valor: unknown) {
     toast.error('No se pudo cambiar el portafolio', { description: normalizeError(err).message })
     elegido.value = antes
   } finally {
+    // Cada portafolio lista sus plantas: el catálogo compartido ya no está al día.
+    catalogoPortafolios.invalidar()
     guardando.value = false
   }
 }

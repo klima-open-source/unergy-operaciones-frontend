@@ -354,8 +354,10 @@ export interface AccionPortafolioTsf {
 }
 
 /**
- * Qué cambia en los portafolios de la planta para quedar como en TSF. Solo se
- * tocan los portafolios que vienen de TSF; los creados en Operaciones, no.
+ * Qué cambia en los portafolios para que la planta quede como en TSF. La planta
+ * está en UN portafolio: `agregar` y `quitar` traen a lo sumo uno (mover = los
+ * dos). Si está en uno creado en Operaciones no se mueve (`no_se_mueve`), y si
+ * TSF la tiene en varios tampoco (`varios_en_tsf`).
  */
 export interface PlanPortafoliosTsf {
   de_tsf: { id: number; nombre: string }[]
@@ -364,6 +366,8 @@ export interface PlanPortafoliosTsf {
   renombrar: AccionPortafolioTsf[]
   agregar: AccionPortafolioTsf[]
   quitar: AccionPortafolioTsf[]
+  no_se_mueve: AccionPortafolioTsf | null
+  varios_en_tsf: { id: number; nombre: string }[]
   hay_cambios: boolean
 }
 
