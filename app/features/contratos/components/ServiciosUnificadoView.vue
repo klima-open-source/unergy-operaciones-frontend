@@ -1730,7 +1730,7 @@ const totalCrudo = computed(() => {
 })
 
 const subtitulo = computed(() => {
-  if (enPortafolios.value) return 'Agrupaciones de plantas para los informes · una planta puede estar en varias'
+  if (enPortafolios.value) return 'Agrupaciones de plantas para los informes · cada planta en uno solo'
   const etiqueta = vista.value === 'clientes' ? 'clientes'
     : vista.value === 'proyectos' ? 'plantas'
     : `contratos de ${servicioInfo.value?.label}`
