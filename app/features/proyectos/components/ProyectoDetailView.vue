@@ -44,7 +44,7 @@
           <template v-if="!isEditMode">
             <InfoField label="Tipo" :value="proyecto.tipo_proyecto" />
             <InfoField label="Tecnología" :value="proyecto.tipo_tecnologia" />
-            <InfoField label="Capacidad instalada (kWp)" :value="proyecto.info_tecnica?.capacidad_instalada_kwp" />
+            <InfoField label="Capacidad instalada (kWp)" :value="proyecto.capacidad_instalada_kwp" />
             <InfoField label="Departamento" :value="proyecto.departamento" />
             <InfoField label="Municipio" :value="proyecto.municipio" />
             <!-- Dirección y mapa, junto al resto de la ubicación. Estaban en la
@@ -52,12 +52,13 @@
             <div class="flex flex-col gap-1">
               <p class="text-xs text-muted-foreground uppercase tracking-wide">Ubicación</p>
               <p v-if="proyecto.direccion_vereda" class="text-foreground">{{ proyecto.direccion_vereda }}</p>
-              <a v-if="proyecto.info_tecnica?.url_ubicacion" :href="proyecto.info_tecnica.url_ubicacion"
+              <!-- El enlace sale de las coordenadas: desde el 15-oct no se guarda uno aparte. -->
+              <a v-if="urlMapa" :href="urlMapa"
                  target="_blank" rel="noopener"
                  class="inline-flex items-center gap-1 text-primary hover:underline text-xs">
                 <MapPinIcon class="size-4" /> Ver en Google Maps
               </a>
-              <span v-if="!proyecto.direccion_vereda && !proyecto.info_tecnica?.url_ubicacion"
+              <span v-if="!proyecto.direccion_vereda && !urlMapa"
                     class="text-muted-foreground">—</span>
             </div>
             <InfoField label="Operador de red" :value="proyecto.operador_red_legal || proyecto.operador_red" />
@@ -78,10 +79,9 @@
             <InfoField label="Fecha de operación en MEM" :value="fmtFecha(proyecto.fecha_entrada_operacion)" />
             <InfoField
               label="Inicio de comercialización (pruebas)"
-              :value="proyecto.fecha_inicio_comercializacion ? (fmtFecha(proyecto.fecha_inicio_comercializacion) + (proyecto.fecha_comercializacion_editada_manual ? ' (manual)' : ' (auto)')) : '—'" />
+              :value="proyecto.fecha_inicio_comercializacion ? fmtFecha(proyecto.fecha_inicio_comercializacion) : '—'" />
             <InfoField label="Fecha de operación (mantenimiento)" :value="proyecto.fecha_operacion_mantenimiento ? fmtFecha(proyecto.fecha_operacion_mantenimiento) : '—'" />
             <InfoField label="Fecha de entrega del proyecto" :value="proyecto.fecha_entrega_proyecto ? fmtFecha(proyecto.fecha_entrega_proyecto) : '—'" />
-            <InfoField label="Fecha fin de representación" :value="proyecto.fecha_fin_representacion ? fmtFecha(proyecto.fecha_fin_representacion) : '—'" />
             <!-- Se muestra pero ya NO se edita acá: la comunidad se negocia en
                  el PPA y el backend la deriva de ahí. Editarla en la planta era
                  lo que dejaba los dos datos contradiciéndose. -->
@@ -107,7 +107,7 @@
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-              <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+              <NumberField v-model="editForm.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Departamento</label>
@@ -126,10 +126,6 @@
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Dirección</label>
               <Input v-model="editForm.direccion_vereda" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Link Google Maps</label>
-              <Input v-model="editInfoTecnica.url_ubicacion" placeholder="https://maps.app.goo.gl/..." />
             </div>
             <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Operador de red</label>
@@ -170,18 +166,14 @@
               <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
               <DatePicker v-model="editFechaEntrega" clearable placeholder="Seleccionar" />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha fin de representación</label>
-              <DatePicker v-model="editFechaFinRep" clearable placeholder="Vigente" />
-            </div>
           </template>
         </div>
         <!-- Fuera del modo edición a propósito: cada cambio se guarda solo. -->
-        <ProyectoPortafolios
+        <ProyectoPortafolio
           :key="proyecto.id"
           class="mt-4"
           :proyecto-id="proyecto.id"
-          :portafolios="proyecto.portafolios ?? []" />
+          :portafolio-id="proyecto.portafolio_id ?? null" />
       </div>
 
       <!-- ══ TÉCNICO ══ -->
@@ -196,57 +188,13 @@
             <div>
               <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">General</p>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Potencia AC (kW)" :value="proyecto.info_tecnica?.potencia_ac_kw" />
-                <InfoField label="Capacidad instalada (kWp)" :value="proyecto.info_tecnica?.capacidad_instalada_kwp" />
-                <InfoField label="Voltaje red" :value="proyecto.info_tecnica?.voltaje_red" />
-                <InfoField label="Tipo tracker" :value="proyecto.info_tecnica?.tipo_tracker" />
+                <InfoField label="Potencia AC (kW)" :value="proyecto.potencia_ac_kw" />
+                <InfoField label="Capacidad instalada (kWp)" :value="proyecto.capacidad_instalada_kwp" />
+                <InfoField label="Voltaje red" :value="proyecto.voltaje_red" />
                 <InfoField label="Producción específica (kWh/kWp)" :value="proyecto.produccion_especifica_kwh_kwp" />
                 <InfoField label="Latitud" :value="proyecto.latitud" />
                 <InfoField label="Longitud" :value="proyecto.longitud" />
                 <InfoField label="Altitud (msnm)" :value="proyecto.altitud_msnm" />
-              </div>
-            </div>
-            <!-- Paneles -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Paneles</p>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Cantidad de paneles" :value="proyecto.info_tecnica?.cantidad_total_paneles" />
-                <InfoField label="Potencia panel (kWp)" :value="proyecto.info_tecnica?.potencia_panel_kwp" />
-                <InfoField label="Marca paneles" :value="proyecto.info_tecnica?.marca_paneles" />
-              </div>
-            </div>
-            <!-- Inversores -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Inversores</p>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Cantidad inversores" :value="proyecto.info_tecnica?.cantidad_inversores" />
-                <InfoField label="Potencia inversores (kWp)" :value="proyecto.info_tecnica?.potencia_inversores_kwp" />
-                <InfoField label="Marca inversores" :value="proyecto.info_tecnica?.marca_inversores" />
-                <InfoField label="Cantidad strings" :value="proyecto.info_tecnica?.cantidad_strings" />
-              </div>
-            </div>
-            <!-- Equipos -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Marcas de equipos</p>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Transformador" :value="proyecto.info_tecnica?.marca_transformador" />
-                <InfoField label="Reconectador / Relé" :value="proyecto.info_tecnica?.marca_reconectador_rele" />
-                <InfoField label="Totalizador" :value="proyecto.info_tecnica?.marca_totalizador" />
-                <InfoField label="Seguidor solar" :value="proyecto.info_tecnica?.marca_seguidor_solar" />
-                <InfoField label="Medidores frontera" :value="proyecto.info_tecnica?.marca_medidores_frontera" />
-                <InfoField label="Módem reconectador/relé" :value="proyecto.info_tecnica?.marca_modem_reconectador" />
-                <InfoField label="Módems frontera" :value="proyecto.info_tecnica?.marca_modems_frontera" />
-                <InfoField label="IP módem reconectador" :value="proyecto.info_tecnica?.ip_modem_reconectador" />
-              </div>
-            </div>
-            <!-- CCTV y seguridad -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">CCTV y seguridad</p>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InfoField label="Estado CCTV" :value="proyecto.info_tecnica?.cctv_estado" />
-                <InfoField label="Marca CCTV" :value="proyecto.info_tecnica?.marca_cctv" />
-                <InfoField label="Seguridad física" :value="proyecto.info_tecnica?.seguridad_fisica" />
-                <InfoField label="Internet" :value="proyecto.info_tecnica?.tiene_internet" />
               </div>
             </div>
           </template>
@@ -267,19 +215,15 @@
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia AC (kW)</label>
-                  <NumberField v-model="editInfoTecnica.potencia_ac_kw" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.potencia_ac_kw" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Capacidad instalada (kWp)</label>
-                  <NumberField v-model="editInfoTecnica.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
+                  <NumberField v-model="editForm.capacidad_instalada_kwp" :step-snapping="false" :format-options="{ maximumFractionDigits: 3 }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Voltaje red</label>
-                  <Input v-model="editInfoTecnica.voltaje_red" placeholder="ej: 13.8/800" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Tipo tracker</label>
-                  <Select :model-value="aValorSelect(editInfoTecnica.tipo_tracker)" @update:model-value="editInfoTecnica.tipo_tracker = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in ['1P','2P']" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
+                  <Input v-model="editForm.voltaje_red" placeholder="ej: 13.8/800" />
                 </div>
                 <div class="flex flex-col gap-1">
                   <label class="block text-xs font-medium text-muted-foreground mb-1">Producción específica (kWh/kWp)</label>
@@ -291,108 +235,10 @@
                 </div>
               </div>
             </div>
-            <!-- Paneles -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Paneles</p>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad de paneles</label>
-                  <NumberField v-model="editInfoTecnica.cantidad_total_paneles" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia panel (kWp)</label>
-                  <Input v-model="editInfoTecnica.potencia_panel_kwp" placeholder="ej: 0.58" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca paneles</label>
-                  <Input v-model="editInfoTecnica.marca_paneles" />
-                </div>
-              </div>
-            </div>
-            <!-- Inversores -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Inversores</p>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad inversores</label>
-                  <NumberField v-model="editInfoTecnica.cantidad_inversores" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Potencia inversores (kWp)</label>
-                  <Input v-model="editInfoTecnica.potencia_inversores_kwp" placeholder="ej: 300, 50 y 40" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca inversores</label>
-                  <Input v-model="editInfoTecnica.marca_inversores" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Cantidad strings</label>
-                  <NumberField v-model="editInfoTecnica.cantidad_strings" :step-snapping="false" :min="0" :format-options="{ useGrouping: false }"><NumberFieldContent><NumberFieldInput /></NumberFieldContent></NumberField>
-                </div>
-              </div>
-            </div>
-            <!-- Equipos -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Marcas de equipos</p>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Transformador</label>
-                  <Input v-model="editInfoTecnica.marca_transformador" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Reconectador / Relé</label>
-                  <Input v-model="editInfoTecnica.marca_reconectador_rele" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Totalizador</label>
-                  <Input v-model="editInfoTecnica.marca_totalizador" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Seguidor solar</label>
-                  <Input v-model="editInfoTecnica.marca_seguidor_solar" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Medidores frontera</label>
-                  <Input v-model="editInfoTecnica.marca_medidores_frontera" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Módem reconectador/relé</label>
-                  <Input v-model="editInfoTecnica.marca_modem_reconectador" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Módems frontera</label>
-                  <Input v-model="editInfoTecnica.marca_modems_frontera" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">IP módem reconectador</label>
-                  <Input v-model="editInfoTecnica.ip_modem_reconectador" />
-                </div>
-              </div>
-            </div>
-            <!-- CCTV y seguridad -->
-            <div>
-              <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">CCTV y seguridad</p>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1 md:col-span-2">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Estado CCTV</label>
-                  <Input v-model="editInfoTecnica.cctv_estado" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Marca CCTV</label>
-                  <Input v-model="editInfoTecnica.marca_cctv" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Seguridad física</label>
-                  <Input v-model="editInfoTecnica.seguridad_fisica" />
-                </div>
-                <div class="flex flex-col gap-1">
-                  <label class="block text-xs font-medium text-muted-foreground mb-1">Internet</label>
-                  <Select :model-value="aValorSelect(editInfoTecnica.tiene_internet)" @update:model-value="editInfoTecnica.tiene_internet = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in ['Sí','No']" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
-                </div>
-              </div>
-            </div>
           </template>
 
+          <!-- Equipos e inversores: fuera del modo edición, cada cambio se guarda solo. -->
+          <EquiposDelProyecto :key="proyecto.id" :proyecto-id="proyecto.id" />
         </div>
       </div>
 
@@ -719,7 +565,8 @@ import ProyectoAreaContactosPanel from '~/features/proyectos/components/Proyecto
 import SincronizarTsf from '~/features/proyectos/components/SincronizarTsf.vue'
 import ServiciosDelProyecto from '~/features/proyectos/components/ServiciosDelProyecto.vue'
 import ClientesDelProyecto from '~/features/proyectos/components/ClientesDelProyecto.vue'
-import ProyectoPortafolios from '~/features/proyectos/components/ProyectoPortafolios.vue'
+import ProyectoPortafolio from '~/features/proyectos/components/ProyectoPortafolio.vue'
+import EquiposDelProyecto from '~/features/proyectos/components/EquiposDelProyecto.vue'
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
@@ -762,6 +609,13 @@ const guardando = ref(false)
 // Qué servicios tiene la planta: `servicios` del backend, calculado de los
 // contratos vigentes. Solo lectura.
 const srvFlags = computed(() => proyecto.value?.servicios ?? {})
+// El mapa sale de las coordenadas (el enlace guardado aparte se retiró el 15-oct).
+const urlMapa = computed(() => {
+  const { latitud, longitud } = proyecto.value ?? {}
+  return latitud != null && longitud != null
+    ? `https://www.google.com/maps?q=${latitud},${longitud}`
+    : null
+})
 
 // ── Pestaña activa ──────────────────────────────────────────────────────────
 // Se puede abrir el detalle directo en una pestaña vía ?tab=... (ej. desde la
@@ -826,6 +680,8 @@ const editForm = reactive({
   tipo_proyecto: null,
   tipo_tecnologia: null,
   potencia_ac_kw: null,
+  capacidad_instalada_kwp: null,
+  voltaje_red: null,
   departamento: null,
   municipio: null,
   latitud: null,
@@ -846,39 +702,11 @@ const editForm = reactive({
   produccion_especifica_kwh_kwp: null,
 })
 
-const editInfoTecnica = reactive({
-  voltaje_red: null,
-  potencia_ac_kw: null,
-  capacidad_instalada_kwp: null,
-  tipo_tracker: null,
-  cantidad_total_paneles: null,
-  potencia_panel_kwp: null,
-  marca_paneles: null,
-  cantidad_inversores: null,
-  potencia_inversores_kwp: null,
-  marca_inversores: null,
-  cantidad_strings: null,
-  marca_transformador: null,
-  marca_reconectador_rele: null,
-  marca_totalizador: null,
-  marca_seguidor_solar: null,
-  marca_medidores_frontera: null,
-  marca_modem_reconectador: null,
-  marca_modems_frontera: null,
-  ip_modem_reconectador: null,
-  url_ubicacion: null,
-  cctv_estado: null,
-  marca_cctv: null,
-  seguridad_fisica: null,
-  tiene_internet: null,
-})
-
 // Fechas del proyecto (DatePicker trabaja con Date; el API espera 'YYYY-MM-DD')
 const editFechaEntrada = ref(null)
 const editFechaComerc = ref(null)
 const editFechaOperMant = ref(null)
 const editFechaEntrega = ref(null)
-const editFechaFinRep = ref(null)
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 /** Fecha del API -> 'aaaa-mm-dd', que es lo que usa DatePicker (y lo que `formatFecha` devuelve tal cual). */
@@ -980,8 +808,6 @@ function populateEditForm() {
   if (!proyecto.value) return
   const p = proyecto.value
   Object.keys(editForm).forEach(k => { if (k in p) editForm[k] = p[k] ?? null })
-  const it = p.info_tecnica
-  if (it) Object.keys(editInfoTecnica).forEach(k => { if (k in it) editInfoTecnica[k] = it[k] ?? null })
   editP90.value = parseMonthArray(p.p90_mensual_kwh)
   editP50.value = parseMonthArray(p.p50_mensual_kwh)
   editP99.value = parseMonthArray(p.p99_mensual_kwh)
@@ -989,7 +815,6 @@ function populateEditForm() {
   editFechaComerc.value = aFecha(p.fecha_inicio_comercializacion)
   editFechaOperMant.value = aFecha(p.fecha_operacion_mantenimiento)
   editFechaEntrega.value = aFecha(p.fecha_entrega_proyecto)
-  editFechaFinRep.value = aFecha(p.fecha_fin_representacion)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
   editSubproyectos.value = (liqConfig.value?.subproyectos ?? []).map(s => ({
@@ -1003,15 +828,6 @@ function populateEditForm() {
 
 watch(isEditMode, (entering) => {
   if (entering && proyecto.value) populateEditForm()
-})
-
-// Autocompleta el link de Google Maps con las coordenadas en cuanto haya
-// latitud y longitud -- solo si el campo está vacío, nunca pisa un link
-// ya cargado a mano.
-watch([() => editForm.latitud, () => editForm.longitud], ([lat, lon]) => {
-  if (lat != null && lon != null && !editInfoTecnica.url_ubicacion) {
-    editInfoTecnica.url_ubicacion = `https://www.google.com/maps?q=${lat},${lon}`
-  }
 })
 
 async function enterEditMode() {
@@ -1069,7 +885,6 @@ async function saveEdit() {
     payload.fecha_entrada_operacion = formatFecha(editFechaEntrada.value)
     payload.fecha_operacion_mantenimiento = formatFecha(editFechaOperMant.value)
     payload.fecha_entrega_proyecto = formatFecha(editFechaEntrega.value)
-    payload.fecha_fin_representacion = formatFecha(editFechaFinRep.value)
     // Inicio de comercialización: solo se envía si el usuario la cambió, para no
     // marcarla como "editada a mano" en cada guardado (el backend fija ese flag
     // cuando este campo llega en el payload).
@@ -1110,13 +925,6 @@ async function saveEdit() {
         quoia_node_id: sub.quoia_node_id || null,
       })
     }
-    // Mismo criterio que arriba -- sin filtrar, para poder limpiar un campo
-    // (ver comentario en el payload de editForm).
-    const itPayload = {}
-    for (const [k, v] of Object.entries(editInfoTecnica)) {
-      itPayload[k] = v === '' ? null : v
-    }
-    await proyectosService.guardarInfoTecnica(route.params.id, itPayload)
     const [proy, inversionistas] = await Promise.all([
       proyectosService.obtener(route.params.id),
       proyectosService.listarInversionistas(route.params.id),

@@ -3,6 +3,7 @@ import type { Proyecto, ProyectoEditable, ProyectoInfoTecnica } from '~/types/pr
 import { comoLista, type ListaODirecto, type Paginado } from '~/types/api'
 import type {
   AreaContactoOverride,
+  EquipoProyecto,
   FronteraProyectoResumen,
   InversionistaProyecto,
   InversorProyecto,
@@ -10,6 +11,7 @@ import type {
   PayloadActualizarProyecto,
   PayloadAreaContactoOverride,
   PayloadConfirmarPendiente,
+  PayloadEquipo,
   PayloadInversionista,
   PayloadInversorProyecto,
   ProyectoConDetalle,
@@ -34,6 +36,9 @@ const RUTAS = {
   inversores: (id: Proyecto['id']) => `${BASE}/${id}/inversores`,
   inversor: (id: Proyecto['id'], inversorId: InversorProyecto['id']) =>
     `${BASE}/${id}/inversores/${inversorId}`,
+  equipos: (id: Proyecto['id']) => `${BASE}/${id}/equipos`,
+  equipo: (id: Proyecto['id'], equipoId: EquipoProyecto['id']) =>
+    `${BASE}/${id}/equipos/${equipoId}`,
   areaContactos: (id: Proyecto['id']) => `${BASE}/${id}/area-contactos`,
   areaContacto: (id: Proyecto['id'], tipo: string) => `${BASE}/${id}/area-contactos/${tipo}`,
   pendientes: `${BASE}/pendientes`,
@@ -225,6 +230,29 @@ export class ProyectosService extends BaseService {
 
   eliminarInversor(id: Proyecto['id'], inversorId: InversorProyecto['id']): Promise<unknown> {
     return this.delete<unknown>(RUTAS.inversor(id, inversorId))
+  }
+
+  // ── Equipos (uno por tipo; el de inversores trae los suyos) ─────────────────
+
+  listarEquipos(id: Proyecto['id']): Promise<EquipoProyecto[]> {
+    return this.get<EquipoProyecto[]>(RUTAS.equipos(id))
+  }
+
+  crearEquipo(id: Proyecto['id'], payload: PayloadEquipo): Promise<EquipoProyecto> {
+    return this.post<EquipoProyecto>(RUTAS.equipos(id), payload)
+  }
+
+  actualizarEquipo(
+    id: Proyecto['id'],
+    equipoId: EquipoProyecto['id'],
+    payload: PayloadEquipo,
+  ): Promise<EquipoProyecto> {
+    return this.patch<EquipoProyecto>(RUTAS.equipo(id, equipoId), payload)
+  }
+
+  /** 409 si es el de inversores y todavía tiene inversores. */
+  eliminarEquipo(id: Proyecto['id'], equipoId: EquipoProyecto['id']): Promise<unknown> {
+    return this.delete<unknown>(RUTAS.equipo(id, equipoId))
   }
 
   listarAreaContactos(id: Proyecto['id']): Promise<AreaContactoOverride[]> {

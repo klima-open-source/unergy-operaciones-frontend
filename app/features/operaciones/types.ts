@@ -456,18 +456,18 @@ export interface Portafolio {
   proyectos: ProyectoPortafolio[]
 }
 
-/** `GET /portafolios`. Una planta en dos portafolios sale en los dos. */
+/** `GET /portafolios`. */
 export interface RespuestaPortafolios {
   portafolios: Portafolio[]
   /** Plantas operativas que no están en ningún portafolio. */
   sin_portafolio?: ProyectoPortafolio[]
 }
 
-/** `PATCH /portafolios/asignar`: los portafolios en que quedó la planta. */
+/** `PATCH /portafolios/asignar`: el portafolio en que quedó la planta. */
 export interface RespuestaAsignarPortafolio {
   ok: boolean
   proyecto_id: number
-  portafolio_ids: number[]
+  portafolio_id: number | null
 }
 
 /** El 409 estructurado cuando el nombre se parece a un portafolio ya existente. */
@@ -476,12 +476,6 @@ export interface DuplicadoPortafolio {
   candidato_id: number
   candidato_nombre: string
   mensaje?: string
-}
-
-/** Un portafolio tal como lo trae el detalle del proyecto (`portafolios`). */
-export interface PortafolioDeProyecto {
-  id: number
-  nombre: string
 }
 
 // ── `/polizas/*` ───────────────────────────────────────────────────────────────

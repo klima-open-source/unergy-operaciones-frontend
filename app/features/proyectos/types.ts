@@ -7,7 +7,6 @@
  * lo que ven el listado y el detalle además de eso.
  */
 import type { Id } from '~/types/api'
-import type { PortafolioDeProyecto } from '~/features/operaciones/types'
 import type {
   EstadoProyecto,
   Proyecto,
@@ -100,14 +99,18 @@ export interface ProyectoConDetalle extends Proyecto {
    * tiene fila de info técnica). DRF la manda como texto decimal.
    */
   potencia_ac_kw?: number | string | null
+  /** Capacidad pico (DC) y voltaje de la red: del proyecto desde el 2026-10-15. */
+  capacidad_instalada_kwp?: number | null
+  voltaje_red?: string | null
+  equipos?: EquipoProyecto[]
   ppa_contratos?: ContratoPpaResumenProyecto[]
-  /** Los portafolios en que está la planta: pueden ser varios. */
-  portafolios?: PortafolioDeProyecto[]
+  /** El portafolio de la planta: uno solo, o ninguno. */
+  portafolio_id?: number | null
+  portafolio_nombre?: string | null
   fecha_inicio_comercializacion?: string | null
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null
   fecha_entrega_proyecto?: string | null
-  fecha_fin_representacion?: string | null
   p90_mensual_kwh?: string | null
   p50_mensual_kwh?: string | null
   p99_mensual_kwh?: string | null
@@ -159,7 +162,6 @@ export interface PayloadActualizarProyecto {
   fecha_entrada_operacion?: string | null
   fecha_operacion_mantenimiento?: string | null
   fecha_entrega_proyecto?: string | null
-  fecha_fin_representacion?: string | null
   fecha_inicio_comercializacion?: string
   topico_liquidaciones?: string | null
   [clave: string]: unknown
@@ -180,15 +182,86 @@ export interface ServiciosPlanta {
 
 // ── Inversores del proyecto (equipo, no inversionistas — catálogo para clasificar fallas) ──
 
+export enum EstadoInversor {
+  ACTIVO = 'activo',
+  /** No se borra: sus fallas lo siguen nombrando. */
+  RETIRADO = 'retirado',
+}
+
 export interface InversorProyecto {
   id: number
+  /** El equipo de tipo inversor de la planta, del que cuelga. */
+  equipo_id?: number | null
   nombre?: string
   potencia_nominal_kw?: number | null
   orden?: number
+  cantidad_strings?: number | null
+  marca?: string | null
+  estado?: EstadoInversor
   [clave: string]: unknown
 }
 
 export type PayloadInversorProyecto = Partial<Omit<InversorProyecto, 'id'>>
+
+// ── Equipos de la planta (reemplazan a la info técnica, Sara 2026-10-15) ──────
+
+export enum TipoEquipo {
+  PANEL = 'panel',
+  INVERSOR = 'inversor',
+  TRANSFORMADOR = 'transformador',
+  RECONECTADOR = 'reconectador',
+  TOTALIZADOR = 'totalizador',
+  SEGUIDOR = 'seguidor',
+  MEDIDOR_FRONTERA = 'medidor_frontera',
+  MODEM_RECONECTADOR = 'modem_reconectador',
+  MODEM_FRONTERA = 'modem_frontera',
+  CCTV = 'cctv',
+  SEGURIDAD = 'seguridad',
+}
+
+export const ETIQUETA_TIPO_EQUIPO: Record<TipoEquipo, string> = {
+  [TipoEquipo.PANEL]: 'Paneles',
+  [TipoEquipo.INVERSOR]: 'Inversores',
+  [TipoEquipo.TRANSFORMADOR]: 'Transformador',
+  [TipoEquipo.RECONECTADOR]: 'Reconectador / relé',
+  [TipoEquipo.TOTALIZADOR]: 'Totalizador',
+  [TipoEquipo.SEGUIDOR]: 'Seguidor solar',
+  [TipoEquipo.MEDIDOR_FRONTERA]: 'Medidores de frontera',
+  [TipoEquipo.MODEM_RECONECTADOR]: 'Módem del reconectador',
+  [TipoEquipo.MODEM_FRONTERA]: 'Módems de frontera',
+  [TipoEquipo.CCTV]: 'CCTV',
+  [TipoEquipo.SEGURIDAD]: 'Seguridad física',
+}
+
+/** Qué se anota en `detalle` según el tipo: ayuda para el formulario. */
+export const AYUDA_DETALLE_EQUIPO: Partial<Record<TipoEquipo, string>> = {
+  [TipoEquipo.SEGUIDOR]: '1P o 2P',
+  [TipoEquipo.MODEM_RECONECTADOR]: 'IP del módem',
+  [TipoEquipo.CCTV]: 'Estado del CCTV',
+  [TipoEquipo.SEGURIDAD]: 'Cómo está protegida la planta',
+  [TipoEquipo.INVERSOR]: 'Ej.: Strings: 48',
+}
+
+/**
+ * Un equipo de la planta: uno por tipo (2 016 paneles son UNA fila con su
+ * cantidad). `potencia` es la de una unidad. El de tipo inversor trae sus
+ * inversores, que llevan cada uno su potencia y su marca.
+ */
+export interface EquipoProyecto {
+  id: number
+  proyecto_id: number
+  tipo: TipoEquipo
+  tipo_etiqueta: string
+  cantidad: number | null
+  marca: string | null
+  potencia: number | null
+  detalle: string | null
+  inversores: InversorProyecto[] | null
+}
+
+export type PayloadEquipo = Partial<
+  Pick<EquipoProyecto, 'tipo' | 'cantidad' | 'marca' | 'potencia' | 'detalle'>
+>
 
 // ── Fronteras del proyecto (el slice `fronteras` aún no está migrado) ─────────
 

@@ -3844,7 +3844,6 @@ import type { DataTableColumn, DataTableRow } from '~/components/blocks/DataTabl
 import type { ComboBoxOption } from '~/components/blocks/MultiComboBox.vue'
 import type { ContratoPpa, RegistroAsic } from '~/features/contratos/types'
 import type { ContratoCumplimientoPpa } from '~/features/mem/types'
-import type { ProyectoConDetalle } from '~/features/proyectos/types'
 import {
   ArrowDownWideNarrowIcon,
   ArrowUpNarrowWideIcon,
@@ -3897,7 +3896,6 @@ const cumplimientoService = new CumplimientoService()
 const ppaService = new PpaService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
 // ver ~/composables/useProyectosCatalogo.
-const catalogoProyectos = useProyectosCatalogo()
 
 // ── Tipos locales ──────────────────────────────────────────────────────────
 // Formas verificadas contra el uso real en esta vista. `~/features/mem/types`
@@ -4532,17 +4530,6 @@ const tooltipX = ref(0)
 const tooltipY = ref(0)
 const selectedMonthIdx = ref<number | null>(null)
 const chartBox = ref<HTMLDivElement | null>(null)
-
-// ── Backend proyectos (para filtrar por fecha_fin_representacion) ─────────────
-const backendProyectos = ref<ProyectoConDetalle[]>([])
-
-async function loadBackendProyectos() {
-  try {
-    backendProyectos.value = await catalogoProyectos.cargar()
-  } catch {
-    /* degradar silenciosamente */
-  }
-}
 
 // ── Simulador state ───────────────────────────────────────────────────────────
 const simYear = ref(now.getFullYear())
@@ -5861,12 +5848,9 @@ function resSim(id: number | string): SimResultado {
 
 // ── Simulador drag-and-drop ───────────────────────────────────────────────────
 function initAssignments(data: SimuladorData) {
-  const proyMap = Object.fromEntries(backendProyectos.value.map((p) => [p.id, p]))
   const a: Record<string, SimPlanta[]> = { none: [] }
   for (const c of data.contratos) a[c.id] = []
   for (const p of data.plantas) {
-    const proy = proyMap[p.id]
-    if (proy && !proyectoActivoEnMes(proy, simYear.value, simMonth.value)) continue
     const key = String(p.contrato_id ?? 'none')
     if (!a[key]) a[key] = []
     a[key].push({ ...p })
@@ -7933,7 +7917,7 @@ watch(activeTab, (tab) => {
 })
 
 onMounted(async () => {
-  await Promise.all([loadContratos(), loadBackendProyectos()])
+  await loadContratos()
   loadSimulator()
 })
 </script>

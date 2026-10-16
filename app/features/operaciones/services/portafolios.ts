@@ -1,4 +1,4 @@
-/** Los portafolios: agrupaciones de plantas para los informes consolidados. Una planta puede estar en varios. */
+/** Los portafolios: agrupaciones de plantas para los informes consolidados. Un proyecto está en uno solo. */
 import type {
   Portafolio,
   RespuestaAsignarPortafolio,
@@ -36,18 +36,16 @@ export class PortafoliosService extends BaseService {
   }
 
   /**
-   * Mete (`true`) o saca (`false`) la planta de ESE portafolio; los demás
-   * portafolios de la planta no se tocan. Una planta puede estar en varios.
+   * Pone la planta en ese portafolio y la saca del que tenía (`null` = en
+   * ninguno). Un proyecto está en un solo portafolio.
    */
   asignarProyecto(
     proyectoId: number,
-    portafolioId: Portafolio['id'],
-    enPortafolio: boolean,
+    portafolioId: Portafolio['id'] | null,
   ): Promise<RespuestaAsignarPortafolio> {
     return this.patch<RespuestaAsignarPortafolio>(RUTAS.asignar, {
       proyecto_id: proyectoId,
       portafolio_id: portafolioId,
-      en_portafolio: enPortafolio,
     })
   }
 }
