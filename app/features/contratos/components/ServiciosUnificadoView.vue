@@ -1052,9 +1052,11 @@ const ANIDADOS = ['info_tecnica', 'servicio_representacion']
 // Campos de enlace a documento por entidad. El backend no tiene una lista de
 // documentos esperados por entidad, asi que hoy esto solo puede valer 0 o 1
 // (2 en cliente). Para un checklist real ("faltan 3 de 7") hace falta backend.
+// Proyectos va vacío: su única entrada era `carpeta_drive_codigo`, columna que se
+// borró (2026-08-27, ninguna planta la usaba).
 const DOCS = {
   clientes: [['rut_url', 'RUT'], ['documentos_comerciales', 'Documentos comerciales']],
-  proyectos: [['carpeta_drive_codigo', 'Carpeta Drive']],
+  proyectos: [],
   ppa: [['carpeta_link', 'Carpeta del contrato']],
   contrato: [['enlace_drive', 'Enlace Drive']],
 }

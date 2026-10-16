@@ -129,11 +129,10 @@
            contrato y de ahí deriva a la planta. `proyectos.es_comunidad_energetica`
            y `nombre_comunidad` se eliminaron del modelo (migración proyectos/0008),
            asi que este toggle ya no guardaba nada -- quien lo activaba creía
-           haber marcado la planta y no pasaba nada. -->
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive (código)</label>
-        <Input v-model="f.carpeta_drive_codigo" />
-      </div>
+           haber marcado la planta y no pasaba nada.
+           Por lo mismo salieron «Carpeta Drive», «Fecha de operación
+           (mantenimiento)» y «Fecha de entrega del proyecto»: `proyectos` no
+           tiene esas columnas y el backend las descartaba sin avisar. -->
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Código base (topic)</label>
         <Input v-model="f.sub_project" placeholder="ej: perija, vallenata" />
@@ -147,14 +146,6 @@
       <div>
         <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación en MEM</label>
         <DatePicker v-model="fechaEntrada" clearable placeholder="Seleccionar" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
-        <DatePicker v-model="fechaOperMant" clearable placeholder="Seleccionar" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
-        <DatePicker v-model="fechaEntrega" clearable placeholder="Seleccionar" />
       </div>
     </div>
 
@@ -339,7 +330,6 @@ const f = reactive({
   altitud_msnm: null,
   operador_red_id: null,
   clasificacion_regulatoria: null,
-  carpeta_drive_codigo: null,
   sub_project: null,
   codigo_tsf: null,
   // Solo al importar desde TSF: los mismos códigos que guarda `tsf_sync`, para
@@ -409,22 +399,19 @@ onMounted(async () => {
   patrimonios.value = await catalogoPatrimonios.cargar().catch(() => [])
 })
 
-// Potencia AC y capacidad instalada -- viven en proyecto_info_tecnica (pestaña
-// Técnico), que requiere un proyecto_id existente, así que no son parte de `f`
-// (el payload de POST/PATCH /proyectos). El submit las emite aparte para que
-// quien las reciba haga el PUT a /proyectos/{id}/info-tecnica después de crear.
-// Ese PUT ya espeja capacidad_instalada_kwp a proyectos.potencia_ac_kw
-// del lado del backend (ver app/api/v1/proyectos.py::upsert_info_tecnica) --
-// no hace falta duplicarlo aquí.
+// Potencia AC, capacidad instalada y paneles son datos técnicos: se guardan con
+// `PUT /proyectos/{id}/info-tecnica`, que necesita el proyecto ya creado, así que
+// no son parte de `f` (el payload de POST/PATCH /proyectos). El submit las emite
+// aparte para que quien las reciba haga ese PUT después de crear. El backend
+// reparte lo recibido entre `proyectos`, `equipos` e `inversores` -- no hace
+// falta repartirlo aquí.
 const potenciaAcKw = ref(null)
 const capacidadInstaladaKwp = ref(null)
-// Cantidad de paneles -- también vive en proyecto_info_tecnica; opcional al crear.
+// Cantidad de paneles -- también va por info-tecnica; opcional al crear.
 const cantidadTotalPaneles = ref(null)
 
 // Fechas del proyecto ('YYYY-MM-DD', lo mismo que espera el API)
 const fechaEntrada = ref(null)
-const fechaOperMant = ref(null)
-const fechaEntrega = ref(null)
 
 function toDate(v) {
   if (!v) return null
@@ -473,8 +460,6 @@ function submit() {
   if (p50json !== null) payload.p50_mensual_kwh = p50json
   // Fechas del proyecto (null = sin fecha / vigente)
   payload.fecha_entrada_operacion = formatFecha(fechaEntrada.value)
-  payload.fecha_operacion_mantenimiento = formatFecha(fechaOperMant.value)
-  payload.fecha_entrega_proyecto = formatFecha(fechaEntrega.value)
   // potencia_ac_kw NO se manda: el dual-write se quitó en d68837e
   // porque ahora lo sincroniza el backend desde info-tecnica.
   // La comunidad energética ya no viaja acá: se marca en el PPA y de ahí deriva

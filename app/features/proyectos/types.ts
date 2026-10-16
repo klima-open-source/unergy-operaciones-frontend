@@ -109,8 +109,6 @@ export interface ProyectoConDetalle extends Proyecto {
   portafolio_nombre?: string | null
   fecha_inicio_comercializacion?: string | null
   fecha_entrada_operacion?: string | null
-  fecha_operacion_mantenimiento?: string | null
-  fecha_entrega_proyecto?: string | null
   p90_mensual_kwh?: string | null
   p50_mensual_kwh?: string | null
   p99_mensual_kwh?: string | null
@@ -151,7 +149,6 @@ export interface PayloadActualizarProyecto {
   longitud?: number | null
   operador_red_id?: number | null
   clasificacion_regulatoria?: string | null
-  carpeta_drive_codigo?: string | null
   sub_project?: string | null
   codigo_tsf?: string | null
   es_comunidad_energetica?: boolean
@@ -160,8 +157,6 @@ export interface PayloadActualizarProyecto {
   p50_mensual_kwh?: string | null
   p99_mensual_kwh?: string | null
   fecha_entrada_operacion?: string | null
-  fecha_operacion_mantenimiento?: string | null
-  fecha_entrega_proyecto?: string | null
   fecha_inicio_comercializacion?: string
   topico_liquidaciones?: string | null
   [clave: string]: unknown

@@ -63,7 +63,6 @@
             </div>
             <InfoField label="Operador de red" :value="proyecto.operador_red_legal || proyecto.operador_red" />
             <InfoField label="Clasificación" :value="proyecto.clasificacion_regulatoria" />
-            <InfoField label="Carpeta Drive" :value="proyecto.carpeta_drive_codigo" />
             <InfoField label="API ID Unergy" :value="proyecto.sub_project" />
             <InfoField label="Código TSF" :value="proyecto.codigo_tsf" />
             <!-- ECS (Estudio de Conexión Simplificado) de TSF: lo trae «Sincronizar con TSF». -->
@@ -80,8 +79,6 @@
             <InfoField
               label="Inicio de comercialización (pruebas)"
               :value="proyecto.fecha_inicio_comercializacion ? fmtFecha(proyecto.fecha_inicio_comercializacion) : '—'" />
-            <InfoField label="Fecha de operación (mantenimiento)" :value="proyecto.fecha_operacion_mantenimiento ? fmtFecha(proyecto.fecha_operacion_mantenimiento) : '—'" />
-            <InfoField label="Fecha de entrega del proyecto" :value="proyecto.fecha_entrega_proyecto ? fmtFecha(proyecto.fecha_entrega_proyecto) : '—'" />
             <!-- Se muestra pero ya NO se edita acá: la comunidad se negocia en
                  el PPA y el backend la deriva de ahí. Editarla en la planta era
                  lo que dejaba los dos datos contradiciéndose. -->
@@ -138,10 +135,6 @@
               <Select :model-value="aValorSelect(editForm.clasificacion_regulatoria)" @update:model-value="editForm.clasificacion_regulatoria = deValorSelect($event) || null"><SelectTrigger class="w-full"><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent><SelectItem :value="VALOR_SELECT_VACIO">Sin definir</SelectItem><SelectItem v-for="o in CLASIFICACIONES" :key="o" :value="o">{{ o }}</SelectItem></SelectContent></Select>
             </div>
             <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Carpeta Drive</label>
-              <Input v-model="editForm.carpeta_drive_codigo" />
-            </div>
-            <div class="flex flex-col gap-1">
               <label class="block text-xs font-medium text-muted-foreground mb-1">API ID Unergy</label>
               <Input v-model="editForm.sub_project" placeholder="ej: ibirico, bayunca" />
             </div>
@@ -157,14 +150,6 @@
               <label class="block text-xs font-medium text-muted-foreground mb-1">Inicio de comercialización (pruebas)</label>
               <DatePicker v-model="editFechaComerc" clearable placeholder="Auto (1er día con generación)" />
               <small class="text-xs text-muted-foreground">Se autoderiva del 1er día con generación. Si la fijas a mano, el sistema no la vuelve a cambiar.</small>
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de operación (mantenimiento)</label>
-              <DatePicker v-model="editFechaOperMant" clearable placeholder="Seleccionar" />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Fecha de entrega del proyecto</label>
-              <DatePicker v-model="editFechaEntrega" clearable placeholder="Seleccionar" />
             </div>
           </template>
         </div>
@@ -692,7 +677,6 @@ const editForm = reactive({
   direccion_vereda: null,
   operador_red_id: null,
   clasificacion_regulatoria: null,
-  carpeta_drive_codigo: null,
   sub_project: null,
   codigo_tsf: null,
   topico_liquidaciones: null,
@@ -702,8 +686,6 @@ const editForm = reactive({
 // Fechas del proyecto (DatePicker trabaja con Date; el API espera 'YYYY-MM-DD')
 const editFechaEntrada = ref(null)
 const editFechaComerc = ref(null)
-const editFechaOperMant = ref(null)
-const editFechaEntrega = ref(null)
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 /** Fecha del API -> 'aaaa-mm-dd', que es lo que usa DatePicker (y lo que `formatFecha` devuelve tal cual). */
@@ -810,8 +792,6 @@ function populateEditForm() {
   editP99.value = parseMonthArray(p.p99_mensual_kwh)
   editFechaEntrada.value = aFecha(p.fecha_entrada_operacion)
   editFechaComerc.value = aFecha(p.fecha_inicio_comercializacion)
-  editFechaOperMant.value = aFecha(p.fecha_operacion_mantenimiento)
-  editFechaEntrega.value = aFecha(p.fecha_entrega_proyecto)
   editLiq.sic_gen = liqConfig.value?.sic_gen ?? ''
   editLiq.sic_con = liqConfig.value?.sic_con ?? ''
   editSubproyectos.value = (liqConfig.value?.subproyectos ?? []).map(s => ({
@@ -880,8 +860,6 @@ async function saveEdit() {
     // Fechas: se inicializan desde los valores actuales, así que enviarlas siempre
     // preserva lo existente y permite limpiarlas (null) explícitamente.
     payload.fecha_entrada_operacion = formatFecha(editFechaEntrada.value)
-    payload.fecha_operacion_mantenimiento = formatFecha(editFechaOperMant.value)
-    payload.fecha_entrega_proyecto = formatFecha(editFechaEntrega.value)
     // Inicio de comercialización: solo se envía si el usuario la cambió, para no
     // marcarla como "editada a mano" en cada guardado (el backend fija ese flag
     // cuando este campo llega en el payload).

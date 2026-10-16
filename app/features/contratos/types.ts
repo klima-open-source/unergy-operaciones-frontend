@@ -300,10 +300,6 @@ export interface ContratoServicio {
   originabot_arriendo_id?: number | null
   indice_indexacion?: string | null
   responsable_iva?: boolean | null
-  service_scope?: string | null
-  specific_service_terms?: string | null
-  slas?: string | null
-  responsibilities?: string | null
   // ── Internet ──
   plan_datos_gb?: string | null
   velocidad_mbps?: number | null

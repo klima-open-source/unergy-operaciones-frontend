@@ -142,6 +142,15 @@
                 <DatePicker v-model="form.fecha_fin" clearable />
               </div>
             </div>
+            <!-- El precio base de la compra/venta. Los precios de cada mes van en
+                 el paso de Tarifas; este es el de partida que se indexa. -->
+            <div class="max-w-xs space-y-1.5">
+              <GLabel>Tarifa base (COP/kWh)</GLabel>
+              <NumberField v-model="form.tarifa_base" :step-snapping="false"
+                :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 4 }">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
             <div class="grid grid-cols-3 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Índice de indexación</GLabel>
@@ -491,6 +500,7 @@ const filasResumen = computed(() => [
   { label: 'Vendedor', value: form.vendedor_nombre },
   { label: 'Inicio despacho', value: formatFecha(form.fecha_inicio) },
   { label: 'Fin despacho', value: formatFecha(form.fecha_fin) },
+  { label: 'Tarifa base', value: form.tarifa_base != null ? `$${Number(form.tarifa_base).toLocaleString('es-CO', { maximumFractionDigits: 4 })}/kWh` : null },
   { label: 'Índice', value: form.indice_indexacion },
   { label: 'Tiempo de pago', value: form.tiempo_pago != null ? `${form.tiempo_pago} días` : null },
   { label: 'Tarifas', value: tarifasRows.value.length ? `${tarifasRows.value.length} filas` : null },
@@ -521,6 +531,7 @@ const form = reactive({
   comprador_id: null, comprador_nombre: null, comprador_nit: null,
   vendedor_id: null, vendedor_nombre: null, vendedor_nit: null,
   fecha_inicio: null, fecha_fin: null,
+  tarifa_base: null,
   indice_indexacion: null, periodicidad_indexacion: null,
   periodo_indexacion_base: null, valor_indexacion_base: null,
   periodicidad_facturacion: null, tiempo_pago: null, condiciones_pago: null,
@@ -538,6 +549,8 @@ watch(() => props.visible, (visible) => {
       const limpiar = !esEdicion && EXCLUIR_DUPLICADO.includes(k)
       form[k] = limpiar ? null : (props.initialData[k] ?? null)
     })
+    // El backend devuelve el decimal como texto; el NumberField necesita número.
+    if (form.tarifa_base != null) form.tarifa_base = Number(form.tarifa_base)
     // El tipo de contrato nunca debe quedar vacío en el selector: backend usa 'venta' por defecto.
     if (!form.tipo_contrato) form.tipo_contrato = 'venta'
 

@@ -801,19 +801,21 @@
         <!-- Valor anual / Valor mensual -->
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-muted-foreground">Valor O&amp;M Anual (BASE) <span class="text-destructive">*</span></label>
-            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_base" :format-options="FORMATO_COP"
-              @update:model-value="v => { if (Number.isFinite(v)) dialogMant.form.tarifa_mensual = Math.round(v / 12) }">
+            <label class="text-xs font-medium text-muted-foreground">Valor O&amp;M anual BASE ($/año) <span class="text-destructive">*</span></label>
+            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_base" :format-options="FORMATO_COP">
               <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
             </NumberField>
             <p v-if="dialogMant.errores.tarifa_base" class="text-xs text-destructive">{{ dialogMant.errores.tarifa_base }}</p>
           </div>
+          <!-- El mensual no se edita: en mantenimiento el backend ignora
+               `tarifa_mensual` y lo deriva del anual (÷ 12). Un campo editable
+               prometía guardar algo que se perdía. -->
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-muted-foreground">Valor mensual <span class="text-destructive">*</span></label>
-            <NumberField :step-snapping="false" v-model="dialogMant.form.tarifa_mensual" :format-options="FORMATO_COP">
-              <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
-            </NumberField>
-            <p class="text-xs text-muted-foreground">Sugerido: Valor Anual ÷ 12</p>
+            <span class="text-xs font-medium text-muted-foreground">Valor mensual</span>
+            <span class="text-sm text-foreground py-1.5">
+              {{ dialogMant.form.tarifa_base != null ? formatCOP(Math.round(dialogMant.form.tarifa_base / 12)) : '—' }}
+            </span>
+            <p class="text-xs text-muted-foreground">Se calcula: valor anual ÷ 12</p>
           </div>
         </div>
         <!-- Administración: casi siempre se negocia en el contrato de representación y
@@ -880,7 +882,7 @@
           </template>
           <div v-if="dialogEdit.tipo !== 'internet'" class="flex flex-col gap-1">
             <label class="text-xs font-medium text-muted-foreground">
-              {{ dialogEdit.tipo === 'mantenimiento' ? 'Valor O&M Anual BASE (COP)' : 'Valor anual BASE (COP)' }}
+              {{ dialogEdit.tipo === 'mantenimiento' ? 'Valor O&M anual BASE ($/año)' : 'Valor anual BASE ($/año)' }}
             </label>
             <NumberField :step-snapping="false" v-model="dialogEdit.form.tarifa_base" :format-options="FORMATO_COP">
               <NumberFieldContent><NumberFieldInput placeholder="$ 0" /></NumberFieldContent>
@@ -1132,7 +1134,6 @@ const dialogMant = reactive({
     fecha_inicio_om: null,
     fecha_firma_contrato: null,
     tarifa_base: null,
-    tarifa_mensual: null,
     tarifa_admin_pct: null,
     enlace_drive: '',
     estado: 'firmado',
@@ -1445,7 +1446,6 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.fecha_inicio_om    = aFecha(c.fecha_inicio_om || c.fecha_inicio)
     dialogMant.form.fecha_firma_contrato = aFecha(c.fecha_firma_contrato)
     dialogMant.form.tarifa_base        = c.tarifa_base ?? null
-    dialogMant.form.tarifa_mensual     = c.tarifa_mensual ?? (c.tarifa_base != null ? Math.round(c.tarifa_base / 12) : null)
     dialogMant.form.tarifa_admin_pct   = c.tarifa_admin != null ? Number(c.tarifa_admin) * 100 : null
     dialogMant.form.enlace_drive       = c.enlace_drive || ''
     dialogMant.form.estado             = c.estado || 'firmado'
@@ -1458,7 +1458,6 @@ function openMantenimientoDialog(modo) {
     dialogMant.form.fecha_inicio_om    = null
     dialogMant.form.fecha_firma_contrato = null
     dialogMant.form.tarifa_base        = null
-    dialogMant.form.tarifa_mensual     = null
     dialogMant.form.tarifa_admin_pct   = null
     dialogMant.form.enlace_drive       = ''
     dialogMant.form.estado             = 'firmado'
@@ -1493,7 +1492,6 @@ async function saveMantenimiento() {
       fecha_inicio_om:    toISO(dialogMant.form.fecha_inicio_om),
       fecha_firma_contrato: toISO(dialogMant.form.fecha_firma_contrato),
       tarifa_base:        dialogMant.form.tarifa_base,
-      tarifa_mensual:     dialogMant.form.tarifa_mensual ?? null,
       tarifa_admin:       dialogMant.form.tarifa_admin_pct != null ? dialogMant.form.tarifa_admin_pct / 100 : null,
       enlace_drive:       dialogMant.form.enlace_drive?.trim() || null,
       estado:             dialogMant.form.estado,
@@ -1579,8 +1577,7 @@ async function cargarDesdeExcel(event) {
     }
     dialogMant.form.fecha_inicio_om    = parseFecha(fila['Fecha de inicio O&M'])?.toISOString().slice(0, 10) ?? null
     dialogMant.form.tarifa_base        = parseNum(fila['Valor O&M Anual (BASE)'])
-    const mensualExcel                 = parseNum(fila['Valor mensual'])
-    dialogMant.form.tarifa_mensual     = mensualExcel ?? (dialogMant.form.tarifa_base != null ? Math.round(dialogMant.form.tarifa_base / 12) : null)
+    // La columna 'Valor mensual' no se lee: el backend la deriva del anual.
     dialogMant.form.enlace_drive       = String(fila['Enlace del contrato en Drive'] ?? '').trim()
     dialogMant.form.estado             = contratos.mantenimiento?.estado ?? 'firmado'
     dialogMant.errores                 = {}

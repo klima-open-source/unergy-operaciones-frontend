@@ -34,10 +34,18 @@
       <!-- Content -->
       <div class="py-2 min-h-72">
 
-        <!-- PASO 0 (internet): solo los datos técnicos del servicio -->
+        <!-- PASO 0 (internet): los datos técnicos del servicio y su tarifa mensual -->
         <template v-if="step === 0 && tipo === 'internet'">
           <p class="text-sm font-semibold text-foreground mb-4">Datos del servicio</p>
           <div class="space-y-4">
+            <!-- Internet se cobra por mes: viaja como `tarifa_mensual` (el backend
+                 ignora `tarifa_base` en este servicio). -->
+            <div class="max-w-xs space-y-1.5">
+              <GLabel>Tarifa mensual ($/mes)</GLabel>
+              <NumberField :step-snapping="false" v-model="form.tarifa_mensual" :format-options="FORMATO_COP">
+                <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+              </NumberField>
+            </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <GLabel>Plan de datos</GLabel>
@@ -196,7 +204,9 @@
         </template>
 
         <!-- PASO 1: Partes -->
-        <template v-if="step === 1 && tipo !== 'internet'">
+        <!-- Internet también: el backend exige contratante y prestador al crear
+             cualquier contrato de servicio, y sin este paso todo POST salía 400. -->
+        <template v-if="step === 1">
           <p class="text-sm font-semibold text-foreground mb-4">Partes del contrato</p>
           <div class="grid grid-cols-2 gap-1 mb-1 px-1">
             <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contratante</span>
@@ -300,8 +310,9 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div v-if="props.tipo !== 'representacion'" class="space-y-1.5">
-                <GLabel>Tarifa base (COP/kWh)</GLabel>
-                <NumberField :step-snapping="false" v-model="form.tarifa_base" :format-options="FORMATO_TARIFA_BASE">
+                <GLabel>{{ etiquetaTarifaBase }}</GLabel>
+                <NumberField :step-snapping="false" v-model="form.tarifa_base"
+                  :format-options="tarifaAnual ? FORMATO_COP : FORMATO_TARIFA_BASE">
                   <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
                 </NumberField>
               </div>
@@ -321,36 +332,6 @@
             <div class="max-w-xs space-y-1.5">
               <GLabel>Índice de indexación</GLabel>
               <Input v-model="form.indice_indexacion" placeholder="Ej: IPC, IPP" />
-            </div>
-
-            <!-- Detalles operacionales y contractuales -->
-            <div class="border-t border-muted pt-3">
-              <p class="text-xs font-semibold uppercase tracking-wide mb-3 text-(--c)" :style="{ '--c': tipoColor }">
-                Detalles operacionales y contractuales
-                <span class="normal-case font-normal text-muted-foreground">(opcional)</span>
-              </p>
-              <div class="space-y-4">
-                <div class="space-y-1.5">
-                  <GLabel>Alcance del servicio</GLabel>
-                  <Textarea v-model="form.service_scope" rows="3"
-                    placeholder="Describe el alcance del servicio…" />
-                </div>
-                <div class="space-y-1.5">
-                  <GLabel>Términos específicos del servicio</GLabel>
-                  <Textarea v-model="form.specific_service_terms" rows="3"
-                    placeholder="Términos específicos aplicables al servicio…" />
-                </div>
-                <div class="space-y-1.5">
-                  <GLabel>SLAs (Acuerdos de nivel de servicio)</GLabel>
-                  <Textarea v-model="form.slas" rows="3"
-                    placeholder="Acuerdos de nivel de servicio, tiempos de respuesta…" />
-                </div>
-                <div class="space-y-1.5">
-                  <GLabel>Responsabilidades</GLabel>
-                  <Textarea v-model="form.responsibilities" rows="3"
-                    placeholder="Responsabilidades de las partes…" />
-                </div>
-              </div>
             </div>
           </div>
         </template>
@@ -556,8 +537,13 @@ const tipoColor = computed(() => TIPO_CONFIG[props.tipo]?.color ?? 'var(--muted-
 const tipoColorSuave = computed(() => `color-mix(in oklab, ${tipoColor.value} 38%, transparent)`)
 const tipoLabel = computed(() => TIPO_CONFIG[props.tipo]?.label ?? props.tipo)
 
+// Mantenimiento y arriendo se pactan por año: `tarifa_base` es $/año y el
+// backend deriva la mensual (/12). La de internet va aparte, como mensual.
+const tarifaAnual = computed(() => ['mantenimiento', 'arriendo'].includes(props.tipo))
+const etiquetaTarifaBase = computed(() => (tarifaAnual.value ? 'Tarifa anual ($/año)' : 'Tarifa base (COP/kWh)'))
+
 const STEPS = computed(() => {
-  if (props.tipo === 'internet') return [{ label: 'Datos del servicio' }]
+  if (props.tipo === 'internet') return [{ label: 'Datos del servicio' }, { label: 'Partes' }]
   const base = [
     { label: 'Identificación' },
     { label: 'Partes' },
@@ -624,6 +610,7 @@ const form = reactive({
   fecha_inicio: null,
   fecha_fin: null,
   tarifa_base: null,
+  tarifa_mensual: null,
   tarifa_representacion: null,
   tarifa_cgm: null,
   // Representación/CGM: qué servicios cubre el contrato. Viajan como `servicios`.
@@ -634,10 +621,6 @@ const form = reactive({
   fecha_firma_contrato: null,
   enlace_drive: '',
   estado_pago: null,
-  service_scope: '',
-  specific_service_terms: '',
-  slas: '',
-  responsibilities: '',
   plan_datos_gb: '',
   velocidad_mbps: null,
   tipo_conexion: null,
@@ -726,15 +709,22 @@ async function initUbicacionMap() {
 
 // La ventana dibuja su contenido después de montarse el componente: el mapa se
 // inicia cuando aparece su contenedor, no en `onMounted`.
+// Al pasar al paso de partes el contenedor desaparece: el mapa se desmonta para
+// poder crearlo de nuevo si se vuelve atrás.
 watch(ubicacionMapEl, (el) => {
-  if (el && props.tipo === 'internet') initUbicacionMap()
+  if (!el) destruirUbicacionMap()
+  else if (props.tipo === 'internet') initUbicacionMap()
 })
 
-onBeforeUnmount(() => {
+function destruirUbicacionMap() {
   ubicacionMapRO?.disconnect()
+  ubicacionMapRO = null
   ubicacionMap?.remove()
   ubicacionMap = null
-})
+  ubicacionMarker = null
+}
+
+onBeforeUnmount(destruirUbicacionMap)
 
 /**
  * Las partes que quedaron sin cliente vinculado.
@@ -742,8 +732,6 @@ onBeforeUnmount(() => {
  * Guardar con un nombre suelto deja un contrato que nombra a alguien que el
  * sistema no reconoce: no aparece en el panel del cliente, y los cálculos por
  * cliente lo dejan por fuera. Por eso bloquea, en vez de avisar.
- *
- * Internet no tiene paso de partes.
  */
 /** Representación/CGM sin ninguna casilla marcada: no se puede crear. */
 const sinServicio = computed(() =>
@@ -759,7 +747,6 @@ function serviciosElegidos() {
 }
 
 const partesPendientes = computed(() => {
-  if (props.tipo === 'internet') return []
   const faltan = []
   if (!form.contratante_id) faltan.push('el contratante')
   if (!form.prestador_id) faltan.push('el prestador')
@@ -887,7 +874,10 @@ async function crearContrato() {
       estado_pago: form.estado_pago ?? null,
       fecha_inicio: formatFecha(form.fecha_inicio),
       fecha_fin: formatFecha(form.fecha_fin),
-      tarifa_base: form.tarifa_base ?? null,
+      // Internet manda la mensual; el resto, la base (anual en mantenimiento y
+      // arriendo). Cada servicio ignora la otra, así que no se mezclan.
+      tarifa_base: props.tipo === 'internet' ? null : (form.tarifa_base ?? null),
+      tarifa_mensual: props.tipo === 'internet' ? (form.tarifa_mensual ?? null) : null,
       // En este grupo `servicio_aplica` es siempre 'representacion' (nombra al
       // grupo); lo que cubre el contrato lo dice `servicios`.
       servicios: serviciosElegidos(),
@@ -895,10 +885,6 @@ async function crearContrato() {
       tarifa_cgm: form.cubre_cgm ? (form.tarifa_cgm ?? null) : null,
       periodicidad_pago: form.periodicidad_pago ?? null,
       indice_indexacion: form.indice_indexacion?.trim() || null,
-      service_scope: form.service_scope?.trim() || null,
-      specific_service_terms: form.specific_service_terms?.trim() || null,
-      slas: form.slas?.trim() || null,
-      responsibilities: form.responsibilities?.trim() || null,
       plan_datos_gb: props.tipo === 'internet' ? (form.plan_datos_gb?.trim() || null) : null,
       velocidad_mbps: props.tipo === 'internet' ? (form.velocidad_mbps ?? null) : null,
       tipo_conexion: props.tipo === 'internet' ? (form.tipo_conexion || null) : null,

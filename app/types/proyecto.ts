@@ -62,7 +62,6 @@ export interface ProyectoEditable {
   /** Enlaza con el catálogo real que usa el Reporte CGM (`Frontera.operador_red_id`). */
   operador_red_id: Id | null
   clasificacion_regulatoria: ClasificacionRegulatoria | null
-  carpeta_drive_codigo: string | null
   /** Identificador en la API de monitoreo de Unergy. */
   sub_project: string | null
   /** Código en Sun Factory, el origen del pipeline comercial. */

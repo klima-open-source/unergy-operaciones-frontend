@@ -182,6 +182,13 @@
           <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
             <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-warning/10"><DollarSignIcon class="size-3 text-warning" /></span>
             <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Condiciones comerciales</h3>
+            <div class="ml-auto flex items-center gap-1">
+              <Button variant="ghost" size="sm" v-if="!editandoTarifaBase" @click="iniciarEdicionTarifaBase"><PencilIcon class="size-4" /> Editar tarifa base</Button>
+              <template v-else>
+                <Button variant="ghost" size="sm" @click="editandoTarifaBase = false">Cancelar</Button>
+                <Button size="sm" :disabled="guardandoTarifaBase" @click="guardarTarifaBase"><Spinner v-if="guardandoTarifaBase" class="size-4" /> <CheckIcon v-else class="size-4" /> Guardar</Button>
+              </template>
+            </div>
           </header>
           <div class="p-3.5">
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5">
@@ -190,7 +197,14 @@
               <InfoField label="Período base indexación" :value="contrato.periodo_indexacion_base" />
               <InfoField label="Valor indexación base"
                 :value="contrato.valor_indexacion_base != null ? String(contrato.valor_indexacion_base) : null" />
-              <InfoField label="Tarifa base ($/kWh)" :value="tarifaBaseFmt" />
+              <InfoField v-if="!editandoTarifaBase" label="Tarifa base ($/kWh)" :value="tarifaBaseFmt" />
+              <div v-else class="flex flex-col gap-1">
+                <GLabel>Tarifa base (COP/kWh)</GLabel>
+                <NumberField :step-snapping="false" v-model="formTarifaBase"
+                  :format-options="{ minimumFractionDigits: 2, maximumFractionDigits: 4 }">
+                  <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
+                </NumberField>
+              </div>
               <InfoField label="Periodicidad facturación" :value="contrato.periodicidad_facturacion" />
               <InfoField label="Tiempo de pago (días)"
                 :value="contrato.tiempo_pago != null ? String(contrato.tiempo_pago) : null" />
@@ -246,31 +260,6 @@
           </div>
         </section>
 
-        <!-- ── Detalles operacionales (solo si el contrato los trae) ─── -->
-        <section v-if="tieneDetallesOperacionales" class="bg-card border border-border rounded-xl overflow-hidden">
-          <header class="flex items-center gap-2 min-h-10 px-3.5 py-1.5 bg-muted/50 border-b border-border">
-            <span class="size-6 rounded-lg shrink-0 inline-flex items-center justify-center bg-muted-foreground/10"><ListIcon class="size-3 text-muted-foreground" /></span>
-            <h3 class="text-xs font-bold tracking-wide uppercase text-foreground">Detalles operacionales y contractuales</h3>
-          </header>
-          <div class="p-3.5 space-y-3">
-            <div v-if="contrato.service_scope" class="flex flex-col gap-0.5">
-              <span class="text-xs font-medium text-muted-foreground">Alcance del servicio</span>
-              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.service_scope }}</span>
-            </div>
-            <div v-if="contrato.specific_service_terms" class="flex flex-col gap-0.5">
-              <span class="text-xs font-medium text-muted-foreground">Términos específicos del servicio</span>
-              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.specific_service_terms }}</span>
-            </div>
-            <div v-if="contrato.slas" class="flex flex-col gap-0.5">
-              <span class="text-xs font-medium text-muted-foreground">SLAs (Acuerdos de nivel de servicio)</span>
-              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.slas }}</span>
-            </div>
-            <div v-if="contrato.responsibilities" class="flex flex-col gap-0.5">
-              <span class="text-xs font-medium text-muted-foreground">Responsabilidades</span>
-              <span class="text-sm whitespace-pre-line text-foreground">{{ contrato.responsibilities }}</span>
-            </div>
-          </div>
-        </section>
 
       </div>
 
@@ -722,7 +711,7 @@ import NitDeCliente from '~/features/clientes/components/NitDeCliente.vue'
 import { estadoVigenciaPPA } from '~/features/contratos/utils/ppaVigencia'
 import { idsConPlantaAgregada, yaEstaVinculada } from '~/features/contratos/plantasDelContrato'
 import { PpaService } from '~/features/contratos/services/ppa'
-import { ArrowDownRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, BadgeCheckIcon, BookIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronRightIcon, CircleCheckIcon, CircleIcon, CirclePlusIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FileTextIcon, HourglassIcon, IdCardIcon, InfoIcon, LinkIcon, ListIcon, LoaderCircleIcon, MinusIcon, MoveHorizontalIcon, MoveVerticalIcon, NetworkIcon, PencilIcon, PlusIcon, RefreshCwIcon, SunIcon, TriangleAlertIcon, UploadIcon, UsersIcon, XIcon, ZapIcon } from '@lucide/vue'
+import { ArrowDownRightIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpRightIcon, BadgeCheckIcon, BookIcon, BuildingIcon, CalendarIcon, ChartColumnIcon, ChartLineIcon, CheckIcon, ChevronRightIcon, CircleCheckIcon, CircleIcon, CirclePlusIcon, CircleXIcon, ClockIcon, DollarSignIcon, ExternalLinkIcon, FileIcon, FileTextIcon, HourglassIcon, IdCardIcon, InfoIcon, LinkIcon, LoaderCircleIcon, MinusIcon, MoveHorizontalIcon, MoveVerticalIcon, NetworkIcon, PencilIcon, PlusIcon, RefreshCwIcon, SunIcon, TriangleAlertIcon, UploadIcon, UsersIcon, XIcon, ZapIcon } from '@lucide/vue'
 
 const ppaService = new PpaService()
 // El catalogo de plantas se pide UNA vez para toda la aplicacion:
@@ -893,13 +882,31 @@ const tarifaBaseFmt = computed(() => {
   return v != null ? `$${Number(v).toLocaleString('es-CO', { maximumFractionDigits: 4 })}` : null
 })
 
-// Estos cuatro campos son de los contratos de SERVICIO, no de los PPA: el
-// endpoint /ppa nunca los devuelve. Se mantiene la sección por si algún día
-// llegan, pero oculta mientras estén vacíos en vez de mostrar cuatro guiones.
-const tieneDetallesOperacionales = computed(() => {
-  const c = contrato.value
-  return !!(c?.service_scope || c?.specific_service_terms || c?.slas || c?.responsibilities)
-})
+// La tarifa base (precio base de la compra/venta) solo se veía: el PATCH /ppa
+// la acepta, así que se edita acá. Los precios mensuales siguen en Tarifas.
+const editandoTarifaBase = ref(false)
+const guardandoTarifaBase = ref(false)
+const formTarifaBase = ref(null)
+
+function iniciarEdicionTarifaBase() {
+  const v = contrato.value?.tarifa_base
+  formTarifaBase.value = v != null ? Number(v) : null
+  editandoTarifaBase.value = true
+}
+
+async function guardarTarifaBase() {
+  guardandoTarifaBase.value = true
+  try {
+    const data = await ppaService.actualizar(contrato.value.id, { tarifa_base: formTarifaBase.value ?? null })
+    contrato.value = { ...contrato.value, ...data }
+    editandoTarifaBase.value = false
+    toast.success('Guardado', { description: 'Tarifa base actualizada', duration: 2500 })
+  } catch (e) {
+    toast.error('Error', { description: e.data?.detail || e.message, duration: 4000 })
+  } finally {
+    guardandoTarifaBase.value = false
+  }
+}
 
 const vistaCantidades = ref('mensual')
 const vistaTarifas = ref('mensual')

@@ -524,11 +524,18 @@
         </section>
       </template>
     </template>
+
+    <!-- El contrato nuevo se crea en el wizard, con la planta ya puesta: ahí se
+         escogen contratante, prestador y el inversionista, que el backend exige
+         al crear. -->
+    <ContratoServicioWizard v-if="wizardAbierto" :visible="wizardAbierto"
+      tipo="representacion" :proyecto-id-default="pid"
+      @cerrar="wizardAbierto = false" @creado="alCrearContrato" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
@@ -549,6 +556,8 @@ import {
 import { hoyColombia } from '~/utils/fecha'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { ArrowLeftIcon, ArrowRightIcon, BriefcaseIcon, BuildingIcon, CalendarIcon, ChartLineIcon, CheckIcon, CircleIcon, ClockIcon, CopyIcon, DollarSignIcon, ExternalLinkIcon, FilePenIcon, IdCardIcon, PencilIcon, PlusIcon, TableIcon, Trash2Icon, TriangleAlertIcon, UsersIcon } from '@lucide/vue'
+// El wizard pesa; solo se descarga cuando alguien crea un contrato.
+const ContratoServicioWizard = defineAsyncComponent(() => import('./ContratoServicioWizard.vue'))
 /**
  * `embebido`: dentro de otra ficha (la del proyecto o la del contrato), sin migas ni «atrás».
  * `proyectoId`: la planta, cuando la ruta no es la del proyecto (en /contratos/{id}).
@@ -917,19 +926,16 @@ function guardarIdx(clave) {
   return enviar({ [campo]: filas })
 }
 
-async function nuevoContrato() {
-  try {
-    const data = await contratosServicioService.crear({
-      servicio_aplica: 'representacion',
-      proyecto_id: pid.value,
-      estado: 'firmado',
-    })
-    contratos.value.push(data)
-    idSeleccionado.value = data.id
-    toast.success('Contrato creado', { description: 'Completa los datos con Editar', duration: 3000 })
-  } catch (e) {
-    toast.error('No se pudo crear', { description: e.data?.detail || e.message, duration: 4000 })
-  }
+const wizardAbierto = ref(false)
+
+function nuevoContrato() {
+  wizardAbierto.value = true
+}
+
+/** Recarga la lista y deja seleccionado el contrato recién creado. */
+async function alCrearContrato(data) {
+  await cargar()
+  if (data?.id && contratos.value.some(x => x.id === data.id)) idSeleccionado.value = data.id
 }
 
 // ── Carga ────────────────────────────────────────────────────────────────────
