@@ -7,23 +7,33 @@
  * estático y se carga perezosamente —84 KB que no tienen por qué pesar en las
  * demás vistas—; la razón social y las actividades salen en vivo del SIMEM.
  */
-import { BuildingIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon, SearchIcon, ZapIcon } from '@lucide/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import {
+  BuildingIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  DownloadIcon,
+  SearchIcon,
+  ZapIcon,
+} from '@lucide/vue'
+import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { normalizeError } from '~/core/errors'
 import { obtenerRegistroAgentes } from '~/features/mem/services/simem'
-import type { AgenteSimem, FilaAgente, PlantaDeAgente, PlantaSimem } from '~/features/mem/utils/simemAgentes'
-import { TECNOLOGIAS, agentesDesdeCatalogo, filtrarAgentes } from '~/features/mem/utils/simemAgentes'
+import type {
+  AgenteSimem,
+  FilaAgente,
+  PlantaDeAgente,
+  PlantaSimem,
+} from '~/features/mem/utils/simemAgentes'
+import {
+  TECNOLOGIAS,
+  agentesDesdeCatalogo,
+  filtrarAgentes,
+} from '~/features/mem/utils/simemAgentes'
 import SimemPanelDataset from '~/features/mem/components/SimemPanelDataset.vue'
-import GraficaDiariaBolsa from '~/features/mem/components/GraficaDiariaBolsa.vue'
 import SimemCatalogo from '~/features/mem/components/SimemCatalogo.vue'
 import { cargarCatalogo } from '~/features/mem/utils/catalogoPlantas'
-import { resumirBolsa } from '~/features/mem/utils/bolsaResumen'
 import { exportarExcel } from '~/utils/exportarExcel'
-import type { BolsaSimemMes } from '~/features/mem/services/bolsaSimem'
-import { BolsaSimemService } from '~/features/mem/services/bolsaSimem'
-
-const bolsaService = new BolsaSimemService()
 
 interface FilaExportacion {
   f: FilaAgente
@@ -33,7 +43,6 @@ interface FilaExportacion {
 /** Las pestañas portadas del HTML suelto. Las demás entran con este mismo molde. */
 const PESTANAS = [
   { id: 'agentes', label: 'Códigos de agente' },
-  { id: 'bolsa', label: 'Precio de bolsa' },
   { id: 'costos', label: 'Costos CND / ASIC' },
   { id: 'oef', label: 'OEF / CxC' },
   { id: 'contratos', label: 'Contratos / Índice MC' },
@@ -132,18 +141,19 @@ const soloUnergy = ref(false)
 const abiertos = ref(new Set<string>())
 
 const todas = computed(() => agentesDesdeCatalogo(catalogo.value, registro.value, UNERGY))
-const filas = computed(() => filtrarAgentes(todas.value, {
-  q: q.value, tecnologia: tecnologia.value, actividad: actividad.value, soloUnergy: soloUnergy.value,
-}))
+const filas = computed(() =>
+  filtrarAgentes(todas.value, {
+    q: q.value,
+    tecnologia: tecnologia.value,
+    actividad: actividad.value,
+    soloUnergy: soloUnergy.value,
+  }),
+)
 const totalPlantas = computed(() => filas.value.reduce((s, f) => s + f.plantas.length, 0))
 
 /** Las actividades que de verdad existen en el registro, no una lista inventada. */
-const actividades = computed(() =>
-  [...new Set(todas.value.flatMap((f) => f.actividades))].sort(),
-)
-const tecnologias = computed(() =>
-  [...new Set(todas.value.flatMap((f) => f.tecnologias))].sort(),
-)
+const actividades = computed(() => [...new Set(todas.value.flatMap((f) => f.actividades))].sort())
+const tecnologias = computed(() => [...new Set(todas.value.flatMap((f) => f.tecnologias))].sort())
 
 function alternar(codigo: string) {
   const abierto = new Set(abiertos.value)
@@ -152,7 +162,7 @@ function alternar(codigo: string) {
   abiertos.value = abierto
 }
 
-const fmtMw = (kw: number) => kw > 0 ? `${(kw / 1000).toFixed(2).replace('.', ',')} MW` : '—'
+const fmtMw = (kw: number) => (kw > 0 ? `${(kw / 1000).toFixed(2).replace('.', ',')} MW` : '—')
 
 async function cargar() {
   cargando.value = true
@@ -194,87 +204,36 @@ async function exportar() {
     // Un agente sin plantas igual sale, con la celda de planta vacía: si se
     // omitiera, el Excel no cuadraría con el conteo de la pantalla.
     const planas = filas.value.flatMap<FilaExportacion>((f) =>
-      f.plantas.length
-        ? f.plantas.map((p) => ({ f, p }))
-        : [{ f, p: null }],
+      f.plantas.length ? f.plantas.map((p) => ({ f, p })) : [{ f, p: null }],
     )
-    await exportarExcel<FilaExportacion>(planas, [
-      { header: 'Código SIC', value: (r) => r.f.codigo },
-      { header: 'Razón social', value: (r) => r.f.nombre },
-      { header: 'Actividad', value: (r) => r.f.actividades.join(' · ') },
-      { header: 'Unergy', value: (r) => r.f.esUnergy ? 'SÍ' : '' },
-      { header: 'Planta', value: (r) => r.p?.codigo ?? '' },
-      { header: 'Nombre planta', value: (r) => r.p?.nombre ?? '' },
-      { header: 'Tecnología', value: (r) => r.p ? (TECNOLOGIAS[r.p.tecnologia] ?? r.p.tecnologia) : '' },
-      { header: 'Capacidad (kW)', value: (r) => r.p?.capacidadKw ?? '' },
-      { header: 'Uns (SIMEM)', value: (r) => r.p?.unidades.join(', ') ?? '' },
-      { header: 'Pls (SRC)', value: (r) => r.p?.pls ?? '' },
-      { header: 'Despacho', value: (r) => r.p?.despacho ?? '' },
-      { header: 'FPO', value: (r) => r.p?.fpo ?? '' },
-    ], 'SIMEM_codigos_de_agente.xlsx', 'Agentes')
+    await exportarExcel<FilaExportacion>(
+      planas,
+      [
+        { header: 'Código SIC', value: (r) => r.f.codigo },
+        { header: 'Razón social', value: (r) => r.f.nombre },
+        { header: 'Actividad', value: (r) => r.f.actividades.join(' · ') },
+        { header: 'Unergy', value: (r) => (r.f.esUnergy ? 'SÍ' : '') },
+        { header: 'Planta', value: (r) => r.p?.codigo ?? '' },
+        { header: 'Nombre planta', value: (r) => r.p?.nombre ?? '' },
+        {
+          header: 'Tecnología',
+          value: (r) => (r.p ? (TECNOLOGIAS[r.p.tecnologia] ?? r.p.tecnologia) : ''),
+        },
+        { header: 'Capacidad (kW)', value: (r) => r.p?.capacidadKw ?? '' },
+        { header: 'Uns (SIMEM)', value: (r) => r.p?.unidades.join(', ') ?? '' },
+        { header: 'Pls (SRC)', value: (r) => r.p?.pls ?? '' },
+        { header: 'Despacho', value: (r) => r.p?.despacho ?? '' },
+        { header: 'FPO', value: (r) => r.p?.fpo ?? '' },
+      ],
+      'SIMEM_codigos_de_agente.xlsx',
+      'Agentes',
+    )
   } catch (e) {
     toast.error('No se pudo exportar', { description: normalizeError(e).message, duration: 6000 })
   } finally {
     exportando.value = false
   }
 }
-
-// ── Precio de bolsa ────────────────────────────────────────────────────────
-const hoy = new Date()
-const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
-const periodo = ref(`${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth() + 1).padStart(2, '0')}`)
-const bolsa = ref<BolsaSimemMes | null>(null)
-const bolsaPrevia = ref<BolsaSimemMes | null>(null)
-const cargandoBolsa = ref(false)
-const errorBolsa = ref<string | null>(null)
-
-const HORAS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
-
-const diasBolsa = computed(() => Object.keys(bolsa.value?.detalle ?? {}).sort())
-
-/** Promedio del día, sobre las horas que haya. */
-function promedioDia(dia: string): number | null {
-  const horas = Object.values(bolsa.value?.detalle?.[dia] ?? {})
-  return horas.length ? horas.reduce((s, v) => s + v, 0) / horas.length : null
-}
-
-/** `+3,2 %` / `−1,8 %`. El signo va explícito; el color no juzga. */
-const signo = (v: number) =>
-  `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`
-
-const fmtPrecio = (v: number | null | undefined) =>
-  v == null ? '—' : v.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-/** El período anterior al pedido (`YYYY-MM`), para la variación. */
-function periodoAnterior(per: string): string {
-  const [a, m] = per.split('-').map(Number)
-  const d = new Date(a!, m! - 2, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
-const resumen = computed(() =>
-  resumirBolsa(bolsa.value?.detalle ?? {}, bolsaPrevia.value?.detalle ?? null),
-)
-
-async function cargarBolsa() {
-  cargandoBolsa.value = true
-  errorBolsa.value = null
-  try {
-    bolsa.value = await bolsaService.obtenerMes(periodo.value)
-    // El mes anterior es para comparar: si falla, la vista sirve igual y la
-    // variación simplemente no se muestra.
-    bolsaPrevia.value = await bolsaService.obtenerMes(periodoAnterior(periodo.value)).catch(() => null)
-  } catch (e) {
-    errorBolsa.value = normalizeError(e).message
-    bolsa.value = null
-  } finally {
-    cargandoBolsa.value = false
-  }
-}
-
-watch(pestana, (p) => {
-  if (p === 'bolsa' && !bolsa.value && !cargandoBolsa.value) cargarBolsa()
-})
 
 onMounted(cargar)
 </script>
@@ -287,8 +246,11 @@ onMounted(cargar)
     >
       <template #actions>
         <Button
-          v-if="pestana === 'agentes'" size="sm" variant="outline"
-          :disabled="exportando || !filas.length" @click="exportar"
+          v-if="pestana === 'agentes'"
+          size="sm"
+          variant="outline"
+          :disabled="exportando || !filas.length"
+          @click="exportar"
         >
           <DownloadIcon class="size-3" />
           Exportar
@@ -298,11 +260,14 @@ onMounted(cargar)
 
     <div class="flex gap-1 border-b">
       <button
-        v-for="p in PESTANAS" :key="p.id"
+        v-for="p in PESTANAS"
+        :key="p.id"
         class="border-b-2 px-3 py-2 text-sm transition-colors"
-        :class="pestana === p.id
-          ? 'border-primary font-medium text-primary'
-          : 'border-transparent text-muted-foreground hover:text-foreground'"
+        :class="
+          pestana === p.id
+            ? 'border-primary font-medium text-primary'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+        "
         @click="pestana = p.id"
       >
         {{ p.label }}
@@ -317,28 +282,31 @@ onMounted(cargar)
       <!-- Filtros -->
       <div class="flex flex-wrap items-end gap-3">
         <div class="relative min-w-64 flex-1">
-          <SearchIcon class="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            v-model="q" class="pl-8"
-            placeholder="Agente, razón social, planta, Uns o Pls…"
+          <SearchIcon
+            class="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
           />
+          <Input v-model="q" class="pl-8" placeholder="Agente, razón social, planta, Uns o Pls…" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Tecnología</label>
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase"
+            >Tecnología</label
+          >
           <select v-model="tecnologia" class="h-9 rounded-md border bg-background px-2 text-sm">
             <option value="">Todas</option>
             <option v-for="t in tecnologias" :key="t" :value="t">{{ TECNOLOGIAS[t] ?? t }}</option>
           </select>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Actividad</label>
+          <label class="text-xs font-semibold tracking-wider text-primary uppercase"
+            >Actividad</label
+          >
           <select v-model="actividad" class="h-9 rounded-md border bg-background px-2 text-sm">
             <option value="">Todas</option>
             <option v-for="a in actividades" :key="a" :value="a">{{ a }}</option>
           </select>
         </div>
         <label class="flex h-9 items-center gap-2 text-sm">
-          <input v-model="soloUnergy" type="checkbox" class="size-4"> Solo Unergy
+          <input v-model="soloUnergy" type="checkbox" class="size-4" /> Solo Unergy
         </label>
       </div>
 
@@ -357,7 +325,10 @@ onMounted(cargar)
 
       <Spinner v-if="cargando" class="mx-auto my-10 block size-6 text-muted-foreground" />
 
-      <div v-else-if="!filas.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
+      <div
+        v-else-if="!filas.length"
+        class="rounded-md border p-8 text-center text-sm text-muted-foreground"
+      >
         Sin resultados.
       </div>
 
@@ -365,11 +336,31 @@ onMounted(cargar)
         <table class="w-full text-sm">
           <thead class="bg-muted/50">
             <tr class="border-b">
-              <th class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">Código SIC</th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">Razón social</th>
-              <th class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase">Actividad</th>
-              <th class="px-3 py-2.5 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase">Plantas</th>
-              <th class="px-3 py-2.5 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase">Capacidad</th>
+              <th
+                class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                Código SIC
+              </th>
+              <th
+                class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                Razón social
+              </th>
+              <th
+                class="px-3 py-2.5 text-left text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                Actividad
+              </th>
+              <th
+                class="px-3 py-2.5 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                Plantas
+              </th>
+              <th
+                class="px-3 py-2.5 text-right text-xs font-medium tracking-wide text-muted-foreground uppercase"
+              >
+                Capacidad
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -385,22 +376,28 @@ onMounted(cargar)
                     class="mr-1 inline size-3 text-muted-foreground"
                   />
                   {{ f.codigo }}
-                  <Badge v-if="f.esUnergy" class="ml-1.5 text-[10px]">UNERGY</Badge>
+                  <Badge v-if="f.esUnergy" class="ml-1.5 text-xs">UNERGY</Badge>
                 </td>
                 <td class="px-3 py-2">{{ f.nombre }}</td>
-                <td class="px-3 py-2 text-xs text-muted-foreground">{{ f.actividades.join(' · ') || '—' }}</td>
+                <td class="px-3 py-2 text-xs text-muted-foreground">
+                  {{ f.actividades.join(' · ') || '—' }}
+                </td>
                 <td class="px-3 py-2 text-right tabular-nums">{{ f.plantas.length }}</td>
                 <td class="px-3 py-2 text-right tabular-nums">{{ fmtMw(f.capacidadKw) }}</td>
               </tr>
               <tr v-if="abiertos.has(f.codigo) && f.plantas.length" class="border-t bg-muted/20">
                 <td colspan="5" class="px-3 py-2">
                   <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    <div v-for="p in f.plantas" :key="p.codigo" class="rounded border bg-background p-2">
+                    <div
+                      v-for="p in f.plantas"
+                      :key="p.codigo"
+                      class="rounded border bg-background p-2"
+                    >
                       <div class="text-xs font-medium">{{ p.codigo }} — {{ p.nombre }}</div>
-                      <div class="mt-0.5 text-[11px] text-muted-foreground">
+                      <div class="mt-0.5 text-xs text-muted-foreground">
                         {{ TECNOLOGIAS[p.tecnologia] ?? p.tecnologia }} · {{ fmtMw(p.capacidadKw) }}
                         <template v-if="p.unidades.length">
-                          <br>
+                          <br />
                           <span class="font-mono">{{ p.unidades.join(', ') }}</span>
                           <!-- El Pls no viene en ninguna fuente: se deriva del Uns. -->
                           <span v-if="p.pls" class="font-mono"> · {{ p.pls }}</span>
@@ -416,128 +413,11 @@ onMounted(cargar)
       </div>
     </template>
 
-    <!-- ═══ Precio de bolsa (SIMEM 709b84) ═══ -->
-    <template v-else-if="pestana === 'bolsa'">
-      <div class="flex flex-wrap items-end gap-3">
-        <div class="flex flex-col gap-1">
-          <label class="text-xs font-semibold tracking-wider text-primary uppercase">Período</label>
-          <Input v-model="periodo" type="month" class="w-40" @change="cargarBolsa" />
-        </div>
-        <Button size="sm" variant="outline" :disabled="cargandoBolsa" @click="cargarBolsa">
-          Consultar
-        </Button>
-      </div>
-
-      <p class="text-xs text-muted-foreground">
-        Mismo cálculo que el valor a indemnizar (SIMEM 709b84). No es el precio de bolsa de
-        EVO que muestra «Precio de Bolsa»: esa es otra fuente.
-      </p>
-
-      <div v-if="errorBolsa" class="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
-        {{ errorBolsa }}
-      </div>
-
-      <Spinner v-else-if="cargandoBolsa" class="mx-auto my-10 block size-6 text-muted-foreground" />
-
-      <template v-else-if="bolsa">
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div class="rounded-md border px-4 py-3">
-            <div class="text-xs text-muted-foreground">Último precio</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(resumen.ultimo?.precio) }}</div>
-            <div class="text-[11px] text-muted-foreground">
-              <template v-if="resumen.ultimo">
-                {{ resumen.ultimo.dia }} · {{ resumen.ultimo.hora }}:00
-              </template>
-              <template v-else>sin datos</template>
-            </div>
-          </div>
-
-          <div class="rounded-md border px-4 py-3">
-            <div class="text-xs text-muted-foreground">PNBA del mes</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(bolsa.precio_bolsa) }}</div>
-            <div class="text-[11px] text-muted-foreground">
-              <span v-if="resumen.variacionMes != null">
-                {{ signo(resumen.variacionMes) }} vs. mes anterior
-              </span>
-              <span v-else>{{ bolsa.horas }} h · {{ bolsa.dias }} días</span>
-            </div>
-          </div>
-
-          <div class="rounded-md border px-4 py-3">
-            <div class="text-xs text-muted-foreground">Últimos 7 días</div>
-            <div class="text-2xl font-semibold tabular-nums">{{ fmtPrecio(resumen.promedio7d) }}</div>
-            <div class="text-[11px] text-muted-foreground">
-              <span v-if="resumen.variacion7d != null">
-                {{ signo(resumen.variacion7d) }} vs. 7 previos
-              </span>
-              <span v-else>sin período previo para comparar</span>
-            </div>
-          </div>
-
-          <div class="rounded-md border px-4 py-3">
-            <div class="text-xs text-muted-foreground">Máximo / mínimo</div>
-            <div class="text-lg font-semibold tabular-nums">
-              {{ fmtPrecio(resumen.maximo?.precio) }} <span class="text-muted-foreground">/</span>
-              {{ fmtPrecio(resumen.minimo?.precio) }}
-            </div>
-            <div class="text-[11px] text-muted-foreground">
-              <template v-if="resumen.maximo && resumen.minimo">
-                {{ resumen.maximo.dia.slice(5) }} {{ resumen.maximo.hora }}h ·
-                {{ resumen.minimo.dia.slice(5) }} {{ resumen.minimo.hora }}h
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <!-- Las horas del PTB van aparte y nombradas: son horas con el precio
-             por encima del de escasez, no un dato cualquiera. -->
-        <div
-          v-if="bolsa.horas_ptb"
-          class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900"
-        >
-          <b>{{ bolsa.horas_ptb }}</b> hora(s) tomadas del PTB — el precio de bolsa superó el de
-          escasez de activación y XM publica el precio de transacciones en su lugar.
-        </div>
-
-        <GraficaDiariaBolsa :serie="resumen.serie" />
-
-        <div v-if="!diasBolsa.length" class="rounded-md border p-8 text-center text-sm text-muted-foreground">
-          El SIMEM no devolvió datos para este período.
-        </div>
-
-        <div v-else class="overflow-x-auto rounded-md border">
-          <table class="w-full text-xs">
-            <thead class="bg-muted/50">
-              <tr class="border-b">
-                <th class="px-2 py-2 text-left font-medium tracking-wide text-muted-foreground uppercase">Fecha</th>
-                <th v-for="h in HORAS" :key="h" class="px-1.5 py-2 text-right font-medium text-muted-foreground tabular-nums">
-                  {{ h }}
-                </th>
-                <th class="px-2 py-2 text-right font-medium tracking-wide text-muted-foreground uppercase">Prom.</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="d in diasBolsa" :key="d" class="border-t hover:bg-muted/40">
-                <td class="px-2 py-1.5 whitespace-nowrap">{{ d }}</td>
-                <td
-                  v-for="h in HORAS" :key="h"
-                  class="px-1.5 py-1.5 text-right tabular-nums"
-                  :class="{ 'text-muted-foreground': bolsa.detalle[d]?.[h] == null }"
-                >
-                  {{ fmtPrecio(bolsa.detalle[d]?.[h]) }}
-                </td>
-                <td class="px-2 py-1.5 text-right font-medium tabular-nums">{{ fmtPrecio(promedioDia(d)) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-    </template>
-
     <!-- ═══ Costos CND / ASIC ═══ -->
     <template v-else-if="pestana === 'costos'">
       <SimemPanelDataset
-        :datasets="DATASETS_COSTOS" :agentes="registro"
+        :datasets="DATASETS_COSTOS"
+        :agentes="registro"
         ayuda="Costos liquidados por agente."
       />
     </template>
@@ -545,7 +425,8 @@ onMounted(cargar)
     <!-- ═══ OEF / CxC ═══ -->
     <template v-else-if="pestana === 'oef'">
       <SimemPanelDataset
-        :datasets="DATASETS_OEF" :agentes="registro"
+        :datasets="DATASETS_OEF"
+        :agentes="registro"
         ayuda="OEF y cargo por confiabilidad por planta. Estos datasets bajan a planta, así que se cruzan con el catálogo."
       />
     </template>
@@ -553,7 +434,8 @@ onMounted(cargar)
     <!-- ═══ Contratos / Índice MC ═══ -->
     <template v-else-if="pestana === 'contratos'">
       <SimemPanelDataset
-        :datasets="DATASETS_CONTRATOS" :agentes="registro"
+        :datasets="DATASETS_CONTRATOS"
+        :agentes="registro"
         ayuda="Contratos bilaterales e índice MC. Son datasets mensuales: aguantan rangos largos."
       />
     </template>
@@ -561,7 +443,8 @@ onMounted(cargar)
     <!-- ═══ Arranque & Parada ═══ -->
     <template v-else-if="pestana === 'aap'">
       <SimemPanelDataset
-        :datasets="DATASETS_AAP" :agentes="registro"
+        :datasets="DATASETS_AAP"
+        :agentes="registro"
         ayuda="Precios de oferta de arranque y parada, banderas y generación de seguridad por planta. Pesa para las liquidaciones del ASIC."
       />
     </template>
@@ -569,7 +452,8 @@ onMounted(cargar)
     <!-- ═══ Generación real ═══ -->
     <template v-else-if="pestana === 'generacion'">
       <SimemPanelDataset
-        :datasets="DATASETS_GENERACION" :agentes="registro"
+        :datasets="DATASETS_GENERACION"
+        :agentes="registro"
         ayuda="Generación y disponibilidad horaria por recurso. Generación programada dejó de publicarse en 2026: para verla hay que consultar 2025 o antes."
       />
     </template>

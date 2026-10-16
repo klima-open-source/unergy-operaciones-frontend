@@ -7,7 +7,5 @@
 # (`vars`) para que salgan en el dashboard de Cloudflare — este archivo es solo
 # para probar en local con `wrangler dev` sin tocar ese archivo commiteado.
 #
-# `NUXT_EVO_API_TOKEN` es el único valor real de este proyecto que no debe
-# vivir en texto plano en ningún archivo commiteado: en producción se setea con
-# `wrangler secret put NUXT_EVO_API_TOKEN`, nunca en `wrangler.jsonc`.
-NUXT_EVO_API_TOKEN=
+# Hoy no hay secretos: si aparece uno, va aquí en local y con
+# `wrangler secret put` en producción, nunca en `wrangler.jsonc`.
