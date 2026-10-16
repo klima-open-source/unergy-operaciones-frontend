@@ -562,7 +562,7 @@ import type {
   ProyectoMonitoreoSolar,
   RespuestaMonitoreoSolar,
 } from '~/features/solar/types'
-import { useRefrescoVisible } from '~/features/solar/refrescoVisible'
+import { useRefrescoVisible } from '~/composables/refrescoVisible'
 import {
   COLOR_NIVEL,
   FUENTES,
@@ -894,15 +894,6 @@ function datasetIrradiancia(id: number): CurvaChartDataset[] {
   ]
 }
 
-async function cargarIrradiancia(id: number): Promise<void> {
-  try {
-    irradianciaMap[id] = irradianceSeries(await generacionSolarService.obtenerIrradiancia(id))
-  } catch {
-    // Sin la estación la gráfica sigue igual que antes: solo potencia.
-    if (!(id in irradianciaMap)) irradianciaMap[id] = null
-  }
-}
-
 function getInversorData(id: number): CurvaChartData {
   const data = inverterSeries(detailMap[id])
   if (!data) return { labels: [], datasets: [] }
@@ -1124,7 +1115,7 @@ function alCambiarVisibilidad(entradas: IntersectionObserverEntry[]): void {
     if (id == null) continue
     if (entrada.isIntersecting) {
       tarjetasVisibles.add(id)
-      loadDetail(id)
+      encolar(id)
     } else {
       tarjetasVisibles.delete(id)
     }
@@ -1183,10 +1174,7 @@ async function cargar(): Promise<void> {
       ? ids.filter((id) => tarjetasVisibles.has(id))
       : ids.slice(0, tamanoPrimeraOla())
 
-    const BATCH = 10
-    for (let i = 0; i < aCargar.length; i += BATCH) {
-      await Promise.all(aCargar.slice(i, i + BATCH).map((id) => loadDetail(id, true)))
-    }
+    await cargarTarjetas(aCargar, true)
   } catch {
     /* silencioso */
   } finally {
@@ -1194,30 +1182,68 @@ async function cargar(): Promise<void> {
   }
 }
 
+/** Cuántas tarjetas por petición (el backend acepta hasta 12). */
+const TARJETAS_POR_PETICION = 10
+
 /**
- * El detalle de una tarjeta. `refrescar` lo vuelve a pedir aunque ya este.
+ * El detalle y la irradiancia de varias tarjetas, de a `TARJETAS_POR_PETICION`
+ * por petición. Antes eran dos peticiones por tarjeta (detalle e irradiancia):
+ * diez tarjetas visibles, veinte peticiones en cada refresco.
  *
  * Sin `refrescar`, una tarjeta ya cargada no se vuelve a pedir: el observador
  * dispara cada vez que entra y sale de pantalla, y sin esta guarda scrollear
  * arriba y abajo pedia lo mismo una y otra vez.
  */
-async function loadDetail(id: number, refrescar = false): Promise<void> {
-  if (!refrescar && detailMap[id] !== undefined) return
-  if (detalleEnVuelo.has(id)) return
-  detalleEnVuelo.add(id)
+async function cargarTarjetas(ids: number[], refrescar = false): Promise<void> {
+  const pendientes = ids.filter(
+    (id) => !detalleEnVuelo.has(id) && (refrescar || detailMap[id] === undefined),
+  )
+  pendientes.forEach((id) => detalleEnVuelo.add(id))
   try {
-    // La irradiancia va en paralelo y por su cuenta: si la estación tarda o
-    // falla, la tarjeta no la espera.
-    void cargarIrradiancia(id)
-    detailMap[id] = await generacionSolarService.obtenerDetalle(id)
-  } catch {
-    // `{}` y no dejarlo sin definir: sin esto la tarjeta se queda con el
-    // esqueleto girando para siempre en vez de mostrar que no hay datos.
-    detailMap[id] = {}
+    for (let i = 0; i < pendientes.length; i += TARJETAS_POR_PETICION) {
+      const lote = pendientes.slice(i, i + TARJETAS_POR_PETICION)
+      let respuesta: Awaited<ReturnType<typeof generacionSolarService.obtenerTarjetas>> = {}
+      try {
+        respuesta = await generacionSolarService.obtenerTarjetas(lote)
+      } catch {
+        /* abajo: las que no tenían datos quedan "sin datos" */
+      }
+      for (const id of lote) {
+        const tarjeta = respuesta[String(id)]
+        // `{}` y no dejarlo sin definir: sin esto la tarjeta se queda con el
+        // esqueleto girando para siempre en vez de mostrar que no hay datos.
+        // En un refresco que falla se conserva lo que ya había.
+        if (tarjeta) detailMap[id] = tarjeta.detalle
+        else if (detailMap[id] === undefined) detailMap[id] = {}
+        // `null` = la estación no llegó a tiempo: se conserva la curva anterior.
+        // Sin ninguna, la gráfica sigue igual que antes: solo potencia.
+        if (tarjeta?.irradiancia) irradianciaMap[id] = irradianceSeries(tarjeta.irradiancia)
+        else if (!(id in irradianciaMap)) irradianciaMap[id] = null
+      }
+    }
   } finally {
-    detalleEnVuelo.delete(id)
+    pendientes.forEach((id) => detalleEnVuelo.delete(id))
   }
 }
+
+/**
+ * Las tarjetas que entran en pantalla al scrollear se juntan un instante y se
+ * piden juntas, en vez de una petición por tarjeta que aparece.
+ */
+const enCola = new Set<number>()
+let temporizadorCola: ReturnType<typeof setTimeout> | null = null
+function encolar(id: number): void {
+  enCola.add(id)
+  temporizadorCola ??= setTimeout(() => {
+    temporizadorCola = null
+    const ids = [...enCola]
+    enCola.clear()
+    void cargarTarjetas(ids)
+  }, 150)
+}
+onUnmounted(() => {
+  if (temporizadorCola) clearTimeout(temporizadorCola)
+})
 
 onMounted(() => {
   // Sin IntersectionObserver (navegador viejo) no se rompe nada: `observador`

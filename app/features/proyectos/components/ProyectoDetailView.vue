@@ -414,7 +414,7 @@
       <!-- ══ SERVICIOS ══ -->
       <div v-if="tab === 'servicios'">
         <!-- PPA, Representación y CGM, y Operación, con su detalle, sin salir de la ficha. -->
-        <ServiciosDelProyecto :proyecto-id="Number(route.params.id)" :activos="srvFlags" />
+        <ServiciosDelProyecto :proyecto-id="Number(route.params.id)" :activos="srvFlags" :nombre="proyecto.nombre_comercial" />
       </div>
 
       <!-- ══ FRONTERAS ══ -->
@@ -555,9 +555,7 @@ import DataTable from '~/components/blocks/DataTable.vue'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
-import { ClientesService } from '~/features/clientes/services/clientes'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
-import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
+import { clientes as cargarClientes } from '~/features/clientes/services/catalogoClientes'
 import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import divipola from '~/data/colombia-divipola.json'
@@ -570,9 +568,8 @@ import EquiposDelProyecto from '~/features/proyectos/components/EquiposDelProyec
 import DetalleLayout from '~/components/blocks/DetalleLayout.vue'
 
 const proyectosService = new ProyectosService()
-const clientesService = new ClientesService()
-const patrimoniosService = new PatrimoniosService()
-const operadoresRedService = new OperadoresRedService()
+const catalogoPatrimonios = useCatalogoPatrimonios()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
 const liquidacionesApiService = new LiquidacionesApiService()
 
 const route = useRoute()
@@ -1120,11 +1117,11 @@ onMounted(async () => {
   try {
     const [proy, clientesList, inversionistas, operadoresRes, fronterasRes, patrimoniosRes] = await Promise.all([
       proyectosService.obtener(route.params.id),
-      clientesService.listar({ size: 200 }),
+      cargarClientes(),
       proyectosService.listarInversionistas(route.params.id),
-      operadoresRedService.listar().catch(() => []),
+      catalogoOperadoresRed.cargar().catch(() => []),
       proyectosService.listarFronterasDelProyecto(route.params.id).catch(() => []),
-      patrimoniosService.listar().catch(() => []),
+      catalogoPatrimonios.cargar().catch(() => []),
     ])
     liquidacionesApiService.obtenerConfigProyecto(route.params.id)
       .then(config => { liqConfig.value = config; if (isEditMode.value) populateEditForm() })

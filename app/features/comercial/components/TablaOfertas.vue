@@ -256,7 +256,7 @@ async function exportar() {
         <template v-else-if="column.key === 'contrato'">
           <NuxtLink
             v-if="asOferta(row).ppa_contrato_id"
-            :to="`/contratos/${asOferta(row).ppa_contrato_id}`"
+            :to="`/contratos/${asOferta(row).ppa_contrato_id}?tipo=ppa`"
             class="text-xs text-primary underline"
             @click.stop
             >PPA</NuxtLink

@@ -29,7 +29,6 @@ import { toast } from 'vue-sonner'
 import DatePicker from '~/components/blocks/DatePicker.vue'
 import ContratoServicioWizard from '~/features/contratos/components/ContratoServicioWizard.vue'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
 import { cargarProyectos, type ProyectoCatalogo } from './catalogos'
 import {
   aFecha,
@@ -66,7 +65,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:visible': [visible: boolean]; firmar: [oferta: Oferta] }>()
 
 const confirm = useConfirm()
-const operadoresRedService = new OperadoresRedService()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
 const contratosServicioService = new ContratosServicioService()
 
 const moviendo = ref(false)
@@ -205,7 +204,7 @@ watch(
     cargandoCatalogos.value = true
     const [pr, op, cs] = await Promise.allSettled([
       cargarProyectos(),
-      operadoresRedService.listar(),
+      catalogoOperadoresRed.cargar(),
       contratosServicioService.listar({ tipo: 'representacion' }),
     ])
     if (pr.status === 'fulfilled') {
@@ -787,7 +786,7 @@ onBeforeUnmount(() => clearTimeout(temporizador))
             class="rounded-md border border-success/30 bg-success/10 px-3 py-2"
           >
             <NuxtLink
-              :to="`/contratos/${oferta.ppa_contrato_id}`"
+              :to="`/contratos/${oferta.ppa_contrato_id}?tipo=ppa`"
               class="text-sm font-medium text-success underline"
             >
               Contrato PPA #{{ oferta.ppa_contrato_id }}

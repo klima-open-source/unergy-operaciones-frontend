@@ -30,19 +30,22 @@ const ARCHIVO = join(__dirname, 'components', 'SolarLiveView.vue')
 const fuente = readFileSync(ARCHIVO, 'utf8')
 
 describe('carga perezosa de las tarjetas', () => {
+  // Desde la fase 4 de la auditoría de peticiones las tarjetas se piden por
+  // lotes (`cargarTarjetas`); las dos guardas van como filtro del lote.
   it('no vuelve a pedir un detalle que ya tiene', () => {
-    expect(fuente).toContain('if (!refrescar && detailMap[id] !== undefined) return')
+    expect(fuente).toContain('(refrescar || detailMap[id] === undefined)')
   })
 
   it('no pide dos veces la misma tarjeta a la vez', () => {
-    expect(fuente).toContain('detalleEnVuelo')
-    expect(fuente).toContain('if (detalleEnVuelo.has(id)) return')
+    expect(fuente).toContain('!detalleEnVuelo.has(id)')
   })
 
   it('suelta la marca de "en vuelo" aunque la llamada falle', () => {
     // Sin el `finally`, una tarjeta que falla queda marcada para siempre y no
     // se vuelve a pedir nunca, ni al refrescar.
-    expect(fuente).toMatch(/finally\s*\{\s*\n\s*detalleEnVuelo\.delete\(id\)/)
+    expect(fuente).toMatch(
+      /finally\s*\{\s*\n\s*pendientes\.forEach\(\(id\) => detalleEnVuelo\.delete\(id\)\)/,
+    )
   })
 
   it('deja la tarjeta en {} si falla, no sin definir', () => {

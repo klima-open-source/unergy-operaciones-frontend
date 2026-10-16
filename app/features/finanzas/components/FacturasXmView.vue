@@ -284,12 +284,15 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
-import { VERSIONES, VERSION_INICIAL, MAX_FACTURAS_POR_LOTE, MAX_MB_POR_FACTURA } from '~/features/liquidaciones/types'
+import { VERSIONES, VERSION_INICIAL, MAX_FACTURAS_POR_LOTE, MAX_MB_POR_FACTURA, TareaCancelada } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { formatCOP as fmtCOP } from '~/utils/currency'
 import { CircleCheckIcon, CircleXIcon, CloudUploadIcon, CopyIcon, EyeIcon, EyeOffIcon, FileCheckIcon, FileTextIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, UploadIcon, XIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
+// Al salir de la vista se deja de consultar el estado de la tarea (antes seguía
+// cada 5 s hasta 30 min; auditoría de peticiones del 2026-10-15).
+const alSalir = useSenalAlSalir()
 
 
 const MESES = [
@@ -499,6 +502,7 @@ async function subir() {
 
     await liquidacionesApi.esperarTarea(res.task_id, {
       onEstado: (t) => { progresoTarea.value = t.mensaje || progresoTarea.value },
+      signal: alSalir,
     })
 
     toast.success('Facturas procesadas', {
@@ -509,6 +513,7 @@ async function subir() {
     archivos.value = []
     await cargar()
   } catch (e) {
+    if (e instanceof TareaCancelada) return
     toast.error('No se pudieron cargar', {
       description: e.data?.detail || e.message,
       duration: 8000,

@@ -358,6 +358,11 @@ export interface SerieIndexacionCalculada {
   mensual: unknown[]
 }
 
+/** La del contrato más la de cada arrendador, por id (`?arrendadores=todos`). */
+export interface SerieIndexacionConArrendadores extends SerieIndexacionCalculada {
+  arrendadores: Record<string, SerieIndexacionCalculada>
+}
+
 export interface Arrendador {
   id: number
   nombre: string

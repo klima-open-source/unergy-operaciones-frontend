@@ -17,6 +17,8 @@ const props = defineProps<{
   proyectoId: number
   /** `proyecto.servicios`: qué servicios tiene según sus contratos vigentes. */
   activos: Record<string, boolean | undefined>
+  /** Ya cargado por la ficha: las vistas de servicio no vuelven a pedir el proyecto. */
+  nombre?: string
 }>()
 
 const SERVICIOS = [
@@ -58,8 +60,8 @@ const activo = (key: Servicio) =>
     <!-- Se monta solo el servicio abierto: cada vista carga sus contratos al montarse. -->
     <div class="pt-4">
       <PpaDelProyecto v-if="servicio === 'ppa'" :proyecto-id="proyectoId" />
-      <RepresentacionView v-else-if="servicio === 'representacion'" embebido />
-      <OperacionView v-else embebido />
+      <RepresentacionView v-else-if="servicio === 'representacion'" embebido :nombre-proyecto="nombre" />
+      <OperacionView v-else embebido :nombre-proyecto="nombre" />
     </div>
   </GTabs>
 </template>

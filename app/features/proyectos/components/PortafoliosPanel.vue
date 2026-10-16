@@ -24,13 +24,17 @@ import { ProyectosService } from '~/features/proyectos/services/proyectos'
 const SIN_PORTAFOLIO = 'sin'
 
 const portafoliosService = new PortafoliosService()
+const catalogoPortafolios = useCatalogoPortafolios()
 const proyectosService = new ProyectosService()
 const confirm = useConfirm()
 
 const query = useQuery<{ portafolios: Portafolio[]; sinPortafolio: ProyectoPortafolio[] }>()
 const plantas = ref<ProyectoLiviano[]>([])
 
+// Esta pantalla los administra: siempre lo último, y cada cambio termina acá,
+// así que acá también se invalida el catálogo compartido de los desplegables.
 async function cargar() {
+  catalogoPortafolios.invalidar()
   await query.run(async () => {
     const data = await portafoliosService.listar()
     return { portafolios: data.portafolios, sinPortafolio: data.sin_portafolio ?? [] }

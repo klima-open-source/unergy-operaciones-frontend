@@ -351,7 +351,7 @@
           <template v-else-if="column.key === 'ppa'">
             <div v-if="ppaVigentes(row).length" class="flex gap-0.5 overflow-hidden min-w-0">
               <button v-for="c in ppaVigentes(row)" :key="c.id" type="button" class="min-w-0 truncate bg-primary/10 text-primary text-xs font-semibold px-1.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-primary hover:text-primary-foreground"
-                      :title="ppaTooltip(c)" @click="ir(`/contratos/${c.id}`)">
+                      :title="ppaTooltip(c)" @click="ir(`/contratos/${c.id}?tipo=ppa`)">
                 {{ ppaLabel(c) }}
               </button>
             </div>
@@ -384,7 +384,7 @@
                  empty-message="No hay contratos PPA registrados."
                  @update:page-size="porPagina = $event">
         <template #cell="{ row, column }">
-          <button v-if="column.key === 'nombre_interno'" type="button" class="block max-w-full text-left text-xs font-semibold text-foreground cursor-pointer transition-colors duration-150 hover:text-primary hover:underline underline-offset-2" @click="ir(`/contratos/${row.id}`)">
+          <button v-if="column.key === 'nombre_interno'" type="button" class="block max-w-full text-left text-xs font-semibold text-foreground cursor-pointer transition-colors duration-150 hover:text-primary hover:underline underline-offset-2" @click="ir(`/contratos/${row.id}?tipo=ppa`)">
             <TruncatedText :text="row.nombre_interno || row.numero_codigo_contrato || '—'" class="min-w-0" />
           </button>
           <template v-else-if="column.key === 'numero_codigo_contrato'">
@@ -439,7 +439,7 @@
             </span>
           </div>
           <div v-else-if="column.key === 'acciones'" class="flex justify-end gap-0">
-            <Button variant="ghost" size="icon-sm" class="size-6" title="Editar" @click.stop="ir(`/contratos/${row.id}`)"><PencilIcon class="size-3.5" /></Button>
+            <Button variant="ghost" size="icon-sm" class="size-6" title="Editar" @click.stop="ir(`/contratos/${row.id}?tipo=ppa`)"><PencilIcon class="size-3.5" /></Button>
             <Button variant="ghost" size="icon-sm" class="size-6" title="Eliminar" @click.stop="confirmarBorrarPpa(row)"><Trash2Icon class="size-3.5 text-destructive" /></Button>
           </div>
         </template>
@@ -727,7 +727,6 @@ import { ClientesService } from '~/features/clientes/services/clientes'
 import { ProyectosService } from '~/features/proyectos/services/proyectos'
 import { OriginabotService } from '~/features/proyectos/services/originabot'
 import { faltanEnOperaciones } from '~/features/proyectos/prellenadoTsf'
-import { PortafoliosService } from '~/features/operaciones/services/portafolios'
 import { PpaService } from '~/features/contratos/services/ppa'
 import { ContratosServicioService } from '~/features/contratos/services/contratos-servicio'
 import { ServiciosService } from '~/features/contratos/services/servicios'
@@ -752,7 +751,8 @@ import { AlignJustifyIcon, BadgeCheckIcon, BuildingIcon, ChartColumnIcon, CheckI
 
 const clientesService = new ClientesService()
 const proyectosService = new ProyectosService()
-const portafoliosService = new PortafoliosService()
+const catalogoPortafolios = useCatalogoPortafolios()
+const catalogoProyectos = useProyectosCatalogo()
 const ppaService = new PpaService()
 const contratosServicioService = new ContratosServicioService()
 const serviciosService = new ServiciosService()
@@ -1312,7 +1312,8 @@ const proyectosFiltrados = computed(() => {
     (p.inversionistas || []).some(i => (i.cliente_nombre || '').toLowerCase().includes(t)))
 })
 
-async function cargarProyectos() {
+// `fresco` después de crear: el catálogo compartido puede tener hasta 60 s.
+async function cargarProyectos({ fresco = false } = {}) {
   loadingProyectos.value = true
   try {
     // allSettled, no all: portafolios solo alimenta el filtro de esa columna.
@@ -1320,14 +1321,16 @@ async function cargarProyectos() {
     // carga de proyectos, de la que dependen otros flujos -- ej. el selector
     // de "Asociar a un proyecto" en Servicios > Representación, que quedaba
     // sin ninguna planta para elegir cuando portafolios fallaba.
+    //
+    // Las plantas salen del catálogo compartido (`useProyectosCatalogo`): trae
+    // todas las páginas y lo reusan las demás vistas. Antes se pedía una sola
+    // página de 500 que el backend corta en 100, y la tabla mostraba 100.
     const [proyectosResult, portafoliosResult] = await Promise.allSettled([
-      proyectosService.listarPaginado({ page: 1, size: TOPE_PAGINA }),
-      portafoliosService.listar(),
+      fresco ? catalogoProyectos.refrescar() : catalogoProyectos.cargar(),
+      catalogoPortafolios.cargar(),
     ])
     if (proyectosResult.status === 'fulfilled') {
-      const data = proyectosResult.value
-      proyectos.value = data.items ?? []
-      avisarSiTrunca(data.total, proyectos.value.length, 'plantas')
+      proyectos.value = [...proyectosResult.value]
       proyectosCargados.value = true
     } else {
       toast.error('Error al cargar proyectos', { description: proyectosResult.reason?.message, duration: 4000 })
@@ -2014,7 +2017,7 @@ async function crearProyecto(payload, infoTecnica, inversionistas) {
     await vincularInversionistaSiAplica(proyecto.id, inversionistas)
     toast.success('Proyecto creado', { duration: 3000 })
     dialogProyecto.value = false
-    cargarProyectos()
+    cargarProyectos({ fresco: true })
   } catch (e) {
     const detail = e.data?.detail
     // 409 estructurado = "hay un nombre parecido"; se puede confirmar y crear
@@ -2044,7 +2047,7 @@ async function crearProyectoForzado() {
     toast.success('Proyecto creado', { duration: 3000 })
     duplicadoVisible.value = false
     dialogProyecto.value = false
-    cargarProyectos()
+    cargarProyectos({ fresco: true })
   } catch (e) {
     const detail = e.data?.detail
     toast.error('Error', {

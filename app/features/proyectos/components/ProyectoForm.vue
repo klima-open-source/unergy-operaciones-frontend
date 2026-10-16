@@ -254,13 +254,11 @@ import { LockIcon, PlusIcon, XIcon } from '@lucide/vue'
 import { prellenadoDesdeTsf } from '~/features/proyectos/prellenadoTsf'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import SelectorCliente from '~/features/clientes/components/SelectorCliente.vue'
-import { OperadoresRedService } from '~/features/operadores-red/services/operadores-red'
-import { PatrimoniosService } from '~/features/clientes/services/patrimonios'
 import { opcionesPatrimonio as armarOpcionesPatrimonio } from '~/features/clientes/utils/opcionesPatrimonio'
 import divipola from '~/data/colombia-divipola.json'
 
-const operadoresRedService = new OperadoresRedService()
-const patrimoniosService = new PatrimoniosService()
+const catalogoOperadoresRed = useCatalogoOperadoresRed()
+const catalogoPatrimonios = useCatalogoPatrimonios()
 
 const patrimonios = ref([])
 const opcionesPatrimonio = computed(() => armarOpcionesPatrimonio(patrimonios.value))
@@ -403,12 +401,12 @@ const opcionesOperadorRed = computed(() =>
 )
 onMounted(async () => {
   try {
-    operadoresRed.value = await operadoresRedService.listar()
+    operadoresRed.value = await catalogoOperadoresRed.cargar()
   } catch { /* graceful degrade -- el select queda vacío */ }
   // Después del catálogo: el operador de TSF se busca en él. Si no cargó, el
   // operador queda editable y avisado, como cualquier otro que no encaje.
   if (props.importado) aplicarPrellenadoTsf()
-  patrimonios.value = await patrimoniosService.listar().catch(() => [])
+  patrimonios.value = await catalogoPatrimonios.cargar().catch(() => [])
 })
 
 // Potencia AC y capacidad instalada -- viven en proyecto_info_tecnica (pestaña

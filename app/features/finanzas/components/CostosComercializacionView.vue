@@ -279,10 +279,13 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
-import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
+import { VERSIONES, VERSION_INICIAL, AccionCiclo, TareaCancelada } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 
 const liquidacionesApi = new LiquidacionesApiService()
+// Al salir de la vista se deja de consultar el estado de la tarea (antes seguía
+// cada 5 s hasta 30 min; auditoría de peticiones del 2026-10-15).
+const alSalir = useSenalAlSalir()
 import { ChevronLeftIcon, ChevronRightIcon, CircleXIcon, FileSpreadsheetIcon, InfoIcon, LoaderCircleIcon, RefreshCwIcon, SearchIcon, UploadIcon, WalletIcon, ZapIcon } from '@lucide/vue'
 
 
@@ -453,7 +456,7 @@ async function repartir() {
   try {
     const res = await liquidacionesApi.ejecutarAccionCiclo(AccionCiclo.REPARTIR, 
       { ...ac },
-      { onEstado: (t) => { progresoReparto.value = t.mensaje } },
+      { onEstado: (t) => { progresoReparto.value = t.mensaje }, signal: alSalir },
     )
     toast.success('Costos repartidos', {
       description: res.message || 'Terminó correctamente.',
@@ -462,6 +465,7 @@ async function repartir() {
     acVisible.value = false
     recargar()
   } catch (e) {
+    if (e instanceof TareaCancelada) return
     toast.error('El reparto falló', { description: e.data?.detail || e.message, duration: 10000 })
   } finally {
     repartiendo.value = false

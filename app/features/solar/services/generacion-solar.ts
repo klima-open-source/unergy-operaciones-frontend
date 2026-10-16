@@ -2,10 +2,10 @@
 import type {
   DetalleMonitoreoSolar,
   HistorialGeneracionProyecto,
-  IrradianciaSolar,
   PotenciaInversores,
   RespuestaMonitoreoSolar,
   RespuestaResumenGeneracionDia,
+  TarjetasMonitoreoSolar,
 } from '~/features/solar/types'
 import { BaseService } from '~/core/service'
 
@@ -15,7 +15,7 @@ const RUTAS = {
   monitoring: `${BASE}/monitoring`,
   monitoringDetalle: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}`,
   invertersPower: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/inverters-power`,
-  irradiancia: (proyectoId: number) => `${BASE}/monitoring/${proyectoId}/irradiancia`,
+  tarjetas: `${BASE}/monitoring/tarjetas`,
   resumenDia: `${BASE}/resumen-dia`,
   historialProyecto: (proyectoId: number) => `${BASE}/proyecto/${proyectoId}/historial`,
 } as const
@@ -23,6 +23,14 @@ const RUTAS = {
 export class GeneracionSolarService extends BaseService {
   obtenerMonitoreo(): Promise<RespuestaMonitoreoSolar> {
     return this.get<RespuestaMonitoreoSolar>(RUTAS.monitoring)
+  }
+
+  /**
+   * El detalle (sin la serie de 30 días) y la irradiancia POA de varias
+   * tarjetas en una petición, en vez de dos por tarjeta. Hasta 12 ids.
+   */
+  obtenerTarjetas(ids: number[]): Promise<TarjetasMonitoreoSolar> {
+    return this.get<TarjetasMonitoreoSolar>(RUTAS.tarjetas, { query: { ids: ids.join(',') } })
   }
 
   /**
@@ -42,11 +50,6 @@ export class GeneracionSolarService extends BaseService {
    * El parámetro es opt-out y no opt-in porque el backend ya mandaba estos
    * campos: apagarlo desde acá no toca a ningún otro consumidor.
    */
-  /** Irradiancia POA de hoy; `disponible: false` en las plantas sin estación. */
-  obtenerIrradiancia(proyectoId: number): Promise<IrradianciaSolar> {
-    return this.get<IrradianciaSolar>(RUTAS.irradiancia(proyectoId))
-  }
-
   obtenerDetalle(proyectoId: number, incluirSnapshot = false): Promise<DetalleMonitoreoSolar> {
     return this.get<DetalleMonitoreoSolar>(RUTAS.monitoringDetalle(proyectoId), {
       query: { incluir_30d: false, ...(incluirSnapshot ? { incluir_snapshot: true } : {}) },

@@ -1,23 +1,30 @@
 /**
- * La lista de clientes para los selectores de "parte de un contrato".
+ * La lista de clientes para los selectores de cliente.
  *
  * Cada wizard la cargaba por su cuenta (`todosClientes` en el de servicios, otra
  * copia en el de PPA), y con un selector por parte serían cinco peticiones
  * idénticas por pantalla. Acá se pide UNA vez y se comparte; `agregar()` mete el
  * cliente recién creado para que aparezca en los demás selectores sin recargar.
+ *
+ * Viene de `GET /clientes/lista` (todos, en una petición) y vale 5 minutos: así
+ * un cliente creado o renombrado desde otra pestaña termina apareciendo.
  */
-import type { Cliente } from '~/types/cliente'
+import type { ClienteLiviano } from '~/types/cliente'
 import { ClientesService } from '~/features/clientes/services/clientes'
 import { slugify } from '~/utils/string'
 
-let promesa: Promise<Cliente[]> | null = null
-let lista: Cliente[] = []
+const VIGENCIA_MS = 5 * 60_000
 
-/** Los clientes, pidiéndolos solo la primera vez. */
-export function clientes(recargar = false): Promise<Cliente[]> {
-  if (recargar || !promesa) {
+let promesa: Promise<ClienteLiviano[]> | null = null
+let pedidaEn = 0
+let lista: ClienteLiviano[] = []
+
+/** Los clientes, del caché si está vigente. */
+export function clientes(recargar = false): Promise<ClienteLiviano[]> {
+  if (recargar || !promesa || Date.now() - pedidaEn > VIGENCIA_MS) {
+    pedidaEn = Date.now()
     promesa = new ClientesService()
-      .listar({ size: 500 })
+      .listarLiviano()
       .then((filas) => {
         lista = filas
         return lista
@@ -37,7 +44,7 @@ export function clientes(recargar = false): Promise<Cliente[]> {
  * `null` si no hay ninguno o hay más de uno: con dos homónimos, elegir uno al azar
  * ataría el contrato al cliente equivocado.
  */
-export function clientePorNombre(lista: Cliente[], nombre: string): Cliente | null {
+export function clientePorNombre<T extends ClienteLiviano>(lista: T[], nombre: string): T | null {
   // Sin los guiones de `slugify`: "S.A.S." y "SAS" tienen que ser lo mismo.
   const claveDe = (texto: string) => slugify(texto).replaceAll('-', '')
   const clave = claveDe(nombre)
@@ -47,7 +54,7 @@ export function clientePorNombre(lista: Cliente[], nombre: string): Cliente | nu
 }
 
 /** Suma el cliente recién creado, sin volver a pedir la lista entera. */
-export function agregar(cliente: Cliente): void {
+export function agregar(cliente: ClienteLiviano): void {
   if (!cliente?.id) return
   const i = lista.findIndex((c) => c.id === cliente.id)
   if (i >= 0) lista[i] = cliente

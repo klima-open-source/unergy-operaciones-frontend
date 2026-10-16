@@ -571,7 +571,19 @@ async function detenerClasificacion() {
 // más de lo que un límite fijo de intentos alcanzaría a cubrir. En vez de un tope de
 // tiempo, se sigue sondeando MIENTRAS el conteo de filas siga creciendo; solo se
 // rinde si pasan varios ciclos seguidos sin ver ninguna fila nueva (terminó o se colgó).
+// El temporizador se guarda para cortarlo al salir de la vista: antes seguía
+// pidiendo resumen y lista cada 10 s con la vista cerrada (auditoría del
+// 2026-10-15), y una segunda ejecución sumaba otro sondeo encima del primero.
+let sondeoTimer: ReturnType<typeof setInterval> | null = null
+
+function detenerSondeoResultado() {
+  if (sondeoTimer) clearInterval(sondeoTimer)
+  sondeoTimer = null
+}
+onUnmounted(detenerSondeoResultado)
+
 function sondearResultado() {
+  detenerSondeoResultado()
   const fechaSondeada = fechaISO.value
   let totalAntes = filas.value.length
   let ciclosSinCambio = 0
@@ -579,7 +591,7 @@ function sondearResultado() {
 
   const intervalo = setInterval(async () => {
     if (fechaISO.value !== fechaSondeada) {
-      clearInterval(intervalo)
+      detenerSondeoResultado()
       ejecutando.value = false
       return
     }
@@ -592,11 +604,12 @@ function sondearResultado() {
       ciclosSinCambio += 1
     }
     if (ciclosSinCambio >= MAX_CICLOS_SIN_CAMBIO) {
-      clearInterval(intervalo)
+      detenerSondeoResultado()
       ejecutando.value = false
       avisarSiHuboFallidas(fechaSondeada)
     }
   }, 10000)
+  sondeoTimer = intervalo
 }
 
 // Una vez el sondeo se rinde (dejó de crecer el conteo de filas), se asume

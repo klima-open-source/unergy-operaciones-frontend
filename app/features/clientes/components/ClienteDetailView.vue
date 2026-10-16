@@ -323,7 +323,7 @@ async function doDelete() {
           </p>
           <div v-else class="space-y-2">
             <Item v-for="c in clientePPA" :key="c.id" as-child variant="outline">
-              <NuxtLink :to="`/contratos/${c.id}`">
+              <NuxtLink :to="`/contratos/${c.id}?tipo=ppa`">
                 <ItemMedia variant="icon" class="bg-warning/10 text-warning">
                   <FilePenIcon class="size-4" />
                 </ItemMedia>

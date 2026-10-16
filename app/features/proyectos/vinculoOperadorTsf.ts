@@ -11,6 +11,7 @@ import { OperadoresRedService } from '~/features/operadores-red/services/operado
 
 export function useVinculoOperadorTsf() {
   const operadoresRed = new OperadoresRedService()
+  const catalogo = useCatalogoOperadoresRed()
   const confirm = useConfirm()
 
   function confirmar(opciones: Omit<ConfirmOptions, 'onConfirm' | 'onCancel'>): Promise<boolean> {
@@ -32,6 +33,7 @@ export function useVinculoOperadorTsf() {
         if (!si) return
       }
       await operadoresRed.vincularOriginabot(codigo, nombre)
+      catalogo.invalidar()
     } catch {
       // Sin vínculo: quien llama sigue sin él.
     }

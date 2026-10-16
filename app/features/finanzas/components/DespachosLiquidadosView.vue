@@ -252,12 +252,15 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { aValorSelect, deValorSelect, VALOR_SELECT_VACIO } from '~/utils/select'
 import { toast } from 'vue-sonner'
-import { VERSIONES, VERSION_INICIAL, AccionCiclo } from '~/features/liquidaciones/types'
+import { VERSIONES, VERSION_INICIAL, AccionCiclo, TareaCancelada } from '~/features/liquidaciones/types'
 import { LiquidacionesApiService } from '~/features/liquidaciones/services/liquidaciones-api'
 import { mensajeDeError } from '~/utils/mensajeDeError'
 import { CircleCheckIcon, CircleXIcon, DownloadIcon, LoaderCircleIcon, PercentIcon, RefreshCwIcon, SearchIcon, TriangleAlertIcon, ZapIcon } from '@lucide/vue'
 
 const liquidacionesApi = new LiquidacionesApiService()
+// Al salir de la vista se deja de consultar el estado de la tarea (antes seguía
+// cada 5 s hasta 30 min; auditoría de peticiones del 2026-10-15).
+const alSalir = useSenalAlSalir()
 
 
 const MESES = [
@@ -458,7 +461,7 @@ async function ejecutar() {
       // Si se consultó el período que está en pantalla, refrescar el indicador.
       if (c.mes === filtros.month && c.anio === filtros.year) cargarIpp()
     } else {
-      const opciones = { onEstado: (t) => { progreso.value = t.mensaje } }
+      const opciones = { onEstado: (t) => { progreso.value = t.mensaje }, signal: alSalir }
       const res = modo.value === 'ftp'
         ? await liquidacionesApi.ejecutarAccionCiclo(AccionCiclo.DESCARGAR_XM, periodo, opciones)
         : await liquidacionesApi.ejecutarAccionCiclo(AccionCiclo.LIQUIDAR, periodo, opciones)
@@ -470,6 +473,7 @@ async function ejecutar() {
     }
     dialogVisible.value = false
   } catch (e) {
+    if (e instanceof TareaCancelada) return
     toast.error(`${cfg.value.header} falló`, {
       description: e.data?.detail || e.message,
       duration: 10000,

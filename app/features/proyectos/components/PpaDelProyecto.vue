@@ -83,7 +83,7 @@ const periodo = (c: ContratoPpa) =>
             <a :href="c.carpeta_link" target="_blank" rel="noopener"><FolderOpenIcon class="size-4" /> Carpeta</a>
           </Button>
           <Button variant="outline" size="sm" as-child>
-            <NuxtLink :to="`/contratos/${c.id}`"><ExternalLinkIcon class="size-4" /> Ver detalle completo</NuxtLink>
+            <NuxtLink :to="`/contratos/${c.id}?tipo=ppa`"><ExternalLinkIcon class="size-4" /> Ver detalle completo</NuxtLink>
           </Button>
         </div>
       </header>
