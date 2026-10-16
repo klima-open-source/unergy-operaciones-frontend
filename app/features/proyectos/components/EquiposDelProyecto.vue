@@ -4,7 +4,8 @@
  *
  * Modelo de Sara (2026-10-15): un equipo por tipo (cantidad, marca, potencia de
  * una unidad, detalle) y los inversores, cada uno con su potencia, colgados del
- * equipo de inversores. Reemplaza a las marcas sueltas de la info técnica.
+ * equipo de inversores. La marca de los inversores es la de su equipo: en una
+ * planta todos son de la misma (16-oct). Reemplaza a las marcas sueltas de la info técnica.
  *
  * Fuera del modo edición a propósito: cada cambio se guarda al momento.
  */
@@ -162,18 +163,14 @@ function inversorEnBlanco() {
     nombre: '',
     potencia_nominal_kw: null as number | null,
     cantidad_strings: null as number | null,
-    marca: '',
   }
 }
 const formInversor = reactive(inversorEnBlanco())
 
 function abrirAgregarInversor() {
   inversorEditado.value = null
-  // La de los inversores que ya hay: en una planta casi siempre es la misma.
-  const marca = activos.value.find((i) => i.marca)?.marca ?? ''
   Object.assign(formInversor, inversorEnBlanco(), {
     nombre: `Inversor ${inversores.value.length + 1}`,
-    marca,
   })
   showInversor.value = true
 }
@@ -184,7 +181,6 @@ function abrirEditarInversor(i: InversorProyecto) {
     nombre: i.nombre ?? '',
     potencia_nominal_kw: i.potencia_nominal_kw != null ? Number(i.potencia_nominal_kw) : null,
     cantidad_strings: i.cantidad_strings ?? null,
-    marca: i.marca ?? '',
   })
   showInversor.value = true
 }
@@ -195,7 +191,6 @@ async function guardarInversor() {
     nombre: formInversor.nombre.trim(),
     potencia_nominal_kw: formInversor.potencia_nominal_kw,
     cantidad_strings: formInversor.cantidad_strings,
-    marca: texto(formInversor.marca),
   }
   try {
     if (inversorEditado.value) {
@@ -339,7 +334,6 @@ function eliminarInversor(i: InversorProyecto) {
                 <GTableHead>Nombre</GTableHead>
                 <GTableHead class="text-right">Potencia (kW)</GTableHead>
                 <GTableHead class="text-right">Strings</GTableHead>
-                <GTableHead>Marca</GTableHead>
                 <GTableHead>Estado</GTableHead>
                 <GTableHead />
               </GTableRow>
@@ -353,7 +347,6 @@ function eliminarInversor(i: InversorProyecto) {
                 <GTableCell class="font-medium">{{ i.nombre || '—' }}</GTableCell>
                 <GTableCell class="text-right tabular-nums">{{ numero(i.potencia_nominal_kw) }}</GTableCell>
                 <GTableCell class="text-right tabular-nums">{{ numero(i.cantidad_strings, 0) }}</GTableCell>
-                <GTableCell>{{ i.marca || '—' }}</GTableCell>
                 <GTableCell>
                   <GBadge :color="i.estado === EstadoInversor.RETIRADO ? 'default' : 'success'">
                     {{ i.estado === EstadoInversor.RETIRADO ? 'Retirado' : 'Activo' }}
@@ -432,11 +425,14 @@ function eliminarInversor(i: InversorProyecto) {
               Es la de los inversores activos cargados.
             </p>
           </div>
+          <div class="space-y-1.5">
+            <GLabel>Marca</GLabel>
+            <Input v-model="formEquipo.marca" />
+            <p v-if="formEquipo.tipo === TipoEquipo.INVERSOR" class="text-xs text-muted-foreground">
+              La de todos los inversores de la planta.
+            </p>
+          </div>
           <template v-if="formEquipo.tipo !== TipoEquipo.INVERSOR">
-            <div class="space-y-1.5">
-              <GLabel>Marca</GLabel>
-              <Input v-model="formEquipo.marca" />
-            </div>
             <div class="space-y-1.5">
               <GLabel>Potencia de una unidad</GLabel>
               <NumberField
@@ -500,10 +496,6 @@ function eliminarInversor(i: InversorProyecto) {
             >
               <NumberFieldContent><NumberFieldInput /></NumberFieldContent>
             </NumberField>
-          </div>
-          <div class="space-y-1.5">
-            <GLabel>Marca</GLabel>
-            <Input v-model="formInversor.marca" />
           </div>
         </div>
         <DialogFooter>

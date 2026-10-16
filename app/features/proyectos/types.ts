@@ -196,7 +196,6 @@ export interface InversorProyecto {
   potencia_nominal_kw?: number | null
   orden?: number
   cantidad_strings?: number | null
-  marca?: string | null
   estado?: EstadoInversor
   [clave: string]: unknown
 }
@@ -245,7 +244,8 @@ export const AYUDA_DETALLE_EQUIPO: Partial<Record<TipoEquipo, string>> = {
 /**
  * Un equipo de la planta: uno por tipo (2 016 paneles son UNA fila con su
  * cantidad). `potencia` es la de una unidad. El de tipo inversor trae sus
- * inversores, que llevan cada uno su potencia y su marca.
+ * inversores, que llevan cada uno su potencia; la marca es la del equipo (todos
+ * los inversores de una planta son de la misma).
  */
 export interface EquipoProyecto {
   id: number
