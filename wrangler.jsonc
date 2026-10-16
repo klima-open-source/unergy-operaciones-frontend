@@ -48,6 +48,9 @@
     "NUXT_AUTH_COOKIE_MAX_AGE": "604800",
 
     "NUXT_API_PROXY_TARGET": "https://operaciones.uner.gy",
+
+    "NUXT_ORIGINABOT_PASSWORD": "",
+    "NUXT_ORIGINABOT_USER": "",
   },
 
   // Workers Logs/Traces — separado del `vars` de arriba: esto no llega a la
