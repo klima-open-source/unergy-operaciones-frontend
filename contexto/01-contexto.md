@@ -116,17 +116,17 @@ endpoints, variables y componentes.
 La navegación del sidebar es la mejor descripción de la arquitectura de información. Hoy
 (`legacy/src/components/AppSidebar.vue`):
 
-| Grupo                     | Entradas                                                                                                        |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **General**               | Dashboard · Proyectos (vista unificada) · Operadores de Red · Próximos a energizar · Retos Q                    |
-| **Comercial**             | Pipeline                                                                                                        |
-| **Operaciones**           | Generación Solar · Informes Mensuales · Gestión de Fallas · Informe de Puesta en Marcha · Pólizas               |
-| **Fronteras Comerciales** | General · Reporte de Energía                                                                                    |
-| **Registros CND/ASIC**    | Proyectos en conexión                                                                                           |
-| **Comercialización**      | Cumplimiento PPA · Descubrimientos · Garantías · GESCON/ASIC · Precio de Bolsa · Balance Energía · Clima & ENSO |
-| **Finanzas**              | Liquidaciones (10 subentradas) · Panel Contable (4) · Herramientas liquidaciones (2) · Costos                   |
-| **Alertas**               | Centro de Alertas                                                                                               |
-| **Admin**                 | Usuarios · Diagnóstico (restringido por email)                                                                  |
+| Grupo                     | Entradas                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| **General**               | Dashboard · Proyectos (vista unificada) · Operadores de Red · Próximos a energizar · Retos Q      |
+| **Comercial**             | Pipeline                                                                                          |
+| **Operaciones**           | Generación Solar · Informes Mensuales · Gestión de Fallas · Informe de Puesta en Marcha · Pólizas |
+| **Fronteras Comerciales** | General · Reporte de Energía                                                                      |
+| **Registros CND/ASIC**    | Proyectos en conexión                                                                             |
+| **Comercialización**      | Cumplimiento PPA · Descubrimientos · Garantías · GESCON/ASIC · Precio de Bolsa · SIMEM            |
+| **Finanzas**              | Liquidaciones (10 subentradas) · Panel Contable (4) · Herramientas liquidaciones (2) · Costos     |
+| **Alertas**               | Centro de Alertas                                                                                 |
+| **Admin**                 | Usuarios · Diagnóstico (restringido por email)                                                    |
 
 Fuera del menú, alcanzables solo por navegación: detalles de cliente, proyecto, contrato,
 liquidación, falla, informe, oportunidad, reto, operador de red y registro CND.

@@ -423,22 +423,12 @@ Registro de contratos ASIC/GESCON.
 
 ### 12.4 Precio de bolsa — `/mem/precio-bolsa`
 
-Precios spot de XM más pronóstico de clima, con gráfica SVG propia y señales de trading.
-`GET /evo/dailyspot/latest`, `GET /evo/dailyspot/history?days=N`,
-`GET /evo/clima/forecast`. `[R]`
+Precio de bolsa nacional por hora del SIMEM (dataset 709b84): tarjetas del mes, gráfica
+diaria y tabla día × hora. `GET /facturacion/bolsa-simem?periodo=YYYY-MM`. `[R]`
 
-### 12.5 Balance de energía — `/mem/balance`
-
-Generación, consumo y precios del mercado. `[R]`
-
-### 12.6 Clima & ENSO — `/mem/clima`
-
-Inteligencia climática: ENSO/ONI, precipitación y su correlación con el precio de energía.
-`GET /evo/clima/{oni,precip,prices,history}`. `[R]`
-
-> **Nota de infraestructura:** la API EVO se consume hoy a través de un proxy de Vite que
-> inyecta `X-EVO-Token` server-side, de modo que el token nunca llega al bundle del cliente.
-> Ese proxy debe reimplementarse como ruta Nitro; ver `03-roadmap.md`.
+Hasta el 2026-10-16 era una pestaña de SIMEM; ese día reemplazó a la página vieja
+(precios de EVO + clima) y se retiraron Balance Energía (`/mem/balance`) y Clima & ENSO
+(`/mem/clima`), con el proxy de EVO.
 
 ---
 

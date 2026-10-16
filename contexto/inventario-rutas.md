@@ -123,8 +123,6 @@ cualquier sesión autenticada.
 | `/mem/operadores-red`     | MemOperadoresRed      | `views/MEM/OperadoresRedView.vue`     | admin, operaciones | —     | `mem/operadores-red/index.vue`      |   ☐   |   ☐   |   ☐   |
 | `/mem/operadores-red/:id` | MemOperadorRedDetalle | `views/MEM/OperadorRedDetailView.vue` | admin, operaciones | —     | `mem/operadores-red/[id]/index.vue` |   ☐   |   ☐   |   ☐   |
 | `/mem/precio-bolsa`       | MemPrecioBolsa        | `views/MEM/PrecioBolsaView.vue`       | —                  | —     | `mem/precio-bolsa/index.vue`        |   ☐   |   ☐   |   ☐   |
-| `/mem/balance`            | MemBalance            | `views/MEM/BalanceView.vue`           | —                  | —     | `mem/balance/index.vue`             |   ☐   |   ☐   |   ☐   |
-| `/mem/clima`              | MemClima              | `views/MEM/ClimaView.vue`             | —                  | —     | `mem/clima/index.vue`               |   ☐   |   ☐   |   ☐   |
 | `/mem/cumplimiento`       | MemCumplimiento       | `views/MEM/CumplimientoV2View.vue`    | —                  | —     | `mem/cumplimiento/index.vue`        |   ☐   |   ☐   |   ☐   |
 | `/mem/descubrimientos`    | MemDescubrimientos    | `views/MEM/DescubrimientosView.vue`   | —                  | —     | `mem/descubrimientos/index.vue`     |   ☐   |   ☐   |   ☐   |
 | `/mem/cumplimiento-v2`    | —                     | → `/mem/cumplimiento`                 | —                  | —     | _routeRule_                         |   ☐   |   ☐   |   ☐   |

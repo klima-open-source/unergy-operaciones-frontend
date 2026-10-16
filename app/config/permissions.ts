@@ -180,8 +180,6 @@ export const AUTH_ROUTE_PERMISSIONS = {
   '/general/proximos-energizar': 'general:read',
   '/general/retos': 'retos:read',
   '/mem/precio-bolsa': 'mem-mercado:read',
-  '/mem/balance': 'mem-mercado:read',
-  '/mem/clima': 'mem-mercado:read',
   '/mem/cumplimiento': 'mem-mercado:read',
   '/mem/descubrimientos': 'mem-mercado:read',
   '/mem/simem': 'mem-mercado:read',

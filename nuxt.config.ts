@@ -81,13 +81,6 @@ export default defineNuxtConfig({
      * viajan al bundle del cliente.
      */
     apiProxyTarget: 'http://localhost:8000',
-    /**
-     * La API de EVO puede vivir en otro host, y su token **no puede tocar el
-     * navegador**: lo inyecta la ruta de Nitro. En el legacy esa garantía la daba
-     * el proxy de Vite; aquí la da `server/routes/api/v1/evo/[...path].ts`.
-     */
-    evoApiUrl: 'http://localhost:18800',
-    evoApiToken: '',
 
     // Server-only: the auth API may live on its own host, and the browser never
     // calls it — everything goes through `server/api/auth/*`. Empty falls back

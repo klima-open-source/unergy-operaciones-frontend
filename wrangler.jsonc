@@ -16,9 +16,9 @@
   // `vars` es lo que hace que estas variables aparezcan en el dashboard de
   // Cloudflare (Settings → Variables and Secrets) después de un deploy: sin
   // declararlas en algún lado, un Worker desplegado no muestra nada. Son las
-  // mismas claves de `.env.example`, sin las que son secreto real —
-  // `NUXT_EVO_API_TOKEN` se setea con `wrangler secret put`, nunca en texto
-  // plano acá, porque este archivo se commitea.
+  // mismas claves de `.env.example`. Un secreto real se setea con
+  // `wrangler secret put`, nunca en texto plano acá, porque este archivo se
+  // commitea.
   //
   // Los valores de abajo son defaults seguros para arrancar; edítalos aquí (o
   // sobreescríbelos desde el dashboard) para producción.
@@ -48,7 +48,6 @@
     "NUXT_AUTH_COOKIE_MAX_AGE": "604800",
 
     "NUXT_API_PROXY_TARGET": "https://operaciones.uner.gy",
-    "NUXT_EVO_API_URL": "",
   },
 
   // Workers Logs/Traces — separado del `vars` de arriba: esto no llega a la

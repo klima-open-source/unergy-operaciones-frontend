@@ -13,9 +13,9 @@ import type { H3Event } from 'h3'
 /**
  * Reenvía la petición tal cual, conservando método, cuerpo y cabeceras.
  *
- * `prefijoAQuitar` es para EVO, cuyo proxy en el legacy recortaba `/api/v1/evo`
- * antes de reenviar. `cabeceras` es lo que se añade server-side — un token que
- * no debe llegar al cliente.
+ * `prefijoAQuitar` recorta un prefijo antes de reenviar (lo usaba el proxy de
+ * EVO, retirado el 2026-10-16). `cabeceras` es lo que se añade server-side — un
+ * token que no debe llegar al cliente.
  */
 export function reenviar(
   event: H3Event,
